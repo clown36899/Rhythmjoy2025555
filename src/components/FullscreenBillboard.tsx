@@ -25,27 +25,38 @@ export default function FullscreenBillboard({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!isOpen || images.length === 0) return;
-
-    const startAutoplay = () => {
+    if (!isOpen || images.length === 0) {
+      // 광고판이 닫히거나 이미지가 없으면 타이머 정리 및 인덱스 초기화
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
+      setCurrentIndex(0);
+      setIsTransitioning(false);
+      return;
+    }
 
-      intervalRef.current = setInterval(() => {
-        setIsTransitioning(true);
-        setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % images.length);
-          setIsTransitioning(false);
-        }, transitionDuration);
-      }, autoSlideInterval);
-    };
+    // 기존 타이머가 있으면 정리
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
 
-    startAutoplay();
+    // 인덱스 초기화
+    setCurrentIndex(0);
+
+    // 새로운 자동 재생 시작
+    intervalRef.current = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % images.length);
+        setIsTransitioning(false);
+      }, transitionDuration);
+    }, autoSlideInterval);
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isOpen, images.length, autoSlideInterval, transitionDuration]);
