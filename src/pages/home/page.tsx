@@ -4,6 +4,7 @@ import EventList from "./components/EventList";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Footer from "./components/Footer";
+import FullscreenBillboard from "../../components/FullscreenBillboard";
 import { supabase } from "../../lib/supabase";
 
 export default function HomePage() {
@@ -17,6 +18,9 @@ export default function HomePage() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [calendarHeight, setCalendarHeight] = useState(240); // 기본 높이
   const calendarRef = useRef<HTMLDivElement>(null);
+  
+  const [billboardImages, setBillboardImages] = useState<string[]>([]);
+  const [isBillboardOpen, setIsBillboardOpen] = useState(false);
 
   // 달력 높이 측정
   useEffect(() => {
@@ -43,6 +47,46 @@ export default function HomePage() {
       resizeObserver.disconnect();
     };
   }, [currentMonth]);
+
+  // 광고판 이미지 로드 및 자동 표시
+  useEffect(() => {
+    const loadBillboardImages = async () => {
+      try {
+        const { data: events } = await supabase
+          .from("events")
+          .select("image")
+          .not("image", "is", null)
+          .neq("image", "")
+          .order("created_at", { ascending: false });
+
+        if (events && events.length > 0) {
+          const images = events.map((event) => event.image).filter(Boolean);
+          setBillboardImages(images);
+
+          const today = new Date().toDateString();
+          const dismissedDate = localStorage.getItem("billboardDismissedDate");
+          
+          if (dismissedDate !== today && images.length > 0) {
+            setIsBillboardOpen(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading billboard images:", error);
+      }
+    };
+
+    loadBillboardImages();
+  }, []);
+
+  const handleBillboardClose = () => {
+    setIsBillboardOpen(false);
+    const today = new Date().toDateString();
+    localStorage.setItem("billboardDismissedDate", today);
+  };
+
+  const handleBillboardOpen = () => {
+    setIsBillboardOpen(true);
+  };
 
   const handleDateSelect = async (date: Date | null) => {
     setSelectedDate(date);
@@ -141,6 +185,7 @@ export default function HomePage() {
           }}
           onDateReset={handleDateReset}
           onAdminModeToggle={handleAdminModeToggle}
+          onBillboardOpen={handleBillboardOpen}
         />
       </div>
 
@@ -212,6 +257,13 @@ export default function HomePage() {
       <div className="hidden lg:block">
         <Footer />
       </div>
+
+      {/* Fullscreen Billboard */}
+      <FullscreenBillboard
+        images={billboardImages}
+        isOpen={isBillboardOpen}
+        onClose={handleBillboardClose}
+      />
     </div>
   );
 }

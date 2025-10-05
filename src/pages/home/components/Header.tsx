@@ -6,6 +6,7 @@ interface HeaderProps {
   onDateChange?: (date: Date) => void;
   onDateReset?: () => void;
   onAdminModeToggle?: (isAdmin: boolean) => void;
+  onBillboardOpen?: () => void;
 }
 
 export default function Header({
@@ -14,6 +15,7 @@ export default function Header({
   onDateChange,
   onDateReset,
   onAdminModeToggle,
+  onBillboardOpen,
 }: HeaderProps) {
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(
@@ -114,12 +116,21 @@ export default function Header({
               </div>
             </div>
 
-            {/* Center: Settings Button */}
+            {/* Center: Billboard & Settings Button */}
             <div className="hidden lg:flex items-center space-x-2">
               {isAdminMode && (
                 <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                   관리자 모드
                 </span>
+              )}
+              {onBillboardOpen && (
+                <button
+                  onClick={onBillboardOpen}
+                  className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
+                  title="광고판 보기"
+                >
+                  <i className="ri-image-line text-lg"></i>
+                </button>
               )}
               <button
                 onClick={handleSettingsClick}
@@ -160,12 +171,21 @@ export default function Header({
               </div>
             )}
 
-            {/* Right: Mobile Settings Button */}
+            {/* Right: Mobile Billboard & Settings Button */}
             <div className="lg:hidden flex items-center space-x-2">
               {isAdminMode && (
                 <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
                   관리자
                 </span>
+              )}
+              {onBillboardOpen && (
+                <button
+                  onClick={onBillboardOpen}
+                  className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
+                  title="광고판 보기"
+                >
+                  <i className="ri-image-line text-lg"></i>
+                </button>
               )}
               <button
                 onClick={handleSettingsClick}
