@@ -1036,7 +1036,7 @@ export default function EventList({
                       }
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
                     >
-                      {categories.slice(1).map((category) => (
+                      {categories.filter(cat => cat.id === 'class' || cat.id === 'event').map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
                         </option>
