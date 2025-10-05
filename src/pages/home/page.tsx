@@ -20,6 +20,7 @@ export default function HomePage() {
   const calendarRef = useRef<HTMLDivElement>(null);
   
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
+  const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
 
   // 달력 높이 측정
@@ -52,21 +53,26 @@ export default function HomePage() {
   useEffect(() => {
     const loadBillboardImages = async () => {
       try {
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+
         const { data: events } = await supabase
           .from("events")
-          .select("image")
+          .select("*")
           .not("image", "is", null)
           .neq("image", "")
-          .order("created_at", { ascending: false });
+          .gte("date", todayString)
+          .order("date", { ascending: true });
 
         if (events && events.length > 0) {
           const images = events.map((event) => event.image).filter(Boolean);
           setBillboardImages(images);
+          setBillboardEvents(events);
 
-          const today = new Date().toDateString();
+          const todayStr = today.toDateString();
           const dismissedDate = localStorage.getItem("billboardDismissedDate");
           
-          if (dismissedDate !== today && images.length > 0) {
+          if (dismissedDate !== todayStr && images.length > 0) {
             setIsBillboardOpen(true);
           }
         }
