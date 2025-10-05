@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
@@ -118,6 +118,67 @@ export default function EventCalendar({
     const today = new Date();
     return date.toDateString() === today.toDateString();
   };
+
+  // 월 단위로 멀티데이 이벤트의 레인과 색상 할당
+  const eventLaneMap = useMemo(() => {
+    const map = new Map<number, { lane: number; color: string }>();
+    const usedColors = new Set<string>();
+    
+    // 현재 월의 멀티데이 이벤트만 필터링
+    const multiDayEvents = events.filter((event) => {
+      const startDate = event.start_date || event.date || '';
+      const endDate = event.end_date || event.date || '';
+      return startDate !== endDate;
+    });
+    
+    // 시작 날짜 기준으로 정렬
+    const sortedEvents = [...multiDayEvents].sort((a, b) => {
+      const dateA = a.start_date || a.date || '';
+      const dateB = b.start_date || b.date || '';
+      return dateA.localeCompare(dateB);
+    });
+    
+    // 레인 할당: 겹치지 않는 이벤트는 같은 레인 사용 가능
+    const lanes: Array<{ endDate: string; eventId: number }> = [];
+    
+    sortedEvents.forEach((event) => {
+      const startDate = event.start_date || event.date || '';
+      const endDate = event.end_date || event.date || '';
+      
+      // 사용 가능한 레인 찾기 (종료된 레인 재사용)
+      let assignedLane = -1;
+      for (let i = 0; i < lanes.length; i++) {
+        if (lanes[i].endDate < startDate) {
+          assignedLane = i;
+          lanes[i] = { endDate, eventId: event.id };
+          break;
+        }
+      }
+      
+      // 사용 가능한 레인이 없으면 새 레인 추가
+      if (assignedLane === -1) {
+        assignedLane = lanes.length;
+        lanes.push({ endDate, eventId: event.id });
+      }
+      
+      // 색상 할당: 이미 사용된 색상 피하기
+      let colorIndex = 0;
+      let eventColorObj = getEventColor(event.id);
+      let colorBg = eventColorObj.bg;
+      
+      // 충돌 시 다음 색상 시도
+      while (usedColors.has(colorBg) && colorIndex < 100) {
+        colorIndex++;
+        eventColorObj = getEventColor(event.id + colorIndex * 1000);
+        colorBg = eventColorObj.bg;
+      }
+      
+      usedColors.add(colorBg);
+      map.set(event.id, { lane: assignedLane, color: colorBg });
+    });
+    
+    return map;
+  }, [events, currentMonth]);
 
   const navigateMonth = (direction: "prev" | "next") => {
     if (isAnimating) return;
@@ -287,16 +348,27 @@ export default function EventCalendar({
         return startDate === endDate;
       });
 
-      // 연속 이벤트 바 정보 계산 (최대 3개, 이벤트 ID 기반 고유 색상)
-      const eventBars = multiDayEvents.slice(0, 3).map((event) => {
-        const startDate = event.start_date || event.date || '';
-        const endDate = event.end_date || event.date || '';
-        const isStart = dateString === startDate;
-        const isEnd = dateString === endDate;
-        const eventColor = getEventColor(event.id);
-
-        return { isStart, isEnd, categoryColor: eventColor.bg };
-      });
+      // 연속 이벤트 바 정보 계산 (레인 맵 기반으로 정렬 및 색상 할당)
+      const eventBarsData = multiDayEvents
+        .map((event) => {
+          const laneInfo = eventLaneMap.get(event.id);
+          if (!laneInfo) return null;
+          
+          const startDate = event.start_date || event.date || '';
+          const endDate = event.end_date || event.date || '';
+          const isStart = dateString === startDate;
+          const isEnd = dateString === endDate;
+          
+          return {
+            lane: laneInfo.lane,
+            isStart,
+            isEnd,
+            categoryColor: laneInfo.color,
+          };
+        })
+        .filter((bar): bar is NonNullable<typeof bar> => bar !== null)
+        .sort((a, b) => a.lane - b.lane)
+        .slice(0, 3);
 
       return (
         <div key={`${monthDate.getMonth()}-${index}`} className="h-7 lg:aspect-square p-0 lg:p-0 relative">
@@ -333,9 +405,9 @@ export default function EventCalendar({
           </button>
 
           {/* 이벤트 바 표시 - 버튼 아래에 절대 위치 */}
-          {eventBars.length > 0 && (
+          {eventBarsData.length > 0 && (
             <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 pointer-events-none z-0">
-              {eventBars.map((bar, i) => (
+              {eventBarsData.map((bar, i) => (
                 <div
                   key={i}
                   className={`h-0.5 lg:h-1 w-full ${bar.categoryColor} ${
