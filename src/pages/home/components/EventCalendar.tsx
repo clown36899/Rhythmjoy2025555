@@ -27,6 +27,8 @@ export default function EventCalendar({
   const [clickedDate, setClickedDate] = useState<Date | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
 
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
@@ -112,18 +114,29 @@ export default function EventCalendar({
   };
 
   const navigateMonth = (direction: "prev" | "next") => {
-    const newMonth = new Date(currentMonth);
-    if (direction === "prev") {
-      newMonth.setMonth(currentMonth.getMonth() - 1);
-    } else {
-      newMonth.setMonth(currentMonth.getMonth() + 1);
-    }
+    if (isAnimating) return;
 
-    setInternalCurrentMonth(newMonth);
-    onMonthChange?.(newMonth);
+    // 애니메이션 시작
+    setIsAnimating(true);
+    setSlideDirection(direction === "next" ? "left" : "right");
 
-    // 달 이동 시 선택된 날짜 초기화
-    onDateSelect(null);
+    // 애니메이션 완료 후 실제 달 변경
+    setTimeout(() => {
+      const newMonth = new Date(currentMonth);
+      if (direction === "prev") {
+        newMonth.setMonth(currentMonth.getMonth() - 1);
+      } else {
+        newMonth.setMonth(currentMonth.getMonth() + 1);
+      }
+
+      setInternalCurrentMonth(newMonth);
+      onMonthChange?.(newMonth);
+      onDateSelect(null);
+
+      // 애니메이션 종료
+      setIsAnimating(false);
+      setSlideDirection(null);
+    }, 300);
   };
 
   const navigateToMonth = (monthIndex: number) => {
@@ -288,12 +301,21 @@ export default function EventCalendar({
         </div>
 
         {/* Calendar grid */}
-        <div 
-          className="grid grid-cols-7 gap-0 lg:gap-1 flex-1 px-1 lg:px-0 pb-2 lg:pb-0"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
+        <div className="overflow-hidden flex-1">
+          <div 
+            className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 transition-transform duration-300 ease-out"
+            style={{
+              transform: isAnimating 
+                ? slideDirection === 'left' 
+                  ? 'translateX(-100%)' 
+                  : 'translateX(100%)'
+                : 'translateX(0)',
+              opacity: isAnimating ? 0.5 : 1
+            }}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
           {days.map((day, index) => {
             const eventCount = day ? getEventCount(day) : 0;
             const todayFlag = day ? isToday(day) : false;
@@ -351,6 +373,7 @@ export default function EventCalendar({
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
