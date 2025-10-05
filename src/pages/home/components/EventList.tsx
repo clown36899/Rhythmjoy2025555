@@ -520,30 +520,20 @@ export default function EventList({
       if (editImageFile) {
         const fileName = `${Date.now()}_${editImageFile.name}`;
         const { error: uploadError } = await supabase.storage
-          .from("event-images")
+          .from("event-posters")
           .upload(fileName, editImageFile);
 
         if (uploadError) {
           console.error("Storage upload error:", uploadError);
-          // Storage 에러 시 사용자에게 선택권 제공
-          const continueWithoutImage = confirm(
-            "이미지 업로드에 실패했습니다.\n\n" +
-            "Supabase Storage에 'event-images' 버킷이 생성되어 있는지 확인해주세요.\n\n" +
-            "이미지 없이 다른 정보만 수정하시겠습니까?"
-          );
-          
-          if (!continueWithoutImage) {
-            return;
-          }
-          // 기존 이미지 유지
-          imageUrl = editFormData.image;
-        } else {
-          const { data } = supabase.storage
-            .from("event-images")
-            .getPublicUrl(fileName);
-
-          imageUrl = data.publicUrl;
+          alert("이미지 업로드 중 오류가 발생했습니다.");
+          return;
         }
+
+        const { data } = supabase.storage
+          .from("event-posters")
+          .getPublicUrl(fileName);
+
+        imageUrl = data.publicUrl;
       }
 
       const { error } = await supabase
