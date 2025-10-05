@@ -10,6 +10,8 @@ export interface Event {
   id: number;
   title: string;
   date: string;
+  start_date?: string;
+  end_date?: string;
   time: string;
   location: string;
   category: string;
