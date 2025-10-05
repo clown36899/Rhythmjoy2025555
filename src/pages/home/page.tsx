@@ -12,9 +12,6 @@ import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [activeCategoriesForDate, setActiveCategoriesForDate] = useState<
-    string[]
-  >([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -200,22 +197,17 @@ export default function HomePage() {
           const uniqueCategories = [
             ...new Set(events.map((event) => event.category)),
           ];
-          setActiveCategoriesForDate(uniqueCategories);
 
-          // 첫 번째 카테고리로 설정 (하지만 실제로는 모든 카테고리가 활성화됨)
+          // 첫 번째 카테고리로 설정
           setSelectedCategory(uniqueCategories[0]);
         } else {
-          // 이벤트가 없으면 빈 배열
-          setActiveCategoriesForDate([]);
+          // 이벤트가 없으면 "all" 카테고리로 설정
           setSelectedCategory("all");
         }
       } catch (error) {
         console.error("Error fetching events for date:", error);
-        setActiveCategoriesForDate([]);
         setSelectedCategory("all");
       }
-    } else {
-      setActiveCategoriesForDate([]);
     }
   };
 
@@ -223,7 +215,6 @@ export default function HomePage() {
     setCurrentMonth(month);
     // 달 이동 시 날짜만 리셋 (카테고리는 유지)
     setSelectedDate(null);
-    setActiveCategoriesForDate([]);
   };
 
   const handleEventsUpdate = () => {
@@ -239,7 +230,6 @@ export default function HomePage() {
     // "모든 이벤트"를 클릭했을 때 선택된 날짜 초기화
     if (category === "all") {
       setSelectedDate(null);
-      setActiveCategoriesForDate([]);
     }
   };
 
@@ -259,13 +249,11 @@ export default function HomePage() {
             setCurrentMonth(newMonth);
             // 달 이동 시 날짜만 리셋 (카테고리는 유지)
             setSelectedDate(null);
-            setActiveCategoriesForDate([]);
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
             // 날짜 변경 시 날짜만 리셋 (카테고리는 유지)
             setSelectedDate(null);
-            setActiveCategoriesForDate([]);
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
@@ -288,7 +276,6 @@ export default function HomePage() {
             <EventList
               selectedDate={selectedDate}
               selectedCategory={selectedCategory}
-              activeCategoriesForDate={activeCategoriesForDate}
               onCategoryChange={handleCategoryChange}
               currentMonth={currentMonth}
               refreshTrigger={refreshTrigger}
@@ -325,7 +312,6 @@ export default function HomePage() {
               <EventList
                 selectedDate={selectedDate}
                 selectedCategory={selectedCategory}
-                activeCategoriesForDate={activeCategoriesForDate}
                 onCategoryChange={handleCategoryChange}
                 currentMonth={currentMonth}
                 refreshTrigger={refreshTrigger}

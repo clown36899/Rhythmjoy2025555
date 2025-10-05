@@ -6,7 +6,6 @@ import PracticeRoomModal from "../../../components/PracticeRoomModal";
 interface EventListProps {
   selectedDate: Date | null;
   selectedCategory: string;
-  activeCategoriesForDate: string[];
   onCategoryChange: (category: string) => void;
   currentMonth?: Date;
   refreshTrigger?: number;
@@ -16,7 +15,6 @@ interface EventListProps {
 export default function EventList({
   selectedDate,
   selectedCategory,
-  activeCategoriesForDate,
   onCategoryChange,
   currentMonth,
   refreshTrigger,
@@ -583,11 +581,7 @@ export default function EventList({
 
   // 카테고리 버튼이 활성화되어야 하는지 확인하는 함수
   const isCategoryActive = (categoryId: string) => {
-    if (selectedDate && activeCategoriesForDate.length > 0) {
-      // 날짜가 선택된 경우, 해당 날짜의 카테고리들만 활성화
-      return activeCategoriesForDate.includes(categoryId);
-    }
-    // 날짜가 선택되지 않은 경우 기존 로직
+    // 현재 선택된 카테고리인지만 확인 (모든 버튼 항상 클릭 가능)
     return selectedCategory === categoryId;
   };
 
