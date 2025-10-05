@@ -587,10 +587,13 @@ export default function EventList({
   const isCategoryActive = (categoryId: string) => {
     // 날짜가 선택되었고 selectedCategory가 "all"일 때
     if (selectedDate && selectedCategory === "all") {
-      // "전체" 버튼은 비활성화, 강습/행사 버튼은 둘 다 활성화
+      // 해당 날짜에 실제로 이벤트가 있는지 확인
+      const hasEvents = filteredEvents.length > 0;
+      
+      // 이벤트가 있을 때만 강습/행사 버튼 활성화
       if (categoryId === "all") {
         return false;
-      } else if (categoryId === "class" || categoryId === "event") {
+      } else if ((categoryId === "class" || categoryId === "event") && hasEvents) {
         return true;
       }
     }
