@@ -791,11 +791,13 @@ export default function EventList({
                 ))}
               </div>
             </>
-          ) : selectedDate ? null : (
+          ) : (
             <div className="text-center py-8">
               <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
               <p className="text-gray-400">
-                해당 조건에 맞는 이벤트가 없습니다
+                {selectedDate && selectedCategory === 'class' ? '강습이 없습니다' : 
+                 selectedDate && selectedCategory === 'event' ? '행사가 없습니다' : 
+                 '해당 조건에 맞는 이벤트가 없습니다'}
               </p>
             </div>
           )}
