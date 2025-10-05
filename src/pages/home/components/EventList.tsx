@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase, Event } from "../../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
+import type { Event } from "../../../lib/supabase";
 import PracticeRoomModal from "../../../components/PracticeRoomModal";
 
 interface EventListProps {
@@ -53,11 +54,6 @@ export default function EventList({
     linkName2: "",
     linkName3: "",
   });
-
-  // 랜덤 정렬을 위한 시드 생성 함수
-  const generateSeed = () => {
-    return Math.random();
-  };
 
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
