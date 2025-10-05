@@ -56,6 +56,13 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     }));
   };
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // 모바일에서 키보드가 올라올 시간을 주기 위해 약간의 지연
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  };
+
   const handleTimeSelect = (time: string) => {
     setFormData(prev => ({
       ...prev,
@@ -219,6 +226,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
+                  onFocus={handleInputFocus}
                   required
                   className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="이벤트 제목을 입력하세요"
@@ -235,6 +243,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
+                  onFocus={handleInputFocus}
                   required
                   className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="이벤트 수정을 위한 비밀번호를 설정하세요"
@@ -288,6 +297,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     name="location"
                     value={formData.location}
                     onChange={handleInputChange}
+                    onFocus={handleInputFocus}
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="이벤트 장소"
                   />
@@ -301,6 +311,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     name="organizer"
                     value={formData.organizer}
                     onChange={handleInputChange}
+                    onFocus={handleInputFocus}
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="주최자명"
                   />
@@ -341,6 +352,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       name="link1"
                       value={formData.link1}
                       onChange={handleInputChange}
+                      onFocus={handleInputFocus}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="링크 1 URL"
                     />
@@ -349,6 +361,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       name="linkName1"
                       value={formData.linkName1}
                       onChange={handleInputChange}
+                      onFocus={handleInputFocus}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="링크 1 이름"
                     />
@@ -359,6 +372,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       name="link2"
                       value={formData.link2}
                       onChange={handleInputChange}
+                      onFocus={handleInputFocus}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="링크 2 URL"
                     />
@@ -367,6 +381,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       name="linkName2"
                       value={formData.linkName2}
                       onChange={handleInputChange}
+                      onFocus={handleInputFocus}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="링크 2 이름"
                     />
@@ -377,6 +392,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       name="link3"
                       value={formData.link3}
                       onChange={handleInputChange}
+                      onFocus={handleInputFocus}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="링크 3 URL"
                     />
@@ -385,6 +401,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       name="linkName3"
                       value={formData.linkName3}
                       onChange={handleInputChange}
+                      onFocus={handleInputFocus}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="링크 3 이름"
                     />
@@ -402,6 +419,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
+                    onFocus={handleInputFocus}
                     rows={isDescriptionExpanded ? 8 : 3}
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all duration-300 text-sm"
                     placeholder="이벤트에 대한 자세한 설명을 입력하세요"
