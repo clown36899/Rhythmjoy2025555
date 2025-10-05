@@ -313,60 +313,63 @@ export default function EventList({
     }
   };
 
-  const filteredEvents = events.filter((event) => {
-    // 날짜가 선택된 경우
-    if (selectedDate) {
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-      const day = String(selectedDate.getDate()).padStart(2, "0");
-      const selectedDateString = `${year}-${month}-${day}`;
+  // 필터링된 이벤트 (useMemo로 캐싱하여 불필요한 재필터링 방지)
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
+      // 날짜가 선택된 경우
+      if (selectedDate) {
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+        const day = String(selectedDate.getDate()).padStart(2, "0");
+        const selectedDateString = `${year}-${month}-${day}`;
 
-      const startDate = event.start_date || event.date || '';
-      const endDate = event.end_date || event.date || '';
-      const matchesDate = startDate && endDate && selectedDateString >= startDate && selectedDateString <= endDate;
-      
-      // 날짜가 선택되었을 때도 사용자가 카테고리를 선택하면 필터 적용
+        const startDate = event.start_date || event.date || '';
+        const endDate = event.end_date || event.date || '';
+        const matchesDate = startDate && endDate && selectedDateString >= startDate && selectedDateString <= endDate;
+        
+        // 날짜가 선택되었을 때도 사용자가 카테고리를 선택하면 필터 적용
+        const matchesCategory =
+          selectedCategory === "all" || event.category === selectedCategory;
+        
+        const matchesSearch =
+          event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.location.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesDate && matchesCategory && matchesSearch;
+      }
+
+      // 날짜가 선택되지 않은 경우 기존 로직 사용
       const matchesCategory =
         selectedCategory === "all" || event.category === selectedCategory;
-      
       const matchesSearch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesDate && matchesCategory && matchesSearch;
-    }
-
-    // 날짜가 선택되지 않은 경우 기존 로직 사용
-    const matchesCategory =
-      selectedCategory === "all" || event.category === selectedCategory;
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchTerm.toLowerCase());
-
-    let matchesDate = true;
-    if (currentMonth) {
-      const startDate = event.start_date || event.date;
-      const endDate = event.end_date || event.date;
-      
-      // 날짜 정보가 없는 이벤트는 필터링에서 제외
-      if (!startDate || !endDate) {
-        matchesDate = false;
-      } else {
-        const eventStartDate = new Date(startDate);
-        const eventEndDate = new Date(endDate);
+      let matchesDate = true;
+      if (currentMonth) {
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
         
-        // 현재 월의 첫날과 마지막 날
-        const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-        
-        // 이벤트가 현재 월과 겹치는지 확인
-        // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
-        matchesDate = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+        // 날짜 정보가 없는 이벤트는 필터링에서 제외
+        if (!startDate || !endDate) {
+          matchesDate = false;
+        } else {
+          const eventStartDate = new Date(startDate);
+          const eventEndDate = new Date(endDate);
+          
+          // 현재 월의 첫날과 마지막 날
+          const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+          const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+          
+          // 이벤트가 현재 월과 겹치는지 확인
+          // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
+          matchesDate = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+        }
       }
-    }
 
-    return matchesCategory && matchesSearch && matchesDate;
-  });
+      return matchesCategory && matchesSearch && matchesDate;
+    });
+  }, [events, selectedDate, selectedCategory, searchTerm, currentMonth]);
 
   // 필터링된 이벤트를 정렬 (useMemo로 캐싱하여 불필요한 재정렬 방지)
   const sortedEvents = useMemo(() => {
