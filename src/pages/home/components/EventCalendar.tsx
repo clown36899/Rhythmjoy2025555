@@ -98,14 +98,22 @@ export default function EventCalendar({
     return days;
   };
 
-  const getEventCount = (date: Date) => {
-    // 로컬 시간대를 유지하여 날짜 문자열 생성
+  const getEventsForDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const dateString = `${year}-${month}-${day}`;
 
-    return events.filter((event) => event.date === dateString).length;
+    return events.filter((event) => {
+      const startDate = event.start_date || event.date;
+      const endDate = event.end_date || event.date;
+      
+      return dateString >= startDate && dateString <= endDate;
+    });
+  };
+
+  const getEventCount = (date: Date) => {
+    return getEventsForDate(date).length;
   };
 
   const isToday = (date: Date) => {
@@ -256,58 +264,70 @@ export default function EventCalendar({
   // 달력 렌더링 함수
   const renderCalendarGrid = (days: (Date | null)[], monthDate: Date) => {
     return days.map((day, index) => {
-      const eventCount = day ? getEventCount(day) : 0;
-      const todayFlag = day ? isToday(day) : false;
+      if (!day) {
+        return <div key={`${monthDate.getMonth()}-${index}`} className="h-7 lg:aspect-square p-0 lg:p-0"></div>;
+      }
+
+      const dayEvents = getEventsForDate(day);
+      const todayFlag = isToday(day);
+
+      const year = day.getFullYear();
+      const month = String(day.getMonth() + 1).padStart(2, "0");
+      const dayNum = String(day.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${dayNum}`;
+
+      // 이벤트 바 정보 계산
+      const eventBars = dayEvents.slice(0, 3).map((event) => {
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+        const isStart = dateString === startDate;
+        const isEnd = dateString === endDate;
+        const isSingle = startDate === endDate;
+        const categoryColor = event.category === 'class' ? 'bg-purple-500' : 'bg-blue-500';
+
+        return { isStart, isEnd, isSingle, categoryColor };
+      });
+
       return (
-        <div key={`${monthDate.getMonth()}-${index}`} className="h-7 lg:aspect-square p-0 lg:p-0">
-          {day && (
-            <button
-              onClick={() => handleDateClick(day)}
-              className={`w-full h-full flex flex-col items-center justify-center text-[13px] lg:text-sm rounded lg:rounded-lg transition-all duration-300 cursor-pointer relative overflow-hidden ${
-                selectedDate &&
-                day.toDateString() === selectedDate.toDateString()
-                  ? "bg-blue-600 text-white transform scale-105"
-                  : "text-gray-300 hover:bg-gray-700"
-              }`}
-            >
-              {/* 날짜 숫자 */}
-              <span className="font-bold relative z-10">
-                {day.getDate()}
-              </span>
+        <div key={`${monthDate.getMonth()}-${index}`} className="h-7 lg:aspect-square p-0 lg:p-0 relative">
+          <button
+            onClick={() => handleDateClick(day)}
+            className={`w-full h-full flex flex-col items-center justify-center text-[13px] lg:text-sm rounded lg:rounded-lg transition-all duration-300 cursor-pointer relative overflow-visible ${
+              selectedDate &&
+              day.toDateString() === selectedDate.toDateString()
+                ? "bg-blue-600 text-white transform scale-105 z-10"
+                : "text-gray-300 hover:bg-gray-700"
+            }`}
+          >
+            {/* 날짜 숫자 */}
+            <span className="font-bold relative z-10">
+              {day.getDate()}
+            </span>
 
-              {/* 오늘 표시 */}
-              {todayFlag && (
-                <div className="relative z-10 flex items-center justify-center mt-0.5">
-                  <div className="text-blue-400 text-[8px] lg:text-[16px] font-black leading-none">
-                    오늘
-                  </div>
+            {/* 오늘 표시 */}
+            {todayFlag && (
+              <div className="relative z-10 flex items-center justify-center mt-0.5">
+                <div className="text-blue-400 text-[8px] lg:text-[16px] font-black leading-none">
+                  오늘
                 </div>
-              )}
+              </div>
+            )}
+          </button>
 
-              {/* 이벤트 개수 표시 - 파란 점으로만 표시 */}
-              {eventCount > 0 && (
+          {/* 이벤트 바 표시 - 버튼 아래에 절대 위치 */}
+          {eventBars.length > 0 && (
+            <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 px-0.5 pb-0.5 pointer-events-none z-0">
+              {eventBars.map((bar, i) => (
                 <div
-                  className={`flex items-center justify-center relative z-10 ${todayFlag ? "mt-0" : "mt-0.5 lg:mt-1"}`}
-                >
-                  {eventCount <= 3 ? (
-                    <div className="flex space-x-0.5">
-                      {Array.from({
-                        length: Math.min(eventCount, 3),
-                      }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-blue-400"
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-blue-400 text-white text-[4px] lg:text-[8px] rounded-full w-2.5 h-2.5 lg:w-4 lg:h-4 flex items-center justify-center font-bold leading-none">
-                      {eventCount}
-                    </div>
-                  )}
-                </div>
-              )}
-            </button>
+                  key={i}
+                  className={`h-0.5 lg:h-1 ${bar.categoryColor} ${
+                    bar.isSingle ? 'rounded-full' :
+                    bar.isStart ? 'rounded-l-full' :
+                    bar.isEnd ? 'rounded-r-full' : ''
+                  }`}
+                />
+              ))}
+            </div>
           )}
         </div>
       );
