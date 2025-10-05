@@ -188,17 +188,9 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
 
   const modalContent = (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-8 z-[999999] overflow-y-auto">
-        {/* 닫기 버튼 - 모달 외부 상단 중앙 */}
-        <button
-          onClick={onClose}
-          className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white p-3 rounded-full hover:bg-opacity-90 transition-colors cursor-pointer z-[999999]"
-        >
-          <i className="ri-close-line text-xl"></i>
-        </button>
-
-        <div className="bg-gray-800 rounded-lg max-w-2xl w-full my-16 relative z-[999999] min-h-0">
-          <div className="p-4 max-h-[calc(100vh-8rem)] overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-10 z-[999999] overflow-y-auto">
+        <div className="bg-gray-800 rounded-lg max-w-2xl w-full mb-10 relative z-[999999]">
+          <div className="p-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-white">
                 {selectedDate.toLocaleDateString('ko-KR', { 
@@ -208,7 +200,12 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   weekday: 'long'
                 })} 이벤트 등록
               </h2>
-              {/* 기존 닫기 버튼 제거 */}
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <i className="ri-close-line text-2xl"></i>
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3">
