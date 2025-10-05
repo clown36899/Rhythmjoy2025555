@@ -73,8 +73,13 @@ export default function EventList({
       case "time":
         // 시간순 정렬 (날짜 + 시간)
         return eventsCopy.sort((a, b) => {
-          const dateA = new Date(`${a.start_date || a.date} ${a.time}`);
-          const dateB = new Date(`${b.start_date || b.date} ${b.time}`);
+          const dateStrA = a.start_date || a.date;
+          const dateStrB = b.start_date || b.date;
+          if (!dateStrA && !dateStrB) return 0;
+          if (!dateStrA) return 1;
+          if (!dateStrB) return -1;
+          const dateA = new Date(`${dateStrA} ${a.time}`);
+          const dateB = new Date(`${dateStrB} ${b.time}`);
           return dateA.getTime() - dateB.getTime();
         });
       case "title":
@@ -83,8 +88,13 @@ export default function EventList({
       case "newest":
         // 최신순 정렬 (생성일 기준)
         return eventsCopy.sort((a, b) => {
-          const dateA = new Date(a.created_at || a.start_date || a.date || '');
-          const dateB = new Date(b.created_at || b.start_date || b.date || '');
+          const dateStrA = a.created_at || a.start_date || a.date;
+          const dateStrB = b.created_at || b.start_date || b.date;
+          if (!dateStrA && !dateStrB) return 0;
+          if (!dateStrA) return 1;
+          if (!dateStrB) return -1;
+          const dateA = new Date(dateStrA);
+          const dateB = new Date(dateStrB);
           return dateB.getTime() - dateA.getTime();
         });
       default:
@@ -331,18 +341,24 @@ export default function EventList({
 
     let matchesDate = true;
     if (currentMonth) {
-      const startDate = event.start_date || event.date || '';
-      const endDate = event.end_date || event.date || '';
-      const eventStartDate = new Date(startDate);
-      const eventEndDate = new Date(endDate);
+      const startDate = event.start_date || event.date;
+      const endDate = event.end_date || event.date;
       
-      // 현재 월의 첫날과 마지막 날
-      const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-      
-      // 이벤트가 현재 월과 겹치는지 확인
-      // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
-      matchesDate = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+      // 날짜 정보가 없는 이벤트는 필터링에서 제외
+      if (!startDate || !endDate) {
+        matchesDate = false;
+      } else {
+        const eventStartDate = new Date(startDate);
+        const eventEndDate = new Date(endDate);
+        
+        // 현재 월의 첫날과 마지막 날
+        const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+        const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+        
+        // 이벤트가 현재 월과 겹치는지 확인
+        // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
+        matchesDate = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+      }
     }
 
     return matchesCategory && matchesSearch && matchesDate;
@@ -701,7 +717,9 @@ export default function EventList({
                     />
                     <div className="p-2">
                       <p className="text-xs text-gray-300 text-center">
-                        {new Date(event.start_date || event.date || '').toLocaleDateString()}
+                        {(event.start_date || event.date) 
+                          ? new Date(event.start_date || event.date || '').toLocaleDateString()
+                          : '날짜 미정'}
                       </p>
                     </div>
                   </div>
@@ -730,7 +748,9 @@ export default function EventList({
                           <div className="flex items-center space-x-1">
                             <i className="ri-calendar-line"></i>
                             <span>
-                              {new Date(event.start_date || event.date || '').toLocaleDateString()}
+                              {(event.start_date || event.date)
+                                ? new Date(event.start_date || event.date || '').toLocaleDateString()
+                                : '날짜 미정'}
                             </span>
                           </div>
                           <div className="flex items-center space-x-1">
@@ -1332,15 +1352,17 @@ export default function EventList({
                     <div className="flex items-center space-x-3 text-gray-300 text-sm">
                       <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                       <span>
-                        {new Date(selectedEvent.start_date || selectedEvent.date || '').toLocaleDateString(
-                          "ko-KR",
-                          {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            weekday: "long",
-                          },
-                        )}
+                        {(selectedEvent.start_date || selectedEvent.date)
+                          ? new Date(selectedEvent.start_date || selectedEvent.date || '').toLocaleDateString(
+                              "ko-KR",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                                weekday: "long",
+                              },
+                            )
+                          : '날짜 미정'}
                       </span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-300 text-sm">
