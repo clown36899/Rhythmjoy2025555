@@ -7,6 +7,8 @@ interface FullscreenBillboardProps {
   isOpen: boolean;
   onClose: () => void;
   onEventClick: (event: any) => void;
+  autoSlideInterval?: number;
+  transitionDuration?: number;
 }
 
 export default function FullscreenBillboard({
@@ -15,6 +17,8 @@ export default function FullscreenBillboard({
   isOpen,
   onClose,
   onEventClick,
+  autoSlideInterval = 5000,
+  transitionDuration = 300,
 }: FullscreenBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -33,8 +37,8 @@ export default function FullscreenBillboard({
         setTimeout(() => {
           setCurrentIndex((prev) => (prev + 1) % images.length);
           setIsTransitioning(false);
-        }, 300);
-      }, 5000);
+        }, transitionDuration);
+      }, autoSlideInterval);
     };
 
     startAutoplay();
@@ -44,7 +48,7 @@ export default function FullscreenBillboard({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isOpen, images.length]);
+  }, [isOpen, images.length, autoSlideInterval, transitionDuration]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -91,9 +95,10 @@ export default function FullscreenBillboard({
         <img
           src={images[currentIndex]}
           alt="Event Billboard"
-          className={`max-w-full max-h-full object-contain transition-opacity duration-300 cursor-pointer ${
+          className={`max-w-full max-h-full object-contain transition-opacity cursor-pointer ${
             isTransitioning ? "opacity-0" : "opacity-100"
           }`}
+          style={{ transitionDuration: `${transitionDuration}ms` }}
           onClick={handleImageClick}
         />
 

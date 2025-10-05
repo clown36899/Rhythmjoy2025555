@@ -353,13 +353,17 @@ export default function HomePage() {
       </div>
 
       {/* Fullscreen Billboard */}
-      <FullscreenBillboard
-        images={billboardImages}
-        events={billboardEvents}
-        isOpen={isBillboardOpen}
-        onClose={handleBillboardClose}
-        onEventClick={handleBillboardEventClick}
-      />
+      {settings.enabled && (
+        <FullscreenBillboard
+          images={billboardImages}
+          events={billboardEvents}
+          isOpen={isBillboardOpen}
+          onClose={handleBillboardClose}
+          onEventClick={handleBillboardEventClick}
+          autoSlideInterval={settings.autoSlideInterval}
+          transitionDuration={settings.transitionDuration}
+        />
+      )}
     </div>
   );
 }
