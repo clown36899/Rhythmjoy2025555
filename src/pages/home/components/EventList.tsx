@@ -609,7 +609,7 @@ export default function EventList({
         </div>
 
         {/* Events List */}
-        <div className="lg:space-y-4 lg:max-h-96 lg:overflow-y-auto">
+        <div className="lg:space-y-4 lg:max-h-96 lg:overflow-y-auto lg:pr-2">
           {sortedEvents.length > 0 ? (
             <>
               {/* Mobile: Grid layout with 3 columns - poster ratio */}
@@ -618,7 +618,7 @@ export default function EventList({
                   <div
                     key={event.id}
                     onClick={() => handleEventClick(event)}
-                    className="bg-gray-700 rounded-xl overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative"
+                    className="bg-gray-700 overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative border border-gray-600"
                   >
                     <img
                       src={event.image}
@@ -646,7 +646,7 @@ export default function EventList({
                       <img
                         src={event.image}
                         alt={event.title}
-                        className="w-16 h-20 rounded-lg object-cover object-top"
+                        className="w-16 h-20 object-cover object-top border border-gray-600"
                       />
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-white mb-1">
@@ -1203,25 +1203,7 @@ export default function EventList({
             <div className="relative h-full flex flex-col">
               {/* 상단 영역 - 이미지와 기본 정보 (여백 제거) */}
               <div>
-                <button
-                  onClick={closeModal}
-                  className="relative left-1/2 transform -translate-x-1/2 text-white p-2 rounded-full hover:bg-opacity-90 transition-colors cursor-pointer z-20"
-                >
-                  <i className="ri-close-line text-2xl"></i>
-                </button>
-              </div>
-              <div className="flex h-80">
-                {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
-                <div className="w-1/2 bg-gray-800 flex items-start justify-start p-0">
-                  <img
-                    src={selectedEvent.image}
-                    alt={selectedEvent.title}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-
-                {/* 오른쪽 기본 정보 - 내부 여백 줄임 */}
-                <div className="w-1/2 p-4 overflow-hidden">
+                <div className="p-4 overflow-hidden">
                   <h2 className="text-xl font-bold text-white mb-2 overflow-hidden">
                     <span
                       className="block leading-tight whitespace-nowrap overflow-hidden"
@@ -1237,7 +1219,20 @@ export default function EventList({
                       {selectedEvent.title}
                     </span>
                   </h2>
-                  <div className="space-y-1">
+                </div>
+                <div className="flex h-80">
+                  {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
+                  <div className="w-1/2 bg-gray-800 flex items-start justify-start p-0">
+                    <img
+                      src={selectedEvent.image}
+                      alt={selectedEvent.title}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+
+                  {/* 오른쪽 기본 정보 - 내부 여백 줄임 */}
+
+                  <div className="space-y-1 pl-2">
                     <div className="flex items-center space-x-3 text-gray-300 text-sm">
                       <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                       <span>
@@ -1338,12 +1333,18 @@ export default function EventList({
 
                 {/* 수정 버튼 - 하단 고정, 여백 줄임 */}
                 <div className="p-1 border-t border-gray-700 bg-gray-800">
-                  <div className="flex justify-center">
+                  <div className="flex justify-center gap-[10px]">
                     <button
                       onClick={(e) => handleEditClick(selectedEvent, e)}
                       className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
                     >
                       수정
+                    </button>
+                    <button
+                      onClick={closeModal}
+                      className="top-8 right-8 bg-white/10 hover:bg-white/20 text-white p-3 rounded-lg transition-colors cursor-pointer z-20"
+                    >
+                      닫기
                     </button>
                   </div>
                 </div>

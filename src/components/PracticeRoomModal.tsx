@@ -1,6 +1,5 @@
-
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 interface PracticeRoom {
   id: number;
@@ -50,17 +49,17 @@ export default function PracticeRoomModal({
   const [selectedRoom, setSelectedRoom] = useState<PracticeRoom | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    address_link: '',
-    location: '',
-    description: '',
+    name: "",
+    address: "",
+    address_link: "",
+    location: "",
+    description: "",
     capacity: 10,
     hourly_rate: 10000,
-    contact_info: '',
-    additional_link: '',
-    additional_link_title: '',
-    password: '',
+    contact_info: "",
+    additional_link: "",
+    additional_link_title: "",
+    password: "",
     images: [] as string[],
   });
   const [imageItems, setImageItems] = useState<ImageItem[]>([]);
@@ -79,12 +78,12 @@ export default function PracticeRoomModal({
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('practice_rooms')
-        .select('*')
-        .order('created_at', { ascending: true });
+        .from("practice_rooms")
+        .select("*")
+        .order("created_at", { ascending: true });
 
       if (error) {
-        console.error('Error fetching practice rooms:', error);
+        console.error("Error fetching practice rooms:", error);
         return;
       }
 
@@ -92,14 +91,14 @@ export default function PracticeRoomModal({
       const processedData = (data ?? []).map((room) => ({
         ...room,
         images:
-          typeof room.images === 'string'
+          typeof room.images === "string"
             ? JSON.parse(room.images)
-            : room.images ?? [],
+            : (room.images ?? []),
       })) as PracticeRoom[];
 
       setRooms(processedData);
     } catch (err) {
-      console.error('Unexpected error while fetching rooms:', err);
+      console.error("Unexpected error while fetching rooms:", err);
     } finally {
       setLoading(false);
     }
@@ -115,16 +114,14 @@ export default function PracticeRoomModal({
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === 'checkbox'
-          ? (e.target as HTMLInputElement).checked
-          : value,
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length + imageItems.length > 7) {
-      alert('이미지는 최대 7개까지 업로드할 수 있습니다.');
+      alert("이미지는 최대 7개까지 업로드할 수 있습니다.");
       return;
     }
 
@@ -136,17 +133,17 @@ export default function PracticeRoomModal({
       isExisting: false,
     }));
 
-    setImageItems(prev => [...prev, ...newImageItems]);
-    
+    setImageItems((prev) => [...prev, ...newImageItems]);
+
     // 파일 입력 초기화
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const removeImage = (id: string) => {
-    setImageItems(prev => {
-      const updatedItems = prev.filter(item => item.id !== id);
+    setImageItems((prev) => {
+      const updatedItems = prev.filter((item) => item.id !== id);
       // URL 정리 (메모리 누수 방지)
-      const itemToRemove = prev.find(item => item.id === id);
+      const itemToRemove = prev.find((item) => item.id === id);
       if (itemToRemove && !itemToRemove.isExisting) {
         URL.revokeObjectURL(itemToRemove.url);
       }
@@ -157,36 +154,37 @@ export default function PracticeRoomModal({
   // 드래그 앤 드롭 핸들러
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
   };
 
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
-    
+
     if (draggedIndex === null || draggedIndex === dropIndex) {
       setDraggedIndex(null);
       return;
     }
 
-    setImageItems(prev => {
+    setImageItems((prev) => {
       const newItems = [...prev];
       const draggedItem = newItems[draggedIndex];
-      
+
       // 드래그된 아이템 제거
       newItems.splice(draggedIndex, 1);
-      
+
       // 새 위치에 삽입
-      const adjustedDropIndex = draggedIndex < dropIndex ? dropIndex - 1 : dropIndex;
+      const adjustedDropIndex =
+        draggedIndex < dropIndex ? dropIndex - 1 : dropIndex;
       newItems.splice(adjustedDropIndex, 0, draggedItem);
-      
+
       return newItems;
     });
-    
+
     setDraggedIndex(null);
   };
 
@@ -210,23 +208,23 @@ export default function PracticeRoomModal({
       }
 
       try {
-        const ext = item.file.name.split('.').pop();
+        const ext = item.file.name.split(".").pop();
         const filename = `${Date.now()}_${idx}.${ext}`;
         const filePath = `practice-rooms/${filename}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('images')
+          .from("images")
           .upload(filePath, item.file);
 
         if (uploadError) {
-          console.error('Storage upload error:', uploadError);
+          console.error("Storage upload error:", uploadError);
           return `https://readdy.ai/api/search-image?query=modern%20music%20practice%20room%20interior%20with%20professional%20equipment%2C%20soundproof%20walls%2C%20musical%20instruments%2C%20clean%20and%20bright%20lighting%2C%20professional%20studio%20setup&width=400&height=300&seq=${Date.now()}_${idx}&orientation=landscape`;
         }
 
-        const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+        const { data } = supabase.storage.from("images").getPublicUrl(filePath);
         return data.publicUrl;
       } catch (err) {
-        console.error('Image upload failed:', err);
+        console.error("Image upload failed:", err);
         return `https://readdy.ai/api/search-image?query=modern%20music%20practice%20room%20interior%20with%20professional%20equipment%2C%20soundproof%20walls%2C%20musical%20instruments%2C%20clean%20and%20bright%20lighting%2C%20professional%20studio%20setup&width=400&height=300&seq=error${Date.now()}_${idx}&orientation=landscape`;
       }
     });
@@ -259,13 +257,13 @@ export default function PracticeRoomModal({
         images: JSON.stringify(imageUrls), // Store as string for compatibility
         description: formData.description,
         // Additional mandatory fields (provide sensible defaults)
-        image: imageUrls[0] ?? '',
+        image: imageUrls[0] ?? "",
         price_per_hour: formData.hourly_rate,
         capacity: formData.capacity,
-        equipment: '기본 장비',
-        available_hours: '09:00-22:00',
+        equipment: "기본 장비",
+        available_hours: "09:00-22:00",
         contact: formData.contact_info,
-        location: formData.address ?? '미정',
+        location: formData.address ?? "미정",
         additional_link: formData.additional_link || null,
         additional_link_title: formData.additional_link_title || null,
         password: formData.password,
@@ -274,43 +272,43 @@ export default function PracticeRoomModal({
       let error;
       if (editingRoom) {
         ({ error } = await supabase
-          .from('practice_rooms')
+          .from("practice_rooms")
           .update(roomData)
-          .eq('id', editingRoom.id));
+          .eq("id", editingRoom.id));
       } else {
-        ({ error } = await supabase
-          .from('practice_rooms')
-          .insert([roomData]));
+        ({ error } = await supabase.from("practice_rooms").insert([roomData]));
       }
 
       if (error) {
-        console.error('Error saving practice room:', error);
-        alert('연습실 저장 중 오류가 발생했습니다.');
+        console.error("Error saving practice room:", error);
+        alert("연습실 저장 중 오류가 발생했습니다.");
         return;
       }
 
-      alert(editingRoom ? '연습실이 수정되었습니다.' : '연습실이 등록되었습니다.');
+      alert(
+        editingRoom ? "연습실이 수정되었습니다." : "연습실이 등록되었습니다.",
+      );
       setIsFormOpen(false);
       setEditingRoom(null);
       setFormData({
-        name: '',
-        address: '',
-        address_link: '',
-        location: '',
-        description: '',
+        name: "",
+        address: "",
+        address_link: "",
+        location: "",
+        description: "",
         capacity: 10,
         hourly_rate: 10000,
-        contact_info: '',
-        additional_link: '',
-        additional_link_title: '',
-        password: '',
+        contact_info: "",
+        additional_link: "",
+        additional_link_title: "",
+        password: "",
         images: [] as string[],
       });
       setImageItems([]);
       fetchRooms();
     } catch (err) {
-      console.error('Unexpected error on submit:', err);
-      alert('연습실 저장 중 오류가 발생했습니다.');
+      console.error("Unexpected error on submit:", err);
+      alert("연습실 저장 중 오류가 발생했습니다.");
     }
   };
 
@@ -323,48 +321,50 @@ export default function PracticeRoomModal({
       name: room.name,
       address: room.address,
       address_link: room.address_link,
-      location: '',
+      location: "",
       description: room.description,
       capacity: 10,
       hourly_rate: 10000,
-      contact_info: '',
+      contact_info: "",
       additional_link: room.additional_link,
-      additional_link_title: room.additional_link_title || '',
-      password: '',
+      additional_link_title: room.additional_link_title || "",
+      password: "",
       images: room.images,
     });
-    
+
     // 기존 이미지들을 ImageItem 형태로 변환
-    const existingImageItems: ImageItem[] = (Array.isArray(room.images) ? room.images : []).map((url, index) => ({
+    const existingImageItems: ImageItem[] = (
+      Array.isArray(room.images) ? room.images : []
+    ).map((url, index) => ({
       id: `existing_${index}`,
       url: url,
       isExisting: true,
     }));
-    
+
     setImageItems(existingImageItems);
     setIsFormOpen(true);
   };
 
   const handleDelete = async (roomId: number) => {
-    if (!confirm('연습실을 삭제하시겠습니까?')) return;
+    if (!confirm("연습실을 삭제하시겠습니까?")) return;
 
     try {
       const { error } = await supabase
-        .from('practice_rooms')
+        .from("practice_rooms")
         .delete()
-        .eq('id', roomId);
+        .eq("id", roomId);
 
       if (error) {
-        console.error('Error deleting practice room:', error);
-        alert('연습실 삭제 중 오류가 발생했습니다.');
+        console.error("Error deleting practice room:", error);
+        alert("연습실 삭제 중 오류가 발생했습니다.");
         return;
       }
 
-      alert('연습실이 삭제되었습니다.');
+      alert("연습실이 삭제되었습니다.");
       fetchRooms();
     } catch (err) {
-      console.error('Unexpected error on delete:', err);
-      alert('연습실 삭제 중 오류가 발생했습니다.');
+      console.error("Unexpected error on delete:", err);
+      alert("연습실 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -422,23 +422,25 @@ export default function PracticeRoomModal({
       name: room.name,
       address: room.address,
       address_link: room.address_link,
-      location: '',
+      location: "",
       description: room.description,
       capacity: 10,
       hourly_rate: 10000,
-      contact_info: '',
-      additional_link: room.additional_link || '',
-      additional_link_title: room.additional_link_title || '',
-      password: '',
+      contact_info: "",
+      additional_link: room.additional_link || "",
+      additional_link_title: room.additional_link_title || "",
+      password: "",
       images: room.images,
     });
-    
-    const existingImageItems: ImageItem[] = (Array.isArray(room.images) ? room.images : []).map((url, index) => ({
+
+    const existingImageItems: ImageItem[] = (
+      Array.isArray(room.images) ? room.images : []
+    ).map((url, index) => ({
       id: `existing_${index}`,
       url: url,
       isExisting: true,
     }));
-    
+
     setImageItems(existingImageItems);
     setIsFormOpen(true);
   };
@@ -449,11 +451,14 @@ export default function PracticeRoomModal({
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('주소가 복사되었습니다.');
-    }).catch(() => {
-      alert('주소 복사에 실패했습니다.');
-    });
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        alert("주소가 복사되었습니다.");
+      })
+      .catch(() => {
+        alert("주소 복사에 실패했습니다.");
+      });
   };
 
   // New helper functions matching the modified snippet
@@ -466,8 +471,10 @@ export default function PracticeRoomModal({
   const openMap = () => {
     if (selectedRoom) {
       // 사용자가 입력한 지도 주소 링크가 있으면 해당 링크 사용, 없으면 기본 Google Maps 검색
-      const url = selectedRoom.address_link || `https://maps.google.com/?q=${encodeURIComponent(selectedRoom.address)}`;
-      window.open(url, '_blank');
+      const url =
+        selectedRoom.address_link ||
+        `https://maps.google.com/?q=${encodeURIComponent(selectedRoom.address)}`;
+      window.open(url, "_blank");
     }
   };
 
@@ -488,9 +495,9 @@ export default function PracticeRoomModal({
           {/* Header with navigation buttons */}
           <div className="flex-shrink-0 flex items-center justify-between p-2 border-b border-gray-200">
             <div></div> {/* 빈 공간 */}
-
-            <h2 className="text-xl font-bold text-gray-900">{selectedRoom.name}</h2>
-
+            <h2 className="text-xl font-bold text-gray-900">
+              {selectedRoom.name}
+            </h2>
             <button
               onClick={handleCloseDetails}
               className="flex items-center justify-center w-8 h-8 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded-lg transition-colors cursor-pointer"
@@ -541,8 +548,8 @@ export default function PracticeRoomModal({
                             onClick={() => goToImage(idx)}
                             className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
                               idx === selectedImageIndex
-                                ? 'bg-white'
-                                : 'bg-white bg-opacity-50 hover:bg-opacity-75'
+                                ? "bg-white"
+                                : "bg-white bg-opacity-50 hover:bg-opacity-75"
                             }`}
                           />
                         ))}
@@ -560,8 +567,8 @@ export default function PracticeRoomModal({
                         onClick={() => setSelectedImageIndex(index)}
                         className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-colors cursor-pointer ${
                           selectedImageIndex === index
-                            ? 'border-blue-500'
-                            : 'border-gray-600 hover:border-gray-400'
+                            ? "border-blue-500"
+                            : "border-gray-600 hover:border-gray-400"
                         }`}
                       >
                         <img
@@ -576,17 +583,19 @@ export default function PracticeRoomModal({
               </div>
 
               {/* Right: Information */}
-              <div className="bg-white p-4 flex flex-col">
+              <div className="bg-white pt-0 pr-4 pb-4 pl-4 flex flex-col">
                 {/* Address */}
                 <div className="mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center">
                     <i className="ri-map-pin-line w-5 h-5 flex items-center justify-center mr-2 text-blue-600"></i>
                     위치
                   </h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     {/* Modified address block */}
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-900 text-sm break-all">{selectedRoom.address}</span>
+                      <span className="text-gray-900 text-sm break-all">
+                        {selectedRoom.address}
+                      </span>
                       <div className="flex gap-2 ml-4 flex-shrink-0">
                         <button
                           onClick={copyAddress}
@@ -627,7 +636,7 @@ export default function PracticeRoomModal({
                     className="inline-flex items-center bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
                   >
                     <i className="ri-external-link-line mr-2"></i>
-                    {selectedRoom.additional_link_title || '추가 정보 보기'}
+                    {selectedRoom.additional_link_title || "추가 정보 보기"}
                   </a>
                 )}
               </div>
@@ -722,7 +731,7 @@ export default function PracticeRoomModal({
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-white">
-                  {editingRoom ? '연습실 수정' : '연습실 등록'}
+                  {editingRoom ? "연습실 수정" : "연습실 등록"}
                 </h3>
                 <button
                   onClick={() => {
@@ -844,7 +853,7 @@ export default function PracticeRoomModal({
                           <div
                             key={item.id}
                             className={`relative cursor-move ${
-                              draggedIndex === index ? 'opacity-50' : ''
+                              draggedIndex === index ? "opacity-50" : ""
                             }`}
                             draggable
                             onDragStart={(e) => handleDragStart(e, index)}
