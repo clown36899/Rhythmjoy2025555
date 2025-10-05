@@ -236,7 +236,13 @@ export default function EventCalendar({
             </div>
           </div>
         )}
-
+        {/* 이벤트 등록 안내 - 모바일과 데스크톱 모두 표시 */}
+        <div className="lg:mt-4 p-1 lg:p-2 bg-gray-700 rounded-none">
+          <p className="text-gray-300 text-[10px] lg:text-sm text-center">
+            <i className="ri-information-line mr-1 lg:mr-2"></i>
+            날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
+          </p>
+        </div>
         {/* Days of week header */}
         <div className="grid grid-cols-7 gap-0 lg:gap-1 mb-0 lg:mb-4 px-1 lg:px-0 h-4 lg:h-auto pt-2 lg:pt-0">
           {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
@@ -308,14 +314,6 @@ export default function EventCalendar({
               </div>
             );
           })}
-        </div>
-
-        {/* 이벤트 등록 안내 - 모바일과 데스크톱 모두 표시 */}
-        <div className="mt-2 lg:mt-4 p-1 lg:p-2 bg-gray-700 rounded-none">
-          <p className="text-gray-300 text-[10px] lg:text-sm text-center">
-            <i className="ri-information-line mr-1 lg:mr-2"></i>
-            날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
-          </p>
         </div>
       </div>
 

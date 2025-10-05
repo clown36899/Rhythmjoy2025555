@@ -1,16 +1,17 @@
-
-import { useState, useEffect, useRef } from 'react';
-import EventCalendar from './components/EventCalendar';
-import EventList from './components/EventList';
-import Header from './components/Header';
-import Hero from './components/Hero';
-import Footer from './components/Footer';
-import { supabase } from '../../lib/supabase';
+import { useState, useEffect, useRef } from "react";
+import EventCalendar from "./components/EventCalendar";
+import EventList from "./components/EventList";
+import Header from "./components/Header";
+import Hero from "./components/Hero";
+import Footer from "./components/Footer";
+import { supabase } from "../../lib/supabase";
 
 export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [activeCategoriesForDate, setActiveCategoriesForDate] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [activeCategoriesForDate, setActiveCategoriesForDate] = useState<
+    string[]
+  >([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -45,37 +46,39 @@ export default function HomePage() {
 
   const handleDateSelect = async (date: Date | null) => {
     setSelectedDate(date);
-    
+
     // 날짜가 선택되었을 때 해당 날짜의 모든 이벤트 카테고리를 감지
     if (date) {
       try {
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
         const selectedDateString = `${year}-${month}-${day}`;
 
         const { data: events } = await supabase
-          .from('events')
-          .select('category')
-          .eq('date', selectedDateString)
-          .order('created_at', { ascending: true });
+          .from("events")
+          .select("category")
+          .eq("date", selectedDateString)
+          .order("created_at", { ascending: true });
 
         if (events && events.length > 0) {
           // 해당 날짜의 모든 고유 카테고리 추출
-          const uniqueCategories = [...new Set(events.map(event => event.category))];
+          const uniqueCategories = [
+            ...new Set(events.map((event) => event.category)),
+          ];
           setActiveCategoriesForDate(uniqueCategories);
-          
+
           // 첫 번째 카테고리로 설정 (하지만 실제로는 모든 카테고리가 활성화됨)
           setSelectedCategory(uniqueCategories[0]);
         } else {
           // 이벤트가 없으면 빈 배열
           setActiveCategoriesForDate([]);
-          setSelectedCategory('all');
+          setSelectedCategory("all");
         }
       } catch (error) {
-        console.error('Error fetching events for date:', error);
+        console.error("Error fetching events for date:", error);
         setActiveCategoriesForDate([]);
-        setSelectedCategory('all');
+        setSelectedCategory("all");
       }
     } else {
       setActiveCategoriesForDate([]);
@@ -85,7 +88,7 @@ export default function HomePage() {
   const handleDateReset = () => {
     setSelectedDate(null);
     setActiveCategoriesForDate([]);
-    setSelectedCategory('all'); // 카테고리도 "모든 이벤트"로 리셋
+    setSelectedCategory("all"); // 카테고리도 "모든 이벤트"로 리셋
   };
 
   const handleMonthChange = (month: Date) => {
@@ -93,11 +96,11 @@ export default function HomePage() {
     // 달 이동 시 모든 상태 리셋
     setSelectedDate(null);
     setActiveCategoriesForDate([]);
-    setSelectedCategory('all');
+    setSelectedCategory("all");
   };
 
   const handleEventsUpdate = () => {
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleAdminModeToggle = (adminMode: boolean) => {
@@ -107,7 +110,7 @@ export default function HomePage() {
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
     // "모든 이벤트"를 클릭했을 때 선택된 날짜 초기화
-    if (category === 'all') {
+    if (category === "all") {
       setSelectedDate(null);
       setActiveCategoriesForDate([]);
     }
@@ -117,11 +120,11 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-900">
       {/* Fixed Header for all screens */}
       <div className="fixed top-0 left-0 right-0 z-10 bg-gray-800 border-b border-gray-700">
-        <Header 
+        <Header
           currentMonth={currentMonth}
           onNavigateMonth={(direction) => {
             const newMonth = new Date(currentMonth);
-            if (direction === 'prev') {
+            if (direction === "prev") {
               newMonth.setMonth(currentMonth.getMonth() - 1);
             } else {
               newMonth.setMonth(currentMonth.getMonth() + 1);
@@ -130,20 +133,20 @@ export default function HomePage() {
             // 달 이동 시 모든 상태 리셋
             setSelectedDate(null);
             setActiveCategoriesForDate([]);
-            setSelectedCategory('all');
+            setSelectedCategory("all");
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
             // 날짜 변경 시 모든 상태 리셋
             setSelectedDate(null);
             setActiveCategoriesForDate([]);
-            setSelectedCategory('all');
+            setSelectedCategory("all");
           }}
           onDateReset={handleDateReset}
           onAdminModeToggle={handleAdminModeToggle}
         />
       </div>
-      
+
       {/* Desktop Layout */}
       <div className="hidden lg:block pt-16">
         <Hero />
@@ -173,7 +176,10 @@ export default function HomePage() {
       <div className="lg:hidden">
         <div className="h-screen flex flex-col">
           {/* Fixed Calendar Section */}
-          <div ref={calendarRef} className="fixed top-16 left-0 right-0 z-[9] bg-gray-900 border-b border-gray-700">
+          <div
+            ref={calendarRef}
+            className="fixed top-16 left-0 right-0 z-[9] bg-gray-900"
+          >
             <EventCalendar
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
@@ -183,13 +189,13 @@ export default function HomePage() {
               onEventsUpdate={handleEventsUpdate}
             />
           </div>
-          
+
           {/* Scrollable Content Area - Events and Footer */}
-          <div 
-            className="flex-1 overflow-y-auto" 
-            style={{ paddingTop: `calc(4rem + ${calendarHeight}px + 55px)` }}
+          <div
+            className="flex-1 overflow-y-auto"
+            style={{ paddingTop: `calc(3rem + ${calendarHeight}px + 55px)` }}
           >
-            <div className="px-4 -mt-10">
+            <div className="-mt-10">
               <EventList
                 selectedDate={selectedDate}
                 selectedCategory={selectedCategory}
