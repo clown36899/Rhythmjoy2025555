@@ -221,13 +221,12 @@ export default function HomePage() {
     setSelectedDate(null);
   };
 
-  const handleEventsUpdate = async (createdDate?: Date, category?: string) => {
+  const handleEventsUpdate = async (createdDate?: Date) => {
     setRefreshTrigger((prev) => prev + 1);
     
-    // 이벤트 등록 후 날짜와 카테고리가 전달되었을 때
-    if (createdDate && category) {
-      setSelectedDate(createdDate);
-      setSelectedCategory(category);
+    // 이벤트 등록 후 날짜가 전달되었을 때, 그 날짜를 선택 (handleDateSelect가 자동으로 카테고리 감지)
+    if (createdDate) {
+      await handleDateSelect(createdDate);
     }
   };
 

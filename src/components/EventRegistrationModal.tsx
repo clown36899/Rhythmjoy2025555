@@ -7,7 +7,7 @@ interface EventRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: Date;
-  onEventCreated: (createdDate: Date, category: string) => void;
+  onEventCreated: (createdDate: Date) => void;
 }
 
 export default function EventRegistrationModal({ isOpen, onClose, selectedDate, onEventCreated }: EventRegistrationModalProps) {
@@ -193,7 +193,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         });
         setImageFile(null);
         setImagePreview('');
-        onEventCreated(selectedDate, formData.category);
+        onEventCreated(selectedDate);
         onClose();
       }
     } catch (error) {
