@@ -99,7 +99,7 @@ export default function FullscreenBillboard({
       className="fixed inset-0 z-50 bg-black flex items-center justify-center"
       onClick={handleBackgroundClick}
     >
-      <div 
+      <div
         className="relative w-full h-full flex items-center justify-center"
         onClick={handleBackgroundClick}
       >
@@ -128,11 +128,11 @@ export default function FullscreenBillboard({
 
         <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm px-6 py-3 rounded-full pointer-events-none">
           <p className="text-white text-base sm:text-lg font-medium text-center">
-            이미지 클릭: 상세보기 | 배경 클릭: 닫기
+            이미지 클릭: 상세보기, 배경 클릭: 닫기
           </p>
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

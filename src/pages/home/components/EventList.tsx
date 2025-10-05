@@ -266,10 +266,16 @@ export default function EventList({
       }
     };
 
-    window.addEventListener("eventSelected", handleEventSelected as EventListener);
+    window.addEventListener(
+      "eventSelected",
+      handleEventSelected as EventListener,
+    );
 
     return () => {
-      window.removeEventListener("eventSelected", handleEventSelected as EventListener);
+      window.removeEventListener(
+        "eventSelected",
+        handleEventSelected as EventListener,
+      );
     };
   }, []);
 
@@ -518,7 +524,10 @@ export default function EventList({
 
   return (
     <>
-      <div className="bg-gray-800 p-4 lg:p-6" style={{ margin: '14px', borderRadius: '11px' }}>
+      <div
+        className="bg-gray-800 p-4 lg:p-6"
+        style={{ margin: "14px", borderRadius: "11px" }}
+      >
         <div className="lg:mb-6">
           {/* 데스크톱에서도 제목 완전 제거 */}
           {isAdminMode && (
