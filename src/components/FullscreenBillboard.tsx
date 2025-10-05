@@ -3,14 +3,18 @@ import { createPortal } from "react-dom";
 
 interface FullscreenBillboardProps {
   images: string[];
+  events: any[];
   isOpen: boolean;
   onClose: () => void;
+  onEventClick: (event: any) => void;
 }
 
 export default function FullscreenBillboard({
   images,
+  events,
   isOpen,
   onClose,
+  onEventClick,
 }: FullscreenBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -60,25 +64,38 @@ export default function FullscreenBillboard({
     };
   }, [isOpen, onClose]);
 
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (events[currentIndex]) {
+      onEventClick(events[currentIndex]);
+    }
+  };
+
   if (!isOpen || images.length === 0) return null;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black flex items-center justify-center cursor-pointer"
-      onClick={onClose}
-      onTouchStart={onClose}
+      className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+      onClick={handleBackgroundClick}
     >
       <div className="relative w-full h-full flex items-center justify-center">
         <img
           src={images[currentIndex]}
           alt="Event Billboard"
-          className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+          className={`max-w-full max-h-full object-contain transition-opacity duration-300 cursor-pointer ${
             isTransitioning ? "opacity-0" : "opacity-100"
           }`}
+          onClick={handleImageClick}
         />
 
         {images.length > 1 && (
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 pb-4">
             {images.map((_, index) => (
               <div
                 key={index}
@@ -91,7 +108,7 @@ export default function FullscreenBillboard({
         )}
 
         <div className="absolute top-4 right-4 text-white/70 text-sm">
-          클릭하여 닫기
+          이미지 클릭: 상세보기 | 배경 클릭: 닫기
         </div>
       </div>
     </div>,
