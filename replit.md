@@ -209,11 +209,17 @@ Preferred communication style: Simple, everyday language.
 
 ### Fullscreen Billboard Feature
 - **FullscreenBillboard Component**: Created React Portal-based fullscreen overlay for event image slideshow
+- **Smart Filtering**: Only displays events with dates on or after today (현재 날짜 이후 이벤트만 표시)
 - **Auto-display**: Billboard automatically shows on first visit, rotates through all event images every 5 seconds with fade transition
+- **Interactive Billboard**: 
+  - Image click: Opens event detail modal for the displayed event
+  - Background click: Closes billboard
 - **Dismissal Logic**: localStorage tracks daily dismissal - clicking/touching billboard closes it for the day
-- **Progress Indicator**: Visual dots at bottom show current image position in slideshow
+- **Progress Indicator**: Visual dots at bottom (bottom-16 with padding to prevent cutoff) show current image position in slideshow
 - **Header Control**: Image icon button in header (desktop & mobile) allows manual reopening of billboard
+- **Event Communication**: Uses window custom events ('eventSelected') to communicate between billboard and event list components
 - **Category Persistence**: Category filter (강습/행사) now persists when navigating between months
+- **SSR-Safe**: All window object access properly guarded with typeof checks
 
 ## Required Setup
 
