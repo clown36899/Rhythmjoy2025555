@@ -1,4 +1,5 @@
 import { useState } from "react";
+import QRCodeModal from "../../../components/QRCodeModal";
 
 interface HeaderProps {
   currentMonth?: Date;
@@ -29,6 +30,7 @@ export default function Header({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   const monthNames = [
     "1월",
@@ -108,14 +110,18 @@ export default function Header({
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-1">
-                <h1
-                  className="text-xl font-bold text-white"
-                  style={{ fontFamily: "Pacifico, serif" }}
-                >
-                  !
-                </h1>
-              </div>
+              <button
+                onClick={() => setShowQRModal(true)}
+                className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer group"
+                title="즐거찾기 QR 코드"
+              >
+                <div className="text-2xl">
+                  <i className="ri-qr-code-line text-purple-400 group-hover:text-purple-300"></i>
+                </div>
+                <span className="text-sm font-bold text-gray-300 group-hover:text-white hidden sm:inline">
+                  즐거찾기
+                </span>
+              </button>
             </div>
 
             {/* Center: Billboard & Settings Button */}
@@ -345,6 +351,12 @@ export default function Header({
           </div>
         </div>
       )}
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
+      />
     </>
   );
 }
