@@ -177,3 +177,31 @@ Preferred communication style: Simple, everyday language.
 - Strict mode with comprehensive compiler options
 - Separate configs for app code and Node.js tooling
 - Bundler module resolution for modern import patterns
+
+## Recent Changes (2025-10-05)
+
+### Replit Environment Setup
+- Configured Vite server for Replit (port 5000, host 0.0.0.0)
+- Added HMR configuration for Replit proxy (clientPort: 443)
+- Removed non-existent preview-inject script reference from index.html
+- Added TypeScript global declarations for __BASE_PATH__ and __IS_PREVIEW__
+- Created .gitignore file for Node.js projects
+
+### Internationalization Setup
+- Created translation files for English and Korean
+- Set up basic translation structure in `src/i18n/local/en/` and `src/i18n/local/ko/`
+
+### Supabase Configuration
+- Added fallback values for Supabase environment variables to prevent initialization errors
+- App runs without Supabase credentials (shows placeholder errors in console)
+
+### Deployment Configuration
+- Configured autoscale deployment for static website
+- Build command: `npm run build`
+- Preview command: `npx vite preview --host 0.0.0.0 --port 5000`
+
+## Required Setup
+
+To fully enable all features, add the following environment variables in the Secrets tab:
+- `VITE_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+- `VITE_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous/public API key
