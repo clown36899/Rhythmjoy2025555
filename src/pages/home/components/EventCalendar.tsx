@@ -427,7 +427,7 @@ export default function EventCalendar({
 
           {/* 이벤트 바 표시 - 버튼 아래에 절대 위치 */}
           {eventBarsData.some(bar => bar !== null) && (
-            <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 pointer-events-none z-0">
+            <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 pointer-events-none z-20">
               {eventBarsData.map((bar, i) => (
                 <div
                   key={i}
