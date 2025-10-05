@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
+import { getEventColor } from "../../../utils/eventColors";
 
 interface EventCalendarProps {
   selectedDate: Date | null;
@@ -292,9 +293,9 @@ export default function EventCalendar({
         const endDate = event.end_date || event.date || '';
         const isStart = dateString === startDate;
         const isEnd = dateString === endDate;
-        const categoryColor = event.category === 'class' ? 'bg-purple-400' : 'bg-blue-400';
+        const eventColor = getEventColor(event.id);
 
-        return { isStart, isEnd, categoryColor };
+        return { isStart, isEnd, categoryColor: eventColor.bg };
       });
 
       return (

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import PracticeRoomModal from "../../../components/PracticeRoomModal";
+import { getEventColor } from "../../../utils/eventColors";
 
 interface EventListProps {
   selectedDate: Date | null;
@@ -741,73 +742,83 @@ export default function EventList({
             <>
               {/* Mobile: Grid layout with 3 columns - poster ratio */}
               <div className="grid grid-cols-3 gap-3 lg:hidden">
-                {sortedEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    onClick={() => handleEventClick(event)}
-                    className="bg-gray-700 rounded-xl overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative"
-                  >
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className="w-full aspect-[3/4] object-cover object-top"
-                    />
-                    <div className="p-2">
-                      <p className="text-xs text-gray-300 text-center">
-                        {(event.start_date || event.date) 
-                          ? new Date(event.start_date || event.date || '').toLocaleDateString()
-                          : '날짜 미정'}
-                      </p>
+                {sortedEvents.map((event) => {
+                  const eventColor = getEventColor(event.id);
+                  return (
+                    <div
+                      key={event.id}
+                      onClick={() => handleEventClick(event)}
+                      className="bg-gray-700 rounded-xl overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative"
+                    >
+                      {/* 색상 배너 */}
+                      <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg} z-10`}></div>
+                      <img
+                        src={event.image}
+                        alt={event.title}
+                        className="w-full aspect-[3/4] object-cover object-top"
+                      />
+                      <div className="p-2">
+                        <p className="text-xs text-gray-300 text-center">
+                          {(event.start_date || event.date) 
+                            ? new Date(event.start_date || event.date || '').toLocaleDateString()
+                            : '날짜 미정'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Desktop: List layout */}
               <div className="hidden lg:block space-y-4">
-                {sortedEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    onClick={() => handleEventClick(event)}
-                    className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer"
-                  >
-                    <div className="flex space-x-4">
-                      <img
-                        src={event.image}
-                        alt={event.title}
-                        className="w-16 h-20 rounded-lg object-cover object-top"
-                      />
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-white mb-1">
-                          {event.title}
-                        </h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-300 mb-2">
-                          <div className="flex items-center space-x-1">
-                            <i className="ri-calendar-line"></i>
-                            <span>
-                              {(event.start_date || event.date)
-                                ? new Date(event.start_date || event.date || '').toLocaleDateString()
-                                : '날짜 미정'}
+                {sortedEvents.map((event) => {
+                  const eventColor = getEventColor(event.id);
+                  return (
+                    <div
+                      key={event.id}
+                      onClick={() => handleEventClick(event)}
+                      className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer relative"
+                    >
+                      {/* 색상 배너 */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${eventColor.bg} rounded-l-lg`}></div>
+                      <div className="flex space-x-4">
+                        <img
+                          src={event.image}
+                          alt={event.title}
+                          className="w-16 h-20 rounded-lg object-cover object-top"
+                        />
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-1">
+                            {event.title}
+                          </h3>
+                          <div className="flex items-center space-x-4 text-sm text-gray-300 mb-2">
+                            <div className="flex items-center space-x-1">
+                              <i className="ri-calendar-line"></i>
+                              <span>
+                                {(event.start_date || event.date)
+                                  ? new Date(event.start_date || event.date || '').toLocaleDateString()
+                                  : '날짜 미정'}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <i className="ri-time-line"></i>
+                              <span>{event.time}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1 text-sm text-gray-300">
+                              <i className="ri-map-pin-line"></i>
+                              <span>{event.location}</span>
+                            </div>
+                            <span className="text-blue-400 font-semibold">
+                              {event.price}
                             </span>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <i className="ri-time-line"></i>
-                            <span>{event.time}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-1 text-sm text-gray-300">
-                            <i className="ri-map-pin-line"></i>
-                            <span>{event.location}</span>
-                          </div>
-                          <span className="text-blue-400 font-semibold">
-                            {event.price}
-                          </span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           ) : (
