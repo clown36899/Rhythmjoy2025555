@@ -1,25 +1,44 @@
-
-import { useState } from 'react';
+import { useState } from "react";
 
 interface HeaderProps {
   currentMonth?: Date;
-  onNavigateMonth?: (direction: 'prev' | 'next') => void;
+  onNavigateMonth?: (direction: "prev" | "next") => void;
   onDateChange?: (date: Date) => void;
   onDateReset?: () => void;
   onAdminModeToggle?: (isAdmin: boolean) => void;
 }
 
-export default function Header({ currentMonth, onNavigateMonth, onDateChange, onDateReset, onAdminModeToggle }: HeaderProps) {
+export default function Header({
+  currentMonth,
+  onNavigateMonth,
+  onDateChange,
+  onDateReset,
+  onAdminModeToggle,
+}: HeaderProps) {
   const [showDateModal, setShowDateModal] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(currentMonth?.getFullYear() || new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth?.getMonth() || new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(
+    currentMonth?.getFullYear() || new Date().getFullYear(),
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    currentMonth?.getMonth() || new Date().getMonth(),
+  );
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
+  const [adminPassword, setAdminPassword] = useState("");
   const [isAdminMode, setIsAdminMode] = useState(false);
 
   const monthNames = [
-    '1월', '2월', '3월', '4월', '5월', '6월',
-    '7월', '8월', '9월', '10월', '11월', '12월'
+    "1월",
+    "2월",
+    "3월",
+    "4월",
+    "5월",
+    "6월",
+    "7월",
+    "8월",
+    "9월",
+    "10월",
+    "11월",
+    "12월",
   ];
 
   const currentYear = new Date().getFullYear();
@@ -44,7 +63,7 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
     setShowDateModal(false);
   };
 
-  const handleNavigateMonth = (direction: 'prev' | 'next') => {
+  const handleNavigateMonth = (direction: "prev" | "next") => {
     onNavigateMonth?.(direction);
     onDateReset?.();
   };
@@ -61,14 +80,14 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
 
   const handleAdminLogin = () => {
     // 관리자 비밀번호: admin123
-    if (adminPassword === 'admin123') {
+    if (adminPassword === "admin123") {
       setIsAdminMode(true);
       onAdminModeToggle?.(true);
       setShowSettingsModal(false);
-      setAdminPassword('');
-      alert('관리자 모드로 전환되었습니다.');
+      setAdminPassword("");
+      alert("관리자 모드로 전환되었습니다.");
     } else {
-      alert('비밀번호가 올바르지 않습니다.');
+      alert("비밀번호가 올바르지 않습니다.");
     }
   };
 
@@ -76,7 +95,7 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
     setIsAdminMode(false);
     onAdminModeToggle?.(false);
     setShowSettingsModal(false);
-    alert('일반 모드로 전환되었습니다.');
+    alert("일반 모드로 전환되었습니다.");
   };
 
   return (
@@ -86,8 +105,11 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-1">
-                <h1 className="text-xl font-bold text-white" style={{ fontFamily: 'Pacifico, serif' }}>
-                  행사일정표
+                <h1
+                  className="text-xl font-bold text-white"
+                  style={{ fontFamily: "Pacifico, serif" }}
+                >
+                  !
                 </h1>
               </div>
             </div>
@@ -99,7 +121,7 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
                   관리자 모드
                 </span>
               )}
-              <button 
+              <button
                 onClick={handleSettingsClick}
                 className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
               >
@@ -110,26 +132,27 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
             {/* Mobile Calendar Controls - Center */}
             {currentMonth && onNavigateMonth && (
               <div className="lg:hidden flex items-center space-x-3">
-                <button 
-                  onClick={() => handleNavigateMonth('prev')}
+                <button
+                  onClick={() => handleNavigateMonth("prev")}
                   className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <i className="ri-arrow-left-s-line text-lg"></i>
                 </button>
-                <button 
+                <button
                   onClick={handleDateModalOpen}
                   className="text-sm font-bold text-white whitespace-nowrap hover:text-blue-400 transition-colors cursor-pointer"
                 >
-                  {currentMonth.getFullYear()}년 {monthNames[currentMonth.getMonth()]}
+                  {currentMonth.getFullYear()}년{" "}
+                  {monthNames[currentMonth.getMonth()]}
                 </button>
-                <button 
+                <button
                   onClick={handleTodayClick}
                   className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap"
                 >
                   오늘
                 </button>
-                <button 
-                  onClick={() => handleNavigateMonth('next')}
+                <button
+                  onClick={() => handleNavigateMonth("next")}
                   className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <i className="ri-arrow-right-s-line text-lg"></i>
@@ -144,7 +167,7 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
                   관리자
                 </span>
               )}
-              <button 
+              <button
                 onClick={handleSettingsClick}
                 className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
               >
@@ -159,20 +182,24 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
       {showDateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-white mb-6 text-center">날짜 선택</h3>
-            
+            <h3 className="text-xl font-bold text-white mb-6 text-center">
+              날짜 선택
+            </h3>
+
             {/* Year Selection */}
             <div className="mb-6">
-              <label className="block text-gray-300 text-sm font-medium mb-3">년도</label>
+              <label className="block text-gray-300 text-sm font-medium mb-3">
+                년도
+              </label>
               <div className="grid grid-cols-5 gap-2">
-                {years.map(year => (
+                {years.map((year) => (
                   <button
                     key={year}
                     onClick={() => setSelectedYear(year)}
                     className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                       selectedYear === year
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                   >
                     {year}
@@ -183,7 +210,9 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
 
             {/* Month Selection */}
             <div className="mb-6">
-              <label className="block text-gray-300 text-sm font-medium mb-3">월</label>
+              <label className="block text-gray-300 text-sm font-medium mb-3">
+                월
+              </label>
               <div className="grid grid-cols-4 gap-2">
                 {monthNames.map((month, index) => (
                   <button
@@ -191,8 +220,8 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
                     onClick={() => setSelectedMonth(index)}
                     className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                       selectedMonth === index
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                   >
                     {month}
@@ -236,7 +265,9 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
 
             {!isAdminMode ? (
               <div>
-                <h4 className="text-lg font-semibold text-white mb-4">관리자 모드</h4>
+                <h4 className="text-lg font-semibold text-white mb-4">
+                  관리자 모드
+                </h4>
                 <p className="text-gray-300 text-sm mb-4">
                   관리자 모드에서는 모든 이벤트를 수정하고 삭제할 수 있습니다.
                 </p>
@@ -263,7 +294,9 @@ export default function Header({ currentMonth, onNavigateMonth, onDateChange, on
               </div>
             ) : (
               <div>
-                <h4 className="text-lg font-semibold text-white mb-4">관리자 모드 활성화됨</h4>
+                <h4 className="text-lg font-semibold text-white mb-4">
+                  관리자 모드 활성화됨
+                </h4>
                 <p className="text-gray-300 text-sm mb-4">
                   현재 관리자 모드입니다. 모든 이벤트를 관리할 수 있습니다.
                 </p>

@@ -93,10 +93,9 @@ export default function HomePage() {
 
   const handleMonthChange = (month: Date) => {
     setCurrentMonth(month);
-    // 달 이동 시 모든 상태 리셋
+    // 달 이동 시 날짜만 리셋 (카테고리는 유지)
     setSelectedDate(null);
     setActiveCategoriesForDate([]);
-    setSelectedCategory("all");
   };
 
   const handleEventsUpdate = () => {
@@ -130,17 +129,15 @@ export default function HomePage() {
               newMonth.setMonth(currentMonth.getMonth() + 1);
             }
             setCurrentMonth(newMonth);
-            // 달 이동 시 모든 상태 리셋
+            // 달 이동 시 날짜만 리셋 (카테고리는 유지)
             setSelectedDate(null);
             setActiveCategoriesForDate([]);
-            setSelectedCategory("all");
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
-            // 날짜 변경 시 모든 상태 리셋
+            // 날짜 변경 시 날짜만 리셋 (카테고리는 유지)
             setSelectedDate(null);
             setActiveCategoriesForDate([]);
-            setSelectedCategory("all");
           }}
           onDateReset={handleDateReset}
           onAdminModeToggle={handleAdminModeToggle}
@@ -178,7 +175,7 @@ export default function HomePage() {
           {/* Fixed Calendar Section */}
           <div
             ref={calendarRef}
-            className="fixed top-16 left-0 right-0 z-[9] bg-gray-900 border-b border-gray-800"
+            className="fixed top-16 left-0 right-0 z-[9] bg-gray-900 border-b border-black"
           >
             <EventCalendar
               selectedDate={selectedDate}

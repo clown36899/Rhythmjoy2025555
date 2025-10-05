@@ -505,7 +505,7 @@ export default function EventList({
 
   return (
     <>
-      <div className="bg-gray-800 p-4 lg:p-6">
+      <div className="bg-gray-800 p-4 lg:p-6 m-[14px] rounded-[11px]">
         <div className="lg:mb-6">
           {/* 데스크톱에서도 제목 완전 제거 */}
           {isAdminMode && (
