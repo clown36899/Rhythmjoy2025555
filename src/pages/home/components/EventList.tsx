@@ -518,10 +518,13 @@ export default function EventList({
 
       // 새 이미지가 업로드되었으면 Supabase Storage에 업로드 시도
       if (editImageFile) {
-        const fileName = `${Date.now()}_${editImageFile.name}`;
+        const fileExt = editImageFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `event-posters/${fileName}`;
+
         const { error: uploadError } = await supabase.storage
-          .from("event-posters")
-          .upload(fileName, editImageFile);
+          .from("images")
+          .upload(filePath, editImageFile);
 
         if (uploadError) {
           console.error("Storage upload error:", uploadError);
@@ -530,8 +533,8 @@ export default function EventList({
         }
 
         const { data } = supabase.storage
-          .from("event-posters")
-          .getPublicUrl(fileName);
+          .from("images")
+          .getPublicUrl(filePath);
 
         imageUrl = data.publicUrl;
       }
