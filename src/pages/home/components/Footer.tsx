@@ -32,7 +32,25 @@ export default function Footer() {
               © 2024 행사공지. All rights reserved.
             </p>
             <p className="text-gray-500 text-xs mt-1">
-              Made by joy | Contact: 010-4801-7180
+              Made by joy | Contact:{" "}
+              <a
+                href="tel:010-4801-7180"
+                onClick={(e) => {
+                  // 데스크탑인 경우 번호 복사, 모바일인 경우 전화 걸기
+                  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                  if (!isMobile) {
+                    e.preventDefault();
+                    navigator.clipboard.writeText("010-4801-7180").then(() => {
+                      alert("전화번호가 복사되었습니다!");
+                    }).catch(() => {
+                      alert("복사에 실패했습니다. 번호: 010-4801-7180");
+                    });
+                  }
+                }}
+                className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
+              >
+                010-4801-7180
+              </a>
             </p>
           </div>
           <div className="mt-4 md:mt-0">
