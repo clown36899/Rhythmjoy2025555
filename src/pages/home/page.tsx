@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import EventCalendar from "./components/EventCalendar";
 import EventList from "./components/EventList";
 import Header from "./components/Header";
@@ -22,6 +22,7 @@ export default function HomePage() {
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 달력 높이 측정
   useEffect(() => {
@@ -48,6 +49,50 @@ export default function HomePage() {
       resizeObserver.disconnect();
     };
   }, [currentMonth]);
+
+  // 비활동 타이머 초기화 함수
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+
+    // 광고판이 열려있으면 타이머 설정 안 함
+    if (isBillboardOpen) return;
+
+    // 10분(600,000ms) 후 광고판 자동 열기
+    inactivityTimerRef.current = setTimeout(() => {
+      if (billboardImages.length > 0) {
+        setIsBillboardOpen(true);
+      }
+    }, 600000); // 10분
+  }, [isBillboardOpen, billboardImages.length]);
+
+  // 사용자 활동 감지 및 비활동 타이머
+  useEffect(() => {
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+
+    const handleUserActivity = () => {
+      resetInactivityTimer();
+    };
+
+    // 초기 타이머 시작
+    resetInactivityTimer();
+
+    // 이벤트 리스너 등록
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleUserActivity);
+    });
+
+    return () => {
+      // cleanup
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleUserActivity);
+      });
+    };
+  }, [resetInactivityTimer]);
 
   // 광고판 이미지 로드 및 자동 표시
   useEffect(() => {
