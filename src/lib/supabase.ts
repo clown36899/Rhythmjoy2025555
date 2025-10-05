@@ -1,0 +1,31 @@
+
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+export interface Event {
+  id: number;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  category: string;
+  price: string;
+  image: string;
+  description: string;
+  organizer: string;
+  capacity: number;
+  registered: number;
+  link1?: string;
+  link2?: string;
+  link3?: string;
+  link_name1?: string;
+  link_name2?: string;
+  link_name3?: string;
+  password?: string;
+  created_at?: string;
+  updated_at?: string;
+}
