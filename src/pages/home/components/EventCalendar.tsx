@@ -138,7 +138,7 @@ export default function EventCalendar({
       return dateA.localeCompare(dateB);
     });
     
-    // 레인 할당: 겹치지 않는 이벤트는 같은 레인 사용 가능
+    // 레인 할당: 겹치지 않는 이벤트는 같은 레인 사용 가능 (최대 3개 레인)
     const lanes: Array<{ endDate: string; eventId: number }> = [];
     
     sortedEvents.forEach((event) => {
@@ -147,7 +147,7 @@ export default function EventCalendar({
       
       // 사용 가능한 레인 찾기 (종료된 레인 재사용)
       let assignedLane = -1;
-      for (let i = 0; i < lanes.length; i++) {
+      for (let i = 0; i < Math.min(lanes.length, 3); i++) {
         if (lanes[i].endDate < startDate) {
           assignedLane = i;
           lanes[i] = { endDate, eventId: event.id };
@@ -155,11 +155,14 @@ export default function EventCalendar({
         }
       }
       
-      // 사용 가능한 레인이 없으면 새 레인 추가
-      if (assignedLane === -1) {
+      // 사용 가능한 레인이 없고 레인이 3개 미만이면 새 레인 추가
+      if (assignedLane === -1 && lanes.length < 3) {
         assignedLane = lanes.length;
         lanes.push({ endDate, eventId: event.id });
       }
+      
+      // 레인을 할당받지 못한 경우 (3개 모두 사용 중) 처리하지 않음
+      if (assignedLane === -1) return;
       
       // 색상 할당: 이미 사용된 색상 피하기
       let colorIndex = 0;
@@ -348,27 +351,30 @@ export default function EventCalendar({
         return startDate === endDate;
       });
 
-      // 연속 이벤트 바 정보 계산 (레인 맵 기반으로 정렬 및 색상 할당)
-      const eventBarsData = multiDayEvents
-        .map((event) => {
-          const laneInfo = eventLaneMap.get(event.id);
-          if (!laneInfo) return null;
-          
-          const startDate = event.start_date || event.date || '';
-          const endDate = event.end_date || event.date || '';
-          const isStart = dateString === startDate;
-          const isEnd = dateString === endDate;
-          
-          return {
-            lane: laneInfo.lane,
-            isStart,
-            isEnd,
-            categoryColor: laneInfo.color,
-          };
-        })
-        .filter((bar): bar is NonNullable<typeof bar> => bar !== null)
-        .sort((a, b) => a.lane - b.lane)
-        .slice(0, 3);
+      // 연속 이벤트 바 정보 계산 (레인 맵 기반, 최대 3개 레인)
+      const eventBarsMap = new Map<number, { isStart: boolean; isEnd: boolean; categoryColor: string }>();
+      
+      multiDayEvents.forEach((event) => {
+        const laneInfo = eventLaneMap.get(event.id);
+        if (!laneInfo || laneInfo.lane >= 3) return; // 최대 3개 레인만
+        
+        const startDate = event.start_date || event.date || '';
+        const endDate = event.end_date || event.date || '';
+        const isStart = dateString === startDate;
+        const isEnd = dateString === endDate;
+        
+        eventBarsMap.set(laneInfo.lane, {
+          isStart,
+          isEnd,
+          categoryColor: laneInfo.color,
+        });
+      });
+      
+      // 레인 0, 1, 2를 순서대로 배열로 변환 (빈 레인은 null)
+      const eventBarsData = [0, 1, 2].map(lane => {
+        const bar = eventBarsMap.get(lane);
+        return bar || null;
+      });
 
       return (
         <div key={`${monthDate.getMonth()}-${index}`} className="h-7 lg:aspect-square p-0 lg:p-0 relative">
@@ -405,14 +411,18 @@ export default function EventCalendar({
           </button>
 
           {/* 이벤트 바 표시 - 버튼 아래에 절대 위치 */}
-          {eventBarsData.length > 0 && (
+          {eventBarsData.some(bar => bar !== null) && (
             <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 pointer-events-none z-0">
               {eventBarsData.map((bar, i) => (
                 <div
                   key={i}
-                  className={`h-0.5 lg:h-1 w-full ${bar.categoryColor} ${
-                    bar.isStart ? 'rounded-l-full' :
-                    bar.isEnd ? 'rounded-r-full' : ''
+                  className={`h-0.5 lg:h-1 w-full ${
+                    bar 
+                      ? `${bar.categoryColor} ${
+                          bar.isStart ? 'rounded-l-full' :
+                          bar.isEnd ? 'rounded-r-full' : ''
+                        }`
+                      : 'bg-transparent'
                   }`}
                 />
               ))}
