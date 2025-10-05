@@ -182,11 +182,18 @@ export default function HomePage() {
         const day = String(date.getDate()).padStart(2, "0");
         const selectedDateString = `${year}-${month}-${day}`;
 
-        const { data: events } = await supabase
+        // 모든 이벤트를 가져와서 클라이언트에서 날짜 범위 필터링
+        const { data: allEvents } = await supabase
           .from("events")
-          .select("category")
-          .eq("date", selectedDateString)
+          .select("category, start_date, end_date, date")
           .order("created_at", { ascending: true });
+
+        // 날짜 범위를 고려한 필터링
+        const events = allEvents?.filter((event: any) => {
+          const startDate = event.start_date || event.date;
+          const endDate = event.end_date || event.date;
+          return selectedDateString >= startDate && selectedDateString <= endDate;
+        }) || [];
 
         if (events && events.length > 0) {
           // 해당 날짜의 모든 고유 카테고리 추출

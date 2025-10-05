@@ -63,7 +63,8 @@ export default function EventCalendar({
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .order("date", { ascending: true });
+        .order("start_date", { ascending: true, nullsFirst: false })
+        .order("date", { ascending: true, nullsFirst: false });
 
       if (error) {
         console.error("Error fetching events:", error);

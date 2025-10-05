@@ -70,8 +70,8 @@ export default function EventList({
       case "time":
         // 시간순 정렬 (날짜 + 시간)
         return eventsCopy.sort((a, b) => {
-          const dateA = new Date(`${a.date} ${a.time}`);
-          const dateB = new Date(`${b.date} ${b.time}`);
+          const dateA = new Date(`${a.start_date || a.date} ${a.time}`);
+          const dateB = new Date(`${b.start_date || b.date} ${b.time}`);
           return dateA.getTime() - dateB.getTime();
         });
       case "title":
@@ -80,8 +80,8 @@ export default function EventList({
       case "newest":
         // 최신순 정렬 (생성일 기준)
         return eventsCopy.sort((a, b) => {
-          const dateA = new Date(a.created_at || a.date);
-          const dateB = new Date(b.created_at || b.date);
+          const dateA = new Date(a.created_at || a.start_date || a.date || '');
+          const dateB = new Date(b.created_at || b.start_date || b.date || '');
           return dateB.getTime() - dateA.getTime();
         });
       default:
@@ -285,7 +285,8 @@ export default function EventList({
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .order("date", { ascending: true });
+        .order("start_date", { ascending: true, nullsFirst: false })
+        .order("date", { ascending: true, nullsFirst: false });
 
       if (error) {
         console.error("Error fetching events:", error);
@@ -327,13 +328,18 @@ export default function EventList({
 
     let matchesDate = true;
     if (currentMonth) {
-      const eventDate = new Date(event.date);
-      const currentYear = currentMonth.getFullYear();
-      const currentMonthIndex = currentMonth.getMonth();
-
-      matchesDate =
-        eventDate.getFullYear() === currentYear &&
-        eventDate.getMonth() === currentMonthIndex;
+      const startDate = event.start_date || event.date || '';
+      const endDate = event.end_date || event.date || '';
+      const eventStartDate = new Date(startDate);
+      const eventEndDate = new Date(endDate);
+      
+      // 현재 월의 첫날과 마지막 날
+      const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      
+      // 이벤트가 현재 월과 겹치는지 확인
+      // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
+      matchesDate = eventStartDate <= monthEnd && eventEndDate >= monthStart;
     }
 
     return matchesCategory && matchesSearch && matchesDate;
