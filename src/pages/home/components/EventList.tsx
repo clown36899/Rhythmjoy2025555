@@ -256,6 +256,23 @@ export default function EventList({
     fetchEvents();
   }, [currentMonth, refreshTrigger]);
 
+  // 광고판에서 이벤트 선택 이벤트 리스너
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleEventSelected = (e: CustomEvent) => {
+      if (e.detail) {
+        setSelectedEvent(e.detail);
+      }
+    };
+
+    window.addEventListener("eventSelected", handleEventSelected as EventListener);
+
+    return () => {
+      window.removeEventListener("eventSelected", handleEventSelected as EventListener);
+    };
+  }, []);
+
   const fetchEvents = async () => {
     try {
       setLoading(true);

@@ -94,6 +94,15 @@ export default function HomePage() {
     setIsBillboardOpen(true);
   };
 
+  const handleBillboardEventClick = (event: any) => {
+    setIsBillboardOpen(false);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("eventSelected", { detail: event })
+      );
+    }
+  };
+
   const handleDateSelect = async (date: Date | null) => {
     setSelectedDate(date);
 
@@ -267,8 +276,10 @@ export default function HomePage() {
       {/* Fullscreen Billboard */}
       <FullscreenBillboard
         images={billboardImages}
+        events={billboardEvents}
         isOpen={isBillboardOpen}
         onClose={handleBillboardClose}
+        onEventClick={handleBillboardEventClick}
       />
     </div>
   );
