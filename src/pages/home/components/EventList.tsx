@@ -325,11 +325,14 @@ export default function EventList({
       const endDate = event.end_date || event.date || '';
       const matchesDate = startDate && endDate && selectedDateString >= startDate && selectedDateString <= endDate;
       
+      const matchesCategory =
+        selectedCategory === "all" || event.category === selectedCategory;
+      
       const matchesSearch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesDate && matchesSearch;
+      return matchesDate && matchesCategory && matchesSearch;
     }
 
     // 날짜가 선택되지 않은 경우 기존 로직 사용
