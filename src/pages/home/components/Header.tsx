@@ -5,7 +5,6 @@ interface HeaderProps {
   currentMonth?: Date;
   onNavigateMonth?: (direction: "prev" | "next") => void;
   onDateChange?: (date: Date) => void;
-  onDateReset?: () => void;
   onAdminModeToggle?: (isAdmin: boolean) => void;
   onBillboardOpen?: () => void;
   onBillboardSettingsOpen?: () => void;
@@ -15,7 +14,6 @@ export default function Header({
   currentMonth,
   onNavigateMonth,
   onDateChange,
-  onDateReset,
   onAdminModeToggle,
   onBillboardOpen,
   onBillboardSettingsOpen,
@@ -61,7 +59,6 @@ export default function Header({
   const handleDateConfirm = () => {
     const newDate = new Date(selectedYear, selectedMonth, 1);
     onDateChange?.(newDate);
-    onDateReset?.();
     setShowDateModal(false);
   };
 
@@ -71,13 +68,11 @@ export default function Header({
 
   const handleNavigateMonth = (direction: "prev" | "next") => {
     onNavigateMonth?.(direction);
-    onDateReset?.();
   };
 
   const handleTodayClick = () => {
     const today = new Date();
     onDateChange?.(today);
-    onDateReset?.();
   };
 
   const handleSettingsClick = () => {

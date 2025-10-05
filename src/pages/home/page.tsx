@@ -212,12 +212,6 @@ export default function HomePage() {
     }
   };
 
-  const handleDateReset = () => {
-    setSelectedDate(null);
-    setActiveCategoriesForDate([]);
-    setSelectedCategory("all"); // 카테고리도 "모든 이벤트"로 리셋
-  };
-
   const handleMonthChange = (month: Date) => {
     setCurrentMonth(month);
     // 달 이동 시 날짜만 리셋 (카테고리는 유지)
@@ -266,7 +260,6 @@ export default function HomePage() {
             setSelectedDate(null);
             setActiveCategoriesForDate([]);
           }}
-          onDateReset={handleDateReset}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
           onBillboardSettingsOpen={handleBillboardSettingsOpen}
