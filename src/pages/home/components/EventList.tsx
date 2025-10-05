@@ -1197,19 +1197,28 @@ export default function EventList({
       {/* Event Detail Modal */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          {/* 닫기 버튼 - 모달 외부 상단 중앙 */}
-
           <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="relative h-full flex flex-col">
-              {/* 상단 영역 - 이미지와 기본 정보 (여백 제거) */}
-              <div>
-                <button
-                  onClick={closeModal}
-                  className="relative left-1/2 transform -translate-x-1/2 text-white p-2 rounded-full hover:bg-opacity-90 transition-colors cursor-pointer z-20"
-                >
-                  <i className="ri-close-line text-2xl"></i>
-                </button>
+              {/* 상단 제목 영역 */}
+              <div className="p-3 border-b border-gray-700">
+                <h2 className="text-xl font-bold text-white text-center overflow-hidden">
+                  <span
+                    className="block leading-tight whitespace-nowrap overflow-hidden"
+                    style={{
+                      fontSize:
+                        Math.max(
+                          12,
+                          Math.min(24, 200 / selectedEvent.title.length),
+                        ) + "px",
+                      lineHeight: "1.2",
+                    }}
+                  >
+                    {selectedEvent.title}
+                  </span>
+                </h2>
               </div>
+
+              {/* 중단 영역 - 이미지와 기본 정보 */}
               <div className="flex h-80">
                 {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
                 <div className="w-1/2 bg-gray-800 flex items-start justify-start p-0">
@@ -1222,21 +1231,6 @@ export default function EventList({
 
                 {/* 오른쪽 기본 정보 - 내부 여백 줄임 */}
                 <div className="w-1/2 p-4 overflow-hidden">
-                  <h2 className="text-xl font-bold text-white mb-2 overflow-hidden">
-                    <span
-                      className="block leading-tight whitespace-nowrap overflow-hidden"
-                      style={{
-                        fontSize:
-                          Math.max(
-                            8,
-                            Math.min(20, 150 / selectedEvent.title.length),
-                          ) + "px",
-                        lineHeight: "1.1",
-                      }}
-                    >
-                      {selectedEvent.title}
-                    </span>
-                  </h2>
                   <div className="space-y-1">
                     <div className="flex items-center space-x-3 text-gray-300 text-sm">
                       <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
@@ -1336,14 +1330,20 @@ export default function EventList({
                   </div>
                 </div>
 
-                {/* 수정 버튼 - 하단 고정, 여백 줄임 */}
+                {/* 수정/닫기 버튼 - 하단 고정 */}
                 <div className="p-1 border-t border-gray-700 bg-gray-800">
-                  <div className="flex justify-center">
+                  <div className="flex justify-center space-x-3">
                     <button
                       onClick={(e) => handleEditClick(selectedEvent, e)}
                       className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
                     >
                       수정
+                    </button>
+                    <button
+                      onClick={closeModal}
+                      className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                    >
+                      닫기
                     </button>
                   </div>
                 </div>
