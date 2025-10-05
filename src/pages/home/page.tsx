@@ -221,50 +221,13 @@ export default function HomePage() {
     setSelectedDate(null);
   };
 
-  const handleEventsUpdate = async () => {
+  const handleEventsUpdate = async (createdDate?: Date, category?: string) => {
     setRefreshTrigger((prev) => prev + 1);
     
-    // 날짜가 선택되지 않은 상태에서 이벤트 업데이트 시, 현재 월의 카테고리 자동 설정
-    if (!selectedDate && currentMonth) {
-      try {
-        const { data: allEvents } = await supabase
-          .from("events")
-          .select("category, start_date, end_date, date")
-          .order("created_at", { ascending: true });
-
-        // 현재 월의 첫날과 마지막 날
-        const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-        
-        // 현재 월의 이벤트 필터링
-        const monthEvents = allEvents?.filter((event: any) => {
-          const startDate = event.start_date || event.date;
-          const endDate = event.end_date || event.date;
-          if (!startDate || !endDate) return false;
-          
-          const eventStartDate = new Date(startDate);
-          const eventEndDate = new Date(endDate);
-          
-          // 이벤트가 현재 월과 겹치는지 확인
-          return eventStartDate <= monthEnd && eventEndDate >= monthStart;
-        }) || [];
-
-        if (monthEvents && monthEvents.length > 0) {
-          // 현재 월의 모든 고유 카테고리 추출
-          const uniqueCategories = [
-            ...new Set(monthEvents.map((event: any) => event.category)),
-          ];
-
-          // 카테고리가 1개만 있으면 그 카테고리 선택, 2개 이상이면 "all" 선택
-          if (uniqueCategories.length === 1) {
-            setSelectedCategory(uniqueCategories[0]);
-          } else {
-            setSelectedCategory("all");
-          }
-        }
-      } catch (error) {
-        console.error("Error updating category after event creation:", error);
-      }
+    // 이벤트 등록 후 날짜와 카테고리가 전달되었을 때
+    if (createdDate && category) {
+      setSelectedDate(createdDate);
+      setSelectedCategory(category);
     }
   };
 

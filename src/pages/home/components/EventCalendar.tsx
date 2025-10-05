@@ -9,7 +9,7 @@ interface EventCalendarProps {
   onMonthChange?: (month: Date) => void;
   showHeader?: boolean;
   currentMonth?: Date;
-  onEventsUpdate?: () => void;
+  onEventsUpdate?: (createdDate?: Date, category?: string) => void;
 }
 
 export default function EventCalendar({
@@ -171,9 +171,9 @@ export default function EventCalendar({
     }
   };
 
-  const handleEventCreated = () => {
+  const handleEventCreated = (createdDate: Date, category: string) => {
     fetchEvents();
-    onEventsUpdate?.();
+    onEventsUpdate?.(createdDate, category);
   };
 
   // 스와이프 감지를 위한 최소 거리 (픽셀)
