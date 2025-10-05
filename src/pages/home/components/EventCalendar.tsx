@@ -284,7 +284,11 @@ export default function EventCalendar({
         const isStart = dateString === startDate;
         const isEnd = dateString === endDate;
         const isSingle = startDate === endDate;
-        const categoryColor = event.category === 'class' ? 'bg-purple-500' : 'bg-blue-500';
+        
+        // 연속 이벤트는 더 밝은 색, 단일 이벤트는 진한 색
+        const categoryColor = isSingle 
+          ? (event.category === 'class' ? 'bg-purple-500' : 'bg-blue-500')
+          : (event.category === 'class' ? 'bg-purple-400' : 'bg-blue-400');
 
         return { isStart, isEnd, isSingle, categoryColor };
       });
@@ -317,11 +321,11 @@ export default function EventCalendar({
 
           {/* 이벤트 바 표시 - 버튼 아래에 절대 위치 */}
           {eventBars.length > 0 && (
-            <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 px-0.5 pb-0.5 pointer-events-none z-0">
+            <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 pointer-events-none z-0">
               {eventBars.map((bar, i) => (
                 <div
                   key={i}
-                  className={`h-0.5 lg:h-1 ${bar.categoryColor} ${
+                  className={`h-0.5 lg:h-1 w-full ${bar.categoryColor} ${
                     bar.isSingle ? 'rounded-full' :
                     bar.isStart ? 'rounded-l-full' :
                     bar.isEnd ? 'rounded-r-full' : ''
