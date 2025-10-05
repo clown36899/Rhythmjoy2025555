@@ -81,7 +81,9 @@ Preferred communication style: Simple, everyday language.
 {
   id: number
   title: string
-  date: string
+  date?: string  // Optional - legacy field for backward compatibility
+  start_date?: string  // Event start date (YYYY-MM-DD)
+  end_date?: string    // Event end date (YYYY-MM-DD)
   time: string
   location: string
   category: 'class' | 'event'
@@ -94,6 +96,14 @@ Preferred communication style: Simple, everyday language.
   created_at/updated_at: timestamps
 }
 ```
+
+**Multi-day Event Support:**
+- Events can span multiple days using `start_date` and `end_date` fields
+- Legacy `date` field maintained for backward compatibility
+- Fallback logic: `start_date || date` and `end_date || date` used throughout
+- Calendar displays events as horizontal bars spanning multiple days
+- Bar styling: start (left-rounded), middle (rectangle), end (right-rounded), single-day (fully-rounded)
+- Category colors: Class (purple/보라색), Event (blue/파란색)
 
 **Practice Room Model:**
 - Name, address, description
@@ -125,8 +135,12 @@ Preferred communication style: Simple, everyday language.
 
 **Features:**
 - Month/year navigation with dropdown selectors
-- Visual indicators for events on specific dates (colored dots for categories)
-- Date selection triggering filtered event list view
+- Bar-style event visualization for multi-day events
+  - Events displayed as horizontal bars spanning multiple days
+  - Visual segments: start (left-rounded), middle (rectangle), end (right-rounded), single-day (fully-rounded)
+  - Category-based coloring: Class (purple), Event (blue)
+  - Maximum 3 bars shown per date
+- Date selection triggering filtered event list view with date range support
 - Responsive grid layout adapting to screen size
 - Height measurement using ResizeObserver for layout calculations
 - Touch swipe navigation on mobile (swipe left/right to change months)
@@ -249,6 +263,25 @@ Preferred communication style: Simple, everyday language.
 - **Header Integration**: Replaced logo with QR button (purple QR icon + "즐거찾기" text)
 - **Smart URL**: Uses current page URL without query parameters
 - **Visual Feedback**: Copy button shows success state for 2 seconds
+
+### Multi-day Event Feature (2025-10-05)
+- **Database Schema**: Added `start_date` and `end_date` columns to events table for multi-day event support
+- **Event Type Update**: Made `date` field optional for backward compatibility, added `start_date` and `end_date` fields
+- **Registration Modal**: Enhanced with dual date picker for selecting event start and end dates
+  - Validation: End date must be >= start date
+  - Auto-initialization: End date automatically matches selected start date
+- **Bar-style Calendar Visualization**: 
+  - Multi-day events displayed as horizontal bars spanning across dates
+  - Visual segments: start (left-rounded), middle (rectangle), end (right-rounded), single-day (fully-rounded)
+  - Category colors: Class (purple/보라색), Event (blue/파란색)
+  - Maximum 3 bars shown per date
+- **Date Range Filtering**: 
+  - Calendar and event list now support date range queries
+  - Events appear on all dates between start_date and end_date (inclusive)
+  - Month-level filtering uses overlap detection (event visible if it intersects with month)
+- **Fallback Logic**: All date operations use `start_date || date` and `end_date || date` for backward compatibility
+- **Sorting Updates**: Event sorting (time, newest) now uses start_date as primary reference
+- **Edit Modal Limitation**: Event editing currently does not support changing dates (only other fields can be modified)
 
 ## Required Setup
 
