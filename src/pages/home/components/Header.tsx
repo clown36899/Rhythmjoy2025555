@@ -7,6 +7,7 @@ interface HeaderProps {
   onDateReset?: () => void;
   onAdminModeToggle?: (isAdmin: boolean) => void;
   onBillboardOpen?: () => void;
+  onBillboardSettingsOpen?: () => void;
 }
 
 export default function Header({
@@ -16,6 +17,7 @@ export default function Header({
   onDateReset,
   onAdminModeToggle,
   onBillboardOpen,
+  onBillboardSettingsOpen,
 }: HeaderProps) {
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(
@@ -320,12 +322,24 @@ export default function Header({
                 <p className="text-gray-300 text-sm mb-4">
                   현재 관리자 모드입니다. 모든 이벤트를 관리할 수 있습니다.
                 </p>
-                <button
-                  onClick={handleAdminLogout}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  일반 모드로 전환
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      setShowSettingsModal(false);
+                      onBillboardSettingsOpen?.();
+                    }}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                  >
+                    <i className="ri-image-2-line"></i>
+                    광고판 설정
+                  </button>
+                  <button
+                    onClick={handleAdminLogout}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    일반 모드로 전환
+                  </button>
+                </div>
               </div>
             )}
           </div>

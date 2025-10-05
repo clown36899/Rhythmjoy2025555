@@ -5,7 +5,7 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Footer from "./components/Footer";
 import FullscreenBillboard from "../../components/FullscreenBillboard";
-import AdminBillboardPanel from "./components/AdminBillboardPanel";
+import AdminBillboardModal from "./components/AdminBillboardModal";
 import { supabase } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 
@@ -24,6 +24,7 @@ export default function HomePage() {
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
+  const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
@@ -153,6 +154,14 @@ export default function HomePage() {
     setIsBillboardOpen(true);
   };
 
+  const handleBillboardSettingsOpen = () => {
+    setIsBillboardSettingsOpen(true);
+  };
+
+  const handleBillboardSettingsClose = () => {
+    setIsBillboardSettingsOpen(false);
+  };
+
   const handleBillboardEventClick = (event: any) => {
     setIsBillboardOpen(false);
     if (typeof window !== "undefined") {
@@ -260,6 +269,7 @@ export default function HomePage() {
           onDateReset={handleDateReset}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
+          onBillboardSettingsOpen={handleBillboardSettingsOpen}
         />
       </div>
 
@@ -267,15 +277,6 @@ export default function HomePage() {
       <div className="hidden lg:block pt-16">
         <Hero />
         <div className="container mx-auto px-4 py-8">
-          {/* Admin Billboard Panel */}
-          {isAdminMode && (
-            <AdminBillboardPanel
-              settings={settings}
-              onUpdateSettings={updateSettings}
-              onResetSettings={resetSettings}
-            />
-          )}
-          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <EventCalendar
               selectedDate={selectedDate}
@@ -321,17 +322,6 @@ export default function HomePage() {
             style={{ paddingTop: `calc(3rem + ${calendarHeight}px + 55px)` }}
           >
             <div className="-mt-10">
-              {/* Admin Billboard Panel (Mobile) */}
-              {isAdminMode && (
-                <div className="px-4 mb-4">
-                  <AdminBillboardPanel
-                    settings={settings}
-                    onUpdateSettings={updateSettings}
-                    onResetSettings={resetSettings}
-                  />
-                </div>
-              )}
-              
               <EventList
                 selectedDate={selectedDate}
                 selectedCategory={selectedCategory}
@@ -364,6 +354,15 @@ export default function HomePage() {
           transitionDuration={settings.transitionDuration}
         />
       )}
+
+      {/* Admin Billboard Settings Modal */}
+      <AdminBillboardModal
+        isOpen={isBillboardSettingsOpen}
+        onClose={handleBillboardSettingsClose}
+        settings={settings}
+        onUpdateSettings={updateSettings}
+        onResetSettings={resetSettings}
+      />
     </div>
   );
 }
