@@ -106,15 +106,11 @@ export default function EventCalendar({
     const dateString = `${year}-${month}-${day}`;
 
     return events.filter((event) => {
-      const startDate = event.start_date || event.date;
-      const endDate = event.end_date || event.date;
+      const startDate = event.start_date || event.date || '';
+      const endDate = event.end_date || event.date || '';
       
-      return dateString >= startDate && dateString <= endDate;
+      return startDate && endDate && dateString >= startDate && dateString <= endDate;
     });
-  };
-
-  const getEventCount = (date: Date) => {
-    return getEventsForDate(date).length;
   };
 
   const isToday = (date: Date) => {
@@ -277,20 +273,28 @@ export default function EventCalendar({
       const dayNum = String(day.getDate()).padStart(2, "0");
       const dateString = `${year}-${month}-${dayNum}`;
 
-      // 이벤트 바 정보 계산
-      const eventBars = dayEvents.slice(0, 3).map((event) => {
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
+      // 연속 이벤트와 단일 이벤트 분리
+      const multiDayEvents = dayEvents.filter((event) => {
+        const startDate = event.start_date || event.date || '';
+        const endDate = event.end_date || event.date || '';
+        return startDate !== endDate;
+      });
+
+      const singleDayEvents = dayEvents.filter((event) => {
+        const startDate = event.start_date || event.date || '';
+        const endDate = event.end_date || event.date || '';
+        return startDate === endDate;
+      });
+
+      // 연속 이벤트 바 정보 계산 (최대 3개)
+      const eventBars = multiDayEvents.slice(0, 3).map((event) => {
+        const startDate = event.start_date || event.date || '';
+        const endDate = event.end_date || event.date || '';
         const isStart = dateString === startDate;
         const isEnd = dateString === endDate;
-        const isSingle = startDate === endDate;
-        
-        // 연속 이벤트는 더 밝은 색, 단일 이벤트는 진한 색
-        const categoryColor = isSingle 
-          ? (event.category === 'class' ? 'bg-purple-500' : 'bg-blue-500')
-          : (event.category === 'class' ? 'bg-purple-400' : 'bg-blue-400');
+        const categoryColor = event.category === 'class' ? 'bg-purple-400' : 'bg-blue-400';
 
-        return { isStart, isEnd, isSingle, categoryColor };
+        return { isStart, isEnd, categoryColor };
       });
 
       return (
@@ -305,9 +309,17 @@ export default function EventCalendar({
             }`}
           >
             {/* 날짜 숫자 */}
-            <span className="font-bold relative z-10">
-              {day.getDate()}
-            </span>
+            <div className="flex items-center gap-1 relative z-10">
+              <span className="font-bold">
+                {day.getDate()}
+              </span>
+              {/* 단일 이벤트 개수 표시 */}
+              {singleDayEvents.length > 0 && (
+                <span className="text-[8px] lg:text-[10px] bg-gray-600 text-gray-300 rounded px-1 font-medium">
+                  +{singleDayEvents.length}
+                </span>
+              )}
+            </div>
 
             {/* 오늘 표시 */}
             {todayFlag && (
@@ -326,7 +338,6 @@ export default function EventCalendar({
                 <div
                   key={i}
                   className={`h-0.5 lg:h-1 w-full ${bar.categoryColor} ${
-                    bar.isSingle ? 'rounded-full' :
                     bar.isStart ? 'rounded-l-full' :
                     bar.isEnd ? 'rounded-r-full' : ''
                   }`}
