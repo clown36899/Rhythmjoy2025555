@@ -26,9 +26,9 @@ export default function EventCalendar({
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [clickedDate, setClickedDate] = useState<Date | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
@@ -116,27 +116,16 @@ export default function EventCalendar({
   const navigateMonth = (direction: "prev" | "next") => {
     if (isAnimating) return;
 
-    // 애니메이션 시작
-    setIsAnimating(true);
-    setSlideDirection(direction === "next" ? "left" : "right");
+    const newMonth = new Date(currentMonth);
+    if (direction === "prev") {
+      newMonth.setMonth(currentMonth.getMonth() - 1);
+    } else {
+      newMonth.setMonth(currentMonth.getMonth() + 1);
+    }
 
-    // 애니메이션 완료 후 실제 달 변경
-    setTimeout(() => {
-      const newMonth = new Date(currentMonth);
-      if (direction === "prev") {
-        newMonth.setMonth(currentMonth.getMonth() - 1);
-      } else {
-        newMonth.setMonth(currentMonth.getMonth() + 1);
-      }
-
-      setInternalCurrentMonth(newMonth);
-      onMonthChange?.(newMonth);
-      onDateSelect(null);
-
-      // 애니메이션 종료
-      setIsAnimating(false);
-      setSlideDirection(null);
-    }, 300);
+    setInternalCurrentMonth(newMonth);
+    onMonthChange?.(newMonth);
+    onDateSelect(null);
   };
 
   const navigateToMonth = (monthIndex: number) => {
@@ -186,32 +175,65 @@ export default function EventCalendar({
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
+    if (isAnimating) return;
     setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(true);
+    setDragOffset(0);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    if (!isDragging || touchStart === null) return;
+    
+    const currentTouch = e.targetTouches[0].clientX;
+    const diff = currentTouch - touchStart;
+    
+    // 드래그 오프셋 업데이트 (실시간 반응)
+    setDragOffset(diff);
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!isDragging || touchStart === null) return;
     
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    setIsDragging(false);
     
-    if (isLeftSwipe) {
-      // 왼쪽으로 스와이프 = 다음 달
-      navigateMonth('next');
-    }
-    if (isRightSwipe) {
-      // 오른쪽으로 스와이프 = 이전 달
-      navigateMonth('prev');
+    const distance = dragOffset;
+    const threshold = minSwipeDistance;
+    
+    // 충분히 드래그했는지 확인
+    if (Math.abs(distance) > threshold) {
+      setIsAnimating(true);
+      
+      // 왼쪽으로 드래그 = 다음 달 (음수)
+      // 오른쪽으로 드래그 = 이전 달 (양수)
+      if (distance < 0) {
+        // 다음 달로
+        navigateMonth('next');
+      } else {
+        // 이전 달로
+        navigateMonth('prev');
+      }
+      
+      // 애니메이션 완료 후 리셋
+      setTimeout(() => {
+        setDragOffset(0);
+        setIsAnimating(false);
+        setTouchStart(null);
+      }, 300);
+    } else {
+      // 임계값 미달 - 원위치로 스냅백
+      setDragOffset(0);
+      setTouchStart(null);
     }
   };
 
-  const days = getDaysInMonth(currentMonth);
+  // 이전 달, 현재 달, 다음 달의 날짜들을 생성
+  const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+  const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+  
+  const prevDays = getDaysInMonth(prevMonth);
+  const currentDays = getDaysInMonth(currentMonth);
+  const nextDays = getDaysInMonth(nextMonth);
+  
   const monthNames = [
     "1월",
     "2월",
@@ -226,6 +248,67 @@ export default function EventCalendar({
     "11월",
     "12월",
   ];
+  
+  // 달력 렌더링 함수
+  const renderCalendarGrid = (days: (Date | null)[], monthDate: Date) => {
+    return days.map((day, index) => {
+      const eventCount = day ? getEventCount(day) : 0;
+      const todayFlag = day ? isToday(day) : false;
+      return (
+        <div key={`${monthDate.getMonth()}-${index}`} className="h-7 lg:aspect-square p-0 lg:p-0">
+          {day && (
+            <button
+              onClick={() => handleDateClick(day)}
+              className={`w-full h-full flex flex-col items-center justify-center text-[13px] lg:text-sm rounded lg:rounded-lg transition-all duration-300 cursor-pointer relative overflow-hidden ${
+                selectedDate &&
+                day.toDateString() === selectedDate.toDateString()
+                  ? "bg-blue-600 text-white transform scale-105"
+                  : "text-gray-300 hover:bg-gray-700"
+              }`}
+            >
+              {/* 날짜 숫자 */}
+              <span className="font-bold relative z-10">
+                {day.getDate()}
+              </span>
+
+              {/* 오늘 표시 */}
+              {todayFlag && (
+                <div className="relative z-10 flex items-center justify-center mt-0.5">
+                  <div className="text-blue-400 text-[8px] lg:text-[16px] font-black leading-none">
+                    오늘
+                  </div>
+                </div>
+              )}
+
+              {/* 이벤트 개수 표시 - 파란 점으로만 표시 */}
+              {eventCount > 0 && (
+                <div
+                  className={`flex items-center justify-center relative z-10 ${todayFlag ? "mt-0" : "mt-0.5 lg:mt-1"}`}
+                >
+                  {eventCount <= 3 ? (
+                    <div className="flex space-x-0.5">
+                      {Array.from({
+                        length: Math.min(eventCount, 3),
+                      }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-blue-400"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-blue-400 text-white text-[4px] lg:text-[8px] rounded-full w-2.5 h-2.5 lg:w-4 lg:h-4 flex items-center justify-center font-bold leading-none">
+                      {eventCount}
+                    </div>
+                  )}
+                </div>
+              )}
+            </button>
+          )}
+        </div>
+      );
+    });
+  };
 
   return (
     <>
@@ -300,79 +383,32 @@ export default function EventCalendar({
           ))}
         </div>
 
-        {/* Calendar grid */}
+        {/* Calendar grid - 3개 달력 캐러셀 */}
         <div className="overflow-hidden flex-1">
           <div 
-            className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 transition-transform duration-300 ease-out"
+            className="flex"
             style={{
-              transform: isAnimating 
-                ? slideDirection === 'left' 
-                  ? 'translateX(-100%)' 
-                  : 'translateX(100%)'
-                : 'translateX(0)',
-              opacity: isAnimating ? 0.5 : 1
+              transform: `translateX(calc(-100% + ${dragOffset}px))`,
+              transition: isDragging ? 'none' : 'transform 0.3s ease-out'
             }}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-          {days.map((day, index) => {
-            const eventCount = day ? getEventCount(day) : 0;
-            const todayFlag = day ? isToday(day) : false;
-            return (
-              <div key={index} className="h-7 lg:aspect-square p-0 lg:p-0">
-                {day && (
-                  <button
-                    onClick={() => handleDateClick(day)}
-                    className={`w-full h-full flex flex-col items-center justify-center text-[13px] lg:text-sm rounded lg:rounded-lg transition-all duration-300 cursor-pointer relative overflow-hidden ${
-                      selectedDate &&
-                      day.toDateString() === selectedDate.toDateString()
-                        ? "bg-blue-600 text-white transform scale-105"
-                        : "text-gray-300 hover:bg-gray-700"
-                    }`}
-                  >
-                    {/* 날짜 숫자 */}
-                    <span className="font-bold relative z-10">
-                      {day.getDate()}
-                    </span>
-
-                    {/* 오늘 표시 */}
-                    {todayFlag && (
-                      <div className="relative z-10 flex items-center justify-center mt-0.5">
-                        <div className="text-blue-400 text-[8px] lg:text-[16px] font-black leading-none">
-                          오늘
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 이벤트 개수 표시 - 파란 점으로만 표시 */}
-                    {eventCount > 0 && (
-                      <div
-                        className={`flex items-center justify-center relative z-10 ${todayFlag ? "mt-0" : "mt-0.5 lg:mt-1"}`}
-                      >
-                        {eventCount <= 3 ? (
-                          <div className="flex space-x-0.5">
-                            {Array.from({
-                              length: Math.min(eventCount, 3),
-                            }).map((_, i) => (
-                              <div
-                                key={i}
-                                className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-blue-400"
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="bg-blue-400 text-white text-[4px] lg:text-[8px] rounded-full w-2.5 h-2.5 lg:w-4 lg:h-4 flex items-center justify-center font-bold leading-none">
-                            {eventCount}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                )}
-              </div>
-            );
-          })}
+            {/* 이전 달 */}
+            <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+              {renderCalendarGrid(prevDays, prevMonth)}
+            </div>
+            
+            {/* 현재 달 */}
+            <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+              {renderCalendarGrid(currentDays, currentMonth)}
+            </div>
+            
+            {/* 다음 달 */}
+            <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+              {renderCalendarGrid(nextDays, nextMonth)}
+            </div>
           </div>
         </div>
       </div>
