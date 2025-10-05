@@ -54,6 +54,8 @@ export default function EventList({
     linkName2: "",
     linkName3: "",
     image: "",
+    start_date: "",
+    end_date: "",
   });
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
@@ -394,6 +396,8 @@ export default function EventList({
         linkName2: event.link_name2 || "",
         linkName3: event.link_name3 || "",
         image: event.image || "",
+        start_date: event.start_date || event.date || "",
+        end_date: event.end_date || event.date || "",
       });
       setEditImagePreview(event.image || "");
       setEditImageFile(null);
@@ -469,6 +473,8 @@ export default function EventList({
         linkName2: eventToEdit.link_name2 || "",
         linkName3: eventToEdit.link_name3 || "",
         image: eventToEdit.image || "",
+        start_date: eventToEdit.start_date || eventToEdit.date || "",
+        end_date: eventToEdit.end_date || eventToEdit.date || "",
       });
       setEditImagePreview(eventToEdit.image || "");
       setEditImageFile(null);
@@ -501,10 +507,16 @@ export default function EventList({
     e.preventDefault();
     if (!eventToEdit) return;
 
+    // 종료일이 시작일보다 빠르면 안됨
+    if (editFormData.start_date && editFormData.end_date && editFormData.end_date < editFormData.start_date) {
+      alert("종료일은 시작일보다 빠를 수 없습니다.");
+      return;
+    }
+
     try {
       let imageUrl = editFormData.image;
 
-      // 새 이미지가 업로드되었으면 Supabase Storage에 업로드
+      // 새 이미지가 업로드되었으면 Supabase Storage에 업로드 시도
       if (editImageFile) {
         const fileName = `${Date.now()}_${editImageFile.name}`;
         const { error: uploadError } = await supabase.storage
@@ -513,15 +525,25 @@ export default function EventList({
 
         if (uploadError) {
           console.error("Storage upload error:", uploadError);
-          alert("이미지 업로드 중 오류가 발생했습니다.");
-          return;
+          // Storage 에러 시 사용자에게 선택권 제공
+          const continueWithoutImage = confirm(
+            "이미지 업로드에 실패했습니다.\n\n" +
+            "Supabase Storage에 'event-images' 버킷이 생성되어 있는지 확인해주세요.\n\n" +
+            "이미지 없이 다른 정보만 수정하시겠습니까?"
+          );
+          
+          if (!continueWithoutImage) {
+            return;
+          }
+          // 기존 이미지 유지
+          imageUrl = editFormData.image;
+        } else {
+          const { data } = supabase.storage
+            .from("event-images")
+            .getPublicUrl(fileName);
+
+          imageUrl = data.publicUrl;
         }
-
-        const { data } = supabase.storage
-          .from("event-images")
-          .getPublicUrl(fileName);
-
-        imageUrl = data.publicUrl;
       }
 
       const { error } = await supabase
@@ -540,6 +562,8 @@ export default function EventList({
           link_name2: editFormData.linkName2 || null,
           link_name3: editFormData.linkName3 || null,
           image: imageUrl,
+          start_date: editFormData.start_date || null,
+          end_date: editFormData.end_date || null,
         })
         .eq("id", eventToEdit.id);
 
@@ -553,6 +577,10 @@ export default function EventList({
         setEditImageFile(null);
         setEditImagePreview("");
         fetchEvents();
+        // 달력 업데이트
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("eventDeleted"));
+        }
       }
     } catch (error) {
       console.error("Error:", error);
@@ -1022,6 +1050,45 @@ export default function EventList({
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                      시작일
+                    </label>
+                    <input
+                      type="date"
+                      value={editFormData.start_date}
+                      onChange={(e) => {
+                        const newStartDate = e.target.value;
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          start_date: newStartDate,
+                          // 종료일이 비어있거나 시작일보다 빠르면 시작일과 동일하게 설정
+                          end_date: (!prev.end_date || prev.end_date < newStartDate) ? newStartDate : prev.end_date,
+                        }));
+                      }}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                      종료일
+                    </label>
+                    <input
+                      type="date"
+                      value={editFormData.end_date}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          end_date: e.target.value,
+                        }))
+                      }
+                      min={editFormData.start_date}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
                   </div>
                 </div>
 
