@@ -351,8 +351,19 @@ export default function EventCalendar({
         return startDate === endDate;
       });
 
+      // 선택된 날짜에 속한 이벤트 ID 목록
+      const selectedDateEventIds = selectedDate ? new Set(
+        getEventsForDate(selectedDate)
+          .filter((event) => {
+            const startDate = event.start_date || event.date || '';
+            const endDate = event.end_date || event.date || '';
+            return startDate !== endDate;
+          })
+          .map(event => event.id)
+      ) : null;
+
       // 연속 이벤트 바 정보 계산 (레인 맵 기반, 최대 3개 레인)
-      const eventBarsMap = new Map<number, { isStart: boolean; isEnd: boolean; categoryColor: string }>();
+      const eventBarsMap = new Map<number, { isStart: boolean; isEnd: boolean; categoryColor: string; isFaded: boolean }>();
       
       multiDayEvents.forEach((event) => {
         const laneInfo = eventLaneMap.get(event.id);
@@ -363,10 +374,14 @@ export default function EventCalendar({
         const isStart = dateString === startDate;
         const isEnd = dateString === endDate;
         
+        // 선택된 날짜가 있고 해당 이벤트가 선택된 날짜에 속하지 않으면 흐리게
+        const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
+        
         eventBarsMap.set(laneInfo.lane, {
           isStart,
           isEnd,
           categoryColor: laneInfo.color,
+          isFaded,
         });
       });
       
@@ -421,7 +436,7 @@ export default function EventCalendar({
                       ? `${bar.categoryColor} ${
                           bar.isStart ? 'rounded-l-full' :
                           bar.isEnd ? 'rounded-r-full' : ''
-                        }`
+                        } ${bar.isFaded ? 'opacity-30' : ''}`
                       : 'bg-transparent'
                   }`}
                 />
