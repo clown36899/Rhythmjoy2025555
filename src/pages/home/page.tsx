@@ -178,7 +178,7 @@ export default function HomePage() {
           {/* Fixed Calendar Section */}
           <div
             ref={calendarRef}
-            className="fixed top-16 left-0 right-0 z-[9] bg-gray-900"
+            className="fixed top-16 left-0 right-0 z-[9] bg-gray-900 border-b border-gray-800"
           >
             <EventCalendar
               selectedDate={selectedDate}
