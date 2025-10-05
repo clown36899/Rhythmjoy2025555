@@ -817,7 +817,7 @@ export default function EventList({
 
       {/* Password Modal */}
       {showPasswordModal && eventToEdit && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-20 overflow-y-auto">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold text-white mb-4">이벤트 수정</h3>
             <p className="text-gray-300 mb-4">
@@ -861,7 +861,7 @@ export default function EventList({
 
       {/* Edit Modal */}
       {showEditModal && eventToEdit && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-10 overflow-y-auto">
           <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4">
               <div className="flex justify-between items-center mb-3">
@@ -1131,7 +1131,7 @@ export default function EventList({
 
       {/* 시간 선택 모달 */}
       {showTimeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[70] p-4 pt-10 overflow-y-auto">
           <div className="bg-gray-800 rounded-lg max-w-md w-full max-h-[70vh] overflow-y-auto">
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">

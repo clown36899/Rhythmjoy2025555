@@ -188,7 +188,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
 
   const modalContent = (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-8 z-[999999] overflow-hidden">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-8 z-[999999] overflow-y-auto">
         {/* 닫기 버튼 - 모달 외부 상단 중앙 */}
         <button
           onClick={onClose}
@@ -444,7 +444,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
 
       {/* 시간 선택 모달 */}
       {showTimeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999999]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-10 overflow-y-auto z-[9999999]">
           <div className="bg-gray-800 rounded-lg max-w-md w-full max-h-[70vh] overflow-y-auto">
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
