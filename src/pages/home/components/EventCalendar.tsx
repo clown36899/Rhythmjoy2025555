@@ -203,18 +203,22 @@ export default function EventCalendar({
     if (Math.abs(distance) > threshold) {
       setIsAnimating(true);
       
+      // 화면 너비를 가져오기
+      const screenWidth = window.innerWidth;
+      
       // 왼쪽으로 드래그 = 다음 달 (음수)
       // 오른쪽으로 드래그 = 이전 달 (양수)
-      if (distance < 0) {
-        // 다음 달로
-        navigateMonth('next');
-      } else {
-        // 이전 달로
-        navigateMonth('prev');
-      }
+      const direction = distance < 0 ? 'next' : 'prev';
+      const targetOffset = distance < 0 ? -screenWidth : screenWidth;
       
-      // 애니메이션 완료 후 리셋
+      // 1단계: 슬라이드 애니메이션 완료 (화면 끝까지 이동)
+      setDragOffset(targetOffset);
+      
+      // 2단계: 애니메이션 완료 후 달 변경
       setTimeout(() => {
+        navigateMonth(direction);
+        
+        // 3단계: 즉시 드래그 오프셋 리셋 (새로운 현재 달이 중앙에)
         setDragOffset(0);
         setIsAnimating(false);
         setTouchStart(null);
