@@ -393,7 +393,7 @@ export default function EventCalendar({
             className="flex"
             style={{
               transform: `translateX(calc(-100% + ${dragOffset}px))`,
-              transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+              transition: isDragging ? 'none' : isAnimating ? 'transform 0.3s ease-out' : 'none'
             }}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
