@@ -198,8 +198,12 @@ export default function HomePage() {
             ...new Set(events.map((event) => event.category)),
           ];
 
-          // 첫 번째 카테고리로 설정
-          setSelectedCategory(uniqueCategories[0]);
+          // 카테고리가 1개만 있으면 그 카테고리 선택, 2개 이상이면 "all" 선택
+          if (uniqueCategories.length === 1) {
+            setSelectedCategory(uniqueCategories[0]);
+          } else {
+            setSelectedCategory("all");
+          }
         } else {
           // 이벤트가 없으면 "all" 카테고리로 설정
           setSelectedCategory("all");
