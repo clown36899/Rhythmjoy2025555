@@ -311,9 +311,9 @@ export default function EventList({
       const day = String(selectedDate.getDate()).padStart(2, "0");
       const selectedDateString = `${year}-${month}-${day}`;
 
-      const startDate = event.start_date || event.date;
-      const endDate = event.end_date || event.date;
-      const matchesDate = selectedDateString >= startDate && selectedDateString <= endDate;
+      const startDate = event.start_date || event.date || '';
+      const endDate = event.end_date || event.date || '';
+      const matchesDate = startDate && endDate && selectedDateString >= startDate && selectedDateString <= endDate;
       
       const matchesSearch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -491,7 +491,7 @@ export default function EventList({
       // 새 이미지가 업로드되었으면 Supabase Storage에 업로드
       if (editImageFile) {
         const fileName = `${Date.now()}_${editImageFile.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("event-images")
           .upload(fileName, editImageFile);
 
@@ -701,7 +701,7 @@ export default function EventList({
                     />
                     <div className="p-2">
                       <p className="text-xs text-gray-300 text-center">
-                        {new Date(event.date).toLocaleDateString()}
+                        {new Date(event.start_date || event.date || '').toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -730,7 +730,7 @@ export default function EventList({
                           <div className="flex items-center space-x-1">
                             <i className="ri-calendar-line"></i>
                             <span>
-                              {new Date(event.date).toLocaleDateString()}
+                              {new Date(event.start_date || event.date || '').toLocaleDateString()}
                             </span>
                           </div>
                           <div className="flex items-center space-x-1">
@@ -1332,7 +1332,7 @@ export default function EventList({
                     <div className="flex items-center space-x-3 text-gray-300 text-sm">
                       <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                       <span>
-                        {new Date(selectedEvent.date).toLocaleDateString(
+                        {new Date(selectedEvent.start_date || selectedEvent.date || '').toLocaleDateString(
                           "ko-KR",
                           {
                             year: "numeric",
