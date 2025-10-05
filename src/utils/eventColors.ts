@@ -37,8 +37,3 @@ export function getEventColor(eventId: number) {
   const index = hash % colorPalette.length;
   return colorPalette[index];
 }
-
-// 인덱스를 기반으로 색상을 반환 (달력에서 중복 방지용)
-export function getColorByIndex(index: number) {
-  return colorPalette[index % colorPalette.length];
-}

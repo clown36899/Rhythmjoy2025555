@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
-import { getColorByIndex } from "../../../utils/eventColors";
+import { getEventColor } from "../../../utils/eventColors";
 
 interface EventCalendarProps {
   selectedDate: Date | null;
@@ -287,13 +287,13 @@ export default function EventCalendar({
         return startDate === endDate;
       });
 
-      // 연속 이벤트 바 정보 계산 (최대 3개, 인덱스 기반 색상으로 중복 방지)
-      const eventBars = multiDayEvents.slice(0, 3).map((event, index) => {
+      // 연속 이벤트 바 정보 계산 (최대 3개, 이벤트 ID 기반 고유 색상)
+      const eventBars = multiDayEvents.slice(0, 3).map((event) => {
         const startDate = event.start_date || event.date || '';
         const endDate = event.end_date || event.date || '';
         const isStart = dateString === startDate;
         const isEnd = dateString === endDate;
-        const eventColor = getColorByIndex(index);
+        const eventColor = getEventColor(event.id);
 
         return { isStart, isEnd, categoryColor: eventColor.bg };
       });
