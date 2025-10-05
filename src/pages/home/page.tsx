@@ -5,7 +5,9 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Footer from "./components/Footer";
 import FullscreenBillboard from "../../components/FullscreenBillboard";
+import AdminBillboardPanel from "./components/AdminBillboardPanel";
 import { supabase } from "../../lib/supabase";
+import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 
 export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -23,6 +25,8 @@ export default function HomePage() {
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
   // 달력 높이 측정
   useEffect(() => {
@@ -56,16 +60,16 @@ export default function HomePage() {
       clearTimeout(inactivityTimerRef.current);
     }
 
-    // 광고판이 열려있으면 타이머 설정 안 함
-    if (isBillboardOpen) return;
+    // 광고판이 비활성화되어 있거나, 열려있거나, 타이머가 0이면 설정 안 함
+    if (!settings.enabled || isBillboardOpen || settings.inactivityTimeout === 0) return;
 
-    // 10분(600,000ms) 후 광고판 자동 열기
+    // 설정된 시간 후 광고판 자동 열기
     inactivityTimerRef.current = setTimeout(() => {
       if (billboardImages.length > 0) {
         setIsBillboardOpen(true);
       }
-    }, 600000); // 10분
-  }, [isBillboardOpen, billboardImages.length]);
+    }, settings.inactivityTimeout);
+  }, [settings.enabled, settings.inactivityTimeout, isBillboardOpen, billboardImages.length]);
 
   // 사용자 활동 감지 및 비활동 타이머
   useEffect(() => {
@@ -97,6 +101,13 @@ export default function HomePage() {
   // 광고판 이미지 로드 및 자동 표시
   useEffect(() => {
     const loadBillboardImages = async () => {
+      // 광고판이 비활성화되어 있으면 로드하지 않음
+      if (!settings.enabled) {
+        setBillboardImages([]);
+        setBillboardEvents([]);
+        return;
+      }
+
       try {
         const today = new Date();
         const todayString = today.toISOString().split('T')[0];
@@ -114,11 +125,14 @@ export default function HomePage() {
           setBillboardImages(images);
           setBillboardEvents(events);
 
-          const todayStr = today.toDateString();
-          const dismissedDate = localStorage.getItem("billboardDismissedDate");
-          
-          if (dismissedDate !== todayStr && images.length > 0) {
-            setIsBillboardOpen(true);
+          // 자동 열기 설정이 켜져있을 때만 자동으로 표시
+          if (settings.autoOpenOnLoad) {
+            const todayStr = today.toDateString();
+            const dismissedDate = localStorage.getItem("billboardDismissedDate");
+            
+            if (dismissedDate !== todayStr && images.length > 0) {
+              setIsBillboardOpen(true);
+            }
           }
         }
       } catch (error) {
@@ -127,7 +141,7 @@ export default function HomePage() {
     };
 
     loadBillboardImages();
-  }, []);
+  }, [settings.enabled, settings.autoOpenOnLoad]);
 
   const handleBillboardClose = () => {
     setIsBillboardOpen(false);
@@ -253,6 +267,15 @@ export default function HomePage() {
       <div className="hidden lg:block pt-16">
         <Hero />
         <div className="container mx-auto px-4 py-8">
+          {/* Admin Billboard Panel */}
+          {isAdminMode && (
+            <AdminBillboardPanel
+              settings={settings}
+              onUpdateSettings={updateSettings}
+              onResetSettings={resetSettings}
+            />
+          )}
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <EventCalendar
               selectedDate={selectedDate}
@@ -298,6 +321,17 @@ export default function HomePage() {
             style={{ paddingTop: `calc(3rem + ${calendarHeight}px + 55px)` }}
           >
             <div className="-mt-10">
+              {/* Admin Billboard Panel (Mobile) */}
+              {isAdminMode && (
+                <div className="px-4 mb-4">
+                  <AdminBillboardPanel
+                    settings={settings}
+                    onUpdateSettings={updateSettings}
+                    onResetSettings={resetSettings}
+                  />
+                </div>
+              )}
+              
               <EventList
                 selectedDate={selectedDate}
                 selectedCategory={selectedCategory}
