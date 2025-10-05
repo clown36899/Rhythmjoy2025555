@@ -203,8 +203,17 @@ Preferred communication style: Simple, everyday language.
 
 ### Mobile UX Improvements
 - **Input Field Auto-scroll**: All input fields in event registration modal now automatically scroll into view when focused on mobile, preventing keyboard overlap
-- **Calendar Border**: Removed bottom border from mobile calendar for cleaner visual design
+- **Calendar Border**: Added subtle gray-800 1px border at bottom of calendar for visual separation
 - **Touch Swipe Navigation**: Added swipe gesture support to calendar - swipe left for next month, swipe right for previous month (mobile only)
+- **Calendar Animation**: Removed calendar reload animation when switching months for instant display
+
+### Fullscreen Billboard Feature
+- **FullscreenBillboard Component**: Created React Portal-based fullscreen overlay for event image slideshow
+- **Auto-display**: Billboard automatically shows on first visit, rotates through all event images every 5 seconds with fade transition
+- **Dismissal Logic**: localStorage tracks daily dismissal - clicking/touching billboard closes it for the day
+- **Progress Indicator**: Visual dots at bottom show current image position in slideshow
+- **Header Control**: Image icon button in header (desktop & mobile) allows manual reopening of billboard
+- **Category Persistence**: Category filter (강습/행사) now persists when navigating between months
 
 ## Required Setup
 
