@@ -210,7 +210,7 @@ Preferred communication style: Simple, everyday language.
 ### Fullscreen Billboard Feature
 - **FullscreenBillboard Component**: Created React Portal-based fullscreen overlay for event image slideshow
 - **Smart Filtering**: Only displays events with dates on or after today (현재 날짜 이후 이벤트만 표시)
-- **Auto-display**: Billboard automatically shows on first visit, rotates through all event images every 5 seconds with fade transition
+- **Auto-display**: Billboard automatically shows on first visit, rotates through all event images with configurable slide interval
 - **Interactive Billboard**: 
   - Image click: Opens event detail modal for the displayed event
   - Background click: Closes billboard
@@ -220,6 +220,19 @@ Preferred communication style: Simple, everyday language.
 - **Event Communication**: Uses window custom events ('eventSelected') to communicate between billboard and event list components
 - **Category Persistence**: Category filter (강습/행사) now persists when navigating between months
 - **SSR-Safe**: All window object access properly guarded with typeof checks
+- **Inactivity Timer**: Automatically reopens billboard after configurable period of user inactivity (10 minutes default)
+
+### Admin Billboard Controls (2025-10-05)
+- **Settings Panel**: AdminBillboardPanel component provides comprehensive billboard configuration in admin mode
+- **Billboard Enable/Disable**: Toggle to activate or deactivate entire billboard feature
+- **Auto-slide Interval**: Configurable slideshow speed (3s, 5s, 10s, 15s options)
+- **Inactivity Timeout**: Auto-reopen timer after user inactivity (disabled, 5min, 10min, 30min, 1hr options)
+- **Auto-open on Load**: Toggle for automatic billboard display on first page visit
+- **Transition Speed**: Adjustable fade effect duration (0.15s, 0.3s, 0.5s, 0.8s options)
+- **Settings Persistence**: All configurations saved to localStorage and survive page refreshes
+- **Settings Hook**: useBillboardSettings custom hook manages state and persistence
+- **Interval Cleanup**: Proper timer cleanup prevents overlapping intervals when settings change
+- **Mobile Support**: Admin panel fully responsive and accessible on mobile devices
 
 ## Required Setup
 
