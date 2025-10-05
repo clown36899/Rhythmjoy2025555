@@ -53,7 +53,10 @@ export default function EventList({
     linkName1: "",
     linkName2: "",
     linkName3: "",
+    image: "",
   });
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string>("");
 
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
@@ -374,7 +377,10 @@ export default function EventList({
         linkName1: event.link_name1 || "",
         linkName2: event.link_name2 || "",
         linkName3: event.link_name3 || "",
+        image: event.image || "",
       });
+      setEditImagePreview(event.image || "");
+      setEditImageFile(null);
       setShowEditModal(true);
       setSelectedEvent(null); // 상세 모달 닫기
     } else {
@@ -446,12 +452,24 @@ export default function EventList({
         linkName1: eventToEdit.link_name1 || "",
         linkName2: eventToEdit.link_name2 || "",
         linkName3: eventToEdit.link_name3 || "",
+        image: eventToEdit.image || "",
       });
+      setEditImagePreview(eventToEdit.image || "");
+      setEditImageFile(null);
       setShowPasswordModal(false);
       setShowEditModal(true);
       setEventPassword("");
     } else {
       alert("비밀번호가 올바르지 않습니다.");
+    }
+  };
+
+  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setEditImagePreview(previewUrl);
     }
   };
 
@@ -468,6 +486,28 @@ export default function EventList({
     if (!eventToEdit) return;
 
     try {
+      let imageUrl = editFormData.image;
+
+      // 새 이미지가 업로드되었으면 Supabase Storage에 업로드
+      if (editImageFile) {
+        const fileName = `${Date.now()}_${editImageFile.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("event-images")
+          .upload(fileName, editImageFile);
+
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          alert("이미지 업로드 중 오류가 발생했습니다.");
+          return;
+        }
+
+        const { data } = supabase.storage
+          .from("event-images")
+          .getPublicUrl(fileName);
+
+        imageUrl = data.publicUrl;
+      }
+
       const { error } = await supabase
         .from("events")
         .update({
@@ -483,6 +523,7 @@ export default function EventList({
           link_name1: editFormData.linkName1 || null,
           link_name2: editFormData.linkName2 || null,
           link_name3: editFormData.linkName3 || null,
+          image: imageUrl,
         })
         .eq("id", eventToEdit.id);
 
@@ -493,6 +534,8 @@ export default function EventList({
         alert("이벤트가 수정되었습니다.");
         setShowEditModal(false);
         setEventToEdit(null);
+        setEditImageFile(null);
+        setEditImagePreview("");
         fetchEvents();
       }
     } catch (error) {
@@ -1087,6 +1130,29 @@ export default function EventList({
                         placeholder="링크 3 이름"
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    이벤트 이미지
+                  </label>
+                  <div className="space-y-2">
+                    {editImagePreview && (
+                      <div className="relative">
+                        <img
+                          src={editImagePreview}
+                          alt="이벤트 이미지"
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditImageChange}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                    />
                   </div>
                 </div>
 
