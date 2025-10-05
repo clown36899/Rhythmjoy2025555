@@ -223,16 +223,32 @@ Preferred communication style: Simple, everyday language.
 - **Inactivity Timer**: Automatically reopens billboard after configurable period of user inactivity (10 minutes default)
 
 ### Admin Billboard Controls (2025-10-05)
-- **Settings Panel**: AdminBillboardPanel component provides comprehensive billboard configuration in admin mode
+- **Settings Modal**: AdminBillboardModal component provides comprehensive billboard configuration in admin mode
 - **Billboard Enable/Disable**: Toggle to activate or deactivate entire billboard feature
-- **Auto-slide Interval**: Configurable slideshow speed (3s, 5s, 10s, 15s options)
-- **Inactivity Timeout**: Auto-reopen timer after user inactivity (disabled, 5min, 10min, 30min, 1hr options)
+- **Auto-slide Interval**: Slider-based control (1-30 seconds, 500ms steps)
+- **Inactivity Timeout**: Slider-based control (0-60 minutes, 1 minute steps)
 - **Auto-open on Load**: Toggle for automatic billboard display on first page visit
-- **Transition Speed**: Adjustable fade effect duration (0.15s, 0.3s, 0.5s, 0.8s options)
+- **Transition Speed**: Slider-based control (0.1-2 seconds, 50ms steps)
 - **Settings Persistence**: All configurations saved to localStorage and survive page refreshes
 - **Settings Hook**: useBillboardSettings custom hook manages state and persistence
 - **Interval Cleanup**: Proper timer cleanup prevents overlapping intervals when settings change
-- **Mobile Support**: Admin panel fully responsive and accessible on mobile devices
+- **Mobile Support**: Admin modal fully responsive and accessible on mobile devices
+- **Access Flow**: Gear icon → password entry → "광고판 설정" button → modal opens
+
+### QR Code Sharing Feature (2025-10-05)
+- **QRCodeModal Component**: React Portal-based modal for sharing the website
+- **Device Detection**: Automatically detects mobile vs desktop (user agent + screen width)
+- **Mobile Experience**:
+  - Web URL copy button with clipboard API
+  - "홈 화면에 바로가기 추가" button with installation instructions
+  - Responsive layout optimized for small screens
+- **Desktop Experience**:
+  - QR code display using qrcode.react library (200x200px, high error correction)
+  - Visual QR code for mobile scanning
+  - URL copy button for convenience
+- **Header Integration**: Replaced logo with QR button (purple QR icon + "즐거찾기" text)
+- **Smart URL**: Uses current page URL without query parameters
+- **Visual Feedback**: Copy button shows success state for 2 seconds
 
 ## Required Setup
 
