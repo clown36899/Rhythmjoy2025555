@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import PracticeRoomModal from "../../../components/PracticeRoomModal";
@@ -368,8 +368,10 @@ export default function EventList({
     return matchesCategory && matchesSearch && matchesDate;
   });
 
-  // 필터링된 이벤트를 정렬
-  const sortedEvents = sortEvents(filteredEvents, sortBy);
+  // 필터링된 이벤트를 정렬 (useMemo로 캐싱하여 불필요한 재정렬 방지)
+  const sortedEvents = useMemo(() => {
+    return sortEvents(filteredEvents, sortBy);
+  }, [filteredEvents, sortBy]);
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);
