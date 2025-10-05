@@ -84,7 +84,10 @@ export default function FullscreenBillboard({
       className="fixed inset-0 z-50 bg-black flex items-center justify-center"
       onClick={handleBackgroundClick}
     >
-      <div className="relative w-full h-full flex items-center justify-center">
+      <div 
+        className="relative w-full h-full flex items-center justify-center"
+        onClick={handleBackgroundClick}
+      >
         <img
           src={images[currentIndex]}
           alt="Event Billboard"
@@ -95,7 +98,7 @@ export default function FullscreenBillboard({
         />
 
         {images.length > 1 && (
-          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 pb-4">
+          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 pb-4 pointer-events-none">
             {images.map((_, index) => (
               <div
                 key={index}
@@ -107,8 +110,10 @@ export default function FullscreenBillboard({
           </div>
         )}
 
-        <div className="absolute top-4 right-4 text-white/70 text-sm">
-          이미지 클릭: 상세보기 | 배경 클릭: 닫기
+        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm px-6 py-3 rounded-full pointer-events-none">
+          <p className="text-white text-base sm:text-lg font-medium text-center">
+            이미지 클릭: 상세보기 | 배경 클릭: 닫기
+          </p>
         </div>
       </div>
     </div>,
