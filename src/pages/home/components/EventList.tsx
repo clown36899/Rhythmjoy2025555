@@ -1,7 +1,6 @@
-
-import { useState, useEffect } from 'react';
-import { supabase, Event } from '../../../lib/supabase';
-import PracticeRoomModal from '../../../components/PracticeRoomModal';
+import { useState, useEffect } from "react";
+import { supabase, Event } from "../../../lib/supabase";
+import PracticeRoomModal from "../../../components/PracticeRoomModal";
 
 interface EventListProps {
   selectedDate: Date | null;
@@ -22,35 +21,37 @@ export default function EventList({
   refreshTrigger,
   isAdminMode = false,
 }: EventListProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
-  const [eventPassword, setEventPassword] = useState('');
+  const [eventPassword, setEventPassword] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [sortBy, setSortBy] = useState<'random' | 'time' | 'title' | 'newest'>('random');
+  const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">(
+    "random",
+  );
   const [showSortModal, setShowSortModal] = useState(false);
   const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
-    title: '',
-    time: '',
-    location: '',
-    category: '',
-    description: '',
-    organizer: '',
-    link1: '',
-    link2: '',
-    link3: '',
-    linkName1: '',
-    linkName2: '',
-    linkName3: '',
+    title: "",
+    time: "",
+    location: "",
+    category: "",
+    description: "",
+    organizer: "",
+    link1: "",
+    link2: "",
+    link3: "",
+    linkName1: "",
+    linkName2: "",
+    linkName3: "",
   });
 
   // 랜덤 정렬을 위한 시드 생성 함수
@@ -61,26 +62,26 @@ export default function EventList({
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
     const eventsCopy = [...eventsToSort];
-    
+
     switch (sortType) {
-      case 'random':
+      case "random":
         // 랜덤 정렬 - Fisher-Yates 알고리즘 사용
         for (let i = eventsCopy.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [eventsCopy[i], eventsCopy[j]] = [eventsCopy[j], eventsCopy[i]];
         }
         return eventsCopy;
-      case 'time':
+      case "time":
         // 시간순 정렬 (날짜 + 시간)
         return eventsCopy.sort((a, b) => {
           const dateA = new Date(`${a.date} ${a.time}`);
           const dateB = new Date(`${b.date} ${b.time}`);
           return dateA.getTime() - dateB.getTime();
         });
-      case 'title':
+      case "title":
         // 제목순 정렬 (가나다순)
-        return eventsCopy.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
-      case 'newest':
+        return eventsCopy.sort((a, b) => a.title.localeCompare(b.title, "ko"));
+      case "newest":
         // 최신순 정렬 (생성일 기준)
         return eventsCopy.sort((a, b) => {
           const dateA = new Date(a.created_at || a.date);
@@ -101,34 +102,38 @@ export default function EventList({
 
     const suggestions = new Set<string>();
     const queryLower = query.toLowerCase();
-    
-    events.forEach(event => {
+
+    events.forEach((event) => {
       // 제목 전체가 검색어를 포함하는 경우
       if (event.title.toLowerCase().includes(queryLower)) {
         suggestions.add(event.title);
       }
-      
+
       // 장소 전체가 검색어를 포함하는 경우
       if (event.location.toLowerCase().includes(queryLower)) {
         suggestions.add(event.location);
       }
-      
+
       // 주최자 전체가 검색어를 포함하는 경우
       if (event.organizer.toLowerCase().includes(queryLower)) {
         suggestions.add(event.organizer);
       }
-      
+
       // 설명에서 의미있는 단어 추출 (3글자 이상)
       const descWords = event.description.split(/\s+/);
-      descWords.forEach(word => {
-        const cleanWord = word.replace(/[^\w가-힣]/g, ''); // 특수문자 제거
-        if (cleanWord.length >= 3 && cleanWord.toLowerCase().includes(queryLower)) {
+      descWords.forEach((word) => {
+        const cleanWord = word.replace(/[^\w가-힣]/g, ""); // 특수문자 제거
+        if (
+          cleanWord.length >= 3 &&
+          cleanWord.toLowerCase().includes(queryLower)
+        ) {
           // 해당 단어로 실제 검색 결과가 있는지 확인
-          const hasResults = events.some(e => 
-            e.title.toLowerCase().includes(cleanWord.toLowerCase()) ||
-            e.location.toLowerCase().includes(cleanWord.toLowerCase()) ||
-            e.organizer.toLowerCase().includes(cleanWord.toLowerCase()) ||
-            e.description.toLowerCase().includes(cleanWord.toLowerCase())
+          const hasResults = events.some(
+            (e) =>
+              e.title.toLowerCase().includes(cleanWord.toLowerCase()) ||
+              e.location.toLowerCase().includes(cleanWord.toLowerCase()) ||
+              e.organizer.toLowerCase().includes(cleanWord.toLowerCase()) ||
+              e.description.toLowerCase().includes(cleanWord.toLowerCase()),
           );
           if (hasResults) {
             suggestions.add(cleanWord);
@@ -138,13 +143,14 @@ export default function EventList({
     });
 
     // 검색 결과가 실제로 있는 제안만 필터링
-    const validSuggestions = Array.from(suggestions).filter(suggestion => {
+    const validSuggestions = Array.from(suggestions).filter((suggestion) => {
       const suggestionLower = suggestion.toLowerCase();
-      return events.some(event => 
-        event.title.toLowerCase().includes(suggestionLower) ||
-        event.location.toLowerCase().includes(suggestionLower) ||
-        event.organizer.toLowerCase().includes(suggestionLower) ||
-        event.description.toLowerCase().includes(suggestionLower)
+      return events.some(
+        (event) =>
+          event.title.toLowerCase().includes(suggestionLower) ||
+          event.location.toLowerCase().includes(suggestionLower) ||
+          event.organizer.toLowerCase().includes(suggestionLower) ||
+          event.description.toLowerCase().includes(suggestionLower),
       );
     });
 
@@ -159,7 +165,7 @@ export default function EventList({
   const handleSearchSubmit = () => {
     setSearchTerm(searchQuery);
     setShowSearchModal(false);
-    setSearchQuery('');
+    setSearchQuery("");
     setSearchSuggestions([]);
   };
 
@@ -171,62 +177,82 @@ export default function EventList({
   };
 
   const clearSearch = () => {
-    setSearchTerm('');
-    setSearchQuery('');
+    setSearchTerm("");
+    setSearchQuery("");
     setSearchSuggestions([]);
   };
 
-  const handleSortChange = (newSortBy: 'random' | 'time' | 'title' | 'newest') => {
+  const handleSortChange = (
+    newSortBy: "random" | "time" | "title" | "newest",
+  ) => {
     setSortBy(newSortBy);
     setShowSortModal(false);
   };
 
   const getSortIcon = () => {
-    return 'ri-sort-desc';
+    return "ri-sort-desc";
   };
 
   const getSortLabel = () => {
     switch (sortBy) {
-      case 'random':
-        return '랜덤';
-      case 'time':
-        return '시간순';
-      case 'title':
-        return '제목순';
-      case 'newest':
-        return '최신순';
+      case "random":
+        return "랜덤";
+      case "time":
+        return "시간순";
+      case "title":
+        return "제목순";
+      case "newest":
+        return "최신순";
       default:
-        return '정렬';
+        return "정렬";
     }
   };
 
   const categories = [
-    { 
-      id: 'all', 
-      name: currentMonth ? `${currentMonth.getMonth() + 1}월 전체` : '모든 이벤트', 
-      icon: 'ri-calendar-line' 
+    {
+      id: "all",
+      name: currentMonth
+        ? `${currentMonth.getMonth() + 1}월 전체`
+        : "모든 이벤트",
+      icon: "ri-calendar-line",
     },
-    { id: 'class', name: '강습', icon: 'ri-book-line' },
-    { id: 'event', name: '행사', icon: 'ri-calendar-event-line' },
-    { id: 'practice', name: '연습실', icon: 'ri-home-4-line' },
+    { id: "class", name: "강습", icon: "ri-book-line" },
+    { id: "event", name: "행사", icon: "ri-calendar-event-line" },
+    { id: "practice", name: "연습실", icon: "ri-home-4-line" },
   ];
 
   const sortOptions = [
-    { id: 'random', name: '랜덤', icon: 'ri-shuffle-line' },
-    { id: 'time', name: '시간순', icon: 'ri-time-line' },
-    { id: 'title', name: '제목순', icon: 'ri-sort-alphabet-asc' },
-    { id: 'newest', name: '최신순', icon: 'ri-calendar-2-line' },
+    { id: "random", name: "랜덤", icon: "ri-shuffle-line" },
+    { id: "time", name: "시간순", icon: "ri-time-line" },
+    { id: "title", name: "제목순", icon: "ri-sort-alphabet-asc" },
+    { id: "newest", name: "최신순", icon: "ri-calendar-2-line" },
   ];
 
-  const morningTimes = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30'
-  ];
+  const morningTimes = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"];
 
   const afternoonTimes = [
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-    '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
-    '21:00', '21:30', '22:00', '22:30'
+    "12:00",
+    "12:30",
+    "13:00",
+    "13:30",
+    "14:00",
+    "14:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+    "17:00",
+    "17:30",
+    "18:00",
+    "18:30",
+    "19:00",
+    "19:30",
+    "20:00",
+    "20:30",
+    "21:00",
+    "21:30",
+    "22:00",
+    "22:30",
   ];
 
   // 이벤트 데이터 로드
@@ -238,59 +264,58 @@ export default function EventList({
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('date', { ascending: true });
+        .from("events")
+        .select("*")
+        .order("date", { ascending: true });
 
       if (error) {
-        console.error('Error fetching events:', error);
+        console.error("Error fetching events:", error);
       } else {
         setEvents(data || []);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredEvents = events
-    .filter((event) => {
-      // 날짜가 선택된 경우, 해당 날짜의 모든 이벤트를 표시
-      if (selectedDate) {
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(selectedDate.getDate()).padStart(2, '0');
-        const selectedDateString = `${year}-${month}-${day}`;
-        
-        const matchesDate = event.date === selectedDateString;
-        const matchesSearch =
-          event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.location.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        return matchesDate && matchesSearch;
-      }
-      
-      // 날짜가 선택되지 않은 경우 기존 로직 사용
-      const matchesCategory =
-        selectedCategory === 'all' || event.category === selectedCategory;
+  const filteredEvents = events.filter((event) => {
+    // 날짜가 선택된 경우, 해당 날짜의 모든 이벤트를 표시
+    if (selectedDate) {
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      const selectedDateString = `${year}-${month}-${day}`;
+
+      const matchesDate = event.date === selectedDateString;
       const matchesSearch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-      let matchesDate = true;
-      if (currentMonth) {
-        const eventDate = new Date(event.date);
-        const currentYear = currentMonth.getFullYear();
-        const currentMonthIndex = currentMonth.getMonth();
+      return matchesDate && matchesSearch;
+    }
 
-        matchesDate =
-          eventDate.getFullYear() === currentYear &&
-          eventDate.getMonth() === currentMonthIndex;
-      }
+    // 날짜가 선택되지 않은 경우 기존 로직 사용
+    const matchesCategory =
+      selectedCategory === "all" || event.category === selectedCategory;
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesCategory && matchesSearch && matchesDate;
-    });
+    let matchesDate = true;
+    if (currentMonth) {
+      const eventDate = new Date(event.date);
+      const currentYear = currentMonth.getFullYear();
+      const currentMonthIndex = currentMonth.getMonth();
+
+      matchesDate =
+        eventDate.getFullYear() === currentYear &&
+        eventDate.getMonth() === currentMonthIndex;
+    }
+
+    return matchesCategory && matchesSearch && matchesDate;
+  });
 
   // 필터링된 이벤트를 정렬
   const sortedEvents = sortEvents(filteredEvents, sortBy);
@@ -315,12 +340,12 @@ export default function EventList({
         category: event.category,
         description: event.description,
         organizer: event.organizer,
-        link1: event.link1 || '',
-        link2: event.link2 || '',
-        link3: event.link3 || '',
-        linkName1: event.link_name1 || '',
-        linkName2: event.link_name2 || '',
-        linkName3: event.link_name3 || '',
+        link1: event.link1 || "",
+        link2: event.link2 || "",
+        link3: event.link3 || "",
+        linkName1: event.link_name1 || "",
+        linkName2: event.link_name2 || "",
+        linkName3: event.link_name3 || "",
       });
       setShowEditModal(true);
       setSelectedEvent(null); // 상세 모달 닫기
@@ -336,42 +361,45 @@ export default function EventList({
     e?.stopPropagation();
     if (isAdminMode) {
       // 관리자 모드에서는 바로 삭제
-      if (confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+      if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
         deleteEvent(event.id);
         setSelectedEvent(null); // 상세 모달 닫기
       }
     } else {
       // 일반 모드에서는 비밀번호 확인 후 삭제
-      const password = prompt('이벤트 삭제를 위한 비밀번호를 입력하세요:');
+      const password = prompt("이벤트 삭제를 위한 비밀번호를 입력하세요:");
       if (password && password === event.password) {
-        if (confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+        if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
           deleteEvent(event.id);
           setSelectedEvent(null); // 상세 모달 닫기
         }
       } else if (password) {
-        alert('비밀번호가 올바르지 않습니다.');
+        alert("비밀번호가 올바르지 않습니다.");
       }
     }
   };
 
   const deleteEvent = async (eventId: number) => {
     try {
-      const { error } = await supabase.from('events').delete().eq('id', eventId);
+      const { error } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", eventId);
 
       if (error) {
-        console.error('Error deleting event:', error);
-        alert('이벤트 삭제 중 오류가 발생했습니다.');
+        console.error("Error deleting event:", error);
+        alert("이벤트 삭제 중 오류가 발생했습니다.");
       } else {
-        alert('이벤트가 삭제되었습니다.');
+        alert("이벤트가 삭제되었습니다.");
         fetchEvents();
         // 달력 업데이트를 위해 상위 컴포넌트에 알림
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('eventDeleted'));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("eventDeleted"));
         }
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('이벤트 삭제 중 오류가 발생했습니다.');
+      console.error("Error:", error);
+      alert("이벤트 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -384,25 +412,25 @@ export default function EventList({
         category: eventToEdit.category,
         description: eventToEdit.description,
         organizer: eventToEdit.organizer,
-        link1: eventToEdit.link1 || '',
-        link2: eventToEdit.link2 || '',
-        link3: eventToEdit.link3 || '',
-        linkName1: eventToEdit.link_name1 || '',
-        linkName2: eventToEdit.link_name2 || '',
-        linkName3: eventToEdit.link_name3 || '',
+        link1: eventToEdit.link1 || "",
+        link2: eventToEdit.link2 || "",
+        link3: eventToEdit.link3 || "",
+        linkName1: eventToEdit.link_name1 || "",
+        linkName2: eventToEdit.link_name2 || "",
+        linkName3: eventToEdit.link_name3 || "",
       });
       setShowPasswordModal(false);
       setShowEditModal(true);
-      setEventPassword('');
+      setEventPassword("");
     } else {
-      alert('비밀번호가 올바르지 않습니다.');
+      alert("비밀번호가 올바르지 않습니다.");
     }
   };
 
   const handleTimeSelect = (time: string) => {
-    setEditFormData(prev => ({
+    setEditFormData((prev) => ({
       ...prev,
-      time: time
+      time: time,
     }));
     setShowTimeModal(false);
   };
@@ -413,7 +441,7 @@ export default function EventList({
 
     try {
       const { error } = await supabase
-        .from('events')
+        .from("events")
         .update({
           title: editFormData.title,
           time: editFormData.time,
@@ -428,20 +456,20 @@ export default function EventList({
           link_name2: editFormData.linkName2 || null,
           link_name3: editFormData.linkName3 || null,
         })
-        .eq('id', eventToEdit.id);
+        .eq("id", eventToEdit.id);
 
       if (error) {
-        console.error('Error updating event:', error);
-        alert('이벤트 수정 중 오류가 발생했습니다.');
+        console.error("Error updating event:", error);
+        alert("이벤트 수정 중 오류가 발생했습니다.");
       } else {
-        alert('이벤트가 수정되었습니다.');
+        alert("이벤트가 수정되었습니다.");
         setShowEditModal(false);
         setEventToEdit(null);
         fetchEvents();
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('이벤트 수정 중 오류가 발생했습니다.');
+      console.error("Error:", error);
+      alert("이벤트 수정 중 오류가 발생했습니다.");
     }
   };
 
@@ -457,7 +485,7 @@ export default function EventList({
 
   // 새로운 카테고리 클릭 핸들러 (practice 방 추가)
   const handleCategoryClick = (categoryId: string) => {
-    if (categoryId === 'practice') {
+    if (categoryId === "practice") {
       setShowPracticeRoomModal(true);
     } else {
       onCategoryChange(categoryId);
@@ -509,8 +537,8 @@ export default function EventList({
                   onClick={() => handleCategoryClick(category.id)}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive(category.id)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <i className={`${category.icon} text-xs`}></i>
@@ -518,7 +546,7 @@ export default function EventList({
                 </button>
               ))}
             </div>
-            
+
             {/* 정렬 버튼 */}
             <button
               onClick={() => setShowSortModal(true)}
@@ -526,7 +554,7 @@ export default function EventList({
             >
               <i className={`${getSortIcon()} text-sm`}></i>
             </button>
-            
+
             {/* 검색 버튼 */}
             <button
               onClick={() => setShowSearchModal(true)}
@@ -560,15 +588,15 @@ export default function EventList({
                 onClick={() => handleCategoryClick(category.id)}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap cursor-pointer ${
                   isCategoryActive(category.id)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                 }`}
               >
                 <i className={`${category.icon} text-sm`}></i>
                 <span>{category.name}</span>
               </button>
             ))}
-            
+
             {/* 데스크톱 정렬 버튼 */}
             <button
               onClick={() => setShowSortModal(true)}
@@ -627,7 +655,9 @@ export default function EventList({
                         <div className="flex items-center space-x-4 text-sm text-gray-300 mb-2">
                           <div className="flex items-center space-x-1">
                             <i className="ri-calendar-line"></i>
-                            <span>{new Date(event.date).toLocaleDateString()}</span>
+                            <span>
+                              {new Date(event.date).toLocaleDateString()}
+                            </span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <i className="ri-time-line"></i>
@@ -652,7 +682,9 @@ export default function EventList({
           ) : (
             <div className="text-center py-8">
               <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
-              <p className="text-gray-400">해당 조건에 맞는 이벤트가 없습니다</p>
+              <p className="text-gray-400">
+                해당 조건에 맞는 이벤트가 없습니다
+              </p>
             </div>
           )}
         </div>
@@ -677,11 +709,15 @@ export default function EventList({
                 {sortOptions.map((option) => (
                   <button
                     key={option.id}
-                    onClick={() => handleSortChange(option.id as 'random' | 'time' | 'title' | 'newest')}
+                    onClick={() =>
+                      handleSortChange(
+                        option.id as "random" | "time" | "title" | "newest",
+                      )
+                    }
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                       sortBy === option.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                   >
                     <i className={`${option.icon} text-lg`}></i>
@@ -707,7 +743,7 @@ export default function EventList({
                 <button
                   onClick={() => {
                     setShowSearchModal(false);
-                    setSearchQuery('');
+                    setSearchQuery("");
                     setSearchSuggestions([]);
                   }}
                   className="text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -724,7 +760,7 @@ export default function EventList({
                     value={searchQuery}
                     onChange={(e) => handleSearchQueryChange(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         handleSearchSubmit();
                       }
                     }}
@@ -759,7 +795,7 @@ export default function EventList({
                   <button
                     onClick={() => {
                       setShowSearchModal(false);
-                      setSearchQuery('');
+                      setSearchQuery("");
                       setSearchSuggestions([]);
                     }}
                     className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
@@ -785,14 +821,15 @@ export default function EventList({
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold text-white mb-4">이벤트 수정</h3>
             <p className="text-gray-300 mb-4">
-              &quot;{eventToEdit.title}&quot; 이벤트를 수정하려면 비밀번호를 입력하세요.
+              &quot;{eventToEdit.title}&quot; 이벤트를 수정하려면 비밀번호를
+              입력하세요.
             </p>
             <input
               type="password"
               value={eventPassword}
               onChange={(e) => setEventPassword(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   handlePasswordSubmit();
                 }
               }}
@@ -804,7 +841,7 @@ export default function EventList({
               <button
                 onClick={() => {
                   setShowPasswordModal(false);
-                  setEventPassword('');
+                  setEventPassword("");
                   setEventToEdit(null);
                 }}
                 className="flex-1 bg-gray-700 hover-bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
@@ -926,7 +963,7 @@ export default function EventList({
                       }
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     />
-                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -1041,11 +1078,15 @@ export default function EventList({
                     />
                     <button
                       type="button"
-                      onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                      onClick={() =>
+                        setIsDescriptionExpanded(!isDescriptionExpanded)
+                      }
                       className="absolute bottom-2 right-2 bg-gray-600 hover:bg-gray-500 text-gray-300 hover:text-white p-1 rounded transition-colors cursor-pointer"
                       title={isDescriptionExpanded ? "축소" : "확장"}
                     >
-                      <i className={`ri-${isDescriptionExpanded ? 'contract' : 'expand'}-up-down-line text-sm`}></i>
+                      <i
+                        className={`ri-${isDescriptionExpanded ? "contract" : "expand"}-up-down-line text-sm`}
+                      ></i>
                     </button>
                   </div>
                 </div>
@@ -1053,20 +1094,34 @@ export default function EventList({
                 <div className="flex space-x-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setEventToEdit(null);
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (eventToEdit) {
+                        handleDeleteClick(eventToEdit);
+                      }
                     }}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
+                    className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
                   >
-                    취소
+                    삭제
                   </button>
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-7 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap text-sm"
-                  >
-                    수정 완료
-                  </button>
+                  <div className="flex-1 flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setEventToEdit(null);
+                      }}
+                      className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap text-sm"
+                    >
+                      수정 완료
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -1092,16 +1147,18 @@ export default function EventList({
               <div className="space-y-4">
                 {/* 오전 */}
                 <div>
-                  <h4 className="text-md font-semibold text-white mb-2">오전</h4>
+                  <h4 className="text-md font-semibold text-white mb-2">
+                    오전
+                  </h4>
                   <div className="grid grid-cols-3 gap-2">
-                    {morningTimes.map(time => (
+                    {morningTimes.map((time) => (
                       <button
                         key={time}
                         onClick={() => handleTimeSelect(time)}
                         className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                           editFormData.time === time
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                         }`}
                       >
                         {time}
@@ -1112,16 +1169,18 @@ export default function EventList({
 
                 {/* 오후 */}
                 <div>
-                  <h4 className="text-md font-semibold text-white mb-2">오후</h4>
+                  <h4 className="text-md font-semibold text-white mb-2">
+                    오후
+                  </h4>
                   <div className="grid grid-cols-3 gap-2">
-                    {afternoonTimes.map(time => (
+                    {afternoonTimes.map((time) => (
                       <button
                         key={time}
                         onClick={() => handleTimeSelect(time)}
                         className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                           editFormData.time === time
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                         }`}
                       >
                         {time}
@@ -1139,16 +1198,18 @@ export default function EventList({
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           {/* 닫기 버튼 - 모달 외부 상단 중앙 */}
-          <button
-            onClick={closeModal}
-            className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white p-3 rounded-full hover:bg-opacity-90 transition-colors cursor-pointer z-20"
-          >
-            <i className="ri-close-line text-xl"></i>
-          </button>
 
-          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden mt-16">
+          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="relative h-full flex flex-col">
               {/* 상단 영역 - 이미지와 기본 정보 (여백 제거) */}
+              <div>
+                <button
+                  onClick={closeModal}
+                  className="relative left-1/2 transform -translate-x-1/2 text-white p-2 rounded-full hover:bg-opacity-90 transition-colors cursor-pointer z-20"
+                >
+                  <i className="ri-close-line text-2xl"></i>
+                </button>
+              </div>
               <div className="flex h-80">
                 {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
                 <div className="w-1/2 bg-gray-800 flex items-start justify-start p-0">
@@ -1162,11 +1223,15 @@ export default function EventList({
                 {/* 오른쪽 기본 정보 - 내부 여백 줄임 */}
                 <div className="w-1/2 p-4 overflow-hidden">
                   <h2 className="text-xl font-bold text-white mb-2 overflow-hidden">
-                    <span 
+                    <span
                       className="block leading-tight whitespace-nowrap overflow-hidden"
                       style={{
-                        fontSize: Math.max(8, Math.min(20, 150 / selectedEvent.title.length)) + 'px',
-                        lineHeight: '1.1'
+                        fontSize:
+                          Math.max(
+                            8,
+                            Math.min(20, 150 / selectedEvent.title.length),
+                          ) + "px",
+                        lineHeight: "1.1",
                       }}
                     >
                       {selectedEvent.title}
@@ -1176,12 +1241,15 @@ export default function EventList({
                     <div className="flex items-center space-x-3 text-gray-300 text-sm">
                       <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                       <span>
-                        {new Date(selectedEvent.date).toLocaleDateString('ko-KR', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          weekday: 'long',
-                        })}
+                        {new Date(selectedEvent.date).toLocaleDateString(
+                          "ko-KR",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            weekday: "long",
+                          },
+                        )}
                       </span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-300 text-sm">
@@ -1216,7 +1284,7 @@ export default function EventList({
                             >
                               <i className="ri-external-link-line"></i>
                               <span className="truncate">
-                                {selectedEvent.link_name1 || '링크 1'}
+                                {selectedEvent.link_name1 || "링크 1"}
                               </span>
                             </a>
                           )}
@@ -1230,7 +1298,7 @@ export default function EventList({
                             >
                               <i className="ri-external-link-line"></i>
                               <span className="truncate">
-                                {selectedEvent.link_name2 || '링크 2'}
+                                {selectedEvent.link_name2 || "링크 2"}
                               </span>
                             </a>
                           )}
@@ -1244,7 +1312,7 @@ export default function EventList({
                             >
                               <i className="ri-external-link-line"></i>
                               <span className="truncate">
-                                {selectedEvent.link_name3 || '링크 3'}
+                                {selectedEvent.link_name3 || "링크 3"}
                               </span>
                             </a>
                           )}
@@ -1268,22 +1336,14 @@ export default function EventList({
                   </div>
                 </div>
 
-                {/* 수정/삭제 버튼 - 하단 고정, 여백 줄임 */}
+                {/* 수정 버튼 - 하단 고정, 여백 줄임 */}
                 <div className="p-1 border-t border-gray-700 bg-gray-800">
-                  <div className="flex justify-center space-x-4">
+                  <div className="flex justify-center">
                     <button
                       onClick={(e) => handleEditClick(selectedEvent, e)}
-                      className="bg-yellow-600 hover:bg-yellow-7
-                      text-white px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
                     >
                       수정
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteClick(selectedEvent, e)}
-                      className="bg-red-600 hover:bg-red-7
-                      text-white px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm"
-                    >
-                      삭제
                     </button>
                   </div>
                 </div>
