@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase, Event } from "../../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
+import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 
 interface EventCalendarProps {
@@ -24,6 +25,8 @@ export default function EventCalendar({
   const [events, setEvents] = useState<Event[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [clickedDate, setClickedDate] = useState<Date | null>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
@@ -166,6 +169,35 @@ export default function EventCalendar({
     onEventsUpdate?.();
   };
 
+  // 스와이프 감지를 위한 최소 거리 (픽셀)
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe) {
+      // 왼쪽으로 스와이프 = 다음 달
+      navigateMonth('next');
+    }
+    if (isRightSwipe) {
+      // 오른쪽으로 스와이프 = 이전 달
+      navigateMonth('prev');
+    }
+  };
+
   const days = getDaysInMonth(currentMonth);
   const monthNames = [
     "1월",
@@ -256,7 +288,12 @@ export default function EventCalendar({
         </div>
 
         {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-0 lg:gap-1 flex-1 px-1 lg:px-0 pb-2 lg:pb-0">
+        <div 
+          className="grid grid-cols-7 gap-0 lg:gap-1 flex-1 px-1 lg:px-0 pb-2 lg:pb-0"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           {days.map((day, index) => {
             const eventCount = day ? getEventCount(day) : 0;
             const todayFlag = day ? isToday(day) : false;

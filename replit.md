@@ -129,6 +129,7 @@ Preferred communication style: Simple, everyday language.
 - Date selection triggering filtered event list view
 - Responsive grid layout adapting to screen size
 - Height measurement using ResizeObserver for layout calculations
+- Touch swipe navigation on mobile (swipe left/right to change months)
 
 ## External Dependencies
 
@@ -199,6 +200,11 @@ Preferred communication style: Simple, everyday language.
 - Configured autoscale deployment for static website
 - Build command: `npm run build`
 - Preview command: `npx vite preview --host 0.0.0.0 --port 5000`
+
+### Mobile UX Improvements
+- **Input Field Auto-scroll**: All input fields in event registration modal now automatically scroll into view when focused on mobile, preventing keyboard overlap
+- **Calendar Border**: Removed bottom border from mobile calendar for cleaner visual design
+- **Touch Swipe Navigation**: Added swipe gesture support to calendar - swipe left for next month, swipe right for previous month (mobile only)
 
 ## Required Setup
 
