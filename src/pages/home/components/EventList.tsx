@@ -788,7 +788,7 @@ export default function EventList({
                 ))}
               </div>
             </>
-          ) : (
+          ) : selectedDate ? null : (
             <div className="text-center py-8">
               <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
               <p className="text-gray-400">
