@@ -198,10 +198,11 @@ export default function HomePage() {
             ...new Set(events.map((event) => event.category)),
           ];
 
-          // 카테고리가 1개만 있으면 그 카테고리 선택, 2개 이상이면 "all" 선택
+          // 카테고리가 1개만 있으면 그 카테고리 선택
           if (uniqueCategories.length === 1) {
             setSelectedCategory(uniqueCategories[0]);
           } else {
+            // 2개 이상 있으면 "all"로 설정 (모든 카테고리 표시)
             setSelectedCategory("all");
           }
         } else {

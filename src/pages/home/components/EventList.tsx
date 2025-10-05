@@ -314,7 +314,7 @@ export default function EventList({
   };
 
   const filteredEvents = events.filter((event) => {
-    // 날짜가 선택된 경우, 해당 날짜의 모든 이벤트를 표시
+    // 날짜가 선택된 경우
     if (selectedDate) {
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
@@ -325,6 +325,7 @@ export default function EventList({
       const endDate = event.end_date || event.date || '';
       const matchesDate = startDate && endDate && selectedDateString >= startDate && selectedDateString <= endDate;
       
+      // 날짜가 선택되었을 때도 사용자가 카테고리를 선택하면 필터 적용
       const matchesCategory =
         selectedCategory === "all" || event.category === selectedCategory;
       
@@ -584,7 +585,17 @@ export default function EventList({
 
   // 카테고리 버튼이 활성화되어야 하는지 확인하는 함수
   const isCategoryActive = (categoryId: string) => {
-    // 현재 선택된 카테고리인지만 확인 (모든 버튼 항상 클릭 가능)
+    // 날짜가 선택되었고 selectedCategory가 "all"일 때
+    if (selectedDate && selectedCategory === "all") {
+      // "전체" 버튼은 비활성화, 강습/행사 버튼은 둘 다 활성화
+      if (categoryId === "all") {
+        return false;
+      } else if (categoryId === "class" || categoryId === "event") {
+        return true;
+      }
+    }
+    
+    // 그 외의 경우는 현재 선택된 카테고리인지 확인
     return selectedCategory === categoryId;
   };
 
