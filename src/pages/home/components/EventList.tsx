@@ -307,7 +307,10 @@ export default function EventList({
       const day = String(selectedDate.getDate()).padStart(2, "0");
       const selectedDateString = `${year}-${month}-${day}`;
 
-      const matchesDate = event.date === selectedDateString;
+      const startDate = event.start_date || event.date;
+      const endDate = event.end_date || event.date;
+      const matchesDate = selectedDateString >= startDate && selectedDateString <= endDate;
+      
       const matchesSearch =
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.location.toLowerCase().includes(searchTerm.toLowerCase());
