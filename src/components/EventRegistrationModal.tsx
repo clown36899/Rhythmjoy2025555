@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 
@@ -26,11 +26,17 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     linkName3: '',
     password: ''
   });
+  const [endDate, setEndDate] = useState<Date>(selectedDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
+  // selectedDate가 변경되면 endDate도 업데이트
+  useEffect(() => {
+    setEndDate(selectedDate);
+  }, [selectedDate]);
 
   const categories = [
     { id: 'class', name: '강습' },
@@ -133,12 +139,19 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const localDateString = `${year}-${month}-${day}`;
 
+      const endYear = endDate.getFullYear();
+      const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+      const endDay = String(endDate.getDate()).padStart(2, '0');
+      const endDateString = `${endYear}-${endMonth}-${endDay}`;
+
       const { error } = await supabase
         .from('events')
         .insert([
           {
             title: formData.title,
             date: localDateString,
+            start_date: localDateString,
+            end_date: endDateString,
             time: formData.time,
             location: formData.location,
             category: formData.category,
@@ -231,6 +244,33 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="이벤트 제목을 입력하세요"
                 />
+              </div>
+
+              {/* 시작일과 종료일 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    시작일
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate.toISOString().split('T')[0]}
+                    disabled
+                    className="w-full bg-gray-600 text-gray-300 rounded-lg px-3 py-2 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    종료일
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate.toISOString().split('T')[0]}
+                    min={selectedDate.toISOString().split('T')[0]}
+                    onChange={(e) => setEndDate(new Date(e.target.value + 'T00:00:00'))}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
 
               {/* 이벤트 비밀번호 */}
