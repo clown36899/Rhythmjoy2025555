@@ -763,9 +763,22 @@ export default function EventList({
                       />
                       <div className="p-2">
                         <p className="text-xs text-gray-300 text-center">
-                          {(event.start_date || event.date) 
-                            ? new Date(event.start_date || event.date || '').toLocaleDateString()
-                            : '날짜 미정'}
+                          {(() => {
+                            const startDate = event.start_date || event.date;
+                            const endDate = event.end_date || event.date;
+                            
+                            if (!startDate) return '날짜 미정';
+                            
+                            const formatDate = (dateStr: string) => {
+                              const date = new Date(dateStr);
+                              return `${date.getMonth() + 1}/${date.getDate()}`;
+                            };
+                            
+                            if (startDate !== endDate) {
+                              return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
+                            }
+                            return formatDate(startDate);
+                          })()}
                         </p>
                       </div>
                     </div>
@@ -803,9 +816,22 @@ export default function EventList({
                             <div className="flex items-center space-x-1">
                               <i className="ri-calendar-line"></i>
                               <span>
-                                {(event.start_date || event.date)
-                                  ? new Date(event.start_date || event.date || '').toLocaleDateString()
-                                  : '날짜 미정'}
+                                {(() => {
+                                  const startDate = event.start_date || event.date;
+                                  const endDate = event.end_date || event.date;
+                                  
+                                  if (!startDate) return '날짜 미정';
+                                  
+                                  const formatDate = (dateStr: string) => {
+                                    const date = new Date(dateStr);
+                                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                                  };
+                                  
+                                  if (startDate !== endDate) {
+                                    return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
+                                  }
+                                  return formatDate(startDate);
+                                })()}
                               </span>
                             </div>
                             <div className="flex items-center space-x-1">
