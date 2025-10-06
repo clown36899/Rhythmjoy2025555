@@ -1783,7 +1783,7 @@ export default function EventList({
                 </div>
               </div>
             </div>
-            {/* 상단 제목 영역 */}
+            {/* 중단 제목 영역 */}
             <div className="p-3 border-b border-gray-700 flex-shrink-0">
               <h2 className="text-xl font-bold text-white text-left overflow-hidden">
                 <span
@@ -1803,7 +1803,7 @@ export default function EventList({
             </div>
             {/* 하단 영역 - 이벤트 소개 */}
             <div className="flex-1 flex flex-col border-t border-gray-700 min-h-0">
-              <div className="p-1 flex-1 flex flex-col min-h-0">
+              <div className="p-3 flex-1 flex flex-col min-h-0">
                 <h3 className="text-sm font-semibold text-white mb-1 flex-shrink-0">
                   이벤트 소개
                 </h3>
