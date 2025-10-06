@@ -167,7 +167,8 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
             link_name1: formData.linkName1 || null,
             link_name2: formData.linkName2 || null,
             link_name3: formData.linkName3 || null,
-            password: formData.password
+            password: formData.password,
+            created_at: new Date().toISOString()
           }
         ]);
 
