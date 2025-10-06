@@ -845,7 +845,11 @@ export default function EventList({
                             className="w-full aspect-[3/4] object-cover object-top"
                           />
                         ) : (
-                          <div className="w-full aspect-[3/4] bg-black"></div>
+                          <div className={`w-full aspect-[3/4] flex items-center justify-center ${event.category === 'class' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                            <span className="text-white text-4xl font-bold">
+                              {event.category === 'class' ? '강습' : '행사'}
+                            </span>
+                          </div>
                         )}
                         {/* 하단 그라데이션 오버레이 */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
@@ -914,7 +918,11 @@ export default function EventList({
                             className="w-16 h-20 rounded-lg object-cover object-top"
                           />
                         ) : (
-                          <div className="w-16 h-20 rounded-lg bg-black"></div>
+                          <div className={`w-16 h-20 rounded-lg flex items-center justify-center ${event.category === 'class' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                            <span className="text-white text-xs font-bold">
+                              {event.category === 'class' ? '강습' : '행사'}
+                            </span>
+                          </div>
                         )}
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-white mb-1">
@@ -1582,7 +1590,7 @@ export default function EventList({
             {/* 중단 영역 - 이미지와 기본 정보 */}
             <div className="flex h-80 flex-shrink-0">
               {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
-              <div className="w-1/2 bg-black flex items-start justify-start p-0">
+              <div className={`w-1/2 flex items-center justify-center p-0 ${selectedEvent.image ? 'bg-black' : (selectedEvent.category === 'class' ? 'bg-purple-600' : 'bg-blue-600')}`}>
                 {selectedEvent.image ? (
                   <img
                     src={selectedEvent.image}
@@ -1590,7 +1598,9 @@ export default function EventList({
                     className="max-w-full max-h-full object-contain"
                   />
                 ) : (
-                  <div className="w-full h-full bg-black"></div>
+                  <span className="text-white text-6xl font-bold">
+                    {selectedEvent.category === 'class' ? '강습' : '행사'}
+                  </span>
                 )}
               </div>
 
