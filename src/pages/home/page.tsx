@@ -19,7 +19,7 @@ export default function HomePage() {
   const calendarRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [savedMonth, setSavedMonth] = useState<Date | null>(null);
-  const [hoveredEventDate, setHoveredEventDate] = useState<Date | null>(null);
+  const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
   
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -309,7 +309,7 @@ export default function HomePage() {
               currentMonth={currentMonth}
               onEventsUpdate={handleEventsUpdate}
               viewMode={viewMode}
-              hoveredDate={hoveredEventDate}
+              hoveredEventId={hoveredEventId}
             />
             <EventList
               selectedDate={selectedDate}
@@ -319,7 +319,7 @@ export default function HomePage() {
               refreshTrigger={refreshTrigger}
               isAdminMode={isAdminMode}
               viewMode={viewMode}
-              onEventHover={setHoveredEventDate}
+              onEventHover={setHoveredEventId}
             />
           </div>
         </div>
@@ -341,7 +341,7 @@ export default function HomePage() {
               currentMonth={currentMonth}
               onEventsUpdate={handleEventsUpdate}
               viewMode={viewMode}
-              hoveredDate={hoveredEventDate}
+              hoveredEventId={hoveredEventId}
             />
           </div>
 
@@ -359,7 +359,7 @@ export default function HomePage() {
                 refreshTrigger={refreshTrigger}
                 isAdminMode={isAdminMode}
                 viewMode={viewMode}
-                onEventHover={setHoveredEventDate}
+                onEventHover={setHoveredEventId}
               />
             </div>
             <Footer />
