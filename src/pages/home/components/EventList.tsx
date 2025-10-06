@@ -13,6 +13,8 @@ interface EventListProps {
   isAdminMode?: boolean;
   viewMode?: "month" | "year";
   onEventHover?: (eventId: number | null) => void;
+  newlyCreatedEventId?: number | null;
+  onNewEventDisplayed?: () => void;
 }
 
 export default function EventList({
@@ -24,6 +26,8 @@ export default function EventList({
   isAdminMode = false,
   viewMode = "month",
   onEventHover,
+  newlyCreatedEventId,
+  onNewEventDisplayed,
 }: EventListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -372,8 +376,31 @@ export default function EventList({
 
   // 필터링된 이벤트를 정렬 (useMemo로 캐싱하여 불필요한 재정렬 방지)
   const sortedEvents = useMemo(() => {
-    return sortEvents(filteredEvents, sortBy);
-  }, [filteredEvents, sortBy]);
+    const sorted = sortEvents(filteredEvents, sortBy);
+    
+    // 새로 등록된 이벤트가 있으면 맨 앞으로 이동 (첫 로드에만)
+    if (newlyCreatedEventId) {
+      const newEventIndex = sorted.findIndex(event => event.id === newlyCreatedEventId);
+      if (newEventIndex >= 0) {
+        if (newEventIndex > 0) {
+          const newEvent = sorted.splice(newEventIndex, 1)[0];
+          sorted.unshift(newEvent);
+        }
+      }
+    }
+    
+    return sorted;
+  }, [filteredEvents, sortBy, newlyCreatedEventId]);
+  
+  // 새로 등록된 이벤트가 표시되면 상태 초기화 (useEffect로 side effect 분리)
+  useEffect(() => {
+    if (newlyCreatedEventId && onNewEventDisplayed) {
+      const newEventExists = sortedEvents.some(event => event.id === newlyCreatedEventId);
+      if (newEventExists) {
+        onNewEventDisplayed();
+      }
+    }
+  }, [newlyCreatedEventId, sortedEvents, onNewEventDisplayed]);
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);

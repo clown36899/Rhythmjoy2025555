@@ -20,6 +20,7 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [savedMonth, setSavedMonth] = useState<Date | null>(null);
   const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
+  const [newlyCreatedEventId, setNewlyCreatedEventId] = useState<number | null>(null);
   
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -225,12 +226,22 @@ export default function HomePage() {
     setSelectedDate(null);
   };
 
-  const handleEventsUpdate = async (createdDate?: Date) => {
+  const handleEventsUpdate = async (createdDate?: Date, category?: string, eventId?: number) => {
     setRefreshTrigger((prev) => prev + 1);
     
-    // 이벤트 등록 후 날짜가 전달되었을 때, 그 날짜를 선택 (handleDateSelect가 자동으로 카테고리 감지)
+    // 새로 등록된 이벤트 ID 저장
+    if (eventId) {
+      setNewlyCreatedEventId(eventId);
+    }
+    
+    // 이벤트 등록 후 카테고리 자동 설정
+    if (category) {
+      setSelectedCategory(category);
+    }
+    
+    // 이벤트 등록 후 날짜가 전달되었을 때, 그 날짜를 선택
     if (createdDate) {
-      await handleDateSelect(createdDate);
+      setSelectedDate(createdDate);
     }
   };
 
@@ -320,6 +331,8 @@ export default function HomePage() {
               isAdminMode={isAdminMode}
               viewMode={viewMode}
               onEventHover={setHoveredEventId}
+              newlyCreatedEventId={newlyCreatedEventId}
+              onNewEventDisplayed={() => setNewlyCreatedEventId(null)}
             />
           </div>
         </div>
