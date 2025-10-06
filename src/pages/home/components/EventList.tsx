@@ -857,6 +857,10 @@ export default function EventList({
                             </span>
                           </div>
                         )}
+                        {/* 왼쪽 상단 카테고리 배지 */}
+                        <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === 'class' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                          {event.category === 'class' ? '강습' : '행사'}
+                        </div>
                         {/* 하단 그라데이션 오버레이 */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
                           <h3 className="text-white text-xs font-bold leading-tight line-clamp-2">
@@ -917,25 +921,31 @@ export default function EventList({
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${eventColor.bg} rounded-l-lg`}></div>
                       <div className="flex space-x-4">
-                        {event.image ? (
-                          <img
-                            src={event.image}
-                            alt={event.title}
-                            className="w-16 h-20 rounded-lg object-cover object-top"
-                          />
-                        ) : (
-                          <div 
-                            className="w-16 h-20 rounded-lg flex items-center justify-center bg-cover bg-center relative"
-                            style={{
-                              backgroundImage: 'url(/grunge.png)'
-                            }}
-                          >
-                            <div className={`absolute inset-0 rounded-lg ${event.category === 'class' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}></div>
-                            <span className="text-white/10 text-xs font-bold relative z-10">
-                              {event.category === 'class' ? '강습' : '행사'}
-                            </span>
+                        <div className="relative">
+                          {event.image ? (
+                            <img
+                              src={event.image}
+                              alt={event.title}
+                              className="w-16 h-20 rounded-lg object-cover object-top"
+                            />
+                          ) : (
+                            <div 
+                              className="w-16 h-20 rounded-lg flex items-center justify-center bg-cover bg-center relative"
+                              style={{
+                                backgroundImage: 'url(/grunge.png)'
+                              }}
+                            >
+                              <div className={`absolute inset-0 rounded-lg ${event.category === 'class' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}></div>
+                              <span className="text-white/10 text-xs font-bold relative z-10">
+                                {event.category === 'class' ? '강습' : '행사'}
+                              </span>
+                            </div>
+                          )}
+                          {/* 왼쪽 상단 카테고리 배지 */}
+                          <div className={`absolute top-0 left-0 px-1 py-0.5 text-white text-[8px] font-bold rounded-tl-lg ${event.category === 'class' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                            {event.category === 'class' ? '강습' : '행사'}
                           </div>
-                        )}
+                        </div>
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-white mb-1">
                             {event.title}
@@ -1603,7 +1613,7 @@ export default function EventList({
             <div className="flex h-80 flex-shrink-0">
               {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
               <div 
-                className={`w-1/2 flex items-center justify-center p-0 ${selectedEvent.image ? 'bg-black' : 'bg-cover bg-center relative'}`}
+                className={`w-1/2 flex items-center justify-center p-0 relative ${selectedEvent.image ? 'bg-black' : 'bg-cover bg-center'}`}
                 style={!selectedEvent.image ? {
                   backgroundImage: 'url(/grunge.png)'
                 } : undefined}
@@ -1622,6 +1632,10 @@ export default function EventList({
                     </span>
                   </>
                 )}
+                {/* 왼쪽 상단 카테고리 배지 */}
+                <div className={`absolute top-0 left-0 px-3 py-1 text-white text-sm font-bold z-20 ${selectedEvent.category === 'class' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                  {selectedEvent.category === 'class' ? '강습' : '행사'}
+                </div>
               </div>
 
               {/* 오른쪽 기본 정보 - 내부 여백 줄임 */}
