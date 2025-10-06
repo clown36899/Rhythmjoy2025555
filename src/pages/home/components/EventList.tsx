@@ -828,7 +828,7 @@ export default function EventList({
                       className="bg-gray-700 rounded-xl overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative"
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
-                      <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg} z-10`}></div>
+                      <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                       
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
