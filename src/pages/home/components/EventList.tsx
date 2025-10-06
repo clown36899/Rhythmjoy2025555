@@ -550,6 +550,32 @@ export default function EventList({
       return;
     }
 
+    // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함
+    if (editFormData.linkName1 && !editFormData.link1) {
+      alert('링크1 제목을 입력했다면 링크 주소도 입력해주세요.');
+      return;
+    }
+    if (editFormData.link1 && !editFormData.linkName1) {
+      alert('링크1 주소를 입력했다면 링크 제목도 입력해주세요.');
+      return;
+    }
+    if (editFormData.linkName2 && !editFormData.link2) {
+      alert('링크2 제목을 입력했다면 링크 주소도 입력해주세요.');
+      return;
+    }
+    if (editFormData.link2 && !editFormData.linkName2) {
+      alert('링크2 주소를 입력했다면 링크 제목도 입력해주세요.');
+      return;
+    }
+    if (editFormData.linkName3 && !editFormData.link3) {
+      alert('링크3 제목을 입력했다면 링크 주소도 입력해주세요.');
+      return;
+    }
+    if (editFormData.link3 && !editFormData.linkName3) {
+      alert('링크3 주소를 입력했다면 링크 제목도 입력해주세요.');
+      return;
+    }
+
     try {
       let imageUrl = editFormData.image;
 
