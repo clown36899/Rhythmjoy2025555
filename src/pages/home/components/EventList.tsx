@@ -854,7 +854,7 @@ export default function EventList({
                             <div
                               className={`absolute inset-0 ${event.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
                             ></div>
-                            <span className="text-white/10 text-4xl font-bold relative z-10">
+                            <span className="text-white/10 text-4xl font-bold relative">
                               {event.category === "class" ? "강습" : "행사"}
                             </span>
                           </div>
@@ -946,7 +946,7 @@ export default function EventList({
                               <div
                                 className={`absolute inset-0 rounded-lg ${event.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
                               ></div>
-                              <span className="text-white/10 text-xs font-bold relative z-10">
+                              <span className="text-white/10 text-xs font-bold relative">
                                 {event.category === "class" ? "강습" : "행사"}
                               </span>
                             </div>
