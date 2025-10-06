@@ -689,9 +689,10 @@ export default function EventList({
             {/* 정렬 버튼 */}
             <button
               onClick={() => setShowSortModal(true)}
-              className="flex items-center justify-center w-8 h-8 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+              className="flex flex-col items-center justify-center px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer"
             >
               <i className={`${getSortIcon()} text-sm`}></i>
+              <span className="text-[9px] mt-0.5">{getSortLabel()}</span>
             </button>
 
             {/* 검색 버튼 */}
