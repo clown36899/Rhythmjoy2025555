@@ -36,7 +36,7 @@ export default function EventList({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">(
+  const [sortBy, setSortBy] = useState<"random" | "time" | "title">(
     "random",
   );
   const [showSortModal, setShowSortModal] = useState(false);
@@ -88,18 +88,6 @@ export default function EventList({
       case "title":
         // 제목순 정렬 (가나다순)
         return eventsCopy.sort((a, b) => a.title.localeCompare(b.title, "ko"));
-      case "newest":
-        // 최신순 정렬 (생성일 기준)
-        return eventsCopy.sort((a, b) => {
-          const dateStrA = a.created_at || a.start_date || a.date;
-          const dateStrB = b.created_at || b.start_date || b.date;
-          if (!dateStrA && !dateStrB) return 0;
-          if (!dateStrA) return 1;
-          if (!dateStrB) return -1;
-          const dateA = new Date(dateStrA);
-          const dateB = new Date(dateStrB);
-          return dateB.getTime() - dateA.getTime();
-        });
       default:
         return eventsCopy;
     }
@@ -195,7 +183,7 @@ export default function EventList({
   };
 
   const handleSortChange = (
-    newSortBy: "random" | "time" | "title" | "newest",
+    newSortBy: "random" | "time" | "title",
   ) => {
     setSortBy(newSortBy);
     setShowSortModal(false);
@@ -213,8 +201,6 @@ export default function EventList({
         return "시간순";
       case "title":
         return "제목순";
-      case "newest":
-        return "최신순";
       default:
         return "정렬";
     }
@@ -239,7 +225,6 @@ export default function EventList({
     { id: "random", name: "랜덤", icon: "ri-shuffle-line" },
     { id: "time", name: "시간순", icon: "ri-time-line" },
     { id: "title", name: "제목순", icon: "ri-sort-alphabet-asc" },
-    { id: "newest", name: "최신순", icon: "ri-calendar-2-line" },
   ];
 
   const morningTimes = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"];
@@ -901,7 +886,7 @@ export default function EventList({
                     key={option.id}
                     onClick={() =>
                       handleSortChange(
-                        option.id as "random" | "time" | "title" | "newest",
+                        option.id as "random" | "time" | "title",
                       )
                     }
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
