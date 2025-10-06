@@ -846,14 +846,13 @@ export default function EventList({
                           />
                         ) : (
                           <div 
-                            className={`w-full aspect-[3/4] flex items-center justify-center ${event.category === 'class' ? 'bg-purple-300' : 'bg-blue-300'}`}
+                            className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
                             style={{
-                              backgroundImage: event.category === 'class' 
-                                ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
-                                : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                              backgroundImage: 'url(/grunge.png)'
                             }}
                           >
-                            <span className="text-white/10 text-4xl font-bold">
+                            <div className={`absolute inset-0 ${event.category === 'class' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}></div>
+                            <span className="text-white/10 text-4xl font-bold relative z-10">
                               {event.category === 'class' ? '강습' : '행사'}
                             </span>
                           </div>
@@ -926,14 +925,13 @@ export default function EventList({
                           />
                         ) : (
                           <div 
-                            className={`w-16 h-20 rounded-lg flex items-center justify-center ${event.category === 'class' ? 'bg-purple-300' : 'bg-blue-300'}`}
+                            className="w-16 h-20 rounded-lg flex items-center justify-center bg-cover bg-center relative"
                             style={{
-                              backgroundImage: event.category === 'class' 
-                                ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
-                                : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                              backgroundImage: 'url(/grunge.png)'
                             }}
                           >
-                            <span className="text-white/10 text-xs font-bold">
+                            <div className={`absolute inset-0 rounded-lg ${event.category === 'class' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}></div>
+                            <span className="text-white/10 text-xs font-bold relative z-10">
                               {event.category === 'class' ? '강습' : '행사'}
                             </span>
                           </div>
@@ -1605,11 +1603,9 @@ export default function EventList({
             <div className="flex h-80 flex-shrink-0">
               {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
               <div 
-                className={`w-1/2 flex items-center justify-center p-0 ${selectedEvent.image ? 'bg-black' : (selectedEvent.category === 'class' ? 'bg-purple-300' : 'bg-blue-300')}`}
+                className={`w-1/2 flex items-center justify-center p-0 ${selectedEvent.image ? 'bg-black' : 'bg-cover bg-center relative'}`}
                 style={!selectedEvent.image ? {
-                  backgroundImage: selectedEvent.category === 'class' 
-                    ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
-                    : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                  backgroundImage: 'url(/grunge.png)'
                 } : undefined}
               >
                 {selectedEvent.image ? (
@@ -1619,9 +1615,12 @@ export default function EventList({
                     className="max-w-full max-h-full object-contain"
                   />
                 ) : (
-                  <span className="text-white/10 text-6xl font-bold">
-                    {selectedEvent.category === 'class' ? '강습' : '행사'}
-                  </span>
+                  <>
+                    <div className={`absolute inset-0 ${selectedEvent.category === 'class' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}></div>
+                    <span className="text-white/10 text-6xl font-bold relative z-10">
+                      {selectedEvent.category === 'class' ? '강습' : '행사'}
+                    </span>
+                  </>
                 )}
               </div>
 
