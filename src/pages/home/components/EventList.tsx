@@ -228,7 +228,7 @@ export default function EventList({
     },
     { id: "class", name: "강습", icon: "ri-book-line" },
     { id: "event", name: "행사", icon: "ri-calendar-event-line" },
-    { id: "practice", name: "추천연습실", icon: "ri-home-4-line" },
+    { id: "practice", name: "연습실", icon: "ri-home-4-line" },
   ];
 
   const sortOptions = [
@@ -741,7 +741,7 @@ export default function EventList({
           {sortedEvents.length > 0 ? (
             <>
               {/* Mobile: Grid layout with 3 columns - poster ratio */}
-              <div className="grid grid-cols-3 gap-3 lg:hidden max-h-[60vh] scrollbar-visible">
+              <div className="grid grid-cols-3 gap-3 lg:hidden">
                 {sortedEvents.map((event) => {
                   const startDate = event.start_date || event.date || '';
                   const endDate = event.end_date || event.date || '';
