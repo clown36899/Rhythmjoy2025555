@@ -224,7 +224,9 @@ export default function EventList({
     {
       id: "all",
       name: currentMonth
-        ? `${currentMonth.getMonth() + 1}월 전체`
+        ? viewMode === "year" 
+          ? `${currentMonth.getFullYear()} 전체`
+          : `${currentMonth.getMonth() + 1}월 전체`
         : "모든 이벤트",
       icon: "ri-calendar-line",
     },
