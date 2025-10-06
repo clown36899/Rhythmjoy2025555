@@ -123,33 +123,9 @@ export default function Header({
               </button>
             </div>
 
-            {/* Center: Billboard & Settings Button */}
-            <div className="hidden lg:flex items-center space-x-2">
-              {isAdminMode && (
-                <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                  관리자 모드
-                </span>
-              )}
-              {onBillboardOpen && (
-                <button
-                  onClick={onBillboardOpen}
-                  className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
-                  title="광고판 보기"
-                >
-                  <i className="ri-image-line text-lg"></i>
-                </button>
-              )}
-              <button
-                onClick={handleSettingsClick}
-                className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
-              >
-                <i className="ri-settings-3-line text-lg"></i>
-              </button>
-            </div>
-
-            {/* Mobile Calendar Controls - Center */}
+            {/* Calendar Controls - Center */}
             {currentMonth && onNavigateMonth && (
-              <div className="lg:hidden flex items-center space-x-3">
+              <div className="flex items-center space-x-3">
                 <button
                   onClick={() => handleNavigateMonth("prev")}
                   className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -192,8 +168,8 @@ export default function Header({
               </div>
             )}
 
-            {/* Right: Mobile Billboard & Settings Button */}
-            <div className="lg:hidden flex items-center space-x-2">
+            {/* Right: Billboard & Settings Button */}
+            <div className="flex items-center space-x-2">
               {isAdminMode && (
                 <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
                   관리자
