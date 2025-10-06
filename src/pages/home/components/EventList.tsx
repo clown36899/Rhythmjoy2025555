@@ -1531,172 +1531,170 @@ export default function EventList({
       {/* Event Detail Modal */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="relative h-full flex flex-col">
-              {/* 상단 제목 영역 */}
-              <div className="p-3 border-b border-gray-700">
-                <h2 className="text-xl font-bold text-white text-center overflow-hidden">
-                  <span
-                    className="block leading-tight whitespace-nowrap overflow-hidden"
-                    style={{
-                      fontSize:
-                        Math.max(
-                          12,
-                          Math.min(24, 200 / selectedEvent.title.length),
-                        ) + "px",
-                      lineHeight: "1.2",
-                    }}
-                  >
-                    {selectedEvent.title}
-                  </span>
-                </h2>
+          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* 상단 제목 영역 */}
+            <div className="p-3 border-b border-gray-700 flex-shrink-0">
+              <h2 className="text-xl font-bold text-white text-center overflow-hidden">
+                <span
+                  className="block leading-tight whitespace-nowrap overflow-hidden"
+                  style={{
+                    fontSize:
+                      Math.max(
+                        12,
+                        Math.min(24, 200 / selectedEvent.title.length),
+                      ) + "px",
+                    lineHeight: "1.2",
+                  }}
+                >
+                  {selectedEvent.title}
+                </span>
+              </h2>
+            </div>
+
+            {/* 중단 영역 - 이미지와 기본 정보 */}
+            <div className="flex h-80 flex-shrink-0">
+              {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
+              <div className="w-1/2 bg-gray-800 flex items-start justify-start p-0">
+                <img
+                  src={selectedEvent.image}
+                  alt={selectedEvent.title}
+                  className="max-w-full max-h-full object-contain"
+                />
               </div>
 
-              {/* 중단 영역 - 이미지와 기본 정보 */}
-              <div className="flex h-80">
-                {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
-                <div className="w-1/2 bg-gray-800 flex items-start justify-start p-0">
-                  <img
-                    src={selectedEvent.image}
-                    alt={selectedEvent.title}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-
-                {/* 오른쪽 기본 정보 - 내부 여백 줄임 */}
-                <div className="w-1/2 p-4 overflow-hidden">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                      <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                      <span>
-                        {(selectedEvent.start_date || selectedEvent.date)
-                          ? new Date(selectedEvent.start_date || selectedEvent.date || '').toLocaleDateString(
-                              "ko-KR",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                                weekday: "long",
-                              },
-                            )
-                          : '날짜 미정'}
+              {/* 오른쪽 기본 정보 - 내부 여백 줄임 */}
+              <div className="w-1/2 p-4 overflow-hidden">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-3 text-gray-300 text-sm">
+                    <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
+                    <span>
+                      {(selectedEvent.start_date || selectedEvent.date)
+                        ? new Date(selectedEvent.start_date || selectedEvent.date || '').toLocaleDateString(
+                            "ko-KR",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                              weekday: "long",
+                            },
+                          )
+                        : '날짜 미정'}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-gray-300 text-sm">
+                    <i className="ri-time-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
+                    <span>{selectedEvent.time}</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-gray-300 text-sm">
+                    <i className="ri-user-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
+                    <span>{selectedEvent.organizer}</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-gray-300 text-sm">
+                    <i className="ri-map-pin-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
+                    <span>{selectedEvent.location}</span>
+                  </div>
+                  
+                  {/* 등록날짜 */}
+                  {selectedEvent.created_at && (
+                    <div className="pt-2 mt-2 border-t border-gray-700">
+                      <span className="text-[10px] text-gray-500">
+                        등록: {new Date(selectedEvent.created_at).toLocaleDateString("ko-KR", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                      <i className="ri-time-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                      <span>{selectedEvent.time}</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                      <i className="ri-user-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                      <span>{selectedEvent.organizer}</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                      <i className="ri-map-pin-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                      <span>{selectedEvent.location}</span>
-                    </div>
-                    
-                    {/* 등록날짜 */}
-                    {selectedEvent.created_at && (
-                      <div className="pt-2 mt-2 border-t border-gray-700">
-                        <span className="text-[10px] text-gray-500">
-                          등록: {new Date(selectedEvent.created_at).toLocaleDateString("ko-KR", {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit"
-                          })}
-                        </span>
-                      </div>
-                    )}
+                  )}
 
-                    {/* 바로가기 링크 */}
-                    {(selectedEvent.link1 ||
-                      selectedEvent.link2 ||
-                      selectedEvent.link3) && (
-                      <div className="pt-1 border-t border-gray-700 mt-2">
-                        <h3 className="text-sm font-semibold text-white mb-1">
-                          링크
-                        </h3>
-                        <div className="space-y-1">
-                          {selectedEvent.link1 && (
-                            <a
-                              href={selectedEvent.link1}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
-                              text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
-                            >
-                              <i className="ri-external-link-line"></i>
-                              <span className="truncate">
-                                {selectedEvent.link_name1 || "링크 1"}
-                              </span>
-                            </a>
-                          )}
-                          {selectedEvent.link2 && (
-                            <a
-                              href={selectedEvent.link2}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
-                              text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
-                            >
-                              <i className="ri-external-link-line"></i>
-                              <span className="truncate">
-                                {selectedEvent.link_name2 || "링크 2"}
-                              </span>
-                            </a>
-                          )}
-                          {selectedEvent.link3 && (
-                            <a
-                              href={selectedEvent.link3}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
-                              text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
-                            >
-                              <i className="ri-external-link-line"></i>
-                              <span className="truncate">
-                                {selectedEvent.link_name3 || "링크 3"}
-                              </span>
-                            </a>
-                          )}
-                        </div>
+                  {/* 바로가기 링크 */}
+                  {(selectedEvent.link1 ||
+                    selectedEvent.link2 ||
+                    selectedEvent.link3) && (
+                    <div className="pt-1 border-t border-gray-700 mt-2">
+                      <h3 className="text-sm font-semibold text-white mb-1">
+                        링크
+                      </h3>
+                      <div className="space-y-1">
+                        {selectedEvent.link1 && (
+                          <a
+                            href={selectedEvent.link1}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
+                            text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
+                          >
+                            <i className="ri-external-link-line"></i>
+                            <span className="truncate">
+                              {selectedEvent.link_name1 || "링크 1"}
+                            </span>
+                          </a>
+                        )}
+                        {selectedEvent.link2 && (
+                          <a
+                            href={selectedEvent.link2}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
+                            text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
+                          >
+                            <i className="ri-external-link-line"></i>
+                            <span className="truncate">
+                              {selectedEvent.link_name2 || "링크 2"}
+                            </span>
+                          </a>
+                        )}
+                        {selectedEvent.link3 && (
+                          <a
+                            href={selectedEvent.link3}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
+                            text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
+                          >
+                            <i className="ri-external-link-line"></i>
+                            <span className="truncate">
+                              {selectedEvent.link_name3 || "링크 3"}
+                            </span>
+                          </a>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 하단 영역 - 이벤트 소개 */}
+            <div className="flex-1 flex flex-col border-t border-gray-700 min-h-0">
+              <div className="p-1 flex-1 flex flex-col min-h-0">
+                <h3 className="text-sm font-semibold text-white mb-1 flex-shrink-0">
+                  이벤트 소개
+                </h3>
+                <div className="bg-gray-700 rounded-lg p-2 flex-1 overflow-y-auto min-h-0">
+                  <p className="text-gray-300 leading-relaxed whitespace-pre-wrap break-words text-[10px]">
+                    {selectedEvent.description}
+                  </p>
                 </div>
               </div>
 
-              {/* 하단 영역 - 이벤트 소개 */}
-              <div className="flex-1 flex flex-col border-t border-gray-700 min-h-0">
-                <div className="p-1 flex-1 flex flex-col min-h-0">
-                  <h3 className="text-sm font-semibold text-white mb-1 flex-shrink-0">
-                    이벤트 소개
-                  </h3>
-                  <div className="bg-gray-700 rounded-lg p-2 flex-1 overflow-y-auto min-h-0">
-                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap break-words text-[10px]">
-                      {selectedEvent.description}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 수정/닫기 버튼 - 하단 고정 */}
-                <div className="p-1 border-t border-gray-700 bg-gray-800">
-                  <div className="flex justify-center space-x-3">
-                    <button
-                      onClick={(e) => handleEditClick(selectedEvent, e)}
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
-                    >
-                      수정
-                    </button>
-                    <button
-                      onClick={closeModal}
-                      className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
-                    >
-                      닫기
-                    </button>
-                  </div>
+              {/* 수정/닫기 버튼 - 하단 고정 */}
+              <div className="p-1 border-t border-gray-700 bg-gray-800 flex-shrink-0">
+                <div className="flex justify-center space-x-3">
+                  <button
+                    onClick={(e) => handleEditClick(selectedEvent, e)}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                  >
+                    닫기
+                  </button>
                 </div>
               </div>
             </div>
