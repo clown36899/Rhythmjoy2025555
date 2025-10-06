@@ -385,10 +385,9 @@ export default function EventCalendar({
           .map(event => event.id)
       ) : null;
 
-      // 모든 이벤트 바 정보 계산 (연속 이벤트 + 단일 이벤트, 최대 3개 레인)
+      // 연속 이벤트 바 정보 계산 (레인 맵 기반, 최대 3개 레인)
       const eventBarsMap = new Map<number, { eventId: number; isStart: boolean; isEnd: boolean; categoryColor: string; isFaded: boolean }>();
       
-      // 연속 이벤트 처리
       multiDayEvents.forEach((event) => {
         const laneInfo = eventLaneMap.get(event.id);
         if (!laneInfo || laneInfo.lane >= 3) return; // 최대 3개 레인만
@@ -410,26 +409,28 @@ export default function EventCalendar({
         });
       });
       
-      // 단일 이벤트 처리 (남은 레인에 추가)
-      let currentLane = 0;
-      singleDayEvents.forEach((event) => {
+      // 호버된 이벤트가 단일 이벤트인 경우 임시 바 추가
+      const hoveredSingleEvent = viewMode === "month" && hoveredEventId 
+        ? singleDayEvents.find(e => e.id === hoveredEventId)
+        : null;
+      
+      if (hoveredSingleEvent) {
         // 빈 레인 찾기
-        while (currentLane < 3 && eventBarsMap.has(currentLane)) {
-          currentLane++;
+        let hoveredLane = 0;
+        while (hoveredLane < 3 && eventBarsMap.has(hoveredLane)) {
+          hoveredLane++;
         }
-        if (currentLane >= 3) return; // 최대 3개 레인만
-        
-        const eventColor = getEventColor(event.category, event.id);
-        
-        eventBarsMap.set(currentLane, {
-          eventId: event.id,
-          isStart: true,
-          isEnd: true,
-          categoryColor: eventColor.bg,
-          isFaded: false,
-        });
-        currentLane++;
-      });
+        if (hoveredLane < 3) {
+          const eventColor = getEventColor(hoveredSingleEvent.category, hoveredSingleEvent.id);
+          eventBarsMap.set(hoveredLane, {
+            eventId: hoveredSingleEvent.id,
+            isStart: true,
+            isEnd: true,
+            categoryColor: eventColor.bg,
+            isFaded: false,
+          });
+        }
+      }
       
       // 레인 0, 1, 2를 순서대로 배열로 변환 (빈 레인은 null)
       const eventBarsData = [0, 1, 2].map(lane => {
@@ -453,6 +454,12 @@ export default function EventCalendar({
               <span className="font-bold">
                 {day.getDate()}
               </span>
+              {/* 단일 이벤트 개수 표시 */}
+              {singleDayEvents.length > 0 && (
+                <span className="text-[8px] lg:text-[10px] bg-gray-600 text-gray-300 rounded px-1 font-medium">
+                  +{singleDayEvents.length}
+                </span>
+              )}
             </div>
 
             {/* 오늘 표시 */}
@@ -471,20 +478,22 @@ export default function EventCalendar({
               {eventBarsData.map((bar, i) => {
                 // 호버된 이벤트인지 확인 (월간 보기일 때만)
                 const isHovered = viewMode === "month" && hoveredEventId !== null && bar?.eventId === hoveredEventId;
-                // 다른 이벤트가 호버되었을 때 이 바는 흐리게 표시
-                const shouldDim = viewMode === "month" && hoveredEventId !== null && bar?.eventId !== hoveredEventId;
                 
                 return (
                   <div
                     key={i}
-                    className={`h-0.5 lg:h-1 w-full transition-opacity duration-200 ${
+                    className={`w-full transition-all duration-200 ${
                       bar 
                         ? `${bar.categoryColor} ${
                             bar.isStart && bar.isEnd ? 'rounded-full' :
                             bar.isStart ? 'rounded-l-full' :
                             bar.isEnd ? 'rounded-r-full' : ''
-                          } ${bar.isFaded ? 'opacity-30' : shouldDim ? 'opacity-20' : isHovered ? 'opacity-100' : ''}`
-                        : 'bg-transparent'
+                          } ${
+                            bar.isFaded ? 'opacity-30' : 
+                            isHovered ? 'h-1 lg:h-2 opacity-100' : 
+                            'h-0.5 lg:h-1 opacity-70'
+                          }`
+                        : 'bg-transparent h-0.5 lg:h-1'
                     }`}
                   />
                 );
