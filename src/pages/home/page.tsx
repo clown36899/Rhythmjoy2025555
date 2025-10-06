@@ -118,13 +118,21 @@ export default function HomePage() {
           .select("*")
           .not("image", "is", null)
           .neq("image", "")
-          .gte("date", todayString)
           .order("date", { ascending: true });
 
         if (events && events.length > 0) {
-          const images = events.map((event) => event.image).filter(Boolean);
+          const filteredEvents = events.filter((event) => {
+            if (!event.image) return false;
+            
+            const endDate = event.end_date || event.start_date || event.date;
+            if (!endDate) return false;
+            
+            return endDate >= todayString;
+          });
+
+          const images = filteredEvents.map((event) => event.image).filter(Boolean);
           setBillboardImages(images);
-          setBillboardEvents(events);
+          setBillboardEvents(filteredEvents);
 
           // 자동 열기 설정이 켜져있을 때만 자동으로 표시
           if (settings.autoOpenOnLoad) {
