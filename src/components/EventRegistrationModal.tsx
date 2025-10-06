@@ -108,7 +108,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
 
       if (uploadError) {
         console.error('Storage upload error:', uploadError);
-        return `https://readdy.ai/api/search-image?query=$%7BencodeURIComponent%28formData.title%20%20%20%20event%20poster%20design%29%7D&width=300&height=400&seq=fallback${Date.now()}&orientation=portrait`;
+        return '';
       }
 
       const { data } = supabase.storage
@@ -118,7 +118,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       return data.publicUrl;
     } catch (error) {
       console.error('Image upload failed:', error);
-      return `https://readdy.ai/api/search-image?query=$%7BencodeURIComponent%28formData.title%20%20%20%20event%20poster%20design%29%7D&width=300&height=400&seq=error${Date.now()}&orientation=portrait`;
+      return '';
     }
   };
 
@@ -164,7 +164,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       if (imageFile) {
         imageUrl = await uploadImage(imageFile);
       } else {
-        imageUrl = `https://readdy.ai/api/search-image?query=$%7BencodeURIComponent%28formData.title%20%20%20%20event%20poster%20design%29%7D&width=300&height=400&seq=new${Date.now()}&orientation=portrait`;
+        imageUrl = '';
       }
 
       const year = selectedDate.getFullYear();
