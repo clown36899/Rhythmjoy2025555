@@ -1390,6 +1390,20 @@ export default function EventList({
                           alt="이벤트 이미지"
                           className="w-full h-48 object-cover rounded-lg"
                         />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditImagePreview('');
+                            setEditImageFile(null);
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              image: ''
+                            }));
+                          }}
+                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                        >
+                          이미지 삭제
+                        </button>
                       </div>
                     )}
                     <input
