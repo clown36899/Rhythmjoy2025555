@@ -345,7 +345,7 @@ export default function EventCalendar({
   const renderCalendarGrid = (days: (Date | null)[], monthDate: Date) => {
     return days.map((day, index) => {
       if (!day) {
-        return <div key={`${monthDate.getMonth()}-${index}`} className="h-7 lg:aspect-square p-0 lg:p-0"></div>;
+        return <div key={`${monthDate.getMonth()}-${index}`} className="h-7 p-0"></div>;
       }
 
       const dayEvents = getEventsForDate(day);
@@ -411,10 +411,10 @@ export default function EventCalendar({
       });
 
       return (
-        <div key={`${monthDate.getMonth()}-${index}`} className="h-7 lg:aspect-square p-0 lg:p-0 relative">
+        <div key={`${monthDate.getMonth()}-${index}`} className="h-7 p-0 relative">
           <button
             onClick={() => handleDateClick(day)}
-            className={`w-full h-full flex flex-col items-center justify-center text-[13px] lg:text-sm rounded lg:rounded-lg transition-all duration-300 cursor-pointer relative overflow-visible ${
+            className={`w-full h-full flex flex-col items-center justify-center text-[13px] rounded transition-all duration-300 cursor-pointer relative overflow-visible ${
               selectedDate &&
               day.toDateString() === selectedDate.toDateString()
                 ? "bg-blue-600 text-white transform scale-105 z-10"
@@ -433,7 +433,7 @@ export default function EventCalendar({
                   singleDayEvents.some(e => e.id === hoveredEventId);
                 
                 return (
-                  <span className={`text-[8px] lg:text-[10px] rounded px-1 font-medium transition-all duration-200 ${
+                  <span className={`text-[8px] rounded px-1 font-medium transition-all duration-200 ${
                     isHoveredSingle 
                       ? 'bg-blue-500 text-white transform scale-110' 
                       : 'bg-gray-600 text-gray-300'
@@ -447,7 +447,7 @@ export default function EventCalendar({
             {/* 오늘 표시 */}
             {todayFlag && (
               <div className="relative z-30 flex items-center justify-center mt-0.5">
-                <div className="text-blue-400 text-[8px] lg:text-[16px] font-black leading-none">
+                <div className="text-blue-400 text-[8px] font-black leading-none">
                   오늘
                 </div>
               </div>
@@ -474,15 +474,15 @@ export default function EventCalendar({
                             bar.isStart ? 'rounded-l-full' :
                             bar.isEnd ? 'rounded-r-full' : ''
                           } ${
-                            bar.isFaded ? 'opacity-30 h-1 lg:h-2' : 
-                            isHovered ? 'opacity-100 h-5 lg:h-6' : 
-                            'opacity-70 h-1 lg:h-2'
+                            bar.isFaded ? 'opacity-30 h-1' : 
+                            isHovered ? 'opacity-100 h-5' : 
+                            'opacity-70 h-1'
                           }`
-                        : 'bg-transparent h-1 lg:h-2'
+                        : 'bg-transparent h-1'
                     }`}
                   >
                     {isHovered && event && (
-                      <span className="text-[10px] lg:text-xs text-white font-medium truncate whitespace-nowrap">
+                      <span className="text-[10px] text-white font-medium truncate whitespace-nowrap">
                         {event.title}
                       </span>
                     )}
@@ -502,8 +502,8 @@ export default function EventCalendar({
     const selectedYear = currentMonth.getFullYear();
     
     return (
-      <div className="p-2 lg:p-4">
-        <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
+      <div className="p-2">
+        <div className="grid grid-cols-3 gap-2">
           {years.map((year) => {
             const isSelected = selectedYear === year;
             
@@ -516,7 +516,7 @@ export default function EventCalendar({
                   onMonthChange?.(newDate);
                   onDateSelect(null);
                 }}
-                className={`py-2 lg:py-3 px-3 lg:px-4 rounded-lg text-sm lg:text-base font-bold transition-all cursor-pointer ${
+                className={`py-2 px-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                   isSelected
                     ? "bg-blue-600 text-white"
                     : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
@@ -533,10 +533,10 @@ export default function EventCalendar({
 
   return (
     <>
-      <div className="bg-gray-800 rounded-none lg:rounded-lg p-0 lg:p-6 h-full flex flex-col">
+      <div className="bg-gray-800 rounded-none p-0 h-full flex flex-col">
         {/* Desktop Header */}
         {showHeader && (
-          <div className="hidden lg:flex items-center justify-between mb-6">
+          <div className="hidden items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">
               {viewMode === "year" ? (
                 `${currentMonth.getFullYear()}년`
@@ -600,18 +600,18 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* 이벤트 등록 안내 - 모바일과 데스크톱 모두 표시 */}
-            <div className="lg:mt-4 p-1 lg:p-2 bg-gray-700 rounded-none">
-              <p className="text-gray-300 text-[10px] lg:text-sm text-center">
-                <i className="ri-information-line mr-1 lg:mr-2"></i>
+            <div className="p-1 bg-gray-700 rounded-none">
+              <p className="text-gray-300 text-[10px] text-center">
+                <i className="ri-information-line mr-1"></i>
                 날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
               </p>
             </div>
             {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-0 lg:gap-1 mb-0 lg:mb-4 px-1 lg:px-0 h-4 lg:h-auto pt-2 lg:pt-0">
+            <div className="grid grid-cols-7 gap-0 mb-0 px-1 h-4 pt-2">
               {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
                 <div
                   key={day}
-                  className="text-center text-gray-400 font-semibold py-0 lg:py-2 text-[9px] lg:text-sm flex items-center justify-center"
+                  className="text-center text-gray-400 font-semibold py-0 text-[9px] flex items-center justify-center"
                 >
                   {day}
                 </div>
@@ -631,17 +631,17 @@ export default function EventCalendar({
                 onTouchEnd={onTouchEnd}
               >
                 {/* 이전 달 */}
-                <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+                <div className="grid grid-cols-7 gap-0 px-1 pb-2 flex-shrink-0" style={{ width: '100%' }}>
                   {renderCalendarGrid(prevDays, prevMonth)}
                 </div>
                 
                 {/* 현재 달 */}
-                <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+                <div className="grid grid-cols-7 gap-0 px-1 pb-2 flex-shrink-0" style={{ width: '100%' }}>
                   {renderCalendarGrid(currentDays, currentMonth)}
                 </div>
                 
                 {/* 다음 달 */}
-                <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+                <div className="grid grid-cols-7 gap-0 px-1 pb-2 flex-shrink-0" style={{ width: '100%' }}>
                   {renderCalendarGrid(nextDays, nextMonth)}
                 </div>
               </div>
