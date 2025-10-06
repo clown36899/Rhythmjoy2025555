@@ -12,6 +12,7 @@ interface EventCalendarProps {
   currentMonth?: Date;
   onEventsUpdate?: (createdDate?: Date) => void;
   viewMode?: "month" | "year";
+  hoveredDate?: Date | null;
 }
 
 export default function EventCalendar({
@@ -22,6 +23,7 @@ export default function EventCalendar({
   currentMonth: externalCurrentMonth,
   onEventsUpdate,
   viewMode = "month",
+  hoveredDate,
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
@@ -420,6 +422,8 @@ export default function EventCalendar({
               selectedDate &&
               day.toDateString() === selectedDate.toDateString()
                 ? "bg-blue-600 text-white transform scale-105 z-10"
+                : viewMode === "month" && hoveredDate && day.toDateString() === hoveredDate.toDateString()
+                ? "bg-yellow-500/30 text-white ring-2 ring-yellow-400"
                 : "text-gray-300 hover:bg-gray-700"
             }`}
           >

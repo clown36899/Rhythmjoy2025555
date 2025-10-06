@@ -12,6 +12,7 @@ interface EventListProps {
   refreshTrigger?: number;
   isAdminMode?: boolean;
   viewMode?: "month" | "year";
+  onEventHover?: (date: Date | null) => void;
 }
 
 export default function EventList({
@@ -22,6 +23,7 @@ export default function EventList({
   refreshTrigger,
   isAdminMode = false,
   viewMode = "month",
+  onEventHover,
 }: EventListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -749,6 +751,19 @@ export default function EventList({
                     <div
                       key={event.id}
                       onClick={() => handleEventClick(event)}
+                      onMouseEnter={() => {
+                        if (viewMode === "month" && onEventHover) {
+                          const dateStr = event.start_date || event.date;
+                          if (dateStr) {
+                            onEventHover(new Date(dateStr));
+                          }
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (viewMode === "month" && onEventHover) {
+                          onEventHover(null);
+                        }
+                      }}
                       className="bg-gray-700 rounded-xl overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative"
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
@@ -795,6 +810,19 @@ export default function EventList({
                     <div
                       key={event.id}
                       onClick={() => handleEventClick(event)}
+                      onMouseEnter={() => {
+                        if (viewMode === "month" && onEventHover) {
+                          const dateStr = event.start_date || event.date;
+                          if (dateStr) {
+                            onEventHover(new Date(dateStr));
+                          }
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (viewMode === "month" && onEventHover) {
+                          onEventHover(null);
+                        }
+                      }}
                       className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer relative"
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
