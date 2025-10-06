@@ -460,27 +460,38 @@ export default function EventCalendar({
     });
   };
 
-  // 연간 보기용 12개월 리스트 렌더링
+  // 연간 보기용 년도 리스트 렌더링
   const renderYearView = () => {
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i); // 5년 전부터 5년 후까지
+    const selectedYear = currentMonth.getFullYear();
+    
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 p-4 lg:p-6">
-        {monthNames.map((monthName, monthIndex) => {
-          const isCurrentMonth = currentMonth.getMonth() === monthIndex;
-          
-          return (
-            <button
-              key={monthIndex}
-              onClick={() => navigateToMonth(monthIndex)}
-              className={`p-4 lg:p-6 rounded-lg text-lg lg:text-xl font-bold transition-all cursor-pointer ${
-                isCurrentMonth
-                  ? "bg-blue-600 text-white scale-105"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
-              }`}
-            >
-              {monthName}
-            </button>
-          );
-        })}
+      <div className="p-2 lg:p-4">
+        <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
+          {years.map((year) => {
+            const isSelected = selectedYear === year;
+            
+            return (
+              <button
+                key={year}
+                onClick={() => {
+                  const newDate = new Date(year, 0, 1);
+                  setInternalCurrentMonth(newDate);
+                  onMonthChange?.(newDate);
+                  onDateSelect(null);
+                }}
+                className={`py-2 lg:py-3 px-3 lg:px-4 rounded-lg text-sm lg:text-base font-bold transition-all cursor-pointer ${
+                  isSelected
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
+                }`}
+              >
+                {year}년
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   };

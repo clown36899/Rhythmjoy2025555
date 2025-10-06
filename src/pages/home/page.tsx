@@ -304,6 +304,7 @@ export default function HomePage() {
               currentMonth={currentMonth}
               refreshTrigger={refreshTrigger}
               isAdminMode={isAdminMode}
+              viewMode={viewMode}
             />
           </div>
         </div>
@@ -341,6 +342,7 @@ export default function HomePage() {
                 currentMonth={currentMonth}
                 refreshTrigger={refreshTrigger}
                 isAdminMode={isAdminMode}
+                viewMode={viewMode}
               />
             </div>
             <Footer />

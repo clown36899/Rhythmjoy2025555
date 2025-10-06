@@ -11,6 +11,7 @@ interface EventListProps {
   currentMonth?: Date;
   refreshTrigger?: number;
   isAdminMode?: boolean;
+  viewMode?: "month" | "year";
 }
 
 export default function EventList({
@@ -20,6 +21,7 @@ export default function EventList({
   currentMonth,
   refreshTrigger,
   isAdminMode = false,
+  viewMode = "month",
 }: EventListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -358,19 +360,26 @@ export default function EventList({
           const eventStartDate = new Date(startDate);
           const eventEndDate = new Date(endDate);
           
-          // 현재 월의 첫날과 마지막 날
-          const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-          const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-          
-          // 이벤트가 현재 월과 겹치는지 확인
-          // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
-          matchesDate = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+          if (viewMode === "year") {
+            // 연간 보기: 해당 년도의 모든 이벤트
+            const yearStart = new Date(currentMonth.getFullYear(), 0, 1);
+            const yearEnd = new Date(currentMonth.getFullYear(), 11, 31);
+            matchesDate = eventStartDate <= yearEnd && eventEndDate >= yearStart;
+          } else {
+            // 월간 보기: 현재 월의 첫날과 마지막 날
+            const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+            const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+            
+            // 이벤트가 현재 월과 겹치는지 확인
+            // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
+            matchesDate = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+          }
         }
       }
 
       return matchesCategory && matchesSearch && matchesDate;
     });
-  }, [events, selectedDate, selectedCategory, searchTerm, currentMonth]);
+  }, [events, selectedDate, selectedCategory, searchTerm, currentMonth, viewMode]);
 
   // 필터링된 이벤트를 정렬 (useMemo로 캐싱하여 불필요한 재정렬 방지)
   const sortedEvents = useMemo(() => {
