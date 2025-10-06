@@ -8,6 +8,8 @@ interface HeaderProps {
   onAdminModeToggle?: (isAdmin: boolean) => void;
   onBillboardOpen?: () => void;
   onBillboardSettingsOpen?: () => void;
+  viewMode?: "month" | "year";
+  onViewModeChange?: (mode: "month" | "year") => void;
 }
 
 export default function Header({
@@ -17,6 +19,8 @@ export default function Header({
   onAdminModeToggle,
   onBillboardOpen,
   onBillboardSettingsOpen,
+  viewMode = "month",
+  onViewModeChange,
 }: HeaderProps) {
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(
@@ -165,6 +169,18 @@ export default function Header({
                 >
                   오늘
                 </button>
+                {onViewModeChange && (
+                  <button
+                    onClick={() => onViewModeChange(viewMode === "month" ? "year" : "month")}
+                    className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${
+                      viewMode === "year"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
+                    }`}
+                  >
+                    {viewMode === "month" ? "년" : "월"}
+                  </button>
+                )}
                 <button
                   onClick={() => handleNavigateMonth("next")}
                   className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"

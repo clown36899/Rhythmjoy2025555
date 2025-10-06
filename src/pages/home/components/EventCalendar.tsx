@@ -11,6 +11,7 @@ interface EventCalendarProps {
   showHeader?: boolean;
   currentMonth?: Date;
   onEventsUpdate?: (createdDate?: Date) => void;
+  viewMode?: "month" | "year";
 }
 
 export default function EventCalendar({
@@ -20,6 +21,7 @@ export default function EventCalendar({
   showHeader = true,
   currentMonth: externalCurrentMonth,
   onEventsUpdate,
+  viewMode = "month",
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
@@ -187,10 +189,20 @@ export default function EventCalendar({
     if (isAnimating) return;
 
     const newMonth = new Date(currentMonth);
-    if (direction === "prev") {
-      newMonth.setMonth(currentMonth.getMonth() - 1);
+    if (viewMode === "year") {
+      // 연간 보기: 년 단위로 이동
+      if (direction === "prev") {
+        newMonth.setFullYear(currentMonth.getFullYear() - 1);
+      } else {
+        newMonth.setFullYear(currentMonth.getFullYear() + 1);
+      }
     } else {
-      newMonth.setMonth(currentMonth.getMonth() + 1);
+      // 월간 보기: 월 단위로 이동
+      if (direction === "prev") {
+        newMonth.setMonth(currentMonth.getMonth() - 1);
+      } else {
+        newMonth.setMonth(currentMonth.getMonth() + 1);
+      }
     }
 
     setInternalCurrentMonth(newMonth);
@@ -448,6 +460,73 @@ export default function EventCalendar({
     });
   };
 
+  // 연간 보기용 12개월 달력 렌더링
+  const renderYearView = () => {
+    const year = currentMonth.getFullYear();
+    const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
+    
+    return (
+      <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-4 overflow-y-auto">
+        {months.map((month, monthIndex) => {
+          const days = getDaysInMonth(month);
+          
+          return (
+            <div key={monthIndex} className="bg-gray-700 rounded-lg p-2 lg:p-3">
+              {/* 월 이름 */}
+              <h3 className="text-center text-white font-bold text-sm lg:text-base mb-2">
+                {monthNames[monthIndex]}
+              </h3>
+              
+              {/* 요일 헤더 */}
+              <div className="grid grid-cols-7 gap-0.5 mb-1">
+                {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                  <div
+                    key={day}
+                    className="text-center text-gray-400 text-[8px] lg:text-[10px] font-semibold"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              {/* 날짜 그리드 */}
+              <div className="grid grid-cols-7 gap-0.5">
+                {days.map((day, dayIndex) => {
+                  if (!day) {
+                    return <div key={`empty-${dayIndex}`} className="aspect-square"></div>;
+                  }
+                  
+                  const dayEvents = getEventsForDate(day);
+                  const hasEvents = dayEvents.length > 0;
+                  const todayFlag = isToday(day);
+                  
+                  return (
+                    <button
+                      key={dayIndex}
+                      onClick={() => handleDateClick(day)}
+                      className={`aspect-square flex items-center justify-center text-[8px] lg:text-[10px] rounded cursor-pointer transition-colors relative ${
+                        todayFlag
+                          ? "bg-blue-600 text-white font-bold"
+                          : hasEvents
+                          ? "bg-gray-600 text-white hover:bg-gray-500"
+                          : "text-gray-400 hover:bg-gray-600"
+                      }`}
+                    >
+                      {day.getDate()}
+                      {hasEvents && !todayFlag && (
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full"></div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="bg-gray-800 rounded-none lg:rounded-lg p-0 lg:p-6 h-full flex flex-col">
@@ -455,36 +534,42 @@ export default function EventCalendar({
         {showHeader && (
           <div className="hidden lg:flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">
-              {currentMonth.getFullYear()}년{" "}
-              <div className="relative inline-block">
-                <button
-                  onClick={toggleMonthDropdown}
-                  className="hover:text-blue-400 transition-colors cursor-pointer flex items-center space-x-1"
-                >
-                  <span>{monthNames[currentMonth.getMonth()]}</span>
-                  <i
-                    className={`ri-arrow-down-s-line transition-transform ${showMonthDropdown ? "rotate-180" : ""}`}
-                  ></i>
-                </button>
+              {viewMode === "year" ? (
+                `${currentMonth.getFullYear()}년`
+              ) : (
+                <>
+                  {currentMonth.getFullYear()}년{" "}
+                  <div className="relative inline-block">
+                    <button
+                      onClick={toggleMonthDropdown}
+                      className="hover:text-blue-400 transition-colors cursor-pointer flex items-center space-x-1"
+                    >
+                      <span>{monthNames[currentMonth.getMonth()]}</span>
+                      <i
+                        className={`ri-arrow-down-s-line transition-transform ${showMonthDropdown ? "rotate-180" : ""}`}
+                      ></i>
+                    </button>
 
-                {showMonthDropdown && (
-                  <div className="absolute top-full left-0 mt-2 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px]">
-                    {monthNames.map((month, index) => (
-                      <button
-                        key={index}
-                        onClick={() => navigateToMonth(index)}
-                        className={`w-full text-left px-4 py-2 hover:bg-gray-600 transition-colors cursor-pointer first:rounded-t-lg last:rounded-b-lg ${
-                          index === currentMonth.getMonth()
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-300"
-                        }`}
-                      >
-                        {month}
-                      </button>
-                    ))}
+                    {showMonthDropdown && (
+                      <div className="absolute top-full left-0 mt-2 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px]">
+                        {monthNames.map((month, index) => (
+                          <button
+                            key={index}
+                            onClick={() => navigateToMonth(index)}
+                            className={`w-full text-left px-4 py-2 hover:bg-gray-600 transition-colors cursor-pointer first:rounded-t-lg last:rounded-b-lg ${
+                              index === currentMonth.getMonth()
+                                ? "bg-blue-600 text-white"
+                                : "text-gray-300"
+                            }`}
+                          >
+                            {month}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </h2>
             <div className="flex space-x-2">
               <button
@@ -502,53 +587,63 @@ export default function EventCalendar({
             </div>
           </div>
         )}
-        {/* 이벤트 등록 안내 - 모바일과 데스크톱 모두 표시 */}
-        <div className="lg:mt-4 p-1 lg:p-2 bg-gray-700 rounded-none">
-          <p className="text-gray-300 text-[10px] lg:text-sm text-center">
-            <i className="ri-information-line mr-1 lg:mr-2"></i>
-            날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
-          </p>
-        </div>
-        {/* Days of week header */}
-        <div className="grid grid-cols-7 gap-0 lg:gap-1 mb-0 lg:mb-4 px-1 lg:px-0 h-4 lg:h-auto pt-2 lg:pt-0">
-          {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
-            <div
-              key={day}
-              className="text-center text-gray-400 font-semibold py-0 lg:py-2 text-[9px] lg:text-sm flex items-center justify-center"
-            >
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar grid - 3개 달력 캐러셀 */}
-        <div className="overflow-hidden flex-1">
-          <div 
-            className="flex"
-            style={{
-              transform: `translateX(calc(-100% + ${dragOffset}px))`,
-              transition: isDragging ? 'none' : isAnimating ? 'transform 0.3s ease-out' : 'none'
-            }}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
-            {/* 이전 달 */}
-            <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
-              {renderCalendarGrid(prevDays, prevMonth)}
-            </div>
-            
-            {/* 현재 달 */}
-            <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
-              {renderCalendarGrid(currentDays, currentMonth)}
-            </div>
-            
-            {/* 다음 달 */}
-            <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
-              {renderCalendarGrid(nextDays, nextMonth)}
-            </div>
+        {viewMode === "year" ? (
+          // 연간 보기
+          <div className="flex-1 overflow-y-auto">
+            {renderYearView()}
           </div>
-        </div>
+        ) : (
+          // 월간 보기
+          <>
+            {/* 이벤트 등록 안내 - 모바일과 데스크톱 모두 표시 */}
+            <div className="lg:mt-4 p-1 lg:p-2 bg-gray-700 rounded-none">
+              <p className="text-gray-300 text-[10px] lg:text-sm text-center">
+                <i className="ri-information-line mr-1 lg:mr-2"></i>
+                날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
+              </p>
+            </div>
+            {/* Days of week header */}
+            <div className="grid grid-cols-7 gap-0 lg:gap-1 mb-0 lg:mb-4 px-1 lg:px-0 h-4 lg:h-auto pt-2 lg:pt-0">
+              {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                <div
+                  key={day}
+                  className="text-center text-gray-400 font-semibold py-0 lg:py-2 text-[9px] lg:text-sm flex items-center justify-center"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar grid - 3개 달력 캐러셀 */}
+            <div className="overflow-hidden flex-1">
+              <div 
+                className="flex"
+                style={{
+                  transform: `translateX(calc(-100% + ${dragOffset}px))`,
+                  transition: isDragging ? 'none' : isAnimating ? 'transform 0.3s ease-out' : 'none'
+                }}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
+                {/* 이전 달 */}
+                <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+                  {renderCalendarGrid(prevDays, prevMonth)}
+                </div>
+                
+                {/* 현재 달 */}
+                <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+                  {renderCalendarGrid(currentDays, currentMonth)}
+                </div>
+                
+                {/* 다음 달 */}
+                <div className="grid grid-cols-7 gap-0 lg:gap-1 px-1 lg:px-0 pb-2 lg:pb-0 flex-shrink-0" style={{ width: '100%' }}>
+                  {renderCalendarGrid(nextDays, nextMonth)}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 이벤트 등록 모달 */}

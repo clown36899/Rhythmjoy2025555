@@ -17,6 +17,7 @@ export default function HomePage() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [calendarHeight, setCalendarHeight] = useState(240); // 기본 높이
   const calendarRef = useRef<HTMLDivElement>(null);
+  const [viewMode, setViewMode] = useState<"month" | "year">("month");
   
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -251,10 +252,20 @@ export default function HomePage() {
           currentMonth={currentMonth}
           onNavigateMonth={(direction) => {
             const newMonth = new Date(currentMonth);
-            if (direction === "prev") {
-              newMonth.setMonth(currentMonth.getMonth() - 1);
+            if (viewMode === "year") {
+              // 연간 보기: 년 단위로 이동
+              if (direction === "prev") {
+                newMonth.setFullYear(currentMonth.getFullYear() - 1);
+              } else {
+                newMonth.setFullYear(currentMonth.getFullYear() + 1);
+              }
             } else {
-              newMonth.setMonth(currentMonth.getMonth() + 1);
+              // 월간 보기: 월 단위로 이동
+              if (direction === "prev") {
+                newMonth.setMonth(currentMonth.getMonth() - 1);
+              } else {
+                newMonth.setMonth(currentMonth.getMonth() + 1);
+              }
             }
             setCurrentMonth(newMonth);
             // 달 이동 시 날짜만 리셋 (카테고리는 유지)
@@ -268,6 +279,8 @@ export default function HomePage() {
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
           onBillboardSettingsOpen={handleBillboardSettingsOpen}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
       </div>
 
@@ -282,6 +295,7 @@ export default function HomePage() {
               onMonthChange={handleMonthChange}
               currentMonth={currentMonth}
               onEventsUpdate={handleEventsUpdate}
+              viewMode={viewMode}
             />
             <EventList
               selectedDate={selectedDate}
@@ -310,6 +324,7 @@ export default function HomePage() {
               showHeader={false}
               currentMonth={currentMonth}
               onEventsUpdate={handleEventsUpdate}
+              viewMode={viewMode}
             />
           </div>
 
