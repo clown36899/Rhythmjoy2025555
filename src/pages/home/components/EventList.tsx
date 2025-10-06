@@ -676,7 +676,7 @@ export default function EventList({
 
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-none lg:rounded-lg p-4 lg:p-6">
+      <div className="bg-gray-800 rounded-none p-4">
         <div className="text-center py-8">
           <i className="ri-loader-4-line text-4xl text-gray-500 mb-4 animate-spin"></i>
           <p className="text-gray-400">이벤트를 불러오는 중...</p>
@@ -688,10 +688,10 @@ export default function EventList({
   return (
     <>
       <div
-        className="bg-gray-800 p-4 lg:p-6"
+        className="bg-gray-800 p-4"
         style={{ margin: "14px", borderRadius: "11px" }}
       >
-        <div className="lg:mb-6">
+        <div className="mb-6">
           {/* 데스크톱에서도 제목 완전 제거 */}
           {isAdminMode && (
             <div className="mb-1 flex items-center gap-2">
@@ -708,20 +708,8 @@ export default function EventList({
             </div>
           )}
 
-          {/* Search Bar - Hidden on mobile */}
-          <div className="relative mb-4 hidden lg:block">
-            <input
-              type="text"
-              placeholder="Search events..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-          </div>
-
-          {/* Category Filter - Simplified for mobile */}
-          <div className="flex items-center gap-2 lg:hidden mb-2">
+          {/* Category Filter */}
+          <div className="flex items-center gap-2 mb-2">
             <div className="flex flex-wrap gap-2 flex-1">
               {categories.slice(0, 4).map((category) => (
                 <button
@@ -759,7 +747,7 @@ export default function EventList({
 
           {/* 검색 결과 표시 (모바일) */}
           {searchTerm && (
-            <div className="lg:hidden mb-2 flex items-center gap-2">
+            <div className="mb-2 flex items-center gap-2">
               <span className="text-xs text-gray-400">검색:</span>
               <span className="text-xs text-blue-400 bg-blue-600/20 px-2 py-1 rounded">
                 {searchTerm}
@@ -774,7 +762,7 @@ export default function EventList({
           )}
 
           {/* Desktop Category Filter */}
-          <div className="hidden lg:flex flex-wrap gap-2 items-center">
+          <div className="hidden flex-wrap gap-2 items-center">
             {categories.map((category) => (
               <button
                 key={category.id}
@@ -802,11 +790,11 @@ export default function EventList({
         </div>
 
         {/* Events List */}
-        <div className="lg:space-y-4 lg:max-h-96 lg:overflow-y-auto">
+        <div>
           {sortedEvents.length > 0 ? (
             <>
-              {/* Mobile: Grid layout with 3 columns - poster ratio */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 lg:hidden">
+              {/* Grid layout with 3 columns - poster ratio */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                 {sortedEvents.map((event) => {
                   const startDate = event.start_date || event.date || "";
                   const endDate = event.end_date || event.date || "";
@@ -892,114 +880,6 @@ export default function EventList({
                             return formatDate(startDate);
                           })()}
                         </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop: List layout */}
-              <div className="hidden lg:block space-y-4">
-                {sortedEvents.map((event) => {
-                  const startDate = event.start_date || event.date || "";
-                  const endDate = event.end_date || event.date || "";
-                  const isMultiDay = startDate !== endDate;
-                  const eventColor = isMultiDay
-                    ? getEventColor(event.id)
-                    : { bg: "bg-gray-500" };
-
-                  return (
-                    <div
-                      key={event.id}
-                      onClick={() => handleEventClick(event)}
-                      onMouseEnter={() => {
-                        if (viewMode === "month" && onEventHover) {
-                          onEventHover(event.id);
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        if (viewMode === "month" && onEventHover) {
-                          onEventHover(null);
-                        }
-                      }}
-                      className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer relative"
-                    >
-                      {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
-                      <div
-                        className={`absolute left-0 top-0 bottom-0 w-1 ${eventColor.bg} rounded-l-lg`}
-                      ></div>
-                      <div className="flex space-x-4">
-                        <div className="relative">
-                          {event.image ? (
-                            <img
-                              src={event.image}
-                              alt={event.title}
-                              className="w-16 h-20 rounded-lg object-cover object-top"
-                            />
-                          ) : (
-                            <div
-                              className="w-16 h-20 rounded-lg flex items-center justify-center bg-cover bg-center relative"
-                              style={{
-                                backgroundImage: "url(/grunge.png)",
-                              }}
-                            >
-                              <div
-                                className={`absolute inset-0 rounded-lg ${event.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
-                              ></div>
-                              <span className="text-white/10 text-xs font-bold relative">
-                                {event.category === "class" ? "강습" : "행사"}
-                              </span>
-                            </div>
-                          )}
-                          {/* 왼쪽 상단 카테고리 배지 */}
-                          <div
-                            className={`absolute top-0 left-0 px-1 py-0.5 text-white text-[8px] font-bold rounded-tl-lg ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}
-                          >
-                            {event.category === "class" ? "강습" : "행사"}
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-1">
-                            {event.title}
-                          </h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-300 mb-2">
-                            <div className="flex items-center space-x-1">
-                              <i className="ri-calendar-line"></i>
-                              <span>
-                                {(() => {
-                                  const startDate =
-                                    event.start_date || event.date;
-                                  const endDate = event.end_date || event.date;
-
-                                  if (!startDate) return "날짜 미정";
-
-                                  const formatDate = (dateStr: string) => {
-                                    const date = new Date(dateStr);
-                                    return `${date.getMonth() + 1}/${date.getDate()}`;
-                                  };
-
-                                  if (startDate !== endDate) {
-                                    return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
-                                  }
-                                  return formatDate(startDate);
-                                })()}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <i className="ri-time-line"></i>
-                              <span>{event.time}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-1 text-sm text-gray-300">
-                              <i className="ri-map-pin-line"></i>
-                              <span>{event.location}</span>
-                            </div>
-                            <span className="text-blue-400 font-semibold">
-                              {event.price}
-                            </span>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   );

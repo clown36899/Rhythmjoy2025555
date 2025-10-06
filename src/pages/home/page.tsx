@@ -305,36 +305,8 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Desktop Layout */}
-      <div className="hidden lg:block pt-16">
-        <Hero />
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <EventCalendar
-              selectedDate={selectedDate}
-              onDateSelect={handleDateSelect}
-              onMonthChange={handleMonthChange}
-              currentMonth={currentMonth}
-              onEventsUpdate={handleEventsUpdate}
-              viewMode={viewMode}
-              hoveredEventId={hoveredEventId}
-            />
-            <EventList
-              selectedDate={selectedDate}
-              selectedCategory={selectedCategory}
-              onCategoryChange={handleCategoryChange}
-              currentMonth={currentMonth}
-              refreshTrigger={refreshTrigger}
-              isAdminMode={isAdminMode}
-              viewMode={viewMode}
-              onEventHover={setHoveredEventId}
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Mobile Layout - Fixed Header and Calendar, Scrollable Events and Footer */}
-      <div className="lg:hidden">
+      <div>
         <div className="h-screen flex flex-col">
           {/* Fixed Calendar Section */}
           <div
@@ -373,11 +345,6 @@ export default function HomePage() {
             <Footer />
           </div>
         </div>
-      </div>
-
-      {/* Desktop Footer */}
-      <div className="hidden lg:block">
-        <Footer />
       </div>
 
       {/* Fullscreen Billboard */}
