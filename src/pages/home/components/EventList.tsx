@@ -1724,10 +1724,12 @@ export default function EventList({
                       })()}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                    <i className="ri-user-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                    <span>{selectedEvent.organizer}</span>
-                  </div>
+                  {selectedEvent.organizer && (
+                    <div className="flex items-center space-x-3 text-gray-300 text-sm">
+                      <i className="ri-user-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
+                      <span>{selectedEvent.organizer}</span>
+                    </div>
+                  )}
                   <div className="flex items-center space-x-3 text-gray-300 text-sm">
                     <i className="ri-map-pin-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                     <span>{selectedEvent.location}</span>
