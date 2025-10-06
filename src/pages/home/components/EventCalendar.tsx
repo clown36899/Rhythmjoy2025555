@@ -409,28 +409,10 @@ export default function EventCalendar({
         });
       });
       
-      // 호버된 이벤트가 단일 이벤트인 경우 임시 바 추가
+      // 호버된 이벤트가 단일 이벤트인지 확인 (오버레이로 표시)
       const hoveredSingleEvent = viewMode === "month" && hoveredEventId 
         ? singleDayEvents.find(e => e.id === hoveredEventId)
         : null;
-      
-      if (hoveredSingleEvent) {
-        // 빈 레인 찾기
-        let hoveredLane = 0;
-        while (hoveredLane < 3 && eventBarsMap.has(hoveredLane)) {
-          hoveredLane++;
-        }
-        if (hoveredLane < 3) {
-          const eventColor = getEventColor(hoveredSingleEvent.category, hoveredSingleEvent.id);
-          eventBarsMap.set(hoveredLane, {
-            eventId: hoveredSingleEvent.id,
-            isStart: true,
-            isEnd: true,
-            categoryColor: eventColor.bg,
-            isFaded: false,
-          });
-        }
-      }
       
       // 레인 0, 1, 2를 순서대로 배열로 변환 (빈 레인은 null)
       const eventBarsData = [0, 1, 2].map(lane => {
@@ -498,6 +480,13 @@ export default function EventCalendar({
                   />
                 );
               })}
+            </div>
+          )}
+
+          {/* 호버된 단일 이벤트 바 (오버레이) */}
+          {hoveredSingleEvent && (
+            <div className="absolute bottom-0 left-0 right-0 pb-0.5 pointer-events-none z-30">
+              <div className={`w-full h-1 lg:h-2 rounded-full ${getEventColor(hoveredSingleEvent.id).bg} opacity-100 transition-all duration-200`} />
             </div>
           )}
         </div>
