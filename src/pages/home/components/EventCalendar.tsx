@@ -427,7 +427,7 @@ export default function EventCalendar({
             }`}
           >
             {/* 날짜 숫자 */}
-            <div className="flex items-center gap-1 relative z-10">
+            <div className="flex items-center gap-1 relative z-30">
               <span className="font-bold">
                 {day.getDate()}
               </span>
@@ -451,7 +451,7 @@ export default function EventCalendar({
 
             {/* 오늘 표시 */}
             {todayFlag && (
-              <div className="relative z-10 flex items-center justify-center mt-0.5">
+              <div className="relative z-30 flex items-center justify-center mt-0.5">
                 <div className="text-blue-400 text-[8px] lg:text-[16px] font-black leading-none">
                   오늘
                 </div>
