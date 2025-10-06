@@ -806,7 +806,7 @@ export default function EventList({
           {sortedEvents.length > 0 ? (
             <>
               {/* Mobile: Grid layout with 3 columns - poster ratio */}
-              <div className="grid grid-cols-3 gap-3 lg:hidden">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 lg:hidden">
                 {sortedEvents.map((event) => {
                   const startDate = event.start_date || event.date || "";
                   const endDate = event.end_date || event.date || "";
