@@ -462,8 +462,8 @@ export default function EventCalendar({
 
   // 연간 보기용 년도 리스트 렌더링
   const renderYearView = () => {
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i); // 5년 전부터 5년 후까지
+    const baseYear = currentMonth.getFullYear(); // 선택된 년도 기준
+    const years = Array.from({ length: 11 }, (_, i) => baseYear - 5 + i); // 선택된 년도 ±5년
     const selectedYear = currentMonth.getFullYear();
     
     return (
