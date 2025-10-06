@@ -4,7 +4,12 @@ import { resolve } from "node:path";
 import AutoImport from "unplugin-auto-import/vite";
 
 //const base = process.env.BASE_PATH || "/";//
-const base = isNetlify ? "./" : "/"; // ✅ 핵심
+
+// ✅ 1) 먼저 isNetlify를 정의
+const isNetlify = process.env.NETLIFY === "true";
+
+// ✅ 2) 그 다음 base를 결정
+const base = isNetlify ? "./" : "/";
 
 const isPreview = process.env.IS_PREVIEW ? true : false;
 // https://vite.dev/config/
