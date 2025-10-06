@@ -2,7 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+#root {
   max-width: 800px;
   margin: 0 auto;
+}
+
+body, html {
+  background-color: #111827;
 }

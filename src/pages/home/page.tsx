@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import EventCalendar from "./components/EventCalendar";
 import EventList from "./components/EventList";
 import Header from "./components/Header";
-import Hero from "./components/Hero";
 import Footer from "./components/Footer";
 import FullscreenBillboard from "../../components/FullscreenBillboard";
 import AdminBillboardModal from "./components/AdminBillboardModal";
