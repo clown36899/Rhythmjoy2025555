@@ -33,8 +33,9 @@ export default function EventList({
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
   const [eventPassword, setEventPassword] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showDatePickerModal, setShowDatePickerModal] = useState<'start' | 'end' | null>(null);
+  const [datePickerMonth, setDatePickerMonth] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -223,33 +224,6 @@ export default function EventList({
     { id: "random", name: "랜덤", icon: "ri-shuffle-line" },
     { id: "time", name: "시간순", icon: "ri-time-line" },
     { id: "title", name: "제목순", icon: "ri-sort-alphabet-asc" },
-  ];
-
-  const morningTimes = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"];
-
-  const afternoonTimes = [
-    "12:00",
-    "12:30",
-    "13:00",
-    "13:30",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-    "17:00",
-    "17:30",
-    "18:00",
-    "18:30",
-    "19:00",
-    "19:30",
-    "20:00",
-    "20:30",
-    "21:00",
-    "21:30",
-    "22:00",
-    "22:30",
   ];
 
   // 이벤트 데이터 로드
@@ -554,14 +528,6 @@ export default function EventList({
       const previewUrl = URL.createObjectURL(file);
       setEditImagePreview(previewUrl);
     }
-  };
-
-  const handleTimeSelect = (time: string) => {
-    setEditFormData((prev) => ({
-      ...prev,
-      time: time,
-    }));
-    setShowTimeModal(false);
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -1251,44 +1217,30 @@ export default function EventList({
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      시간
-                    </label>
-                    <div
-                      onClick={() => setShowTimeModal(true)}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
-                    >
-                      <span>{editFormData.time}</span>
-                      <i className="ri-time-line"></i>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      카테고리
-                    </label>
-                    <select
-                      value={editFormData.category}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          category: e.target.value,
-                        }))
-                      }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
-                    >
-                      {categories
-                        .filter(
-                          (cat) => cat.id === "class" || cat.id === "event",
-                        )
-                        .map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    카테고리
+                  </label>
+                  <select
+                    value={editFormData.category}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        category: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
+                  >
+                    {categories
+                      .filter(
+                        (cat) => cat.id === "class" || cat.id === "event",
+                      )
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1563,71 +1515,6 @@ export default function EventList({
                   </div>
                 </div>
               </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 시간 선택 모달 */}
-      {showTimeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[70] p-4 pt-10 overflow-y-auto">
-          <div className="bg-gray-800 rounded-lg max-w-md w-full max-h-[70vh] overflow-y-auto">
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white">시간 선택</h3>
-                <button
-                  onClick={() => setShowTimeModal(false)}
-                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
-                >
-                  <i className="ri-close-line"></i>
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* 오전 */}
-                <div>
-                  <h4 className="text-md font-semibold text-white mb-2">
-                    오전
-                  </h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {morningTimes.map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => handleTimeSelect(time)}
-                        className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                          editFormData.time === time
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 오후 */}
-                <div>
-                  <h4 className="text-md font-semibold text-white mb-2">
-                    오후
-                  </h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {afternoonTimes.map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => handleTimeSelect(time)}
-                        className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                          editFormData.time === time
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
