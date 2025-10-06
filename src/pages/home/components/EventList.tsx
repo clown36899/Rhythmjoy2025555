@@ -1680,23 +1680,31 @@ export default function EventList({
                   <div className="flex items-center space-x-3 text-gray-300 text-sm">
                     <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                     <span>
-                      {selectedEvent.start_date || selectedEvent.date
-                        ? new Date(
-                            selectedEvent.start_date ||
-                              selectedEvent.date ||
-                              "",
-                          ).toLocaleDateString("ko-KR", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            weekday: "long",
-                          })
-                        : "날짜 미정"}
+                      {(() => {
+                        const startDate = selectedEvent.start_date || selectedEvent.date;
+                        const endDate = selectedEvent.end_date;
+                        
+                        if (!startDate) return "날짜 미정";
+                        
+                        const start = new Date(startDate);
+                        const startMonth = start.toLocaleDateString("ko-KR", { month: "long" });
+                        const startDay = start.getDate();
+                        
+                        if (endDate && endDate !== startDate) {
+                          const end = new Date(endDate);
+                          const endMonth = end.toLocaleDateString("ko-KR", { month: "long" });
+                          const endDay = end.getDate();
+                          
+                          if (startMonth === endMonth) {
+                            return `${startMonth} ${startDay}~${endDay}일`;
+                          } else {
+                            return `${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                          }
+                        }
+                        
+                        return `${startMonth} ${startDay}일`;
+                      })()}
                     </span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                    <i className="ri-time-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                    <span>{selectedEvent.time}</span>
                   </div>
                   <div className="flex items-center space-x-3 text-gray-300 text-sm">
                     <i className="ri-user-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
@@ -1792,7 +1800,7 @@ export default function EventList({
                     fontSize:
                       Math.max(
                         12,
-                        Math.min(24, 200 / selectedEvent.title.length),
+                        Math.min(24, 600 / selectedEvent.title.length),
                       ) + "px",
                     lineHeight: "1.2",
                   }}
