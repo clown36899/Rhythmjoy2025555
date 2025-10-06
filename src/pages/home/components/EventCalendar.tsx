@@ -34,10 +34,6 @@ export default function EventCalendar({
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
-  const [localHoveredEventId, setLocalHoveredEventId] = useState<number | null>(null);
-  
-  // 외부 hoveredEventId와 내부 localHoveredEventId 중 하나라도 있으면 사용
-  const effectiveHoveredEventId = hoveredEventId || localHoveredEventId;
 
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
@@ -460,10 +456,10 @@ export default function EventCalendar({
 
           {/* 이벤트 바 표시 - 버튼 아래에 절대 위치 */}
           {eventBarsData.some(bar => bar !== null) && (
-            <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 z-20">
+            <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 pointer-events-none z-20">
               {eventBarsData.map((bar, i) => {
                 // 호버된 이벤트인지 확인 (월간 보기일 때만)
-                const isHovered = viewMode === "month" && effectiveHoveredEventId !== null && bar?.eventId === effectiveHoveredEventId;
+                const isHovered = viewMode === "month" && hoveredEventId !== null && bar?.eventId === hoveredEventId;
                 
                 // 이벤트 제목 가져오기
                 const event = bar ? multiDayEvents.find(e => e.id === bar.eventId) : null;
@@ -471,9 +467,7 @@ export default function EventCalendar({
                 return (
                   <div
                     key={i}
-                    onMouseEnter={() => bar && setLocalHoveredEventId(bar.eventId)}
-                    onMouseLeave={() => setLocalHoveredEventId(null)}
-                    className={`w-full transition-all duration-200 origin-bottom overflow-hidden flex items-center px-1 cursor-pointer ${
+                    className={`w-full transition-all duration-200 origin-bottom overflow-hidden flex items-center px-1 ${
                       bar 
                         ? `${bar.categoryColor} ${
                             bar.isStart && bar.isEnd ? 'rounded-full' :
@@ -484,7 +478,7 @@ export default function EventCalendar({
                             isHovered ? 'opacity-100 h-5 lg:h-6' : 
                             'opacity-70 h-1 lg:h-2'
                           }`
-                        : 'bg-transparent h-1 lg:h-2 pointer-events-none'
+                        : 'bg-transparent h-1 lg:h-2'
                     }`}
                   >
                     {isHovered && event && (
