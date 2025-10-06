@@ -1669,12 +1669,12 @@ export default function EventList({
               </div>
 
               {/* 하단 영역 - 이벤트 소개 */}
-              <div className="flex-1 flex flex-col border-t border-gray-700">
-                <div className="p-1 flex-1 overflow-hidden">
-                  <h3 className="text-sm font-semibold text-white mb-1">
+              <div className="flex-1 flex flex-col border-t border-gray-700 min-h-0">
+                <div className="p-1 flex-1 flex flex-col min-h-0">
+                  <h3 className="text-sm font-semibold text-white mb-1 flex-shrink-0">
                     이벤트 소개
                   </h3>
-                  <div className="bg-gray-700 rounded-lg p-2 h-full overflow-y-auto">
+                  <div className="bg-gray-700 rounded-lg p-2 flex-1 overflow-y-auto min-h-0">
                     <p className="text-gray-300 leading-relaxed whitespace-pre-wrap break-words text-[10px]">
                       {selectedEvent.description}
                     </p>
