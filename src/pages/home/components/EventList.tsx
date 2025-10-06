@@ -845,8 +845,15 @@ export default function EventList({
                             className="w-full aspect-[3/4] object-cover object-top"
                           />
                         ) : (
-                          <div className={`w-full aspect-[3/4] flex items-center justify-center ${event.category === 'class' ? 'bg-purple-100' : 'bg-blue-100'}`}>
-                            <span className="text-gray-400/20 text-4xl font-bold">
+                          <div 
+                            className={`w-full aspect-[3/4] flex items-center justify-center ${event.category === 'class' ? 'bg-purple-300' : 'bg-blue-300'}`}
+                            style={{
+                              backgroundImage: event.category === 'class' 
+                                ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                                : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                            }}
+                          >
+                            <span className="text-white/10 text-4xl font-bold">
                               {event.category === 'class' ? '강습' : '행사'}
                             </span>
                           </div>
@@ -918,8 +925,15 @@ export default function EventList({
                             className="w-16 h-20 rounded-lg object-cover object-top"
                           />
                         ) : (
-                          <div className={`w-16 h-20 rounded-lg flex items-center justify-center ${event.category === 'class' ? 'bg-purple-100' : 'bg-blue-100'}`}>
-                            <span className="text-gray-400/20 text-xs font-bold">
+                          <div 
+                            className={`w-16 h-20 rounded-lg flex items-center justify-center ${event.category === 'class' ? 'bg-purple-300' : 'bg-blue-300'}`}
+                            style={{
+                              backgroundImage: event.category === 'class' 
+                                ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                                : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                            }}
+                          >
+                            <span className="text-white/10 text-xs font-bold">
                               {event.category === 'class' ? '강습' : '행사'}
                             </span>
                           </div>
@@ -1590,7 +1604,14 @@ export default function EventList({
             {/* 중단 영역 - 이미지와 기본 정보 */}
             <div className="flex h-80 flex-shrink-0">
               {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
-              <div className={`w-1/2 flex items-center justify-center p-0 ${selectedEvent.image ? 'bg-black' : (selectedEvent.category === 'class' ? 'bg-purple-100' : 'bg-blue-100')}`}>
+              <div 
+                className={`w-1/2 flex items-center justify-center p-0 ${selectedEvent.image ? 'bg-black' : (selectedEvent.category === 'class' ? 'bg-purple-300' : 'bg-blue-300')}`}
+                style={!selectedEvent.image ? {
+                  backgroundImage: selectedEvent.category === 'class' 
+                    ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                    : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.05) 10px, rgba(0,0,0,.05) 20px)'
+                } : undefined}
+              >
                 {selectedEvent.image ? (
                   <img
                     src={selectedEvent.image}
@@ -1598,7 +1619,7 @@ export default function EventList({
                     className="max-w-full max-h-full object-contain"
                   />
                 ) : (
-                  <span className="text-gray-400/20 text-6xl font-bold">
+                  <span className="text-white/10 text-6xl font-bold">
                     {selectedEvent.category === 'class' ? '강습' : '행사'}
                   </span>
                 )}
