@@ -130,6 +130,32 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       return;
     }
 
+    // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함
+    if (formData.linkName1 && !formData.link1) {
+      alert('링크1 제목을 입력했다면 링크 주소도 입력해주세요.');
+      return;
+    }
+    if (formData.link1 && !formData.linkName1) {
+      alert('링크1 주소를 입력했다면 링크 제목도 입력해주세요.');
+      return;
+    }
+    if (formData.linkName2 && !formData.link2) {
+      alert('링크2 제목을 입력했다면 링크 주소도 입력해주세요.');
+      return;
+    }
+    if (formData.link2 && !formData.linkName2) {
+      alert('링크2 주소를 입력했다면 링크 제목도 입력해주세요.');
+      return;
+    }
+    if (formData.linkName3 && !formData.link3) {
+      alert('링크3 제목을 입력했다면 링크 주소도 입력해주세요.');
+      return;
+    }
+    if (formData.link3 && !formData.linkName3) {
+      alert('링크3 주소를 입력했다면 링크 제목도 입력해주세요.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
