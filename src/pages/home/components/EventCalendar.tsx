@@ -469,18 +469,18 @@ export default function EventCalendar({
                 return (
                   <div
                     key={i}
-                    className={`w-full transition-all duration-200 ${
+                    className={`w-full h-1 lg:h-2 transition-all duration-200 origin-bottom ${
                       bar 
                         ? `${bar.categoryColor} ${
                             bar.isStart && bar.isEnd ? 'rounded-full' :
                             bar.isStart ? 'rounded-l-full' :
                             bar.isEnd ? 'rounded-r-full' : ''
                           } ${
-                            bar.isFaded ? 'opacity-30' : 
-                            isHovered ? 'h-1 lg:h-2 opacity-100' : 
-                            'h-0.5 lg:h-1 opacity-70'
+                            bar.isFaded ? 'opacity-30 scale-y-50' : 
+                            isHovered ? 'opacity-100 scale-y-100' : 
+                            'opacity-70 scale-y-50'
                           }`
-                        : 'bg-transparent h-0.5 lg:h-1'
+                        : 'bg-transparent scale-y-50'
                     }`}
                   />
                 );
