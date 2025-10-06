@@ -32,6 +32,7 @@ export default function EventCalendar({
   const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
 
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
@@ -42,6 +43,14 @@ export default function EventCalendar({
       setInternalCurrentMonth(externalCurrentMonth);
     }
   }, [externalCurrentMonth]);
+
+  // currentMonth가 변경될 때 년도 범위 업데이트 (범위를 벗어난 경우에만)
+  useEffect(() => {
+    const newYear = currentMonth.getFullYear();
+    if (newYear < yearRangeBase - 5 || newYear > yearRangeBase + 5) {
+      setYearRangeBase(newYear);
+    }
+  }, [currentMonth, yearRangeBase]);
 
   // 이벤트 데이터 로드
   useEffect(() => {
@@ -462,8 +471,7 @@ export default function EventCalendar({
 
   // 연간 보기용 년도 리스트 렌더링
   const renderYearView = () => {
-    const baseYear = currentMonth.getFullYear(); // 선택된 년도 기준
-    const years = Array.from({ length: 11 }, (_, i) => baseYear - 5 + i); // 선택된 년도 ±5년
+    const years = Array.from({ length: 11 }, (_, i) => yearRangeBase - 5 + i); // yearRangeBase ±5년
     const selectedYear = currentMonth.getFullYear();
     
     return (
