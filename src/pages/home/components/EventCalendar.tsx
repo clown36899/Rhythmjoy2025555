@@ -409,11 +409,6 @@ export default function EventCalendar({
         });
       });
       
-      // 호버된 이벤트가 단일 이벤트인지 확인 (오버레이로 표시)
-      const hoveredSingleEvent = viewMode === "month" && hoveredEventId 
-        ? singleDayEvents.find(e => e.id === hoveredEventId)
-        : null;
-      
       // 레인 0, 1, 2를 순서대로 배열로 변환 (빈 레인은 null)
       const eventBarsData = [0, 1, 2].map(lane => {
         const bar = eventBarsMap.get(lane);
@@ -437,11 +432,21 @@ export default function EventCalendar({
                 {day.getDate()}
               </span>
               {/* 단일 이벤트 개수 표시 */}
-              {singleDayEvents.length > 0 && (
-                <span className="text-[8px] lg:text-[10px] bg-gray-600 text-gray-300 rounded px-1 font-medium">
-                  +{singleDayEvents.length}
-                </span>
-              )}
+              {singleDayEvents.length > 0 && (() => {
+                // 호버된 이벤트가 이 날짜의 단일 이벤트인지 확인
+                const isHoveredSingle = viewMode === "month" && hoveredEventId !== null && 
+                  singleDayEvents.some(e => e.id === hoveredEventId);
+                
+                return (
+                  <span className={`text-[8px] lg:text-[10px] rounded px-1 font-medium transition-all duration-200 ${
+                    isHoveredSingle 
+                      ? 'bg-blue-500 text-white transform scale-110' 
+                      : 'bg-gray-600 text-gray-300'
+                  }`}>
+                    +{singleDayEvents.length}
+                  </span>
+                );
+              })()}
             </div>
 
             {/* 오늘 표시 */}
@@ -480,13 +485,6 @@ export default function EventCalendar({
                   />
                 );
               })}
-            </div>
-          )}
-
-          {/* 호버된 단일 이벤트 바 (오버레이) */}
-          {hoveredSingleEvent && (
-            <div className="absolute bottom-0 left-0 right-0 pb-0.5 pointer-events-none z-30">
-              <div className={`w-full h-1 lg:h-2 rounded-full ${getEventColor(hoveredSingleEvent.id).bg} opacity-100 transition-all duration-200`} />
             </div>
           )}
         </div>
