@@ -1497,6 +1497,21 @@ export default function EventList({
                       <i className="ri-map-pin-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                       <span>{selectedEvent.location}</span>
                     </div>
+                    
+                    {/* 등록날짜 */}
+                    {selectedEvent.created_at && (
+                      <div className="pt-2 mt-2 border-t border-gray-700">
+                        <span className="text-[10px] text-gray-500">
+                          등록: {new Date(selectedEvent.created_at).toLocaleDateString("ko-KR", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </span>
+                      </div>
+                    )}
 
                     {/* 바로가기 링크 */}
                     {(selectedEvent.link1 ||
