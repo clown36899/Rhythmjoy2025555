@@ -18,6 +18,7 @@ export default function HomePage() {
   const [calendarHeight, setCalendarHeight] = useState(240); // 기본 높이
   const calendarRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
+  const [savedMonth, setSavedMonth] = useState<Date | null>(null);
   
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -244,6 +245,17 @@ export default function HomePage() {
     }
   };
 
+  const handleViewModeChange = (mode: "month" | "year") => {
+    if (mode === "year") {
+      // 년 보기로 전환: 현재 월 저장
+      setSavedMonth(new Date(currentMonth));
+    } else if (mode === "month" && savedMonth) {
+      // 월 보기로 복귀: 저장된 월 복원
+      setCurrentMonth(new Date(savedMonth));
+    }
+    setViewMode(mode);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Fixed Header for all screens */}
@@ -280,7 +292,7 @@ export default function HomePage() {
           onBillboardOpen={handleBillboardOpen}
           onBillboardSettingsOpen={handleBillboardSettingsOpen}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={handleViewModeChange}
         />
       </div>
 

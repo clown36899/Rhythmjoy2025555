@@ -160,8 +160,10 @@ export default function Header({
                   onClick={handleDateModalOpen}
                   className="text-sm font-bold text-white whitespace-nowrap hover:text-blue-400 transition-colors cursor-pointer"
                 >
-                  {currentMonth.getFullYear()}년{" "}
-                  {monthNames[currentMonth.getMonth()]}
+                  {viewMode === "year" 
+                    ? `${currentMonth.getFullYear()}년 전체`
+                    : `${currentMonth.getFullYear()}년 ${monthNames[currentMonth.getMonth()]}`
+                  }
                 </button>
                 <button
                   onClick={handleTodayClick}
