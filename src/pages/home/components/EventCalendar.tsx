@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
-import { getEventColor } from "../../../utils/eventColors";
 
 interface EventCalendarProps {
   selectedDate: Date | null;
@@ -135,7 +134,6 @@ export default function EventCalendar({
   // 월 단위로 멀티데이 이벤트의 레인과 색상 할당
   const eventLaneMap = useMemo(() => {
     const map = new Map<number, { lane: number; color: string }>();
-    const usedColors = new Set<string>();
     
     // 현재 월의 멀티데이 이벤트만 필터링
     const multiDayEvents = events.filter((event) => {
@@ -177,19 +175,16 @@ export default function EventCalendar({
       // 레인을 할당받지 못한 경우 (3개 모두 사용 중) 처리하지 않음
       if (assignedLane === -1) return;
       
-      // 색상 할당: 이미 사용된 색상 피하기
-      let colorIndex = 0;
-      let eventColorObj = getEventColor(event.id);
-      let colorBg = eventColorObj.bg;
-      
-      // 충돌 시 다음 색상 시도
-      while (usedColors.has(colorBg) && colorIndex < 100) {
-        colorIndex++;
-        eventColorObj = getEventColor(event.id + colorIndex * 1000);
-        colorBg = eventColorObj.bg;
+      // 색상 할당: 카테고리에 따라 색상 결정
+      let colorBg: string;
+      if (event.category === 'class') {
+        // 강습: 보라색 계열
+        colorBg = assignedLane === 0 ? 'bg-purple-500' : assignedLane === 1 ? 'bg-purple-600' : 'bg-purple-400';
+      } else {
+        // 행사: 파란색 계열
+        colorBg = assignedLane === 0 ? 'bg-blue-500' : assignedLane === 1 ? 'bg-blue-600' : 'bg-blue-400';
       }
       
-      usedColors.add(colorBg);
       map.set(event.id, { lane: assignedLane, color: colorBg });
     });
     
