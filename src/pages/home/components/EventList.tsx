@@ -38,9 +38,7 @@ export default function EventList({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [sortBy, setSortBy] = useState<"random" | "time" | "title">(
-    "random",
-  );
+  const [sortBy, setSortBy] = useState<"random" | "time" | "title">("random");
   const [showSortModal, setShowSortModal] = useState(false);
   const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -184,9 +182,7 @@ export default function EventList({
     setSearchSuggestions([]);
   };
 
-  const handleSortChange = (
-    newSortBy: "random" | "time" | "title",
-  ) => {
+  const handleSortChange = (newSortBy: "random" | "time" | "title") => {
     setSortBy(newSortBy);
     setShowSortModal(false);
   };
@@ -212,7 +208,7 @@ export default function EventList({
     {
       id: "all",
       name: currentMonth
-        ? viewMode === "year" 
+        ? viewMode === "year"
           ? `${currentMonth.getFullYear()} 전체`
           : `${currentMonth.getMonth() + 1}월 전체`
         : "모든 이벤트",
@@ -315,14 +311,18 @@ export default function EventList({
         const day = String(selectedDate.getDate()).padStart(2, "0");
         const selectedDateString = `${year}-${month}-${day}`;
 
-        const startDate = event.start_date || event.date || '';
-        const endDate = event.end_date || event.date || '';
-        const matchesDate = startDate && endDate && selectedDateString >= startDate && selectedDateString <= endDate;
-        
+        const startDate = event.start_date || event.date || "";
+        const endDate = event.end_date || event.date || "";
+        const matchesDate =
+          startDate &&
+          endDate &&
+          selectedDateString >= startDate &&
+          selectedDateString <= endDate;
+
         // 날짜가 선택되었을 때도 사용자가 카테고리를 선택하면 필터 적용
         const matchesCategory =
           selectedCategory === "all" || event.category === selectedCategory;
-        
+
         const matchesSearch =
           event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           event.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -341,34 +341,51 @@ export default function EventList({
       if (currentMonth) {
         const startDate = event.start_date || event.date;
         const endDate = event.end_date || event.date;
-        
+
         // 날짜 정보가 없는 이벤트는 필터링에서 제외
         if (!startDate || !endDate) {
           matchesDate = false;
         } else {
           const eventStartDate = new Date(startDate);
           const eventEndDate = new Date(endDate);
-          
+
           if (viewMode === "year") {
             // 연간 보기: 해당 년도의 모든 이벤트
             const yearStart = new Date(currentMonth.getFullYear(), 0, 1);
             const yearEnd = new Date(currentMonth.getFullYear(), 11, 31);
-            matchesDate = eventStartDate <= yearEnd && eventEndDate >= yearStart;
+            matchesDate =
+              eventStartDate <= yearEnd && eventEndDate >= yearStart;
           } else {
             // 월간 보기: 현재 월의 첫날과 마지막 날
-            const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-            const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-            
+            const monthStart = new Date(
+              currentMonth.getFullYear(),
+              currentMonth.getMonth(),
+              1,
+            );
+            const monthEnd = new Date(
+              currentMonth.getFullYear(),
+              currentMonth.getMonth() + 1,
+              0,
+            );
+
             // 이벤트가 현재 월과 겹치는지 확인
             // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
-            matchesDate = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+            matchesDate =
+              eventStartDate <= monthEnd && eventEndDate >= monthStart;
           }
         }
       }
 
       return matchesCategory && matchesSearch && matchesDate;
     });
-  }, [events, selectedDate, selectedCategory, searchTerm, currentMonth, viewMode]);
+  }, [
+    events,
+    selectedDate,
+    selectedCategory,
+    searchTerm,
+    currentMonth,
+    viewMode,
+  ]);
 
   // 필터링된 이벤트를 정렬 (useMemo로 캐싱하여 불필요한 재정렬 방지)
   const sortedEvents = useMemo(() => {
@@ -470,7 +487,11 @@ export default function EventList({
   };
 
   const deleteAllEvents = async () => {
-    if (!confirm("정말로 모든 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+    if (
+      !confirm(
+        "정말로 모든 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      )
+    ) {
       return;
     }
 
@@ -479,10 +500,7 @@ export default function EventList({
     }
 
     try {
-      const { error } = await supabase
-        .from("events")
-        .delete()
-        .gte("id", 0);
+      const { error } = await supabase.from("events").delete().gte("id", 0);
 
       if (error) {
         console.error("Error deleting all events:", error);
@@ -551,34 +569,38 @@ export default function EventList({
     if (!eventToEdit) return;
 
     // 종료일이 시작일보다 빠르면 안됨
-    if (editFormData.start_date && editFormData.end_date && editFormData.end_date < editFormData.start_date) {
+    if (
+      editFormData.start_date &&
+      editFormData.end_date &&
+      editFormData.end_date < editFormData.start_date
+    ) {
       alert("종료일은 시작일보다 빠를 수 없습니다.");
       return;
     }
 
     // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함
     if (editFormData.linkName1 && !editFormData.link1) {
-      alert('링크1 제목을 입력했다면 링크 주소도 입력해주세요.');
+      alert("링크1 제목을 입력했다면 링크 주소도 입력해주세요.");
       return;
     }
     if (editFormData.link1 && !editFormData.linkName1) {
-      alert('링크1 주소를 입력했다면 링크 제목도 입력해주세요.');
+      alert("링크1 주소를 입력했다면 링크 제목도 입력해주세요.");
       return;
     }
     if (editFormData.linkName2 && !editFormData.link2) {
-      alert('링크2 제목을 입력했다면 링크 주소도 입력해주세요.');
+      alert("링크2 제목을 입력했다면 링크 주소도 입력해주세요.");
       return;
     }
     if (editFormData.link2 && !editFormData.linkName2) {
-      alert('링크2 주소를 입력했다면 링크 제목도 입력해주세요.');
+      alert("링크2 주소를 입력했다면 링크 제목도 입력해주세요.");
       return;
     }
     if (editFormData.linkName3 && !editFormData.link3) {
-      alert('링크3 제목을 입력했다면 링크 주소도 입력해주세요.');
+      alert("링크3 제목을 입력했다면 링크 주소도 입력해주세요.");
       return;
     }
     if (editFormData.link3 && !editFormData.linkName3) {
-      alert('링크3 주소를 입력했다면 링크 제목도 입력해주세요.');
+      alert("링크3 주소를 입력했다면 링크 제목도 입력해주세요.");
       return;
     }
 
@@ -587,7 +609,7 @@ export default function EventList({
 
       // 새 이미지가 업로드되었으면 Supabase Storage에 업로드 시도
       if (editImageFile) {
-        const fileExt = editImageFile.name.split('.').pop();
+        const fileExt = editImageFile.name.split(".").pop();
         const fileName = `${Date.now()}.${fileExt}`;
         const filePath = `event-posters/${fileName}`;
 
@@ -601,9 +623,7 @@ export default function EventList({
           return;
         }
 
-        const { data } = supabase.storage
-          .from("images")
-          .getPublicUrl(filePath);
+        const { data } = supabase.storage.from("images").getPublicUrl(filePath);
 
         imageUrl = data.publicUrl;
       }
@@ -656,15 +676,18 @@ export default function EventList({
     if (selectedDate && selectedCategory === "all") {
       // 해당 날짜에 실제로 이벤트가 있는지 확인
       const hasEvents = filteredEvents.length > 0;
-      
+
       // 이벤트가 있을 때만 강습/행사 버튼 활성화
       if (categoryId === "all") {
         return false;
-      } else if ((categoryId === "class" || categoryId === "event") && hasEvents) {
+      } else if (
+        (categoryId === "class" || categoryId === "event") &&
+        hasEvents
+      ) {
         return true;
       }
     }
-    
+
     // 그 외의 경우는 현재 선택된 카테고리인지 확인
     return selectedCategory === categoryId;
   };
@@ -812,11 +835,13 @@ export default function EventList({
               {/* Mobile: Grid layout with 3 columns - poster ratio */}
               <div className="grid grid-cols-3 gap-3 lg:hidden">
                 {sortedEvents.map((event) => {
-                  const startDate = event.start_date || event.date || '';
-                  const endDate = event.end_date || event.date || '';
+                  const startDate = event.start_date || event.date || "";
+                  const endDate = event.end_date || event.date || "";
                   const isMultiDay = startDate !== endDate;
-                  const eventColor = isMultiDay ? getEventColor(event.id) : { bg: 'bg-gray-500' };
-                  
+                  const eventColor = isMultiDay
+                    ? getEventColor(event.id)
+                    : { bg: "bg-gray-500" };
+
                   return (
                     <div
                       key={event.id}
@@ -831,11 +856,13 @@ export default function EventList({
                           onEventHover(null);
                         }
                       }}
-                      className="bg-gray-700 rounded-xl overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative"
+                      className="bg-gray-700 rounded-xl overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative border border-[#3d3d3d]"
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
-                      <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
-                      
+                      <div
+                        className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}
+                      ></div>
+
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {event.image ? (
@@ -845,21 +872,25 @@ export default function EventList({
                             className="w-full aspect-[3/4] object-cover object-top"
                           />
                         ) : (
-                          <div 
+                          <div
                             className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
                             style={{
-                              backgroundImage: 'url(/grunge.png)'
+                              backgroundImage: "url(/grunge.png)",
                             }}
                           >
-                            <div className={`absolute inset-0 ${event.category === 'class' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}></div>
+                            <div
+                              className={`absolute inset-0 ${event.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
+                            ></div>
                             <span className="text-white/10 text-4xl font-bold relative z-10">
-                              {event.category === 'class' ? '강습' : '행사'}
+                              {event.category === "class" ? "강습" : "행사"}
                             </span>
                           </div>
                         )}
                         {/* 왼쪽 상단 카테고리 배지 */}
-                        <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === 'class' ? 'bg-purple-600' : 'bg-blue-600'}`}>
-                          {event.category === 'class' ? '강습' : '행사'}
+                        <div
+                          className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}
+                        >
+                          {event.category === "class" ? "강습" : "행사"}
                         </div>
                         {/* 하단 그라데이션 오버레이 */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
@@ -868,20 +899,20 @@ export default function EventList({
                           </h3>
                         </div>
                       </div>
-                      
+
                       <div className="p-2">
                         <p className="text-xs text-gray-300 text-center">
                           {(() => {
                             const startDate = event.start_date || event.date;
                             const endDate = event.end_date || event.date;
-                            
-                            if (!startDate) return '날짜 미정';
-                            
+
+                            if (!startDate) return "날짜 미정";
+
                             const formatDate = (dateStr: string) => {
                               const date = new Date(dateStr);
                               return `${date.getMonth() + 1}/${date.getDate()}`;
                             };
-                            
+
                             if (startDate !== endDate) {
                               return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
                             }
@@ -897,11 +928,13 @@ export default function EventList({
               {/* Desktop: List layout */}
               <div className="hidden lg:block space-y-4">
                 {sortedEvents.map((event) => {
-                  const startDate = event.start_date || event.date || '';
-                  const endDate = event.end_date || event.date || '';
+                  const startDate = event.start_date || event.date || "";
+                  const endDate = event.end_date || event.date || "";
                   const isMultiDay = startDate !== endDate;
-                  const eventColor = isMultiDay ? getEventColor(event.id) : { bg: 'bg-gray-500' };
-                  
+                  const eventColor = isMultiDay
+                    ? getEventColor(event.id)
+                    : { bg: "bg-gray-500" };
+
                   return (
                     <div
                       key={event.id}
@@ -919,7 +952,9 @@ export default function EventList({
                       className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors cursor-pointer relative"
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
-                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${eventColor.bg} rounded-l-lg`}></div>
+                      <div
+                        className={`absolute left-0 top-0 bottom-0 w-1 ${eventColor.bg} rounded-l-lg`}
+                      ></div>
                       <div className="flex space-x-4">
                         <div className="relative">
                           {event.image ? (
@@ -929,21 +964,25 @@ export default function EventList({
                               className="w-16 h-20 rounded-lg object-cover object-top"
                             />
                           ) : (
-                            <div 
+                            <div
                               className="w-16 h-20 rounded-lg flex items-center justify-center bg-cover bg-center relative"
                               style={{
-                                backgroundImage: 'url(/grunge.png)'
+                                backgroundImage: "url(/grunge.png)",
                               }}
                             >
-                              <div className={`absolute inset-0 rounded-lg ${event.category === 'class' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}></div>
+                              <div
+                                className={`absolute inset-0 rounded-lg ${event.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
+                              ></div>
                               <span className="text-white/10 text-xs font-bold relative z-10">
-                                {event.category === 'class' ? '강습' : '행사'}
+                                {event.category === "class" ? "강습" : "행사"}
                               </span>
                             </div>
                           )}
                           {/* 왼쪽 상단 카테고리 배지 */}
-                          <div className={`absolute top-0 left-0 px-1 py-0.5 text-white text-[8px] font-bold rounded-tl-lg ${event.category === 'class' ? 'bg-purple-600' : 'bg-blue-600'}`}>
-                            {event.category === 'class' ? '강습' : '행사'}
+                          <div
+                            className={`absolute top-0 left-0 px-1 py-0.5 text-white text-[8px] font-bold rounded-tl-lg ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}
+                          >
+                            {event.category === "class" ? "강습" : "행사"}
                           </div>
                         </div>
                         <div className="flex-1">
@@ -955,16 +994,17 @@ export default function EventList({
                               <i className="ri-calendar-line"></i>
                               <span>
                                 {(() => {
-                                  const startDate = event.start_date || event.date;
+                                  const startDate =
+                                    event.start_date || event.date;
                                   const endDate = event.end_date || event.date;
-                                  
-                                  if (!startDate) return '날짜 미정';
-                                  
+
+                                  if (!startDate) return "날짜 미정";
+
                                   const formatDate = (dateStr: string) => {
                                     const date = new Date(dateStr);
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
-                                  
+
                                   if (startDate !== endDate) {
                                     return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
                                   }
@@ -997,9 +1037,11 @@ export default function EventList({
             <div className="text-center py-8">
               <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
               <p className="text-gray-400">
-                {selectedDate && selectedCategory === 'class' ? '강습이 없습니다' : 
-                 selectedDate && selectedCategory === 'event' ? '행사가 없습니다' : 
-                 '해당 조건에 맞는 이벤트가 없습니다'}
+                {selectedDate && selectedCategory === "class"
+                  ? "강습이 없습니다"
+                  : selectedDate && selectedCategory === "event"
+                    ? "행사가 없습니다"
+                    : "해당 조건에 맞는 이벤트가 없습니다"}
               </p>
             </div>
           )}
@@ -1026,9 +1068,7 @@ export default function EventList({
                   <button
                     key={option.id}
                     onClick={() =>
-                      handleSortChange(
-                        option.id as "random" | "time" | "title",
-                      )
+                      handleSortChange(option.id as "random" | "time" | "title")
                     }
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                       sortBy === option.id
@@ -1238,11 +1278,15 @@ export default function EventList({
                       }
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
                     >
-                      {categories.filter(cat => cat.id === 'class' || cat.id === 'event').map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
+                      {categories
+                        .filter(
+                          (cat) => cat.id === "class" || cat.id === "event",
+                        )
+                        .map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 </div>
@@ -1261,7 +1305,10 @@ export default function EventList({
                           ...prev,
                           start_date: newStartDate,
                           // 종료일이 비어있거나 시작일보다 빠르면 시작일과 동일하게 설정
-                          end_date: (!prev.end_date || prev.end_date < newStartDate) ? newStartDate : prev.end_date,
+                          end_date:
+                            !prev.end_date || prev.end_date < newStartDate
+                              ? newStartDate
+                              : prev.end_date,
                         }));
                       }}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -1429,11 +1476,11 @@ export default function EventList({
                         <button
                           type="button"
                           onClick={() => {
-                            setEditImagePreview('');
+                            setEditImagePreview("");
                             setEditImageFile(null);
                             setEditFormData((prev) => ({
                               ...prev,
-                              image: ''
+                              image: "",
                             }));
                           }}
                           className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
@@ -1590,33 +1637,18 @@ export default function EventList({
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
-            {/* 상단 제목 영역 */}
-            <div className="p-3 border-b border-gray-700 flex-shrink-0">
-              <h2 className="text-xl font-bold text-white text-center overflow-hidden">
-                <span
-                  className="block leading-tight whitespace-nowrap overflow-hidden"
-                  style={{
-                    fontSize:
-                      Math.max(
-                        12,
-                        Math.min(24, 200 / selectedEvent.title.length),
-                      ) + "px",
-                    lineHeight: "1.2",
-                  }}
-                >
-                  {selectedEvent.title}
-                </span>
-              </h2>
-            </div>
-
             {/* 중단 영역 - 이미지와 기본 정보 */}
             <div className="flex h-80 flex-shrink-0">
               {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
-              <div 
-                className={`w-1/2 flex items-center justify-center p-0 relative ${selectedEvent.image ? 'bg-black' : 'bg-cover bg-center'}`}
-                style={!selectedEvent.image ? {
-                  backgroundImage: 'url(/grunge.png)'
-                } : undefined}
+              <div
+                className={`w-1/2 flex items-center justify-center p-0 relative ${selectedEvent.image ? "bg-black" : "bg-cover bg-center"}`}
+                style={
+                  !selectedEvent.image
+                    ? {
+                        backgroundImage: "url(/grunge.png)",
+                      }
+                    : undefined
+                }
               >
                 {selectedEvent.image ? (
                   <img
@@ -1626,15 +1658,19 @@ export default function EventList({
                   />
                 ) : (
                   <>
-                    <div className={`absolute inset-0 ${selectedEvent.category === 'class' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}></div>
+                    <div
+                      className={`absolute inset-0 ${selectedEvent.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
+                    ></div>
                     <span className="text-white/10 text-6xl font-bold relative z-10">
-                      {selectedEvent.category === 'class' ? '강습' : '행사'}
+                      {selectedEvent.category === "class" ? "강습" : "행사"}
                     </span>
                   </>
                 )}
                 {/* 왼쪽 상단 카테고리 배지 */}
-                <div className={`absolute top-0 left-0 px-3 py-1 text-white text-sm font-bold z-20 ${selectedEvent.category === 'class' ? 'bg-purple-600' : 'bg-blue-600'}`}>
-                  {selectedEvent.category === 'class' ? '강습' : '행사'}
+                <div
+                  className={`absolute top-0 left-0 px-3 py-1 text-white text-sm font-bold z-20 ${selectedEvent.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}
+                >
+                  {selectedEvent.category === "class" ? "강습" : "행사"}
                 </div>
               </div>
 
@@ -1644,17 +1680,18 @@ export default function EventList({
                   <div className="flex items-center space-x-3 text-gray-300 text-sm">
                     <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                     <span>
-                      {(selectedEvent.start_date || selectedEvent.date)
-                        ? new Date(selectedEvent.start_date || selectedEvent.date || '').toLocaleDateString(
-                            "ko-KR",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              weekday: "long",
-                            },
-                          )
-                        : '날짜 미정'}
+                      {selectedEvent.start_date || selectedEvent.date
+                        ? new Date(
+                            selectedEvent.start_date ||
+                              selectedEvent.date ||
+                              "",
+                          ).toLocaleDateString("ko-KR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            weekday: "long",
+                          })
+                        : "날짜 미정"}
                     </span>
                   </div>
                   <div className="flex items-center space-x-3 text-gray-300 text-sm">
@@ -1669,18 +1706,22 @@ export default function EventList({
                     <i className="ri-map-pin-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                     <span>{selectedEvent.location}</span>
                   </div>
-                  
+
                   {/* 등록날짜 */}
                   {selectedEvent.created_at && (
                     <div className="pt-2 mt-2 border-t border-gray-700">
                       <span className="text-[10px] text-gray-500">
-                        등록: {new Date(selectedEvent.created_at).toLocaleDateString("ko-KR", {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}
+                        등록:{" "}
+                        {new Date(selectedEvent.created_at).toLocaleDateString(
+                          "ko-KR",
+                          {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
                       </span>
                     </div>
                   )}
@@ -1742,7 +1783,24 @@ export default function EventList({
                 </div>
               </div>
             </div>
-
+            {/* 상단 제목 영역 */}
+            <div className="p-3 border-b border-gray-700 flex-shrink-0">
+              <h2 className="text-xl font-bold text-white text-left overflow-hidden">
+                <span
+                  className="block leading-tight whitespace-nowrap overflow-hidden"
+                  style={{
+                    fontSize:
+                      Math.max(
+                        12,
+                        Math.min(24, 200 / selectedEvent.title.length),
+                      ) + "px",
+                    lineHeight: "1.2",
+                  }}
+                >
+                  {selectedEvent.title}
+                </span>
+              </h2>
+            </div>
             {/* 하단 영역 - 이벤트 소개 */}
             <div className="flex-1 flex flex-col border-t border-gray-700 min-h-0">
               <div className="p-1 flex-1 flex flex-col min-h-0">
