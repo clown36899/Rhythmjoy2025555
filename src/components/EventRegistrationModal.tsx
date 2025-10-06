@@ -20,7 +20,6 @@ const formatDateForInput = (date: Date): string => {
 export default function EventRegistrationModal({ isOpen, onClose, selectedDate, onEventCreated }: EventRegistrationModalProps) {
   const [formData, setFormData] = useState({
     title: '',
-    time: '19:00',
     location: '미정',
     category: 'class',
     description: '자세한 내용은 추후 공지됩니다.',
@@ -35,7 +34,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
   });
   const [endDate, setEndDate] = useState<Date>(selectedDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -48,17 +46,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
   const categories = [
     { id: 'class', name: '강습' },
     { id: 'event', name: '행사' }
-  ];
-
-  const morningTimes = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30'
-  ];
-
-  const afternoonTimes = [
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-    '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
-    '21:00', '21:30', '22:00', '22:30'
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -74,14 +61,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     setTimeout(() => {
       e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 300);
-  };
-
-  const handleTimeSelect = (time: string) => {
-    setFormData(prev => ({
-      ...prev,
-      time: time
-    }));
-    setShowTimeModal(false);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,7 +164,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
             date: localDateString,
             start_date: localDateString,
             end_date: endDateString,
-            time: formData.time,
             location: formData.location,
             category: formData.category,
             price: 'Free',
@@ -212,7 +190,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         alert('이벤트가 성공적으로 등록되었습니다!');
         setFormData({
           title: '',
-          time: '19:00',
           location: '미정',
           category: 'class',
           description: '자세한 내용은 추후 공지됩니다.',
@@ -327,37 +304,23 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </p>
               </div>
 
-              {/* 시간과 카테고리 - 한 줄로 배치 */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    시간
-                  </label>
-                  <div
-                    onClick={() => setShowTimeModal(true)}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
-                  >
-                    <span>{formData.time}</span>
-                    <i className="ri-time-line"></i>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    카테고리
-                  </label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
-                  >
-                    {categories.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* 카테고리 */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  카테고리
+                </label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                >
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* 장소와 주최자 - 마진 패딩 축소 */}
@@ -530,67 +493,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
           </div>
         </div>
       </div>
-
-      {/* 시간 선택 모달 */}
-      {showTimeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-10 overflow-y-auto z-[9999999]">
-          <div className="bg-gray-800 rounded-lg max-w-md w-full max-h-[70vh] overflow-y-auto">
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white">시간 선택</h3>
-                <button
-                  onClick={() => setShowTimeModal(false)}
-                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
-                >
-                  <i className="ri-close-line text-xl"></i>
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* 오전 */}
-                <div>
-                  <h4 className="text-md font-semibold text-white mb-2">오전</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {morningTimes.map(time => (
-                      <button
-                        key={time}
-                        onClick={() => handleTimeSelect(time)}
-                        className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                          formData.time === time
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 오후 */}
-                <div>
-                  <h4 className="text-md font-semibold text-white mb-2">오후</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {afternoonTimes.map(time => (
-                      <button
-                        key={time}
-                        onClick={() => handleTimeSelect(time)}
-                        className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                          formData.time === time
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 
