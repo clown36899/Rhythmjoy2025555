@@ -10,6 +10,13 @@ interface EventRegistrationModalProps {
   onEventCreated: (createdDate: Date) => void;
 }
 
+const formatDateForInput = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function EventRegistrationModal({ isOpen, onClose, selectedDate, onEventCreated }: EventRegistrationModalProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -255,7 +262,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   </label>
                   <input
                     type="date"
-                    value={selectedDate.toISOString().split('T')[0]}
+                    value={formatDateForInput(selectedDate)}
                     disabled
                     className="w-full bg-gray-600 text-gray-300 rounded-lg px-3 py-2 cursor-not-allowed"
                   />
@@ -266,8 +273,8 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   </label>
                   <input
                     type="date"
-                    value={endDate.toISOString().split('T')[0]}
-                    min={selectedDate.toISOString().split('T')[0]}
+                    value={formatDateForInput(endDate)}
+                    min={formatDateForInput(selectedDate)}
                     onChange={(e) => setEndDate(new Date(e.target.value + 'T00:00:00'))}
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
