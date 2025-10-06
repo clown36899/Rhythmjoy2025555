@@ -20,7 +20,7 @@ const formatDateForInput = (date: Date): string => {
 export default function EventRegistrationModal({ isOpen, onClose, selectedDate, onEventCreated }: EventRegistrationModalProps) {
   const [formData, setFormData] = useState({
     title: '',
-    location: '미정',
+    location: '',
     category: 'class',
     description: '',
     organizer: '',
@@ -191,7 +191,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         alert('이벤트가 성공적으로 등록되었습니다!');
         setFormData({
           title: '',
-          location: '미정',
+          location: '',
           category: 'class',
           description: '',
           organizer: '',

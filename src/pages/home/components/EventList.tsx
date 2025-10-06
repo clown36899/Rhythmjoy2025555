@@ -1730,10 +1730,12 @@ export default function EventList({
                       <span>{selectedEvent.organizer}</span>
                     </div>
                   )}
-                  <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                    <i className="ri-map-pin-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                    <span>{selectedEvent.location}</span>
-                  </div>
+                  {selectedEvent.location && (
+                    <div className="flex items-center space-x-3 text-gray-300 text-sm">
+                      <i className="ri-map-pin-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
+                      <span>{selectedEvent.location}</span>
+                    </div>
+                  )}
 
                   {/* 등록날짜 */}
                   {selectedEvent.created_at && (
