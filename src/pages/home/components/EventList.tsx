@@ -4,6 +4,13 @@ import type { Event } from "../../../lib/supabase";
 import PracticeRoomModal from "../../../components/PracticeRoomModal";
 import { getEventColor } from "../../../utils/eventColors";
 
+const formatDateForInput = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 interface EventListProps {
   selectedDate: Date | null;
   selectedCategory: string;
@@ -1248,40 +1255,47 @@ export default function EventList({
                     <label className="block text-gray-300 text-xs font-medium mb-1">
                       시작일
                     </label>
-                    <input
-                      type="date"
-                      value={editFormData.start_date}
-                      onChange={(e) => {
-                        const newStartDate = e.target.value;
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          start_date: newStartDate,
-                          // 종료일이 비어있거나 시작일보다 빠르면 시작일과 동일하게 설정
-                          end_date:
-                            !prev.end_date || prev.end_date < newStartDate
-                              ? newStartDate
-                              : prev.end_date,
-                        }));
+                    <div
+                      onClick={() => {
+                        setDatePickerMonth(editFormData.start_date ? new Date(editFormData.start_date) : new Date());
+                        setShowDatePickerModal('start');
                       }}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
+                    >
+                      <span>
+                        {editFormData.start_date
+                          ? new Date(editFormData.start_date).toLocaleDateString('ko-KR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })
+                          : '날짜 선택'}
+                      </span>
+                      <i className="ri-calendar-line"></i>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-gray-300 text-xs font-medium mb-1">
                       종료일
                     </label>
-                    <input
-                      type="date"
-                      value={editFormData.end_date}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          end_date: e.target.value,
-                        }))
-                      }
-                      min={editFormData.start_date}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
+                    <div
+                      onClick={() => {
+                        setDatePickerMonth(editFormData.end_date ? new Date(editFormData.end_date) : (editFormData.start_date ? new Date(editFormData.start_date) : new Date()));
+                        setShowDatePickerModal('end');
+                      }}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
+                    >
+                      <span>
+                        {editFormData.end_date
+                          ? new Date(editFormData.end_date).toLocaleDateString('ko-KR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })
+                          : '날짜 선택'}
+                      </span>
+                      <i className="ri-calendar-line"></i>
+                    </div>
                   </div>
                 </div>
 
@@ -1515,6 +1529,123 @@ export default function EventList({
                   </div>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Date Picker Modal */}
+      {showDatePickerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
+          <div className="bg-gray-800 rounded-lg max-w-md w-full">
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-white">
+                  {showDatePickerModal === 'start' ? '시작일 선택' : '종료일 선택'}
+                </h3>
+                <button
+                  onClick={() => setShowDatePickerModal(null)}
+                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <i className="ri-close-line text-xl"></i>
+                </button>
+              </div>
+
+              {/* Month Navigation */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => {
+                    const newMonth = new Date(datePickerMonth);
+                    newMonth.setMonth(newMonth.getMonth() - 1);
+                    setDatePickerMonth(newMonth);
+                  }}
+                  className="text-gray-300 hover:text-white transition-colors cursor-pointer p-2"
+                >
+                  <i className="ri-arrow-left-s-line text-xl"></i>
+                </button>
+                <span className="text-white font-semibold">
+                  {datePickerMonth.getFullYear()}년 {datePickerMonth.getMonth() + 1}월
+                </span>
+                <button
+                  onClick={() => {
+                    const newMonth = new Date(datePickerMonth);
+                    newMonth.setMonth(newMonth.getMonth() + 1);
+                    setDatePickerMonth(newMonth);
+                  }}
+                  className="text-gray-300 hover:text-white transition-colors cursor-pointer p-2"
+                >
+                  <i className="ri-arrow-right-s-line text-xl"></i>
+                </button>
+              </div>
+
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {/* Weekday Headers */}
+                {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+                  <div key={day} className="text-center text-gray-400 text-sm py-2">
+                    {day}
+                  </div>
+                ))}
+
+                {/* Calendar Days */}
+                {(() => {
+                  const year = datePickerMonth.getFullYear();
+                  const month = datePickerMonth.getMonth();
+                  const firstDay = new Date(year, month, 1).getDay();
+                  const daysInMonth = new Date(year, month + 1, 0).getDate();
+                  const days = [];
+
+                  // Empty cells before first day
+                  for (let i = 0; i < firstDay; i++) {
+                    days.push(<div key={`empty-${i}`} className="p-2"></div>);
+                  }
+
+                  // Actual days
+                  for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day);
+                    const dateStr = formatDateForInput(date);
+                    const isSelected = showDatePickerModal === 'start' 
+                      ? editFormData.start_date === dateStr
+                      : editFormData.end_date === dateStr;
+                    const isDisabled = showDatePickerModal === 'end' && !!editFormData.start_date && dateStr < editFormData.start_date;
+
+                    days.push(
+                      <button
+                        key={day}
+                        onClick={() => {
+                          if (!isDisabled) {
+                            if (showDatePickerModal === 'start') {
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                start_date: dateStr,
+                                end_date: !prev.end_date || prev.end_date < dateStr ? dateStr : prev.end_date,
+                              }));
+                            } else {
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                end_date: dateStr,
+                              }));
+                            }
+                            setShowDatePickerModal(null);
+                          }
+                        }}
+                        disabled={isDisabled}
+                        className={`p-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-600 text-white'
+                            : isDisabled
+                            ? 'text-gray-600 cursor-not-allowed'
+                            : 'text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  }
+
+                  return days;
+                })()}
+              </div>
             </div>
           </div>
         </div>
