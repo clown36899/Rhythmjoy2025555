@@ -424,6 +424,9 @@ export default function EventList({
       if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
         deleteEvent(event.id);
         setSelectedEvent(null); // 상세 모달 닫기
+        setShowEditModal(false); // 수정 모달 닫기
+        setShowPasswordModal(false); // 비밀번호 모달 닫기
+        setEventToEdit(null); // 수정 이벤트 초기화
       }
     } else {
       // 일반 모드에서는 비밀번호 확인 후 삭제
@@ -432,6 +435,9 @@ export default function EventList({
         if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
           deleteEvent(event.id);
           setSelectedEvent(null); // 상세 모달 닫기
+          setShowEditModal(false); // 수정 모달 닫기
+          setShowPasswordModal(false); // 비밀번호 모달 닫기
+          setEventToEdit(null); // 수정 이벤트 초기화
         }
       } else if (password) {
         alert("비밀번호가 올바르지 않습니다.");
