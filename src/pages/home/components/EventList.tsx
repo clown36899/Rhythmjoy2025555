@@ -463,6 +463,37 @@ export default function EventList({
     }
   };
 
+  const deleteAllEvents = async () => {
+    if (!confirm("정말로 모든 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+      return;
+    }
+
+    if (!confirm("한 번 더 확인합니다. 정말 모든 이벤트를 삭제하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("events")
+        .delete()
+        .gte("id", 0);
+
+      if (error) {
+        console.error("Error deleting all events:", error);
+        alert("모든 이벤트 삭제 중 오류가 발생했습니다.");
+      } else {
+        alert("모든 이벤트가 삭제되었습니다.");
+        fetchEvents();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("eventDeleted"));
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("모든 이벤트 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   const handlePasswordSubmit = () => {
     if (eventToEdit && eventPassword === eventToEdit.password) {
       setEditFormData({
@@ -635,10 +666,17 @@ export default function EventList({
         <div className="lg:mb-6">
           {/* 데스크톱에서도 제목 완전 제거 */}
           {isAdminMode && (
-            <div className="mb-1">
+            <div className="mb-1 flex items-center gap-2">
               <span className="bg-red-600 text-white px-2 py-1 rounded text-sm">
                 관리자 모드
               </span>
+              <button
+                onClick={deleteAllEvents}
+                className="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded text-sm transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <i className="ri-delete-bin-line"></i>
+                <span>모든 이벤트 삭제</span>
+              </button>
             </div>
           )}
 
