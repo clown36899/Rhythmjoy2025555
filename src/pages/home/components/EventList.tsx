@@ -12,7 +12,7 @@ interface EventListProps {
   refreshTrigger?: number;
   isAdminMode?: boolean;
   viewMode?: "month" | "year";
-  onEventHover?: (date: Date | null) => void;
+  onEventHover?: (eventId: number | null) => void;
 }
 
 export default function EventList({
@@ -753,10 +753,7 @@ export default function EventList({
                       onClick={() => handleEventClick(event)}
                       onMouseEnter={() => {
                         if (viewMode === "month" && onEventHover) {
-                          const dateStr = event.start_date || event.date;
-                          if (dateStr) {
-                            onEventHover(new Date(dateStr));
-                          }
+                          onEventHover(event.id);
                         }
                       }}
                       onMouseLeave={() => {
@@ -812,10 +809,7 @@ export default function EventList({
                       onClick={() => handleEventClick(event)}
                       onMouseEnter={() => {
                         if (viewMode === "month" && onEventHover) {
-                          const dateStr = event.start_date || event.date;
-                          if (dateStr) {
-                            onEventHover(new Date(dateStr));
-                          }
+                          onEventHover(event.id);
                         }
                       }}
                       onMouseLeave={() => {
