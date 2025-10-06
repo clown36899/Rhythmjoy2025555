@@ -7,7 +7,7 @@ interface EventRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: Date;
-  onEventCreated: (createdDate: Date) => void;
+  onEventCreated: (createdDate: Date, category: string, eventId?: number) => void;
 }
 
 const formatDateForInput = (date: Date): string => {
@@ -177,7 +177,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       const endDay = String(endDate.getDate()).padStart(2, '0');
       const endDateString = `${endYear}-${endMonth}-${endDay}`;
 
-      const { error } = await supabase
+      const { data: createdEvent, error } = await supabase
         .from('events')
         .insert([
           {
@@ -203,13 +203,17 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
             password: formData.password,
             created_at: new Date().toISOString()
           }
-        ]);
+        ])
+        .select();
 
       if (error) {
         console.error('Error creating event:', error);
         alert('이벤트 등록 중 오류가 발생했습니다.');
       } else {
         alert('이벤트가 성공적으로 등록되었습니다!');
+        const eventId = createdEvent?.[0]?.id;
+        const category = formData.category;
+        
         setFormData({
           title: '',
           time: '19:00',
@@ -227,7 +231,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         });
         setImageFile(null);
         setImagePreview('');
-        onEventCreated(selectedDate);
+        onEventCreated(selectedDate, category, eventId);
         onClose();
       }
     } catch (error) {
