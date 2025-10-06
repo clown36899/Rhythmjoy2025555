@@ -103,15 +103,29 @@ export default function FullscreenBillboard({
         className="relative w-full h-full flex items-center justify-center"
         onClick={handleBackgroundClick}
       >
-        <img
-          src={images[currentIndex]}
-          alt="Event Billboard"
-          className={`max-w-full max-h-full object-contain transition-opacity cursor-pointer ${
-            isTransitioning ? "opacity-0" : "opacity-100"
-          }`}
-          style={{ transitionDuration: `${transitionDuration}ms` }}
-          onClick={handleImageClick}
-        />
+        <div className="relative max-w-full max-h-full flex items-center justify-center">
+          <img
+            src={images[currentIndex]}
+            alt="Event Billboard"
+            className={`max-w-full max-h-full object-contain transition-opacity cursor-pointer ${
+              isTransitioning ? "opacity-0" : "opacity-100"
+            }`}
+            style={{ transitionDuration: `${transitionDuration}ms` }}
+            onClick={handleImageClick}
+          />
+          
+          {events[currentIndex] && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 pointer-events-none">
+              <h2 className={`text-white text-2xl sm:text-3xl md:text-4xl font-bold text-center transition-opacity ${
+                isTransitioning ? "opacity-0" : "opacity-100"
+              }`}
+              style={{ transitionDuration: `${transitionDuration}ms` }}
+              >
+                {events[currentIndex].title}
+              </h2>
+            </div>
+          )}
+        </div>
 
         {images.length > 1 && (
           <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 pb-4 pointer-events-none">
