@@ -1250,7 +1250,7 @@ export default function EventList({
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-gray-300 text-xs font-medium mb-1">
                       시작일
