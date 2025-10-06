@@ -460,67 +460,25 @@ export default function EventCalendar({
     });
   };
 
-  // 연간 보기용 12개월 달력 렌더링
+  // 연간 보기용 12개월 리스트 렌더링
   const renderYearView = () => {
-    const year = currentMonth.getFullYear();
-    const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
-    
     return (
-      <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-4 overflow-y-auto">
-        {months.map((month, monthIndex) => {
-          const days = getDaysInMonth(month);
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 p-4 lg:p-6">
+        {monthNames.map((monthName, monthIndex) => {
+          const isCurrentMonth = currentMonth.getMonth() === monthIndex;
           
           return (
-            <div key={monthIndex} className="bg-gray-700 rounded-lg p-2 lg:p-3">
-              {/* 월 이름 */}
-              <h3 className="text-center text-white font-bold text-sm lg:text-base mb-2">
-                {monthNames[monthIndex]}
-              </h3>
-              
-              {/* 요일 헤더 */}
-              <div className="grid grid-cols-7 gap-0.5 mb-1">
-                {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-gray-400 text-[8px] lg:text-[10px] font-semibold"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-              
-              {/* 날짜 그리드 */}
-              <div className="grid grid-cols-7 gap-0.5">
-                {days.map((day, dayIndex) => {
-                  if (!day) {
-                    return <div key={`empty-${dayIndex}`} className="aspect-square"></div>;
-                  }
-                  
-                  const dayEvents = getEventsForDate(day);
-                  const hasEvents = dayEvents.length > 0;
-                  const todayFlag = isToday(day);
-                  
-                  return (
-                    <button
-                      key={dayIndex}
-                      onClick={() => handleDateClick(day)}
-                      className={`aspect-square flex items-center justify-center text-[8px] lg:text-[10px] rounded cursor-pointer transition-colors relative ${
-                        todayFlag
-                          ? "bg-blue-600 text-white font-bold"
-                          : hasEvents
-                          ? "bg-gray-600 text-white hover:bg-gray-500"
-                          : "text-gray-400 hover:bg-gray-600"
-                      }`}
-                    >
-                      {day.getDate()}
-                      {hasEvents && !todayFlag && (
-                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full"></div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <button
+              key={monthIndex}
+              onClick={() => navigateToMonth(monthIndex)}
+              className={`p-4 lg:p-6 rounded-lg text-lg lg:text-xl font-bold transition-all cursor-pointer ${
+                isCurrentMonth
+                  ? "bg-blue-600 text-white scale-105"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
+              }`}
+            >
+              {monthName}
+            </button>
           );
         })}
       </div>
