@@ -3,6 +3,7 @@ import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import PracticeRoomModal from "../../../components/PracticeRoomModal";
 import { getEventColor } from "../../../utils/eventColors";
+import { createResizedImages } from "../../../utils/imageResize";
 
 const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
@@ -762,48 +763,79 @@ export default function EventList({
     }
 
     try {
-      let imageUrl = editFormData.image;
+      let updateData: any = {
+        title: editFormData.title,
+        time: editFormData.time,
+        location: editFormData.location,
+        category: editFormData.category,
+        description: "",
+        organizer: editFormData.organizer,
+        link1: editFormData.link1 || null,
+        link2: editFormData.link2 || null,
+        link3: editFormData.link3 || null,
+        link_name1: editFormData.linkName1 || null,
+        link_name2: editFormData.linkName2 || null,
+        link_name3: editFormData.linkName3 || null,
+        start_date: editFormData.start_date || null,
+        end_date: editFormData.end_date || null,
+      };
 
-      // 새 이미지가 업로드되었으면 Supabase Storage에 업로드 시도
+      // 새 이미지가 업로드되었으면 Supabase Storage에 3가지 크기로 업로드
       if (editImageFile) {
-        const fileExt = editImageFile.name.split(".").pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `event-posters/${fileName}`;
+        const resizedImages = await createResizedImages(editImageFile);
+        const timestamp = Date.now();
+        const baseFileName = editImageFile.name.split('.')[0];
 
-        const { error: uploadError } = await supabase.storage
-          .from("images")
-          .upload(filePath, editImageFile);
+        const uploadPromises = [
+          {
+            file: resizedImages.thumbnail,
+            path: `event-posters/thumbnail/${baseFileName}_${timestamp}_thumb.jpg`,
+            key: 'thumbnail' as const
+          },
+          {
+            file: resizedImages.medium,
+            path: `event-posters/medium/${baseFileName}_${timestamp}_medium.jpg`,
+            key: 'medium' as const
+          },
+          {
+            file: resizedImages.full,
+            path: `event-posters/full/${baseFileName}_${timestamp}_full.jpg`,
+            key: 'full' as const
+          }
+        ];
 
-        if (uploadError) {
-          console.error("Storage upload error:", uploadError);
-          alert("이미지 업로드 중 오류가 발생했습니다.");
-          return;
-        }
+        const results = await Promise.all(
+          uploadPromises.map(async ({ file, path, key }) => {
+            const { error } = await supabase.storage
+              .from('images')
+              .upload(path, file);
 
-        const { data } = supabase.storage.from("images").getPublicUrl(filePath);
+            if (error) {
+              console.error(`${key} upload error:`, error);
+              return { key, url: '' };
+            }
 
-        imageUrl = data.publicUrl;
+            const { data } = supabase.storage
+              .from('images')
+              .getPublicUrl(path);
+
+            return { key, url: data.publicUrl };
+          })
+        );
+
+        const thumbnailUrl = results.find(r => r.key === 'thumbnail')?.url || '';
+        const mediumUrl = results.find(r => r.key === 'medium')?.url || '';
+        const fullUrl = results.find(r => r.key === 'full')?.url || '';
+
+        updateData.image = fullUrl || editFormData.image;
+        updateData.image_thumbnail = thumbnailUrl || null;
+        updateData.image_medium = mediumUrl || null;
+        updateData.image_full = fullUrl || null;
       }
 
       const { error } = await supabase
         .from("events")
-        .update({
-          title: editFormData.title,
-          time: editFormData.time,
-          location: editFormData.location,
-          category: editFormData.category,
-          description: "",
-          organizer: editFormData.organizer,
-          link1: editFormData.link1 || null,
-          link2: editFormData.link2 || null,
-          link3: editFormData.link3 || null,
-          link_name1: editFormData.linkName1 || null,
-          link_name2: editFormData.linkName2 || null,
-          link_name3: editFormData.linkName3 || null,
-          image: imageUrl,
-          start_date: editFormData.start_date || null,
-          end_date: editFormData.end_date || null,
-        })
+        .update(updateData)
         .eq("id", eventToEdit.id);
 
       if (error) {
@@ -935,9 +967,9 @@ export default function EventList({
 
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
-                        {event.image ? (
+                        {(event.image_thumbnail || event.image) ? (
                           <img
-                            src={event.image}
+                            src={event.image_thumbnail || event.image}
                             alt={event.title}
                             className="w-full aspect-[3/4] object-cover object-top"
                           />

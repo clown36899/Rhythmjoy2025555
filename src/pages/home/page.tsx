@@ -153,7 +153,7 @@ export default function HomePage() {
           });
 
           const images = filteredEvents
-            .map((event) => event.image)
+            .map((event) => event.image_medium || event.image)
             .filter(Boolean);
           setBillboardImages(images);
           setBillboardEvents(filteredEvents);

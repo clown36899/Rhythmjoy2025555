@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import { createResizedImages } from '../utils/imageResize';
 
 interface EventRegistrationModalProps {
   isOpen: boolean;
@@ -73,29 +74,61 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     }
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
+  const uploadImages = async (file: File): Promise<{
+    thumbnail: string;
+    medium: string;
+    full: string;
+  }> => {
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `event-posters/${fileName}`;
+      const resizedImages = await createResizedImages(file);
+      const timestamp = Date.now();
+      const baseFileName = file.name.split('.')[0];
 
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, file);
+      const uploadPromises = [
+        {
+          file: resizedImages.thumbnail,
+          path: `event-posters/thumbnail/${baseFileName}_${timestamp}_thumb.jpg`,
+          key: 'thumbnail' as const
+        },
+        {
+          file: resizedImages.medium,
+          path: `event-posters/medium/${baseFileName}_${timestamp}_medium.jpg`,
+          key: 'medium' as const
+        },
+        {
+          file: resizedImages.full,
+          path: `event-posters/full/${baseFileName}_${timestamp}_full.jpg`,
+          key: 'full' as const
+        }
+      ];
 
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        return '';
-      }
+      const results = await Promise.all(
+        uploadPromises.map(async ({ file, path, key }) => {
+          const { error } = await supabase.storage
+            .from('images')
+            .upload(path, file);
 
-      const { data } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath);
+          if (error) {
+            console.error(`${key} upload error:`, error);
+            return { key, url: '' };
+          }
 
-      return data.publicUrl;
+          const { data } = supabase.storage
+            .from('images')
+            .getPublicUrl(path);
+
+          return { key, url: data.publicUrl };
+        })
+      );
+
+      return {
+        thumbnail: results.find(r => r.key === 'thumbnail')?.url || '',
+        medium: results.find(r => r.key === 'medium')?.url || '',
+        full: results.find(r => r.key === 'full')?.url || ''
+      };
     } catch (error) {
       console.error('Image upload failed:', error);
-      return '';
+      return { thumbnail: '', medium: '', full: '' };
     }
   };
 
@@ -136,12 +169,14 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     setIsSubmitting(true);
 
     try {
-      let imageUrl = '';
+      let imageUrls = {
+        thumbnail: '',
+        medium: '',
+        full: ''
+      };
       
       if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
-      } else {
-        imageUrl = '';
+        imageUrls = await uploadImages(imageFile);
       }
 
       const year = selectedDate.getFullYear();
@@ -166,7 +201,10 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
             location: formData.location,
             category: formData.category,
             price: 'Free',
-            image: imageUrl,
+            image: imageUrls.full || '',
+            image_thumbnail: imageUrls.thumbnail || null,
+            image_medium: imageUrls.medium || null,
+            image_full: imageUrls.full || null,
             description: '',
             organizer: formData.organizer,
             capacity: 50,
