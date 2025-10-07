@@ -120,8 +120,9 @@ export default function Header({
         .eq('id', 1)
         .single();
       
+      // 테이블이 없거나 데이터가 없으면 기본값 사용
       if (error) {
-        console.error('색상 불러오기 오류:', error);
+        console.log('테이블이 없어 기본 색상 사용');
         return;
       }
       
@@ -140,7 +141,7 @@ export default function Header({
         document.documentElement.style.setProperty('--event-list-outer-bg-color', data.event_list_outer_bg_color);
       }
     } catch (err) {
-      console.error('색상 불러오기 실패:', err);
+      console.log('기본 색상 사용');
     }
   };
 
