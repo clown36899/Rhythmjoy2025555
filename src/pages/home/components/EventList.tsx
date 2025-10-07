@@ -1676,14 +1676,20 @@ export default function EventList({
               {/* 수정/닫기 버튼 - 이미지 위 우측 상단 */}
               <div className="absolute top-4 right-4 z-30 flex space-x-2">
                 <button
-                  onClick={(e) => handleEditClick(selectedEvent, e)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditClick(selectedEvent, e);
+                  }}
                   className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
                   title="이벤트 수정"
                 >
                   <i className="ri-edit-line text-xl"></i>
                 </button>
                 <button
-                  onClick={closeModal}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeModal();
+                  }}
                   className="bg-gray-700/90 hover:bg-gray-600 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
                   title="닫기"
                 >
@@ -1836,16 +1842,10 @@ export default function EventList({
       {showFullscreenImage && selectedEvent?.image && (
         <div
           className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
-          onClick={() => {
-            setShowFullscreenImage(false);
-            closeModal();
-          }}
+          onClick={() => setShowFullscreenImage(false)}
         >
           <button
-            onClick={() => {
-              setShowFullscreenImage(false);
-              closeModal();
-            }}
+            onClick={() => setShowFullscreenImage(false)}
             className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
           >
             <i className="ri-close-line text-2xl"></i>
