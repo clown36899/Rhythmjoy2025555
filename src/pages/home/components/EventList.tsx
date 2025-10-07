@@ -50,6 +50,7 @@ export default function EventList({
 }: EventListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -1512,223 +1513,240 @@ export default function EventList({
         </div>
       )}
 
-      {/* Event Detail Modal */}
+      {/* Event Detail Modal - 새로운 세로 배치 */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
-            {/* 중단 영역 - 이미지와 기본 정보 */}
-            <div className="flex h-80 flex-shrink-0">
-              {/* 왼쪽 이미지 - 배경색을 상세소개와 통일, 왼쪽 위로 붙임 */}
-              <div
-                className={`w-1/2 flex items-center justify-center p-0 relative ${selectedEvent.image ? "bg-black" : "bg-cover bg-center"}`}
-                style={
-                  !selectedEvent.image
-                    ? {
-                        backgroundImage: "url(/grunge.png)",
-                      }
-                    : undefined
-                }
+          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            {/* 상단 고정 버튼 - 우측 상단 */}
+            <div className="absolute top-4 right-4 z-30 flex space-x-2">
+              <button
+                onClick={(e) => handleEditClick(selectedEvent, e)}
+                className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+                title="이벤트 수정"
               >
-                {selectedEvent.image ? (
+                <i className="ri-edit-line text-xl"></i>
+              </button>
+              <button
+                onClick={closeModal}
+                className="bg-gray-700/90 hover:bg-gray-600 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+                title="닫기"
+              >
+                <i className="ri-close-line text-xl"></i>
+              </button>
+            </div>
+
+            {/* 이미지 영역 - 클릭 시 풀스크린 */}
+            <div
+              className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${selectedEvent.image ? "bg-black" : "bg-cover bg-center"}`}
+              style={
+                !selectedEvent.image
+                  ? {
+                      backgroundImage: "url(/grunge.png)",
+                    }
+                  : undefined
+              }
+              onClick={() => selectedEvent.image && setShowFullscreenImage(true)}
+            >
+              {selectedEvent.image ? (
+                <>
                   <img
                     src={selectedEvent.image}
                     alt={selectedEvent.title}
-                    className="max-w-full max-h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
-                ) : (
-                  <>
-                    <div
-                      className={`absolute inset-0 ${selectedEvent.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
-                    ></div>
-                    <span className="text-white/10 text-6xl font-bold relative z-10">
-                      {selectedEvent.category === "class" ? "강습" : "행사"}
-                    </span>
-                  </>
-                )}
-                {/* 왼쪽 상단 카테고리 배지 */}
-                <div
-                  className={`absolute top-0 left-0 px-3 py-1 text-white text-sm font-bold z-20 ${selectedEvent.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}
-                >
-                  {selectedEvent.category === "class" ? "강습" : "행사"}
-                </div>
+                  {/* 이미지 확대 아이콘 */}
+                  <div className="absolute top-4 left-4 bg-black/50 text-white px-2 py-1 rounded-lg text-xs backdrop-blur-sm">
+                    <i className="ri-zoom-in-line mr-1"></i>
+                    클릭하여 크게 보기
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    className={`absolute inset-0 ${selectedEvent.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
+                  ></div>
+                  <span className="absolute inset-0 flex items-center justify-center text-white/10 text-6xl font-bold">
+                    {selectedEvent.category === "class" ? "강습" : "행사"}
+                  </span>
+                </>
+              )}
+
+              {/* 카테고리 배지 - 좌측 하단 */}
+              <div
+                className={`absolute bottom-4 left-4 px-3 py-1 text-white text-sm font-bold rounded-lg ${selectedEvent.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}
+              >
+                {selectedEvent.category === "class" ? "강습" : "행사"}
               </div>
 
-              {/* 오른쪽 기본 정보 - 내부 여백 줄임 */}
-              <div className="w-1/2 p-4 overflow-hidden">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                    <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                    <span>
-                      {(() => {
-                        const startDate =
-                          selectedEvent.start_date || selectedEvent.date;
-                        const endDate = selectedEvent.end_date;
+              {/* 제목 - 이미지 위 그라데이션 오버레이 */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 pt-16">
+                <h2 className="text-2xl font-bold text-white leading-tight">
+                  {selectedEvent.title}
+                </h2>
+              </div>
+            </div>
 
-                        if (!startDate) return "날짜 미정";
+            {/* 스크롤 가능한 컨텐츠 영역 */}
+            <div className="flex-1 overflow-y-auto">
+              {/* 세부 정보 */}
+              <div className="p-4 space-y-3">
+                <div className="flex items-center space-x-3 text-gray-300">
+                  <i className="ri-calendar-line text-blue-400 text-xl"></i>
+                  <span>
+                    {(() => {
+                      const startDate =
+                        selectedEvent.start_date || selectedEvent.date;
+                      const endDate = selectedEvent.end_date;
 
-                        const start = new Date(startDate);
-                        const startMonth = start.toLocaleDateString("ko-KR", {
+                      if (!startDate) return "날짜 미정";
+
+                      const start = new Date(startDate);
+                      const startMonth = start.toLocaleDateString("ko-KR", {
+                        month: "long",
+                      });
+                      const startDay = start.getDate();
+
+                      if (endDate && endDate !== startDate) {
+                        const end = new Date(endDate);
+                        const endMonth = end.toLocaleDateString("ko-KR", {
                           month: "long",
                         });
-                        const startDay = start.getDate();
+                        const endDay = end.getDate();
 
-                        if (endDate && endDate !== startDate) {
-                          const end = new Date(endDate);
-                          const endMonth = end.toLocaleDateString("ko-KR", {
-                            month: "long",
-                          });
-                          const endDay = end.getDate();
-
-                          if (startMonth === endMonth) {
-                            return `${startMonth} ${startDay}~${endDay}일`;
-                          } else {
-                            return `${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
-                          }
+                        if (startMonth === endMonth) {
+                          return `${startMonth} ${startDay}~${endDay}일`;
+                        } else {
+                          return `${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
                         }
+                      }
 
-                        return `${startMonth} ${startDay}일`;
-                      })()}
+                      return `${startMonth} ${startDay}일`;
+                    })()}
+                  </span>
+                </div>
+
+                {selectedEvent.organizer && (
+                  <div className="flex items-center space-x-3 text-gray-300">
+                    <i className="ri-user-line text-blue-400 text-xl"></i>
+                    <span>{selectedEvent.organizer}</span>
+                  </div>
+                )}
+
+                {selectedEvent.location && (
+                  <div className="flex items-center space-x-3 text-gray-300">
+                    <i className="ri-map-pin-line text-blue-400 text-xl"></i>
+                    <span>{selectedEvent.location}</span>
+                  </div>
+                )}
+
+                {/* 이벤트 소개 */}
+                {selectedEvent.description && (
+                  <div className="pt-3 border-t border-gray-700">
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      이벤트 소개
+                    </h3>
+                    <div className="bg-gray-700 rounded-lg p-3">
+                      <p className="text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
+                        {selectedEvent.description}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 바로가기 링크 */}
+                {(selectedEvent.link1 ||
+                  selectedEvent.link2 ||
+                  selectedEvent.link3) && (
+                  <div className="pt-3 border-t border-gray-700">
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      링크
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedEvent.link1 && (
+                        <a
+                          href={selectedEvent.link1}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <i className="ri-external-link-line"></i>
+                          <span className="truncate">
+                            {selectedEvent.link_name1 || "링크 1"}
+                          </span>
+                        </a>
+                      )}
+                      {selectedEvent.link2 && (
+                        <a
+                          href={selectedEvent.link2}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <i className="ri-external-link-line"></i>
+                          <span className="truncate">
+                            {selectedEvent.link_name2 || "링크 2"}
+                          </span>
+                        </a>
+                      )}
+                      {selectedEvent.link3 && (
+                        <a
+                          href={selectedEvent.link3}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <i className="ri-external-link-line"></i>
+                          <span className="truncate">
+                            {selectedEvent.link_name3 || "링크 3"}
+                          </span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 등록 날짜 */}
+                {selectedEvent.created_at && (
+                  <div className="pt-3 border-t border-gray-700">
+                    <span className="text-xs text-gray-500">
+                      등록:{" "}
+                      {new Date(selectedEvent.created_at).toLocaleDateString(
+                        "ko-KR",
+                        {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}
                     </span>
                   </div>
-                  {selectedEvent.organizer && (
-                    <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                      <i className="ri-user-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                      <span>{selectedEvent.organizer}</span>
-                    </div>
-                  )}
-                  {selectedEvent.location && (
-                    <div className="flex items-center space-x-3 text-gray-300 text-sm">
-                      <i className="ri-map-pin-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
-                      <span>{selectedEvent.location}</span>
-                    </div>
-                  )}
-
-                  {/* 등록날짜 */}
-                  {selectedEvent.created_at && (
-                    <div className="pt-2 mt-2 border-t border-gray-700">
-                      <span className="text-[10px] text-gray-500">
-                        등록:{" "}
-                        {new Date(selectedEvent.created_at).toLocaleDateString(
-                          "ko-KR",
-                          {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* 바로가기 링크 */}
-                  {(selectedEvent.link1 ||
-                    selectedEvent.link2 ||
-                    selectedEvent.link3) && (
-                    <div className="pt-1 border-t border-gray-700 mt-2">
-                      <h3 className="text-sm font-semibold text-white mb-1">
-                        링크
-                      </h3>
-                      <div className="space-y-1">
-                        {selectedEvent.link1 && (
-                          <a
-                            href={selectedEvent.link1}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
-                            text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
-                          >
-                            <i className="ri-external-link-line"></i>
-                            <span className="truncate">
-                              {selectedEvent.link_name1 || "링크 1"}
-                            </span>
-                          </a>
-                        )}
-                        {selectedEvent.link2 && (
-                          <a
-                            href={selectedEvent.link2}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
-                            text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
-                          >
-                            <i className="ri-external-link-line"></i>
-                            <span className="truncate">
-                              {selectedEvent.link_name2 || "링크 2"}
-                            </span>
-                          </a>
-                        )}
-                        {selectedEvent.link3 && (
-                          <a
-                            href={selectedEvent.link3}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-7
-                            text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-[10px]"
-                          >
-                            <i className="ri-external-link-line"></i>
-                            <span className="truncate">
-                              {selectedEvent.link_name3 || "링크 3"}
-                            </span>
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            {/* 중단 제목 영역 */}
-            <div className="p-3 border-b border-gray-700 flex-shrink-0">
-              <h2 className="text-xl font-bold text-white text-left overflow-hidden">
-                <span
-                  className="block leading-tight whitespace-nowrap overflow-hidden"
-                  style={{
-                    fontSize:
-                      Math.max(
-                        12,
-                        Math.min(24, 600 / selectedEvent.title.length),
-                      ) + "px",
-                    lineHeight: "1.2",
-                  }}
-                >
-                  {selectedEvent.title}
-                </span>
-              </h2>
-            </div>
-            {/* 하단 영역 - 이벤트 소개 */}
-            <div className="flex-1 flex flex-col border-t border-gray-700 min-h-0">
-              <div className="p-3 flex-1 flex flex-col min-h-0">
-                <h3 className="text-sm font-semibold text-white mb-1 flex-shrink-0">
-                  이벤트 소개
-                </h3>
-                <div className="bg-gray-700 rounded-lg p-2 flex-1 overflow-y-auto min-h-0">
-                  <p className="text-gray-300 leading-relaxed whitespace-pre-wrap break-words text-[10px]">
-                    {selectedEvent.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* 수정/닫기 버튼 - 하단 고정 */}
-              <div className="p-1 border-t border-gray-700 bg-gray-800 flex-shrink-0">
-                <div className="flex justify-center space-x-3">
-                  <button
-                    onClick={(e) => handleEditClick(selectedEvent, e)}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
-                  >
-                    수정
-                  </button>
-                  <button
-                    onClick={closeModal}
-                    className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer text-sm"
-                  >
-                    닫기
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 풀스크린 이미지 모달 */}
+      {showFullscreenImage && selectedEvent?.image && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
+          onClick={() => setShowFullscreenImage(false)}
+        >
+          <button
+            onClick={() => setShowFullscreenImage(false)}
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+          >
+            <i className="ri-close-line text-2xl"></i>
+          </button>
+          <img
+            src={selectedEvent.image}
+            alt={selectedEvent.title}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
