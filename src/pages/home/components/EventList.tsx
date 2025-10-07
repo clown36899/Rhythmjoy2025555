@@ -314,20 +314,33 @@ export default function EventList({
       `[data-event-id="${highlightEventId}"]`,
     );
     if (eventElement) {
-      // 스크롤
+      // 스크롤 - 배너가 안 짤리도록 start로 설정
       eventElement.scrollIntoView({
         behavior: "smooth",
-        block: "center",
+        block: "start",
       });
 
-      // 3초 후 하이라이트 해제
+      // 클릭 시 하이라이트 해제
+      const handleClick = () => {
+        if (onHighlightComplete) {
+          onHighlightComplete();
+        }
+      };
+
+      // 클릭 리스너 등록
+      document.addEventListener("click", handleClick);
+
+      // 3초 후 하이라이트 자동 해제
       const timer = setTimeout(() => {
         if (onHighlightComplete) {
           onHighlightComplete();
         }
       }, 3000);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener("click", handleClick);
+      };
     }
   }, [highlightEventId, onHighlightComplete]);
 
