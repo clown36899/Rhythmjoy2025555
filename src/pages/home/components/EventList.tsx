@@ -73,7 +73,8 @@ export default function EventList({
   >("random");
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
 
-  const [internalShowPracticeRoomModal, setInternalShowPracticeRoomModal] = useState(false);
+  const [internalShowPracticeRoomModal, setInternalShowPracticeRoomModal] =
+    useState(false);
 
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
   const setShowSearchModal =
@@ -82,8 +83,10 @@ export default function EventList({
   const setShowSortModal = externalSetShowSortModal ?? setInternalShowSortModal;
   const sortBy = externalSortBy ?? internalSortBy;
   const setSortBy = externalSetSortBy ?? setInternalSortBy;
-  const showPracticeRoomModal = externalShowPracticeRoomModal ?? internalShowPracticeRoomModal;
-  const setShowPracticeRoomModal = externalSetShowPracticeRoomModal ?? setInternalShowPracticeRoomModal;
+  const showPracticeRoomModal =
+    externalShowPracticeRoomModal ?? internalShowPracticeRoomModal;
+  const setShowPracticeRoomModal =
+    externalSetShowPracticeRoomModal ?? setInternalShowPracticeRoomModal;
   const [editFormData, setEditFormData] = useState({
     title: "",
     time: "",
@@ -319,9 +322,9 @@ export default function EventList({
     const eventElement = document.querySelector(
       `[data-event-id="${highlightEventId}"]`,
     ) as HTMLElement;
-    
+
     console.log("찾은 요소:", eventElement);
-    
+
     if (eventElement) {
       // 스크롤 - 배너 최상단-2px가 분류 컨테이너 바로 아래에 붙도록
       const scrollToElement = () => {
@@ -330,7 +333,7 @@ export default function EventList({
 
         // 스크롤 컨테이너 찾기 (overflow-y-auto를 가진 부모)
         const scrollContainer = document.querySelector(".overflow-y-auto");
-        
+
         if (!scrollContainer) {
           console.log("스크롤 컨테이너를 찾을 수 없습니다");
           return;
@@ -341,7 +344,7 @@ export default function EventList({
         // 분류 컨테이너(카테고리 패널)의 하단 위치 계산
         const header = document.querySelector("header");
         const calendar = document.querySelector("[data-calendar]");
-        
+
         let fixedAreaHeight = 0;
         if (header) fixedAreaHeight += header.offsetHeight;
         if (calendar) fixedAreaHeight += calendar.offsetHeight;
@@ -356,7 +359,7 @@ export default function EventList({
 
         // 현재 스크롤 위치에서 목표 위치 계산
         // 배너가 완전히 보이도록 50px 위쪽 여유
-        const targetScroll = scrollContainer.scrollTop + relativePosition - 50;
+        const targetScroll = scrollContainer.scrollTop + relativePosition - 500;
 
         console.log("컨테이너 top:", containerTop);
         console.log("요소 top:", elementTop);
@@ -382,7 +385,7 @@ export default function EventList({
 
       // 여러 이벤트 리스너 등록 (클릭, 스크롤, 휠, 키보드, 터치)
       const events = ["click", "wheel", "keydown", "touchstart", "touchmove"];
-      
+
       // 스크롤 후 약간 딜레이를 두고 리스너 등록 (자동 스크롤과 겹치지 않도록)
       const listenerTimer = setTimeout(() => {
         events.forEach((event) => {
@@ -752,7 +755,7 @@ export default function EventList({
           time: editFormData.time,
           location: editFormData.location,
           category: editFormData.category,
-          description: '',
+          description: "",
           organizer: editFormData.organizer,
           link1: editFormData.link1 || null,
           link2: editFormData.link2 || null,
@@ -1599,7 +1602,10 @@ export default function EventList({
       {/* Event Detail Modal - 새로운 세로 배치 */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border-2" style={{ borderColor: 'rgb(61, 61, 61)' }}>
+          <div
+            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border-2"
+            style={{ borderColor: "rgb(61, 61, 61)" }}
+          >
             {/* 상단 고정 버튼 - 우측 상단 */}
             <div className="absolute top-4 right-4 z-30 flex space-x-2">
               <button
@@ -1628,7 +1634,9 @@ export default function EventList({
                     }
                   : undefined
               }
-              onClick={() => selectedEvent.image && setShowFullscreenImage(true)}
+              onClick={() =>
+                selectedEvent.image && setShowFullscreenImage(true)
+              }
             >
               {selectedEvent.image ? (
                 <>
@@ -1721,7 +1729,6 @@ export default function EventList({
                     <span>{selectedEvent.location}</span>
                   </div>
                 )}
-
 
                 {/* 바로가기 링크 */}
                 {(selectedEvent.link1 ||
