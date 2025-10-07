@@ -141,23 +141,26 @@ export default function FullscreenBillboard({
           )}
         </div>
 
-        {images.length > 1 && (
-          <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 flex gap-2 pointer-events-none">
-            {images.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentIndex ? "bg-white w-6" : "bg-white/50"
-                }`}
-              />
-            ))}
+        {/* 상단 안내 + 슬라이드 인디케이터 */}
+        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none">
+          <div className="bg-black/80 backdrop-blur-sm px-6 py-3 rounded-full">
+            <p className="text-white text-base sm:text-lg font-medium text-center">
+              이미지 클릭: 상세보기, 배경 클릭: 닫기
+            </p>
           </div>
-        )}
-
-        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm px-6 py-3 rounded-full pointer-events-none">
-          <p className="text-white text-base sm:text-lg font-medium text-center">
-            이미지 클릭: 상세보기, 배경 클릭: 닫기
-          </p>
+          
+          {images.length > 1 && (
+            <div className="flex gap-2">
+              {images.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    index === currentIndex ? "bg-white w-6" : "bg-white/50"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>,
