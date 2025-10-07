@@ -285,6 +285,14 @@ export default function EventList({
     fetchEvents();
   }, [currentMonth, refreshTrigger]);
 
+  // 달 변경 시 스크롤 위치 리셋
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
+    }
+  }, [currentMonth]);
+
   // 광고판에서 이벤트 선택 이벤트 리스너
   useEffect(() => {
     if (typeof window === "undefined") return;
