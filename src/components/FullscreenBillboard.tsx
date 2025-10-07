@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 
 interface FullscreenBillboardProps {
@@ -9,6 +9,16 @@ interface FullscreenBillboardProps {
   onEventClick: (event: any) => void;
   autoSlideInterval?: number;
   transitionDuration?: number;
+}
+
+// 배열 셔플 함수
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 export default function FullscreenBillboard({
@@ -26,8 +36,45 @@ export default function FullscreenBillboard({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 재생 순서 설정 (localStorage에서 읽기)
+  const [playOrder, setPlayOrder] = useState<'sequential' | 'random'>(() => {
+    return (localStorage.getItem('billboardPlayOrder') as 'sequential' | 'random') || 'random';
+  });
+
+  // 이미지와 이벤트를 재생 순서에 따라 정렬
+  const { sortedImages, sortedEvents } = useMemo(() => {
+    if (playOrder === 'random') {
+      // 랜덤 순서로 셔플 (이미지와 이벤트를 함께 셔플)
+      const indices = images.map((_, i) => i);
+      const shuffledIndices = shuffleArray(indices);
+      return {
+        sortedImages: shuffledIndices.map(i => images[i]),
+        sortedEvents: shuffledIndices.map(i => events[i])
+      };
+    } else {
+      // 순차 재생
+      return {
+        sortedImages: images,
+        sortedEvents: events
+      };
+    }
+  }, [images, events, playOrder, isOpen]); // isOpen이 변경될 때마다 재생성 (광고판 열릴 때 새로 셔플)
+
+  // localStorage 변경 감지
   useEffect(() => {
-    if (!isOpen || images.length === 0) {
+    const handleStorageChange = () => {
+      const newOrder = (localStorage.getItem('billboardPlayOrder') as 'sequential' | 'random') || 'random';
+      setPlayOrder(newOrder);
+    };
+
+    window.addEventListener('billboardOrderChange', handleStorageChange);
+    return () => {
+      window.removeEventListener('billboardOrderChange', handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || sortedImages.length === 0) {
       // 광고판이 닫히거나 이미지가 없으면 타이머 정리 및 인덱스 초기화
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -71,7 +118,7 @@ export default function FullscreenBillboard({
       setIsTransitioning(true);
       setProgress(0);
       setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % images.length);
+        setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
         setIsTransitioning(false);
       }, transitionDuration);
     }, autoSlideInterval);
@@ -86,7 +133,7 @@ export default function FullscreenBillboard({
         progressIntervalRef.current = null;
       }
     };
-  }, [isOpen, images.length, autoSlideInterval, transitionDuration]);
+  }, [isOpen, sortedImages.length, autoSlideInterval, transitionDuration]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -114,14 +161,12 @@ export default function FullscreenBillboard({
 
   const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log("빌보드 이미지 클릭, currentIndex:", currentIndex);
-    console.log("빌보드 이벤트:", events[currentIndex]);
-    if (events[currentIndex]) {
-      onEventClick(events[currentIndex]);
+    if (sortedEvents[currentIndex]) {
+      onEventClick(sortedEvents[currentIndex]);
     }
   };
 
-  if (!isOpen || images.length === 0) return null;
+  if (!isOpen || sortedImages.length === 0) return null;
 
   return createPortal(
     <div
@@ -134,7 +179,7 @@ export default function FullscreenBillboard({
       >
         <div className="relative max-w-full max-h-full flex items-center justify-center">
           <img
-            src={images[currentIndex]}
+            src={sortedImages[currentIndex]}
             alt="Event Billboard"
             className={`max-w-full max-h-full object-contain transition-opacity cursor-pointer ${
               isTransitioning ? "opacity-0" : "opacity-100"
@@ -143,7 +188,7 @@ export default function FullscreenBillboard({
             onClick={handleImageClick}
           />
 
-          {events[currentIndex] && (
+          {sortedEvents[currentIndex] && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 pointer-events-none">
               <h2
                 className={`text-white text-2xl sm:text-3xl md:text-4xl font-bold text-center transition-opacity ${
@@ -151,7 +196,7 @@ export default function FullscreenBillboard({
                 }`}
                 style={{ transitionDuration: `${transitionDuration}ms` }}
               >
-                {events[currentIndex].title}
+                {sortedEvents[currentIndex].title}
               </h2>
 
               {/* 상세보기 버튼 */}
@@ -173,10 +218,10 @@ export default function FullscreenBillboard({
 
         {/* 상단 안내 + 슬라이드 인디케이터 + 진행 바 */}
         <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none">
-          {images.length > 1 && (
+          {sortedImages.length > 1 && (
             <div className="flex flex-col items-center gap-2">
               <div className="flex gap-2">
-                {images.map((_, index) => (
+                {sortedImages.map((_, index) => (
                   <div
                     key={index}
                     className={`w-2 h-2 rounded-full transition-all ${

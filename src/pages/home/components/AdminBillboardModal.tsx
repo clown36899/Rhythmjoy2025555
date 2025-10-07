@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { useState } from "react";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
 
 interface AdminBillboardModalProps {
@@ -16,6 +17,19 @@ export default function AdminBillboardModal({
   onUpdateSettings,
   onResetSettings,
 }: AdminBillboardModalProps) {
+  // 재생 순서 설정 (localStorage에서 읽기)
+  const [playOrder, setPlayOrder] = useState<'sequential' | 'random'>(() => {
+    return (localStorage.getItem('billboardPlayOrder') as 'sequential' | 'random') || 'random';
+  });
+
+  // 재생 순서 변경 핸들러
+  const handlePlayOrderChange = (newOrder: 'sequential' | 'random') => {
+    setPlayOrder(newOrder);
+    localStorage.setItem('billboardPlayOrder', newOrder);
+    // 빌보드에 변경 알림
+    window.dispatchEvent(new Event('billboardOrderChange'));
+  };
+
   if (!isOpen) return null;
 
   const formatTime = (ms: number): string => {
@@ -193,6 +207,44 @@ export default function AdminBillboardModal({
             </div>
           </div>
 
+          {/* 재생 순서 */}
+          <div className="p-4 bg-gray-700/50 rounded-lg">
+            <label className="text-white font-medium block mb-3">재생 순서</label>
+            <p className="text-sm text-gray-400 mb-4">
+              광고판 이미지를 표시하는 순서를 설정합니다
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handlePlayOrderChange('sequential')}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  playOrder === 'sequential'
+                    ? 'border-purple-500 bg-purple-500/20 text-white'
+                    : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <i className="ri-sort-asc text-xl"></i>
+                  <span className="font-medium">순차</span>
+                </div>
+                <p className="text-xs text-gray-400">등록 순서대로</p>
+              </button>
+              <button
+                onClick={() => handlePlayOrderChange('random')}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  playOrder === 'random'
+                    ? 'border-purple-500 bg-purple-500/20 text-white'
+                    : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <i className="ri-shuffle-line text-xl"></i>
+                  <span className="font-medium">랜덤</span>
+                </div>
+                <p className="text-xs text-gray-400">무작위 순서</p>
+              </button>
+            </div>
+          </div>
+
           {/* 현재 설정 요약 */}
           <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
@@ -223,6 +275,12 @@ export default function AdminBillboardModal({
               <div className="flex justify-between">
                 <span>전환 속도:</span>
                 <span className="text-purple-300 font-medium">{formatTime(settings.transitionDuration)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>재생 순서:</span>
+                <span className="text-purple-300 font-medium">
+                  {playOrder === 'random' ? '랜덤' : '순차'}
+                </span>
               </div>
             </div>
           </div>

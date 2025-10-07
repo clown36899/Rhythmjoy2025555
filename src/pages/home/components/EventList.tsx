@@ -310,20 +310,13 @@ export default function EventList({
 
   // 빌보드에서 특정 이벤트 하이라이트
   useEffect(() => {
-    if (!highlightEventId) {
-      console.log("하이라이트 없음");
-      return;
-    }
-
-    console.log("하이라이트 ID:", highlightEventId);
+    if (!highlightEventId) return;
     let hasScrolled = false;
 
     // 이벤트 카드 찾기
     const eventElement = document.querySelector(
       `[data-event-id="${highlightEventId}"]`,
     ) as HTMLElement;
-
-    console.log("찾은 요소:", eventElement);
 
     if (eventElement) {
       // 스크롤 - 배너 최상단-2px가 분류 컨테이너 바로 아래에 붙도록
@@ -334,31 +327,11 @@ export default function EventList({
         // 스크롤 컨테이너 찾기 (overflow-y-auto를 가진 부모)
         const scrollContainer = document.querySelector(".overflow-y-auto");
 
-        if (!scrollContainer) {
-          console.log("스크롤 컨테이너를 찾을 수 없습니다");
-          return;
-        }
-
-        console.log("스크롤 컨테이너:", scrollContainer);
-
-        // 분류 컨테이너(카테고리 패널)의 하단 위치 계산
-        const header = document.querySelector("header");
-        const calendar = document.querySelector("[data-calendar]");
-
-        let fixedAreaHeight = 0;
-        if (header) fixedAreaHeight += header.offsetHeight;
-        if (calendar) fixedAreaHeight += calendar.offsetHeight;
-        fixedAreaHeight += 95; // 카테고리 패널 높이
-
-        console.log("고정 영역 높이:", fixedAreaHeight);
+        if (!scrollContainer) return;
 
         // 분류 컨테이너 (카테고리 패널) 찾기
         const categoryPanel = document.querySelector('.fixed.top-16.border-b.border-black') as HTMLElement;
-
-        if (!categoryPanel) {
-          console.log("분류 컨테이너를 찾을 수 없습니다");
-          return;
-        }
+        if (!categoryPanel) return;
 
         // 분류 컨테이너의 하단 위치
         const categoryPanelBottom = categoryPanel.getBoundingClientRect().bottom;
@@ -376,12 +349,6 @@ export default function EventList({
         // 목표 스크롤 위치
         const targetScroll = scrollContainer.scrollTop + scrollAdjustment;
 
-        console.log("분류 컨테이너 하단:", categoryPanelBottom);
-        console.log("배너 현재 위치:", elementTop);
-        console.log("배너 목표 위치:", desiredElementTop);
-        console.log("스크롤 조정값:", scrollAdjustment);
-        console.log("현재 스크롤:", scrollContainer.scrollTop);
-        console.log("목표 스크롤:", targetScroll);
 
         scrollContainer.scrollTo({
           top: targetScroll,
