@@ -352,18 +352,26 @@ export default function EventList({
 
         console.log("고정 영역 높이:", fixedAreaHeight);
 
-        // 요소의 컨테이너 내 상대 위치 계산
+        // 컨테이너의 시작 위치 (스크롤 가능 영역 시작점)
         const containerTop = scrollContainer.getBoundingClientRect().top;
+        
+        // 이벤트 카드(배너 포함)의 현재 화면상 위치
         const elementTop = eventElement.getBoundingClientRect().top;
-        const relativePosition = elementTop - containerTop;
-
-        // 현재 스크롤 위치에서 목표 위치 계산
-        // 배너가 완전히 보이도록 50px 위쪽 여유
-        const targetScroll = scrollContainer.scrollTop + relativePosition - 500;
+        
+        // 배너는 카드 최상단에 있으므로, elementTop이 배너 상단 위치
+        // 목표: 배너 상단이 컨테이너 시작점 + 5px에 오도록
+        const desiredElementTop = containerTop + 5;
+        
+        // 얼마나 스크롤해야 하는지 계산
+        const scrollAdjustment = elementTop - desiredElementTop;
+        
+        // 목표 스크롤 위치
+        const targetScroll = scrollContainer.scrollTop + scrollAdjustment;
 
         console.log("컨테이너 top:", containerTop);
-        console.log("요소 top:", elementTop);
-        console.log("상대 위치:", relativePosition);
+        console.log("배너 현재 위치:", elementTop);
+        console.log("배너 목표 위치:", desiredElementTop);
+        console.log("스크롤 조정값:", scrollAdjustment);
         console.log("현재 스크롤:", scrollContainer.scrollTop);
         console.log("목표 스크롤:", targetScroll);
 
@@ -1105,7 +1113,7 @@ export default function EventList({
             <h3 className="text-xl font-bold text-white mb-4">이벤트 수정</h3>
             <p className="text-gray-300 mb-4">
               &quot;{eventToEdit.title}&quot; 이벤트를 수정하려면 비밀번호를
-              입력하세요.
+              입력하e��요.
             </p>
             <input
               type="password"
