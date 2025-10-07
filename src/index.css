@@ -7,7 +7,8 @@
   --header-bg-color: #1f2937;
   --calendar-bg-color: #111827;
   --event-list-bg-color: #1f2937;
-  --event-list-outer-bg-color: #111827;
+  --event-list-outer-bg-color: #1f2937;
+  --page-bg-color: #111827;
 }
 
 #root {

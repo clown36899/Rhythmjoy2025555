@@ -7,13 +7,14 @@ CREATE TABLE IF NOT EXISTS theme_settings (
   header_bg_color VARCHAR(7) DEFAULT '#1f2937',
   calendar_bg_color VARCHAR(7) DEFAULT '#111827',
   event_list_bg_color VARCHAR(7) DEFAULT '#1f2937',
-  event_list_outer_bg_color VARCHAR(7) DEFAULT '#111827',
+  event_list_outer_bg_color VARCHAR(7) DEFAULT '#1f2937',
+  page_bg_color VARCHAR(7) DEFAULT '#111827',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT single_row CHECK (id = 1)
 );
 
 -- 기본 설정 삽입
-INSERT INTO theme_settings (id, background_color, header_bg_color, calendar_bg_color, event_list_bg_color, event_list_outer_bg_color)
-VALUES (1, '#000000', '#1f2937', '#111827', '#1f2937', '#111827')
+INSERT INTO theme_settings (id, background_color, header_bg_color, calendar_bg_color, event_list_bg_color, event_list_outer_bg_color, page_bg_color)
+VALUES (1, '#000000', '#1f2937', '#111827', '#1f2937', '#1f2937', '#111827')
 ON CONFLICT (id) DO NOTHING;

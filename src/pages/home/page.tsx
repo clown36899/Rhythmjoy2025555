@@ -265,7 +265,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--event-list-outer-bg-color)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       {/* Fixed Header for all screens */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-10 border-b border-gray-700" style={{ backgroundColor: 'var(--header-bg-color)' }}>
         <Header
