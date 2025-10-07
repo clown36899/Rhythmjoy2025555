@@ -927,7 +927,7 @@ export default function EventList({
                       data-event-id={event.id}
                       onClick={() => handleEventClick(event)}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#374151";
+                        e.currentTarget.style.backgroundColor = "#000000";
                         if (viewMode === "month" && onEventHover) {
                           onEventHover(event.id);
                         }
@@ -1665,7 +1665,7 @@ export default function EventList({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div
             className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border-2"
-            style={{ borderColor: "rgb(61, 61, 61)" }}
+            style={{ borderColor: "rgb(255 191 19)" }}
           >
             {/* 상단 고정 버튼 - 우측 상단 */}
             <div className="absolute top-4 right-4 z-30 flex space-x-2">
