@@ -22,7 +22,9 @@ export default function FullscreenBillboard({
 }: FullscreenBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [progress, setProgress] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!isOpen || images.length === 0) {
@@ -31,8 +33,13 @@ export default function FullscreenBillboard({
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       setCurrentIndex(0);
       setIsTransitioning(false);
+      setProgress(0);
       return;
     }
 
@@ -40,13 +47,29 @@ export default function FullscreenBillboard({
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
 
     // 인덱스 초기화
     setCurrentIndex(0);
+    setProgress(0);
+
+    // 진행 바 업데이트 (50ms마다)
+    const progressStep = (50 / autoSlideInterval) * 100;
+    progressIntervalRef.current = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          return 0;
+        }
+        return prev + progressStep;
+      });
+    }, 50);
 
     // 새로운 자동 재생 시작
     intervalRef.current = setInterval(() => {
       setIsTransitioning(true);
+      setProgress(0);
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % images.length);
         setIsTransitioning(false);
@@ -57,6 +80,10 @@ export default function FullscreenBillboard({
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
       }
     };
   }, [isOpen, images.length, autoSlideInterval, transitionDuration]);
@@ -113,17 +140,18 @@ export default function FullscreenBillboard({
             style={{ transitionDuration: `${transitionDuration}ms` }}
             onClick={handleImageClick}
           />
-          
+
           {events[currentIndex] && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 pointer-events-none">
-              <h2 className={`text-white text-2xl sm:text-3xl md:text-4xl font-bold text-center transition-opacity ${
-                isTransitioning ? "opacity-0" : "opacity-100"
-              }`}
-              style={{ transitionDuration: `${transitionDuration}ms` }}
+              <h2
+                className={`text-white text-2xl sm:text-3xl md:text-4xl font-bold text-center transition-opacity ${
+                  isTransitioning ? "opacity-0" : "opacity-100"
+                }`}
+                style={{ transitionDuration: `${transitionDuration}ms` }}
               >
                 {events[currentIndex].title}
               </h2>
-              
+
               {/* 상세보기 버튼 */}
               <div className="flex justify-center mt-4 pointer-events-auto">
                 <button
@@ -141,24 +169,34 @@ export default function FullscreenBillboard({
           )}
         </div>
 
-        {/* 상단 안내 + 슬라이드 인디케이터 */}
+        {/* 상단 안내 + 슬라이드 인디케이터 + 진행 바 */}
         <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none">
           <div className="bg-black/80 backdrop-blur-sm px-6 py-3 rounded-full">
             <p className="text-white text-base sm:text-lg font-medium text-center">
               이미지 클릭: 상세보기, 배경 클릭: 닫기
             </p>
           </div>
-          
+
           {images.length > 1 && (
-            <div className="flex gap-2">
-              {images.map((_, index) => (
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex gap-2">
+                {images.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === currentIndex ? "bg-white w-6" : "bg-white/50"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* 진행 바 */}
+              <div className="w-32 h-1 bg-white/30 rounded-full overflow-hidden">
                 <div
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    index === currentIndex ? "bg-white w-6" : "bg-white/50"
-                  }`}
+                  className="h-full bg-white rounded-full transition-all duration-75"
+                  style={{ width: `${progress}%` }}
                 />
-              ))}
+              </div>
             </div>
           )}
         </div>
