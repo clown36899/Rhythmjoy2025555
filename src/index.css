@@ -2,11 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-color: #000000;
+  --calendar-bg-color: #111827;
+  --event-list-bg-color: #1f2937;
+  --event-list-outer-bg-color: #111827;
+}
+
 #root {
   max-width: 650px;
   margin: 0 auto;
 }
 
 body, html {
-  background-color: #000000;
+  background-color: var(--bg-color);
 }

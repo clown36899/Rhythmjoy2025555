@@ -807,17 +807,22 @@ export default function EventList({
                     <div
                       key={event.id}
                       onClick={() => handleEventClick(event)}
-                      onMouseEnter={() => {
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#374151';
                         if (viewMode === "month" && onEventHover) {
                           onEventHover(event.id);
                         }
                       }}
-                      onMouseLeave={() => {
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--event-list-bg-color)';
                         if (viewMode === "month" && onEventHover) {
                           onEventHover(null);
                         }
                       }}
-                      className="bg-gray-700 rounded-xl overflow-hidden hover:bg-gray-600 transition-colors cursor-pointer relative border border-[#3d3d3d]"
+                      className="rounded-xl overflow-hidden transition-colors cursor-pointer relative border border-[#3d3d3d]"
+                      style={{ 
+                        backgroundColor: 'var(--event-list-bg-color)',
+                      }}
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
                       <div

@@ -533,7 +533,7 @@ export default function EventCalendar({
 
   return (
     <>
-      <div className="bg-gray-800 rounded-none p-0 h-full flex flex-col">
+      <div className="rounded-none p-0 h-full flex flex-col" style={{ backgroundColor: 'var(--calendar-bg-color)' }}>
         {/* Desktop Header */}
         {showHeader && (
           <div className="hidden items-center justify-between mb-6">

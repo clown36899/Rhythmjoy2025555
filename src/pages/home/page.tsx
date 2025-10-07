@@ -265,7 +265,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--event-list-outer-bg-color)' }}>
       {/* Fixed Header for all screens */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-10 bg-gray-800 border-b border-gray-700">
         <Header
@@ -310,7 +310,8 @@ export default function HomePage() {
           {/* Fixed Calendar Section */}
           <div
             ref={calendarRef}
-            className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-[9] bg-gray-900 border-b border-black"
+            className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-[9] border-b border-black"
+            style={{ backgroundColor: 'var(--calendar-bg-color)' }}
           >
             <EventCalendar
               selectedDate={selectedDate}
