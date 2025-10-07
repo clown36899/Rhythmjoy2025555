@@ -37,12 +37,12 @@ export default function Header({
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [themeColors, setThemeColors] = useState({
-    background_color: '#000000',
-    header_bg_color: '#1f2937',
-    calendar_bg_color: '#111827',
-    event_list_bg_color: '#1f2937',
-    event_list_outer_bg_color: '#1f2937',
-    page_bg_color: '#111827'
+    background_color: "#000000",
+    header_bg_color: "#1f2937",
+    calendar_bg_color: "#111827",
+    event_list_bg_color: "#1f2937",
+    event_list_outer_bg_color: "#1f2937",
+    page_bg_color: "#111827",
   });
 
   const monthNames = [
@@ -118,33 +118,51 @@ export default function Header({
   const loadThemeColors = async () => {
     try {
       const { data, error } = await supabase
-        .from('theme_settings')
-        .select('*')
-        .eq('id', 1)
+        .from("theme_settings")
+        .select("*")
+        .eq("id", 1)
         .single();
-      
+
       // 테이블이 없거나 데이터가 없으면 기본값 사용
       if (error) {
         return;
       }
-      
+
       if (data) {
         setThemeColors({
           background_color: data.background_color,
-          header_bg_color: data.header_bg_color || '#1f2937',
+          header_bg_color: data.header_bg_color || "#1f2937",
           calendar_bg_color: data.calendar_bg_color,
           event_list_bg_color: data.event_list_bg_color,
           event_list_outer_bg_color: data.event_list_outer_bg_color,
-          page_bg_color: data.page_bg_color || '#111827'
+          page_bg_color: data.page_bg_color || "#111827",
         });
-        
+
         // CSS 변수 업데이트
-        document.documentElement.style.setProperty('--bg-color', data.background_color);
-        document.documentElement.style.setProperty('--header-bg-color', data.header_bg_color || '#1f2937');
-        document.documentElement.style.setProperty('--calendar-bg-color', data.calendar_bg_color);
-        document.documentElement.style.setProperty('--event-list-bg-color', data.event_list_bg_color);
-        document.documentElement.style.setProperty('--event-list-outer-bg-color', data.event_list_outer_bg_color);
-        document.documentElement.style.setProperty('--page-bg-color', data.page_bg_color || '#111827');
+        document.documentElement.style.setProperty(
+          "--bg-color",
+          data.background_color,
+        );
+        document.documentElement.style.setProperty(
+          "--header-bg-color",
+          data.header_bg_color || "#1f2937",
+        );
+        document.documentElement.style.setProperty(
+          "--calendar-bg-color",
+          data.calendar_bg_color,
+        );
+        document.documentElement.style.setProperty(
+          "--event-list-bg-color",
+          data.event_list_bg_color,
+        );
+        document.documentElement.style.setProperty(
+          "--event-list-outer-bg-color",
+          data.event_list_outer_bg_color,
+        );
+        document.documentElement.style.setProperty(
+          "--page-bg-color",
+          data.page_bg_color || "#111827",
+        );
       }
     } catch (err) {
       // 기본 색상 사용
@@ -155,37 +173,37 @@ export default function Header({
   const saveThemeColor = async (colorType: string, color: string) => {
     try {
       const { error } = await supabase
-        .from('theme_settings')
-        .update({ 
+        .from("theme_settings")
+        .update({
           [colorType]: color,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', 1);
-      
+        .eq("id", 1);
+
       if (error) {
-        console.error('색상 저장 오류:', error);
+        console.error("색상 저장 오류:", error);
         return;
       }
-      
+
       // 로컬 상태 업데이트
-      setThemeColors(prev => ({
+      setThemeColors((prev) => ({
         ...prev,
-        [colorType]: color
+        [colorType]: color,
       }));
-      
+
       // CSS 변수 업데이트
       const cssVarMap: { [key: string]: string } = {
-        'background_color': '--bg-color',
-        'header_bg_color': '--header-bg-color',
-        'calendar_bg_color': '--calendar-bg-color',
-        'event_list_bg_color': '--event-list-bg-color',
-        'event_list_outer_bg_color': '--event-list-outer-bg-color',
-        'page_bg_color': '--page-bg-color'
+        background_color: "--bg-color",
+        header_bg_color: "--header-bg-color",
+        calendar_bg_color: "--calendar-bg-color",
+        event_list_bg_color: "--event-list-bg-color",
+        event_list_outer_bg_color: "--event-list-outer-bg-color",
+        page_bg_color: "--page-bg-color",
       };
-      
+
       document.documentElement.style.setProperty(cssVarMap[colorType], color);
     } catch (err) {
-      console.error('색상 저장 실패:', err);
+      console.error("색상 저장 실패:", err);
     }
   };
 
@@ -196,7 +214,10 @@ export default function Header({
 
   return (
     <>
-      <header className="border-b border-gray-700" style={{ backgroundColor: 'var(--header-bg-color)' }}>
+      <header
+        className="border-b border-gray-700"
+        style={{ backgroundColor: "var(--header-bg-color)" }}
+      >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
@@ -227,10 +248,9 @@ export default function Header({
                   onClick={handleDateModalOpen}
                   className="text-sm font-bold text-white whitespace-nowrap hover:text-blue-400 transition-colors cursor-pointer"
                 >
-                  {viewMode === "year" 
+                  {viewMode === "year"
                     ? `${currentMonth.getFullYear()}년 전체`
-                    : `${currentMonth.getFullYear()}년 ${monthNames[currentMonth.getMonth()]}`
-                  }
+                    : `${currentMonth.getFullYear()}년 ${monthNames[currentMonth.getMonth()]}`}
                 </button>
                 <button
                   onClick={handleTodayClick}
@@ -240,7 +260,9 @@ export default function Header({
                 </button>
                 {onViewModeChange && (
                   <button
-                    onClick={() => onViewModeChange(viewMode === "month" ? "year" : "month")}
+                    onClick={() =>
+                      onViewModeChange(viewMode === "month" ? "year" : "month")
+                    }
                     className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${
                       viewMode === "year"
                         ? "bg-blue-600 hover:bg-blue-700 text-white"
@@ -272,7 +294,7 @@ export default function Header({
                   className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
                   title="광고판 보기"
                 >
-                  <i className="ri-image-line text-lg"></i>
+                  <i className="ri-image-line text-sm"></i>
                 </button>
               )}
               <button
@@ -358,248 +380,278 @@ export default function Header({
       )}
 
       {/* Settings Modal */}
-      {showSettingsModal && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">설정</h3>
-              <button
-                onClick={() => setShowSettingsModal(false)}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <i className="ri-close-line text-xl"></i>
-              </button>
-            </div>
+      {showSettingsModal &&
+        createPortal(
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
+            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white">설정</h3>
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <i className="ri-close-line text-xl"></i>
+                </button>
+              </div>
 
-            {!isAdminMode ? (
-              <div>
-                <h4 className="text-lg font-semibold text-white mb-4">
-                  관리자 모드
-                </h4>
-                <p className="text-gray-300 text-sm mb-4">
-                  관리자 모드에서는 모든 이벤트를 수정하고 삭제할 수 있습니다.
-                </p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
-                      관리자 비밀번호
-                    </label>
-                    <input
-                      type="password"
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleAdminLogin();
-                        }
-                      }}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="비밀번호를 입력하세요"
-                    />
+              {!isAdminMode ? (
+                <div>
+                  <h4 className="text-lg font-semibold text-white mb-4">
+                    관리자 모드
+                  </h4>
+                  <p className="text-gray-300 text-sm mb-4">
+                    관리자 모드에서는 모든 이벤트를 수정하고 삭제할 수 있습니다.
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-2">
+                        관리자 비밀번호
+                      </label>
+                      <input
+                        type="password"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleAdminLogin();
+                          }
+                        }}
+                        className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="비밀번호를 입력하세요"
+                      />
+                    </div>
+                    <button
+                      onClick={handleAdminLogin}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      관리자 모드 활성화
+                    </button>
                   </div>
-                  <button
-                    onClick={handleAdminLogin}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    관리자 모드 활성화
-                  </button>
                 </div>
-              </div>
-            ) : (
-              <div>
-                <h4 className="text-lg font-semibold text-white mb-4">
-                  관리자 모드 활성화됨
-                </h4>
-                <p className="text-gray-300 text-sm mb-4">
-                  현재 관리자 모드입니다. 모든 이벤트를 관리할 수 있습니다.
-                </p>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => {
-                      setShowSettingsModal(false);
-                      onBillboardSettingsOpen?.();
-                    }}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
-                  >
-                    <i className="ri-image-2-line"></i>
-                    광고판 설정
-                  </button>
-                  <button
-                    onClick={() => setShowColorPanel(!showColorPanel)}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
-                  >
-                    <i className="ri-palette-line"></i>
-                    색상 설정
-                  </button>
-                  <button
-                    onClick={handleAdminLogout}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    일반 모드로 전환
-                  </button>
+              ) : (
+                <div>
+                  <h4 className="text-lg font-semibold text-white mb-4">
+                    관리자 모드 활성화됨
+                  </h4>
+                  <p className="text-gray-300 text-sm mb-4">
+                    현재 관리자 모드입니다. 모든 이벤트를 관리할 수 있습니다.
+                  </p>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        setShowSettingsModal(false);
+                        onBillboardSettingsOpen?.();
+                      }}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                    >
+                      <i className="ri-image-2-line"></i>
+                      광고판 설정
+                    </button>
+                    <button
+                      onClick={() => setShowColorPanel(!showColorPanel)}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                    >
+                      <i className="ri-palette-line"></i>
+                      색상 설정
+                    </button>
+                    <button
+                      onClick={handleAdminLogout}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      일반 모드로 전환
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {/* 색상 설정 패널 */}
-      {showColorPanel && isAdminMode && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">색상 설정</h3>
-              <button
-                onClick={() => setShowColorPanel(false)}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <i className="ri-close-line text-xl"></i>
-              </button>
+      {showColorPanel &&
+        isAdminMode &&
+        createPortal(
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
+            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white">색상 설정</h3>
+                <button
+                  onClick={() => setShowColorPanel(false)}
+                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <i className="ri-close-line text-xl"></i>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* 헤더 배경색 */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    헤더 배경색
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={themeColors.header_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor("header_bg_color", e.target.value)
+                      }
+                      className="w-16 h-10 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={themeColors.header_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor("header_bg_color", e.target.value)
+                      }
+                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* 배경색 (650px 밖) */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    배경색 (650px 밖)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={themeColors.background_color}
+                      onChange={(e) =>
+                        saveThemeColor("background_color", e.target.value)
+                      }
+                      className="w-16 h-10 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={themeColors.background_color}
+                      onChange={(e) =>
+                        saveThemeColor("background_color", e.target.value)
+                      }
+                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* 달력 배경색 */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    달력 배경색
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={themeColors.calendar_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor("calendar_bg_color", e.target.value)
+                      }
+                      className="w-16 h-10 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={themeColors.calendar_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor("calendar_bg_color", e.target.value)
+                      }
+                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* 이벤트 리스트 배경색 */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    이벤트 리스트 배경색
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={themeColors.event_list_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor("event_list_bg_color", e.target.value)
+                      }
+                      className="w-16 h-10 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={themeColors.event_list_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor("event_list_bg_color", e.target.value)
+                      }
+                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* 이벤트 리스트 컨테이너 배경색 */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    이벤트 리스트 컨테이너 배경색
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={themeColors.event_list_outer_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor(
+                          "event_list_outer_bg_color",
+                          e.target.value,
+                        )
+                      }
+                      className="w-16 h-10 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={themeColors.event_list_outer_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor(
+                          "event_list_outer_bg_color",
+                          e.target.value,
+                        )
+                      }
+                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* 페이지 배경색 */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    이벤트리스트판 뒷배경
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={themeColors.page_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor("page_bg_color", e.target.value)
+                      }
+                      className="w-16 h-10 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={themeColors.page_bg_color}
+                      onChange={(e) =>
+                        saveThemeColor("page_bg_color", e.target.value)
+                      }
+                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-gray-400 text-xs mt-4">
+                  * 변경사항은 즉시 저장되어 모든 사용자에게 적용됩니다.
+                </p>
+              </div>
             </div>
-
-            <div className="space-y-6">
-              {/* 헤더 배경색 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  헤더 배경색
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={themeColors.header_bg_color}
-                    onChange={(e) => saveThemeColor('header_bg_color', e.target.value)}
-                    className="w-16 h-10 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={themeColors.header_bg_color}
-                    onChange={(e) => saveThemeColor('header_bg_color', e.target.value)}
-                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* 배경색 (650px 밖) */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  배경색 (650px 밖)
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={themeColors.background_color}
-                    onChange={(e) => saveThemeColor('background_color', e.target.value)}
-                    className="w-16 h-10 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={themeColors.background_color}
-                    onChange={(e) => saveThemeColor('background_color', e.target.value)}
-                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* 달력 배경색 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  달력 배경색
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={themeColors.calendar_bg_color}
-                    onChange={(e) => saveThemeColor('calendar_bg_color', e.target.value)}
-                    className="w-16 h-10 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={themeColors.calendar_bg_color}
-                    onChange={(e) => saveThemeColor('calendar_bg_color', e.target.value)}
-                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* 이벤트 리스트 배경색 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  이벤트 리스트 배경색
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={themeColors.event_list_bg_color}
-                    onChange={(e) => saveThemeColor('event_list_bg_color', e.target.value)}
-                    className="w-16 h-10 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={themeColors.event_list_bg_color}
-                    onChange={(e) => saveThemeColor('event_list_bg_color', e.target.value)}
-                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* 이벤트 리스트 컨테이너 배경색 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  이벤트 리스트 컨테이너 배경색
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={themeColors.event_list_outer_bg_color}
-                    onChange={(e) => saveThemeColor('event_list_outer_bg_color', e.target.value)}
-                    className="w-16 h-10 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={themeColors.event_list_outer_bg_color}
-                    onChange={(e) => saveThemeColor('event_list_outer_bg_color', e.target.value)}
-                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* 페이지 배경색 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  이벤트리스트판 뒷배경
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={themeColors.page_bg_color}
-                    onChange={(e) => saveThemeColor('page_bg_color', e.target.value)}
-                    className="w-16 h-10 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={themeColors.page_bg_color}
-                    onChange={(e) => saveThemeColor('page_bg_color', e.target.value)}
-                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <p className="text-gray-400 text-xs mt-4">
-                * 변경사항은 즉시 저장되어 모든 사용자에게 적용됩니다.
-              </p>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body,
+        )}
 
       {/* QR Code Modal */}
-      <QRCodeModal
-        isOpen={showQRModal}
-        onClose={() => setShowQRModal(false)}
-      />
+      <QRCodeModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} />
     </>
   );
 }

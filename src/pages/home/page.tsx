@@ -25,7 +25,10 @@ export default function HomePage() {
     "random",
   );
   const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
-  const [highlightEvent, setHighlightEvent] = useState<{ id: number; nonce: number } | null>(null);
+  const [highlightEvent, setHighlightEvent] = useState<{
+    id: number;
+    nonce: number;
+  } | null>(null);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -197,7 +200,7 @@ export default function HomePage() {
 
   const handleBillboardEventClick = (event: any) => {
     setIsBillboardOpen(false);
-    
+
     if (event && event.id) {
       // 이벤트 날짜로 달력 이동
       const eventDate = event.start_date || event.date;
@@ -205,7 +208,7 @@ export default function HomePage() {
         const date = new Date(eventDate);
         setCurrentMonth(date);
       }
-      
+
       // 약간의 딜레이 후 하이라이트 (달력이 먼저 렌더링되도록)
       setTimeout(() => {
         setHighlightEvent({ id: event.id, nonce: Date.now() });
@@ -422,7 +425,7 @@ export default function HomePage() {
             />
 
             {/* Category Filter Panel - Fixed below calendar */}
-            <div className="flex items-center gap-2 p-2 border-t border-gray-700">
+            <div className="flex items-center gap-2 p-2 border-t border-[#22262a]">
               <div className="flex gap-2 flex-1 overflow-x-auto">
                 <button
                   onClick={() => handleCategoryChange("all")}
@@ -478,10 +481,10 @@ export default function HomePage() {
               {/* 정렬 버튼 */}
               <button
                 onClick={() => setShowSortModal(true)}
-                className="flex flex-col items-center justify-center px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                className="flex items-center space-x-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer flex-shrink-0 whitespace-nowrap"
               >
-                <i className={`${getSortIcon()} text-sm`}></i>
-                <span className="text-[9px] mt-0.5">{getSortLabel()}</span>
+                <i className={`${getSortIcon()} text-xs`}></i>
+                <span className="text-xs">{getSortLabel()}</span>
               </button>
 
               {/* 검색 버튼 */}
