@@ -355,8 +355,8 @@ export default function EventList({
         const relativePosition = elementTop - containerTop;
 
         // 현재 스크롤 위치에서 목표 위치 계산
-        // 배너(1px) + 여유 공간 = 약 20px 위쪽 여유
-        const targetScroll = scrollContainer.scrollTop + relativePosition - 20;
+        // 배너가 완전히 보이도록 50px 위쪽 여유
+        const targetScroll = scrollContainer.scrollTop + relativePosition - 50;
 
         console.log("컨테이너 top:", containerTop);
         console.log("요소 top:", elementTop);
