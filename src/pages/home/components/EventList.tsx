@@ -615,7 +615,6 @@ export default function EventList({
     }
   };
 
-
   const handlePasswordSubmit = () => {
     if (eventToEdit && eventPassword === eventToEdit.password) {
       setEditFormData({
@@ -789,7 +788,6 @@ export default function EventList({
     }
   };
 
-
   if (loading) {
     return (
       <div className="bg-gray-800 rounded-none p-4">
@@ -899,7 +897,7 @@ export default function EventList({
                         </div>
                       </div>
 
-                      <div className="p-2">
+                      <div className="p-1">
                         <p className="text-xs text-gray-300 text-center">
                           {(() => {
                             const startDate = event.start_date || event.date;
