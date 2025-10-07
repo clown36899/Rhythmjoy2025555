@@ -22,7 +22,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     title: '',
     location: '',
     category: 'class',
-    description: '',
     organizer: '',
     link1: '',
     link2: '',
@@ -36,7 +35,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // selectedDate가 변경되면 endDate도 업데이트
   useEffect(() => {
@@ -169,7 +167,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
             category: formData.category,
             price: 'Free',
             image: imageUrl,
-            description: formData.description,
+            description: '',
             organizer: formData.organizer,
             capacity: 50,
             registered: 0,
@@ -193,7 +191,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
           title: '',
           location: '',
           category: 'class',
-          description: '',
           organizer: '',
           link1: '',
           link2: '',
@@ -444,32 +441,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       placeholder="링크 3 이름"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* 이벤트 설명 - 축소 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  이벤트 설명
-                </label>
-                <div className="relative">
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    rows={isDescriptionExpanded ? 8 : 3}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all duration-300 text-sm"
-                    placeholder="이벤트에 대한 자세한 설명을 입력하세요"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    className="absolute bottom-2 right-2 bg-gray-600 hover:bg-gray-500 text-gray-300 hover:text-white p-1 rounded transition-colors cursor-pointer"
-                    title={isDescriptionExpanded ? "축소" : "확장"}
-                  >
-                    <i className={`ri-${isDescriptionExpanded ? 'contract' : 'expand'}-up-down-line text-sm`}></i>
-                  </button>
                 </div>
               </div>
 

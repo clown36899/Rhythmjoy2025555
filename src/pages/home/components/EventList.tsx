@@ -64,7 +64,6 @@ export default function EventList({
   const [datePickerMonth, setDatePickerMonth] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [internalSortBy, setInternalSortBy] = useState<
     "random" | "time" | "title" | "newest"
   >("random");
@@ -86,7 +85,6 @@ export default function EventList({
     time: "",
     location: "",
     category: "",
-    description: "",
     organizer: "",
     link1: "",
     link2: "",
@@ -433,7 +431,6 @@ export default function EventList({
         time: event.time,
         location: event.location,
         category: event.category,
-        description: event.description,
         organizer: event.organizer,
         link1: event.link1 || "",
         link2: event.link2 || "",
@@ -548,7 +545,6 @@ export default function EventList({
         time: eventToEdit.time,
         location: eventToEdit.location,
         category: eventToEdit.category,
-        description: eventToEdit.description,
         organizer: eventToEdit.organizer,
         link1: eventToEdit.link1 || "",
         link2: eventToEdit.link2 || "",
@@ -650,7 +646,7 @@ export default function EventList({
           time: editFormData.time,
           location: editFormData.location,
           category: editFormData.category,
-          description: editFormData.description,
+          description: '',
           organizer: editFormData.organizer,
           link1: editFormData.link1 || null,
           link2: editFormData.link2 || null,
@@ -1313,38 +1309,6 @@ export default function EventList({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
-                    이벤트 설명
-                  </label>
-                  <div className="relative">
-                    <textarea
-                      value={editFormData.description}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      rows={isDescriptionExpanded ? 8 : 3}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all duration-300 text-sm"
-                      placeholder="이벤트에 대한 자세한 설명을 입력하세요"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setIsDescriptionExpanded(!isDescriptionExpanded)
-                      }
-                      className="absolute bottom-2 right-2 bg-gray-600 hover:bg-gray-500 text-gray-300 hover:text-white p-1 rounded transition-colors cursor-pointer"
-                      title={isDescriptionExpanded ? "축소" : "확장"}
-                    >
-                      <i
-                        className={`ri-${isDescriptionExpanded ? "contract" : "expand"}-up-down-line text-sm`}
-                      ></i>
-                    </button>
-                  </div>
-                </div>
-
                 <div className="flex space-x-3 pt-2">
                   <button
                     type="button"
@@ -1639,19 +1603,6 @@ export default function EventList({
                   </div>
                 )}
 
-                {/* 이벤트 소개 */}
-                {selectedEvent.description && (
-                  <div className="pt-3 border-t border-gray-700">
-                    <h3 className="text-lg font-semibold text-white mb-2">
-                      이벤트 소개
-                    </h3>
-                    <div className="bg-gray-700 rounded-lg p-3">
-                      <p className="text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
-                        {selectedEvent.description}
-                      </p>
-                    </div>
-                  </div>
-                )}
 
                 {/* 바로가기 링크 */}
                 {(selectedEvent.link1 ||
