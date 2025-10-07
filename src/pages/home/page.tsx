@@ -426,13 +426,12 @@ export default function HomePage() {
               <div className="flex gap-2 flex-1 overflow-x-auto">
                 <button
                   onClick={() => handleCategoryChange("all")}
-                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                  className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("all")
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
-                  <i className="ri-calendar-line text-xs"></i>
                   <span>
                     {currentMonth
                       ? viewMode === "year"
@@ -443,24 +442,22 @@ export default function HomePage() {
                 </button>
                 <button
                   onClick={() => handleCategoryChange("class")}
-                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                  className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("class")
-                      ? "bg-blue-600 text-white"
+                      ? "bg-purple-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
-                  <i className="ri-book-line text-xs"></i>
                   <span>강습</span>
                 </button>
                 <button
                   onClick={() => handleCategoryChange("event")}
-                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                  className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("event")
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
-                  <i className="ri-calendar-event-line text-xs"></i>
                   <span>행사</span>
                 </button>
                 <button
@@ -468,13 +465,12 @@ export default function HomePage() {
                     setSelectedCategory("practice");
                     setShowPracticeRoomModal(true);
                   }}
-                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                  className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("practice")
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
-                  <i className="ri-home-4-line text-xs"></i>
                   <span>연습실</span>
                 </button>
               </div>

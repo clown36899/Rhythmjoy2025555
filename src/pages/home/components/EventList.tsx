@@ -229,50 +229,12 @@ export default function EventList({
     setSearchSuggestions([]);
   };
 
-  const clearSearch = () => {
-    setSearchTerm("");
-    setSearchQuery("");
-    setSearchSuggestions([]);
-  };
-
   const handleSortChange = (
     newSortBy: "random" | "time" | "title" | "newest",
   ) => {
     setSortBy(newSortBy);
     setShowSortModal(false);
   };
-
-  const getSortIcon = () => {
-    return "ri-sort-desc";
-  };
-
-  const getSortLabel = () => {
-    switch (sortBy) {
-      case "random":
-        return "랜덤";
-      case "time":
-        return "시간순";
-      case "title":
-        return "제목순";
-      default:
-        return "정렬";
-    }
-  };
-
-  const categories = [
-    {
-      id: "all",
-      name: currentMonth
-        ? viewMode === "year"
-          ? `${currentMonth.getFullYear()} 전체`
-          : `${currentMonth.getMonth() + 1}월 전체`
-        : "모든 이벤트",
-      icon: "ri-calendar-line",
-    },
-    { id: "class", name: "강습", icon: "ri-book-line" },
-    { id: "event", name: "행사", icon: "ri-calendar-event-line" },
-    { id: "practice", name: "연습실", icon: "ri-home-4-line" },
-  ];
 
   const sortOptions = [
     { id: "random", name: "랜덤", icon: "ri-shuffle-line" },
@@ -288,7 +250,7 @@ export default function EventList({
 
   // 달 변경 시 스크롤 위치 리셋
   useEffect(() => {
-    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const scrollContainer = document.querySelector(".overflow-y-auto");
     if (scrollContainer) {
       scrollContainer.scrollTop = 0;
     }
@@ -653,37 +615,6 @@ export default function EventList({
     }
   };
 
-  const deleteAllEvents = async () => {
-    if (
-      !confirm(
-        "정말로 모든 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
-      )
-    ) {
-      return;
-    }
-
-    if (!confirm("한 번 더 확인합니다. 정말 모든 이벤트를 삭제하시겠습니까?")) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from("events").delete().gte("id", 0);
-
-      if (error) {
-        console.error("Error deleting all events:", error);
-        alert("모든 이벤트 삭제 중 오류가 발생했습니다.");
-      } else {
-        alert("모든 이벤트가 삭제되었습니다.");
-        fetchEvents();
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("eventDeleted"));
-        }
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("모든 이벤트 삭제 중 오류가 발생했습니다.");
-    }
-  };
 
   const handlePasswordSubmit = () => {
     if (eventToEdit && eventPassword === eventToEdit.password) {
@@ -784,48 +715,47 @@ export default function EventList({
       if (editImageFile) {
         const resizedImages = await createResizedImages(editImageFile);
         const timestamp = Date.now();
-        const baseFileName = editImageFile.name.split('.')[0];
+        const baseFileName = editImageFile.name.split(".")[0];
 
         const uploadPromises = [
           {
             file: resizedImages.thumbnail,
             path: `event-posters/thumbnail/${baseFileName}_${timestamp}_thumb.jpg`,
-            key: 'thumbnail' as const
+            key: "thumbnail" as const,
           },
           {
             file: resizedImages.medium,
             path: `event-posters/medium/${baseFileName}_${timestamp}_medium.jpg`,
-            key: 'medium' as const
+            key: "medium" as const,
           },
           {
             file: resizedImages.full,
             path: `event-posters/full/${baseFileName}_${timestamp}_full.jpg`,
-            key: 'full' as const
-          }
+            key: "full" as const,
+          },
         ];
 
         const results = await Promise.all(
           uploadPromises.map(async ({ file, path, key }) => {
             const { error } = await supabase.storage
-              .from('images')
+              .from("images")
               .upload(path, file);
 
             if (error) {
               console.error(`${key} upload error:`, error);
-              return { key, url: '' };
+              return { key, url: "" };
             }
 
-            const { data } = supabase.storage
-              .from('images')
-              .getPublicUrl(path);
+            const { data } = supabase.storage.from("images").getPublicUrl(path);
 
             return { key, url: data.publicUrl };
-          })
+          }),
         );
 
-        const thumbnailUrl = results.find(r => r.key === 'thumbnail')?.url || '';
-        const mediumUrl = results.find(r => r.key === 'medium')?.url || '';
-        const fullUrl = results.find(r => r.key === 'full')?.url || '';
+        const thumbnailUrl =
+          results.find((r) => r.key === "thumbnail")?.url || "";
+        const mediumUrl = results.find((r) => r.key === "medium")?.url || "";
+        const fullUrl = results.find((r) => r.key === "full")?.url || "";
 
         updateData.image = fullUrl || editFormData.image;
         updateData.image_thumbnail = thumbnailUrl || null;
@@ -859,36 +789,6 @@ export default function EventList({
     }
   };
 
-  // 카테고리 버튼이 활성화되어야 하는지 확인하는 함수
-  const isCategoryActive = (categoryId: string) => {
-    // 날짜가 선택되었고 selectedCategory가 "all"일 때
-    if (selectedDate && selectedCategory === "all") {
-      // 해당 날짜에 실제로 이벤트가 있는지 확인
-      const hasEvents = filteredEvents.length > 0;
-
-      // 이벤트가 있을 때만 강습/행사 버튼 활성화
-      if (categoryId === "all") {
-        return false;
-      } else if (
-        (categoryId === "class" || categoryId === "event") &&
-        hasEvents
-      ) {
-        return true;
-      }
-    }
-
-    // 그 외의 경우는 현재 선택된 카테고리인지 확인
-    return selectedCategory === categoryId;
-  };
-
-  // 새로운 카테고리 클릭 핸들러 (practice 방 추가)
-  const handleCategoryClick = (categoryId: string) => {
-    if (categoryId === "practice") {
-      setShowPracticeRoomModal(true);
-    } else {
-      onCategoryChange(categoryId);
-    }
-  };
 
   if (loading) {
     return (
@@ -935,17 +835,17 @@ export default function EventList({
                       data-event-id={event.id}
                       onClick={() => handleEventClick(event)}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#000000";
-                        if (viewMode === "month" && onEventHover) {
+                        e.currentTarget.style.borderColor =
+                          highlightBorderColor;
+                        if (viewMode === "month" && onEventHover)
                           onEventHover(event.id);
-                        }
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor =
                           "var(--event-list-bg-color)";
-                        if (viewMode === "month" && onEventHover) {
+                        e.currentTarget.style.borderColor = "#3d3d3d";
+                        if (viewMode === "month" && onEventHover)
                           onEventHover(null);
-                        }
                       }}
                       className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${
                         isHighlighted ? "" : "border-[#3d3d3d]"
@@ -955,19 +855,16 @@ export default function EventList({
                         borderColor: isHighlighted
                           ? highlightBorderColor
                           : undefined,
-                        boxShadow: isHighlighted
-                          ? `0 0 20px ${highlightBorderColor}`
-                          : undefined,
                       }}
                     >
-                      {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
+                      {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일fu�은 회색 */}
                       <div
                         className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}
                       ></div>
 
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
-                        {(event.image_thumbnail || event.image) ? (
+                        {event.image_thumbnail || event.image ? (
                           <img
                             src={event.image_thumbnail || event.image}
                             alt={event.title}
@@ -1261,13 +1158,8 @@ export default function EventList({
                     }
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
                   >
-                    {categories
-                      .filter((cat) => cat.id === "class" || cat.id === "event")
-                      .map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
+                    <option value="class">강습</option>
+                    <option value="event">행사</option>
                   </select>
                 </div>
 
@@ -1677,7 +1569,7 @@ export default function EventList({
           >
             {/* 이미지 영역 - 클릭 시 풀스크린 */}
             <div
-              className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${(selectedEvent.image_medium || selectedEvent.image) ? "bg-black" : "bg-cover bg-center"}`}
+              className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${selectedEvent.image_medium || selectedEvent.image ? "bg-black" : "bg-cover bg-center"}`}
               style={
                 !(selectedEvent.image_medium || selectedEvent.image)
                   ? {
@@ -1686,10 +1578,11 @@ export default function EventList({
                   : undefined
               }
               onClick={() =>
-                (selectedEvent.image_medium || selectedEvent.image) && setShowFullscreenImage(true)
+                (selectedEvent.image_medium || selectedEvent.image) &&
+                setShowFullscreenImage(true)
               }
             >
-              {(selectedEvent.image_medium || selectedEvent.image) ? (
+              {selectedEvent.image_medium || selectedEvent.image ? (
                 <>
                   <img
                     src={selectedEvent.image_medium || selectedEvent.image}
@@ -1879,25 +1772,26 @@ export default function EventList({
       )}
 
       {/* 풀스크린 이미지 모달 */}
-      {showFullscreenImage && (selectedEvent?.image_full || selectedEvent?.image) && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
-          onClick={() => setShowFullscreenImage(false)}
-        >
-          <button
+      {showFullscreenImage &&
+        (selectedEvent?.image_full || selectedEvent?.image) && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
             onClick={() => setShowFullscreenImage(false)}
-            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
           >
-            <i className="ri-close-line text-2xl"></i>
-          </button>
-          <img
-            src={selectedEvent.image_full || selectedEvent.image}
-            alt={selectedEvent.title}
-            className="max-w-full max-h-full object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+            <button
+              onClick={() => setShowFullscreenImage(false)}
+              className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+            >
+              <i className="ri-close-line text-2xl"></i>
+            </button>
+            <img
+              src={selectedEvent.image_full || selectedEvent.image}
+              alt={selectedEvent.title}
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
 
       {/* Practice Room Modal */}
       <PracticeRoomModal
