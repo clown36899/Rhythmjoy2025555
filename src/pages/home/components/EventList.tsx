@@ -688,8 +688,8 @@ export default function EventList({
   return (
     <>
       <div
-        className="bg-gray-800 p-4"
-        style={{ margin: "14px", borderRadius: "11px" }}
+        className="p-4"
+        style={{ margin: "14px", borderRadius: "11px", backgroundColor: 'var(--event-list-outer-bg-color)' }}
       >
         <div className="mb-6">
           {/* 데스크톱에서도 제목 완전 제거 */}
