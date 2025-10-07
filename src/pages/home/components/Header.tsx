@@ -38,6 +38,7 @@ export default function Header({
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [themeColors, setThemeColors] = useState({
     background_color: '#000000',
+    header_bg_color: '#1f2937',
     calendar_bg_color: '#111827',
     event_list_bg_color: '#1f2937',
     event_list_outer_bg_color: '#111827'
@@ -130,6 +131,7 @@ export default function Header({
       if (data) {
         setThemeColors({
           background_color: data.background_color,
+          header_bg_color: data.header_bg_color || '#1f2937',
           calendar_bg_color: data.calendar_bg_color,
           event_list_bg_color: data.event_list_bg_color,
           event_list_outer_bg_color: data.event_list_outer_bg_color
@@ -137,6 +139,7 @@ export default function Header({
         
         // CSS 변수 업데이트
         document.documentElement.style.setProperty('--bg-color', data.background_color);
+        document.documentElement.style.setProperty('--header-bg-color', data.header_bg_color || '#1f2937');
         document.documentElement.style.setProperty('--calendar-bg-color', data.calendar_bg_color);
         document.documentElement.style.setProperty('--event-list-bg-color', data.event_list_bg_color);
         document.documentElement.style.setProperty('--event-list-outer-bg-color', data.event_list_outer_bg_color);
@@ -171,6 +174,7 @@ export default function Header({
       // CSS 변수 업데이트
       const cssVarMap: { [key: string]: string } = {
         'background_color': '--bg-color',
+        'header_bg_color': '--header-bg-color',
         'calendar_bg_color': '--calendar-bg-color',
         'event_list_bg_color': '--event-list-bg-color',
         'event_list_outer_bg_color': '--event-list-outer-bg-color'
@@ -189,7 +193,7 @@ export default function Header({
 
   return (
     <>
-      <header className="bg-gray-800 border-b border-gray-700">
+      <header className="border-b border-gray-700" style={{ backgroundColor: 'var(--header-bg-color)' }}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
@@ -448,6 +452,27 @@ export default function Header({
             </div>
 
             <div className="space-y-6">
+              {/* 헤더 배경색 */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  헤더 배경색
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={themeColors.header_bg_color}
+                    onChange={(e) => saveThemeColor('header_bg_color', e.target.value)}
+                    className="w-16 h-10 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={themeColors.header_bg_color}
+                    onChange={(e) => saveThemeColor('header_bg_color', e.target.value)}
+                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
               {/* 배경색 (650px 밖) */}
               <div>
                 <label className="block text-gray-300 text-sm font-medium mb-2">
