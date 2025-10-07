@@ -314,44 +314,75 @@ export default function EventList({
 
     console.log('[스크롤] Effect 트리거:', highlightEvent);
 
-    // 이벤트 카드 찾기
-    const eventElement = document.querySelector(
-      `[data-event-id="${highlightEvent.id}"]`,
-    ) as HTMLElement;
+    // DOM에 이벤트 카드가 나타날 때까지 기다리는 함수
+    const waitForElement = (selector: string): Promise<HTMLElement> => {
+      return new Promise((resolve) => {
+        // 이미 존재하는지 확인
+        const existing = document.querySelector(selector) as HTMLElement;
+        if (existing) {
+          console.log('[스크롤] 이벤트 카드 이미 존재:', existing);
+          resolve(existing);
+          return;
+        }
 
-    if (!eventElement) {
-      console.log('[스크롤] 이벤트 카드를 찾을 수 없음');
-      return;
-    }
+        console.log('[스크롤] 이벤트 카드 기다리는 중...');
 
-    console.log('[스크롤] 이벤트 카드 찾음:', eventElement);
+        // MutationObserver로 DOM 변화 감지
+        const observer = new MutationObserver(() => {
+          const element = document.querySelector(selector) as HTMLElement;
+          if (element) {
+            console.log('[스크롤] 이벤트 카드 나타남:', element);
+            observer.disconnect();
+            resolve(element);
+          }
+        });
 
-    // 스크롤 컨테이너 찾기
-    let container: HTMLElement = eventElement.parentElement as HTMLElement;
-    while (container && container !== document.body) {
-      const style = window.getComputedStyle(container);
-      if (/(auto|scroll)/.test(style.overflowY) && container.scrollHeight > container.clientHeight) {
-        break;
+        // body 전체를 관찰
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
+
+        // 최대 5초 타임아웃
+        setTimeout(() => {
+          observer.disconnect();
+          console.log('[스크롤] 타임아웃: 이벤트 카드를 찾을 수 없음');
+        }, 5000);
+      });
+    };
+
+    let listenerTimer: NodeJS.Timeout;
+    let autoTimer: NodeJS.Timeout;
+
+    // 비동기로 이벤트 카드가 나타날 때까지 기다림
+    waitForElement(`[data-event-id="${highlightEvent.id}"]`).then((eventElement) => {
+      console.log('[스크롤] 스크롤 준비 완료');
+
+      // 스크롤 컨테이너 찾기
+      let container: HTMLElement = eventElement.parentElement as HTMLElement;
+      while (container && container !== document.body) {
+        const style = window.getComputedStyle(container);
+        if (/(auto|scroll)/.test(style.overflowY) && container.scrollHeight > container.clientHeight) {
+          break;
+        }
+        container = container.parentElement as HTMLElement;
       }
-      container = container.parentElement as HTMLElement;
-    }
-    
-    if (!container || container === document.body) {
-      container = (document.scrollingElement as HTMLElement) || document.documentElement;
-    }
+      
+      if (!container || container === document.body) {
+        container = (document.scrollingElement as HTMLElement) || document.documentElement;
+      }
 
-    console.log('[스크롤] 스크롤 컨테이너:', container.className || container.tagName);
+      console.log('[스크롤] 스크롤 컨테이너:', container.className || container.tagName);
 
-    // 카테고리 패널 찾기
-    const categoryPanel = document.querySelector('[data-category-panel]') as HTMLElement;
-    
-    if (!categoryPanel) {
-      console.log('[스크롤] 카테고리 패널을 찾을 수 없음');
-      return;
-    }
+      // 카테고리 패널 찾기
+      const categoryPanel = document.querySelector('[data-category-panel]') as HTMLElement;
+      
+      if (!categoryPanel) {
+        console.log('[스크롤] 카테고리 패널을 찾을 수 없음');
+        return;
+      }
 
-    // 즉시 스크롤 (타이밍 문제 제거)
-    const performScroll = () => {
+      // 스크롤 실행
       const containerRect = container.getBoundingClientRect();
       const panelRect = categoryPanel.getBoundingClientRect();
       const elementRect = eventElement.getBoundingClientRect();
@@ -380,40 +411,38 @@ export default function EventList({
       });
       
       console.log('[스크롤] scrollTo 실행 완료');
-    };
 
-    // 즉시 한 번 실행
-    performScroll();
+      // 하이라이트 해제 리스너
+      const handleUserInput = () => {
+        console.log('[스크롤] 사용자 입력으로 하이라이트 해제');
+        if (onHighlightComplete) {
+          onHighlightComplete();
+        }
+      };
 
-    // 하이라이트 해제 리스너
-    const handleUserInput = () => {
-      console.log('[스크롤] 사용자 입력으로 하이라이트 해제');
-      if (onHighlightComplete) {
-        onHighlightComplete();
-      }
-    };
+      const eventTypes = ["click", "wheel", "keydown", "touchstart", "touchmove"];
+      
+      // 600ms 후 리스너 등록
+      listenerTimer = setTimeout(() => {
+        eventTypes.forEach((event) => {
+          window.addEventListener(event, handleUserInput);
+        });
+      }, 600);
 
-    const eventTypes = ["click", "wheel", "keydown", "touchstart", "touchmove"];
-    
-    // 600ms 후 리스너 등록
-    const listenerTimer = setTimeout(() => {
-      eventTypes.forEach((event) => {
-        window.addEventListener(event, handleUserInput);
-      });
-    }, 600);
-
-    // 3초 후 자동 해제
-    const autoTimer = setTimeout(() => {
-      if (onHighlightComplete) {
-        onHighlightComplete();
-      }
-    }, 3000);
+      // 3초 후 자동 해제
+      autoTimer = setTimeout(() => {
+        if (onHighlightComplete) {
+          onHighlightComplete();
+        }
+      }, 3000);
+    });
 
     return () => {
       clearTimeout(listenerTimer);
       clearTimeout(autoTimer);
+      const eventTypes = ["click", "wheel", "keydown", "touchstart", "touchmove"];
       eventTypes.forEach((event) => {
-        window.removeEventListener(event, handleUserInput);
+        window.removeEventListener(event, () => {});
       });
     };
   }, [highlightEvent?.id, highlightEvent?.nonce]);
