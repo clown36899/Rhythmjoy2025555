@@ -1,0 +1,30 @@
+하이라이트 ID 설정: 50
+EventList.tsx:315 하이라이트 ID: 50
+EventList.tsx:323 찾은 요소: <div data-event-id=​"50" class=​"rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 " style=​"background-color:​ var(--event-list-bg-color)​;​ border-color:​ rgb(37, 99, 235)​;​ box-shadow:​ rgb(37, 99, 235)​ 0px 0px 20px;​">​…​</div>​
+EventList.tsx:341 고정 영역 높이: 319
+EventList.tsx:347 스크롤 위치: -11
+EventList.tsx:315 하이라이트 ID: 50
+EventList.tsx:323 찾은 요소: <div data-event-id=​"50" class=​"rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 " style=​"background-color:​ var(--event-list-bg-color)​;​ border-color:​ rgb(37, 99, 235)​;​ box-shadow:​ rgb(37, 99, 235)​ 0px 0px 20px;​">​…​</div>​
+EventList.tsx:341 고정 영역 높이: 319
+EventList.tsx:347 스크롤 위치: -11
+EventList.tsx:315 하이라이트 ID: 50
+EventList.tsx:323 찾은 요소: <div data-event-id=​"50" class=​"rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 " style=​"background-color:​ var(--event-list-bg-color)​;​ border-color:​ rgb(37, 99, 235)​;​ box-shadow:​ rgb(37, 99, 235)​ 0px 0px 20px;​">​…​</div>​
+EventList.tsx:341 고정 영역 높이: 319
+EventList.tsx:347 스크롤 위치: -11
+EventList.tsx:315 하이라이트 ID: 50
+EventList.tsx:323 찾은 요소: <div data-event-id=​"50" class=​"rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 " style=​"background-color:​ var(--event-list-bg-color)​;​ border-color:​ rgb(37, 99, 235)​;​ box-shadow:​ rgb(37, 99, 235)​ 0px 0px 20px;​">​…​</div>​
+EventList.tsx:341 고정 영역 높이: 319
+EventList.tsx:347 스크롤 위치: -11
+EventList.tsx:315 하이라이트 ID: 50
+EventList.tsx:323 찾은 요소: <div data-event-id=​"50" class=​"rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 " style=​"background-color:​ var(--event-list-bg-color)​;​ border-color:​ rgb(37, 99, 235)​;​ box-shadow:​ rgb(37, 99, 235)​ 0px 0px 20px;​">​…​</div>​
+EventList.tsx:341 고정 영역 높이: 319
+EventList.tsx:347 스크롤 위치: -11
+EventList.tsx:315 하이라이트 ID: 50
+EventList.tsx:323 찾은 요소: <div data-event-id=​"50" class=​"rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 " style=​"background-color:​ var(--event-list-bg-color)​;​ border-color:​ rgb(37, 99, 235)​;​ box-shadow:​ rgb(37, 99, 235)​ 0px 0px 20px;​">​…​</div>​
+EventList.tsx:341 고정 영역 높이: 319
+EventList.tsx:347 스크롤 위치: -11
+EventList.tsx:315 하이라이트 ID: 50
+EventList.tsx:323 찾은 요소: <div data-event-id=​"50" class=​"rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 " style=​"background-color:​ var(--event-list-bg-color)​;​ border-color:​ rgb(37, 99, 235)​;​ box-shadow:​ rgb(37, 99, 235)​ 0px 0px 20px;​">​…​</div>​
+EventList.tsx:341 고정 영역 높이: 319
+EventList.tsx:347 스크롤 위치: -11
+EventList.tsx:311 하이라이트 없음

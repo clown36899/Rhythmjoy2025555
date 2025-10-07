@@ -355,9 +355,14 @@ export default function EventList({
         const relativePosition = elementTop - containerTop;
 
         // 현재 스크롤 위치에서 목표 위치 계산
-        const targetScroll = scrollContainer.scrollTop + relativePosition - 10; // 10px 위쪽 여유
+        // 배너(1px) + 여유 공간 = 약 20px 위쪽 여유
+        const targetScroll = scrollContainer.scrollTop + relativePosition - 20;
 
-        console.log("스크롤 위치:", targetScroll);
+        console.log("컨테이너 top:", containerTop);
+        console.log("요소 top:", elementTop);
+        console.log("상대 위치:", relativePosition);
+        console.log("현재 스크롤:", scrollContainer.scrollTop);
+        console.log("목표 스크롤:", targetScroll);
 
         scrollContainer.scrollTo({
           top: targetScroll,
