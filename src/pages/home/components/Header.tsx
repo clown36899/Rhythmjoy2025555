@@ -125,7 +125,6 @@ export default function Header({
       
       // 테이블이 없거나 데이터가 없으면 기본값 사용
       if (error) {
-        console.log('테이블이 없어 기본 색상 사용');
         return;
       }
       
@@ -148,7 +147,7 @@ export default function Header({
         document.documentElement.style.setProperty('--page-bg-color', data.page_bg_color || '#111827');
       }
     } catch (err) {
-      console.log('기본 색상 사용');
+      // 기본 색상 사용
     }
   };
 

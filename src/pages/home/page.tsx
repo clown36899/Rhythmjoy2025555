@@ -197,16 +197,10 @@ export default function HomePage() {
   };
 
   const handleBillboardEventClick = (event: any) => {
-    console.log("빌보드 이벤트 클릭 핸들러:", event);
-    // 빌보드 닫기
     setIsBillboardOpen(false);
     
-    // 이벤트 하이라이트
     if (event && event.id) {
-      console.log("하이라이트 ID 설정:", event.id);
       setHighlightEventId(event.id);
-    } else {
-      console.log("이벤트 또는 ID 없음");
     }
   };
 
