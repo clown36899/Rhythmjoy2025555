@@ -587,6 +587,7 @@ export default function EventCalendar({
   return (
     <>
       <div
+        data-calendar
         className="rounded-none p-0 h-full flex flex-col"
         style={{ backgroundColor: "var(--calendar-bg-color)" }}
       >

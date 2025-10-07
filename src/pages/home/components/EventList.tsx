@@ -317,13 +317,24 @@ export default function EventList({
     ) as HTMLElement;
     
     if (eventElement) {
-      // 스크롤 - 배너를 고려하여 약간 위쪽 여유 공간 확보
+      // 스크롤 - 배너 최상단-2px가 분류 컨테이너 바로 아래에 붙도록
       const scrollToElement = () => {
         if (hasScrolled) return;
         hasScrolled = true;
 
+        // 분류 컨테이너(카테고리 패널)의 하단 위치 계산
+        // 헤더(60px) + 달력(동적) + 카테고리 패널(약 95px)
+        const header = document.querySelector("header");
+        const calendar = document.querySelector("[data-calendar]");
+        
+        let fixedAreaHeight = 0;
+        if (header) fixedAreaHeight += header.offsetHeight;
+        if (calendar) fixedAreaHeight += calendar.offsetHeight;
+        fixedAreaHeight += 95; // 카테고리 패널 높이
+
+        // 배너는 카드 최상단에 있고, 배너 최상단-2px가 분류 컨테이너 아래에 붙어야 함
         const elementPosition = eventElement.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - 100; // 100px 위쪽 여유
+        const offsetPosition = elementPosition + window.pageYOffset - fixedAreaHeight + 2;
 
         window.scrollTo({
           top: offsetPosition,
