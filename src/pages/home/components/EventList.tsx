@@ -20,6 +20,12 @@ interface EventListProps {
   isAdminMode?: boolean;
   viewMode?: "month" | "year";
   onEventHover?: (eventId: number | null) => void;
+  showSearchModal?: boolean;
+  setShowSearchModal?: (show: boolean) => void;
+  showSortModal?: boolean;
+  setShowSortModal?: (show: boolean) => void;
+  sortBy?: "random" | "time" | "title" | "newest";
+  setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
 }
 
 export default function EventList({
@@ -31,6 +37,12 @@ export default function EventList({
   isAdminMode = false,
   viewMode = "month",
   onEventHover,
+  showSearchModal: externalShowSearchModal,
+  setShowSearchModal: externalSetShowSearchModal,
+  showSortModal: externalShowSortModal,
+  setShowSortModal: externalSetShowSortModal,
+  sortBy: externalSortBy,
+  setSortBy: externalSetSortBy,
 }: EventListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -40,14 +52,21 @@ export default function EventList({
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
   const [eventPassword, setEventPassword] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [internalShowSearchModal, setInternalShowSearchModal] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState<'start' | 'end' | null>(null);
   const [datePickerMonth, setDatePickerMonth] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [sortBy, setSortBy] = useState<"random" | "time" | "title">("random");
-  const [showSortModal, setShowSortModal] = useState(false);
+  const [internalSortBy, setInternalSortBy] = useState<"random" | "time" | "title" | "newest">("random");
+  const [internalShowSortModal, setInternalShowSortModal] = useState(false);
+  
+  const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
+  const setShowSearchModal = externalSetShowSearchModal ?? setInternalShowSearchModal;
+  const showSortModal = externalShowSortModal ?? internalShowSortModal;
+  const setShowSortModal = externalSetShowSortModal ?? setInternalShowSortModal;
+  const sortBy = externalSortBy ?? internalSortBy;
+  const setSortBy = externalSetSortBy ?? setInternalSortBy;
   const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
     title: "",
@@ -96,6 +115,13 @@ export default function EventList({
       case "title":
         // 제목순 정렬 (가나다순)
         return eventsCopy.sort((a, b) => a.title.localeCompare(b.title, "ko"));
+      case "newest":
+        // 최신순 정렬 (created_at 기준)
+        return eventsCopy.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
       default:
         return eventsCopy;
     }
@@ -190,7 +216,7 @@ export default function EventList({
     setSearchSuggestions([]);
   };
 
-  const handleSortChange = (newSortBy: "random" | "time" | "title") => {
+  const handleSortChange = (newSortBy: "random" | "time" | "title" | "newest") => {
     setSortBy(newSortBy);
     setShowSortModal(false);
   };
@@ -231,6 +257,7 @@ export default function EventList({
     { id: "random", name: "랜덤", icon: "ri-shuffle-line" },
     { id: "time", name: "시간순", icon: "ri-time-line" },
     { id: "title", name: "제목순", icon: "ri-sort-alphabet-asc" },
+    { id: "newest", name: "최신순", icon: "ri-calendar-line" },
   ];
 
   // 이벤트 데이터 로드
@@ -889,7 +916,7 @@ export default function EventList({
                   <button
                     key={option.id}
                     onClick={() =>
-                      handleSortChange(option.id as "random" | "time" | "title")
+                      handleSortChange(option.id as "random" | "time" | "title" | "newest")
                     }
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                       sortBy === option.id

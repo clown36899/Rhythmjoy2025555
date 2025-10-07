@@ -19,6 +19,9 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [savedMonth, setSavedMonth] = useState<Date | null>(null);
   const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">("random");
   
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -253,6 +256,36 @@ export default function HomePage() {
     }
   };
 
+  const getSortIcon = () => {
+    switch (sortBy) {
+      case "random":
+        return "ri-shuffle-line";
+      case "time":
+        return "ri-time-line";
+      case "title":
+        return "ri-sort-alphabet-asc";
+      case "newest":
+        return "ri-calendar-line";
+      default:
+        return "ri-shuffle-line";
+    }
+  };
+
+  const getSortLabel = () => {
+    switch (sortBy) {
+      case "random":
+        return "랜덤";
+      case "time":
+        return "시간";
+      case "title":
+        return "제목";
+      case "newest":
+        return "최신";
+      default:
+        return "랜덤";
+    }
+  };
+
   const handleViewModeChange = (mode: "month" | "year") => {
     if (mode === "year") {
       // 년 보기로 전환: 현재 월 저장
@@ -326,7 +359,7 @@ export default function HomePage() {
             
             {/* Category Filter Panel - Fixed below calendar */}
             <div className="flex items-center gap-2 p-2 border-t border-gray-700">
-              <div className="flex flex-wrap gap-2 flex-1">
+              <div className="flex gap-2 flex-1 overflow-x-auto">
                 <button
                   onClick={() => setSelectedCategory("all")}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
@@ -378,6 +411,23 @@ export default function HomePage() {
                   <span>연습실</span>
                 </button>
               </div>
+              
+              {/* 정렬 버튼 */}
+              <button
+                onClick={() => setShowSortModal(true)}
+                className="flex flex-col items-center justify-center px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              >
+                <i className={`${getSortIcon()} text-sm`}></i>
+                <span className="text-[9px] mt-0.5">{getSortLabel()}</span>
+              </button>
+
+              {/* 검색 버튼 */}
+              <button
+                onClick={() => setShowSearchModal(true)}
+                className="flex items-center justify-center w-8 h-8 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              >
+                <i className="ri-search-line text-sm"></i>
+              </button>
             </div>
           </div>
 
@@ -396,6 +446,12 @@ export default function HomePage() {
                 isAdminMode={isAdminMode}
                 viewMode={viewMode}
                 onEventHover={setHoveredEventId}
+                showSearchModal={showSearchModal}
+                setShowSearchModal={setShowSearchModal}
+                showSortModal={showSortModal}
+                setShowSortModal={setShowSortModal}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
               />
             </div>
             <Footer />
