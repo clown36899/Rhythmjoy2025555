@@ -352,23 +352,31 @@ export default function EventList({
 
         console.log("고정 영역 높이:", fixedAreaHeight);
 
-        // 컨테이너의 시작 위치 (스크롤 가능 영역 시작점)
-        const containerTop = scrollContainer.getBoundingClientRect().top;
-        
+        // 분류 컨테이너 (카테고리 패널) 찾기
+        const categoryPanel = document.querySelector('.fixed.top-16.border-b.border-black') as HTMLElement;
+
+        if (!categoryPanel) {
+          console.log("분류 컨테이너를 찾을 수 없습니다");
+          return;
+        }
+
+        // 분류 컨테이너의 하단 위치
+        const categoryPanelBottom = categoryPanel.getBoundingClientRect().bottom;
+
         // 이벤트 카드(배너 포함)의 현재 화면상 위치
         const elementTop = eventElement.getBoundingClientRect().top;
-        
+
         // 배너는 카드 최상단에 있으므로, elementTop이 배너 상단 위치
-        // 목표: 배너 상단이 컨테이너 시작점 + 5px에 오도록
-        const desiredElementTop = containerTop + 5;
-        
+        // 목표: 배너 상단이 분류 컨테이너 하단 + 5px에 오도록
+        const desiredElementTop = categoryPanelBottom + 5;
+
         // 얼마나 스크롤해야 하는지 계산
         const scrollAdjustment = elementTop - desiredElementTop;
-        
+
         // 목표 스크롤 위치
         const targetScroll = scrollContainer.scrollTop + scrollAdjustment;
 
-        console.log("컨테이너 top:", containerTop);
+        console.log("분류 컨테이너 하단:", categoryPanelBottom);
         console.log("배너 현재 위치:", elementTop);
         console.log("배너 목표 위치:", desiredElementTop);
         console.log("스크롤 조정값:", scrollAdjustment);
@@ -712,7 +720,7 @@ export default function EventList({
       return;
     }
     if (editFormData.link1 && !editFormData.linkName1) {
-      alert("링크1 주소를 입력했다면 링크 제목도 입력해주세요.");
+      alert("링크1 주소를 입력했다면 링크 제목  � 입력해주세요.");
       return;
     }
     if (editFormData.linkName2 && !editFormData.link2) {
