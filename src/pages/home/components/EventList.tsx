@@ -312,100 +312,111 @@ export default function EventList({
   useEffect(() => {
     if (!highlightEvent?.id) return;
 
-    // 스크롤 컨테이너 자동 탐색 함수
-    const findScrollContainer = (el: HTMLElement | null): HTMLElement => {
-      let node: HTMLElement | null = el;
-      while (node) {
-        const style = window.getComputedStyle(node);
-        const canScroll = /(auto|scroll)/.test(style.overflowY);
-        if (canScroll && node.scrollHeight > node.clientHeight) return node;
-        node = node.parentElement;
-      }
-      return (document.scrollingElement as HTMLElement) || document.documentElement;
-    };
-
-    // 레이아웃 안정화 대기 함수 (4프레임 + 추가 딜레이)
-    const waitLayoutStable = async () => {
-      await new Promise(requestAnimationFrame);
-      await new Promise(requestAnimationFrame);
-      await new Promise(requestAnimationFrame);
-      await new Promise(requestAnimationFrame);
-      // 추가 안정화 시간 (마우스 이벤트 처리 완료 대기)
-      await new Promise(resolve => setTimeout(resolve, 50));
-    };
-
-    // 안정적인 스크롤 함수
-    const scrollToHighlighted = async (eventElement: HTMLElement) => {
-      // 레이아웃 안정화 대기
-      await waitLayoutStable();
-
-      const container = findScrollContainer(eventElement);
-      const containerRect = container.getBoundingClientRect();
-      
-      // 카테고리 패널 찾기 (data-attribute로 안전하게)
-      const categoryPanel = document.querySelector('[data-category-panel]') as HTMLElement | null;
-
-      const panelBottomInContainer = categoryPanel
-        ? categoryPanel.getBoundingClientRect().bottom - containerRect.top
-        : 0;
-
-      const elTopInContainer = eventElement.getBoundingClientRect().top - containerRect.top;
-
-      // 목표: 카드 상단 = 패널 하단 + 5px
-      const targetTop = panelBottomInContainer + 5;
-      const delta = elTopInContainer - targetTop;
-
-      container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' });
-    };
+    console.log('[스크롤] Effect 트리거:', highlightEvent);
 
     // 이벤트 카드 찾기
     const eventElement = document.querySelector(
       `[data-event-id="${highlightEvent.id}"]`,
     ) as HTMLElement;
 
-    if (eventElement) {
-      let listenerTimer: NodeJS.Timeout;
-      let autoTimer: NodeJS.Timeout;
-
-      // 모든 사용자 입력 감지하여 하이라이트 해제
-      const handleUserInput = () => {
-        if (onHighlightComplete) {
-          onHighlightComplete();
-        }
-      };
-
-      // 여러 이벤트 리스너 등록 (클릭, 스크롤, 휠, 키보드, 터치)
-      const eventTypes = ["click", "wheel", "keydown", "touchstart", "touchmove"];
-
-      // 즉시 실행 비동기 함수 (IIFE)
-      (async () => {
-        // 스크롤 실행 및 완료 대기
-        await scrollToHighlighted(eventElement);
-
-        // 스크롤 완료 후 리스너 등록 (600ms 후, 스크롤 애니메이션과 겹치지 않도록)
-        listenerTimer = setTimeout(() => {
-          eventTypes.forEach((event) => {
-            window.addEventListener(event, handleUserInput);
-          });
-        }, 600);
-
-        // 3초 후 하이라이트 자동 해제
-        autoTimer = setTimeout(() => {
-          if (onHighlightComplete) {
-            onHighlightComplete();
-          }
-        }, 3000);
-      })();
-
-      return () => {
-        clearTimeout(listenerTimer);
-        clearTimeout(autoTimer);
-        eventTypes.forEach((event) => {
-          window.removeEventListener(event, handleUserInput);
-        });
-      };
+    if (!eventElement) {
+      console.log('[스크롤] 이벤트 카드를 찾을 수 없음');
+      return;
     }
-  }, [highlightEvent?.id, highlightEvent?.nonce, onHighlightComplete]);
+
+    console.log('[스크롤] 이벤트 카드 찾음:', eventElement);
+
+    // 스크롤 컨테이너 찾기
+    let container: HTMLElement = eventElement.parentElement as HTMLElement;
+    while (container && container !== document.body) {
+      const style = window.getComputedStyle(container);
+      if (/(auto|scroll)/.test(style.overflowY) && container.scrollHeight > container.clientHeight) {
+        break;
+      }
+      container = container.parentElement as HTMLElement;
+    }
+    
+    if (!container || container === document.body) {
+      container = (document.scrollingElement as HTMLElement) || document.documentElement;
+    }
+
+    console.log('[스크롤] 스크롤 컨테이너:', container.className || container.tagName);
+
+    // 카테고리 패널 찾기
+    const categoryPanel = document.querySelector('[data-category-panel]') as HTMLElement;
+    
+    if (!categoryPanel) {
+      console.log('[스크롤] 카테고리 패널을 찾을 수 없음');
+      return;
+    }
+
+    // 즉시 스크롤 (타이밍 문제 제거)
+    const performScroll = () => {
+      const containerRect = container.getBoundingClientRect();
+      const panelRect = categoryPanel.getBoundingClientRect();
+      const elementRect = eventElement.getBoundingClientRect();
+
+      const panelBottomInContainer = panelRect.bottom - containerRect.top;
+      const elementTopInContainer = elementRect.top - containerRect.top;
+
+      const targetTop = panelBottomInContainer + 5;
+      const scrollDelta = elementTopInContainer - targetTop;
+
+      console.log('[스크롤] 좌표:', {
+        panelBottom: panelRect.bottom,
+        elementTop: elementRect.top,
+        containerTop: containerRect.top,
+        panelBottomInContainer,
+        elementTopInContainer,
+        targetTop,
+        scrollDelta,
+        currentScroll: container.scrollTop,
+        newScroll: container.scrollTop + scrollDelta
+      });
+
+      container.scrollTo({
+        top: container.scrollTop + scrollDelta,
+        behavior: 'smooth'
+      });
+      
+      console.log('[스크롤] scrollTo 실행 완료');
+    };
+
+    // 즉시 한 번 실행
+    performScroll();
+
+    // 하이라이트 해제 리스너
+    const handleUserInput = () => {
+      console.log('[스크롤] 사용자 입력으로 하이라이트 해제');
+      if (onHighlightComplete) {
+        onHighlightComplete();
+      }
+    };
+
+    const eventTypes = ["click", "wheel", "keydown", "touchstart", "touchmove"];
+    
+    // 600ms 후 리스너 등록
+    const listenerTimer = setTimeout(() => {
+      eventTypes.forEach((event) => {
+        window.addEventListener(event, handleUserInput);
+      });
+    }, 600);
+
+    // 3초 후 자동 해제
+    const autoTimer = setTimeout(() => {
+      if (onHighlightComplete) {
+        onHighlightComplete();
+      }
+    }, 3000);
+
+    return () => {
+      clearTimeout(listenerTimer);
+      clearTimeout(autoTimer);
+      eventTypes.forEach((event) => {
+        window.removeEventListener(event, handleUserInput);
+      });
+    };
+  }, [highlightEvent?.id, highlightEvent?.nonce]);
 
   const fetchEvents = async () => {
     try {
