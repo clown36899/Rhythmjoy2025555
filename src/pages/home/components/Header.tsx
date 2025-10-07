@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import QRCodeModal from "../../../components/QRCodeModal";
 import { supabase } from "../../../lib/supabase";
 
@@ -350,7 +351,7 @@ export default function Header({
       )}
 
       {/* Settings Modal */}
-      {showSettingsModal && (
+      {showSettingsModal && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
@@ -428,11 +429,12 @@ export default function Header({
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 색상 설정 패널 */}
-      {showColorPanel && isAdminMode && (
+      {showColorPanel && isAdminMode && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
@@ -535,7 +537,8 @@ export default function Header({
               </p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* QR Code Modal */}
