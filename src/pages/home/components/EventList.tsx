@@ -309,37 +309,61 @@ export default function EventList({
   useEffect(() => {
     if (!highlightEventId) return;
 
+    let hasScrolled = false;
+
     // 이벤트 카드 찾기
     const eventElement = document.querySelector(
       `[data-event-id="${highlightEventId}"]`,
-    );
+    ) as HTMLElement;
+    
     if (eventElement) {
-      // 스크롤 - 배너가 안 짤리도록 start로 설정
-      eventElement.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      // 스크롤 - 배너를 고려하여 약간 위쪽 여유 공간 확보
+      const scrollToElement = () => {
+        if (hasScrolled) return;
+        hasScrolled = true;
 
-      // 클릭 시 하이라이트 해제
-      const handleClick = () => {
+        const elementPosition = eventElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - 100; // 100px 위쪽 여유
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        });
+      };
+
+      // 자동 스크롤 1회 실행
+      scrollToElement();
+
+      // 모든 사용자 입력 감지하여 하이라이트 해제
+      const handleUserInput = () => {
         if (onHighlightComplete) {
           onHighlightComplete();
         }
       };
 
-      // 클릭 리스너 등록
-      document.addEventListener("click", handleClick);
+      // 여러 이벤트 리스너 등록 (클릭, 스크롤, 휠, 키보드, 터치)
+      const events = ["click", "wheel", "keydown", "touchstart", "touchmove"];
+      
+      // 스크롤 후 약간 딜레이를 두고 리스너 등록 (자동 스크롤과 겹치지 않도록)
+      const listenerTimer = setTimeout(() => {
+        events.forEach((event) => {
+          window.addEventListener(event, handleUserInput);
+        });
+      }, 100);
 
       // 3초 후 하이라이트 자동 해제
-      const timer = setTimeout(() => {
+      const autoTimer = setTimeout(() => {
         if (onHighlightComplete) {
           onHighlightComplete();
         }
       }, 3000);
 
       return () => {
-        clearTimeout(timer);
-        document.removeEventListener("click", handleClick);
+        clearTimeout(listenerTimer);
+        clearTimeout(autoTimer);
+        events.forEach((event) => {
+          window.removeEventListener(event, handleUserInput);
+        });
       };
     }
   }, [highlightEventId, onHighlightComplete]);
