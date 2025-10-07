@@ -25,7 +25,7 @@ export default function HomePage() {
     "random",
   );
   const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
-  const [highlightEventId, setHighlightEventId] = useState<number | null>(null);
+  const [highlightEvent, setHighlightEvent] = useState<{ id: number; nonce: number } | null>(null);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -209,13 +209,13 @@ export default function HomePage() {
       
       // 약간의 딜레이 후 하이라이트 (달력이 먼저 렌더링되도록)
       setTimeout(() => {
-        setHighlightEventId(event.id);
+        setHighlightEvent({ id: event.id, nonce: Date.now() });
       }, 100);
     }
   };
 
   const handleHighlightComplete = () => {
-    setHighlightEventId(null);
+    setHighlightEvent(null);
   };
 
   const handleDateSelect = async (date: Date | null) => {
@@ -407,6 +407,7 @@ export default function HomePage() {
           {/* Fixed Calendar Section */}
           <div
             ref={calendarRef}
+            data-category-panel
             className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-[9] border-b border-black"
             style={{ backgroundColor: "var(--calendar-bg-color)" }}
           >
@@ -521,7 +522,7 @@ export default function HomePage() {
                 setSortBy={setSortBy}
                 showPracticeRoomModal={showPracticeRoomModal}
                 setShowPracticeRoomModal={setShowPracticeRoomModal}
-                highlightEventId={highlightEventId}
+                highlightEvent={highlightEvent}
                 onHighlightComplete={handleHighlightComplete}
               />
             </div>

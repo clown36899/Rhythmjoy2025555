@@ -28,7 +28,7 @@ interface EventListProps {
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
   showPracticeRoomModal?: boolean;
   setShowPracticeRoomModal?: (show: boolean) => void;
-  highlightEventId?: number | null;
+  highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
 }
 
@@ -49,7 +49,7 @@ export default function EventList({
   setSortBy: externalSetSortBy,
   showPracticeRoomModal: externalShowPracticeRoomModal,
   setShowPracticeRoomModal: externalSetShowPracticeRoomModal,
-  highlightEventId,
+  highlightEvent,
   onHighlightComplete,
 }: EventListProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -310,54 +310,58 @@ export default function EventList({
 
   // 빌보드에서 특정 이벤트 하이라이트
   useEffect(() => {
-    if (!highlightEventId) return;
-    let hasScrolled = false;
+    if (!highlightEvent?.id) return;
+
+    // 스크롤 컨테이너 자동 탐색 함수
+    const findScrollContainer = (el: HTMLElement | null): HTMLElement => {
+      let node: HTMLElement | null = el;
+      while (node) {
+        const style = window.getComputedStyle(node);
+        const canScroll = /(auto|scroll)/.test(style.overflowY);
+        if (canScroll && node.scrollHeight > node.clientHeight) return node;
+        node = node.parentElement;
+      }
+      return (document.scrollingElement as HTMLElement) || document.documentElement;
+    };
+
+    // 레이아웃 안정화 대기 함수 (2프레임)
+    const waitLayoutStable = async () => {
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+    };
+
+    // 안정적인 스크롤 함수
+    const scrollToHighlighted = async (eventElement: HTMLElement) => {
+      // 레이아웃 안정화 대기
+      await waitLayoutStable();
+
+      const container = findScrollContainer(eventElement);
+      const containerRect = container.getBoundingClientRect();
+      
+      // 카테고리 패널 찾기 (data-attribute로 안전하게)
+      const categoryPanel = document.querySelector('[data-category-panel]') as HTMLElement | null;
+
+      const panelBottomInContainer = categoryPanel
+        ? categoryPanel.getBoundingClientRect().bottom - containerRect.top
+        : 0;
+
+      const elTopInContainer = eventElement.getBoundingClientRect().top - containerRect.top;
+
+      // 목표: 카드 상단 = 패널 하단 + 5px
+      const targetTop = panelBottomInContainer + 5;
+      const delta = elTopInContainer - targetTop;
+
+      container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' });
+    };
 
     // 이벤트 카드 찾기
     const eventElement = document.querySelector(
-      `[data-event-id="${highlightEventId}"]`,
+      `[data-event-id="${highlightEvent.id}"]`,
     ) as HTMLElement;
 
     if (eventElement) {
-      // 스크롤 - 배너 최상단-2px가 분류 컨테이너 바로 아래에 붙도록
-      const scrollToElement = () => {
-        if (hasScrolled) return;
-        hasScrolled = true;
-
-        // 스크롤 컨테이너 찾기 (overflow-y-auto를 가진 부모)
-        const scrollContainer = document.querySelector(".overflow-y-auto");
-
-        if (!scrollContainer) return;
-
-        // 분류 컨테이너 (카테고리 패널) 찾기
-        const categoryPanel = document.querySelector('.fixed.top-16.border-b.border-black') as HTMLElement;
-        if (!categoryPanel) return;
-
-        // 분류 컨테이너의 하단 위치
-        const categoryPanelBottom = categoryPanel.getBoundingClientRect().bottom;
-
-        // 이벤트 카드(배너 포함)의 현재 화면상 위치
-        const elementTop = eventElement.getBoundingClientRect().top;
-
-        // 배너는 카드 최상단에 있으므로, elementTop이 배너 상단 위치
-        // 목표: 배너 상단이 분류 컨테이너 하단 + 5px에 오도록
-        const desiredElementTop = categoryPanelBottom + 5;
-
-        // 얼마나 스크롤해야 하는지 계산
-        const scrollAdjustment = elementTop - desiredElementTop;
-
-        // 목표 스크롤 위치
-        const targetScroll = scrollContainer.scrollTop + scrollAdjustment;
-
-
-        scrollContainer.scrollTo({
-          top: targetScroll,
-          behavior: "smooth",
-        });
-      };
-
-      // 자동 스크롤 1회 실행
-      scrollToElement();
+      // 스크롤 실행
+      scrollToHighlighted(eventElement);
 
       // 모든 사용자 입력 감지하여 하이라이트 해제
       const handleUserInput = () => {
@@ -367,14 +371,14 @@ export default function EventList({
       };
 
       // 여러 이벤트 리스너 등록 (클릭, 스크롤, 휠, 키보드, 터치)
-      const events = ["click", "wheel", "keydown", "touchstart", "touchmove"];
+      const eventTypes = ["click", "wheel", "keydown", "touchstart", "touchmove"];
 
-      // 스크롤 후 약간 딜레이를 두고 리스너 등록 (자동 스크롤과 겹치지 않도록)
+      // 스크롤 완료 후 리스너 등록 (600ms 후, 스크롤 애니메이션과 겹치지 않도록)
       const listenerTimer = setTimeout(() => {
-        events.forEach((event) => {
+        eventTypes.forEach((event) => {
           window.addEventListener(event, handleUserInput);
         });
-      }, 100);
+      }, 600);
 
       // 3초 후 하이라이트 자동 해제
       const autoTimer = setTimeout(() => {
@@ -386,12 +390,12 @@ export default function EventList({
       return () => {
         clearTimeout(listenerTimer);
         clearTimeout(autoTimer);
-        events.forEach((event) => {
+        eventTypes.forEach((event) => {
           window.removeEventListener(event, handleUserInput);
         });
       };
     }
-  }, [highlightEventId, onHighlightComplete]);
+  }, [highlightEvent?.id, highlightEvent?.nonce, onHighlightComplete]);
 
   const fetchEvents = async () => {
     try {
@@ -839,7 +843,7 @@ export default function EventList({
                     ? getEventColor(event.id)
                     : { bg: "bg-gray-500" };
 
-                  const isHighlighted = highlightEventId === event.id;
+                  const isHighlighted = highlightEvent?.id === event.id;
                   const highlightBorderColor =
                     event.category === "class" ? "#9333ea" : "#2563eb"; // purple-600 : blue-600
 

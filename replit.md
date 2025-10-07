@@ -25,6 +25,13 @@ Event discovery features date-based filtering via calendar selection, category f
 ### Calendar Implementation
 The calendar provides month/year navigation and visualizes multi-day events as horizontal bars spanning dates, with distinct styling for start, middle, end, and single-day events. It supports date range selection for filtering the event list, responsive grid layouts, and touch swipe navigation on mobile.
 
+### Billboard & Auto-Scroll System
+The billboard (fullscreen slideshow) features random/sequential playback, auto-opening on inactivity, and smart cross-month navigation. When clicking "상세보기" on a billboard event:
+1. **Cross-month navigation**: Calendar automatically switches to the event's month before highlighting
+2. **Reliable auto-scroll**: Uses nonce-based re-triggering, requestAnimationFrame (2 frames) for layout stabilization, automatic scroll container detection, and data-attribute selectors for robustness
+3. **Scroll positioning**: Event card positioned exactly 5px below category panel using container-relative coordinates
+4. **User interaction**: Highlight dismisses on click/wheel/keydown/touch or after 3 seconds, with listener registration delayed 600ms to avoid conflicts with scroll animation
+
 ## External Dependencies
 
 ### Backend Services
