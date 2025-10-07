@@ -11,6 +11,15 @@
   --page-bg-color: #111827;
 }
 
+/* CSS 로드 전 깨진 레이아웃 방지 */
+body {
+  visibility: hidden;
+}
+
+body.loaded {
+  visibility: visible;
+}
+
 #root {
   max-width: 650px;
   margin: 0 auto;
