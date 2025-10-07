@@ -138,13 +138,12 @@ export default function HomePage() {
         const { data: events } = await supabase
           .from("events")
           .select("*")
-          .not("image", "is", null)
-          .neq("image", "")
           .order("date", { ascending: true });
 
         if (events && events.length > 0) {
           const filteredEvents = events.filter((event) => {
-            if (!event.image) return false;
+            // 이미지가 있는지 확인 (image_full 또는 image)
+            if (!event.image_full && !event.image) return false;
 
             const endDate = event.end_date || event.start_date || event.date;
             if (!endDate) return false;
@@ -153,7 +152,7 @@ export default function HomePage() {
           });
 
           const images = filteredEvents
-            .map((event) => event.image_medium || event.image)
+            .map((event) => event.image_full || event.image)
             .filter(Boolean);
           setBillboardImages(images);
           setBillboardEvents(filteredEvents);
