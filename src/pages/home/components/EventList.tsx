@@ -328,8 +328,17 @@ export default function EventList({
         if (hasScrolled) return;
         hasScrolled = true;
 
+        // 스크롤 컨테이너 찾기 (overflow-y-auto를 가진 부모)
+        const scrollContainer = document.querySelector(".overflow-y-auto");
+        
+        if (!scrollContainer) {
+          console.log("스크롤 컨테이너를 찾을 수 없습니다");
+          return;
+        }
+
+        console.log("스크롤 컨테이너:", scrollContainer);
+
         // 분류 컨테이너(카테고리 패널)의 하단 위치 계산
-        // 헤더(60px) + 달력(동적) + 카테고리 패널(약 95px)
         const header = document.querySelector("header");
         const calendar = document.querySelector("[data-calendar]");
         
@@ -340,14 +349,18 @@ export default function EventList({
 
         console.log("고정 영역 높이:", fixedAreaHeight);
 
-        // 배너는 카드 최상단에 있고, 배너 최상단-2px가 분류 컨테이너 아래에 붙어야 함
-        const elementPosition = eventElement.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - fixedAreaHeight + 2;
+        // 요소의 컨테이너 내 상대 위치 계산
+        const containerTop = scrollContainer.getBoundingClientRect().top;
+        const elementTop = eventElement.getBoundingClientRect().top;
+        const relativePosition = elementTop - containerTop;
 
-        console.log("스크롤 위치:", offsetPosition);
+        // 현재 스크롤 위치에서 목표 위치 계산
+        const targetScroll = scrollContainer.scrollTop + relativePosition - 10; // 10px 위쪽 여유
 
-        window.scrollTo({
-          top: offsetPosition,
+        console.log("스크롤 위치:", targetScroll);
+
+        scrollContainer.scrollTo({
+          top: targetScroll,
           behavior: "smooth",
         });
       };
