@@ -28,6 +28,8 @@ interface EventListProps {
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
   showPracticeRoomModal?: boolean;
   setShowPracticeRoomModal?: (show: boolean) => void;
+  highlightEventId?: number | null;
+  onHighlightComplete?: () => void;
 }
 
 export default function EventList({
@@ -47,6 +49,8 @@ export default function EventList({
   setSortBy: externalSetSortBy,
   showPracticeRoomModal: externalShowPracticeRoomModal,
   setShowPracticeRoomModal: externalSetShowPracticeRoomModal,
+  highlightEventId,
+  onHighlightComplete,
 }: EventListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -300,6 +304,32 @@ export default function EventList({
       );
     };
   }, []);
+
+  // 빌보드에서 특정 이벤트 하이라이트
+  useEffect(() => {
+    if (!highlightEventId) return;
+
+    // 이벤트 카드 찾기
+    const eventElement = document.querySelector(
+      `[data-event-id="${highlightEventId}"]`,
+    );
+    if (eventElement) {
+      // 스크롤
+      eventElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+
+      // 3초 후 하이라이트 해제
+      const timer = setTimeout(() => {
+        if (onHighlightComplete) {
+          onHighlightComplete();
+        }
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [highlightEventId, onHighlightComplete]);
 
   const fetchEvents = async () => {
     try {
@@ -747,9 +777,14 @@ export default function EventList({
                     ? getEventColor(event.id)
                     : { bg: "bg-gray-500" };
 
+                  const isHighlighted = highlightEventId === event.id;
+                  const highlightBorderColor =
+                    event.category === "class" ? "#9333ea" : "#2563eb"; // purple-600 : blue-600
+
                   return (
                     <div
                       key={event.id}
+                      data-event-id={event.id}
                       onClick={() => handleEventClick(event)}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = "#374151";
@@ -764,9 +799,17 @@ export default function EventList({
                           onEventHover(null);
                         }
                       }}
-                      className="rounded-xl overflow-hidden transition-colors cursor-pointer relative border border-[#3d3d3d]"
+                      className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${
+                        isHighlighted ? "" : "border-[#3d3d3d]"
+                      }`}
                       style={{
                         backgroundColor: "var(--event-list-bg-color)",
+                        borderColor: isHighlighted
+                          ? highlightBorderColor
+                          : undefined,
+                        boxShadow: isHighlighted
+                          ? `0 0 20px ${highlightBorderColor}`
+                          : undefined,
                       }}
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}

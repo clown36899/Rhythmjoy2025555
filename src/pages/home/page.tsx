@@ -25,6 +25,7 @@ export default function HomePage() {
     "random",
   );
   const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
+  const [highlightEventId, setHighlightEventId] = useState<number | null>(null);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -196,10 +197,17 @@ export default function HomePage() {
   };
 
   const handleBillboardEventClick = (event: any) => {
+    // 빌보드 닫기
     setIsBillboardOpen(false);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("eventSelected", { detail: event }));
+    
+    // 이벤트 하이라이트
+    if (event && event.id) {
+      setHighlightEventId(event.id);
     }
+  };
+
+  const handleHighlightComplete = () => {
+    setHighlightEventId(null);
   };
 
   const handleDateSelect = async (date: Date | null) => {
@@ -505,6 +513,8 @@ export default function HomePage() {
                 setSortBy={setSortBy}
                 showPracticeRoomModal={showPracticeRoomModal}
                 setShowPracticeRoomModal={setShowPracticeRoomModal}
+                highlightEventId={highlightEventId}
+                onHighlightComplete={handleHighlightComplete}
               />
             </div>
             <Footer />
