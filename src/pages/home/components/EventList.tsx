@@ -312,26 +312,20 @@ export default function EventList({
   useEffect(() => {
     if (!highlightEvent?.id) return;
 
-    console.log("[스크롤] Effect 트리거:", highlightEvent);
-
     // DOM에 이벤트 카드가 나타날 때까지 기다리는 함수
     const waitForElement = (selector: string): Promise<HTMLElement> => {
       return new Promise((resolve) => {
         // 이미 존재하는지 확인
         const existing = document.querySelector(selector) as HTMLElement;
         if (existing) {
-          console.log("[스크롤] 이벤트 카드 이미 존재:", existing);
           resolve(existing);
           return;
         }
-
-        console.log("[스크롤] 이벤트 카드 기다리는 중...");
 
         // MutationObserver로 DOM 변화 감지
         const observer = new MutationObserver(() => {
           const element = document.querySelector(selector) as HTMLElement;
           if (element) {
-            console.log("[스크롤] 이벤트 카드 나타남:", element);
             observer.disconnect();
             resolve(element);
           }
@@ -346,7 +340,6 @@ export default function EventList({
         // 최대 5초 타임아웃
         setTimeout(() => {
           observer.disconnect();
-          console.log("[스크롤] 타임아웃: 이벤트 카드를 찾을 수 없음");
         }, 5000);
       });
     };
@@ -357,8 +350,6 @@ export default function EventList({
     // 비동기로 이벤트 카드가 나타날 때까지 기다림
     waitForElement(`[data-event-id="${highlightEvent.id}"]`).then(
       (eventElement) => {
-        console.log("[스크롤] 스크롤 준비 완료");
-
         // 스크롤 컨테이너 찾기
         let container: HTMLElement = eventElement.parentElement as HTMLElement;
         while (container && container !== document.body) {
@@ -378,20 +369,12 @@ export default function EventList({
             document.documentElement;
         }
 
-        console.log(
-          "[스크롤] 스크롤 컨테이너:",
-          container.className || container.tagName,
-        );
-
         // 카테고리 패널 찾기
         const categoryPanel = document.querySelector(
           "[data-category-panel]",
         ) as HTMLElement;
 
-        if (!categoryPanel) {
-          console.log("[스크롤] 카테고리 패널을 찾을 수 없음");
-          return;
-        }
+        if (!categoryPanel) return;
 
         // 스크롤 실행
         const containerRect = container.getBoundingClientRect();
@@ -404,28 +387,13 @@ export default function EventList({
         const targetTop = panelBottomInContainer + 5;
         const scrollDelta = elementTopInContainer - targetTop;
 
-        console.log("[스크롤] 좌표:", {
-          panelBottom: panelRect.bottom,
-          elementTop: elementRect.top,
-          containerTop: containerRect.top,
-          panelBottomInContainer,
-          elementTopInContainer,
-          targetTop,
-          scrollDelta,
-          currentScroll: container.scrollTop,
-          newScroll: container.scrollTop + scrollDelta,
-        });
-
         container.scrollTo({
           top: container.scrollTop + scrollDelta,
           behavior: "smooth",
         });
 
-        console.log("[스크롤] scrollTo 실행 완료");
-
         // 하이라이트 해제 리스너
         const handleUserInput = () => {
-          console.log("[스크롤] 사용자 입력으로 하이라이트 해제");
           if (onHighlightComplete) {
             onHighlightComplete();
           }
@@ -1667,24 +1635,6 @@ export default function EventList({
             className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border-2"
             style={{ borderColor: "rgb(255 191 19)" }}
           >
-            {/* 상단 고정 버튼 - 우측 상단 */}
-            <div className="absolute top-4 right-4 z-30 flex space-x-2">
-              <button
-                onClick={(e) => handleEditClick(selectedEvent, e)}
-                className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
-                title="이벤트 수정"
-              >
-                <i className="ri-edit-line text-xl"></i>
-              </button>
-              <button
-                onClick={closeModal}
-                className="bg-gray-700/90 hover:bg-gray-600 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
-                title="닫기"
-              >
-                <i className="ri-close-line text-xl"></i>
-              </button>
-            </div>
-
             {/* 이미지 영역 - 클릭 시 풀스크린 */}
             <div
               className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${selectedEvent.image ? "bg-black" : "bg-cover bg-center"}`}
@@ -1722,6 +1672,24 @@ export default function EventList({
                   </span>
                 </>
               )}
+
+              {/* 수정/닫기 버튼 - 이미지 위 우측 상단 */}
+              <div className="absolute top-4 right-4 z-30 flex space-x-2">
+                <button
+                  onClick={(e) => handleEditClick(selectedEvent, e)}
+                  className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+                  title="이벤트 수정"
+                >
+                  <i className="ri-edit-line text-xl"></i>
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="bg-gray-700/90 hover:bg-gray-600 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+                  title="닫기"
+                >
+                  <i className="ri-close-line text-xl"></i>
+                </button>
+              </div>
 
               {/* 카테고리 배지 - 좌측 하단 */}
               <div
