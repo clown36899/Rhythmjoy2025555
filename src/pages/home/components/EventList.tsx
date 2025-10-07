@@ -708,44 +708,7 @@ export default function EventList({
             </div>
           )}
 
-          {/* Category Filter */}
-          <div className="flex items-center gap-2 mb-2">
-            <div className="flex flex-wrap gap-2 flex-1">
-              {categories.slice(0, 4).map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategoryClick(category.id)}
-                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    isCategoryActive(category.id)
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
-                >
-                  <i className={`${category.icon} text-xs`}></i>
-                  <span>{category.name}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* 정렬 버튼 */}
-            <button
-              onClick={() => setShowSortModal(true)}
-              className="flex flex-col items-center justify-center px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer"
-            >
-              <i className={`${getSortIcon()} text-sm`}></i>
-              <span className="text-[9px] mt-0.5">{getSortLabel()}</span>
-            </button>
-
-            {/* 검색 버튼 */}
-            <button
-              onClick={() => setShowSearchModal(true)}
-              className="flex items-center justify-center w-8 h-8 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer"
-            >
-              <i className="ri-search-line text-sm"></i>
-            </button>
-          </div>
-
-          {/* 검색 결과 표시 (모바일) */}
+          {/* 검색 결과 표시 */}
           {searchTerm && (
             <div className="mb-2 flex items-center gap-2">
               <span className="text-xs text-gray-400">검색:</span>

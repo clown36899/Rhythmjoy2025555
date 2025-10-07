@@ -119,10 +119,12 @@ export default function EventCalendar({
     const dateString = `${year}-${month}-${day}`;
 
     return events.filter((event) => {
-      const startDate = event.start_date || event.date || '';
-      const endDate = event.end_date || event.date || '';
-      
-      return startDate && endDate && dateString >= startDate && dateString <= endDate;
+      const startDate = event.start_date || event.date || "";
+      const endDate = event.end_date || event.date || "";
+
+      return (
+        startDate && endDate && dateString >= startDate && dateString <= endDate
+      );
     });
   };
 
@@ -134,28 +136,28 @@ export default function EventCalendar({
   // 월 단위로 멀티데이 이벤트의 레인과 색상 할당
   const eventLaneMap = useMemo(() => {
     const map = new Map<number, { lane: number; color: string }>();
-    
+
     // 현재 월의 멀티데이 이벤트만 필터링
     const multiDayEvents = events.filter((event) => {
-      const startDate = event.start_date || event.date || '';
-      const endDate = event.end_date || event.date || '';
+      const startDate = event.start_date || event.date || "";
+      const endDate = event.end_date || event.date || "";
       return startDate !== endDate;
     });
-    
+
     // 시작 날짜 기준으로 정렬
     const sortedEvents = [...multiDayEvents].sort((a, b) => {
-      const dateA = a.start_date || a.date || '';
-      const dateB = b.start_date || b.date || '';
+      const dateA = a.start_date || a.date || "";
+      const dateB = b.start_date || b.date || "";
       return dateA.localeCompare(dateB);
     });
-    
+
     // 레인 할당: 겹치지 않는 이벤트는 같은 레인 사용 가능 (최대 3개 레인)
     const lanes: Array<{ endDate: string; eventId: number }> = [];
-    
+
     sortedEvents.forEach((event) => {
-      const startDate = event.start_date || event.date || '';
-      const endDate = event.end_date || event.date || '';
-      
+      const startDate = event.start_date || event.date || "";
+      const endDate = event.end_date || event.date || "";
+
       // 사용 가능한 레인 찾기 (종료된 레인 재사용)
       let assignedLane = -1;
       for (let i = 0; i < Math.min(lanes.length, 3); i++) {
@@ -165,29 +167,39 @@ export default function EventCalendar({
           break;
         }
       }
-      
+
       // 사용 가능한 레인이 없고 레인이 3개 미만이면 새 레인 추가
       if (assignedLane === -1 && lanes.length < 3) {
         assignedLane = lanes.length;
         lanes.push({ endDate, eventId: event.id });
       }
-      
+
       // 레인을 할당받지 못한 경우 (3개 모두 사용 중) 처리하지 않음
       if (assignedLane === -1) return;
-      
+
       // 색상 할당: 카테고리에 따라 색상 결정
       let colorBg: string;
-      if (event.category === 'class') {
+      if (event.category === "class") {
         // 강습: 보라색 계열
-        colorBg = assignedLane === 0 ? 'bg-purple-500' : assignedLane === 1 ? 'bg-purple-600' : 'bg-purple-400';
+        colorBg =
+          assignedLane === 0
+            ? "bg-purple-500"
+            : assignedLane === 1
+              ? "bg-purple-600"
+              : "bg-purple-400";
       } else {
         // 행사: 파란색 계열
-        colorBg = assignedLane === 0 ? 'bg-blue-500' : assignedLane === 1 ? 'bg-blue-600' : 'bg-blue-400';
+        colorBg =
+          assignedLane === 0
+            ? "bg-blue-500"
+            : assignedLane === 1
+              ? "bg-blue-600"
+              : "bg-blue-400";
       }
-      
+
       map.set(event.id, { lane: assignedLane, color: colorBg });
     });
-    
+
     return map;
   }, [events, currentMonth]);
 
@@ -271,41 +283,41 @@ export default function EventCalendar({
 
   const onTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || touchStart === null) return;
-    
+
     const currentTouch = e.targetTouches[0].clientX;
     const diff = currentTouch - touchStart;
-    
+
     // 드래그 오프셋 업데이트 (실시간 반응)
     setDragOffset(diff);
   };
 
   const onTouchEnd = () => {
     if (!isDragging || touchStart === null) return;
-    
+
     setIsDragging(false);
-    
+
     const distance = dragOffset;
     const threshold = minSwipeDistance;
-    
+
     // 충분히 드래그했는지 확인
     if (Math.abs(distance) > threshold) {
       setIsAnimating(true);
-      
+
       // 화면 너비를 가져오기
       const screenWidth = window.innerWidth;
-      
+
       // 왼쪽으로 드래그 = 다음 달 (음수)
       // 오른쪽으로 드래그 = 이전 달 (양수)
-      const direction = distance < 0 ? 'next' : 'prev';
+      const direction = distance < 0 ? "next" : "prev";
       const targetOffset = distance < 0 ? -screenWidth : screenWidth;
-      
+
       // 1단계: 슬라이드 애니메이션 완료 (화면 끝까지 이동)
       setDragOffset(targetOffset);
-      
+
       // 2단계: 애니메이션 완료 후 달 변경
       setTimeout(() => {
         navigateMonth(direction);
-        
+
         // 3단계: 즉시 드래그 오프셋 리셋 (새로운 현재 달이 중앙에)
         setDragOffset(0);
         setIsAnimating(false);
@@ -319,13 +331,21 @@ export default function EventCalendar({
   };
 
   // 이전 달, 현재 달, 다음 달의 날짜들을 생성
-  const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-  const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-  
+  const prevMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() - 1,
+    1,
+  );
+  const nextMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() + 1,
+    1,
+  );
+
   const prevDays = getDaysInMonth(prevMonth);
   const currentDays = getDaysInMonth(currentMonth);
   const nextDays = getDaysInMonth(nextMonth);
-  
+
   const monthNames = [
     "1월",
     "2월",
@@ -340,12 +360,17 @@ export default function EventCalendar({
     "11월",
     "12월",
   ];
-  
+
   // 달력 렌더링 함수
   const renderCalendarGrid = (days: (Date | null)[], monthDate: Date) => {
     return days.map((day, index) => {
       if (!day) {
-        return <div key={`${monthDate.getMonth()}-${index}`} className="h-7 p-0"></div>;
+        return (
+          <div
+            key={`${monthDate.getMonth()}-${index}`}
+            className="h-5 p-0"
+          ></div>
+        );
       }
 
       const dayEvents = getEventsForDate(day);
@@ -358,43 +383,55 @@ export default function EventCalendar({
 
       // 연속 이벤트와 단일 이벤트 분리
       const multiDayEvents = dayEvents.filter((event) => {
-        const startDate = event.start_date || event.date || '';
-        const endDate = event.end_date || event.date || '';
+        const startDate = event.start_date || event.date || "";
+        const endDate = event.end_date || event.date || "";
         return startDate !== endDate;
       });
 
       const singleDayEvents = dayEvents.filter((event) => {
-        const startDate = event.start_date || event.date || '';
-        const endDate = event.end_date || event.date || '';
+        const startDate = event.start_date || event.date || "";
+        const endDate = event.end_date || event.date || "";
         return startDate === endDate;
       });
 
       // 선택된 날짜에 속한 이벤트 ID 목록
-      const selectedDateEventIds = selectedDate ? new Set(
-        getEventsForDate(selectedDate)
-          .filter((event) => {
-            const startDate = event.start_date || event.date || '';
-            const endDate = event.end_date || event.date || '';
-            return startDate !== endDate;
-          })
-          .map(event => event.id)
-      ) : null;
+      const selectedDateEventIds = selectedDate
+        ? new Set(
+            getEventsForDate(selectedDate)
+              .filter((event) => {
+                const startDate = event.start_date || event.date || "";
+                const endDate = event.end_date || event.date || "";
+                return startDate !== endDate;
+              })
+              .map((event) => event.id),
+          )
+        : null;
 
       // 연속 이벤트 바 정보 계산 (레인 맵 기반, 최대 3개 레인)
-      const eventBarsMap = new Map<number, { eventId: number; isStart: boolean; isEnd: boolean; categoryColor: string; isFaded: boolean }>();
-      
+      const eventBarsMap = new Map<
+        number,
+        {
+          eventId: number;
+          isStart: boolean;
+          isEnd: boolean;
+          categoryColor: string;
+          isFaded: boolean;
+        }
+      >();
+
       multiDayEvents.forEach((event) => {
         const laneInfo = eventLaneMap.get(event.id);
         if (!laneInfo || laneInfo.lane >= 3) return; // 최대 3개 레인만
-        
-        const startDate = event.start_date || event.date || '';
-        const endDate = event.end_date || event.date || '';
+
+        const startDate = event.start_date || event.date || "";
+        const endDate = event.end_date || event.date || "";
         const isStart = dateString === startDate;
         const isEnd = dateString === endDate;
-        
+
         // 선택된 날짜가 있고 해당 이벤트가 선택된 날짜에 속하지 않으면 흐리게
-        const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
-        
+        const isFaded =
+          selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
+
         eventBarsMap.set(laneInfo.lane, {
           eventId: event.id,
           isStart,
@@ -403,45 +440,50 @@ export default function EventCalendar({
           isFaded,
         });
       });
-      
+
       // 레인 0, 1, 2를 순서대로 배열로 변환 (빈 레인은 null)
-      const eventBarsData = [0, 1, 2].map(lane => {
+      const eventBarsData = [0, 1, 2].map((lane) => {
         const bar = eventBarsMap.get(lane);
         return bar || null;
       });
 
       return (
-        <div key={`${monthDate.getMonth()}-${index}`} className="h-7 p-0 relative">
+        <div
+          key={`${monthDate.getMonth()}-${index}`}
+          className="h-5 p-0 relative"
+        >
           <button
             onClick={() => handleDateClick(day)}
             className={`w-full h-full flex flex-col items-center justify-center text-[13px] rounded transition-all duration-300 cursor-pointer relative overflow-visible ${
-              selectedDate &&
-              day.toDateString() === selectedDate.toDateString()
+              selectedDate && day.toDateString() === selectedDate.toDateString()
                 ? "bg-blue-600 text-white transform scale-105 z-10"
                 : "text-gray-300 hover:bg-gray-700"
             }`}
           >
             {/* 날짜 숫자 */}
             <div className="flex items-center gap-1 relative z-30">
-              <span className="font-bold">
-                {day.getDate()}
-              </span>
+              <span className="font-bold">{day.getDate()}</span>
               {/* 단일 이벤트 개수 표시 */}
-              {singleDayEvents.length > 0 && (() => {
-                // 호버된 이벤트가 이 날짜의 단일 이벤트인지 확인
-                const isHoveredSingle = viewMode === "month" && hoveredEventId !== null && 
-                  singleDayEvents.some(e => e.id === hoveredEventId);
-                
-                return (
-                  <span className={`text-[8px] rounded px-1 font-medium transition-all duration-200 ${
-                    isHoveredSingle 
-                      ? 'bg-blue-500 text-white transform scale-110' 
-                      : 'bg-gray-600 text-gray-300'
-                  }`}>
-                    +{singleDayEvents.length}
-                  </span>
-                );
-              })()}
+              {singleDayEvents.length > 0 &&
+                (() => {
+                  // 호버된 이벤트가 이 날짜의 단일 이벤트인지 확인
+                  const isHoveredSingle =
+                    viewMode === "month" &&
+                    hoveredEventId !== null &&
+                    singleDayEvents.some((e) => e.id === hoveredEventId);
+
+                  return (
+                    <span
+                      className={`text-[8px] rounded px-1 font-medium transition-all duration-200 ${
+                        isHoveredSingle
+                          ? "bg-blue-500 text-white transform scale-110"
+                          : "bg-gray-600 text-gray-300"
+                      }`}
+                    >
+                      +{singleDayEvents.length}
+                    </span>
+                  );
+                })()}
             </div>
 
             {/* 오늘 표시 */}
@@ -455,30 +497,41 @@ export default function EventCalendar({
           </button>
 
           {/* 이벤트 바 표시 - 버튼 아래에 절대 위치 */}
-          {eventBarsData.some(bar => bar !== null) && (
+          {eventBarsData.some((bar) => bar !== null) && (
             <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 pointer-events-none z-20">
               {eventBarsData.map((bar, i) => {
                 // 호버된 이벤트인지 확인 (월간 보기일 때만)
-                const isHovered = viewMode === "month" && hoveredEventId !== null && bar?.eventId === hoveredEventId;
-                
+                const isHovered =
+                  viewMode === "month" &&
+                  hoveredEventId !== null &&
+                  bar?.eventId === hoveredEventId;
+
                 // 이벤트 제목 가져오기
-                const event = bar ? multiDayEvents.find(e => e.id === bar.eventId) : null;
-                
+                const event = bar
+                  ? multiDayEvents.find((e) => e.id === bar.eventId)
+                  : null;
+
                 return (
                   <div
                     key={i}
                     className={`w-full transition-all duration-200 origin-bottom overflow-hidden flex items-center px-1 ${
-                      bar 
+                      bar
                         ? `${bar.categoryColor} ${
-                            bar.isStart && bar.isEnd ? 'rounded-full' :
-                            bar.isStart ? 'rounded-l-full' :
-                            bar.isEnd ? 'rounded-r-full' : ''
+                            bar.isStart && bar.isEnd
+                              ? "rounded-full"
+                              : bar.isStart
+                                ? "rounded-l-full"
+                                : bar.isEnd
+                                  ? "rounded-r-full"
+                                  : ""
                           } ${
-                            bar.isFaded ? 'opacity-30 h-1' : 
-                            isHovered ? 'opacity-100 h-5' : 
-                            'opacity-70 h-1'
+                            bar.isFaded
+                              ? "opacity-30 h-1"
+                              : isHovered
+                                ? "opacity-100 h-5"
+                                : "opacity-70 h-1"
                           }`
-                        : 'bg-transparent h-1'
+                        : "bg-transparent h-1"
                     }`}
                   >
                     {isHovered && event && (
@@ -500,13 +553,13 @@ export default function EventCalendar({
   const renderYearView = () => {
     const years = Array.from({ length: 11 }, (_, i) => yearRangeBase - 5 + i); // yearRangeBase ±5년
     const selectedYear = currentMonth.getFullYear();
-    
+
     return (
       <div className="p-2">
         <div className="grid grid-cols-3 gap-2">
           {years.map((year) => {
             const isSelected = selectedYear === year;
-            
+
             return (
               <button
                 key={year}
@@ -533,7 +586,10 @@ export default function EventCalendar({
 
   return (
     <>
-      <div className="rounded-none p-0 h-full flex flex-col" style={{ backgroundColor: 'var(--calendar-bg-color)' }}>
+      <div
+        className="rounded-none p-0 h-full flex flex-col"
+        style={{ backgroundColor: "var(--calendar-bg-color)" }}
+      >
         {/* Desktop Header */}
         {showHeader && (
           <div className="hidden items-center justify-between mb-6">
@@ -593,9 +649,7 @@ export default function EventCalendar({
         )}
         {viewMode === "year" ? (
           // 연간 보기
-          <div className="flex-1 overflow-y-auto">
-            {renderYearView()}
-          </div>
+          <div className="flex-1 overflow-y-auto">{renderYearView()}</div>
         ) : (
           // 월간 보기
           <>
@@ -620,28 +674,41 @@ export default function EventCalendar({
 
             {/* Calendar grid - 3개 달력 캐러셀 */}
             <div className="overflow-hidden flex-1">
-              <div 
+              <div
                 className="flex"
                 style={{
                   transform: `translateX(calc(-100% + ${dragOffset}px))`,
-                  transition: isDragging ? 'none' : isAnimating ? 'transform 0.3s ease-out' : 'none'
+                  transition: isDragging
+                    ? "none"
+                    : isAnimating
+                      ? "transform 0.3s ease-out"
+                      : "none",
                 }}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
               >
                 {/* 이전 달 */}
-                <div className="grid grid-cols-7 gap-0 px-1 pb-2 flex-shrink-0" style={{ width: '100%' }}>
+                <div
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
+                  style={{ width: "100%" }}
+                >
                   {renderCalendarGrid(prevDays, prevMonth)}
                 </div>
-                
+
                 {/* 현재 달 */}
-                <div className="grid grid-cols-7 gap-0 px-1 pb-2 flex-shrink-0" style={{ width: '100%' }}>
+                <div
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
+                  style={{ width: "100%" }}
+                >
                   {renderCalendarGrid(currentDays, currentMonth)}
                 </div>
-                
+
                 {/* 다음 달 */}
-                <div className="grid grid-cols-7 gap-0 px-1 pb-2 flex-shrink-0" style={{ width: '100%' }}>
+                <div
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
+                  style={{ width: "100%" }}
+                >
                   {renderCalendarGrid(nextDays, nextMonth)}
                 </div>
               </div>

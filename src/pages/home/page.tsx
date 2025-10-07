@@ -323,12 +323,68 @@ export default function HomePage() {
               viewMode={viewMode}
               hoveredEventId={hoveredEventId}
             />
+            
+            {/* Category Filter Panel - Fixed below calendar */}
+            <div className="flex items-center gap-2 p-2 border-t border-gray-700">
+              <div className="flex flex-wrap gap-2 flex-1">
+                <button
+                  onClick={() => setSelectedCategory("all")}
+                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                    selectedCategory === "all"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <i className="ri-calendar-line text-xs"></i>
+                  <span>
+                    {currentMonth
+                      ? viewMode === "year"
+                        ? `${currentMonth.getFullYear()} 전체`
+                        : `${currentMonth.getMonth() + 1}월 전체`
+                      : "모든 이벤트"}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setSelectedCategory("class")}
+                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                    selectedCategory === "class"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <i className="ri-book-line text-xs"></i>
+                  <span>강습</span>
+                </button>
+                <button
+                  onClick={() => setSelectedCategory("event")}
+                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                    selectedCategory === "event"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <i className="ri-calendar-event-line text-xs"></i>
+                  <span>행사</span>
+                </button>
+                <button
+                  onClick={() => setSelectedCategory("practice")}
+                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                    selectedCategory === "practice"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <i className="ri-home-4-line text-xs"></i>
+                  <span>연습실</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Scrollable Content Area - Events and Footer */}
           <div
             className="flex-1 overflow-y-auto"
-            style={{ paddingTop: `calc(3rem + ${calendarHeight}px + 55px)` }}
+            style={{ paddingTop: `calc(3rem + ${calendarHeight}px + 95px)` }}
           >
             <div className="-mt-10">
               <EventList
