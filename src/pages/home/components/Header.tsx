@@ -564,7 +564,7 @@ export default function Header({
               {/* 페이지 배경색 */}
               <div>
                 <label className="block text-gray-300 text-sm font-medium mb-2">
-                  페이지 배경색 (전체)
+                  이벤트리스트판 뒷배경
                 </label>
                 <div className="flex items-center gap-3">
                   <input
