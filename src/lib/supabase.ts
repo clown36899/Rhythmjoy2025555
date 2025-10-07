@@ -17,6 +17,9 @@ export interface Event {
   category: string;
   price: string;
   image: string;
+  image_thumbnail?: string;
+  image_medium?: string;
+  image_full?: string;
   description: string;
   organizer: string;
   capacity: number;
