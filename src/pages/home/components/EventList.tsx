@@ -307,14 +307,20 @@ export default function EventList({
 
   // 빌보드에서 특정 이벤트 하이라이트
   useEffect(() => {
-    if (!highlightEventId) return;
+    if (!highlightEventId) {
+      console.log("하이라이트 없음");
+      return;
+    }
 
+    console.log("하이라이트 ID:", highlightEventId);
     let hasScrolled = false;
 
     // 이벤트 카드 찾기
     const eventElement = document.querySelector(
       `[data-event-id="${highlightEventId}"]`,
     ) as HTMLElement;
+    
+    console.log("찾은 요소:", eventElement);
     
     if (eventElement) {
       // 스크롤 - 배너 최상단-2px가 분류 컨테이너 바로 아래에 붙도록
@@ -332,9 +338,13 @@ export default function EventList({
         if (calendar) fixedAreaHeight += calendar.offsetHeight;
         fixedAreaHeight += 95; // 카테고리 패널 높이
 
+        console.log("고정 영역 높이:", fixedAreaHeight);
+
         // 배너는 카드 최상단에 있고, 배너 최상단-2px가 분류 컨테이너 아래에 붙어야 함
         const elementPosition = eventElement.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - fixedAreaHeight + 2;
+
+        console.log("스크롤 위치:", offsetPosition);
 
         window.scrollTo({
           top: offsetPosition,

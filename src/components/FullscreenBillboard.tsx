@@ -114,6 +114,8 @@ export default function FullscreenBillboard({
 
   const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log("빌보드 이미지 클릭, currentIndex:", currentIndex);
+    console.log("빌보드 이벤트:", events[currentIndex]);
     if (events[currentIndex]) {
       onEventClick(events[currentIndex]);
     }
