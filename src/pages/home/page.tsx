@@ -310,6 +310,24 @@ export default function HomePage() {
     }
   };
 
+  // 카테고리 버튼이 활성화되어야 하는지 확인하는 함수
+  const isCategoryActive = (categoryId: string) => {
+    // 날짜가 선택되었고 selectedCategory가 "all"일 때
+    if (selectedDate && selectedCategory === "all") {
+      // "모든 이벤트" 버튼은 비활성화
+      if (categoryId === "all") {
+        return false;
+      }
+      // 강습/행사 버튼은 활성화 (날짜에 이벤트가 있으면 클릭 가능하도록)
+      if (categoryId === "class" || categoryId === "event") {
+        return true;
+      }
+    }
+
+    // 그 외의 경우는 현재 선택된 카테고리인지 확인
+    return selectedCategory === categoryId;
+  };
+
   const handleViewModeChange = (mode: "month" | "year") => {
     if (mode === "year") {
       // 년 보기로 전환: 현재 월 저장
@@ -393,7 +411,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setSelectedCategory("all")}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    selectedCategory === "all"
+                    isCategoryActive("all")
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
@@ -410,7 +428,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setSelectedCategory("class")}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    selectedCategory === "class"
+                    isCategoryActive("class")
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
@@ -421,7 +439,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setSelectedCategory("event")}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    selectedCategory === "event"
+                    isCategoryActive("event")
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
@@ -435,7 +453,7 @@ export default function HomePage() {
                     setShowPracticeRoomModal(true);
                   }}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    selectedCategory === "practice"
+                    isCategoryActive("practice")
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
