@@ -200,7 +200,17 @@ export default function HomePage() {
     setIsBillboardOpen(false);
     
     if (event && event.id) {
-      setHighlightEventId(event.id);
+      // 이벤트 날짜로 달력 이동
+      const eventDate = event.start_date || event.date;
+      if (eventDate) {
+        const date = new Date(eventDate);
+        setCurrentMonth(date);
+      }
+      
+      // 약간의 딜레이 후 하이라이트 (달력이 먼저 렌더링되도록)
+      setTimeout(() => {
+        setHighlightEventId(event.id);
+      }, 100);
     }
   };
 
