@@ -171,12 +171,6 @@ export default function FullscreenBillboard({
 
         {/* 상단 안내 + 슬라이드 인디케이터 + 진행 바 */}
         <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none">
-          <div className="bg-black/80 backdrop-blur-sm px-6 py-3 rounded-full">
-            <p className="text-white text-base sm:text-lg font-medium text-center">
-              이미지 클릭: 상세보기, 배경 클릭: 닫기
-            </p>
-          </div>
-
           {images.length > 1 && (
             <div className="flex flex-col items-center gap-2">
               <div className="flex gap-2">
