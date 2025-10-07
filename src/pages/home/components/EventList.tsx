@@ -1480,7 +1480,7 @@ export default function EventList({
       {/* Event Detail Modal - 새로운 세로 배치 */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border-2" style={{ borderColor: 'rgb(61, 61, 61)' }}>
             {/* 상단 고정 버튼 - 우측 상단 */}
             <div className="absolute top-4 right-4 z-30 flex space-x-2">
               <button
