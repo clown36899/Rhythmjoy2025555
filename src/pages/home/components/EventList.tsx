@@ -6,8 +6,8 @@ import { getEventColor } from "../../../utils/eventColors";
 
 const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -26,6 +26,8 @@ interface EventListProps {
   setShowSortModal?: (show: boolean) => void;
   sortBy?: "random" | "time" | "title" | "newest";
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
+  showPracticeRoomModal?: boolean;
+  setShowPracticeRoomModal?: (show: boolean) => void;
 }
 
 export default function EventList({
@@ -43,6 +45,8 @@ export default function EventList({
   setShowSortModal: externalSetShowSortModal,
   sortBy: externalSortBy,
   setSortBy: externalSetSortBy,
+  showPracticeRoomModal: externalShowPracticeRoomModal,
+  setShowPracticeRoomModal: externalSetShowPracticeRoomModal,
 }: EventListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -53,21 +57,29 @@ export default function EventList({
   const [eventPassword, setEventPassword] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [internalShowSearchModal, setInternalShowSearchModal] = useState(false);
-  const [showDatePickerModal, setShowDatePickerModal] = useState<'start' | 'end' | null>(null);
+  const [showDatePickerModal, setShowDatePickerModal] = useState<
+    "start" | "end" | null
+  >(null);
   const [datePickerMonth, setDatePickerMonth] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [internalSortBy, setInternalSortBy] = useState<"random" | "time" | "title" | "newest">("random");
+  const [internalSortBy, setInternalSortBy] = useState<
+    "random" | "time" | "title" | "newest"
+  >("random");
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
-  
+
+  const [internalShowPracticeRoomModal, setInternalShowPracticeRoomModal] = useState(false);
+
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
-  const setShowSearchModal = externalSetShowSearchModal ?? setInternalShowSearchModal;
+  const setShowSearchModal =
+    externalSetShowSearchModal ?? setInternalShowSearchModal;
   const showSortModal = externalShowSortModal ?? internalShowSortModal;
   const setShowSortModal = externalSetShowSortModal ?? setInternalShowSortModal;
   const sortBy = externalSortBy ?? internalSortBy;
   const setSortBy = externalSetSortBy ?? setInternalSortBy;
-  const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
+  const showPracticeRoomModal = externalShowPracticeRoomModal ?? internalShowPracticeRoomModal;
+  const setShowPracticeRoomModal = externalSetShowPracticeRoomModal ?? setInternalShowPracticeRoomModal;
   const [editFormData, setEditFormData] = useState({
     title: "",
     time: "",
@@ -216,7 +228,9 @@ export default function EventList({
     setSearchSuggestions([]);
   };
 
-  const handleSortChange = (newSortBy: "random" | "time" | "title" | "newest") => {
+  const handleSortChange = (
+    newSortBy: "random" | "time" | "title" | "newest",
+  ) => {
     setSortBy(newSortBy);
     setShowSortModal(false);
   };
@@ -716,69 +730,12 @@ export default function EventList({
     <>
       <div
         className="p-4"
-        style={{ margin: "14px", borderRadius: "11px", backgroundColor: 'var(--event-list-outer-bg-color)' }}
+        style={{
+          margin: "14px",
+          borderRadius: "11px",
+          backgroundColor: "var(--event-list-outer-bg-color)",
+        }}
       >
-        <div className="mb-6">
-          {/* 데스크톱에서도 제목 완전 제거 */}
-          {isAdminMode && (
-            <div className="mb-1 flex items-center gap-2">
-              <span className="bg-red-600 text-white px-2 py-1 rounded text-sm">
-                관리자 모드
-              </span>
-              <button
-                onClick={deleteAllEvents}
-                className="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded text-sm transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <i className="ri-delete-bin-line"></i>
-                <span>모든 이벤트 삭제</span>
-              </button>
-            </div>
-          )}
-
-          {/* 검색 결과 표시 */}
-          {searchTerm && (
-            <div className="mb-2 flex items-center gap-2">
-              <span className="text-xs text-gray-400">검색:</span>
-              <span className="text-xs text-blue-400 bg-blue-600/20 px-2 py-1 rounded">
-                {searchTerm}
-              </span>
-              <button
-                onClick={clearSearch}
-                className="text-xs text-gray-400 hover:text-white cursor-pointer"
-              >
-                <i className="ri-close-line"></i>
-              </button>
-            </div>
-          )}
-
-          {/* Desktop Category Filter */}
-          <div className="hidden flex-wrap gap-2 items-center">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => handleCategoryClick(category.id)}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                  isCategoryActive(category.id)
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                <i className={`${category.icon} text-sm`}></i>
-                <span>{category.name}</span>
-              </button>
-            ))}
-
-            {/* 데스크톱 정렬 버튼 */}
-            <button
-              onClick={() => setShowSortModal(true)}
-              className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap cursor-pointer bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white ml-2"
-            >
-              <i className={`${getSortIcon()} text-sm`}></i>
-              <span>{getSortLabel()}</span>
-            </button>
-          </div>
-        </div>
-
         {/* Events List */}
         <div>
           {sortedEvents.length > 0 ? (
@@ -798,20 +755,21 @@ export default function EventList({
                       key={event.id}
                       onClick={() => handleEventClick(event)}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#374151';
+                        e.currentTarget.style.backgroundColor = "#374151";
                         if (viewMode === "month" && onEventHover) {
                           onEventHover(event.id);
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--event-list-bg-color)';
+                        e.currentTarget.style.backgroundColor =
+                          "var(--event-list-bg-color)";
                         if (viewMode === "month" && onEventHover) {
                           onEventHover(null);
                         }
                       }}
                       className="rounded-xl overflow-hidden transition-colors cursor-pointer relative border border-[#3d3d3d]"
-                      style={{ 
-                        backgroundColor: 'var(--event-list-bg-color)',
+                      style={{
+                        backgroundColor: "var(--event-list-bg-color)",
                       }}
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일정은 회색 */}
@@ -916,7 +874,9 @@ export default function EventList({
                   <button
                     key={option.id}
                     onClick={() =>
-                      handleSortChange(option.id as "random" | "time" | "title" | "newest")
+                      handleSortChange(
+                        option.id as "random" | "time" | "title" | "newest",
+                      )
                     }
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                       sortBy === option.id
@@ -1114,9 +1074,7 @@ export default function EventList({
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
                   >
                     {categories
-                      .filter(
-                        (cat) => cat.id === "class" || cat.id === "event",
-                      )
+                      .filter((cat) => cat.id === "class" || cat.id === "event")
                       .map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
@@ -1132,19 +1090,25 @@ export default function EventList({
                     </label>
                     <div
                       onClick={() => {
-                        setDatePickerMonth(editFormData.start_date ? new Date(editFormData.start_date) : new Date());
-                        setShowDatePickerModal('start');
+                        setDatePickerMonth(
+                          editFormData.start_date
+                            ? new Date(editFormData.start_date)
+                            : new Date(),
+                        );
+                        setShowDatePickerModal("start");
                       }}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
                     >
                       <span>
                         {editFormData.start_date
-                          ? new Date(editFormData.start_date).toLocaleDateString('ko-KR', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
+                          ? new Date(
+                              editFormData.start_date,
+                            ).toLocaleDateString("ko-KR", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
                             })
-                          : '날짜 선택'}
+                          : "날짜 선택"}
                       </span>
                       <i className="ri-calendar-line"></i>
                     </div>
@@ -1155,19 +1119,28 @@ export default function EventList({
                     </label>
                     <div
                       onClick={() => {
-                        setDatePickerMonth(editFormData.end_date ? new Date(editFormData.end_date) : (editFormData.start_date ? new Date(editFormData.start_date) : new Date()));
-                        setShowDatePickerModal('end');
+                        setDatePickerMonth(
+                          editFormData.end_date
+                            ? new Date(editFormData.end_date)
+                            : editFormData.start_date
+                              ? new Date(editFormData.start_date)
+                              : new Date(),
+                        );
+                        setShowDatePickerModal("end");
                       }}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
                     >
                       <span>
                         {editFormData.end_date
-                          ? new Date(editFormData.end_date).toLocaleDateString('ko-KR', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })
-                          : '날짜 선택'}
+                          ? new Date(editFormData.end_date).toLocaleDateString(
+                              "ko-KR",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              },
+                            )
+                          : "날짜 선택"}
                       </span>
                       <i className="ri-calendar-line"></i>
                     </div>
@@ -1416,7 +1389,9 @@ export default function EventList({
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-white">
-                  {showDatePickerModal === 'start' ? '시작일 선택' : '종료일 선택'}
+                  {showDatePickerModal === "start"
+                    ? "시작일 선택"
+                    : "종료일 선택"}
                 </h3>
                 <button
                   onClick={() => setShowDatePickerModal(null)}
@@ -1439,7 +1414,8 @@ export default function EventList({
                   <i className="ri-arrow-left-s-line text-xl"></i>
                 </button>
                 <span className="text-white font-semibold">
-                  {datePickerMonth.getFullYear()}년 {datePickerMonth.getMonth() + 1}월
+                  {datePickerMonth.getFullYear()}년{" "}
+                  {datePickerMonth.getMonth() + 1}월
                 </span>
                 <button
                   onClick={() => {
@@ -1456,8 +1432,11 @@ export default function EventList({
               {/* Calendar Grid */}
               <div className="grid grid-cols-7 gap-1">
                 {/* Weekday Headers */}
-                {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
-                  <div key={day} className="text-center text-gray-400 text-sm py-2">
+                {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                  <div
+                    key={day}
+                    className="text-center text-gray-400 text-sm py-2"
+                  >
                     {day}
                   </div>
                 ))}
@@ -1479,21 +1458,28 @@ export default function EventList({
                   for (let day = 1; day <= daysInMonth; day++) {
                     const date = new Date(year, month, day);
                     const dateStr = formatDateForInput(date);
-                    const isSelected = showDatePickerModal === 'start' 
-                      ? editFormData.start_date === dateStr
-                      : editFormData.end_date === dateStr;
-                    const isDisabled = showDatePickerModal === 'end' && !!editFormData.start_date && dateStr < editFormData.start_date;
+                    const isSelected =
+                      showDatePickerModal === "start"
+                        ? editFormData.start_date === dateStr
+                        : editFormData.end_date === dateStr;
+                    const isDisabled =
+                      showDatePickerModal === "end" &&
+                      !!editFormData.start_date &&
+                      dateStr < editFormData.start_date;
 
                     days.push(
                       <button
                         key={day}
                         onClick={() => {
                           if (!isDisabled) {
-                            if (showDatePickerModal === 'start') {
+                            if (showDatePickerModal === "start") {
                               setEditFormData((prev) => ({
                                 ...prev,
                                 start_date: dateStr,
-                                end_date: !prev.end_date || prev.end_date < dateStr ? dateStr : prev.end_date,
+                                end_date:
+                                  !prev.end_date || prev.end_date < dateStr
+                                    ? dateStr
+                                    : prev.end_date,
                               }));
                             } else {
                               setEditFormData((prev) => ({
@@ -1507,14 +1493,14 @@ export default function EventList({
                         disabled={isDisabled}
                         className={`p-2 rounded-lg text-sm transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-blue-600 text-white'
+                            ? "bg-blue-600 text-white"
                             : isDisabled
-                            ? 'text-gray-600 cursor-not-allowed'
-                            : 'text-gray-300 hover:bg-gray-700'
+                              ? "text-gray-600 cursor-not-allowed"
+                              : "text-gray-300 hover:bg-gray-700"
                         }`}
                       >
                         {day}
-                      </button>
+                      </button>,
                     );
                   }
 
@@ -1574,27 +1560,32 @@ export default function EventList({
                     <i className="ri-calendar-line text-blue-400 text-lg w-5 h-5 flex items-center justify-center"></i>
                     <span>
                       {(() => {
-                        const startDate = selectedEvent.start_date || selectedEvent.date;
+                        const startDate =
+                          selectedEvent.start_date || selectedEvent.date;
                         const endDate = selectedEvent.end_date;
-                        
+
                         if (!startDate) return "날짜 미정";
-                        
+
                         const start = new Date(startDate);
-                        const startMonth = start.toLocaleDateString("ko-KR", { month: "long" });
+                        const startMonth = start.toLocaleDateString("ko-KR", {
+                          month: "long",
+                        });
                         const startDay = start.getDate();
-                        
+
                         if (endDate && endDate !== startDate) {
                           const end = new Date(endDate);
-                          const endMonth = end.toLocaleDateString("ko-KR", { month: "long" });
+                          const endMonth = end.toLocaleDateString("ko-KR", {
+                            month: "long",
+                          });
                           const endDay = end.getDate();
-                          
+
                           if (startMonth === endMonth) {
                             return `${startMonth} ${startDay}~${endDay}일`;
                           } else {
                             return `${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
                           }
                         }
-                        
+
                         return `${startMonth} ${startDay}일`;
                       })()}
                     </span>

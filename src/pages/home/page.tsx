@@ -21,14 +21,17 @@ export default function HomePage() {
   const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
-  const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">("random");
-  
+  const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">(
+    "random",
+  );
+  const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
+
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
   // 달력 높이 측정
@@ -64,7 +67,12 @@ export default function HomePage() {
     }
 
     // 광고판이 비활성화되어 있거나, 열려있거나, 타이머가 0이면 설정 안 함
-    if (!settings.enabled || isBillboardOpen || settings.inactivityTimeout === 0) return;
+    if (
+      !settings.enabled ||
+      isBillboardOpen ||
+      settings.inactivityTimeout === 0
+    )
+      return;
 
     // 설정된 시간 후 광고판 자동 열기
     inactivityTimerRef.current = setTimeout(() => {
@@ -72,11 +80,22 @@ export default function HomePage() {
         setIsBillboardOpen(true);
       }
     }, settings.inactivityTimeout);
-  }, [settings.enabled, settings.inactivityTimeout, isBillboardOpen, billboardImages.length]);
+  }, [
+    settings.enabled,
+    settings.inactivityTimeout,
+    isBillboardOpen,
+    billboardImages.length,
+  ]);
 
   // 사용자 활동 감지 및 비활동 타이머
   useEffect(() => {
-    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    const activityEvents = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "touchstart",
+      "scroll",
+    ];
 
     const handleUserActivity = () => {
       resetInactivityTimer();
@@ -86,7 +105,7 @@ export default function HomePage() {
     resetInactivityTimer();
 
     // 이벤트 리스너 등록
-    activityEvents.forEach(event => {
+    activityEvents.forEach((event) => {
       window.addEventListener(event, handleUserActivity);
     });
 
@@ -95,7 +114,7 @@ export default function HomePage() {
       if (inactivityTimerRef.current) {
         clearTimeout(inactivityTimerRef.current);
       }
-      activityEvents.forEach(event => {
+      activityEvents.forEach((event) => {
         window.removeEventListener(event, handleUserActivity);
       });
     };
@@ -113,7 +132,7 @@ export default function HomePage() {
 
       try {
         const today = new Date();
-        const todayString = today.toISOString().split('T')[0];
+        const todayString = today.toISOString().split("T")[0];
 
         const { data: events } = await supabase
           .from("events")
@@ -125,22 +144,26 @@ export default function HomePage() {
         if (events && events.length > 0) {
           const filteredEvents = events.filter((event) => {
             if (!event.image) return false;
-            
+
             const endDate = event.end_date || event.start_date || event.date;
             if (!endDate) return false;
-            
+
             return endDate >= todayString;
           });
 
-          const images = filteredEvents.map((event) => event.image).filter(Boolean);
+          const images = filteredEvents
+            .map((event) => event.image)
+            .filter(Boolean);
           setBillboardImages(images);
           setBillboardEvents(filteredEvents);
 
           // 자동 열기 설정이 켜져있을 때만 자동으로 표시
           if (settings.autoOpenOnLoad) {
             const todayStr = today.toDateString();
-            const dismissedDate = localStorage.getItem("billboardDismissedDate");
-            
+            const dismissedDate = localStorage.getItem(
+              "billboardDismissedDate",
+            );
+
             if (dismissedDate !== todayStr && images.length > 0) {
               setIsBillboardOpen(true);
             }
@@ -175,9 +198,7 @@ export default function HomePage() {
   const handleBillboardEventClick = (event: any) => {
     setIsBillboardOpen(false);
     if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("eventSelected", { detail: event })
-      );
+      window.dispatchEvent(new CustomEvent("eventSelected", { detail: event }));
     }
   };
 
@@ -199,11 +220,14 @@ export default function HomePage() {
           .order("created_at", { ascending: true });
 
         // 날짜 범위를 고려한 필터링
-        const events = allEvents?.filter((event: any) => {
-          const startDate = event.start_date || event.date;
-          const endDate = event.end_date || event.date;
-          return selectedDateString >= startDate && selectedDateString <= endDate;
-        }) || [];
+        const events =
+          allEvents?.filter((event: any) => {
+            const startDate = event.start_date || event.date;
+            const endDate = event.end_date || event.date;
+            return (
+              selectedDateString >= startDate && selectedDateString <= endDate
+            );
+          }) || [];
 
         if (events && events.length > 0) {
           // 해당 날짜의 모든 고유 카테고리 추출
@@ -237,7 +261,7 @@ export default function HomePage() {
 
   const handleEventsUpdate = async (createdDate?: Date) => {
     setRefreshTrigger((prev) => prev + 1);
-    
+
     // 이벤트 등록 후 날짜가 전달되었을 때, 그 날짜를 선택 (handleDateSelect가 자동으로 카테고리 감지)
     if (createdDate) {
       await handleDateSelect(createdDate);
@@ -298,9 +322,15 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: "var(--page-bg-color)" }}
+    >
       {/* Fixed Header for all screens */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-10 border-b border-gray-700" style={{ backgroundColor: 'var(--header-bg-color)' }}>
+      <div
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-10 border-b border-gray-700"
+        style={{ backgroundColor: "var(--header-bg-color)" }}
+      >
         <Header
           currentMonth={currentMonth}
           onNavigateMonth={(direction) => {
@@ -344,7 +374,7 @@ export default function HomePage() {
           <div
             ref={calendarRef}
             className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-[9] border-b border-black"
-            style={{ backgroundColor: 'var(--calendar-bg-color)' }}
+            style={{ backgroundColor: "var(--calendar-bg-color)" }}
           >
             <EventCalendar
               selectedDate={selectedDate}
@@ -356,7 +386,7 @@ export default function HomePage() {
               viewMode={viewMode}
               hoveredEventId={hoveredEventId}
             />
-            
+
             {/* Category Filter Panel - Fixed below calendar */}
             <div className="flex items-center gap-2 p-2 border-t border-gray-700">
               <div className="flex gap-2 flex-1 overflow-x-auto">
@@ -400,7 +430,10 @@ export default function HomePage() {
                   <span>행사</span>
                 </button>
                 <button
-                  onClick={() => setSelectedCategory("practice")}
+                  onClick={() => {
+                    setSelectedCategory("practice");
+                    setShowPracticeRoomModal(true);
+                  }}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     selectedCategory === "practice"
                       ? "bg-blue-600 text-white"
@@ -411,7 +444,7 @@ export default function HomePage() {
                   <span>연습실</span>
                 </button>
               </div>
-              
+
               {/* 정렬 버튼 */}
               <button
                 onClick={() => setShowSortModal(true)}
@@ -434,7 +467,7 @@ export default function HomePage() {
           {/* Scrollable Content Area - Events and Footer */}
           <div
             className="flex-1 overflow-y-auto"
-            style={{ paddingTop: `calc(3rem + ${calendarHeight}px + 95px)` }}
+            style={{ paddingTop: `calc(0rem + ${calendarHeight}px + 95px)` }}
           >
             <div className="-mt-10">
               <EventList
@@ -452,6 +485,8 @@ export default function HomePage() {
                 setShowSortModal={setShowSortModal}
                 sortBy={sortBy}
                 setSortBy={setSortBy}
+                showPracticeRoomModal={showPracticeRoomModal}
+                setShowPracticeRoomModal={setShowPracticeRoomModal}
               />
             </div>
             <Footer />
