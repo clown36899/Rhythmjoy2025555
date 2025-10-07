@@ -1836,10 +1836,16 @@ export default function EventList({
       {showFullscreenImage && selectedEvent?.image && (
         <div
           className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
-          onClick={() => setShowFullscreenImage(false)}
+          onClick={() => {
+            setShowFullscreenImage(false);
+            closeModal();
+          }}
         >
           <button
-            onClick={() => setShowFullscreenImage(false)}
+            onClick={() => {
+              setShowFullscreenImage(false);
+              closeModal();
+            }}
             className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
           >
             <i className="ri-close-line text-2xl"></i>
