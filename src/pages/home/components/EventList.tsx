@@ -324,10 +324,14 @@ export default function EventList({
       return (document.scrollingElement as HTMLElement) || document.documentElement;
     };
 
-    // 레이아웃 안정화 대기 함수 (2프레임)
+    // 레이아웃 안정화 대기 함수 (4프레임 + 추가 딜레이)
     const waitLayoutStable = async () => {
       await new Promise(requestAnimationFrame);
       await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      // 추가 안정화 시간 (마우스 이벤트 처리 완료 대기)
+      await new Promise(resolve => setTimeout(resolve, 50));
     };
 
     // 안정적인 스크롤 함수
@@ -360,8 +364,8 @@ export default function EventList({
     ) as HTMLElement;
 
     if (eventElement) {
-      // 스크롤 실행
-      scrollToHighlighted(eventElement);
+      let listenerTimer: NodeJS.Timeout;
+      let autoTimer: NodeJS.Timeout;
 
       // 모든 사용자 입력 감지하여 하이라이트 해제
       const handleUserInput = () => {
@@ -373,19 +377,25 @@ export default function EventList({
       // 여러 이벤트 리스너 등록 (클릭, 스크롤, 휠, 키보드, 터치)
       const eventTypes = ["click", "wheel", "keydown", "touchstart", "touchmove"];
 
-      // 스크롤 완료 후 리스너 등록 (600ms 후, 스크롤 애니메이션과 겹치지 않도록)
-      const listenerTimer = setTimeout(() => {
-        eventTypes.forEach((event) => {
-          window.addEventListener(event, handleUserInput);
-        });
-      }, 600);
+      // 즉시 실행 비동기 함수 (IIFE)
+      (async () => {
+        // 스크롤 실행 및 완료 대기
+        await scrollToHighlighted(eventElement);
 
-      // 3초 후 하이라이트 자동 해제
-      const autoTimer = setTimeout(() => {
-        if (onHighlightComplete) {
-          onHighlightComplete();
-        }
-      }, 3000);
+        // 스크롤 완료 후 리스너 등록 (600ms 후, 스크롤 애니메이션과 겹치지 않도록)
+        listenerTimer = setTimeout(() => {
+          eventTypes.forEach((event) => {
+            window.addEventListener(event, handleUserInput);
+          });
+        }, 600);
+
+        // 3초 후 하이라이트 자동 해제
+        autoTimer = setTimeout(() => {
+          if (onHighlightComplete) {
+            onHighlightComplete();
+          }
+        }, 3000);
+      })();
 
       return () => {
         clearTimeout(listenerTimer);
