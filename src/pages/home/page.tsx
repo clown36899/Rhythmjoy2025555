@@ -409,7 +409,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2 p-2 border-t border-gray-700">
               <div className="flex gap-2 flex-1 overflow-x-auto">
                 <button
-                  onClick={() => setSelectedCategory("all")}
+                  onClick={() => handleCategoryChange("all")}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("all")
                       ? "bg-blue-600 text-white"
@@ -426,7 +426,7 @@ export default function HomePage() {
                   </span>
                 </button>
                 <button
-                  onClick={() => setSelectedCategory("class")}
+                  onClick={() => handleCategoryChange("class")}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("class")
                       ? "bg-blue-600 text-white"
@@ -437,7 +437,7 @@ export default function HomePage() {
                   <span>강습</span>
                 </button>
                 <button
-                  onClick={() => setSelectedCategory("event")}
+                  onClick={() => handleCategoryChange("event")}
                   className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("event")
                       ? "bg-blue-600 text-white"
