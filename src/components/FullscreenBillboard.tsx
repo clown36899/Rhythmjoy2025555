@@ -123,12 +123,26 @@ export default function FullscreenBillboard({
               >
                 {events[currentIndex].title}
               </h2>
+              
+              {/* 상세보기 버튼 */}
+              <div className="flex justify-center mt-4 pointer-events-auto">
+                <button
+                  onClick={handleImageClick}
+                  className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full font-medium text-sm flex items-center space-x-2 transition-all hover:scale-105 ${
+                    isTransitioning ? "opacity-0" : "opacity-100"
+                  }`}
+                  style={{ transitionDuration: `${transitionDuration}ms` }}
+                >
+                  <i className="ri-eye-line text-lg"></i>
+                  <span>상세보기</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
 
         {images.length > 1 && (
-          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 pb-4 pointer-events-none">
+          <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 flex gap-2 pointer-events-none">
             {images.map((_, index) => (
               <div
                 key={index}
