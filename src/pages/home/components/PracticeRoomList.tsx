@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import PracticeRoomModal from "../../../components/PracticeRoomModal";
 
@@ -26,6 +26,7 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchRooms();
@@ -64,6 +65,23 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
     setShowModal(true);
   };
 
+  // 검색 필터링된 연습실 목록 (애니메이션 트리거를 위해 useMemo 사용)
+  const filteredRooms = useMemo(() => {
+    return rooms.filter((room) => {
+      if (!searchQuery.trim()) return true;
+      
+      const query = searchQuery.toLowerCase();
+      return (
+        room.name.toLowerCase().includes(query) ||
+        room.address?.toLowerCase().includes(query) ||
+        room.description?.toLowerCase().includes(query)
+      );
+    });
+  }, [rooms, searchQuery]);
+
+  // 애니메이션 트리거를 위한 키
+  const animationKey = useMemo(() => Date.now(), [filteredRooms]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -93,6 +111,28 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
   return (
     <>
       <div className="px-4 py-6">
+        {/* 검색창 */}
+        <div className="mb-4">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="연습실 이름, 주소, 설명으로 검색..."
+              className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                <i className="ri-close-line"></i>
+              </button>
+            )}
+          </div>
+        </div>
+
         {isAdminMode && (
           <div className="mb-4">
             <button
@@ -105,14 +145,21 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
           </div>
         )}
 
-        <div className="grid gap-4">
-          {rooms.map((room, index) => (
+        {filteredRooms.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            검색 결과가 없습니다
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {filteredRooms.map((room, index) => (
             <div
-              key={room.id}
+              key={`${animationKey}-${room.id}`}
               onClick={handleRoomClick}
-              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-colors animate-fadeIn"
+              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all"
               style={{
+                animation: `fadeIn 0.4s ease-out forwards`,
                 animationDelay: `${index * 100}ms`,
+                opacity: 0,
               }}
             >
               {room.images && room.images.length > 0 && (
@@ -142,7 +189,8 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </div>
 
       <PracticeRoomModal
