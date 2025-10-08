@@ -306,6 +306,8 @@ export default function PracticeRoomList({
         onClose={() => {
           setShowModal(false);
           setSelectedRoom(null);
+          // 모달 닫을 때 리스트 새로고침 (정렬 순서는 유지됨)
+          fetchRooms();
         }}
         isAdminMode={isAdminMode}
         selectedRoom={selectedRoom}
