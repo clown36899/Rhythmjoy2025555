@@ -29,6 +29,7 @@ export default function HomePage() {
     id: number;
     nonce: number;
   } | null>(null);
+  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -296,6 +297,10 @@ export default function HomePage() {
     if (category === "all") {
       setSelectedDate(null);
     }
+    // 연습실 외 다른 카테고리 선택 시 달력 펼치기
+    if (category !== "practice") {
+      setIsCalendarCollapsed(false);
+    }
   };
 
   const getSortIcon = () => {
@@ -355,6 +360,8 @@ export default function HomePage() {
       setCurrentMonth(new Date(savedMonth));
     }
     setViewMode(mode);
+    // 달력 펼치기
+    setIsCalendarCollapsed(false);
   };
 
   return (
@@ -389,11 +396,15 @@ export default function HomePage() {
             setCurrentMonth(newMonth);
             // 달 이동 시 날짜만 리셋 (카테고리는 유지)
             setSelectedDate(null);
+            // 달력 펼치기
+            setIsCalendarCollapsed(false);
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
             // 날짜 변경 시 날짜만 리셋 (카테고리는 유지)
             setSelectedDate(null);
+            // 달력 펼치기
+            setIsCalendarCollapsed(false);
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
@@ -406,26 +417,34 @@ export default function HomePage() {
       {/* Mobile Layout - Fixed Header and Calendar, Scrollable Events and Footer */}
       <div>
         <div className="h-screen flex flex-col">
-          {/* Fixed Calendar Section */}
+          {/* Fixed Calendar and Category Section */}
           <div
             ref={calendarRef}
             data-category-panel
-            className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-[9] border-b border-black"
+            className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-[9]"
             style={{ backgroundColor: "var(--calendar-bg-color)" }}
           >
-            <EventCalendar
-              selectedDate={selectedDate}
-              onDateSelect={handleDateSelect}
-              onMonthChange={handleMonthChange}
-              showHeader={false}
-              currentMonth={currentMonth}
-              onEventsUpdate={handleEventsUpdate}
-              viewMode={viewMode}
-              hoveredEventId={hoveredEventId}
-            />
+            {/* Calendar - Collapsible */}
+            <div
+              className={`transition-all duration-300 ease-in-out overflow-hidden border-b border-black`}
+              style={{
+                maxHeight: isCalendarCollapsed ? '0px' : '500px',
+              }}
+            >
+              <EventCalendar
+                selectedDate={selectedDate}
+                onDateSelect={handleDateSelect}
+                onMonthChange={handleMonthChange}
+                showHeader={false}
+                currentMonth={currentMonth}
+                onEventsUpdate={handleEventsUpdate}
+                viewMode={viewMode}
+                hoveredEventId={hoveredEventId}
+              />
+            </div>
 
-            {/* Category Filter Panel - Fixed below calendar */}
-            <div className="flex items-center gap-2 p-2 border-t border-[#22262a]">
+            {/* Category Filter Panel - Always visible */}
+            <div className="flex items-center gap-2 p-2 border-t border-[#22262a] border-b border-black">
               <div className="flex gap-2 flex-1 overflow-x-auto">
                 <button
                   onClick={() => handleCategoryChange("all")}
@@ -466,6 +485,7 @@ export default function HomePage() {
                 <button
                   onClick={() => {
                     setSelectedCategory("practice");
+                    setIsCalendarCollapsed(true);
                     setShowPracticeRoomModal(true);
                   }}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
