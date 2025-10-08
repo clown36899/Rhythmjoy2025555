@@ -20,13 +20,28 @@ interface PracticeRoom {
 
 interface PracticeRoomListProps {
   isAdminMode: boolean;
+  showSearchModal: boolean;
+  setShowSearchModal: (show: boolean) => void;
+  showSortModal: boolean;
+  setShowSortModal: (show: boolean) => void;
+  sortBy: "random" | "time" | "title" | "newest";
+  setSortBy: (sortBy: "random" | "time" | "title" | "newest") => void;
 }
 
-export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps) {
+export default function PracticeRoomList({ 
+  isAdminMode,
+  showSearchModal,
+  setShowSearchModal,
+  showSortModal,
+  setShowSortModal,
+  sortBy,
+  setSortBy
+}: PracticeRoomListProps) {
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [internalSearchQuery, setInternalSearchQuery] = useState("");
 
   useEffect(() => {
     fetchRooms();
@@ -65,9 +80,10 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
     setShowModal(true);
   };
 
-  // 검색 필터링된 연습실 목록
-  const filteredRooms = useMemo(() => {
-    return rooms.filter((room) => {
+  // 검색 필터링 및 정렬된 연습실 목록
+  const filteredAndSortedRooms = useMemo(() => {
+    // 먼저 필터링
+    let filtered = rooms.filter((room) => {
       if (!searchQuery.trim()) return true;
       
       const query = searchQuery.toLowerCase();
@@ -77,7 +93,27 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
         room.description?.toLowerCase().includes(query)
       );
     });
-  }, [rooms, searchQuery]);
+
+    // 그 다음 정렬
+    if (sortBy === "random") {
+      filtered = [...filtered].sort(() => Math.random() - 0.5);
+    } else if (sortBy === "title") {
+      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === "newest") {
+      filtered = [...filtered].sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+    }
+
+    return filtered;
+  }, [rooms, searchQuery, sortBy]);
+
+  const handleSearchSubmit = () => {
+    setSearchQuery(internalSearchQuery);
+    setShowSearchModal(false);
+  };
 
   if (loading) {
     return (
@@ -108,28 +144,6 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
   return (
     <>
       <div className="px-4 py-6">
-        {/* 검색창 */}
-        <div className="mb-4">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="연습실 이름, 주소, 설명으로 검색..."
-              className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-              >
-                <i className="ri-close-line"></i>
-              </button>
-            )}
-          </div>
-        </div>
-
         {isAdminMode && (
           <div className="mb-4">
             <button
@@ -142,17 +156,20 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
           </div>
         )}
 
-        {filteredRooms.length === 0 ? (
+        {filteredAndSortedRooms.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             검색 결과가 없습니다
           </div>
         ) : (
           <div className="grid gap-4">
-            {filteredRooms.map((room) => (
+            {filteredAndSortedRooms.map((room, index) => (
             <div
               key={room.id}
               onClick={handleRoomClick}
-              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-colors"
+              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all animate-fadeIn"
+              style={{
+                animationDelay: `${index * 100}ms`
+              }}
             >
               {room.images && room.images.length > 0 && (
                 <div className="aspect-video w-full overflow-hidden">
@@ -193,6 +210,132 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
         }}
         isAdminMode={isAdminMode}
       />
+
+      {/* 검색 모달 */}
+      {showSearchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-white">연습실 검색</h3>
+                <button
+                  onClick={() => {
+                    setShowSearchModal(false);
+                    setInternalSearchQuery("");
+                  }}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <i className="ri-close-line text-xl"></i>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={internalSearchQuery}
+                    onChange={(e) => setInternalSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSearchSubmit();
+                      }
+                    }}
+                    className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="연습실 이름, 주소, 설명으로 검색..."
+                    autoFocus
+                  />
+                  <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setInternalSearchQuery("");
+                      setShowSearchModal(false);
+                    }}
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                  >
+                    초기화
+                  </button>
+                  <button
+                    onClick={handleSearchSubmit}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                  >
+                    검색
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 정렬 모달 */}
+      {showSortModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-white">정렬 방식</h3>
+                <button
+                  onClick={() => setShowSortModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <i className="ri-close-line text-xl"></i>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setSortBy("random");
+                    setShowSortModal(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
+                    sortBy === "random"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <i className="ri-shuffle-line"></i>
+                  <span>랜덤</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSortBy("title");
+                    setShowSortModal(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
+                    sortBy === "title"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <i className="ri-sort-alphabet-asc"></i>
+                  <span>이름순</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSortBy("newest");
+                    setShowSortModal(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
+                    sortBy === "newest"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <i className="ri-calendar-line"></i>
+                  <span>최신순</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

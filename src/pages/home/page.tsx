@@ -505,35 +505,31 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* 정렬 버튼 - 연습실 모드에서는 숨김 */}
-              {selectedCategory !== "practice" && (
-                <button
-                  onClick={() => setShowSortModal(true)}
-                  className="flex items-center justify-center h-6 gap-1 px-2
-                             bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white
-                             rounded-lg transition-colors cursor-pointer flex-shrink-0"
-                >
-                  <i
-                    className={`${getSortIcon()} text-sm leading-none align-middle`}
-                  ></i>
-                  <span className="text-xs leading-none align-middle">
-                    {getSortLabel()}
-                  </span>
-                </button>
-              )}
+              {/* 정렬 버튼 */}
+              <button
+                onClick={() => setShowSortModal(true)}
+                className="flex items-center justify-center h-6 gap-1 px-2
+                           bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white
+                           rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              >
+                <i
+                  className={`${getSortIcon()} text-sm leading-none align-middle`}
+                ></i>
+                <span className="text-xs leading-none align-middle">
+                  {getSortLabel()}
+                </span>
+              </button>
 
-              {/* 검색 버튼 - 연습실 모드에서는 숨김 */}
-              {selectedCategory !== "practice" && (
-                <button
-                  onClick={() => setShowSearchModal(true)}
-                  className="flex items-center justify-center h-6 w-8
-                             bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white
-                             rounded-lg transition-colors cursor-pointer flex-shrink-0"
-                  aria-label="검색"
-                >
-                  <i className="ri-search-line text-sm leading-none align-middle"></i>
-                </button>
-              )}
+              {/* 검색 버튼 */}
+              <button
+                onClick={() => setShowSearchModal(true)}
+                className="flex items-center justify-center h-6 w-8
+                           bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white
+                           rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                aria-label="검색"
+              >
+                <i className="ri-search-line text-sm leading-none align-middle"></i>
+              </button>
             </div>
           </div>
 
@@ -544,7 +540,15 @@ export default function HomePage() {
           >
             <div className="-mt-10">
               {selectedCategory === "practice" ? (
-                <PracticeRoomList isAdminMode={isAdminMode} />
+                <PracticeRoomList 
+                  isAdminMode={isAdminMode}
+                  showSearchModal={showSearchModal}
+                  setShowSearchModal={setShowSearchModal}
+                  showSortModal={showSortModal}
+                  setShowSortModal={setShowSortModal}
+                  sortBy={sortBy}
+                  setSortBy={setSortBy}
+                />
               ) : (
                 <EventList
                   selectedDate={selectedDate}
