@@ -42,6 +42,7 @@ export default function PracticeRoomList({
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
 
   useEffect(() => {
     fetchRooms();
@@ -110,9 +111,79 @@ export default function PracticeRoomList({
     return filtered;
   }, [rooms, searchQuery, sortBy]);
 
+  // 자동완성 제안 생성
+  const generateSearchSuggestions = (query: string) => {
+    if (!query.trim()) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    const suggestions = new Set<string>();
+    const queryLower = query.toLowerCase();
+
+    rooms.forEach((room) => {
+      // 이름 전체가 검색어를 포함하는 경우
+      if (room.name.toLowerCase().includes(queryLower)) {
+        suggestions.add(room.name);
+      }
+
+      // 주소 전체가 검색어를 포함하는 경우
+      if (room.address?.toLowerCase().includes(queryLower)) {
+        suggestions.add(room.address);
+      }
+
+      // 설명에서 의미있는 단어 추출 (3글자 이상)
+      const descWords = room.description?.split(/\s+/) || [];
+      descWords.forEach((word) => {
+        const cleanWord = word.replace(/[^\w가-힣]/g, ""); // 특수문자 제거
+        if (
+          cleanWord.length >= 3 &&
+          cleanWord.toLowerCase().includes(queryLower)
+        ) {
+          // 해당 단어로 실제 검색 결과가 있는지 확인
+          const hasResults = rooms.some(
+            (r) =>
+              r.name.toLowerCase().includes(cleanWord.toLowerCase()) ||
+              r.address?.toLowerCase().includes(cleanWord.toLowerCase()) ||
+              r.description?.toLowerCase().includes(cleanWord.toLowerCase()),
+          );
+          if (hasResults) {
+            suggestions.add(cleanWord);
+          }
+        }
+      });
+    });
+
+    // 검색 결과가 실제로 있는 제안만 필터링
+    const validSuggestions = Array.from(suggestions).filter((suggestion) => {
+      const suggestionLower = suggestion.toLowerCase();
+      return rooms.some(
+        (room) =>
+          room.name.toLowerCase().includes(suggestionLower) ||
+          room.address?.toLowerCase().includes(suggestionLower) ||
+          room.description?.toLowerCase().includes(suggestionLower),
+      );
+    });
+
+    setSearchSuggestions(validSuggestions.slice(0, 8));
+  };
+
+  const handleSearchQueryChange = (query: string) => {
+    setInternalSearchQuery(query);
+    generateSearchSuggestions(query);
+  };
+
   const handleSearchSubmit = () => {
     setSearchQuery(internalSearchQuery);
     setShowSearchModal(false);
+    setSearchSuggestions([]);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setInternalSearchQuery(suggestion);
+    setSearchQuery(suggestion);
+    setShowSearchModal(false);
+    setSearchSuggestions([]);
   };
 
   if (loading) {
@@ -222,6 +293,7 @@ export default function PracticeRoomList({
                   onClick={() => {
                     setShowSearchModal(false);
                     setInternalSearchQuery("");
+                    setSearchSuggestions([]);
                   }}
                   className="text-gray-400 hover:text-white"
                 >
@@ -230,11 +302,12 @@ export default function PracticeRoomList({
               </div>
 
               <div className="space-y-4">
+                {/* 검색 입력창 */}
                 <div className="relative">
                   <input
                     type="text"
                     value={internalSearchQuery}
-                    onChange={(e) => setInternalSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchQueryChange(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         handleSearchSubmit();
@@ -247,11 +320,32 @@ export default function PracticeRoomList({
                   <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                 </div>
 
+                {/* 자동완성 제안 */}
+                {searchSuggestions.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-400 mb-2">추천 검색어</p>
+                    <div className="max-h-48 overflow-y-auto space-y-1">
+                      {searchSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="w-full text-left bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                        >
+                          <i className="ri-search-line text-xs mr-2 text-gray-400"></i>
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 검색 버튼 */}
                 <div className="flex space-x-3">
                   <button
                     onClick={() => {
                       setSearchQuery("");
                       setInternalSearchQuery("");
+                      setSearchSuggestions([]);
                       setShowSearchModal(false);
                     }}
                     className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
