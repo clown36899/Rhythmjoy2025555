@@ -332,6 +332,9 @@ export default function PracticeRoomModal({
   // Edit / Delete handlers
   // -------------------------------------------------------------------------
   const handleEdit = (room: PracticeRoom) => {
+    // 상세 보기 닫기
+    setSelectedRoom(null);
+    
     setEditingRoom(room);
     setFormData({
       name: room.name,
