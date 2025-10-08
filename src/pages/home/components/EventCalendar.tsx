@@ -506,11 +506,6 @@ export default function EventCalendar({
                   hoveredEventId !== null &&
                   bar?.eventId === hoveredEventId;
 
-                // 이벤트 제목 가져오기
-                const event = bar
-                  ? multiDayEvents.find((e) => e.id === bar.eventId)
-                  : null;
-
                 if (!bar) return null;
 
                 // 호버 상태가 아니고, 다른 이벤트가 호버 중이면 숨김
@@ -519,7 +514,7 @@ export default function EventCalendar({
                 return (
                   <div
                     key={i}
-                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 overflow-hidden flex items-center px-1 ${
+                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 overflow-hidden ${
                       bar.categoryColor
                     } ${
                       bar.isStart && bar.isEnd
@@ -535,16 +530,10 @@ export default function EventCalendar({
                         : bar.isFaded
                           ? "opacity-20 h-1.5 z-0"
                           : isHovered
-                            ? "opacity-100 h-5 z-30"
-                            : "opacity-60 h-1.5 z-10"
+                            ? "opacity-100 h-5 z-10"
+                            : "opacity-60 h-1.5 z-0"
                     }`}
-                  >
-                    {isHovered && event && (
-                      <span className="text-[10px] text-white font-medium truncate whitespace-nowrap">
-                        {event.title}
-                      </span>
-                    )}
-                  </div>
+                  />
                 );
               })}
             </div>
