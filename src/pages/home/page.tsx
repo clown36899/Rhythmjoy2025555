@@ -248,7 +248,7 @@ export default function HomePage() {
           }) || [];
 
         if (events && events.length > 0) {
-          // 해당 날짜의 모든 고유 카테고리 추출
+          // 해당 날짜의 모든 고l�� 카테고리 추출
           const uniqueCategories = [
             ...new Set(events.map((event) => event.category)),
           ];
@@ -481,18 +481,27 @@ export default function HomePage() {
               {/* 정렬 버튼 */}
               <button
                 onClick={() => setShowSortModal(true)}
-                className="flex flex-col items-center justify-center px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                className="flex items-center justify-center h-6 gap-1 px-2
+                           bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white
+                           rounded-lg transition-colors cursor-pointer flex-shrink-0"
               >
-                <i className={`${getSortIcon()} text-sm`}></i>
-                <span className="text-[9px] mt-0.5">{getSortLabel()}</span>
+                <i
+                  className={`${getSortIcon()} text-sm leading-none align-middle`}
+                ></i>
+                <span className="text-xs leading-none align-middle">
+                  {getSortLabel()}
+                </span>
               </button>
 
               {/* 검색 버튼 */}
               <button
                 onClick={() => setShowSearchModal(true)}
-                className="flex items-center justify-center w-8 h-8 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                className="flex items-center justify-center h-6 w-8
+                           bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white
+                           rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                aria-label="검색"
               >
-                <i className="ri-search-line text-sm"></i>
+                <i className="ri-search-line text-sm leading-none align-middle"></i>
               </button>
             </div>
           </div>
