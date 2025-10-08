@@ -40,6 +40,7 @@ export default function PracticeRoomList({
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<PracticeRoom | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
@@ -77,7 +78,13 @@ export default function PracticeRoomList({
     }
   };
 
-  const handleRoomClick = () => {
+  const handleRoomClick = (room: PracticeRoom) => {
+    setSelectedRoom(room);
+    setShowModal(true);
+  };
+
+  const handleAddNewRoom = () => {
+    setSelectedRoom(null);
     setShowModal(true);
   };
 
@@ -218,7 +225,7 @@ export default function PracticeRoomList({
         {isAdminMode && (
           <div className="mb-4">
             <button
-              onClick={() => setShowModal(true)}
+              onClick={handleAddNewRoom}
               className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
             >
               <i className="ri-add-line"></i>
@@ -254,7 +261,7 @@ export default function PracticeRoomList({
             {filteredAndSortedRooms.map((room, index) => (
             <div
               key={room.id}
-              onClick={handleRoomClick}
+              onClick={() => handleRoomClick(room)}
               className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all animate-fadeIn"
               style={{
                 animationDelay: `${index * 100}ms`
@@ -295,9 +302,12 @@ export default function PracticeRoomList({
         isOpen={showModal}
         onClose={() => {
           setShowModal(false);
+          setSelectedRoom(null);
           fetchRooms();
         }}
         isAdminMode={isAdminMode}
+        selectedRoom={selectedRoom}
+        initialRoom={selectedRoom}
       />
 
       {/* 검색 모달 */}
