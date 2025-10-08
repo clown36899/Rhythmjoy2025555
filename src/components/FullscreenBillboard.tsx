@@ -37,25 +37,28 @@ export default function FullscreenBillboard({
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 재생 순서 설정 (localStorage에서 읽기)
-  const [playOrder, setPlayOrder] = useState<'sequential' | 'random'>(() => {
-    return (localStorage.getItem('billboardPlayOrder') as 'sequential' | 'random') || 'random';
+  const [playOrder, setPlayOrder] = useState<"sequential" | "random">(() => {
+    return (
+      (localStorage.getItem("billboardPlayOrder") as "sequential" | "random") ||
+      "random"
+    );
   });
 
   // 이미지와 이벤트를 재생 순서에 따라 정렬
   const { sortedImages, sortedEvents } = useMemo(() => {
-    if (playOrder === 'random') {
+    if (playOrder === "random") {
       // 랜덤 순서로 셔플 (이미지와 이벤트를 함께 셔플)
       const indices = images.map((_, i) => i);
       const shuffledIndices = shuffleArray(indices);
       return {
-        sortedImages: shuffledIndices.map(i => images[i]),
-        sortedEvents: shuffledIndices.map(i => events[i])
+        sortedImages: shuffledIndices.map((i) => images[i]),
+        sortedEvents: shuffledIndices.map((i) => events[i]),
       };
     } else {
       // 순차 재생
       return {
         sortedImages: images,
-        sortedEvents: events
+        sortedEvents: events,
       };
     }
   }, [images, events, playOrder, isOpen]); // isOpen이 변경될 때마다 재생성 (광고판 열릴 때 새로 셔플)
@@ -63,13 +66,16 @@ export default function FullscreenBillboard({
   // localStorage 변경 감지
   useEffect(() => {
     const handleStorageChange = () => {
-      const newOrder = (localStorage.getItem('billboardPlayOrder') as 'sequential' | 'random') || 'random';
+      const newOrder =
+        (localStorage.getItem("billboardPlayOrder") as
+          | "sequential"
+          | "random") || "random";
       setPlayOrder(newOrder);
     };
 
-    window.addEventListener('billboardOrderChange', handleStorageChange);
+    window.addEventListener("billboardOrderChange", handleStorageChange);
     return () => {
-      window.removeEventListener('billboardOrderChange', handleStorageChange);
+      window.removeEventListener("billboardOrderChange", handleStorageChange);
     };
   }, []);
 
@@ -203,12 +209,19 @@ export default function FullscreenBillboard({
               <div className="flex justify-center mt-4 pointer-events-auto">
                 <button
                   onClick={handleImageClick}
+                  // 인라인: 가로정렬/간격/줄바꿈방지만 보장
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    whiteSpace: "nowrap",
+                    transitionDuration: `${transitionDuration}ms`,
+                  }}
                   className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full font-medium text-sm flex items-center space-x-2 transition-all hover:scale-105 ${
                     isTransitioning ? "opacity-0" : "opacity-100"
                   }`}
-                  style={{ transitionDuration: `${transitionDuration}ms` }}
                 >
-                  <i className="ri-eye-line text-lg"></i>
+                  <i className="ri-eye-line text-lg" aria-hidden="true"></i>
                   <span>상세보기</span>
                 </button>
               </div>
