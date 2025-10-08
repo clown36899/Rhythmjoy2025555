@@ -450,7 +450,7 @@ export default function EventCalendar({
       return (
         <div
           key={`${monthDate.getMonth()}-${index}`}
-          className="h-5 p-0 relative border-b border-gray-700"
+          className="h-5 p-0 relative"
         >
           <button
             onClick={() => handleDateClick(day)}
