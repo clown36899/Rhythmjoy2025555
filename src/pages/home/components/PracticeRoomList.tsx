@@ -257,18 +257,37 @@ export default function PracticeRoomList({
             검색 결과가 없습니다
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {filteredAndSortedRooms.map((room, index) => (
             <div
               key={room.id}
               onClick={() => handleRoomClick(room)}
-              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all animate-fadeIn"
+              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all animate-fadeIn flex items-center"
               style={{
                 animationDelay: `${index * 100}ms`
               }}
             >
+              {/* 왼쪽: 정보 */}
+              <div className="flex-1 p-3 min-w-0">
+                <h3 className="text-base font-semibold text-white mb-1 truncate">
+                  {room.name}
+                </h3>
+                {room.address && (
+                  <p className="text-xs text-gray-400 mb-1 flex items-start gap-1.5 line-clamp-1">
+                    <i className="ri-map-pin-line mt-0.5 flex-shrink-0"></i>
+                    <span className="truncate">{room.address}</span>
+                  </p>
+                )}
+                {room.description && (
+                  <p className="text-xs text-gray-300 line-clamp-1">
+                    {room.description}
+                  </p>
+                )}
+              </div>
+              
+              {/* 오른쪽: 정사각형 이미지 */}
               {room.images && room.images.length > 0 && (
-                <div className="aspect-video w-full overflow-hidden">
+                <div className="w-20 h-20 flex-shrink-0 overflow-hidden">
                   <img
                     src={room.images[0]}
                     alt={room.name}
@@ -276,22 +295,6 @@ export default function PracticeRoomList({
                   />
                 </div>
               )}
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  {room.name}
-                </h3>
-                {room.address && (
-                  <p className="text-sm text-gray-400 mb-2 flex items-start gap-2">
-                    <i className="ri-map-pin-line mt-0.5"></i>
-                    <span>{room.address}</span>
-                  </p>
-                )}
-                {room.description && (
-                  <p className="text-sm text-gray-300 line-clamp-2">
-                    {room.description}
-                  </p>
-                )}
-              </div>
             </div>
           ))}
           </div>
