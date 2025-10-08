@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import EventCalendar from "./components/EventCalendar";
 import EventList from "./components/EventList";
+import PracticeRoomList from "./components/PracticeRoomList";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import FullscreenBillboard from "../../components/FullscreenBillboard";
@@ -426,9 +427,9 @@ export default function HomePage() {
           >
             {/* Calendar - Collapsible */}
             <div
-              className={`transition-all duration-300 ease-in-out overflow-hidden border-b border-black`}
+              className="transition-all duration-300 ease-in-out overflow-hidden border-b border-black"
               style={{
-                maxHeight: isCalendarCollapsed ? '0px' : '500px',
+                maxHeight: isCalendarCollapsed ? '0px' : '2000px',
               }}
             >
               <EventCalendar
@@ -486,7 +487,6 @@ export default function HomePage() {
                   onClick={() => {
                     setSelectedCategory("practice");
                     setIsCalendarCollapsed(true);
-                    setShowPracticeRoomModal(true);
                   }}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("practice")
@@ -526,32 +526,36 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Scrollable Content Area - Events and Footer */}
+          {/* Scrollable Content Area - Events/Practice Rooms and Footer */}
           <div
             className="flex-1 overflow-y-auto"
             style={{ paddingTop: `calc(0rem + ${calendarHeight}px + 95px)` }}
           >
             <div className="-mt-10">
-              <EventList
-                selectedDate={selectedDate}
-                selectedCategory={selectedCategory}
-                onCategoryChange={handleCategoryChange}
-                currentMonth={currentMonth}
-                refreshTrigger={refreshTrigger}
-                isAdminMode={isAdminMode}
-                viewMode={viewMode}
-                onEventHover={setHoveredEventId}
-                showSearchModal={showSearchModal}
-                setShowSearchModal={setShowSearchModal}
-                showSortModal={showSortModal}
-                setShowSortModal={setShowSortModal}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                showPracticeRoomModal={showPracticeRoomModal}
-                setShowPracticeRoomModal={setShowPracticeRoomModal}
-                highlightEvent={highlightEvent}
-                onHighlightComplete={handleHighlightComplete}
-              />
+              {selectedCategory === "practice" ? (
+                <PracticeRoomList isAdminMode={isAdminMode} />
+              ) : (
+                <EventList
+                  selectedDate={selectedDate}
+                  selectedCategory={selectedCategory}
+                  onCategoryChange={handleCategoryChange}
+                  currentMonth={currentMonth}
+                  refreshTrigger={refreshTrigger}
+                  isAdminMode={isAdminMode}
+                  viewMode={viewMode}
+                  onEventHover={setHoveredEventId}
+                  showSearchModal={showSearchModal}
+                  setShowSearchModal={setShowSearchModal}
+                  showSortModal={showSortModal}
+                  setShowSortModal={setShowSortModal}
+                  sortBy={sortBy}
+                  setSortBy={setSortBy}
+                  showPracticeRoomModal={showPracticeRoomModal}
+                  setShowPracticeRoomModal={setShowPracticeRoomModal}
+                  highlightEvent={highlightEvent}
+                  onHighlightComplete={handleHighlightComplete}
+                />
+              )}
             </div>
             <Footer />
           </div>
