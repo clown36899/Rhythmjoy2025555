@@ -24,6 +24,8 @@ interface PracticeRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   isAdminMode?: boolean;
+  selectedRoom?: PracticeRoom | null;
+  initialRoom?: PracticeRoom | null;
 }
 
 interface ImageItem {
@@ -41,6 +43,8 @@ export default function PracticeRoomModal({
   isOpen,
   onClose,
   isAdminMode,
+  selectedRoom: externalSelectedRoom,
+  initialRoom,
 }: PracticeRoomModalProps) {
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,9 +74,21 @@ export default function PracticeRoomModal({
   // -------------------------------------------------------------------------
   useEffect(() => {
     if (isOpen) {
-      fetchRooms();
+      // initialRoom이 있으면 바로 상세 보기 모드로 열기
+      const roomToShow = initialRoom || externalSelectedRoom;
+      if (roomToShow) {
+        setSelectedRoom(roomToShow);
+        setLoading(false);
+      } else {
+        fetchRooms();
+      }
+    } else {
+      // 모달이 닫힐 때 상태 초기화
+      setSelectedRoom(null);
+      setEditingRoom(null);
+      setIsFormOpen(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialRoom, externalSelectedRoom]);
 
   const fetchRooms = async () => {
     try {
