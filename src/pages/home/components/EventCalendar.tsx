@@ -450,11 +450,11 @@ export default function EventCalendar({
       return (
         <div
           key={`${monthDate.getMonth()}-${index}`}
-          className="h-5 p-0 relative"
+          className="h-5 p-0 relative border-b border-gray-700"
         >
           <button
             onClick={() => handleDateClick(day)}
-            className={`w-full h-full flex flex-col items-center justify-center text-[13px] rounded transition-all duration-300 cursor-pointer relative overflow-visible ${
+            className={`w-full h-full flex flex-col items-center justify-center text-[13px] transition-all duration-300 cursor-pointer relative overflow-visible ${
               selectedDate && day.toDateString() === selectedDate.toDateString()
                 ? "bg-blue-600 text-white transform scale-105 z-10"
                 : "text-gray-300 hover:bg-gray-700"
@@ -496,9 +496,9 @@ export default function EventCalendar({
             )}
           </button>
 
-          {/* 이벤트 바 표시 - 버튼 아래에 절대 위치 */}
+          {/* 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 */}
           {eventBarsData.some((bar) => bar !== null) && (
-            <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-0.5 pb-0.5 pointer-events-none z-20">
+            <div className="absolute bottom-0 left-0 right-0 h-5 pointer-events-none">
               {eventBarsData.map((bar, i) => {
                 // 호버된 이벤트인지 확인 (월간 보기일 때만)
                 const isHovered =
@@ -511,27 +511,32 @@ export default function EventCalendar({
                   ? multiDayEvents.find((e) => e.id === bar.eventId)
                   : null;
 
+                if (!bar) return null;
+
+                // 호버 상태가 아니고, 다른 이벤트가 호버 중이면 숨김
+                const shouldHide = hoveredEventId !== null && !isHovered;
+
                 return (
                   <div
                     key={i}
-                    className={`w-full transition-all duration-200 origin-bottom overflow-hidden flex items-center px-1 ${
-                      bar
-                        ? `${bar.categoryColor} ${
-                            bar.isStart && bar.isEnd
-                              ? "rounded-full"
-                              : bar.isStart
-                                ? "rounded-l-full"
-                                : bar.isEnd
-                                  ? "rounded-r-full"
-                                  : ""
-                          } ${
-                            bar.isFaded
-                              ? "opacity-30 h-1"
-                              : isHovered
-                                ? "opacity-100 h-5"
-                                : "opacity-70 h-1"
-                          }`
-                        : "bg-transparent h-1"
+                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 overflow-hidden flex items-center px-1 ${
+                      bar.categoryColor
+                    } ${
+                      bar.isStart && bar.isEnd
+                        ? "rounded-full"
+                        : bar.isStart
+                          ? "rounded-l-full"
+                          : bar.isEnd
+                            ? "rounded-r-full"
+                            : ""
+                    } ${
+                      shouldHide
+                        ? "opacity-0 h-0 scale-0"
+                        : bar.isFaded
+                          ? "opacity-20 h-1.5 z-0"
+                          : isHovered
+                            ? "opacity-100 h-5 z-30"
+                            : "opacity-60 h-1.5 z-10"
                     }`}
                   >
                     {isHovered && event && (
