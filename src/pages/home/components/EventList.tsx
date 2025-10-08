@@ -834,8 +834,18 @@ export default function EventList({
         {/* 검색 키워드 배너 (Compact Style) */}
         {searchTerm && (
           <div className="inline-flex items-center gap-1.5 bg-blue-600/20 text-blue-400 border border-blue-600/40 px-2.5 py-0.5 rounded-full text-xs font-medium mb-2">
-            <i className="ri-search-line text-[11px]"></i>
-            <span>“{searchTerm}”</span>
+            <button
+              onClick={() => {
+                const currentTerm = searchTerm;
+                setSearchTerm("");
+                setTimeout(() => setSearchTerm(currentTerm), 0);
+              }}
+              className="flex items-center gap-1 cursor-pointer hover:text-blue-300 transition-colors"
+              aria-label="검색 재실행"
+            >
+              <i className="ri-search-line text-[11px]"></i>
+              <span>"{searchTerm}"</span>
+            </button>
             <button
               onClick={() => setSearchTerm("")}
               className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-600/20 transition-colors cursor-pointer"
