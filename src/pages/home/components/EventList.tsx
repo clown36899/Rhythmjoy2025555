@@ -838,17 +838,17 @@ export default function EventList({
       >
         {/* 검색 키워드 배너 */}
         {searchTerm && (
-          <div className="mb-4 flex items-center justify-between bg-blue-600 text-white px-4 py-2 rounded-lg">
-            <div className="flex items-center gap-2">
-              <i className="ri-search-line"></i>
-              <span className="text-sm font-medium">검색: "{searchTerm}"</span>
+          <div className="mb-3 flex items-center justify-between bg-blue-600 text-white px-3 py-1.5 rounded-lg">
+            <div className="flex items-center gap-1.5">
+              <i className="ri-search-line text-xs"></i>
+              <span className="text-xs font-medium">검색: "{searchTerm}"</span>
             </div>
             <button
               onClick={() => setSearchTerm("")}
-              className="flex items-center justify-center w-6 h-6 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
+              className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
               aria-label="검색 취소"
             >
-              <i className="ri-close-line text-lg"></i>
+              <i className="ri-close-line text-sm"></i>
             </button>
           </div>
         )}
