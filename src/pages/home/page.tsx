@@ -310,8 +310,8 @@ export default function HomePage() {
   };
 
   const handleCategoryChange = (category: string) => {
-    // 검색 중일 때는 검색 취소하고 카테고리 변경
-    if (searchTerm) {
+    // "전체" 버튼만 검색 취소, 강습/행사는 검색 결과 내 필터링
+    if (category === "all" && searchTerm) {
       setSearchTerm("");
     }
     setSelectedCategory(category);
@@ -476,7 +476,9 @@ export default function HomePage() {
                   onClick={() => handleCategoryChange("all")}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     searchTerm
-                      ? "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                      ? isCategoryActive("all")
+                        ? "bg-blue-600/50 text-blue-200 border border-blue-500/30"
+                        : "bg-gray-700/50 text-gray-400 border border-gray-600/50"
                       : isCategoryActive("all")
                         ? "bg-blue-600 text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
@@ -494,7 +496,9 @@ export default function HomePage() {
                   onClick={() => handleCategoryChange("class")}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     searchTerm
-                      ? "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                      ? isCategoryActive("class")
+                        ? "bg-purple-600/50 text-purple-200 border border-purple-500/30"
+                        : "bg-gray-700/50 text-gray-400 border border-gray-600/50"
                       : isCategoryActive("class")
                         ? "bg-purple-600 text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
@@ -506,7 +510,9 @@ export default function HomePage() {
                   onClick={() => handleCategoryChange("event")}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     searchTerm
-                      ? "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                      ? isCategoryActive("event")
+                        ? "bg-blue-600/50 text-blue-200 border border-blue-500/30"
+                        : "bg-gray-700/50 text-gray-400 border border-gray-600/50"
                       : isCategoryActive("event")
                         ? "bg-blue-600 text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
