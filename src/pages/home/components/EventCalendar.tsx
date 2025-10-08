@@ -508,9 +508,6 @@ export default function EventCalendar({
 
                 if (!bar) return null;
 
-                // 호버 상태가 아니고, 다른 이벤트가 호버 중이면 숨김
-                const shouldHide = hoveredEventId !== null && !isHovered;
-
                 return (
                   <div
                     key={i}
@@ -525,13 +522,11 @@ export default function EventCalendar({
                             ? "rounded-r-full"
                             : ""
                     } ${
-                      shouldHide
-                        ? "opacity-0 h-0 scale-0"
-                        : bar.isFaded
-                          ? "opacity-20 h-1.5 z-0"
-                          : isHovered
-                            ? "opacity-100 h-5 z-10"
-                            : "opacity-60 h-1.5 z-0"
+                      bar.isFaded
+                        ? "opacity-20 h-1.5 z-0"
+                        : isHovered
+                          ? "opacity-100 h-5 z-10"
+                          : "opacity-60 h-1.5 z-0"
                     }`}
                   />
                 );
