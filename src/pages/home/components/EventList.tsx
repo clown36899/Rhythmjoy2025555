@@ -156,7 +156,17 @@ export default function EventList({
     const suggestions = new Set<string>();
     const queryLower = query.toLowerCase();
 
-    events.forEach((event) => {
+    // 3년치 데이터만 사용 (전년, 올해, 후년)
+    const currentYear = new Date().getFullYear();
+    const threeYearEvents = events.filter((event) => {
+      const eventDate = event.start_date || event.date;
+      if (!eventDate) return false;
+      
+      const eventYear = new Date(eventDate).getFullYear();
+      return eventYear >= currentYear - 1 && eventYear <= currentYear + 1;
+    });
+
+    threeYearEvents.forEach((event) => {
       // 제목 전체가 검색어를 포함하는 경우
       if (event.title.toLowerCase().includes(queryLower)) {
         suggestions.add(event.title);
@@ -180,8 +190,8 @@ export default function EventList({
           cleanWord.length >= 3 &&
           cleanWord.toLowerCase().includes(queryLower)
         ) {
-          // 해당 단어로 실제 검색 결과가 있는지 확인
-          const hasResults = events.some(
+          // 해당 단어로 실제 검색 결과가 있는지 확인 (3년치 데이터 내에서)
+          const hasResults = threeYearEvents.some(
             (e) =>
               e.title.toLowerCase().includes(cleanWord.toLowerCase()) ||
               e.location.toLowerCase().includes(cleanWord.toLowerCase()) ||
@@ -195,10 +205,10 @@ export default function EventList({
       });
     });
 
-    // 검색 결과가 실제로 있는 제안만 필터링
+    // 검색 결과가 실제로 있는 제안만 필터링 (3년치 데이터 내에서)
     const validSuggestions = Array.from(suggestions).filter((suggestion) => {
       const suggestionLower = suggestion.toLowerCase();
-      return events.some(
+      return threeYearEvents.some(
         (event) =>
           event.title.toLowerCase().includes(suggestionLower) ||
           event.location.toLowerCase().includes(suggestionLower) ||
