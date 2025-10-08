@@ -65,7 +65,7 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
     setShowModal(true);
   };
 
-  // 검색 필터링된 연습실 목록 (애니메이션 트리거를 위해 useMemo 사용)
+  // 검색 필터링된 연습실 목록
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
       if (!searchQuery.trim()) return true;
@@ -78,9 +78,6 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
       );
     });
   }, [rooms, searchQuery]);
-
-  // 애니메이션 트리거를 위한 키
-  const animationKey = useMemo(() => Date.now(), [filteredRooms]);
 
   if (loading) {
     return (
@@ -151,7 +148,7 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
           </div>
         ) : (
           <div className="grid gap-4">
-            {filteredRooms.map((room, index) => (
+            {filteredRooms.map((room) => (
             <div
               key={room.id}
               onClick={handleRoomClick}
