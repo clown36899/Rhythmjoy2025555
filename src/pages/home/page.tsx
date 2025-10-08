@@ -464,13 +464,11 @@ export default function HomePage() {
                   }`}
                 >
                   <span>
-                    {searchTerm
-                      ? "검색 결과"
-                      : currentMonth
-                        ? viewMode === "year"
-                          ? `${currentMonth.getFullYear()} 전체`
-                          : `${currentMonth.getMonth() + 1}월 전체`
-                        : "모든 이벤트"}
+                    {currentMonth
+                      ? viewMode === "year"
+                        ? `${currentMonth.getFullYear()} 전체`
+                        : `${currentMonth.getMonth() + 1}월 전체`
+                      : "모든 이벤트"}
                   </span>
                 </button>
                 <button
