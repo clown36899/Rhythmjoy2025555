@@ -25,7 +25,6 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">(
     "random",
   );
-  const [showPracticeRoomModal, setShowPracticeRoomModal] = useState(false);
   const [highlightEvent, setHighlightEvent] = useState<{
     id: number;
     nonce: number;
@@ -582,8 +581,6 @@ export default function HomePage() {
                   setShowSortModal={setShowSortModal}
                   sortBy={sortBy}
                   setSortBy={setSortBy}
-                  showPracticeRoomModal={showPracticeRoomModal}
-                  setShowPracticeRoomModal={setShowPracticeRoomModal}
                   highlightEvent={highlightEvent}
                   onHighlightComplete={handleHighlightComplete}
                 />

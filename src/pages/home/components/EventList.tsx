@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
-import PracticeRoomModal from "../../../components/PracticeRoomModal";
 import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
 
@@ -29,8 +28,6 @@ interface EventListProps {
   setShowSortModal?: (show: boolean) => void;
   sortBy?: "random" | "time" | "title" | "newest";
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
-  showPracticeRoomModal?: boolean;
-  setShowPracticeRoomModal?: (show: boolean) => void;
   highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
 }
@@ -52,8 +49,6 @@ export default function EventList({
   setShowSortModal: externalSetShowSortModal,
   sortBy: externalSortBy,
   setSortBy: externalSetSortBy,
-  showPracticeRoomModal: externalShowPracticeRoomModal,
-  setShowPracticeRoomModal: externalSetShowPracticeRoomModal,
   highlightEvent,
   onHighlightComplete,
 }: EventListProps) {
@@ -81,9 +76,6 @@ export default function EventList({
   >("random");
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
 
-  const [internalShowPracticeRoomModal, setInternalShowPracticeRoomModal] =
-    useState(false);
-
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
   const setShowSearchModal =
     externalSetShowSearchModal ?? setInternalShowSearchModal;
@@ -91,10 +83,6 @@ export default function EventList({
   const setShowSortModal = externalSetShowSortModal ?? setInternalShowSortModal;
   const sortBy = externalSortBy ?? internalSortBy;
   const setSortBy = externalSetSortBy ?? setInternalSortBy;
-  const showPracticeRoomModal =
-    externalShowPracticeRoomModal ?? internalShowPracticeRoomModal;
-  const setShowPracticeRoomModal =
-    externalSetShowPracticeRoomModal ?? setInternalShowPracticeRoomModal;
   const [editFormData, setEditFormData] = useState({
     title: "",
     time: "",
@@ -1841,13 +1829,6 @@ export default function EventList({
             />
           </div>
         )}
-
-      {/* Practice Room Modal */}
-      <PracticeRoomModal
-        isOpen={showPracticeRoomModal}
-        onClose={() => setShowPracticeRoomModal(false)}
-        isAdminMode={isAdminMode}
-      />
     </>
   );
 }
