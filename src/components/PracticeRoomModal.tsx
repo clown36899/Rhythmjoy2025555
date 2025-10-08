@@ -331,8 +331,8 @@ export default function PracticeRoomModal({
       });
       setImageItems([]);
       
-      // initialRoom으로 열린 경우 모달 닫기, 아니면 목록 새로고침
-      if (initialRoom || externalSelectedRoom) {
+      // initialRoom이나 openToForm으로 열린 경우 모달 닫기, 아니면 목록 새로고침
+      if (initialRoom || externalSelectedRoom || openToForm) {
         onClose();
       } else {
         fetchRooms();
