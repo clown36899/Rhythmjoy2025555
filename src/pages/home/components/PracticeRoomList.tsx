@@ -106,11 +106,14 @@ export default function PracticeRoomList({ isAdminMode }: PracticeRoomListProps)
         )}
 
         <div className="grid gap-4">
-          {rooms.map((room) => (
+          {rooms.map((room, index) => (
             <div
               key={room.id}
               onClick={handleRoomClick}
-              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-colors"
+              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-colors animate-fadeIn"
+              style={{
+                animationDelay: `${index * 100}ms`,
+              }}
             >
               {room.images && room.images.length > 0 && (
                 <div className="aspect-video w-full overflow-hidden">

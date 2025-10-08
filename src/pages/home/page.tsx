@@ -275,8 +275,11 @@ export default function HomePage() {
 
   const handleMonthChange = (month: Date) => {
     setCurrentMonth(month);
-    // 달 이동 시 날짜만 리셋 (카테고리는 유지)
+    // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
     setSelectedDate(null);
+    setSelectedCategory("all");
+    // 달력 펼치기
+    setIsCalendarCollapsed(false);
   };
 
   const handleEventsUpdate = async (createdDate?: Date) => {
@@ -361,6 +364,8 @@ export default function HomePage() {
       setCurrentMonth(new Date(savedMonth));
     }
     setViewMode(mode);
+    // 뷰 모드 변경 시 이벤트 리스트 표시
+    setSelectedCategory("all");
     // 달력 펼치기
     setIsCalendarCollapsed(false);
   };
@@ -395,15 +400,17 @@ export default function HomePage() {
               }
             }
             setCurrentMonth(newMonth);
-            // 달 이동 시 날짜만 리셋 (카테고리는 유지)
+            // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
             setSelectedDate(null);
+            setSelectedCategory("all");
             // 달력 펼치기
             setIsCalendarCollapsed(false);
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
-            // 날짜 변경 시 날짜만 리셋 (카테고리는 유지)
+            // 날짜 변경 시 날짜 리셋하고 이벤트 리스트 표시
             setSelectedDate(null);
+            setSelectedCategory("all");
             // 달력 펼치기
             setIsCalendarCollapsed(false);
           }}
