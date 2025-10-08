@@ -41,6 +41,7 @@ export default function PracticeRoomList({
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<PracticeRoom | null>(null);
+  const [openToForm, setOpenToForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
@@ -80,11 +81,13 @@ export default function PracticeRoomList({
 
   const handleRoomClick = (room: PracticeRoom) => {
     setSelectedRoom(room);
+    setOpenToForm(false);
     setShowModal(true);
   };
 
   const handleAddNewRoom = () => {
     setSelectedRoom(null);
+    setOpenToForm(true);
     setShowModal(true);
   };
 
@@ -306,12 +309,14 @@ export default function PracticeRoomList({
         onClose={() => {
           setShowModal(false);
           setSelectedRoom(null);
+          setOpenToForm(false);
           // 모달 닫을 때 리스트 새로고침 (정렬 순서는 유지됨)
           fetchRooms();
         }}
         isAdminMode={isAdminMode}
         selectedRoom={selectedRoom}
         initialRoom={selectedRoom}
+        openToForm={openToForm}
       />
 
       {/* 검색 모달 */}
