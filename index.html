@@ -12,6 +12,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css">
+  <style>
+    /* CSS 로드 전 깨진 레이아웃 방지 */
+    body { visibility: hidden; }
+    body.loaded { visibility: visible; }
+  </style>
   </head>
   <body>
     <div id="root"></div>
