@@ -1697,6 +1697,7 @@ export default function EventList({
                       if (!startDate) return "날짜 미정";
 
                       const start = new Date(startDate);
+                      const startYear = start.getFullYear();
                       const startMonth = start.toLocaleDateString("ko-KR", {
                         month: "long",
                       });
@@ -1704,19 +1705,22 @@ export default function EventList({
 
                       if (endDate && endDate !== startDate) {
                         const end = new Date(endDate);
+                        const endYear = end.getFullYear();
                         const endMonth = end.toLocaleDateString("ko-KR", {
                           month: "long",
                         });
                         const endDay = end.getDate();
 
-                        if (startMonth === endMonth) {
-                          return `${startMonth} ${startDay}~${endDay}일`;
+                        if (startYear === endYear && startMonth === endMonth) {
+                          return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
+                        } else if (startYear === endYear) {
+                          return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
                         } else {
-                          return `${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                          return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
                         }
                       }
 
-                      return `${startMonth} ${startDay}일`;
+                      return `${startYear}년 ${startMonth} ${startDay}일`;
                     })()}
                   </span>
                 </div>
