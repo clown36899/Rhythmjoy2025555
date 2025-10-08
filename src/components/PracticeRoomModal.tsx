@@ -393,8 +393,13 @@ export default function PracticeRoomModal({
   };
 
   const handleCloseDetails = () => {
-    setSelectedRoom(null);
-    setSelectedImageIndex(0);
+    // initialRoom이 있으면 모달 자체를 닫기, 없으면 목록으로 돌아가기
+    if (initialRoom || externalSelectedRoom) {
+      onClose();
+    } else {
+      setSelectedRoom(null);
+      setSelectedImageIndex(0);
+    }
   };
 
   // 모달 완전 닫기 함수 추가
