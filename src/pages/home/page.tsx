@@ -32,7 +32,6 @@ export default function HomePage() {
   } | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [priorCategory, setPriorCategory] = useState<string | null>(null);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -42,21 +41,17 @@ export default function HomePage() {
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
-  // 검색 취소 시 이전 카테고리로 복귀
+  // 검색 취소 시 전체 모드로 리셋
   useEffect(() => {
-    if (!searchTerm && priorCategory !== null) {
-      // 검색 취소: 이전 카테고리로 복원
-      setSelectedCategory(priorCategory);
-      setPriorCategory(null);
+    if (!searchTerm) {
+      // 검색 취소: 전체 모드로 리셋
+      setSelectedCategory("all");
     }
-  }, [searchTerm, priorCategory]);
+  }, [searchTerm]);
 
   // 검색 시작 시 호출되는 콜백
   const handleSearchStart = () => {
-    // 현재 카테고리 저장하고 "all"로 전환
-    if (selectedCategory !== "all") {
-      setPriorCategory(selectedCategory);
-    }
+    // 전체 모드로 전환
     setSelectedCategory("all");
   };
 
