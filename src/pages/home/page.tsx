@@ -32,6 +32,7 @@ export default function HomePage() {
   } | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [priorCategory, setPriorCategory] = useState<string | null>(null);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -40,6 +41,21 @@ export default function HomePage() {
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
+
+  // 검색 시 자동으로 전체 카테고리로 전환, 검색 취소 시 이전 카테고리로 복귀
+  useEffect(() => {
+    if (searchTerm) {
+      // 검색 시작: 현재 카테고리 저장하고 "all"로 전환
+      if (priorCategory === null) {
+        setPriorCategory(selectedCategory);
+      }
+      setSelectedCategory("all");
+    } else if (priorCategory !== null) {
+      // 검색 취소: 이전 카테고리로 복원
+      setSelectedCategory(priorCategory);
+      setPriorCategory(null);
+    }
+  }, [searchTerm]);
 
   // 달력 높이 측정
   useEffect(() => {
@@ -554,7 +570,6 @@ export default function HomePage() {
                 <EventList
                   selectedDate={selectedDate}
                   selectedCategory={selectedCategory}
-                  onCategoryChange={handleCategoryChange}
                   currentMonth={currentMonth}
                   refreshTrigger={refreshTrigger}
                   isAdminMode={isAdminMode}

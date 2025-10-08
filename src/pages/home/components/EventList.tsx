@@ -15,7 +15,6 @@ const formatDateForInput = (date: Date): string => {
 interface EventListProps {
   selectedDate: Date | null;
   selectedCategory: string;
-  onCategoryChange: (category: string) => void;
   currentMonth?: Date;
   refreshTrigger?: number;
   isAdminMode?: boolean;
@@ -38,7 +37,6 @@ interface EventListProps {
 export default function EventList({
   selectedDate,
   selectedCategory,
-  onCategoryChange,
   currentMonth,
   refreshTrigger,
   isAdminMode = false,
