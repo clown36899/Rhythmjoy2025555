@@ -227,6 +227,24 @@ export default function PracticeRoomList({
           </div>
         )}
 
+        {/* 검색 키워드 배너 (Compact Style) */}
+        {searchQuery && (
+          <div className="inline-flex items-center gap-1.5 bg-blue-600/20 text-blue-400 border border-blue-600/40 px-2.5 py-0.5 rounded-full text-xs font-medium mb-2">
+            <i className="ri-search-line text-[11px]"></i>
+            <span>"{searchQuery}"</span>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setInternalSearchQuery("");
+              }}
+              className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-600/20 transition-colors cursor-pointer"
+              aria-label="검색 취소"
+            >
+              <i className="ri-close-line text-[10px]"></i>
+            </button>
+          </div>
+        )}
+
         {filteredAndSortedRooms.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             검색 결과가 없습니다
@@ -291,9 +309,10 @@ export default function PracticeRoomList({
                 <h3 className="text-lg font-bold text-white">연습실 검색</h3>
                 <button
                   onClick={() => {
-                    setShowSearchModal(false);
+                    setSearchQuery("");
                     setInternalSearchQuery("");
                     setSearchSuggestions([]);
+                    setShowSearchModal(false);
                   }}
                   className="text-gray-400 hover:text-white"
                 >

@@ -60,7 +60,7 @@ export default function EventList({
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
   const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
-  
+
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
@@ -168,7 +168,7 @@ export default function EventList({
     const threeYearEvents = events.filter((event) => {
       const eventDate = event.start_date || event.date;
       if (!eventDate) return false;
-      
+
       const eventYear = new Date(eventDate).getFullYear();
       return eventYear >= currentYear - 1 && eventYear <= currentYear + 1;
     });
@@ -464,14 +464,15 @@ export default function EventList({
       if (searchTerm.trim()) {
         const currentYear = new Date().getFullYear();
         const eventDate = event.start_date || event.date;
-        
+
         if (!eventDate) {
           return false; // 날짜 없는 이벤트 제외
         }
-        
+
         const eventYear = new Date(eventDate).getFullYear();
-        const matchesYearRange = eventYear >= currentYear - 1 && eventYear <= currentYear + 1;
-        
+        const matchesYearRange =
+          eventYear >= currentYear - 1 && eventYear <= currentYear + 1;
+
         return matchesCategory && matchesSearch && matchesYearRange;
       }
 
@@ -836,19 +837,17 @@ export default function EventList({
           backgroundColor: "var(--event-list-outer-bg-color)",
         }}
       >
-        {/* 검색 키워드 배너 */}
+        {/* 검색 키워드 배너 (Compact Style) */}
         {searchTerm && (
-          <div className="mb-3 flex items-center justify-between bg-blue-600 text-white px-3 py-1.5 rounded-lg">
-            <div className="flex items-center gap-1.5">
-              <i className="ri-search-line text-xs"></i>
-              <span className="text-xs font-medium">검색: "{searchTerm}"</span>
-            </div>
+          <div className="inline-flex items-center gap-1.5 bg-blue-600/20 text-blue-400 border border-blue-600/40 px-2.5 py-0.5 rounded-full text-xs font-medium mb-2">
+            <i className="ri-search-line text-[11px]"></i>
+            <span>“{searchTerm}”</span>
             <button
               onClick={() => setSearchTerm("")}
-              className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
+              className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-600/20 transition-colors cursor-pointer"
               aria-label="검색 취소"
             >
-              <i className="ri-close-line text-sm"></i>
+              <i className="ri-close-line text-[10px]"></i>
             </button>
           </div>
         )}
