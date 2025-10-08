@@ -310,6 +310,10 @@ export default function HomePage() {
   };
 
   const handleCategoryChange = (category: string) => {
+    // 검색 중일 때는 검색 취소하고 카테고리 변경
+    if (searchTerm) {
+      setSearchTerm("");
+    }
     setSelectedCategory(category);
     // "모든 이벤트"를 클릭했을 때 선택된 날짜 초기화
     if (category === "all") {
@@ -471,9 +475,11 @@ export default function HomePage() {
                 <button
                   onClick={() => handleCategoryChange("all")}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    isCategoryActive("all")
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    searchTerm
+                      ? "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                      : isCategoryActive("all")
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <span>
@@ -487,9 +493,11 @@ export default function HomePage() {
                 <button
                   onClick={() => handleCategoryChange("class")}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    isCategoryActive("class")
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    searchTerm
+                      ? "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                      : isCategoryActive("class")
+                        ? "bg-purple-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <span>강습</span>
@@ -497,9 +505,11 @@ export default function HomePage() {
                 <button
                   onClick={() => handleCategoryChange("event")}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    isCategoryActive("event")
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    searchTerm
+                      ? "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                      : isCategoryActive("event")
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <span>행사</span>

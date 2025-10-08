@@ -420,13 +420,6 @@ export default function PracticeRoomModal({
     }
   };
 
-  // 모달 완전 닫기 함수 추가
-  const handleCloseModal = () => {
-    setSelectedRoom(null);
-    setSelectedImageIndex(0);
-    onClose();
-  };
-
   const nextImage = () => {
     if (selectedRoom && selectedRoom.images.length > 0) {
       setSelectedImageIndex((prev) =>
