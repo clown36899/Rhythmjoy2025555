@@ -31,6 +31,7 @@ export default function HomePage() {
     nonce: number;
   } | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -463,11 +464,13 @@ export default function HomePage() {
                   }`}
                 >
                   <span>
-                    {currentMonth
-                      ? viewMode === "year"
-                        ? `${currentMonth.getFullYear()} 전체`
-                        : `${currentMonth.getMonth() + 1}월 전체`
-                      : "모든 이벤트"}
+                    {searchTerm
+                      ? "검색 결과"
+                      : currentMonth
+                        ? viewMode === "year"
+                          ? `${currentMonth.getFullYear()} 전체`
+                          : `${currentMonth.getMonth() + 1}월 전체`
+                        : "모든 이벤트"}
                   </span>
                 </button>
                 <button
@@ -559,6 +562,8 @@ export default function HomePage() {
                   isAdminMode={isAdminMode}
                   viewMode={viewMode}
                   onEventHover={setHoveredEventId}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
                   showSearchModal={showSearchModal}
                   setShowSearchModal={setShowSearchModal}
                   showSortModal={showSortModal}

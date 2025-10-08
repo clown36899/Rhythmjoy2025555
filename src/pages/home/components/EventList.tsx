@@ -21,6 +21,8 @@ interface EventListProps {
   isAdminMode?: boolean;
   viewMode?: "month" | "year";
   onEventHover?: (eventId: number | null) => void;
+  searchTerm?: string;
+  setSearchTerm?: (term: string) => void;
   showSearchModal?: boolean;
   setShowSearchModal?: (show: boolean) => void;
   showSortModal?: boolean;
@@ -42,6 +44,8 @@ export default function EventList({
   isAdminMode = false,
   viewMode = "month",
   onEventHover,
+  searchTerm: externalSearchTerm,
+  setSearchTerm: externalSetSearchTerm,
   showSearchModal: externalShowSearchModal,
   setShowSearchModal: externalSetShowSearchModal,
   showSortModal: externalShowSortModal,
@@ -53,7 +57,10 @@ export default function EventList({
   highlightEvent,
   onHighlightComplete,
 }: EventListProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [internalSearchTerm, setInternalSearchTerm] = useState("");
+  const searchTerm = externalSearchTerm ?? internalSearchTerm;
+  const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
+  
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
@@ -444,6 +451,30 @@ export default function EventList({
   // 필터링된 이벤트 (useMemo로 캐싱하여 불필요한 재필터링 방지)
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
+      // 카테고리 필터
+      const matchesCategory =
+        selectedCategory === "all" || event.category === selectedCategory;
+
+      // 검색어 필터
+      const matchesSearch =
+        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        event.location.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // 검색어가 있을 때는 3년치 데이터만 필터링 (월 필터 무시)
+      if (searchTerm.trim()) {
+        const currentYear = new Date().getFullYear();
+        const eventDate = event.start_date || event.date;
+        
+        if (!eventDate) {
+          return false; // 날짜 없는 이벤트 제외
+        }
+        
+        const eventYear = new Date(eventDate).getFullYear();
+        const matchesYearRange = eventYear >= currentYear - 1 && eventYear <= currentYear + 1;
+        
+        return matchesCategory && matchesSearch && matchesYearRange;
+      }
+
       // 날짜가 선택된 경우
       if (selectedDate) {
         const year = selectedDate.getFullYear();
@@ -459,24 +490,10 @@ export default function EventList({
           selectedDateString >= startDate &&
           selectedDateString <= endDate;
 
-        // 날짜가 선택되었을 때도 사용자가 카테고리를 선택하면 필터 적용
-        const matchesCategory =
-          selectedCategory === "all" || event.category === selectedCategory;
-
-        const matchesSearch =
-          event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.location.toLowerCase().includes(searchTerm.toLowerCase());
-
-        return matchesDate && matchesCategory && matchesSearch;
+        return matchesDate && matchesCategory;
       }
 
-      // 날짜가 선택되지 않은 경우 기존 로직 사용
-      const matchesCategory =
-        selectedCategory === "all" || event.category === selectedCategory;
-      const matchesSearch =
-        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.location.toLowerCase().includes(searchTerm.toLowerCase());
-
+      // 날짜가 선택되지 않은 경우 - 월 필터 적용
       let matchesDate = true;
       if (currentMonth) {
         const startDate = event.start_date || event.date;
@@ -516,7 +533,7 @@ export default function EventList({
         }
       }
 
-      return matchesCategory && matchesSearch && matchesDate;
+      return matchesCategory && matchesDate;
     });
   }, [
     events,
@@ -1002,6 +1019,7 @@ export default function EventList({
                     setShowSearchModal(false);
                     setSearchQuery("");
                     setSearchSuggestions([]);
+                    setSearchTerm("");
                   }}
                   className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
@@ -1054,6 +1072,7 @@ export default function EventList({
                       setShowSearchModal(false);
                       setSearchQuery("");
                       setSearchSuggestions([]);
+                      setSearchTerm("");
                     }}
                     className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
                   >
