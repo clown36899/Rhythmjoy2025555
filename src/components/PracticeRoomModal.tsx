@@ -515,14 +515,34 @@ export default function PracticeRoomModal({
         <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden mx-4 flex flex-col">
           {/* Header with navigation buttons */}
           <div className="flex-shrink-0 flex items-center justify-between p-2 border-b border-gray-200">
-            <div></div> {/* 빈 공간 */}
+            {/* 관리자 버튼 */}
+            <div className="flex items-center gap-2">
+              {isAdminMode && (
+                <>
+                  <button
+                    onClick={() => handleEdit(selectedRoom)}
+                    className="flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer text-sm"
+                  >
+                    <i className="ri-edit-line"></i>
+                    <span>수정</span>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(selectedRoom.id)}
+                    className="flex items-center justify-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors cursor-pointer text-sm"
+                  >
+                    <i className="ri-delete-bin-line"></i>
+                    <span>삭제</span>
+                  </button>
+                </>
+              )}
+            </div>
             <h2 className="text-xl font-bold text-gray-900">
               {selectedRoom.name}
             </h2>
             <button
               onClick={handleCloseDetails}
               className="flex items-center justify-center w-8 h-8 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded-lg transition-colors cursor-pointer"
-              title="목록으로 돌아가기"
+              title="닫기"
             >
               <i className="ri-close-line text-lg"></i>
             </button>
