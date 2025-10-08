@@ -42,20 +42,23 @@ export default function HomePage() {
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
-  // 검색 시 자동으로 전체 카테고리로 전환, 검색 취소 시 이전 카테고리로 복귀
+  // 검색 취소 시 이전 카테고리로 복귀
   useEffect(() => {
-    if (searchTerm) {
-      // 검색 시작: 현재 카테고리 저장하고 "all"로 전환
-      if (priorCategory === null) {
-        setPriorCategory(selectedCategory);
-      }
-      setSelectedCategory("all");
-    } else if (priorCategory !== null) {
+    if (!searchTerm && priorCategory !== null) {
       // 검색 취소: 이전 카테고리로 복원
       setSelectedCategory(priorCategory);
       setPriorCategory(null);
     }
-  }, [searchTerm]);
+  }, [searchTerm, priorCategory]);
+
+  // 검색 시작 시 호출되는 콜백
+  const handleSearchStart = () => {
+    // 현재 카테고리 저장하고 "all"로 전환
+    if (selectedCategory !== "all") {
+      setPriorCategory(selectedCategory);
+    }
+    setSelectedCategory("all");
+  };
 
   // 달력 높이 측정
   useEffect(() => {
@@ -577,6 +580,7 @@ export default function HomePage() {
                   onEventHover={setHoveredEventId}
                   searchTerm={searchTerm}
                   setSearchTerm={setSearchTerm}
+                  onSearchStart={handleSearchStart}
                   showSearchModal={showSearchModal}
                   setShowSearchModal={setShowSearchModal}
                   showSortModal={showSortModal}

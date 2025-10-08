@@ -22,6 +22,7 @@ interface EventListProps {
   onEventHover?: (eventId: number | null) => void;
   searchTerm?: string;
   setSearchTerm?: (term: string) => void;
+  onSearchStart?: () => void;
   showSearchModal?: boolean;
   setShowSearchModal?: (show: boolean) => void;
   showSortModal?: boolean;
@@ -44,6 +45,7 @@ export default function EventList({
   onEventHover,
   searchTerm: externalSearchTerm,
   setSearchTerm: externalSetSearchTerm,
+  onSearchStart,
   showSearchModal: externalShowSearchModal,
   setShowSearchModal: externalSetShowSearchModal,
   showSortModal: externalShowSortModal,
@@ -231,6 +233,9 @@ export default function EventList({
   };
 
   const handleSearchSubmit = () => {
+    if (onSearchStart) {
+      onSearchStart();
+    }
     setSearchTerm(searchQuery);
     setShowSearchModal(false);
     setSearchQuery("");
@@ -239,6 +244,9 @@ export default function EventList({
 
   const handleSuggestionClick = (suggestion: string) => {
     setSearchQuery(suggestion);
+    if (onSearchStart) {
+      onSearchStart();
+    }
     setSearchTerm(suggestion);
     setShowSearchModal(false);
     setSearchSuggestions([]);
