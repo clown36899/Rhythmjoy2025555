@@ -321,7 +321,13 @@ export default function PracticeRoomModal({
         images: [] as string[],
       });
       setImageItems([]);
-      fetchRooms();
+      
+      // initialRoom으로 열린 경우 모달 닫기, 아니면 목록 새로고침
+      if (initialRoom || externalSelectedRoom) {
+        onClose();
+      } else {
+        fetchRooms();
+      }
     } catch (err) {
       console.error("Unexpected error on submit:", err);
       alert("연습실 저장 중 오류가 발생했습니다.");
