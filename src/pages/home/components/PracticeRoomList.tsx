@@ -303,7 +303,6 @@ export default function PracticeRoomList({
         onClose={() => {
           setShowModal(false);
           setSelectedRoom(null);
-          fetchRooms();
         }}
         isAdminMode={isAdminMode}
         selectedRoom={selectedRoom}
