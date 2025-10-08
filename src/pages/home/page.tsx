@@ -476,9 +476,7 @@ export default function HomePage() {
                   onClick={() => handleCategoryChange("all")}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     searchTerm
-                      ? isCategoryActive("all")
-                        ? "bg-blue-600/50 text-blue-200 border border-blue-500/30"
-                        : "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                      ? "bg-gray-700/50 text-gray-400 border border-gray-600/50"
                       : isCategoryActive("all")
                         ? "bg-blue-600 text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
