@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import QRCodeModal from "../../../components/QRCodeModal";
 import { supabase } from "../../../lib/supabase";
+import QRCodeImage from "./QRCodeImage"
+
 
 interface HeaderProps {
   currentMonth?: Date;
@@ -221,17 +223,26 @@ export default function Header({
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
+           
               <button
                 onClick={() => setShowQRModal(true)}
                 className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer group"
-                title="즐거찾기 QR 코드"
+                title="즐겨찾기 QR 코드"
               >
-                <div className="text-2xl">
+                {/* <div className="text-2xl">
                   <i className="ri-qr-code-line text-purple-400 group-hover:text-purple-300"></i>
-                </div>
-                <span className="text-sm font-bold text-gray-300 group-hover:text-white hidden sm:inline">
-                  즐거찾기
-                </span>
+                </div> */}
+                <button className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap">         <span className="inline-flex items-center gap-1">
+  <span className="text-sm font-bold text-gray-300 group-hover:text-white hidden sm:inline">
+    사이트
+  </span>
+  <span className="text-sm font-bold text-gray-300 group-hover:text-white">
+    qr공유
+  </span>
+</span></button>
+       
+
+
               </button>
             </div>
 

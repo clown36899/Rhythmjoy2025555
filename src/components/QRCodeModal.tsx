@@ -10,19 +10,26 @@ interface QRCodeModalProps {
 export default function QRCodeModal({ isOpen, onClose }: QRCodeModalProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+  const [qrSize, setQrSize] = useState(220);
+  // 기존 useEffect(checkMobile) 안을 이렇게 수정
+useEffect(() => {
+  const checkMobile = () => {
+    const mobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       ) || window.innerWidth < 768;
-      setIsMobile(mobile);
-    };
+    setIsMobile(mobile);
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+    // 화면 폭에 따라 QR 사이즈 자동 설정 (160~300 사이)
+    const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
+    const calc = Math.min(300, Math.max(160, Math.floor(vw * 0.5)));
+    setQrSize(calc);
+  };
+
+  checkMobile();
+  window.addEventListener("resize", checkMobile);
+  return () => window.removeEventListener("resize", checkMobile);
+}, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -86,39 +93,59 @@ export default function QRCodeModal({ isOpen, onClose }: QRCodeModalProps) {
 
         {/* Title */}
         <h2 className="text-2xl font-bold text-white mb-6 text-center">
-          즐거찾기 공유하기
+          즐겨찾기 공유하기
         </h2>
 
         {isMobile ? (
           /* Mobile View */
           <div className="space-y-4">
-            <div className="bg-gray-800 rounded-lg p-4">
-              <p className="text-sm text-gray-300 mb-3 break-all">
-                {currentUrl}
-              </p>
-              <button
-                onClick={handleCopyUrl}
-                className={`w-full py-3 px-4 rounded-lg font-semibold transition-all ${
-                  copied
-                    ? "bg-green-600 text-white"
-                    : "bg-purple-600 hover:bg-purple-700 text-white"
-                }`}
-              >
-                {copied ? "✓ 복사 완료!" : "📋 웹 주소 복사"}
-              </button>
-            </div>
-
+          {/* QR 박스: 항상 표시 */}
+          <div className="bg-white p-5 rounded-lg flex justify-center">
+            <QRCodeSVG
+              value={currentUrl}
+              size={qrSize}          // 화면 폭에 맞춰 자동 크기
+              level="H"
+              includeMargin={true}
+            />
+          </div>
+        
+          {/* URL 표시 */}
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-300 break-all text-center">
+              {currentUrl}
+            </p>
+          </div>
+        
+          {/* 안내 문구 (모바일/데스크탑 각각 자연스러운 카피) */}
+          <div className="text-sm text-gray-400 text-center space-y-1">
+            <p>📱 휴대폰 카메라(또는 QR 앱)로 스캔해서 바로 접속하세요.</p>
+            <p>또는 아래 버튼으로 웹 주소를 복사하고 공유할 수 있어요.</p>
+            <p className="text-xs text-gray-500">
+              홈 화면에 추가하면 앱처럼 한 번에 열 수 있습니다.
+            </p>
+          </div>
+        
+          {/* 액션 버튼: 복사 + 홈화면 추가 (모바일/데스크탑 모두 노출) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              onClick={handleCopyUrl}
+              className={`w-full py-3 px-4 rounded-lg font-semibold transition-all ${
+                copied
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              }`}
+            >
+              {copied ? "✓ 복사 완료!" : "📋 주소 복사"}
+            </button>
+        
             <button
               onClick={handleAddToHomeScreen}
               className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
             >
               📱 홈 화면에 바로가기 추가
             </button>
-
-            <p className="text-xs text-gray-400 text-center">
-              바로가기를 추가하면 앱처럼 빠르게 접속할 수 있어요
-            </p>
           </div>
+        </div>
         ) : (
           /* Desktop View - QR Code */
           <div className="space-y-4">

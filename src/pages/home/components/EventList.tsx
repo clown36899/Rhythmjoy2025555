@@ -3,6 +3,8 @@ import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
+import QRCodeImage from "./QRCodeImage";
+
 
 const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
@@ -416,7 +418,7 @@ export default function EventList({
         "touchmove",
       ];
       eventTypes.forEach((event) => {
-        window.removeEventListener(event, () => {});
+        window.removeEventListener(event, () => { });
       });
     };
   }, [highlightEvent?.id, highlightEvent?.nonce]);
@@ -894,9 +896,8 @@ export default function EventList({
                         if (viewMode === "month" && onEventHover)
                           onEventHover(null);
                       }}
-                      className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${
-                        isHighlighted ? "" : "border-[#3d3d3d]"
-                      }`}
+                      className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#3d3d3d]"
+                        }`}
                       style={{
                         backgroundColor: "var(--event-list-bg-color)",
                         borderColor: isHighlighted
@@ -1010,11 +1011,10 @@ export default function EventList({
                         option.id as "random" | "time" | "title" | "newest",
                       )
                     }
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
-                      sortBy === option.id
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${sortBy === option.id
                         ? "bg-blue-600 text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
+                      }`}
                   >
                     <i className={`${option.icon} text-lg`}></i>
                     <span className="font-medium">{option.name}</span>
@@ -1231,12 +1231,12 @@ export default function EventList({
                       <span>
                         {editFormData.start_date
                           ? new Date(
-                              editFormData.start_date,
-                            ).toLocaleDateString("ko-KR", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
+                            editFormData.start_date,
+                          ).toLocaleDateString("ko-KR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })
                           : "날짜 선택"}
                       </span>
                       <i className="ri-calendar-line"></i>
@@ -1262,13 +1262,13 @@ export default function EventList({
                       <span>
                         {editFormData.end_date
                           ? new Date(editFormData.end_date).toLocaleDateString(
-                              "ko-KR",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              },
-                            )
+                            "ko-KR",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            },
+                          )
                           : "날짜 선택"}
                       </span>
                       <i className="ri-calendar-line"></i>
@@ -1588,13 +1588,12 @@ export default function EventList({
                           }
                         }}
                         disabled={isDisabled}
-                        className={`p-2 rounded-lg text-sm transition-colors cursor-pointer ${
-                          isSelected
+                        className={`p-2 rounded-lg text-sm transition-colors cursor-pointer ${isSelected
                             ? "bg-blue-600 text-white"
                             : isDisabled
                               ? "text-gray-600 cursor-not-allowed"
                               : "text-gray-300 hover:bg-gray-700"
-                        }`}
+                          }`}
                       >
                         {day}
                       </button>,
@@ -1622,8 +1621,8 @@ export default function EventList({
               style={
                 !(selectedEvent.image_medium || selectedEvent.image)
                   ? {
-                      backgroundImage: "url(/grunge.png)",
-                    }
+                    backgroundImage: "url(/grunge.png)",
+                  }
                   : undefined
               }
               onClick={() =>
@@ -1752,53 +1751,79 @@ export default function EventList({
                 )}
 
                 {/* 바로가기 링크 */}
-                {(selectedEvent.link1 ||
-                  selectedEvent.link2 ||
-                  selectedEvent.link3) && (
+                {/* 바로가기 링크 (버튼 + QR) */}
+                {(selectedEvent.link1 || selectedEvent.link2 || selectedEvent.link3) && (
                   <div className="pt-3 border-t border-gray-700">
-                    <div className="space-y-2">
-                      {selectedEvent.link1 && (
-                        <a
-                          href={selectedEvent.link1}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <i className="ri-external-link-line"></i>
-                          <span className="truncate">
-                            {selectedEvent.link_name1 || "링크 1"}
-                          </span>
-                        </a>
-                      )}
-                      {selectedEvent.link2 && (
-                        <a
-                          href={selectedEvent.link2}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <i className="ri-external-link-line"></i>
-                          <span className="truncate">
-                            {selectedEvent.link_name2 || "링크 2"}
-                          </span>
-                        </a>
-                      )}
-                      {selectedEvent.link3 && (
-                        <a
-                          href={selectedEvent.link3}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <i className="ri-external-link-line"></i>
-                          <span className="truncate">
-                            {selectedEvent.link_name3 || "링크 3"}
-                          </span>
-                        </a>
-                      )}
+                    <div className="mb-3 flex items-center gap-2">
+                      <i className="ri-external-link-line text-blue-400"></i>
+                      <span className="text-gray-300 font-semibold">바로가기</span>
                     </div>
+
+                    {(() => {
+                      const links = [
+                        { url: selectedEvent.link1, name: selectedEvent.link_name1 || "링크 1" },
+                        { url: selectedEvent.link2, name: selectedEvent.link_name2 || "링크 2" },
+                        { url: selectedEvent.link3, name: selectedEvent.link_name3 || "링크 3" },
+                      ].filter(l => !!l.url);
+
+                      if (links.length === 0) return null;
+
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* 좌측: 버튼 리스트 */}
+                          <div className="space-y-2">
+                            {links.map((l, idx) => (
+                              <a
+                                key={idx}
+                                href={l.url!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-[90px] transition-colors cursor-pointer"
+                              >
+                                <i className="ri-external-link-line"></i>
+                                <span className="truncate">{l.name}</span>
+                              </a>
+                            ))}
+                          </div>
+
+                          {/* 우측: QR 그리드 */}
+                          <div className="bg-gray-700/40 rounded-lg p-3">
+                            <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                              <i className="ri-qr-code-line"></i>
+                              <span>QR로 바로 열기</span>
+                            </div>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                              {links.map((l, idx) => (
+                                <a
+                                  key={idx}
+                                  href={l.url!}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group flex flex-col gap-1 rounded-md p-2 hover:bg-gray-700/60 transition-colors cursor-pointer"
+                                  title={l.name}
+                                >
+                                  <QRCodeImage
+                                    url={selectedEvent.link1!}
+                                    scale={7}
+                                    marginModules={1}
+                                    className="bg-white p-1 rounded-md border border-gray-300"
+                                  />
+                                  <span className="text-[11px] text-gray-300 truncate max-w-[110px]">
+                                    {l.name}
+                                  </span>
+                                </a>
+                              ))}
+                            </div>
+                            <div className="mt-2 text-[10px] text-gray-500">
+                              * QR 이미지를 클릭해도 링크가 열립니다.
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
+
 
                 {/* 등록 날짜 */}
                 {selectedEvent.created_at && (

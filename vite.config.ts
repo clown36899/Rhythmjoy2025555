@@ -82,7 +82,7 @@ export default defineConfig({
   }, // 👇 여기부터가 핵심 보강
 
   server: {
-    port: 5000,
+    port: 5173,
     host: "0.0.0.0",
     strictPort: true,
     hmr: { clientPort: 443 },
@@ -91,7 +91,7 @@ export default defineConfig({
   },
   preview: {
     host: true,
-    port: 5000,
+    port: 5173,
     allowedHosts: [".replit.dev", ".repl.co", "localhost", "127.0.0.1"],
   },
 });
