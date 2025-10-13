@@ -28,3 +28,10 @@ out
 .upm
 .cache
 .config
+node_modules/
+dist/
+.env
+.env.*
+.DS_Store
+attached_assets/
+*.local
