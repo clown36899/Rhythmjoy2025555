@@ -1,60 +1,65 @@
-# Cache policy for static assets
+# ─────────────────────────────────────────
+# 1) HTML: 항상 최신
+# ─────────────────────────────────────────
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
 
-# JavaScript and CSS files with hash (immutable)
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+
+# ─────────────────────────────────────────
+# 2) 해시된 정적 리소스: 1년 캐시 + immutable
+# ─────────────────────────────────────────
 /assets/*.js
   Cache-Control: public, max-age=31536000, immutable
 
 /assets/*.css
   Cache-Control: public, max-age=31536000, immutable
 
-# Images (with hash from Vite build)
-/assets/*.png
-  Cache-Control: public, max-age=31536000
+/assets/*.(png|jpg|jpeg|webp|svg|gif|woff|woff2|ttf|eot)
+  Cache-Control: public, max-age=31536000, immutable
 
-/assets/*.jpg
-  Cache-Control: public, max-age=31536000
 
-/assets/*.jpeg
-  Cache-Control: public, max-age=31536000
+# ─────────────────────────────────────────
+# 3) 빌보드 포스터 (새 파일 계속 추가됨)
+#    - 새 파일 목록은 자주 갱신되어야 하므로 캐시 짧게 (5분)
+#    - 단, 각 이미지 자체는 새로 추가되는 파일이므로 오래 캐시해도 안전
+# ─────────────────────────────────────────
+# 포스터 이미지 (개별 파일)
+#/billboard/posters/*.jpg
+#/billboard/posters/*.webp
+# 위처럼 빌보드 폴더 아래 실제 이미지 파일은…
+/billboard/posters/*.(png|jpg|jpeg|webp|svg|gif)
+  Cache-Control: public, max-age=31536000, immutable
 
-/assets/*.webp
-  Cache-Control: public, max-age=31536000
+# 포스터 리스트 / 썸네일 JSON (새로고침 시 업데이트 반영)
+#/billboard/list.json
+/billboard/*.(json|txt)
+  Cache-Control: public, max-age=300, stale-while-revalidate=300
 
-/assets/*.svg
-  Cache-Control: public, max-age=31536000
 
-/assets/*.gif
-  Cache-Control: public, max-age=31536000
-
-# Fonts
-/assets/*.woff
-  Cache-Control: public, max-age=31536000
-
-/assets/*.woff2
-  Cache-Control: public, max-age=31536000
-
-/assets/*.ttf
-  Cache-Control: public, max-age=31536000
-
-/assets/*.eot
-  Cache-Control: public, max-age=31536000
-
-# Public folder images (not hashed, shorter cache)
+# ─────────────────────────────────────────
+# 4) 공용 이미지 (로고, 아이콘 등)
+# ─────────────────────────────────────────
 /*.png
   Cache-Control: public, max-age=604800
 
 /*.jpg
   Cache-Control: public, max-age=604800
 
-/*.jpeg
-  Cache-Control: public, max-age=604800
-
 /*.svg
   Cache-Control: public, max-age=604800
 
-# HTML files (always revalidate for latest version)
-/*.html
-  Cache-Control: public, max-age=0, must-revalidate
+/*.webp
+  Cache-Control: public, max-age=604800
 
-/
-  Cache-Control: public, max-age=0, must-revalidate
+
+# ─────────────────────────────────────────
+# 5) 기타: HTML이 아닌 나머지는 기본 캐시 적용
+# ─────────────────────────────────────────
+/*.json
+  Cache-Control: public, max-age=300, stale-while-revalidate=300

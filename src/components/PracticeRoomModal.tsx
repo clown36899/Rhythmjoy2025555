@@ -239,7 +239,9 @@ export default function PracticeRoomModal({
 
         const { error: uploadError } = await supabase.storage
           .from("images")
-          .upload(filePath, item.file);
+          .upload(filePath, item.file, {
+            cacheControl: '31536000'
+          });
 
         if (uploadError) {
           console.error("Storage upload error:", uploadError);

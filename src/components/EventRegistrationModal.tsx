@@ -106,7 +106,9 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         uploadPromises.map(async ({ file, path, key }) => {
           const { error } = await supabase.storage
             .from('images')
-            .upload(path, file);
+            .upload(path, file, {
+              cacheControl: '31536000'
+            });
 
           if (error) {
             console.error(`${key} upload error:`, error);
