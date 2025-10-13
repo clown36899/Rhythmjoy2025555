@@ -1,0 +1,60 @@
+# Cache policy for static assets
+
+# JavaScript and CSS files with hash (immutable)
+/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+# Images (with hash from Vite build)
+/assets/*.png
+  Cache-Control: public, max-age=31536000
+
+/assets/*.jpg
+  Cache-Control: public, max-age=31536000
+
+/assets/*.jpeg
+  Cache-Control: public, max-age=31536000
+
+/assets/*.webp
+  Cache-Control: public, max-age=31536000
+
+/assets/*.svg
+  Cache-Control: public, max-age=31536000
+
+/assets/*.gif
+  Cache-Control: public, max-age=31536000
+
+# Fonts
+/assets/*.woff
+  Cache-Control: public, max-age=31536000
+
+/assets/*.woff2
+  Cache-Control: public, max-age=31536000
+
+/assets/*.ttf
+  Cache-Control: public, max-age=31536000
+
+/assets/*.eot
+  Cache-Control: public, max-age=31536000
+
+# Public folder images (not hashed, shorter cache)
+/*.png
+  Cache-Control: public, max-age=604800
+
+/*.jpg
+  Cache-Control: public, max-age=604800
+
+/*.jpeg
+  Cache-Control: public, max-age=604800
+
+/*.svg
+  Cache-Control: public, max-age=604800
+
+# HTML files (always revalidate for latest version)
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
