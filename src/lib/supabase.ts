@@ -22,6 +22,8 @@ export interface Event {
   image_full?: string;
   description: string;
   organizer: string;
+  organizer_name?: string;
+  organizer_phone?: string;
   capacity: number;
   registered: number;
   link1?: string;

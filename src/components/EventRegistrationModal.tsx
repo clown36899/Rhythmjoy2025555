@@ -24,6 +24,8 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     location: '',
     category: 'class',
     organizer: '',
+    organizerName: '',
+    organizerPhone: '',
     link1: '',
     link2: '',
     link3: '',
@@ -142,6 +144,16 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       return;
     }
 
+    if (!formData.organizerName) {
+      alert('등록자 이름을 입력해주세요.');
+      return;
+    }
+
+    if (!formData.organizerPhone) {
+      alert('등록자 전화번호를 입력해주세요.');
+      return;
+    }
+
     // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함
     if (formData.linkName1 && !formData.link1) {
       alert('링크1 제목을 입력했다면 링크 주소도 입력해주세요.');
@@ -209,6 +221,8 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
             image_full: imageUrls.full || null,
             description: '',
             organizer: formData.organizer,
+            organizer_name: formData.organizerName,
+            organizer_phone: formData.organizerPhone,
             capacity: 50,
             registered: 0,
             link1: formData.link1 || null,
@@ -232,6 +246,8 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
           location: '',
           category: 'class',
           organizer: '',
+          organizerName: '',
+          organizerPhone: '',
           link1: '',
           link2: '',
           link3: '',
@@ -361,7 +377,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </select>
               </div>
 
-              {/* 장소와 주최자 - 마진 패딩 축소 */}
+              {/* 장소와 주최자 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-gray-300 text-sm font-medium mb-1">
@@ -389,6 +405,40 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     onFocus={handleInputFocus}
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="주최자명"
+                  />
+                </div>
+              </div>
+
+              {/* 등록자 정보 (관리자 전용, 비공개) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    등록자 이름 *
+                  </label>
+                  <input
+                    type="text"
+                    name="organizerName"
+                    value={formData.organizerName}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    required
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="등록자 이름"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    등록자 전화번호 *
+                  </label>
+                  <input
+                    type="tel"
+                    name="organizerPhone"
+                    value={formData.organizerPhone}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    required
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="010-0000-0000"
                   />
                 </div>
               </div>
