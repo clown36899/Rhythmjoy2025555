@@ -414,7 +414,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-gray-300 text-sm font-medium mb-1">
-                      등록자 이름 *
+                      등록자 이름 *(비공개)
                     </label>
                     <input
                       type="text"
@@ -429,7 +429,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   </div>
                   <div>
                     <label className="block text-gray-300 text-sm font-medium mb-1">
-                      등록자 전화번호 *
+                      등록자 전화번호 *(비공개)
                     </label>
                     <input
                       type="tel"
