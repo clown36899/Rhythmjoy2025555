@@ -496,10 +496,10 @@ export default function HomePage() {
                     searchTerm
                       ? isCategoryActive("class")
                         ? "bg-purple-600/50 text-purple-200 border border-purple-500/30"
-                        : "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                        : "bg-[#242424]/50 text-gray-400 border border-gray-600/50"
                       : isCategoryActive("class")
                         ? "bg-purple-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        : "bg-[#242424] text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <span>강습</span>
@@ -510,10 +510,10 @@ export default function HomePage() {
                     searchTerm
                       ? isCategoryActive("event")
                         ? "bg-blue-600/50 text-blue-200 border border-blue-500/30"
-                        : "bg-gray-700/50 text-gray-400 border border-gray-600/50"
+                        : "bg-[#242424]/50 text-gray-400 border border-gray-600/50"
                       : isCategoryActive("event")
                         ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        : "bg-[#242424] text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <span>행사</span>
@@ -526,7 +526,7 @@ export default function HomePage() {
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("practice")
                       ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      : "bg-[#242424] text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <span>연습실</span>
@@ -537,7 +537,7 @@ export default function HomePage() {
               <button
                 onClick={() => setShowSortModal(true)}
                 className="flex items-center justify-center h-6 gap-1 px-2
-                           bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white
+                           bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
                            rounded-lg transition-colors cursor-pointer flex-shrink-0"
               >
                 <i
@@ -552,7 +552,7 @@ export default function HomePage() {
               <button
                 onClick={() => setShowSearchModal(true)}
                 className="flex items-center justify-center h-6 w-8
-                           bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white
+                           bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
                            rounded-lg transition-colors cursor-pointer flex-shrink-0"
                 aria-label="검색"
               >
@@ -563,7 +563,7 @@ export default function HomePage() {
 
           {/* Scrollable Content Area - Events/Practice Rooms and Footer */}
           <div
-            className="flex-1 overflow-y-auto"
+            className="flex-1 bg-[#1f1f1f]"
             style={{ paddingTop: `calc(0rem + ${calendarHeight}px + 95px)` }}
           >
             <div className="-mt-10">

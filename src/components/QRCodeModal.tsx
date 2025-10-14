@@ -39,14 +39,44 @@ useEffect(() => {
 
   const currentUrl = typeof window !== "undefined" ? window.location.href.split("?")[0] : "";
 
+  // QRCodeModal.tsx의 handleCopyUrl 함수 수정
+
   const handleCopyUrl = async () => {
+    const textToCopy = currentUrl;
+    
+    // 1. 최신 Clipboard API 시도 (HTTPS 환경에서만 작동)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return; // 성공했으면 종료
+      } catch (err) {
+        console.error("Clipboard API 실패. Fallback 시도:", err);
+        // 실패 시 아래의 execCommand 로직으로 넘어갑니다.
+      }
+    }
+    
+    // 2. Fallback: document.execCommand('copy') 사용
     try {
-      await navigator.clipboard.writeText(currentUrl);
+      // 임시 input 요소를 생성하여 텍스트를 담습니다.
+      const input = document.createElement('textarea');
+      input.value = textToCopy;
+      document.body.appendChild(input);
+      
+      // input 내용을 선택하고 복사합니다.
+      input.select();
+      document.execCommand('copy');
+      
+      // 임시 input을 제거합니다.
+      document.body.removeChild(input);
+      
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      
     } catch (err) {
-      console.error("Failed to copy:", err);
-      alert("주소 복사에 실패했습니다");
+      console.error("ExecCommand 복사도 실패:", err);
+      alert("주소 복사에 실패했습니다.");
     }
   };
 
@@ -93,7 +123,7 @@ useEffect(() => {
 
         {/* Title */}
         <h2 className="text-2xl font-bold text-white mb-6 text-center">
-          즐겨찾기 공유하기
+          댄스일정표 주소링크
         </h2>
 
         {isMobile ? (

@@ -222,8 +222,8 @@ export default function Header({
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
+
             <div className="flex items-center space-x-8">
-           
               <button
                 onClick={() => setShowQRModal(true)}
                 className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer group"
@@ -232,17 +232,16 @@ export default function Header({
                 {/* <div className="text-2xl">
                   <i className="ri-qr-code-line text-purple-400 group-hover:text-purple-300"></i>
                 </div> */}
-                <button className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap">         <span className="inline-flex items-center gap-1">
-  <span className="text-sm font-bold text-gray-300 group-hover:text-white hidden sm:inline">
-    사이트
-  </span>
-  <span className="text-sm font-bold text-gray-300 group-hover:text-white">
-    qr공유
-  </span>
-</span></button>
-       
-
-
+                <div className="text-xs bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="text-sm font-bold text-gray-300 group-hover:text-white hidden sm:inline">
+                      사이트
+                    </span>
+                    <span className="text-sm font-bold text-gray-300 group-hover:text-white">
+                      qr공유
+                    </span>
+                  </span>
+                </div>
               </button>
             </div>
 
@@ -265,7 +264,7 @@ export default function Header({
                 </button>
                 <button
                   onClick={handleTodayClick}
-                  className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap"
+                  className="text-xs bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap"
                 >
                   오늘
                 </button>
@@ -274,11 +273,10 @@ export default function Header({
                     onClick={() =>
                       onViewModeChange(viewMode === "month" ? "year" : "month")
                     }
-                    className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${
-                      viewMode === "year"
-                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                        : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
-                    }`}
+                    className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${viewMode === "year"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
+                      }`}
                   >
                     {viewMode === "month" ? "년" : "월"}
                   </button>
@@ -302,7 +300,7 @@ export default function Header({
               {onBillboardOpen && (
                 <button
                   onClick={onBillboardOpen}
-                  className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
+                  className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
                   title="광고판 보기"
                 >
                   <i className="ri-image-line text-sm"></i>
@@ -310,7 +308,7 @@ export default function Header({
               )}
               <button
                 onClick={handleSettingsClick}
-                className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
+                className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
               >
                 <i className="ri-settings-3-line text-sm"></i>
               </button>
@@ -337,11 +335,10 @@ export default function Header({
                   <button
                     key={year}
                     onClick={() => setSelectedYear(year)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                      selectedYear === year
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
+                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedYear === year
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      }`}
                   >
                     {year}
                   </button>
@@ -359,11 +356,10 @@ export default function Header({
                   <button
                     key={index}
                     onClick={() => setSelectedMonth(index)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                      selectedMonth === index
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
+                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedMonth === index
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      }`}
                   >
                     {month}
                   </button>
@@ -375,7 +371,7 @@ export default function Header({
             <div className="flex space-x-3">
               <button
                 onClick={handleDateCancel}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                className="flex-1 bg-[#242424] hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
               >
                 취소
               </button>

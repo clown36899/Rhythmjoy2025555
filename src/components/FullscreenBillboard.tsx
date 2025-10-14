@@ -222,7 +222,8 @@ export default function FullscreenBillboard({
                   }`}
                 >
                   <i className="ri-eye-line text-lg" aria-hidden="true"></i>
-                  <span>상세보기</span>
+                  <span>상세보기 : </span>
+                  <span>일정,홍보 등록 자율</span>
                 </button>
               </div>
             </div>

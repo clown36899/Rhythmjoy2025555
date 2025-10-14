@@ -1077,7 +1077,7 @@ export default function EventList({
                         <button
                           key={index}
                           onClick={() => handleSuggestionClick(suggestion)}
-                          className="w-full text-left bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                          className="w-full text-left bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
                         >
                           <i className="ri-search-line text-xs mr-2 text-gray-400"></i>
                           {suggestion}
@@ -1205,7 +1205,7 @@ export default function EventList({
                         category: e.target.value,
                       }))
                     }
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
+                    className="w-full bg-[#242424] text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
                   >
                     <option value="class">강습</option>
                     <option value="event">행사</option>
@@ -1680,7 +1680,7 @@ export default function EventList({
 
               {/* 카테고리 배지 - 좌측 하단 */}
               <div
-                className={`absolute bottom-4 left-4 px-3 py-1 text-white text-sm font-bold rounded-lg ${selectedEvent.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}
+                className={`absolute bottom-4 left-4 px-3 py-1 text-white text-sm font-bold rounded-lg ${selectedEvent.category === "class" ? "bg-purple-600" : "bg-[#242424]"}`}
               >
                 {selectedEvent.category === "class" ? "강습" : "행사"}
               </div>
