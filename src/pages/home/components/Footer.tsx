@@ -24,6 +24,7 @@ export default function Footer() {
                   {/* 설명글: 작고 어두운 색상 (text-sm, text-gray-400) */}
                   <p className="text-gray-400 text-sm mb-1">
                     사용방법 <br></br> 달력을 두번 클릭하면 일정등록폼이 나옵니다.<br></br> 자율등록하시고 비번설정으로 수정가능
+                    <br></br>공공의 이익에 해가되면 삭제수정될수있습니다.
                   </p>
 
                   {/* 연습실 문구: 설명글과 같은 스타일 */}
@@ -59,7 +60,7 @@ export default function Footer() {
                 </div>
               </div>
 
-              <div className="flex justify-center space-x-4">
+              {/* <div className="flex justify-center space-x-4">
                 <a href="#" className="text-gray-400 hover:text-white transition-colors cursor-pointer">
                   <i className="fab fa-facebook-f"></i>
                 </a>
@@ -72,7 +73,7 @@ export default function Footer() {
                 <a href="#" className="text-gray-400 hover:text-white transition-colors cursor-pointer">
                   <i className="fab fa-linkedin-in"></i>
                 </a>
-              </div>
+              </div> */}
             </div>
           </div>
 
