@@ -156,7 +156,7 @@ export default function HomePage() {
 
         const { data: events } = await supabase
           .from("events")
-          .select("*")
+          .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at")
           .order("date", { ascending: true });
 
         if (events && events.length > 0) {

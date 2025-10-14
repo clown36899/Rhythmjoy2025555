@@ -261,7 +261,7 @@ export default function EventList({
   // 이벤트 데이터 로드
   useEffect(() => {
     fetchEvents();
-  }, [currentMonth, refreshTrigger]);
+  }, [currentMonth, refreshTrigger, isAdminMode]);
 
   // 달 변경 시 스크롤 위치 리셋
   useEffect(() => {
@@ -428,16 +428,22 @@ export default function EventList({
   const fetchEvents = async () => {
     try {
       setLoading(true);
+      
+      // 관리자 모드가 아닐 때는 등록자 정보 제외
+      const selectFields = isAdminMode 
+        ? "*" 
+        : "id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at";
+      
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select(selectFields)
         .order("start_date", { ascending: true, nullsFirst: false })
         .order("date", { ascending: true, nullsFirst: false });
 
       if (error) {
         console.error("Error fetching events:", error);
       } else {
-        setEvents(data || []);
+        setEvents((data as Event[]) || []);
       }
     } catch (error) {
       console.error("Error:", error);
