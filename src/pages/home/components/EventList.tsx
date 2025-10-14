@@ -1796,6 +1796,28 @@ export default function EventList({
                   </div>
                 )}
 
+                {/* 관리자 전용: 등록자 정보 */}
+                {isAdminMode && (selectedEvent.organizer_name || selectedEvent.organizer_phone) && (
+                  <div className="pt-3 border-t border-gray-700 space-y-2">
+                    <div className="flex items-center gap-2 text-red-400 font-semibold text-sm">
+                      <i className="ri-admin-line"></i>
+                      <span>등록자 정보 (관리자 전용)</span>
+                    </div>
+                    {selectedEvent.organizer_name && (
+                      <div className="flex items-center space-x-3 text-gray-300">
+                        <i className="ri-user-star-line text-red-400 text-xl"></i>
+                        <span>{selectedEvent.organizer_name}</span>
+                      </div>
+                    )}
+                    {selectedEvent.organizer_phone && (
+                      <div className="flex items-center space-x-3 text-gray-300">
+                        <i className="ri-phone-line text-red-400 text-xl"></i>
+                        <span>{selectedEvent.organizer_phone}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* 바로가기 링크 */}
                 {/* 바로가기 링크 (버튼 + QR) */}
                 {(selectedEvent.link1 || selectedEvent.link2 || selectedEvent.link3) && (
