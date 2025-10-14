@@ -429,21 +429,33 @@ export default function EventList({
     try {
       setLoading(true);
       
-      // 관리자 모드가 아닐 때는 등록자 정보 제외
-      const selectFields = isAdminMode 
-        ? "*" 
-        : "id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at";
-      
-      const { data, error } = await supabase
-        .from("events")
-        .select(selectFields)
-        .order("start_date", { ascending: true, nullsFirst: false })
-        .order("date", { ascending: true, nullsFirst: false });
+      let data: Event[] | null = null;
+      let error: any = null;
+
+      if (isAdminMode) {
+        // 관리자 모드: 모든 필드 가져오기
+        const result = await supabase
+          .from("events")
+          .select("*")
+          .order("start_date", { ascending: true, nullsFirst: false })
+          .order("date", { ascending: true, nullsFirst: false });
+        data = result.data;
+        error = result.error;
+      } else {
+        // 비관리자 모드: 등록자 정보 제외
+        const result = await supabase
+          .from("events")
+          .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
+          .order("start_date", { ascending: true, nullsFirst: false })
+          .order("date", { ascending: true, nullsFirst: false });
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error("Error fetching events:", error);
       } else {
-        setEvents((data as Event[]) || []);
+        setEvents(data || []);
       }
     } catch (error) {
       console.error("Error:", error);
