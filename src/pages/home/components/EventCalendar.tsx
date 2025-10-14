@@ -644,7 +644,7 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* 이벤트 등록 안내 - 모바일과 데스크톱 모두 표시 */}
-            <div className="p-1 bg-gray-700 rounded-none">
+            <div className="p-1 bg-[#22262a] rounded-none">
               <p className="text-gray-300 text-[10px] text-center">
                 <i className="ri-information-line mr-1"></i>
                 날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다

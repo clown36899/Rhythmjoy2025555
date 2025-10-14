@@ -217,7 +217,7 @@ export default function Header({
   return (
     <>
       <header
-        className="border-b border-gray-700"
+        className="border-b border-[#22262a]"
         style={{ backgroundColor: "var(--header-bg-color)" }}
       >
         <div className="container mx-auto px-4">

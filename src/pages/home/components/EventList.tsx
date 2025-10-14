@@ -892,11 +892,11 @@ export default function EventList({
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor =
                           "var(--event-list-bg-color)";
-                        e.currentTarget.style.borderColor = "#3d3d3d";
+                        e.currentTarget.style.borderColor = "#000000";
                         if (viewMode === "month" && onEventHover)
                           onEventHover(null);
                       }}
-                      className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#3d3d3d]"
+                      className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#000000]"
                         }`}
                       style={{
                         backgroundColor: "var(--event-list-bg-color)",

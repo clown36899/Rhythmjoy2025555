@@ -395,7 +395,7 @@ export default function HomePage() {
     >
       {/* Fixed Header for all screens */}
       <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-10 border-b border-gray-700"
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-10 border-b border-[#22262a]"
         style={{ backgroundColor: "var(--header-bg-color)" }}
       >
         <Header
@@ -452,7 +452,7 @@ export default function HomePage() {
           >
             {/* Calendar - Collapsible */}
             <div
-              className="transition-all duration-300 ease-in-out overflow-hidden border-b border-black"
+              className="transition-all duration-300 ease-in-out overflow-hidden border-b border-[#22262a]"
               style={{
                 maxHeight: isCalendarCollapsed ? '0px' : '2000px',
               }}
@@ -470,7 +470,7 @@ export default function HomePage() {
             </div>
 
             {/* Category Filter Panel - Always visible */}
-            <div className="flex items-center gap-2 p-2 border-t border-[#22262a] border-b border-black">
+            <div className="flex items-center gap-2 p-2 border-t border-b border-x-0 border-t-[#22262a] border-b-black">
               <div className="flex gap-2 flex-1 overflow-x-auto">
                 <button
                   onClick={() => handleCategoryChange("all")}
