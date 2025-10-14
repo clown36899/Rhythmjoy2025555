@@ -410,37 +410,42 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
               </div>
 
               {/* 등록자 정보 (관리자 전용, 비공개) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    등록자 이름 *
-                  </label>
-                  <input
-                    type="text"
-                    name="organizerName"
-                    value={formData.organizerName}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    required
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="등록자 이름"
-                  />
+              <div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1">
+                      등록자 이름 *
+                    </label>
+                    <input
+                      type="text"
+                      name="organizerName"
+                      value={formData.organizerName}
+                      onChange={handleInputChange}
+                      onFocus={handleInputFocus}
+                      required
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="등록자 이름"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1">
+                      등록자 전화번호 *
+                    </label>
+                    <input
+                      type="tel"
+                      name="organizerPhone"
+                      value={formData.organizerPhone}
+                      onChange={handleInputChange}
+                      onFocus={handleInputFocus}
+                      required
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="010-0000-0000"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    등록자 전화번호 *
-                  </label>
-                  <input
-                    type="tel"
-                    name="organizerPhone"
-                    value={formData.organizerPhone}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    required
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="010-0000-0000"
-                  />
-                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  수정 등 문제가 있을 경우 연락받으실 번호를 입력해주세요
+                </p>
               </div>
 
               {/* 포스터 이미지 업로드 - 축소 */}
