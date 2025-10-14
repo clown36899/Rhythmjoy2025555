@@ -19,6 +19,8 @@ Key components include the `EventCalendar` for date-based discovery, `EventList`
 ### Data Layer
 Events support multi-day occurrences with `start_date` and `end_date` fields, alongside a legacy `date` field for backward compatibility. Events are categorized as 'class' (purple) or 'event' (blue). Practice rooms include details like name, address, description, images, and links. Image handling involves file upload previews and storage via Supabase.
 
+**Registrant Information Privacy**: Events include private registrant fields (`organizer_name`, `organizer_phone`) that are required during registration but only visible in admin mode. Non-admin users never receive these fields via network requests—EventList uses conditional Supabase queries that explicitly exclude sensitive columns when `isAdminMode=false`. Billboard queries also exclude registrant data for all users.
+
 ### Search & Filter Architecture
 Event discovery features date-based filtering via calendar selection, category filtering (all/class/event), and text search across titles and descriptions. Search suggestions are generated from existing event titles. Events can be sorted by random, time, title, or newest.
 
