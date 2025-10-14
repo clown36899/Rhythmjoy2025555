@@ -91,6 +91,8 @@ export default function EventList({
     location: "",
     category: "",
     organizer: "",
+    organizerName: "",
+    organizerPhone: "",
     link1: "",
     link2: "",
     link3: "",
@@ -565,6 +567,8 @@ export default function EventList({
         location: event.location,
         category: event.category,
         organizer: event.organizer,
+        organizerName: event.organizer_name || "",
+        organizerPhone: event.organizer_phone || "",
         link1: event.link1 || "",
         link2: event.link2 || "",
         link3: event.link3 || "",
@@ -647,6 +651,8 @@ export default function EventList({
         location: eventToEdit.location,
         category: eventToEdit.category,
         organizer: eventToEdit.organizer,
+        organizerName: eventToEdit.organizer_name || "",
+        organizerPhone: eventToEdit.organizer_phone || "",
         link1: eventToEdit.link1 || "",
         link2: eventToEdit.link2 || "",
         link3: eventToEdit.link3 || "",
@@ -724,6 +730,8 @@ export default function EventList({
         category: editFormData.category,
         description: "",
         organizer: editFormData.organizer,
+        organizer_name: editFormData.organizerName || null,
+        organizer_phone: editFormData.organizerPhone || null,
         link1: editFormData.link1 || null,
         link2: editFormData.link2 || null,
         link3: editFormData.link3 || null,
@@ -1307,6 +1315,44 @@ export default function EventList({
                         }))
                       }
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* 등록자 정보 (관리자 전용) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                      등록자 이름
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.organizerName}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          organizerName: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="등록자 이름"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                      등록자 전화번호
+                    </label>
+                    <input
+                      type="tel"
+                      value={editFormData.organizerPhone}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          organizerPhone: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="010-0000-0000"
                     />
                   </div>
                 </div>
