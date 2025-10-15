@@ -199,7 +199,7 @@ export default function FullscreenBillboard({
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 pb-4 pointer-events-none">
               {/* 제목 */}
               <h2
-                className={`text-white text-lg font-bold text-center mb-2 line-clamp-1 transition-opacity ${
+                className={`text-white text-2xl font-bold text-center mb-2 line-clamp-2 transition-opacity ${
                   isTransitioning ? "opacity-0" : "opacity-100"
                 }`}
                 style={{ transitionDuration: `${transitionDuration}ms` }}
