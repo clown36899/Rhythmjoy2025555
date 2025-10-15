@@ -764,7 +764,29 @@ export default function EventList({
       if (editImageFile) {
         const resizedImages = await createResizedImages(editImageFile);
         const timestamp = Date.now();
-        const baseFileName = editImageFile.name.split(".")[0];
+        
+        // 파일명 정규화 (전각 문자 및 특수문자 제거)
+        const sanitizeFileName = (fileName: string): string => {
+          const nameWithoutExt = fileName.split('.')[0];
+          
+          // 전각 문자를 반각으로 변환
+          let normalized = nameWithoutExt.replace(/[\uFF01-\uFF5E]/g, (ch) => 
+            String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)
+          );
+          
+          // 영문, 숫자, 하이픈, 언더스코어만 남기고 나머지는 제거
+          normalized = normalized.replace(/[^a-zA-Z0-9\-_]/g, '');
+          
+          // 연속된 특수문자 제거
+          normalized = normalized.replace(/[\-_]+/g, '_');
+          
+          // 앞뒤 특수문자 제거
+          normalized = normalized.replace(/^[\-_]+|[\-_]+$/g, '');
+          
+          return normalized || 'image';
+        };
+        
+        const baseFileName = sanitizeFileName(editImageFile.name);
 
         const uploadPromises = [
           {

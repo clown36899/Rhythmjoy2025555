@@ -106,6 +106,9 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       const resizedImages = await createResizedImages(file);
       const timestamp = Date.now();
       const baseFileName = sanitizeFileName(file.name);
+      
+      console.log('Original filename:', file.name);
+      console.log('Sanitized filename:', baseFileName);
 
       const uploadPromises = [
         {
