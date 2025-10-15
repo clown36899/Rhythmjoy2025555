@@ -35,6 +35,10 @@ export async function resizeImage(
         canvas.width = width;
         canvas.height = height;
 
+        // PNG 투명 배경을 JPEG로 변환할 때 흰색 배경 추가
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        
         ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(
