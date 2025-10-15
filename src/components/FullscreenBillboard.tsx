@@ -196,9 +196,10 @@ export default function FullscreenBillboard({
           />
 
           {sortedEvents[currentIndex] && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 pointer-events-none">
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 pb-4 pointer-events-none">
+              {/* 제목 */}
               <h2
-                className={`text-white text-2xl sm:text-3xl md:text-4xl font-bold text-center transition-opacity ${
+                className={`text-white text-lg font-bold text-center mb-2 line-clamp-1 transition-opacity ${
                   isTransitioning ? "opacity-0" : "opacity-100"
                 }`}
                 style={{ transitionDuration: `${transitionDuration}ms` }}
@@ -206,49 +207,36 @@ export default function FullscreenBillboard({
                 {sortedEvents[currentIndex].title}
               </h2>
 
-              {/* 상세보기 버튼 */}
-              <div className="flex flex-col items-center mt-4 pointer-events-auto gap-3">
+              {/* 상세보기 버튼 + QR 코드 가로 배치 */}
+              <div className="flex items-center justify-center gap-3 pointer-events-auto">
                 <button
                   onClick={handleImageClick}
-                  // 인라인: 가로정렬/간격/줄바꿈방지만 보장
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    whiteSpace: "nowrap",
                     transitionDuration: `${transitionDuration}ms`,
                   }}
-                  className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full font-medium text-sm flex items-center space-x-2 transition-all hover:scale-105 ${
+                  className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full font-medium text-sm inline-flex items-center gap-2 transition-all hover:scale-105 ${
                     isTransitioning ? "opacity-0" : "opacity-100"
                   }`}
                 >
-                  <i className="ri-eye-line text-lg" aria-hidden="true"></i>
-                  <span>상세보기 : </span>
-                  <span>일정,홍보 등록 자율</span>
+                  <i className="ri-eye-line text-base" aria-hidden="true"></i>
+                  <span>상세보기</span>
                 </button>
                 
-                {/* QR 코드 */}
+                {/* QR 코드 - 더 작게 */}
                 <div 
-                  className={`bg-white p-2 rounded-lg transition-opacity ${
+                  className={`bg-white p-1.5 rounded transition-opacity flex flex-col items-center ${
                     isTransitioning ? "opacity-0" : "opacity-100"
                   }`}
                   style={{ transitionDuration: `${transitionDuration}ms` }}
+                  title="QR 스캔으로 바로 보기"
                 >
                   <QRCodeSVG
                     value={`${window.location.origin}?event=${sortedEvents[currentIndex].id}&from=qr`}
-                    size={80}
+                    size={60}
                     level="M"
                     includeMargin={false}
                   />
                 </div>
-                <p 
-                  className={`text-white text-xs text-center transition-opacity ${
-                    isTransitioning ? "opacity-0" : "opacity-100"
-                  }`}
-                  style={{ transitionDuration: `${transitionDuration}ms` }}
-                >
-                  QR 스캔으로 바로 보기
-                </p>
               </div>
             </div>
           )}
