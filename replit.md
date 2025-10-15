@@ -34,6 +34,8 @@ The billboard (fullscreen slideshow) features random/sequential playback, auto-o
 3. **Scroll positioning**: Event card positioned exactly 5px below category panel using container-relative coordinates
 4. **User interaction**: Highlight dismisses on click/wheel/keydown/touch or after 3 seconds, with listener registration delayed 600ms to avoid conflicts with scroll animation
 
+**Billboard Settings (DB-Persisted)**: All billboard configuration is stored in Supabase `billboard_settings` table (single-row, id=1) including enabled state, auto-slide interval, inactivity timeout, transition duration, play order (sequential/random), and admin-controlled date range filters (start/end dates with optional on-screen display). Settings use upsert operations to ensure persistence even if the initial row is missing. The system no longer filters events to "today or later" by default—admins have full control over the displayed date range.
+
 ## External Dependencies
 
 ### Backend Services
