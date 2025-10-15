@@ -37,8 +37,31 @@ export default function HomePage() {
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [fromQR, setFromQR] = useState(false); // QR 스캔으로 접속했는지 여부
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
+
+  // URL 파라미터 처리 (QR 코드 스캔 감지)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const eventId = params.get('event');
+    const source = params.get('from');
+
+    if (source === 'qr') {
+      setFromQR(true); // QR로 접속했음을 표시
+      
+      if (eventId) {
+        const id = parseInt(eventId);
+        // 이벤트 하이라이트 및 스크롤
+        setTimeout(() => {
+          setHighlightEvent({ id, nonce: Date.now() });
+        }, 500);
+      }
+      
+      // URL에서 파라미터 제거 (깔끔하게)
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // 검색 취소 시 전체 모드로 리셋
   useEffect(() => {
@@ -87,10 +110,12 @@ export default function HomePage() {
     }
 
     // 광고판이 비활성화되어 있거나, 열려있거나, 타이머가 0이면 설정 안 함
+    // QR 스캔으로 접속한 경우에도 타이머 설정 안 함
     if (
       !settings.enabled ||
       isBillboardOpen ||
-      settings.inactivityTimeout === 0
+      settings.inactivityTimeout === 0 ||
+      fromQR
     )
       return;
 
@@ -105,6 +130,7 @@ export default function HomePage() {
     settings.inactivityTimeout,
     isBillboardOpen,
     billboardImages.length,
+    fromQR,
   ]);
 
   // 사용자 활동 감지 및 비활동 타이머
@@ -176,8 +202,8 @@ export default function HomePage() {
           setBillboardImages(images);
           setBillboardEvents(filteredEvents);
 
-          // 자동 열기 설정이 켜져있을 때만 자동으로 표시
-          if (settings.autoOpenOnLoad) {
+          // 자동 열기 설정이 켜져있을 때만 자동으로 표시 (QR 스캔으로 접속한 경우 제외)
+          if (settings.autoOpenOnLoad && !fromQR) {
             const todayStr = today.toDateString();
             const dismissedDate = localStorage.getItem(
               "billboardDismissedDate",
