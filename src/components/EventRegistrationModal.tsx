@@ -230,38 +230,40 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       const endDay = String(endDate.getDate()).padStart(2, '0');
       const endDateString = `${endYear}-${endMonth}-${endDay}`;
 
+      const eventData = {
+        title: formData.title,
+        date: localDateString,
+        start_date: localDateString,
+        end_date: endDateString,
+        time: '00:00',
+        location: formData.location,
+        category: formData.category,
+        price: 'Free',
+        image: imageUrls.full || '',
+        image_thumbnail: imageUrls.thumbnail || null,
+        image_medium: imageUrls.medium || null,
+        image_full: imageUrls.full || null,
+        description: '',
+        organizer: formData.organizer,
+        organizer_name: formData.organizerName,
+        organizer_phone: formData.organizerPhone,
+        capacity: 50,
+        registered: 0,
+        link1: formData.link1 || null,
+        link2: formData.link2 || null,
+        link3: formData.link3 || null,
+        link_name1: formData.linkName1 || null,
+        link_name2: formData.linkName2 || null,
+        link_name3: formData.linkName3 || null,
+        password: formData.password,
+        created_at: new Date().toISOString()
+      };
+
+      console.log('📝 이벤트 등록 데이터:', eventData);
+      
       const { error } = await supabase
         .from('events')
-        .insert([
-          {
-            title: formData.title,
-            date: localDateString,
-            start_date: localDateString,
-            end_date: endDateString,
-            time: '00:00',
-            location: formData.location,
-            category: formData.category,
-            price: 'Free',
-            image: imageUrls.full || '',
-            image_thumbnail: imageUrls.thumbnail || null,
-            image_medium: imageUrls.medium || null,
-            image_full: imageUrls.full || null,
-            description: '',
-            organizer: formData.organizer,
-            organizer_name: formData.organizerName,
-            organizer_phone: formData.organizerPhone,
-            capacity: 50,
-            registered: 0,
-            link1: formData.link1 || null,
-            link2: formData.link2 || null,
-            link3: formData.link3 || null,
-            link_name1: formData.linkName1 || null,
-            link_name2: formData.linkName2 || null,
-            link_name3: formData.linkName3 || null,
-            password: formData.password,
-            created_at: new Date().toISOString()
-          }
-        ]);
+        .insert([eventData]);
 
       if (error) {
         console.error('Error creating event:', error);

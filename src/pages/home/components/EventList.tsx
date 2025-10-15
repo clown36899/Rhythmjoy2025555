@@ -466,6 +466,14 @@ export default function EventList({
 
   // 필터링된 이벤트 (useMemo로 캐싱하여 불필요한 재필터링 방지)
   const filteredEvents = useMemo(() => {
+    console.log('🔍 필터링 시작:', { 
+      전체이벤트수: events.length, 
+      선택된카테고리: selectedCategory,
+      검색어: searchTerm,
+      선택된날짜: selectedDate,
+      현재월: currentMonth 
+    });
+    
     return events.filter((event) => {
       // 카테고리 필터
       const matchesCategory =
@@ -518,6 +526,12 @@ export default function EventList({
 
         // 날짜 정보가 없는 이벤트는 필터링에서 제외
         if (!startDate || !endDate) {
+          console.log('❌ 날짜 없음으로 제외:', { 
+            제목: event.title, 
+            start_date: event.start_date, 
+            end_date: event.end_date, 
+            date: event.date 
+          });
           matchesDate = false;
         } else {
           const eventStartDate = new Date(startDate);
