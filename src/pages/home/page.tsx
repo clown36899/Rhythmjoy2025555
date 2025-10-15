@@ -37,26 +37,27 @@ export default function HomePage() {
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [fromQR, setFromQR] = useState(false); // QR 스캔으로 접속했는지 여부
+  
+  // QR 스캔으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
+  const [fromQR] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('from') === 'qr';
+  });
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
-  // URL 파라미터 처리 (QR 코드 스캔 감지)
+  // URL 파라미터 처리 (QR 코드 스캔 시 이벤트 하이라이트)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const eventId = params.get('event');
     const source = params.get('from');
 
-    if (source === 'qr') {
-      setFromQR(true); // QR로 접속했음을 표시
-      
-      if (eventId) {
-        const id = parseInt(eventId);
-        // 이벤트 하이라이트 및 스크롤
-        setTimeout(() => {
-          setHighlightEvent({ id, nonce: Date.now() });
-        }, 500);
-      }
+    if (source === 'qr' && eventId) {
+      const id = parseInt(eventId);
+      // 이벤트 하이라이트 및 스크롤
+      setTimeout(() => {
+        setHighlightEvent({ id, nonce: Date.now() });
+      }, 500);
       
       // URL에서 파라미터 제거 (깔끔하게)
       window.history.replaceState({}, '', window.location.pathname);
@@ -220,7 +221,7 @@ export default function HomePage() {
     };
 
     loadBillboardImages();
-  }, [settings.enabled, settings.autoOpenOnLoad]);
+  }, [settings.enabled, settings.autoOpenOnLoad, fromQR]);
 
   const handleBillboardClose = () => {
     setIsBillboardOpen(false);
