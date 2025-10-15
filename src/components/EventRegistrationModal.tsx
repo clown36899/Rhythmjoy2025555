@@ -76,6 +76,16 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     }
   };
 
+  const sanitizeFileName = (fileName: string): string => {
+    // 파일명에서 확장자 제거
+    const nameWithoutExt = fileName.split('.')[0];
+    // 한글, 영문, 숫자만 남기고 나머지는 언더스코어로 변경
+    return nameWithoutExt
+      .replace(/[^\w\uAC00-\uD7A3]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+  };
+
   const uploadImages = async (file: File): Promise<{
     thumbnail: string;
     medium: string;
@@ -84,7 +94,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     try {
       const resizedImages = await createResizedImages(file);
       const timestamp = Date.now();
-      const baseFileName = file.name.split('.')[0];
+      const baseFileName = sanitizeFileName(file.name);
 
       const uploadPromises = [
         {
