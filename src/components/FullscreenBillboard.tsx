@@ -197,82 +197,101 @@ export default function FullscreenBillboard({
 
           {sortedEvents[currentIndex] && (
             <>
-              {/* 하단 대형 제목 영역 - 40인치 디스플레이용 */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent py-8 px-6 pointer-events-none">
+              {/* 하단 영역 - 제목 + 버튼/QR */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent pt-16 px-6 pointer-events-none">
+                {/* 대형 제목 - 40인치 디스플레이용 */}
                 <h2
                   className={`text-white text-6xl md:text-7xl lg:text-8xl font-black text-center leading-tight tracking-tight transition-opacity ${
                     isTransitioning ? "opacity-0" : "opacity-100"
                   }`}
                   style={{ 
                     transitionDuration: `${transitionDuration}ms`,
-                    textShadow: '0 4px 20px rgba(0,0,0,0.8)'
+                    textShadow: '0 4px 20px rgba(0,0,0,0.8)',
+                    wordBreak: 'keep-all',
+                    whiteSpace: 'pre-line',
+                    maxWidth: '90%',
+                    margin: '0 auto 1.5rem'
                   }}
                 >
-                  {sortedEvents[currentIndex].title}
+                  {sortedEvents[currentIndex].title.length > 6 
+                    ? sortedEvents[currentIndex].title.match(/.{1,6}/g)?.join('\n') || sortedEvents[currentIndex].title
+                    : sortedEvents[currentIndex].title}
                 </h2>
-              </div>
 
-              {/* 우측 하단 - 상세보기 버튼 + QR 코드 */}
-              <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 pointer-events-auto">
-                <button
-                  onClick={handleImageClick}
-                  style={{
-                    transitionDuration: `${transitionDuration}ms`,
-                  }}
-                  className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full font-medium text-sm inline-flex items-center gap-2 transition-all hover:scale-105 ${
-                    isTransitioning ? "opacity-0" : "opacity-100"
-                  }`}
-                >
-                  <i className="ri-eye-line text-base" aria-hidden="true"></i>
-                  <span>상세보기</span>
-                </button>
-                
-                {/* QR 코드 */}
-                <div 
-                  className={`bg-white p-1.5 rounded transition-opacity ${
-                    isTransitioning ? "opacity-0" : "opacity-100"
-                  }`}
-                  style={{ transitionDuration: `${transitionDuration}ms` }}
-                  title="QR 스캔으로 바로 보기"
-                >
-                  <QRCodeSVG
-                    value={`${window.location.origin}?event=${sortedEvents[currentIndex].id}&from=qr`}
-                    size={60}
-                    level="M"
-                    includeMargin={false}
-                  />
+                {/* 최하단 - 상세보기 버튼 + QR 코드 가로 배치 (바닥에서 1rem) */}
+                <div className="flex items-center justify-center gap-4 pb-4 pointer-events-auto">
+                  <button
+                    onClick={handleImageClick}
+                    style={{
+                      transitionDuration: `${transitionDuration}ms`,
+                    }}
+                    className={`bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium text-base inline-flex items-center gap-2 transition-all hover:scale-105 ${
+                      isTransitioning ? "opacity-0" : "opacity-100"
+                    }`}
+                  >
+                    <i className="ri-eye-line text-lg" aria-hidden="true"></i>
+                    <span>상세보기</span>
+                  </button>
+                  
+                  {/* QR 코드 */}
+                  <div 
+                    className={`bg-white p-2 rounded-lg transition-opacity ${
+                      isTransitioning ? "opacity-0" : "opacity-100"
+                    }`}
+                    style={{ transitionDuration: `${transitionDuration}ms` }}
+                    title="QR 스캔으로 바로 보기"
+                  >
+                    <QRCodeSVG
+                      value={`${window.location.origin}?event=${sortedEvents[currentIndex].id}&from=qr`}
+                      size={70}
+                      level="M"
+                      includeMargin={false}
+                    />
+                  </div>
                 </div>
               </div>
             </>
           )}
         </div>
 
-        {/* 상단 진행 표시 - 40인치 디스플레이용 */}
-        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent py-6 pointer-events-none">
-          {sortedImages.length > 1 && (
-            <div className="flex flex-col items-center gap-4">
-              {/* 슬라이드 인디케이터 - 더 크게 */}
-              <div className="flex gap-3">
-                {sortedImages.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-3 rounded-full transition-all ${
-                      index === currentIndex ? "bg-white w-12" : "bg-white/40 w-3"
-                    }`}
-                  />
-                ))}
-              </div>
-
-              {/* 진행 바 - 더 크고 넓게 */}
-              <div className="w-64 h-2 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-white rounded-full transition-all duration-75"
-                  style={{ width: `${progress}%` }}
+        {/* 좌측 상단 원형 진행 표시 - 우로보로스 형태 */}
+        {sortedImages.length > 1 && (
+          <div className="absolute top-8 left-8 pointer-events-none">
+            <div className="relative w-24 h-24">
+              {/* 원형 진행 바 배경 */}
+              <svg className="transform -rotate-90 w-24 h-24">
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="42"
+                  stroke="rgba(255, 255, 255, 0.2)"
+                  strokeWidth="6"
+                  fill="none"
                 />
+                {/* 진행 원 */}
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="42"
+                  stroke="white"
+                  strokeWidth="6"
+                  fill="none"
+                  strokeDasharray={`${2 * Math.PI * 42}`}
+                  strokeDashoffset={`${2 * Math.PI * 42 * (1 - progress / 100)}`}
+                  strokeLinecap="round"
+                  className="transition-all duration-75"
+                />
+              </svg>
+              
+              {/* 중앙 슬라이드 번호 */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-white font-bold text-xl">
+                  {currentIndex + 1}/{sortedImages.length}
+                </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body,
