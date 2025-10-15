@@ -196,19 +196,24 @@ export default function FullscreenBillboard({
           />
 
           {sortedEvents[currentIndex] && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 pb-4 pointer-events-none">
-              {/* 제목 */}
-              <h2
-                className={`text-white text-2xl font-bold text-center mb-2 line-clamp-2 transition-opacity ${
-                  isTransitioning ? "opacity-0" : "opacity-100"
-                }`}
-                style={{ transitionDuration: `${transitionDuration}ms` }}
-              >
-                {sortedEvents[currentIndex].title}
-              </h2>
+            <>
+              {/* 하단 대형 제목 영역 - 40인치 디스플레이용 */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent py-8 px-6 pointer-events-none">
+                <h2
+                  className={`text-white text-6xl md:text-7xl lg:text-8xl font-black text-center leading-tight tracking-tight transition-opacity ${
+                    isTransitioning ? "opacity-0" : "opacity-100"
+                  }`}
+                  style={{ 
+                    transitionDuration: `${transitionDuration}ms`,
+                    textShadow: '0 4px 20px rgba(0,0,0,0.8)'
+                  }}
+                >
+                  {sortedEvents[currentIndex].title}
+                </h2>
+              </div>
 
-              {/* 상세보기 버튼 + QR 코드 가로 배치 */}
-              <div className="flex items-center justify-center gap-3 pointer-events-auto">
+              {/* 우측 하단 - 상세보기 버튼 + QR 코드 */}
+              <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 pointer-events-auto">
                 <button
                   onClick={handleImageClick}
                   style={{
@@ -222,9 +227,9 @@ export default function FullscreenBillboard({
                   <span>상세보기</span>
                 </button>
                 
-                {/* QR 코드 - 더 작게 */}
+                {/* QR 코드 */}
                 <div 
-                  className={`bg-white p-1.5 rounded transition-opacity flex flex-col items-center ${
+                  className={`bg-white p-1.5 rounded transition-opacity ${
                     isTransitioning ? "opacity-0" : "opacity-100"
                   }`}
                   style={{ transitionDuration: `${transitionDuration}ms` }}
@@ -238,27 +243,28 @@ export default function FullscreenBillboard({
                   />
                 </div>
               </div>
-            </div>
+            </>
           )}
         </div>
 
-        {/* 상단 안내 + 슬라이드 인디케이터 + 진행 바 */}
-        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none">
+        {/* 상단 진행 표시 - 40인치 디스플레이용 */}
+        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent py-6 pointer-events-none">
           {sortedImages.length > 1 && (
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex gap-2">
+            <div className="flex flex-col items-center gap-4">
+              {/* 슬라이드 인디케이터 - 더 크게 */}
+              <div className="flex gap-3">
                 {sortedImages.map((_, index) => (
                   <div
                     key={index}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      index === currentIndex ? "bg-white w-6" : "bg-white/50"
+                    className={`h-3 rounded-full transition-all ${
+                      index === currentIndex ? "bg-white w-12" : "bg-white/40 w-3"
                     }`}
                   />
                 ))}
               </div>
 
-              {/* 진행 바 */}
-              <div className="w-32 h-1 bg-white/30 rounded-full overflow-hidden">
+              {/* 진행 바 - 더 크고 넓게 */}
+              <div className="w-64 h-2 bg-white/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-white rounded-full transition-all duration-75"
                   style={{ width: `${progress}%` }}
