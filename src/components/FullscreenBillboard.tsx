@@ -221,18 +221,26 @@ export default function FullscreenBillboard({
             >
               {(() => {
                 const title = sortedEvents[currentIndex].title;
+                
+                // 띄어쓰기가 없으면 8글자씩 나누기
+                if (!title.includes(' ')) {
+                  const chunks = title.match(/.{1,8}/g) || [];
+                  return chunks.join('\n');
+                }
+                
+                // 띄어쓰기가 있으면 단어 단위로 적당히 줄바꿈 (10글자 기준)
                 const words = title.split(' ');
                 const lines: string[] = [];
                 let currentLine = '';
 
                 words.forEach((word: string) => {
-                  // 단어가 6글자를 넘으면 강제로 6글자씩 나눔
-                  if (word.length > 6) {
+                  // 단어가 10글자를 넘으면 8글자씩 나눔
+                  if (word.length > 10) {
                     if (currentLine) {
                       lines.push(currentLine);
                       currentLine = '';
                     }
-                    const chunks = word.match(/.{1,6}/g) || [];
+                    const chunks = word.match(/.{1,8}/g) || [];
                     chunks.forEach((chunk, idx) => {
                       if (idx === chunks.length - 1) {
                         currentLine = chunk;
@@ -243,10 +251,10 @@ export default function FullscreenBillboard({
                     return;
                   }
 
-                  // 띄어쓰기를 포함한 길이 계산
+                  // 띄어쓰기를 포함한 길이 계산 (10글자 기준)
                   const nextLineLength = currentLine ? currentLine.length + 1 + word.length : word.length;
                   
-                  if (nextLineLength <= 6) {
+                  if (nextLineLength <= 10) {
                     currentLine += (currentLine ? ' ' : '') + word;
                   } else {
                     if (currentLine) lines.push(currentLine);
