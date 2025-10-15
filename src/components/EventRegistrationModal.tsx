@@ -106,9 +106,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       const resizedImages = await createResizedImages(file);
       const timestamp = Date.now();
       const baseFileName = sanitizeFileName(file.name);
-      
-      console.log('Original filename:', file.name);
-      console.log('Sanitized filename:', baseFileName);
 
       const uploadPromises = [
         {
@@ -259,8 +256,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         created_at: new Date().toISOString()
       };
 
-      console.log('📝 이벤트 등록 데이터:', eventData);
-      
       const { error } = await supabase
         .from('events')
         .insert([eventData]);

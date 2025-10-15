@@ -466,14 +466,6 @@ export default function EventList({
 
   // 필터링된 이벤트 (useMemo로 캐싱하여 불필요한 재필터링 방지)
   const filteredEvents = useMemo(() => {
-    console.log('🔍 필터링 시작:', { 
-      전체이벤트수: events.length, 
-      선택된카테고리: selectedCategory,
-      검색어: searchTerm,
-      선택된날짜: selectedDate,
-      현재월: currentMonth 
-    });
-    
     return events.filter((event) => {
       // 카테고리 필터
       const matchesCategory =
@@ -526,12 +518,6 @@ export default function EventList({
 
         // 날짜 정보가 없는 이벤트는 필터링에서 제외
         if (!startDate || !endDate) {
-          console.log('❌ 날짜 없음으로 제외:', { 
-            제목: event.title, 
-            start_date: event.start_date, 
-            end_date: event.end_date, 
-            date: event.date 
-          });
           matchesDate = false;
         } else {
           const eventStartDate = new Date(startDate);
@@ -544,36 +530,18 @@ export default function EventList({
             matchesDate =
               eventStartDate <= yearEnd && eventEndDate >= yearStart;
           } else {
-            // 월간 보기: 현재 월의 첫날과 마지막 날
-            const monthStart = new Date(
-              currentMonth.getFullYear(),
-              currentMonth.getMonth(),
-              1,
-            );
-            const monthEnd = new Date(
-              currentMonth.getFullYear(),
-              currentMonth.getMonth() + 1,
-              0,
-            );
+            // 월간 보기: 시간대 문제 해결을 위해 날짜 문자열로 비교
+            const currentYear = currentMonth.getFullYear();
+            const currentMonthNum = currentMonth.getMonth() + 1; // 1~12
+            
+            // 월의 첫날과 마지막 날을 문자열로 생성
+            const monthStartStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}-01`;
+            const monthEndStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}-${new Date(currentYear, currentMonthNum, 0).getDate()}`;
 
-            // 이벤트가 현재 월과 겹치는지 확인
+            // 이벤트가 현재 월과 겹치는지 확인 (문자열 비교)
             // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
             matchesDate =
-              eventStartDate <= monthEnd && eventEndDate >= monthStart;
-            
-            if (!matchesDate) {
-              console.log('⚠️ 월 필터 불일치:', {
-                제목: event.title,
-                이벤트시작: startDate,
-                이벤트종료: endDate,
-                이벤트시작Date: eventStartDate.toISOString(),
-                이벤트종료Date: eventEndDate.toISOString(),
-                월시작: monthStart.toISOString(),
-                월종료: monthEnd.toISOString(),
-                조건1: `${eventStartDate.toISOString()} <= ${monthEnd.toISOString()} = ${eventStartDate <= monthEnd}`,
-                조건2: `${eventEndDate.toISOString()} >= ${monthStart.toISOString()} = ${eventEndDate >= monthStart}`
-              });
-            }
+              startDate <= monthEndStr && endDate >= monthStartStr;
           }
         }
       }
