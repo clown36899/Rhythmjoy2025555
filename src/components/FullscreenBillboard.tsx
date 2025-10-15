@@ -184,6 +184,7 @@ export default function FullscreenBillboard({
         className="relative w-full h-full flex items-center justify-center"
         onClick={handleBackgroundClick}
       >
+        {/* 포스터 이미지 - 중앙 배치 */}
         <div className="relative max-w-full max-h-full flex items-center justify-center">
           <img
             src={sortedImages[currentIndex]}
@@ -194,65 +195,98 @@ export default function FullscreenBillboard({
             style={{ transitionDuration: `${transitionDuration}ms` }}
             onClick={handleImageClick}
           />
-
-          {sortedEvents[currentIndex] && (
-            <>
-              {/* 하단 영역 - 제목 + 버튼/QR */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent pt-16 px-6 pointer-events-none">
-                {/* 대형 제목 - 40인치 디스플레이용 */}
-                <h2
-                  className={`text-white text-6xl md:text-7xl lg:text-8xl font-black text-center leading-tight tracking-tight transition-opacity ${
-                    isTransitioning ? "opacity-0" : "opacity-100"
-                  }`}
-                  style={{ 
-                    transitionDuration: `${transitionDuration}ms`,
-                    textShadow: '0 4px 20px rgba(0,0,0,0.8)',
-                    wordBreak: 'keep-all',
-                    whiteSpace: 'pre-line',
-                    maxWidth: '90%',
-                    margin: '0 auto 1.5rem'
-                  }}
-                >
-                  {sortedEvents[currentIndex].title.length > 6 
-                    ? sortedEvents[currentIndex].title.match(/.{1,6}/g)?.join('\n') || sortedEvents[currentIndex].title
-                    : sortedEvents[currentIndex].title}
-                </h2>
-
-                {/* 최하단 - 상세보기 버튼 + QR 코드 가로 배치 (바닥에서 1rem) */}
-                <div className="flex items-center justify-center gap-4 pb-4 pointer-events-auto">
-                  <button
-                    onClick={handleImageClick}
-                    style={{
-                      transitionDuration: `${transitionDuration}ms`,
-                    }}
-                    className={`bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium text-base inline-flex items-center gap-2 transition-all hover:scale-105 ${
-                      isTransitioning ? "opacity-0" : "opacity-100"
-                    }`}
-                  >
-                    <i className="ri-eye-line text-lg" aria-hidden="true"></i>
-                    <span>상세보기</span>
-                  </button>
-                  
-                  {/* QR 코드 */}
-                  <div 
-                    className={`bg-white p-2 rounded-lg transition-opacity ${
-                      isTransitioning ? "opacity-0" : "opacity-100"
-                    }`}
-                    style={{ transitionDuration: `${transitionDuration}ms` }}
-                    title="QR 스캔으로 바로 보기"
-                  >
-                    <QRCodeSVG
-                      value={`${window.location.origin}?event=${sortedEvents[currentIndex].id}&from=qr`}
-                      size={70}
-                      level="M"
-                      includeMargin={false}
-                    />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
+
+        {/* 화면 기준 하단 - 제목 + 버튼/QR (이미지와 분리) */}
+        {sortedEvents[currentIndex] && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent pt-16 px-6 pointer-events-none">
+            {/* 대형 제목 - 40인치 디스플레이용, 단어 단위 줄바꿈 */}
+            <h2
+              className={`text-white text-6xl md:text-7xl lg:text-8xl font-black text-center leading-tight tracking-tight transition-opacity ${
+                isTransitioning ? "opacity-0" : "opacity-100"
+              }`}
+              style={{ 
+                transitionDuration: `${transitionDuration}ms`,
+                textShadow: '0 4px 20px rgba(0,0,0,0.8)',
+                whiteSpace: 'pre-line',
+                maxWidth: '90%',
+                margin: '0 auto 1.5rem'
+              }}
+            >
+              {(() => {
+                const title = sortedEvents[currentIndex].title;
+                const words = title.split(' ');
+                const lines: string[] = [];
+                let currentLine = '';
+
+                words.forEach((word: string) => {
+                  // 단어가 6글자를 넘으면 강제로 6글자씩 나눔
+                  if (word.length > 6) {
+                    if (currentLine) {
+                      lines.push(currentLine);
+                      currentLine = '';
+                    }
+                    const chunks = word.match(/.{1,6}/g) || [];
+                    chunks.forEach((chunk, idx) => {
+                      if (idx === chunks.length - 1) {
+                        currentLine = chunk;
+                      } else {
+                        lines.push(chunk);
+                      }
+                    });
+                    return;
+                  }
+
+                  // 띄어쓰기를 포함한 길이 계산
+                  const nextLineLength = currentLine ? currentLine.length + 1 + word.length : word.length;
+                  
+                  if (nextLineLength <= 6) {
+                    currentLine += (currentLine ? ' ' : '') + word;
+                  } else {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = word;
+                  }
+                });
+                
+                if (currentLine) lines.push(currentLine);
+
+                return lines.join('\n');
+              })()}
+            </h2>
+
+            {/* 최하단 - 상세보기 버튼 + QR 코드 가로 배치 (바닥에서 1rem) */}
+            <div className="flex items-center justify-center gap-4 pb-4 pointer-events-auto">
+              <button
+                onClick={handleImageClick}
+                style={{
+                  transitionDuration: `${transitionDuration}ms`,
+                }}
+                className={`bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium text-base inline-flex items-center gap-2 transition-all hover:scale-105 ${
+                  isTransitioning ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                <i className="ri-eye-line text-lg" aria-hidden="true"></i>
+                <span>상세보기</span>
+              </button>
+              
+              {/* QR 코드 */}
+              <div 
+                className={`bg-white p-2 rounded-lg transition-opacity ${
+                  isTransitioning ? "opacity-0" : "opacity-100"
+                }`}
+                style={{ transitionDuration: `${transitionDuration}ms` }}
+                title="QR 스캔으로 바로 보기"
+              >
+                <QRCodeSVG
+                  value={`${window.location.origin}?event=${sortedEvents[currentIndex].id}&from=qr`}
+                  size={70}
+                  level="M"
+                  includeMargin={false}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 좌측 상단 원형 진행 표시 - 우로보로스 형태 */}
         {sortedImages.length > 1 && (
