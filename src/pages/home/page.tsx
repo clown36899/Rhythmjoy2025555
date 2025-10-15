@@ -54,10 +54,35 @@ export default function HomePage() {
 
     if (source === 'qr' && eventId) {
       const id = parseInt(eventId);
-      // 이벤트 하이라이트 및 스크롤
-      setTimeout(() => {
-        setHighlightEvent({ id, nonce: Date.now() });
-      }, 500);
+      
+      // 이벤트 정보 조회 후 달력 이동 및 하이라이트
+      const loadEventAndNavigate = async () => {
+        try {
+          const { data: event } = await supabase
+            .from('events')
+            .select('start_date, date')
+            .eq('id', id)
+            .single();
+          
+          if (event) {
+            // 이벤트 날짜로 달력 이동
+            const eventDate = event.start_date || event.date;
+            if (eventDate) {
+              const date = new Date(eventDate);
+              setCurrentMonth(date);
+            }
+            
+            // 달력 렌더링 후 하이라이트
+            setTimeout(() => {
+              setHighlightEvent({ id, nonce: Date.now() });
+            }, 300);
+          }
+        } catch (error) {
+          console.error('Error loading event for QR navigation:', error);
+        }
+      };
+      
+      loadEventAndNavigate();
       
       // URL에서 파라미터 제거 (깔끔하게)
       window.history.replaceState({}, '', window.location.pathname);
