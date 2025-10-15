@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { QRCodeSVG } from "qrcode.react";
 
 interface FullscreenBillboardProps {
   images: string[];
@@ -206,7 +207,7 @@ export default function FullscreenBillboard({
               </h2>
 
               {/* 상세보기 버튼 */}
-              <div className="flex justify-center mt-4 pointer-events-auto">
+              <div className="flex flex-col items-center mt-4 pointer-events-auto gap-3">
                 <button
                   onClick={handleImageClick}
                   // 인라인: 가로정렬/간격/줄바꿈방지만 보장
@@ -225,6 +226,29 @@ export default function FullscreenBillboard({
                   <span>상세보기 : </span>
                   <span>일정,홍보 등록 자율</span>
                 </button>
+                
+                {/* QR 코드 */}
+                <div 
+                  className={`bg-white p-2 rounded-lg transition-opacity ${
+                    isTransitioning ? "opacity-0" : "opacity-100"
+                  }`}
+                  style={{ transitionDuration: `${transitionDuration}ms` }}
+                >
+                  <QRCodeSVG
+                    value={`${window.location.origin}?event=${sortedEvents[currentIndex].id}&from=qr`}
+                    size={80}
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+                <p 
+                  className={`text-white text-xs text-center transition-opacity ${
+                    isTransitioning ? "opacity-0" : "opacity-100"
+                  }`}
+                  style={{ transitionDuration: `${transitionDuration}ms` }}
+                >
+                  QR 스캔으로 바로 보기
+                </p>
               </div>
             </div>
           )}
