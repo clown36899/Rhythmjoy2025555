@@ -219,7 +219,23 @@ export default function HomePage() {
             const endDate = event.end_date || event.start_date || event.date;
             if (!endDate) return false;
 
-            return endDate >= todayString;
+            // 오늘 이후 이벤트만
+            if (endDate < todayString) return false;
+
+            // 날짜 범위 필터 적용
+            if (settings.dateRangeStart || settings.dateRangeEnd) {
+              const eventStartDate = event.start_date || event.date;
+              
+              if (settings.dateRangeStart && eventStartDate < settings.dateRangeStart) {
+                return false;
+              }
+              
+              if (settings.dateRangeEnd && endDate > settings.dateRangeEnd) {
+                return false;
+              }
+            }
+
+            return true;
           });
 
           const images = filteredEvents
@@ -246,7 +262,7 @@ export default function HomePage() {
     };
 
     loadBillboardImages();
-  }, [settings.enabled, settings.autoOpenOnLoad, fromQR]);
+  }, [settings.enabled, settings.autoOpenOnLoad, settings.dateRangeStart, settings.dateRangeEnd, fromQR]);
 
   const handleBillboardClose = () => {
     setIsBillboardOpen(false);
@@ -667,6 +683,9 @@ export default function HomePage() {
           onEventClick={handleBillboardEventClick}
           autoSlideInterval={settings.autoSlideInterval}
           transitionDuration={settings.transitionDuration}
+          dateRangeStart={settings.dateRangeStart}
+          dateRangeEnd={settings.dateRangeEnd}
+          showDateRange={settings.showDateRange}
         />
       )}
 

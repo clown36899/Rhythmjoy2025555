@@ -10,6 +10,9 @@ interface FullscreenBillboardProps {
   onEventClick: (event: any) => void;
   autoSlideInterval?: number;
   transitionDuration?: number;
+  dateRangeStart?: string | null;
+  dateRangeEnd?: string | null;
+  showDateRange?: boolean;
 }
 
 // 배열 셔플 함수
@@ -30,6 +33,9 @@ export default function FullscreenBillboard({
   onEventClick,
   autoSlideInterval = 5000,
   transitionDuration = 300,
+  dateRangeStart,
+  dateRangeEnd,
+  showDateRange = true,
 }: FullscreenBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -288,10 +294,11 @@ export default function FullscreenBillboard({
           </div>
         )}
 
-        {/* 좌측 상단 원형 진행 표시 - 우로보로스 형태 */}
-        {sortedImages.length > 1 && (
-          <div className="absolute top-8 left-8 pointer-events-none">
-            <div className="relative w-24 h-24">
+        {/* 좌측 상단 영역 - 원형 진행 표시 + 날짜 범위 */}
+        <div className="absolute top-8 left-8 pointer-events-none">
+          {/* 원형 진행 표시 - 우로보로스 형태 */}
+          {sortedImages.length > 1 && (
+            <div className="relative w-24 h-24 mb-3">
               {/* 원형 진행 바 배경 */}
               <svg className="transform -rotate-90 w-24 h-24">
                 <circle
@@ -324,8 +331,21 @@ export default function FullscreenBillboard({
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* 날짜 범위 표시 */}
+          {showDateRange && (dateRangeStart || dateRangeEnd) && (
+            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-white">
+              <div className="text-xs text-gray-300 mb-1">일정 기간</div>
+              <div className="font-bold text-sm">
+                {dateRangeStart || '시작'} ~
+              </div>
+              <div className="font-bold text-sm">
+                {dateRangeEnd || '종료'}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>,
     document.body,

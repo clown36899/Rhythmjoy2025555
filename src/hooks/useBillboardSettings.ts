@@ -6,6 +6,9 @@ export interface BillboardSettings {
   inactivityTimeout: number; // milliseconds (0 = disabled)
   autoOpenOnLoad: boolean;
   transitionDuration: number; // milliseconds
+  dateRangeStart: string | null; // YYYY-MM-DD
+  dateRangeEnd: string | null; // YYYY-MM-DD
+  showDateRange: boolean; // 날짜 범위 표시 여부
 }
 
 const DEFAULT_SETTINGS: BillboardSettings = {
@@ -14,6 +17,9 @@ const DEFAULT_SETTINGS: BillboardSettings = {
   inactivityTimeout: 600000, // 10분
   autoOpenOnLoad: true,
   transitionDuration: 300, // 0.3초
+  dateRangeStart: null,
+  dateRangeEnd: null,
+  showDateRange: true,
 };
 
 const STORAGE_KEY = "billboard_settings";

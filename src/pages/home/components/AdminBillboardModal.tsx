@@ -245,6 +245,58 @@ export default function AdminBillboardModal({
             </div>
           </div>
 
+          {/* 날짜 범위 필터 */}
+          <div className="p-4 bg-gray-700/50 rounded-lg">
+            <label className="text-white font-medium block mb-3">일정 날짜 범위</label>
+            <p className="text-sm text-gray-400 mb-4">
+              특정 기간의 일정만 광고판에 표시합니다 (미설정 시 전체 표시)
+            </p>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">시작 날짜</label>
+                <input
+                  type="date"
+                  value={settings.dateRangeStart || ''}
+                  onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
+                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">종료 날짜</label>
+                <input
+                  type="date"
+                  value={settings.dateRangeEnd || ''}
+                  onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
+                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                />
+              </div>
+            </div>
+            
+            {/* 날짜 범위 표시 여부 */}
+            <div className="flex items-center justify-between p-3 bg-gray-600/50 rounded-lg">
+              <div className="flex-1">
+                <label className="text-white font-medium block">날짜 범위 표시</label>
+                <p className="text-sm text-gray-400 mt-1">
+                  광고판에 날짜 범위를 표시합니다
+                </p>
+              </div>
+              <button
+                onClick={() =>
+                  onUpdateSettings({ showDateRange: !settings.showDateRange })
+                }
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                  settings.showDateRange ? "bg-purple-500" : "bg-gray-600"
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    settings.showDateRange ? "translate-x-7" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
           {/* 현재 설정 요약 */}
           <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
@@ -280,6 +332,20 @@ export default function AdminBillboardModal({
                 <span>재생 순서:</span>
                 <span className="text-purple-300 font-medium">
                   {playOrder === 'random' ? '랜덤' : '순차'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>날짜 범위:</span>
+                <span className="text-purple-300 font-medium">
+                  {settings.dateRangeStart && settings.dateRangeEnd
+                    ? `${settings.dateRangeStart} ~ ${settings.dateRangeEnd}`
+                    : '전체'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>날짜 표시:</span>
+                <span className={settings.showDateRange ? "text-green-400 font-medium" : "text-gray-400 font-medium"}>
+                  {settings.showDateRange ? "켜짐" : "꺼짐"}
                 </span>
               </div>
             </div>
