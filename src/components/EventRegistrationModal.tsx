@@ -79,11 +79,22 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
   const sanitizeFileName = (fileName: string): string => {
     // 파일명에서 확장자 제거
     const nameWithoutExt = fileName.split('.')[0];
-    // 한글, 영문, 숫자만 남기고 나머지는 언더스코어로 변경
-    return nameWithoutExt
-      .replace(/[^\w\uAC00-\uD7A3]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_|_$/g, '');
+    
+    // 전각 문자를 반각으로 변환
+    let normalized = nameWithoutExt.replace(/[\uFF01-\uFF5E]/g, (ch) => 
+      String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)
+    );
+    
+    // 영문, 숫자, 하이픈, 언더스코어만 남기고 나머지는 제거
+    normalized = normalized.replace(/[^a-zA-Z0-9\-_]/g, '');
+    
+    // 연속된 특수문자 제거
+    normalized = normalized.replace(/[\-_]+/g, '_');
+    
+    // 앞뒤 특수문자 제거
+    normalized = normalized.replace(/^[\-_]+|[\-_]+$/g, '');
+    
+    return normalized || 'image';
   };
 
   const uploadImages = async (file: File): Promise<{
@@ -119,12 +130,13 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
           const { error } = await supabase.storage
             .from('images')
             .upload(path, file, {
-              cacheControl: '31536000'
+              cacheControl: '31536000',
+              upsert: true
             });
 
           if (error) {
             console.error(`${key} upload error:`, error);
-            return { key, url: '' };
+            throw new Error(`이미지 업로드 실패 (${key}): ${error.message}`);
           }
 
           const { data } = supabase.storage
@@ -142,7 +154,9 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       };
     } catch (error) {
       console.error('Image upload failed:', error);
-      return { thumbnail: '', medium: '', full: '' };
+      const errorMessage = error instanceof Error ? error.message : '이미지 업로드 중 오류가 발생했습니다.';
+      alert(errorMessage);
+      throw error;
     }
   };
 
