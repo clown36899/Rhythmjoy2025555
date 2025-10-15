@@ -560,6 +560,20 @@ export default function EventList({
             // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
             matchesDate =
               eventStartDate <= monthEnd && eventEndDate >= monthStart;
+            
+            if (!matchesDate) {
+              console.log('⚠️ 월 필터 불일치:', {
+                제목: event.title,
+                이벤트시작: startDate,
+                이벤트종료: endDate,
+                이벤트시작Date: eventStartDate.toISOString(),
+                이벤트종료Date: eventEndDate.toISOString(),
+                월시작: monthStart.toISOString(),
+                월종료: monthEnd.toISOString(),
+                조건1: `${eventStartDate.toISOString()} <= ${monthEnd.toISOString()} = ${eventStartDate <= monthEnd}`,
+                조건2: `${eventEndDate.toISOString()} >= ${monthStart.toISOString()} = ${eventEndDate >= monthStart}`
+              });
+            }
           }
         }
       }
