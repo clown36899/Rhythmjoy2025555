@@ -13,6 +13,7 @@ interface FullscreenBillboardProps {
   dateRangeStart?: string | null;
   dateRangeEnd?: string | null;
   showDateRange?: boolean;
+  playOrder?: 'sequential' | 'random';
 }
 
 // 배열 셔플 함수
@@ -36,20 +37,13 @@ export default function FullscreenBillboard({
   dateRangeStart,
   dateRangeEnd,
   showDateRange = true,
+  playOrder = 'random',
 }: FullscreenBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 재생 순서 설정 (localStorage에서 읽기)
-  const [playOrder, setPlayOrder] = useState<"sequential" | "random">(() => {
-    return (
-      (localStorage.getItem("billboardPlayOrder") as "sequential" | "random") ||
-      "random"
-    );
-  });
 
   // 이미지와 이벤트를 재생 순서에 따라 정렬
   const { sortedImages, sortedEvents } = useMemo(() => {
@@ -69,22 +63,6 @@ export default function FullscreenBillboard({
       };
     }
   }, [images, events, playOrder, isOpen]); // isOpen이 변경될 때마다 재생성 (광고판 열릴 때 새로 셔플)
-
-  // localStorage 변경 감지
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const newOrder =
-        (localStorage.getItem("billboardPlayOrder") as
-          | "sequential"
-          | "random") || "random";
-      setPlayOrder(newOrder);
-    };
-
-    window.addEventListener("billboardOrderChange", handleStorageChange);
-    return () => {
-      window.removeEventListener("billboardOrderChange", handleStorageChange);
-    };
-  }, []);
 
   useEffect(() => {
     if (!isOpen || sortedImages.length === 0) {

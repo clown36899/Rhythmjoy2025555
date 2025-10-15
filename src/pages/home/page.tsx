@@ -204,7 +204,6 @@ export default function HomePage() {
 
       try {
         const today = new Date();
-        const todayString = today.toISOString().split("T")[0];
 
         const { data: events } = await supabase
           .from("events")
@@ -218,9 +217,6 @@ export default function HomePage() {
 
             const endDate = event.end_date || event.start_date || event.date;
             if (!endDate) return false;
-
-            // 오늘 이후 이벤트만
-            if (endDate < todayString) return false;
 
             // 날짜 범위 필터 적용
             if (settings.dateRangeStart || settings.dateRangeEnd) {
@@ -686,6 +682,7 @@ export default function HomePage() {
           dateRangeStart={settings.dateRangeStart}
           dateRangeEnd={settings.dateRangeEnd}
           showDateRange={settings.showDateRange}
+          playOrder={settings.playOrder}
         />
       )}
 

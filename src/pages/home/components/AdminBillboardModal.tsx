@@ -1,5 +1,4 @@
 import { createPortal } from "react-dom";
-import { useState } from "react";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
 
 interface AdminBillboardModalProps {
@@ -17,15 +16,9 @@ export default function AdminBillboardModal({
   onUpdateSettings,
   onResetSettings,
 }: AdminBillboardModalProps) {
-  // 재생 순서 설정 (localStorage에서 읽기)
-  const [playOrder, setPlayOrder] = useState<'sequential' | 'random'>(() => {
-    return (localStorage.getItem('billboardPlayOrder') as 'sequential' | 'random') || 'random';
-  });
-
   // 재생 순서 변경 핸들러
   const handlePlayOrderChange = (newOrder: 'sequential' | 'random') => {
-    setPlayOrder(newOrder);
-    localStorage.setItem('billboardPlayOrder', newOrder);
+    onUpdateSettings({ playOrder: newOrder });
     // 빌보드에 변경 알림
     window.dispatchEvent(new Event('billboardOrderChange'));
   };
@@ -217,7 +210,7 @@ export default function AdminBillboardModal({
               <button
                 onClick={() => handlePlayOrderChange('sequential')}
                 className={`p-3 rounded-lg border-2 transition-all ${
-                  playOrder === 'sequential'
+                  settings.playOrder === 'sequential'
                     ? 'border-purple-500 bg-purple-500/20 text-white'
                     : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
                 }`}
@@ -231,7 +224,7 @@ export default function AdminBillboardModal({
               <button
                 onClick={() => handlePlayOrderChange('random')}
                 className={`p-3 rounded-lg border-2 transition-all ${
-                  playOrder === 'random'
+                  settings.playOrder === 'random'
                     ? 'border-purple-500 bg-purple-500/20 text-white'
                     : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
                 }`}
@@ -331,7 +324,7 @@ export default function AdminBillboardModal({
               <div className="flex justify-between">
                 <span>재생 순서:</span>
                 <span className="text-purple-300 font-medium">
-                  {playOrder === 'random' ? '랜덤' : '순차'}
+                  {settings.playOrder === 'random' ? '랜덤' : '순차'}
                 </span>
               </div>
               <div className="flex justify-between">
