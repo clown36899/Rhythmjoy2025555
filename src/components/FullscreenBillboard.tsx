@@ -187,15 +187,15 @@ export default function FullscreenBillboard({
       onClick={handleBackgroundClick}
     >
       <div
-        className="relative w-full h-full flex items-center justify-center"
+        className="relative w-full h-full"
         onClick={handleBackgroundClick}
       >
-        {/* 포스터 이미지 - 중앙 배치 */}
-        <div className="relative max-w-full max-h-full flex items-center justify-center">
+        {/* 포스터 이미지 - 상단 여백 없이 배치 */}
+        <div className="absolute top-0 left-0 right-0 flex justify-center">
           <img
             src={sortedImages[currentIndex]}
             alt="Event Billboard"
-            className={`max-w-full max-h-full object-contain transition-opacity cursor-pointer ${
+            className={`max-w-full max-h-screen object-contain transition-opacity cursor-pointer ${
               isTransitioning ? "opacity-0" : "opacity-100"
             }`}
             style={{ transitionDuration: `${transitionDuration}ms` }}
