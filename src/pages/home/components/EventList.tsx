@@ -129,6 +129,11 @@ export default function EventList({
     [key: string]: Event[]; // key: "YYYY-MM-category-sortBy"
   }>({});
 
+  // 카테고리나 정렬 기준 변경 시 캐시 초기화
+  useEffect(() => {
+    sortedEventsCache.current = {};
+  }, [selectedCategory, sortBy]);
+
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
     const eventsCopy = [...eventsToSort];
@@ -284,7 +289,6 @@ export default function EventList({
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
-      console.log("[EventList] fetchEvents 호출됨");
       
       let data: Event[] | null = null;
       let error: any = null;
@@ -310,7 +314,6 @@ export default function EventList({
       if (error) {
         console.error("Error fetching events:", error);
       } else {
-        console.log("[EventList] 이벤트 로드 성공:", data?.length || 0, "개");
         setEvents(data || []);
       }
     } catch (error) {
