@@ -32,6 +32,12 @@ export default function HomePage() {
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
@@ -360,15 +366,63 @@ export default function HomePage() {
     setIsCalendarCollapsed(false);
   };
 
-  // 이벤트 리스트 스와이프 핸들러
-  const handleEventListSwipe = (direction: "prev" | "next") => {
-    const newMonth = new Date(currentMonth);
-    if (direction === "prev") {
-      newMonth.setMonth(currentMonth.getMonth() - 1);
+  // 공통 스와이프 핸들러 (달력과 이벤트 리스트가 함께 사용)
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (isAnimating) return;
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(true);
+    setDragOffset(0);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || touchStart === null) return;
+
+    const currentTouch = e.targetTouches[0].clientX;
+    const diff = currentTouch - touchStart;
+
+    setDragOffset(diff);
+  };
+
+  const onTouchEnd = () => {
+    if (!isDragging || touchStart === null) return;
+
+    setIsDragging(false);
+
+    const distance = dragOffset;
+    const threshold = minSwipeDistance;
+
+    if (Math.abs(distance) > threshold) {
+      setIsAnimating(true);
+
+      const screenWidth = window.innerWidth;
+      const direction = distance < 0 ? "next" : "prev";
+      const targetOffset = distance < 0 ? -screenWidth : screenWidth;
+
+      setDragOffset(targetOffset);
+
+      setTimeout(() => {
+        const newMonth = new Date(currentMonth);
+        if (direction === "prev") {
+          newMonth.setMonth(currentMonth.getMonth() - 1);
+        } else {
+          newMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+        
+        setCurrentMonth(newMonth);
+        setSelectedDate(null);
+        setSelectedCategory("all");
+        setIsCalendarCollapsed(false);
+        
+        setDragOffset(0);
+        setIsAnimating(false);
+        setTouchStart(null);
+      }, 300);
     } else {
-      newMonth.setMonth(currentMonth.getMonth() + 1);
+      setDragOffset(0);
+      setTouchStart(null);
     }
-    handleMonthChange(newMonth);
   };
 
   const handleEventsUpdate = async (createdDate?: Date) => {
@@ -541,6 +595,11 @@ export default function HomePage() {
                 onEventsUpdate={handleEventsUpdate}
                 viewMode={viewMode}
                 hoveredEventId={hoveredEventId}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                dragOffset={dragOffset}
+                isAnimating={isAnimating}
               />
             </div>
 
@@ -672,7 +731,11 @@ export default function HomePage() {
                   setSortBy={setSortBy}
                   highlightEvent={highlightEvent}
                   onHighlightComplete={handleHighlightComplete}
-                  onMonthChange={handleEventListSwipe}
+                  dragOffset={dragOffset}
+                  isAnimating={isAnimating}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
                 />
               )}
             </div>

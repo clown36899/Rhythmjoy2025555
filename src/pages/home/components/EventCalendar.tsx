@@ -12,6 +12,12 @@ interface EventCalendarProps {
   onEventsUpdate?: (createdDate?: Date) => void;
   viewMode?: "month" | "year";
   hoveredEventId?: number | null;
+  // 공통 스와이프 상태
+  onTouchStart?: (e: React.TouchEvent) => void;
+  onTouchMove?: (e: React.TouchEvent) => void;
+  onTouchEnd?: () => void;
+  dragOffset?: number;
+  isAnimating?: boolean;
 }
 
 export default function EventCalendar({
@@ -23,16 +29,17 @@ export default function EventCalendar({
   onEventsUpdate,
   viewMode = "month",
   hoveredEventId,
+  onTouchStart: externalOnTouchStart,
+  onTouchMove: externalOnTouchMove,
+  onTouchEnd: externalOnTouchEnd,
+  dragOffset: externalDragOffset = 0,
+  isAnimating: externalIsAnimating = false,
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [clickedDate, setClickedDate] = useState<Date | null>(null);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
 
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
@@ -204,7 +211,7 @@ export default function EventCalendar({
   }, [events, currentMonth]);
 
   const navigateMonth = (direction: "prev" | "next") => {
-    if (isAnimating) return;
+    if (externalIsAnimating) return;
 
     const newMonth = new Date(currentMonth);
     if (viewMode === "year") {
@@ -269,65 +276,6 @@ export default function EventCalendar({
   const handleEventCreated = (createdDate: Date) => {
     fetchEvents();
     onEventsUpdate?.(createdDate);
-  };
-
-  // 스와이프 감지를 위한 최소 거리 (픽셀)
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (isAnimating) return;
-    setTouchStart(e.targetTouches[0].clientX);
-    setIsDragging(true);
-    setDragOffset(0);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || touchStart === null) return;
-
-    const currentTouch = e.targetTouches[0].clientX;
-    const diff = currentTouch - touchStart;
-
-    // 드래그 오프셋 업데이트 (실시간 반응)
-    setDragOffset(diff);
-  };
-
-  const onTouchEnd = () => {
-    if (!isDragging || touchStart === null) return;
-
-    setIsDragging(false);
-
-    const distance = dragOffset;
-    const threshold = minSwipeDistance;
-
-    // 충분히 드래그했는지 확인
-    if (Math.abs(distance) > threshold) {
-      setIsAnimating(true);
-
-      // 화면 너비를 가져오기
-      const screenWidth = window.innerWidth;
-
-      // 왼쪽으로 드래그 = 다음 달 (음수)
-      // 오른쪽으로 드래그 = 이전 달 (양수)
-      const direction = distance < 0 ? "next" : "prev";
-      const targetOffset = distance < 0 ? -screenWidth : screenWidth;
-
-      // 1단계: 슬라이드 애니메이션 완료 (화면 끝까지 이동)
-      setDragOffset(targetOffset);
-
-      // 2단계: 애니메이션 완료 후 달 변경
-      setTimeout(() => {
-        navigateMonth(direction);
-
-        // 3단계: 즉시 드래그 오프셋 리셋 (새로운 현재 달이 중앙에)
-        setDragOffset(0);
-        setIsAnimating(false);
-        setTouchStart(null);
-      }, 300);
-    } else {
-      // 임계값 미달 - 원위치로 스냅백
-      setDragOffset(0);
-      setTouchStart(null);
-    }
   };
 
   // 이전 달, 현재 달, 다음 달의 날짜들을 생성
@@ -666,16 +614,14 @@ export default function EventCalendar({
               <div
                 className="flex"
                 style={{
-                  transform: `translateX(calc(-100% + ${dragOffset}px))`,
-                  transition: isDragging
-                    ? "none"
-                    : isAnimating
-                      ? "transform 0.3s ease-out"
-                      : "none",
+                  transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
+                  transition: externalIsAnimating
+                    ? "transform 0.3s ease-out"
+                    : "none",
                 }}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
+                onTouchStart={externalOnTouchStart}
+                onTouchMove={externalOnTouchMove}
+                onTouchEnd={externalOnTouchEnd}
               >
                 {/* 이전 달 */}
                 <div
