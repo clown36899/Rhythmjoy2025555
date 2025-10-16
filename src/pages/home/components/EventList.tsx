@@ -1180,7 +1180,7 @@ export default function EventList({
             >
               {/* 이전 달 */}
               <div className="flex-shrink-0 w-full">
-                {sortedPrevEvents.length > 0 ? (
+                {sortedPrevEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedPrevEvents.map((event) => {
                       const startDate = event.start_date || event.date || "";
@@ -1253,7 +1253,7 @@ export default function EventList({
 
               {/* 현재 달 */}
               <div className="flex-shrink-0 w-full">
-                {sortedCurrentEvents.length > 0 ? (
+                {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedCurrentEvents.map((event) => {
                       const startDate = event.start_date || event.date || "";
@@ -1348,7 +1348,7 @@ export default function EventList({
 
               {/* 다음 달 */}
               <div className="flex-shrink-0 w-full">
-                {sortedNextEvents.length > 0 ? (
+                {sortedNextEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedNextEvents.map((event) => {
                       const startDate = event.start_date || event.date || "";
