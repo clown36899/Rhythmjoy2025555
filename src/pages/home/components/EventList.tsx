@@ -1162,24 +1162,25 @@ export default function EventList({
           )}
           </div>
         ) : (
-          // 일반 월간 뷰: 3개월 슬라이드
-          <div className="overflow-hidden">
-            <div
-              className="flex"
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              onMouseDown={onMouseDown}
-              onMouseMove={onMouseMove}
-              onMouseUp={onMouseUp}
-              onMouseLeave={onMouseLeave}
+          // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
+          <div 
+            className="overflow-hidden relative"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseLeave}
+          >
+            {/* 이전 달 - 독립 컨테이너 */}
+            <div 
+              className="absolute top-0 left-0 w-full"
               style={{
                 transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
                 transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
               }}
             >
-              {/* 이전 달 */}
-              <div className="flex-shrink-0 w-full">
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedPrevEvents.map((event) => {
@@ -1249,10 +1250,16 @@ export default function EventList({
                     <p className="text-gray-400">이벤트가 없습니다</p>
                   </div>
                 )}
-              </div>
+            </div>
 
-              {/* 현재 달 */}
-              <div className="flex-shrink-0 w-full">
+            {/* 현재 달 - 독립 컨테이너 */}
+            <div 
+              className="w-full"
+              style={{
+                transform: `translateX(${externalDragOffset}px)`,
+                transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
+              }}
+            >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedCurrentEvents.map((event) => {
@@ -1344,10 +1351,16 @@ export default function EventList({
                     </p>
                   </div>
                 )}
-              </div>
+            </div>
 
-              {/* 다음 달 */}
-              <div className="flex-shrink-0 w-full">
+            {/* 다음 달 - 독립 컨테이너 */}
+            <div 
+              className="absolute top-0 left-0 w-full"
+              style={{
+                transform: `translateX(calc(100% + ${externalDragOffset}px))`,
+                transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
+              }}
+            >
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedNextEvents.map((event) => {
@@ -1417,7 +1430,6 @@ export default function EventList({
                     <p className="text-gray-400">이벤트가 없습니다</p>
                   </div>
                 )}
-              </div>
             </div>
           </div>
         )}
