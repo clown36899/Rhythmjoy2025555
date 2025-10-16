@@ -326,7 +326,7 @@ export default function EventList({
   // 이벤트 데이터 로드
   useEffect(() => {
     fetchEvents();
-  }, [fetchEvents, currentMonth, refreshTrigger]);
+  }, [fetchEvents, refreshTrigger]);
 
   // 달 변경 시 스크롤 위치 리셋
   useEffect(() => {
