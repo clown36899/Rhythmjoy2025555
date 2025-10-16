@@ -460,31 +460,30 @@ export default function EventCalendar({
                 : "text-gray-300 hover:bg-gray-700"
             }`}
           >
-            {/* 날짜 숫자 */}
-            <div className="flex items-center gap-1 relative z-30">
-              <span className="font-bold">{day.getDate()}</span>
-              {/* 단일 이벤트 개수 표시 */}
-              {singleDayEvents.length > 0 &&
-                (() => {
-                  // 호버된 이벤트가 이 날짜의 단일 이벤트인지 확인
-                  const isHoveredSingle =
-                    viewMode === "month" &&
-                    hoveredEventId !== null &&
-                    singleDayEvents.some((e) => e.id === hoveredEventId);
+            {/* 날짜 숫자 - 중앙 정렬 유지 */}
+            <span className="font-bold relative z-30">{day.getDate()}</span>
+            
+            {/* 단일 이벤트 개수 표시 - 우상단 절대 위치 */}
+            {singleDayEvents.length > 0 &&
+              (() => {
+                // 호버된 이벤트가 이 날짜의 단일 이벤트인지 확인
+                const isHoveredSingle =
+                  viewMode === "month" &&
+                  hoveredEventId !== null &&
+                  singleDayEvents.some((e) => e.id === hoveredEventId);
 
-                  return (
-                    <span
-                      className={`text-[8px] rounded px-1 font-medium transition-all duration-200 ${
-                        isHoveredSingle
-                          ? "bg-blue-500 text-white transform scale-110"
-                          : "bg-gray-600 text-gray-300"
-                      }`}
-                    >
-                      +{singleDayEvents.length}
-                    </span>
-                  );
-                })()}
-            </div>
+                return (
+                  <span
+                    className={`absolute top-0.5 right-0.5 text-[8px] rounded-full w-3.5 h-3.5 flex items-center justify-center font-medium transition-all duration-200 z-30 ${
+                      isHoveredSingle
+                        ? "bg-blue-500 text-white transform scale-110"
+                        : "bg-gray-600 text-gray-300"
+                    }`}
+                  >
+                    {singleDayEvents.length}
+                  </span>
+                );
+              })()}
 
             {/* 오늘 표시 */}
             {todayFlag && (
