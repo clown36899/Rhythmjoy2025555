@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { getEventColor } from "../../../utils/eventColors";
@@ -37,6 +37,10 @@ interface EventListProps {
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: () => void;
+  onMouseDown?: (e: React.MouseEvent) => void;
+  onMouseMove?: (e: React.MouseEvent) => void;
+  onMouseUp?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export default function EventList({
@@ -63,6 +67,10 @@ export default function EventList({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
+  onMouseDown,
+  onMouseMove,
+  onMouseUp,
+  onMouseLeave,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -276,7 +284,7 @@ export default function EventList({
   // 이벤트 데이터 로드
   useEffect(() => {
     fetchEvents();
-  }, [currentMonth, refreshTrigger, isAdminMode]);
+  }, [fetchEvents, currentMonth, refreshTrigger]);
 
   // 달 변경 시 스크롤 위치 리셋
   useEffect(() => {
@@ -440,7 +448,7 @@ export default function EventList({
     };
   }, [highlightEvent?.id, highlightEvent?.nonce]);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -477,7 +485,7 @@ export default function EventList({
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdminMode]);
 
   // 필터링된 이벤트 (useMemo로 캐싱하여 불필요한 재필터링 방지)
   const filteredEvents = useMemo(() => {
@@ -1158,6 +1166,10 @@ export default function EventList({
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseLeave}
               style={{
                 transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
                 transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
