@@ -284,6 +284,7 @@ export default function EventList({
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
+      console.log("[EventList] fetchEvents 호출됨");
       
       let data: Event[] | null = null;
       let error: any = null;
@@ -309,6 +310,7 @@ export default function EventList({
       if (error) {
         console.error("Error fetching events:", error);
       } else {
+        console.log("[EventList] 이벤트 로드 성공:", data?.length || 0, "개");
         setEvents(data || []);
       }
     } catch (error) {
