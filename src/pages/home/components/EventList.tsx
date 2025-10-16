@@ -1001,17 +1001,17 @@ export default function EventList({
 
   return (
     <>
-      <div
-        className="p-4"
-        style={{
-          margin: "14px",
-          borderRadius: "11px",
-          backgroundColor: "var(--event-list-outer-bg-color)",
-        }}
-      >
-        {/* 검색 키워드 배너 (Compact Style) */}
-        {searchTerm && (
-          <div className="inline-flex items-center gap-1.5 bg-blue-600/20 text-blue-400 border border-blue-600/40 px-2.5 py-0.5 rounded-full text-xs font-medium mb-2">
+      {/* 검색 키워드 배너 (Compact Style) */}
+      {searchTerm && (
+        <div
+          className="p-4"
+          style={{
+            margin: "14px",
+            borderRadius: "11px",
+            backgroundColor: "var(--event-list-outer-bg-color)",
+          }}
+        >
+          <div className="inline-flex items-center gap-1.5 bg-blue-600/20 text-blue-400 border border-blue-600/40 px-2.5 py-0.5 rounded-full text-xs font-medium">
             <button
               onClick={() => {
                 const currentTerm = searchTerm;
@@ -1032,12 +1032,20 @@ export default function EventList({
               <i className="ri-close-line text-[10px]"></i>
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Events List - 3-month sliding layout */}
-        {searchTerm.trim() || selectedDate ? (
-          // 검색 또는 날짜 선택 시: 단일 뷰
-          <div>
+      {/* Events List - 3-month sliding layout */}
+      {searchTerm.trim() || selectedDate ? (
+        // 검색 또는 날짜 선택 시: 단일 뷰
+        <div
+          className="p-4"
+          style={{
+            margin: "14px",
+            borderRadius: "11px",
+            backgroundColor: "var(--event-list-outer-bg-color)",
+          }}
+        >
             {sortedEvents.length > 0 ? (
             <>
               {/* Grid layout with 3 columns - poster ratio */}
@@ -1181,6 +1189,14 @@ export default function EventList({
                 transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
               }}
             >
+              <div
+                className="p-4"
+                style={{
+                  margin: "14px",
+                  borderRadius: "11px",
+                  backgroundColor: "var(--event-list-outer-bg-color)",
+                }}
+              >
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedPrevEvents.map((event) => {
@@ -1250,6 +1266,7 @@ export default function EventList({
                     <p className="text-gray-400">이벤트가 없습니다</p>
                   </div>
                 )}
+              </div>
             </div>
 
             {/* 현재 달 - 독립 컨테이너 */}
@@ -1260,6 +1277,14 @@ export default function EventList({
                 transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
               }}
             >
+              <div
+                className="p-4"
+                style={{
+                  margin: "14px",
+                  borderRadius: "11px",
+                  backgroundColor: "var(--event-list-outer-bg-color)",
+                }}
+              >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedCurrentEvents.map((event) => {
@@ -1351,6 +1376,7 @@ export default function EventList({
                     </p>
                   </div>
                 )}
+              </div>
             </div>
 
             {/* 다음 달 - 독립 컨테이너 */}
@@ -1361,6 +1387,14 @@ export default function EventList({
                 transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
               }}
             >
+              <div
+                className="p-4"
+                style={{
+                  margin: "14px",
+                  borderRadius: "11px",
+                  backgroundColor: "var(--event-list-outer-bg-color)",
+                }}
+              >
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedNextEvents.map((event) => {
@@ -1430,10 +1464,10 @@ export default function EventList({
                     <p className="text-gray-400">이벤트가 없습니다</p>
                   </div>
                 )}
+              </div>
             </div>
           </div>
         )}
-      </div>
 
       {/* 정렬 모달 */}
       {showSortModal && (
