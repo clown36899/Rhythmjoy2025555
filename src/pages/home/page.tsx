@@ -360,6 +360,17 @@ export default function HomePage() {
     setIsCalendarCollapsed(false);
   };
 
+  // 이벤트 리스트 스와이프 핸들러
+  const handleEventListSwipe = (direction: "prev" | "next") => {
+    const newMonth = new Date(currentMonth);
+    if (direction === "prev") {
+      newMonth.setMonth(currentMonth.getMonth() - 1);
+    } else {
+      newMonth.setMonth(currentMonth.getMonth() + 1);
+    }
+    handleMonthChange(newMonth);
+  };
+
   const handleEventsUpdate = async (createdDate?: Date) => {
     setRefreshTrigger((prev) => prev + 1);
 
@@ -661,6 +672,7 @@ export default function HomePage() {
                   setSortBy={setSortBy}
                   highlightEvent={highlightEvent}
                   onHighlightComplete={handleHighlightComplete}
+                  onMonthChange={handleEventListSwipe}
                 />
               )}
             </div>

@@ -32,6 +32,7 @@ interface EventListProps {
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
   highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
+  onMonthChange?: (direction: "prev" | "next") => void;
 }
 
 export default function EventList({
@@ -53,6 +54,7 @@ export default function EventList({
   setSortBy: externalSetSortBy,
   highlightEvent,
   onHighlightComplete,
+  onMonthChange,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -105,6 +107,13 @@ export default function EventList({
   });
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
+
+  // 스와이프 상태
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'horizontal' | 'vertical' | null>(null);
 
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
@@ -570,6 +579,93 @@ export default function EventList({
     setSelectedEvent(null);
   };
 
+  // 스와이프 감지를 위한 최소 거리 (픽셀)
+  const minSwipeDistance = 50;
+  const directionThreshold = 10; // 방향 판단 임계값
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (isAnimating) return;
+    
+    const touch = e.targetTouches[0];
+    setTouchStartX(touch.clientX);
+    setTouchStartY(touch.clientY);
+    setSwipeDirection(null);
+    setDragOffset(0);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return;
+
+    const touch = e.targetTouches[0];
+    const diffX = touch.clientX - touchStartX;
+    const diffY = touch.clientY - touchStartY;
+
+    // 방향이 아직 결정되지 않았다면 결정
+    if (swipeDirection === null) {
+      if (Math.abs(diffX) > directionThreshold || Math.abs(diffY) > directionThreshold) {
+        // 가로 이동이 세로보다 크면 수평 스와이프
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+          setSwipeDirection('horizontal');
+        } else {
+          setSwipeDirection('vertical');
+        }
+      }
+    }
+
+    // 수평 스와이프일 경우에만 드래그 오프셋 업데이트 및 스크롤 방지
+    if (swipeDirection === 'horizontal') {
+      e.preventDefault(); // 수평 스와이프 시 스크롤 방지
+      setDragOffset(diffX);
+    }
+    // 수직 스크롤은 기본 동작 허용
+  };
+
+  const onTouchEnd = () => {
+    if (touchStartX === null || swipeDirection !== 'horizontal') {
+      setTouchStartX(null);
+      setTouchStartY(null);
+      setSwipeDirection(null);
+      return;
+    }
+
+    const distance = dragOffset;
+    const threshold = minSwipeDistance;
+
+    // 충분히 드래그했는지 확인
+    if (Math.abs(distance) > threshold && onMonthChange) {
+      setIsAnimating(true);
+
+      // 화면 너비를 가져오기
+      const screenWidth = window.innerWidth;
+
+      // 왼쪽으로 드래그 = 다음 달 (음수)
+      // 오른쪽으로 드래그 = 이전 달 (양수)
+      const direction: "prev" | "next" = distance < 0 ? "next" : "prev";
+      const targetOffset = distance < 0 ? -screenWidth : screenWidth;
+
+      // 1단계: 슬라이드 애니메이션 완료 (화면 끝까지 이동)
+      setDragOffset(targetOffset);
+
+      // 2단계: 애니메이션 완료 후 달 변경
+      setTimeout(() => {
+        onMonthChange(direction);
+
+        // 3단계: 즉시 드래그 오프셋 리셋
+        setDragOffset(0);
+        setIsAnimating(false);
+        setTouchStartX(null);
+        setTouchStartY(null);
+        setSwipeDirection(null);
+      }, 300);
+    } else {
+      // 임계값 미달 - 원위치로 스냅백
+      setDragOffset(0);
+      setTouchStartX(null);
+      setTouchStartY(null);
+      setSwipeDirection(null);
+    }
+  };
+
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (isAdminMode) {
@@ -905,7 +1001,15 @@ export default function EventList({
         )}
 
         {/* Events List */}
-        <div>
+        <div
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          style={{
+            transform: `translateX(${dragOffset}px)`,
+            transition: isAnimating ? 'transform 0.3s ease-out' : swipeDirection === 'horizontal' ? 'none' : undefined,
+          }}
+        >
           {sortedEvents.length > 0 ? (
             <>
               {/* Grid layout with 3 columns - poster ratio */}
