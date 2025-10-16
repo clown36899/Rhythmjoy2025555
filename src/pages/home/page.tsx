@@ -403,19 +403,17 @@ export default function HomePage() {
 
       setDragOffset(targetOffset);
 
+      // 월 변경은 즉시 실행 (데이터 미리 준비)
+      const newMonth = new Date(currentMonth);
+      if (direction === "prev") {
+        newMonth.setMonth(currentMonth.getMonth() - 1);
+      } else {
+        newMonth.setMonth(currentMonth.getMonth() + 1);
+      }
+      setCurrentMonth(newMonth);
+
+      // 애니메이션 종료 후 상태 리셋만 수행
       setTimeout(() => {
-        const newMonth = new Date(currentMonth);
-        if (direction === "prev") {
-          newMonth.setMonth(currentMonth.getMonth() - 1);
-        } else {
-          newMonth.setMonth(currentMonth.getMonth() + 1);
-        }
-        
-        setCurrentMonth(newMonth);
-        setSelectedDate(null);
-        setSelectedCategory("all");
-        setIsCalendarCollapsed(false);
-        
         setDragOffset(0);
         setIsAnimating(false);
         setTouchStart(null);
@@ -460,19 +458,17 @@ export default function HomePage() {
 
       setDragOffset(targetOffset);
 
+      // 월 변경은 즉시 실행 (데이터 미리 준비)
+      const newMonth = new Date(currentMonth);
+      if (direction === "prev") {
+        newMonth.setMonth(currentMonth.getMonth() - 1);
+      } else {
+        newMonth.setMonth(currentMonth.getMonth() + 1);
+      }
+      setCurrentMonth(newMonth);
+
+      // 애니메이션 종료 후 상태 리셋만 수행
       setTimeout(() => {
-        const newMonth = new Date(currentMonth);
-        if (direction === "prev") {
-          newMonth.setMonth(currentMonth.getMonth() - 1);
-        } else {
-          newMonth.setMonth(currentMonth.getMonth() + 1);
-        }
-        
-        setCurrentMonth(newMonth);
-        setSelectedDate(null);
-        setSelectedCategory("all");
-        setIsCalendarCollapsed(false);
-        
         setDragOffset(0);
         setIsAnimating(false);
         setTouchStart(null);
