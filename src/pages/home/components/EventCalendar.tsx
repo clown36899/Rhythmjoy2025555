@@ -474,13 +474,13 @@ export default function EventCalendar({
 
                 return (
                   <span
-                    className={`absolute top-0.5 right-0.5 text-[8px] rounded-full w-3.5 h-3.5 flex items-center justify-center font-medium transition-all duration-200 z-30 ${
+                    className={`absolute top-0.5 right-0.5 text-[8px] rounded-full min-w-[14px] h-3.5 px-1 flex items-center justify-center font-medium transition-all duration-200 z-30 ${
                       isHoveredSingle
                         ? "bg-blue-500 text-white transform scale-110"
                         : "bg-gray-600 text-gray-300"
                     }`}
                   >
-                    {singleDayEvents.length}
+                    +{singleDayEvents.length}
                   </span>
                 );
               })()}
