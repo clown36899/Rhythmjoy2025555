@@ -13,7 +13,7 @@ interface FullscreenBillboardProps {
   dateRangeStart?: string | null;
   dateRangeEnd?: string | null;
   showDateRange?: boolean;
-  playOrder?: 'sequential' | 'random';
+  playOrder?: "sequential" | "random";
 }
 
 // 배열 셔플 함수
@@ -37,7 +37,7 @@ export default function FullscreenBillboard({
   dateRangeStart,
   dateRangeEnd,
   showDateRange = true,
-  playOrder = 'random',
+  playOrder = "random",
 }: FullscreenBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -164,10 +164,7 @@ export default function FullscreenBillboard({
       className="fixed inset-0 z-50 bg-black flex items-center justify-center"
       onClick={handleBackgroundClick}
     >
-      <div
-        className="relative w-full h-full"
-        onClick={handleBackgroundClick}
-      >
+      <div className="relative w-full h-full" onClick={handleBackgroundClick}>
         {/* 포스터 이미지 - 상단 여백 없이 배치 */}
         <div className="absolute top-0 left-0 right-0 flex justify-center">
           <img
@@ -186,37 +183,37 @@ export default function FullscreenBillboard({
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent pt-16 px-6 pointer-events-none">
             {/* 대형 제목 - 40인치 디스플레이용, 단어 단위 줄바꿈 */}
             <h2
-              className={`text-white text-6xl md:text-7xl lg:text-8xl font-black text-center leading-tight tracking-tight transition-opacity ${
+              className={`text-white text-3xl md:text-4xl lg:text-5xl font-black text-center leading-tight tracking-tight transition-opacity ${
                 isTransitioning ? "opacity-0" : "opacity-100"
               }`}
-              style={{ 
+              style={{
                 transitionDuration: `${transitionDuration}ms`,
-                textShadow: '0 4px 20px rgba(0,0,0,0.8)',
-                whiteSpace: 'pre-line',
-                maxWidth: '90%',
-                margin: '0 auto 1.5rem'
+                textShadow: "0 4px 20px rgba(0,0,0,0.8)",
+                whiteSpace: "pre-line",
+                maxWidth: "90%",
+                margin: "0 auto 1.5rem",
               }}
             >
               {(() => {
                 const title = sortedEvents[currentIndex].title;
-                
+
                 // 띄어쓰기가 없으면 8글자씩 나누기
-                if (!title.includes(' ')) {
+                if (!title.includes(" ")) {
                   const chunks = title.match(/.{1,8}/g) || [];
-                  return chunks.join('\n');
+                  return chunks.join("\n");
                 }
-                
+
                 // 띄어쓰기가 있으면 단어 단위로 적당히 줄바꿈 (10글자 기준)
-                const words = title.split(' ');
+                const words = title.split(" ");
                 const lines: string[] = [];
-                let currentLine = '';
+                let currentLine = "";
 
                 words.forEach((word: string) => {
                   // 단어가 10글자를 넘으면 8글자씩 나눔
                   if (word.length > 10) {
                     if (currentLine) {
                       lines.push(currentLine);
-                      currentLine = '';
+                      currentLine = "";
                     }
                     const chunks = word.match(/.{1,8}/g) || [];
                     chunks.forEach((chunk, idx) => {
@@ -230,19 +227,21 @@ export default function FullscreenBillboard({
                   }
 
                   // 띄어쓰기를 포함한 길이 계산 (10글자 기준)
-                  const nextLineLength = currentLine ? currentLine.length + 1 + word.length : word.length;
-                  
+                  const nextLineLength = currentLine
+                    ? currentLine.length + 1 + word.length
+                    : word.length;
+
                   if (nextLineLength <= 10) {
-                    currentLine += (currentLine ? ' ' : '') + word;
+                    currentLine += (currentLine ? " " : "") + word;
                   } else {
                     if (currentLine) lines.push(currentLine);
                     currentLine = word;
                   }
                 });
-                
+
                 if (currentLine) lines.push(currentLine);
 
-                return lines.join('\n');
+                return lines.join("\n");
               })()}
             </h2>
 
@@ -260,9 +259,9 @@ export default function FullscreenBillboard({
                 <i className="ri-eye-line text-lg" aria-hidden="true"></i>
                 <span>상세보기</span>
               </button>
-              
+
               {/* QR 코드 */}
-              <div 
+              <div
                 className={`bg-white p-2 rounded-lg transition-opacity ${
                   isTransitioning ? "opacity-0" : "opacity-100"
                 }`}
@@ -309,7 +308,7 @@ export default function FullscreenBillboard({
                   className="transition-all duration-75"
                 />
               </svg>
-              
+
               {/* 중앙 슬라이드 번호 */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-white font-bold text-xl">
@@ -324,11 +323,9 @@ export default function FullscreenBillboard({
             <div className="bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-white">
               <div className="text-xs text-gray-300 mb-1">일정 기간</div>
               <div className="font-bold text-sm">
-                {dateRangeStart || '시작'} ~
+                {dateRangeStart || "시작"} ~
               </div>
-              <div className="font-bold text-sm">
-                {dateRangeEnd || '종료'}
-              </div>
+              <div className="font-bold text-sm">{dateRangeEnd || "종료"}</div>
             </div>
           )}
         </div>
