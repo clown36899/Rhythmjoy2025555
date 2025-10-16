@@ -306,10 +306,6 @@ export default function HomePage() {
     setHighlightEvent(null);
   };
 
-  const handleSlideComplete = (direction: 'prev' | 'next') => {
-    console.log(`Slide completed: ${direction}`);
-  };
-
   const handleDateSelect = async (date: Date | null) => {
     setSelectedDate(date);
 
@@ -809,7 +805,6 @@ export default function HomePage() {
                   onMouseMove={onMouseMove}
                   onMouseUp={onMouseUp}
                   onMouseLeave={onMouseLeave}
-                  onSlideComplete={handleSlideComplete}
                 />
               )}
             </div>

@@ -4,7 +4,6 @@ import type { Event } from "../../../lib/supabase";
 import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
 import QRCodeImage from "./QRCodeImage";
-import MonthPanel from "./MonthPanel";
 
 
 const formatDateForInput = (date: Date): string => {
@@ -42,7 +41,6 @@ interface EventListProps {
   onMouseMove?: (e: React.MouseEvent) => void;
   onMouseUp?: () => void;
   onMouseLeave?: () => void;
-  onSlideComplete?: (direction: 'prev' | 'next') => void;
 }
 
 export default function EventList({
@@ -73,7 +71,6 @@ export default function EventList({
   onMouseMove,
   onMouseUp,
   onMouseLeave,
-  onSlideComplete,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -131,13 +128,6 @@ export default function EventList({
   const sortedEventsCache = useRef<{
     [key: string]: Event[]; // key: "YYYY-MM-category-sortBy"
   }>({});
-
-  // visibleMonths 링 버퍼 타입 정의
-  interface MonthData {
-    monthKey: string;
-    month: Date;
-    events: Event[];
-  }
 
   // 카테고리나 정렬 기준 변경 시 캐시 초기화
   useEffect(() => {
@@ -702,163 +692,6 @@ export default function EventList({
   // 레거시 호환을 위해 sortedEvents는 현재 달 이벤트를 가리킴
   const sortedEvents = sortedCurrentEvents;
 
-  // 특정 달의 이벤트를 필터링하고 정렬하는 헬퍼 함수
-  const filterAndSortMonth = useCallback((targetMonth: Date): Event[] => {
-    const monthKey = `${targetMonth.getFullYear()}-${targetMonth.getMonth() + 1}-${selectedCategory}`;
-    const cacheKey = `${monthKey}-${sortBy}`;
-    
-    // 캐시에 있으면 반환
-    if (sortedEventsCache.current[cacheKey]) {
-      return sortedEventsCache.current[cacheKey];
-    }
-    
-    // 이벤트 필터링
-    const matchesCategory = selectedCategory === "all" 
-      ? (event: Event) => true
-      : (event: Event) => event.category === selectedCategory;
-    
-    const targetYear = targetMonth.getFullYear();
-    const targetMonthNum = targetMonth.getMonth() + 1;
-    const monthStartStr = `${targetYear}-${String(targetMonthNum).padStart(2, '0')}-01`;
-    const monthEndStr = `${targetYear}-${String(targetMonthNum).padStart(2, '0')}-${new Date(targetYear, targetMonthNum, 0).getDate()}`;
-    
-    const filteredEvents = events.filter((event) => {
-      if (!matchesCategory(event)) return false;
-      
-      const startDate = event.start_date || event.date;
-      const endDate = event.end_date || event.date;
-      
-      if (!startDate || !endDate) return false;
-      
-      return startDate <= monthEndStr && endDate >= monthStartStr;
-    });
-    
-    // 정렬
-    const sorted = sortEvents(filteredEvents, sortBy);
-    sortedEventsCache.current[cacheKey] = sorted;
-    
-    return sorted;
-  }, [events, selectedCategory, sortBy, sortEvents]);
-
-  // 초기 visibleMonths 계산 함수
-  const calculateInitialMonths = useCallback((month: Date): MonthData[] => {
-    const prevMonth = new Date(month);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
-    
-    const nextMonth = new Date(month);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    
-    return [
-      {
-        monthKey: `${prevMonth.getFullYear()}-${prevMonth.getMonth() + 1}`,
-        month: prevMonth,
-        events: filterAndSortMonth(prevMonth),
-      },
-      {
-        monthKey: `${month.getFullYear()}-${month.getMonth() + 1}`,
-        month: month,
-        events: filterAndSortMonth(month),
-      },
-      {
-        monthKey: `${nextMonth.getFullYear()}-${nextMonth.getMonth() + 1}`,
-        month: nextMonth,
-        events: filterAndSortMonth(nextMonth),
-      },
-    ];
-  }, [filterAndSortMonth]);
-
-  // visibleMonths 링 버퍼 상태: [prev, current, next] 배열로 관리
-  const [visibleMonths, setVisibleMonths] = useState<MonthData[]>(() => {
-    if (!currentMonth || searchTerm.trim() || selectedDate) {
-      return [];
-    }
-    return calculateInitialMonths(currentMonth);
-  });
-
-  // currentMonth 변경 감지 및 버퍼 회전
-  const prevCurrentMonthRef = useRef<Date | undefined>(currentMonth);
-  const prevCategoryRef = useRef(selectedCategory);
-  const prevSortByRef = useRef(sortBy);
-  
-  useEffect(() => {
-    // 검색/필터 조건이 변경되면 visibleMonths 초기화
-    if (!currentMonth || searchTerm.trim() || selectedDate) {
-      setVisibleMonths([]);
-      prevCurrentMonthRef.current = currentMonth;
-      return;
-    }
-    
-    const prev = prevCurrentMonthRef.current;
-    const curr = currentMonth;
-    const categoryChanged = prevCategoryRef.current !== selectedCategory;
-    const sortByChanged = prevSortByRef.current !== sortBy;
-    
-    // 카테고리나 정렬 방식이 변경되면 완전히 재계산
-    if (categoryChanged || sortByChanged) {
-      setVisibleMonths(calculateInitialMonths(curr));
-      prevCurrentMonthRef.current = curr;
-      prevCategoryRef.current = selectedCategory;
-      prevSortByRef.current = sortBy;
-      return;
-    }
-    
-    if (!prev) {
-      setVisibleMonths(calculateInitialMonths(curr));
-      prevCurrentMonthRef.current = curr;
-      return;
-    }
-    
-    // 월 차이 계산
-    const monthDiff = (curr.getFullYear() - prev.getFullYear()) * 12 + (curr.getMonth() - prev.getMonth());
-    
-    if (monthDiff === 1) {
-      // next 슬라이드: 첫 번째 제거, 끝에 새 달 추가
-      setVisibleMonths(prevMonths => {
-        if (prevMonths.length === 0) return prevMonths;
-        
-        const newMonth = new Date(curr);
-        newMonth.setMonth(newMonth.getMonth() + 1);
-        
-        return [
-          prevMonths[1],
-          prevMonths[2],
-          {
-            monthKey: `${newMonth.getFullYear()}-${newMonth.getMonth() + 1}`,
-            month: newMonth,
-            events: filterAndSortMonth(newMonth),
-          },
-        ];
-      });
-      
-      onSlideComplete?.('next');
-    } else if (monthDiff === -1) {
-      // prev 슬라이드: 마지막 제거, 처음에 새 달 추가
-      setVisibleMonths(prevMonths => {
-        if (prevMonths.length === 0) return prevMonths;
-        
-        const newMonth = new Date(curr);
-        newMonth.setMonth(newMonth.getMonth() - 1);
-        
-        return [
-          {
-            monthKey: `${newMonth.getFullYear()}-${newMonth.getMonth() + 1}`,
-            month: newMonth,
-            events: filterAndSortMonth(newMonth),
-          },
-          prevMonths[0],
-          prevMonths[1],
-        ];
-      });
-      
-      onSlideComplete?.('prev');
-    } else if (monthDiff !== 0) {
-      // 큰 변화 (예: Header의 화살표 버튼으로 여러 달 건너뜀), 완전히 재계산
-      setVisibleMonths(calculateInitialMonths(curr));
-    }
-    
-    prevCurrentMonthRef.current = curr;
-  }, [currentMonth, searchTerm, selectedDate, selectedCategory, sortBy]);
-
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);
   };
@@ -1345,21 +1178,246 @@ export default function EventList({
                 transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
               }}
             >
-              {visibleMonths.map((monthData) => (
-                <div key={monthData.monthKey} className="flex-shrink-0 w-full">
-                  <MonthPanel
-                    monthKey={monthData.monthKey}
-                    events={monthData.events}
-                    isAnimating={externalIsAnimating}
-                    highlightEvent={highlightEvent}
-                    onEventClick={handleEventClick}
-                    onEventHover={onEventHover}
-                    getEventColor={getEventColor}
-                    viewMode={viewMode}
-                    selectedCategory={selectedCategory}
-                  />
-                </div>
-              ))}
+              {/* 이전 달 */}
+              <div className="flex-shrink-0 w-full">
+                {sortedPrevEvents.length > 0 || externalIsAnimating ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {sortedPrevEvents.map((event) => {
+                      const startDate = event.start_date || event.date || "";
+                      const endDate = event.end_date || event.date || "";
+                      const isMultiDay = startDate !== endDate;
+                      const eventColor = isMultiDay
+                        ? getEventColor(event.id)
+                        : { bg: "bg-gray-500" };
+
+                      return (
+                        <div
+                          key={event.id}
+                          data-event-id={event.id}
+                          onClick={() => handleEventClick(event)}
+                          className="rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
+                          style={{ backgroundColor: "var(--event-list-bg-color)" }}
+                        >
+                          <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
+                          <div className="relative">
+                            {event.image_thumbnail || event.image ? (
+                              <img
+                                src={event.image_thumbnail || event.image}
+                                alt={event.title}
+                                className="w-full aspect-[3/4] object-cover object-top"
+                              />
+                            ) : (
+                              <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                <span className="text-white/10 text-4xl font-bold relative">
+                                  {event.category === "class" ? "강습" : "행사"}
+                                </span>
+                              </div>
+                            )}
+                            <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
+                              {event.category === "class" ? "강습" : "행사"}
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
+                              <h3 className="text-white text-xs font-bold leading-tight line-clamp-2">
+                                {event.title}
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="p-1">
+                            <p className="text-xs text-gray-300 text-center">
+                              {(() => {
+                                const startDate = event.start_date || event.date;
+                                const endDate = event.end_date || event.date;
+                                if (!startDate) return "날짜 미정";
+                                const formatDate = (dateStr: string) => {
+                                  const date = new Date(dateStr);
+                                  return `${date.getMonth() + 1}/${date.getDate()}`;
+                                };
+                                if (startDate !== endDate) {
+                                  return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
+                                }
+                                return formatDate(startDate);
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
+                    <p className="text-gray-400">이벤트가 없습니다</p>
+                  </div>
+                )}
+              </div>
+
+              {/* 현재 달 */}
+              <div className="flex-shrink-0 w-full">
+                {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {sortedCurrentEvents.map((event) => {
+                      const startDate = event.start_date || event.date || "";
+                      const endDate = event.end_date || event.date || "";
+                      const isMultiDay = startDate !== endDate;
+                      const eventColor = isMultiDay
+                        ? getEventColor(event.id)
+                        : { bg: "bg-gray-500" };
+
+                      const isHighlighted = highlightEvent?.id === event.id;
+                      const highlightBorderColor =
+                        event.category === "class" ? "#9333ea" : "#2563eb";
+
+                      return (
+                        <div
+                          key={event.id}
+                          data-event-id={event.id}
+                          onClick={() => handleEventClick(event)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = highlightBorderColor;
+                            if (viewMode === "month" && onEventHover) onEventHover(event.id);
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--event-list-bg-color)";
+                            e.currentTarget.style.borderColor = "#000000";
+                            if (viewMode === "month" && onEventHover) onEventHover(null);
+                          }}
+                          className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#000000]"}`}
+                          style={{
+                            backgroundColor: "var(--event-list-bg-color)",
+                            borderColor: isHighlighted ? highlightBorderColor : undefined,
+                          }}
+                        >
+                          <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
+                          <div className="relative">
+                            {event.image_thumbnail || event.image ? (
+                              <img
+                                src={event.image_thumbnail || event.image}
+                                alt={event.title}
+                                className="w-full aspect-[3/4] object-cover object-top"
+                              />
+                            ) : (
+                              <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                <span className="text-white/10 text-4xl font-bold relative">
+                                  {event.category === "class" ? "강습" : "행사"}
+                                </span>
+                              </div>
+                            )}
+                            <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
+                              {event.category === "class" ? "강습" : "행사"}
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
+                              <h3 className="text-white text-xs font-bold leading-tight line-clamp-2">
+                                {event.title}
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="p-1">
+                            <p className="text-xs text-gray-300 text-center">
+                              {(() => {
+                                const startDate = event.start_date || event.date;
+                                const endDate = event.end_date || event.date;
+                                if (!startDate) return "날짜 미정";
+                                const formatDate = (dateStr: string) => {
+                                  const date = new Date(dateStr);
+                                  return `${date.getMonth() + 1}/${date.getDate()}`;
+                                };
+                                if (startDate !== endDate) {
+                                  return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
+                                }
+                                return formatDate(startDate);
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
+                    <p className="text-gray-400">
+                      {selectedCategory === "class"
+                        ? "강습이 없습니다"
+                        : selectedCategory === "event"
+                          ? "행사가 없습니다"
+                          : "이벤트가 없습니다"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 다음 달 */}
+              <div className="flex-shrink-0 w-full">
+                {sortedNextEvents.length > 0 || externalIsAnimating ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {sortedNextEvents.map((event) => {
+                      const startDate = event.start_date || event.date || "";
+                      const endDate = event.end_date || event.date || "";
+                      const isMultiDay = startDate !== endDate;
+                      const eventColor = isMultiDay
+                        ? getEventColor(event.id)
+                        : { bg: "bg-gray-500" };
+
+                      return (
+                        <div
+                          key={event.id}
+                          data-event-id={event.id}
+                          onClick={() => handleEventClick(event)}
+                          className="rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
+                          style={{ backgroundColor: "var(--event-list-bg-color)" }}
+                        >
+                          <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
+                          <div className="relative">
+                            {event.image_thumbnail || event.image ? (
+                              <img
+                                src={event.image_thumbnail || event.image}
+                                alt={event.title}
+                                className="w-full aspect-[3/4] object-cover object-top"
+                              />
+                            ) : (
+                              <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                <span className="text-white/10 text-4xl font-bold relative">
+                                  {event.category === "class" ? "강습" : "행사"}
+                                </span>
+                              </div>
+                            )}
+                            <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
+                              {event.category === "class" ? "강습" : "행사"}
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
+                              <h3 className="text-white text-xs font-bold leading-tight line-clamp-2">
+                                {event.title}
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="p-1">
+                            <p className="text-xs text-gray-300 text-center">
+                              {(() => {
+                                const startDate = event.start_date || event.date;
+                                const endDate = event.end_date || event.date;
+                                if (!startDate) return "날짜 미정";
+                                const formatDate = (dateStr: string) => {
+                                  const date = new Date(dateStr);
+                                  return `${date.getMonth() + 1}/${date.getDate()}`;
+                                };
+                                if (startDate !== endDate) {
+                                  return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
+                                }
+                                return formatDate(startDate);
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
+                    <p className="text-gray-400">이벤트가 없습니다</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
