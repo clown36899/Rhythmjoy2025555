@@ -281,6 +281,43 @@ export default function EventList({
     { id: "newest", name: "최신순", icon: "ri-calendar-line" },
   ];
 
+  const fetchEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      let data: Event[] | null = null;
+      let error: any = null;
+
+      if (isAdminMode) {
+        const result = await supabase
+          .from("events")
+          .select("*")
+          .order("start_date", { ascending: true, nullsFirst: false })
+          .order("date", { ascending: true, nullsFirst: false });
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from("events")
+          .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
+          .order("start_date", { ascending: true, nullsFirst: false })
+          .order("date", { ascending: true, nullsFirst: false });
+        data = result.data;
+        error = result.error;
+      }
+
+      if (error) {
+        console.error("Error fetching events:", error);
+      } else {
+        setEvents(data || []);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdminMode]);
+
   // 이벤트 데이터 로드
   useEffect(() => {
     fetchEvents();
@@ -447,45 +484,6 @@ export default function EventList({
       });
     };
   }, [highlightEvent?.id, highlightEvent?.nonce]);
-
-  const fetchEvents = useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      let data: Event[] | null = null;
-      let error: any = null;
-
-      if (isAdminMode) {
-        // 관리자 모드: 모든 필드 가져오기
-        const result = await supabase
-          .from("events")
-          .select("*")
-          .order("start_date", { ascending: true, nullsFirst: false })
-          .order("date", { ascending: true, nullsFirst: false });
-        data = result.data;
-        error = result.error;
-      } else {
-        // 비관리자 모드: 등록자 정보 제외
-        const result = await supabase
-          .from("events")
-          .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
-          .order("start_date", { ascending: true, nullsFirst: false })
-          .order("date", { ascending: true, nullsFirst: false });
-        data = result.data;
-        error = result.error;
-      }
-
-      if (error) {
-        console.error("Error fetching events:", error);
-      } else {
-        setEvents(data || []);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAdminMode]);
 
   // 필터링된 이벤트 (useMemo로 캐싱하여 불필요한 재필터링 방지)
   const filteredEvents = useMemo(() => {
