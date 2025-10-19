@@ -1021,10 +1021,7 @@ export default function EventList({
         setEditImageFile(null);
         setEditImagePreview("");
         
-        // 이벤트 목록 새로고침 (썸네일 즉시 반영)
-        await fetchEvents();
-        
-        // 달력 및 빌보드 업데이트
+        // 달력, 빌보드 및 이벤트 목록 업데이트 (refreshTrigger를 통해 자동으로 fetchEvents 호출됨)
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("eventDeleted"));
         }
