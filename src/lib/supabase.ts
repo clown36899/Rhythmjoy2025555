@@ -36,3 +36,25 @@ export interface Event {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface BillboardUser {
+  id: string;
+  name: string;
+  password_hash: string;
+  created_at: string;
+  is_active: boolean;
+}
+
+export interface BillboardUserSettings {
+  id: number;
+  billboard_user_id: string;
+  excluded_weekdays: number[];
+  excluded_event_ids: number[];
+  auto_slide_interval: number;
+  transition_duration: number;
+  play_order: 'sequential' | 'random';
+  date_filter_start: string | null;
+  date_filter_end: string | null;
+  created_at: string;
+  updated_at: string;
+}
