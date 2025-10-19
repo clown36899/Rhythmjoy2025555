@@ -513,35 +513,136 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
               </div>
 
               {/* 포스터 이미지 업로드 - 영상이 없을 때만 표시 */}
-              {!formData.videoUrl && (
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    포스터 이미지 (선택사항)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
-                  />
-                  {imagePreview && (
-                    <div className="flex justify-center mt-2">
-                      <img
-                        src={imagePreview}
-                        alt="미리보기"
-                        className="w-24 h-32 object-cover object-top rounded-lg"
-                      />
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  포스터 이미지 (선택사항)
+                </label>
+                {!formData.videoUrl && (
+                  <div className="space-y-2">
+                    {imagePreview && (
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="이미지 미리보기"
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagePreview("");
+                            setImageFile(null);
+                          }}
+                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                        >
+                          이미지 삭제
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+                    />
+                  </div>
+                )}
+                {formData.videoUrl && (
+                  <p className="text-xs text-gray-400 mt-1">영상 URL이 설정되어 있어 이미지를 업로드할 수 없습니다.</p>
+                )}
+              </div>
+
+              {/* 영상 URL 입력 */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  영상 URL (선택사항)
+                </label>
+                <div className="space-y-2">
+                  {/* 영상 프리뷰 */}
+                  {videoPreview.provider && videoPreview.embedUrl && (
+                    <div className="relative">
+                      <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                        <i className="ri-check-line"></i>
+                        <span>{getVideoProviderName(formData.videoUrl)} 영상 인식됨 - 빌보드에서 재생됩니다</span>
+                      </div>
+                      <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                        <iframe
+                          src={videoPreview.embedUrl}
+                          className="absolute top-0 left-0 w-full h-full rounded-lg"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        ></iframe>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVideoPreview({ provider: null, embedUrl: null });
+                          setFormData((prev) => ({
+                            ...prev,
+                            videoUrl: '',
+                          }));
+                          // 추출 썸네일도 삭제
+                          setImageFile(null);
+                          setImagePreview('');
+                        }}
+                        className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                      >
+                        영상 삭제
+                      </button>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* 영상 URL 입력 - 이미지가 없을 때만 표시 */}
-              {!imageFile && !imagePreview && (
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    영상 URL (선택사항)
-                  </label>
+                  
+                  {/* 추출 썸네일 미리보기 (영상 URL이 있을 때만) */}
+                  {formData.videoUrl && (imagePreview || imageFile) && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-blue-400 mb-1">
+                        <i className="ri-image-line"></i>
+                        <span>추출 썸네일 (리스트/상세보기용)</span>
+                      </div>
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="추출 썸네일"
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagePreview("");
+                            setImageFile(null);
+                          }}
+                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                        >
+                          썸네일 삭제
+                        </button>
+                      </div>
+                      {/* 썸네일 변경 버튼 */}
+                      {(videoPreview.provider === 'youtube' || videoPreview.provider === 'vimeo') && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const options = await getVideoThumbnailOptions(formData.videoUrl);
+                              if (options.length > 0) {
+                                setThumbnailOptions(options);
+                                setShowThumbnailSelector(true);
+                              } else {
+                                alert('이 영상에서 썸네일을 추출할 수 없습니다.');
+                              }
+                            } catch (error) {
+                              console.error('썸네일 추출 오류:', error);
+                              alert('썸네일 추출 중 오류가 발생했습니다.');
+                            }
+                          }}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                        >
+                          <i className="ri-refresh-line mr-1"></i>
+                          썸네일 변경하기
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  
                   <input
                     type="url"
                     name="videoUrl"
@@ -554,29 +655,13 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   <p className="text-xs text-gray-400 mt-1">
                     YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요. 빌보드에서 자동재생됩니다.
                   </p>
-                  {videoPreview.provider && videoPreview.embedUrl && (
-                    <div className="mt-2">
-                      <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
-                        <i className="ri-check-line"></i>
-                        <span>{getVideoProviderName(formData.videoUrl)} 영상 인식됨</span>
-                      </div>
-                      <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-                        <iframe
-                          src={videoPreview.embedUrl}
-                          className="absolute top-0 left-0 w-full h-full rounded-lg"
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        ></iframe>
-                      </div>
-                    </div>
-                  )}
                   {formData.videoUrl && !videoPreview.provider && (
                     <p className="text-xs text-red-400 mt-1">
                       지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
                     </p>
                   )}
-                  {formData.videoUrl && (videoPreview.provider === 'youtube' || videoPreview.provider === 'vimeo') && (
+                  {/* 썸네일 추출 버튼 (추출 썸네일이 없을 때만) */}
+                  {formData.videoUrl && (videoPreview.provider === 'youtube' || videoPreview.provider === 'vimeo') && !imagePreview && !imageFile && (
                     <button
                       type="button"
                       onClick={async () => {
@@ -600,7 +685,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     </button>
                   )}
                 </div>
-              )}
+              </div>
 
               {/* 바로가기 링크 3개 - 축소 */}
               <div>

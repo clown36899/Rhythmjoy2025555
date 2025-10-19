@@ -926,7 +926,7 @@ export default function EventList({
         updateData.image_medium = null;
         updateData.image_full = null;
       }
-      // 주의: 영상 URL이 있어도 이미지를 삭제하지 않음 (영상과 썸네일 공존 가능)
+      // 주의: 영상 URL이 있어도 추출 썸네일은 유지됨 (image 필드 사용)
 
       // 새 이미지가 업로드되었으면 Supabase Storage에 3가지 크기로 업로드
       if (editImageFile) {
@@ -2019,109 +2019,151 @@ export default function EventList({
 
                 <div>
                   <label className="block text-gray-300 text-xs font-medium mb-1">
-                    영상 URL {!editImagePreview && "(선택사항)"}
+                    영상 URL (선택사항)
                   </label>
-                  {!editImagePreview && !editImageFile && (
-                    <div className="space-y-2">
-                      {editVideoPreview.provider && editVideoPreview.embedUrl && (
+                  <div className="space-y-2">
+                    {/* 영상 프리뷰 */}
+                    {editVideoPreview.provider && editVideoPreview.embedUrl && (
+                      <div className="relative">
+                        <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                          <i className="ri-check-line"></i>
+                          <span>영상 인식됨 - 빌보드에서 재생됩니다</span>
+                        </div>
+                        <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                          <iframe
+                            src={editVideoPreview.embedUrl}
+                            className="absolute top-0 left-0 w-full h-full rounded-lg"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          ></iframe>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditVideoPreview({ provider: null, embedUrl: null });
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              videoUrl: '',
+                            }));
+                            // 추출 썸네일도 삭제
+                            setEditImageFile(null);
+                            setEditImagePreview('');
+                          }}
+                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                        >
+                          영상 삭제
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* 추출 썸네일 미리보기 (영상 URL이 있을 때만) */}
+                    {editFormData.videoUrl && (editImagePreview || editImageFile) && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-blue-400 mb-1">
+                          <i className="ri-image-line"></i>
+                          <span>추출 썸네일 (리스트/상세보기용)</span>
+                        </div>
                         <div className="relative">
-                          <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
-                            <i className="ri-check-line"></i>
-                            <span>영상 인식됨</span>
-                          </div>
-                          <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-                            <iframe
-                              src={editVideoPreview.embedUrl}
-                              className="absolute top-0 left-0 w-full h-full rounded-lg"
-                              frameBorder="0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            ></iframe>
-                          </div>
+                          <img
+                            src={editImagePreview}
+                            alt="추출 썸네일"
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
                           <button
                             type="button"
                             onClick={() => {
-                              setEditVideoPreview({ provider: null, embedUrl: null });
-                              setEditFormData((prev) => ({
-                                ...prev,
-                                videoUrl: '',
-                              }));
+                              setEditImagePreview("");
+                              setEditImageFile(null);
                             }}
                             className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
                           >
-                            영상 삭제
+                            썸네일 삭제
                           </button>
                         </div>
-                      )}
-                      <input
-                        type="url"
-                        value={editFormData.videoUrl}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            videoUrl: value,
-                          }));
-                          
-                          if (value.trim() === '') {
-                            setEditVideoPreview({ provider: null, embedUrl: null });
-                          } else {
-                            const videoInfo = parseVideoUrl(value);
-                            setEditVideoPreview({ 
-                              provider: videoInfo.provider, 
-                              embedUrl: videoInfo.embedUrl 
-                            });
-                            
-                            // 유효한 영상 URL이 입력되면 기존 이미지 삭제
-                            if (videoInfo.provider) {
-                              setEditImageFile(null);
-                              setEditImagePreview('');
-                              setEditFormData((prev) => ({
-                                ...prev,
-                                image: '',
-                              }));
+                        {/* 썸네일 변경 버튼 */}
+                        {(editVideoPreview.provider === 'youtube' || editVideoPreview.provider === 'vimeo') && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const options = await getVideoThumbnailOptions(editFormData.videoUrl);
+                                if (options.length > 0) {
+                                  setThumbnailOptions(options);
+                                  setShowThumbnailSelector(true);
+                                } else {
+                                  alert('이 영상에서 썸네일을 추출할 수 없습니다.');
+                                }
+                              } catch (error) {
+                                console.error('썸네일 추출 오류:', error);
+                                alert('썸네일 추출 중 오류가 발생했습니다.');
+                              }
+                            }}
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                          >
+                            <i className="ri-refresh-line mr-1"></i>
+                            썸네일 변경하기
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <input
+                      type="url"
+                      value={editFormData.videoUrl}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          videoUrl: value,
+                        }));
+                        
+                        if (value.trim() === '') {
+                          setEditVideoPreview({ provider: null, embedUrl: null });
+                        } else {
+                          const videoInfo = parseVideoUrl(value);
+                          setEditVideoPreview({ 
+                            provider: videoInfo.provider, 
+                            embedUrl: videoInfo.embedUrl 
+                          });
+                          // 영상 URL 입력 시 이미지는 유지 (추출 썸네일일 수 있음)
+                        }
+                      }}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요.
+                    </p>
+                    {editFormData.videoUrl && !editVideoPreview.provider && (
+                      <p className="text-xs text-red-400 mt-1">
+                        지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
+                      </p>
+                    )}
+                    {/* 썸네일 추출 버튼 (추출 썸네일이 없을 때만) */}
+                    {editFormData.videoUrl && (editVideoPreview.provider === 'youtube' || editVideoPreview.provider === 'vimeo') && !editImagePreview && !editImageFile && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const options = await getVideoThumbnailOptions(editFormData.videoUrl);
+                            if (options.length > 0) {
+                              setThumbnailOptions(options);
+                              setShowThumbnailSelector(true);
+                            } else {
+                              alert('이 영상에서 썸네일을 추출할 수 없습니다.');
                             }
+                          } catch (error) {
+                            console.error('썸네일 추출 오류:', error);
+                            alert('썸네일 추출 중 오류가 발생했습니다.');
                           }
                         }}
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
-                      />
-                      <p className="text-xs text-gray-400 mt-1">
-                        YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요.
-                      </p>
-                      {editFormData.videoUrl && !editVideoPreview.provider && (
-                        <p className="text-xs text-red-400 mt-1">
-                          지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
-                        </p>
-                      )}
-                      {editFormData.videoUrl && (editVideoPreview.provider === 'youtube' || editVideoPreview.provider === 'vimeo') && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              const options = await getVideoThumbnailOptions(editFormData.videoUrl);
-                              if (options.length > 0) {
-                                setThumbnailOptions(options);
-                                setShowThumbnailSelector(true);
-                              } else {
-                                alert('이 영상에서 썸네일을 추출할 수 없습니다.');
-                              }
-                            } catch (error) {
-                              console.error('썸네일 추출 오류:', error);
-                              alert('썸네일 추출 중 오류가 발생했습니다.');
-                            }
-                          }}
-                          className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                        >
-                          <i className="ri-image-add-line mr-1"></i>
-                          썸네일 추출하기 {editVideoPreview.provider === 'youtube' && '(여러 장면 선택 가능)'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {(editImagePreview || editImageFile) && (
-                    <p className="text-xs text-gray-400 mt-1">이미지가 업로드되어 있어 영상 URL을 입력할 수 없습니다.</p>
-                  )}
+                        className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                      >
+                        <i className="ri-image-add-line mr-1"></i>
+                        썸네일 추출하기 {editVideoPreview.provider === 'youtube' && '(여러 장면 선택 가능)'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex space-x-3 pt-2">
