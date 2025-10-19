@@ -911,16 +911,16 @@ export default function EventList({
         video_url: editFormData.videoUrl || null,
       };
 
-      // 영상 URL이 있으면 이미지 필드를 명시적으로 null로 설정
+      // 영상 URL이 있으면 이미지 필드를 빈 문자열로 설정
       if (editFormData.videoUrl) {
-        updateData.image = null;
+        updateData.image = '';
         updateData.image_thumbnail = null;
         updateData.image_medium = null;
         updateData.image_full = null;
       }
       // 이미지가 삭제되었으면 (editImagePreview가 비어있고 editImageFile도 없음)
       else if (!editImagePreview && !editImageFile) {
-        updateData.image = null;
+        updateData.image = '';
         updateData.image_thumbnail = null;
         updateData.image_medium = null;
         updateData.image_full = null;
