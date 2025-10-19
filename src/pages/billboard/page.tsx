@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from '../../lib/supabase';
 import type { BillboardUser, BillboardUserSettings, Event } from '../../lib/supabase';
 
@@ -157,7 +157,7 @@ export default function BillboardPage() {
           </div>
           
           <div className="bg-white p-3 rounded-lg ml-6 flex-shrink-0">
-            <QRCodeSVG
+            <QRCodeCanvas
               value={`${window.location.origin}?event=${currentEvent.id}&from=qr`}
               size={120}
               level="M"
