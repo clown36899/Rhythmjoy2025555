@@ -258,17 +258,17 @@ export default function HomePage() {
               }
             }
 
-            // 날짜 범위 필터 적용
+            // 날짜 범위 필터 적용 (시작 날짜만 체크)
             if (settings.dateRangeStart || settings.dateRangeEnd) {
               const eventStartDate = event.start_date || event.date;
               
               if (settings.dateRangeStart && eventStartDate < settings.dateRangeStart) {
-                console.log(`❌ 이벤트 ${event.id} (${event.title}): 시작 날짜 범위 벗어남`);
+                console.log(`❌ 이벤트 ${event.id} (${event.title}): 시작 날짜가 범위 시작(${settings.dateRangeStart})보다 이전`);
                 return false;
               }
               
-              if (settings.dateRangeEnd && endDate > settings.dateRangeEnd) {
-                console.log(`❌ 이벤트 ${event.id} (${event.title}): 종료 날짜 범위 벗어남`);
+              if (settings.dateRangeEnd && eventStartDate > settings.dateRangeEnd) {
+                console.log(`❌ 이벤트 ${event.id} (${event.title}): 시작 날짜가 범위 종료(${settings.dateRangeEnd})보다 이후`);
                 return false;
               }
             }
