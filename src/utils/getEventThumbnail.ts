@@ -21,5 +21,5 @@ export function getEventThumbnail(
     }
   }
 
-  return '';
+  return defaultThumbnailUrl || '';
 }
