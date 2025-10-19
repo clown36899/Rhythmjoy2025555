@@ -134,63 +134,46 @@ export default function BillboardPage() {
   const imageUrl = currentEvent.image_full || currentEvent.image;
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden portrait-billboard">
-      <div className="relative w-full h-full flex items-center justify-center">
+    <div className="fixed inset-0 bg-black overflow-hidden">
+      <div className="relative w-full h-full flex flex-col">
         <img
           src={imageUrl}
           alt={currentEvent.title}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-cover"
           style={{ transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out` }}
         />
 
-        <div className="absolute top-8 left-8 bg-black/70 backdrop-blur-sm rounded-lg p-4">
-          <h2 className="text-white text-2xl font-bold">{billboardUser?.name}</h2>
-          <p className="text-gray-300 text-sm mt-1">
+        <div className="absolute top-6 left-6 bg-black/70 backdrop-blur-sm rounded-lg px-6 py-4">
+          <h2 className="text-white text-3xl font-bold">{billboardUser?.name}</h2>
+          <p className="text-gray-300 text-lg mt-1">
             {currentIndex + 1} / {events.length}
           </p>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-8">
-          <h3 className="text-white text-3xl font-bold mb-2">{currentEvent.title}</h3>
-          <div className="flex items-center gap-6 text-gray-300 text-lg">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10">
+          <h3 className="text-white text-4xl font-bold mb-4">{currentEvent.title}</h3>
+          <div className="flex flex-col gap-3 text-gray-300 text-xl">
             {currentEvent.time && (
-              <div className="flex items-center gap-2">
-                <i className="ri-time-line"></i>
+              <div className="flex items-center gap-3">
+                <i className="ri-time-line text-2xl"></i>
                 <span>{currentEvent.time}</span>
               </div>
             )}
             {currentEvent.location && (
-              <div className="flex items-center gap-2">
-                <i className="ri-map-pin-line"></i>
+              <div className="flex items-center gap-3">
+                <i className="ri-map-pin-line text-2xl"></i>
                 <span>{currentEvent.location}</span>
               </div>
             )}
             {currentEvent.price && (
-              <div className="flex items-center gap-2">
-                <i className="ri-price-tag-3-line"></i>
+              <div className="flex items-center gap-3">
+                <i className="ri-price-tag-3-line text-2xl"></i>
                 <span>{currentEvent.price}</span>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      <style>{`
-        .portrait-billboard {
-          width: 1080px;
-          height: 1920px;
-          max-width: 100vw;
-          max-height: 100vh;
-        }
-
-        @media (orientation: landscape) {
-          .portrait-billboard {
-            width: 100vh;
-            height: 100vw;
-            transform: rotate(0deg);
-          }
-        }
-      `}</style>
     </div>
   );
 }
