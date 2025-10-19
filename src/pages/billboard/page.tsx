@@ -170,7 +170,7 @@ export default function BillboardPage() {
 
         <div className="absolute top-6 left-6">
           {events.length > 1 && (
-            <div className="relative w-24 h-24 mb-3">
+            <div className="relative w-24 h-24">
               <svg className="transform -rotate-90 w-24 h-24">
                 <circle
                   cx="48"
@@ -199,10 +199,6 @@ export default function BillboardPage() {
               </div>
             </div>
           )}
-          
-          <div className="bg-black/70 backdrop-blur-sm rounded-lg px-6 py-4">
-            <h2 className="text-white text-2xl font-bold">{billboardUser?.name}</h2>
-          </div>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10 flex items-end justify-between">
