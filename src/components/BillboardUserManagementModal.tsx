@@ -63,9 +63,14 @@ export default function BillboardUserManagementModal({
 
   const loadEvents = async () => {
     try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+
       const { data, error } = await supabase
         .from('events')
         .select('id, title, start_date, date')
+        .gte('start_date', todayStr)
         .order('start_date', { ascending: true });
 
       if (error) throw error;
@@ -449,9 +454,10 @@ export default function BillboardUserManagementModal({
                   <label className="block text-gray-300 text-sm font-medium mb-2">
                     🚫 제외할 이벤트
                   </label>
+                  <p className="text-xs text-gray-400 mb-2">당일 포함 이후 이벤트만 표시됩니다</p>
                   <div className="max-h-40 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
                     {events.length === 0 ? (
-                      <p className="text-gray-400 text-sm">이벤트가 없습니다.</p>
+                      <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
                     ) : (
                       events.map((event) => (
                         <label
@@ -464,7 +470,12 @@ export default function BillboardUserManagementModal({
                             onChange={() => toggleEvent(event.id)}
                             className="w-4 h-4"
                           />
-                          <span className="text-white text-sm flex-1">{event.title}</span>
+                          <span className="text-white text-sm flex-1">
+                            {event.title}
+                            <span className="text-gray-400 text-xs ml-2">
+                              ({event.start_date})
+                            </span>
+                          </span>
                         </label>
                       ))
                     )}

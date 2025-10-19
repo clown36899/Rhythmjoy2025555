@@ -25,6 +25,13 @@ interface BillboardUserSettings {
   play_order: 'sequential' | 'random';
 }
 
+interface SimpleEvent {
+  id: number;
+  title: string;
+  start_date: string;
+  date: string;
+}
+
 export default function AdminBillboardModal({
   isOpen,
   onClose,
@@ -40,13 +47,35 @@ export default function AdminBillboardModal({
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [events, setEvents] = useState<SimpleEvent[]>([]);
 
   // 서브 관리자의 설정 불러오기
   useEffect(() => {
     if (isOpen && adminType === "sub" && billboardUserId) {
       loadUserSettings();
+      loadEvents();
     }
   }, [isOpen, adminType, billboardUserId]);
+
+  // 이벤트 목록 불러오기 (당일 포함 이후만)
+  const loadEvents = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, start_date, date')
+        .gte('start_date', todayStr)
+        .order('start_date', { ascending: true });
+
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('이벤트 로드 실패:', error);
+    }
+  };
 
   const loadUserSettings = async () => {
     if (!billboardUserId) return;
@@ -86,6 +115,18 @@ export default function AdminBillboardModal({
     if (!userSettings) return;
     const newSettings = { ...userSettings, ...updates };
     setUserSettings(newSettings);
+  };
+
+  // 특정 이벤트 제외 토글
+  const toggleEventExclusion = (eventId: number) => {
+    if (!userSettings) return;
+    
+    const currentExcluded = userSettings.excluded_event_ids || [];
+    const newExcluded = currentExcluded.includes(eventId)
+      ? currentExcluded.filter(id => id !== eventId)
+      : [...currentExcluded, eventId];
+    
+    updateLocalSettings({ excluded_event_ids: newExcluded });
   };
 
   // DB에 저장
@@ -363,6 +404,39 @@ export default function AdminBillboardModal({
                   >
                     날짜 범위 초기화
                   </button>
+                )}
+              </div>
+            </div>
+
+            {/* 특정 이벤트 제외 */}
+            <div className="p-4 bg-gray-700/50 rounded-lg">
+              <label className="text-white font-medium block mb-3">
+                🚫 제외할 이벤트
+              </label>
+              <p className="text-sm text-gray-400 mb-3">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
+              <div className="max-h-60 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
+                {events.length === 0 ? (
+                  <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
+                ) : (
+                  events.map((event) => (
+                    <label
+                      key={event.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 p-2 rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(userSettings.excluded_event_ids || []).includes(event.id)}
+                        onChange={() => toggleEventExclusion(event.id)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-white text-sm flex-1">
+                        {event.title}
+                        <span className="text-gray-400 text-xs ml-2">
+                          ({event.start_date})
+                        </span>
+                      </span>
+                    </label>
+                  ))
                 )}
               </div>
             </div>
