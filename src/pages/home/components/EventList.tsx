@@ -796,35 +796,59 @@ export default function EventList({
     }
   };
 
-  const handlePasswordSubmit = () => {
+  const handlePasswordSubmit = async () => {
     if (eventToEdit && eventPassword === eventToEdit.password) {
-      setEditFormData({
-        title: eventToEdit.title,
-        time: eventToEdit.time,
-        location: eventToEdit.location,
-        category: eventToEdit.category,
-        organizer: eventToEdit.organizer,
-        organizerName: eventToEdit.organizer_name || "",
-        organizerPhone: eventToEdit.organizer_phone || "",
-        link1: eventToEdit.link1 || "",
-        link2: eventToEdit.link2 || "",
-        link3: eventToEdit.link3 || "",
-        linkName1: eventToEdit.link_name1 || "",
-        linkName2: eventToEdit.link_name2 || "",
-        linkName3: eventToEdit.link_name3 || "",
-        image: eventToEdit.image || "",
-        start_date: eventToEdit.start_date || eventToEdit.date || "",
-        end_date: eventToEdit.end_date || eventToEdit.date || "",
-        videoUrl: eventToEdit.video_url || "",
-      });
-      setEditImagePreview(eventToEdit.image || "");
-      setEditImageFile(null);
-      if (eventToEdit.video_url) {
-        const videoInfo = parseVideoUrl(eventToEdit.video_url);
-        setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
-      } else {
-        setEditVideoPreview({ provider: null, embedUrl: null });
+      // 비밀번호 확인 후 등록자 정보를 포함한 전체 데이터 다시 가져오기
+      try {
+        const { data: fullEvent, error } = await supabase
+          .from("events")
+          .select("*")
+          .eq("id", eventToEdit.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching full event data:", error);
+          alert("이벤트 정보를 불러오는 중 오류가 발생했습니다.");
+          return;
+        }
+
+        if (fullEvent) {
+          setEditFormData({
+            title: fullEvent.title,
+            time: fullEvent.time,
+            location: fullEvent.location,
+            category: fullEvent.category,
+            organizer: fullEvent.organizer,
+            organizerName: fullEvent.organizer_name || "",
+            organizerPhone: fullEvent.organizer_phone || "",
+            link1: fullEvent.link1 || "",
+            link2: fullEvent.link2 || "",
+            link3: fullEvent.link3 || "",
+            linkName1: fullEvent.link_name1 || "",
+            linkName2: fullEvent.link_name2 || "",
+            linkName3: fullEvent.link_name3 || "",
+            image: fullEvent.image || "",
+            start_date: fullEvent.start_date || fullEvent.date || "",
+            end_date: fullEvent.end_date || fullEvent.date || "",
+            videoUrl: fullEvent.video_url || "",
+          });
+          setEditImagePreview(fullEvent.image || "");
+          setEditImageFile(null);
+          if (fullEvent.video_url) {
+            const videoInfo = parseVideoUrl(fullEvent.video_url);
+            setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
+          } else {
+            setEditVideoPreview({ provider: null, embedUrl: null });
+          }
+          // 전체 이벤트 데이터로 업데이트
+          setEventToEdit(fullEvent);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("이벤트 정보를 불러오는 중 오류가 발생했습니다.");
+        return;
       }
+
       setShowPasswordModal(false);
       setShowEditModal(true);
       setEventPassword("");
