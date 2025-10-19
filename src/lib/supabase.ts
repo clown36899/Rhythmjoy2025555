@@ -20,6 +20,7 @@ export interface Event {
   image_thumbnail?: string;
   image_medium?: string;
   image_full?: string;
+  video_url?: string;
   description: string;
   organizer: string;
   organizer_name?: string;

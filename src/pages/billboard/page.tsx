@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from '../../lib/supabase';
 import type { BillboardUser, BillboardUserSettings, Event } from '../../lib/supabase';
+import { parseVideoUrl } from '../../utils/videoEmbed';
 
 // 배열 셔플 함수
 function shuffleArray<T>(array: T[]): T[] {
@@ -86,7 +87,7 @@ export default function BillboardPage() {
 
   const filterEvents = (allEvents: Event[], settings: BillboardUserSettings): Event[] => {
     return allEvents.filter((event) => {
-      if (!event.image_full && !event.image) return false;
+      if (!event.image_full && !event.image && !event.video_url) return false;
 
       if (settings.excluded_event_ids.includes(event.id)) return false;
 
@@ -190,16 +191,29 @@ export default function BillboardPage() {
 
   const currentEvent = events[currentIndex];
   const imageUrl = currentEvent.image_full || currentEvent.image;
+  const videoUrl = currentEvent.video_url;
+  const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
       <div className="portrait-container">
-        <img
-          src={imageUrl}
-          alt={currentEvent.title}
-          className="w-full h-full object-contain"
-          style={{ transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out` }}
-        />
+        {videoInfo?.embedUrl ? (
+          <iframe
+            src={videoInfo.embedUrl}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{ transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out` }}
+          ></iframe>
+        ) : (
+          <img
+            src={imageUrl}
+            alt={currentEvent.title}
+            className="w-full h-full object-contain"
+            style={{ transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out` }}
+          />
+        )}
 
         <div className="absolute top-6 left-6">
           {events.length > 1 && (
