@@ -38,8 +38,6 @@ interface EventListProps {
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: () => void;
-  qrEventId?: number | null;
-  onEventsLoaded?: () => void;
 }
 
 export default function EventList({
@@ -66,8 +64,6 @@ export default function EventList({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
-  qrEventId,
-  onEventsLoaded,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -314,20 +310,13 @@ export default function EventList({
         console.error("Error fetching events:", error);
       } else {
         setEvents(data || []);
-        
-        // QR 접속 시 이벤트 로딩 완료되면 즉시 콜백 호출
-        if (qrEventId && onEventsLoaded && data && data.length > 0) {
-          setTimeout(() => {
-            onEventsLoaded();
-          }, 100);
-        }
       }
     } catch (error) {
       console.error("Error:", error);
     } finally {
       setLoading(false);
     }
-  }, [isAdminMode, qrEventId, onEventsLoaded]);
+  }, [isAdminMode]);
 
   // 이벤트 데이터 로드
   useEffect(() => {

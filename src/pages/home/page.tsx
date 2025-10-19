@@ -32,15 +32,6 @@ export default function HomePage() {
     id: number;
     nonce: number;
   } | null>(null);
-  const [qrEventId, setQrEventId] = useState<number | null>(null);
-
-  // QR 이벤트 로딩 완료 시 하이라이트
-  const handleEventsLoadedForQR = useCallback(() => {
-    if (qrEventId) {
-      setHighlightEvent({ id: qrEventId, nonce: Date.now() });
-      setQrEventId(null); // 한 번만 실행
-    }
-  }, [qrEventId]);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -73,10 +64,7 @@ export default function HomePage() {
     if (source === 'qr' && eventId) {
       const id = parseInt(eventId);
       
-      // QR 이벤트 ID 저장
-      setQrEventId(id);
-      
-      // 이벤트 정보 조회 후 달력 이동 및 강제 리로드
+      // 이벤트 정보 조회 후 달력 이동
       const loadEventAndNavigate = async () => {
         try {
           const { data: event } = await supabase
@@ -93,8 +81,10 @@ export default function HomePage() {
               setCurrentMonth(date);
             }
             
-            // 이벤트 리스트 강제 리로드
-            setRefreshTrigger(prev => prev + 1);
+            // 충분한 시간을 두고 하이라이트 (이벤트 로딩 완료 대기)
+            setTimeout(() => {
+              setHighlightEvent({ id, nonce: Date.now() });
+            }, 2000);
           }
         } catch (error) {
           console.error('Error loading event for QR navigation:', error);
@@ -777,8 +767,6 @@ export default function HomePage() {
                   searchTerm={searchTerm}
                   setSearchTerm={setSearchTerm}
                   onSearchStart={handleSearchStart}
-                  qrEventId={qrEventId}
-                  onEventsLoaded={handleEventsLoadedForQR}
                   showSearchModal={showSearchModal}
                   setShowSearchModal={setShowSearchModal}
                   showSortModal={showSortModal}
