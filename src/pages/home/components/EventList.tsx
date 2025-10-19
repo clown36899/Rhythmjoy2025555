@@ -126,13 +126,19 @@ export default function EventList({
   
   const { defaultThumbnailUrl, loading: defaultThumbnailLoading } = useDefaultThumbnail();
   
-  // 디버깅: 기본 썸네일 로드 상태 확인
+  // 기본 썸네일 로드 완료 시 강제 리렌더링
+  const [thumbnailReady, setThumbnailReady] = useState(false);
   useEffect(() => {
     console.log('🔍 기본 썸네일 상태:', {
       loading: defaultThumbnailLoading,
       url: defaultThumbnailUrl,
       hasUrl: !!defaultThumbnailUrl
     });
+    
+    if (!defaultThumbnailLoading && defaultThumbnailUrl) {
+      setThumbnailReady(true);
+      console.log('✅ 기본 썸네일 준비 완료, 리렌더링 트리거');
+    }
   }, [defaultThumbnailUrl, defaultThumbnailLoading]);
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
