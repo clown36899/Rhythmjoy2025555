@@ -283,7 +283,6 @@ export default function EventList({
 
   const fetchEvents = useCallback(async () => {
     try {
-      console.log("🔄 fetchEvents 호출됨");
       setLoading(true);
       
       let data: Event[] | null = null;
@@ -310,10 +309,6 @@ export default function EventList({
       if (error) {
         console.error("Error fetching events:", error);
       } else {
-        console.log("✅ 이벤트 데이터 로드 완료:", data?.length, "개");
-        if (data && data.length > 0) {
-          console.log("첫 번째 이벤트 updated_at:", data[0].updated_at);
-        }
         setEvents(data || []);
       }
     } catch (error) {
@@ -918,6 +913,7 @@ export default function EventList({
         start_date: editFormData.start_date || null,
         end_date: editFormData.end_date || null,
         video_url: editFormData.videoUrl || null,
+        updated_at: new Date().toISOString(), // 캐시 무효화를 위해 항상 갱신
       };
 
       // 영상 URL이 있으면 이미지 필드를 빈 문자열로 설정

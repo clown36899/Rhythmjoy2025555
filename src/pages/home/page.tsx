@@ -117,11 +117,7 @@ export default function HomePage() {
   // 이벤트 삭제/수정 시 빌보드 재로딩
   useEffect(() => {
     const handleEventUpdate = () => {
-      console.log("🔔 eventDeleted 이벤트 받음, refreshTrigger 증가");
-      setRefreshTrigger(prev => {
-        console.log("📈 refreshTrigger:", prev, "→", prev + 1);
-        return prev + 1;
-      });
+      setRefreshTrigger(prev => prev + 1);
     };
 
     window.addEventListener('eventDeleted', handleEventUpdate);
