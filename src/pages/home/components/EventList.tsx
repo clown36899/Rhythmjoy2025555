@@ -1172,7 +1172,10 @@ export default function EventList({
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {(() => {
-                          const thumbnailUrl = event.image_thumbnail || event.image || getEventThumbnail(event, defaultThumbnailUrl);
+                          // 이미지 우선순위: 이벤트 썸네일 > 이벤트 이미지 > 기본 썸네일
+                          const hasEventImage = event.image_thumbnail || event.image;
+                          const shouldUseDefault = !hasEventImage && !event.video_url && defaultThumbnailUrl;
+                          const thumbnailUrl = hasEventImage || (shouldUseDefault ? defaultThumbnailUrl : '');
                           
                           if (thumbnailUrl) {
                             return (
