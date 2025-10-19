@@ -11,6 +11,8 @@ export interface BillboardSettings {
   dateRangeEnd: string | null; // YYYY-MM-DD
   showDateRange: boolean; // 날짜 범위 표시 여부
   playOrder: 'sequential' | 'random'; // 재생 순서
+  excludedWeekdays: number[]; // 제외할 요일 (0=일요일 ~ 6=토요일)
+  excludedEventIds: number[]; // 제외할 이벤트 ID 목록
 }
 
 // 오늘 날짜 (YYYY-MM-DD 형식)
@@ -29,6 +31,8 @@ const DEFAULT_SETTINGS: BillboardSettings = {
   dateRangeEnd: null,
   showDateRange: true,
   playOrder: 'random',
+  excludedWeekdays: [],
+  excludedEventIds: [],
 };
 
 export function useBillboardSettings() {
@@ -74,6 +78,8 @@ export function useBillboardSettings() {
             dateRangeEnd: data.date_range_end ?? DEFAULT_SETTINGS.dateRangeEnd,
             showDateRange: data.show_date_range ?? DEFAULT_SETTINGS.showDateRange,
             playOrder: data.play_order ?? DEFAULT_SETTINGS.playOrder,
+            excludedWeekdays: data.excluded_weekdays ?? DEFAULT_SETTINGS.excludedWeekdays,
+            excludedEventIds: data.excluded_event_ids ?? DEFAULT_SETTINGS.excludedEventIds,
           });
         }
       } catch (error) {
@@ -104,6 +110,8 @@ export function useBillboardSettings() {
         date_range_end: newSettings.dateRangeEnd,
         show_date_range: newSettings.showDateRange,
         play_order: newSettings.playOrder,
+        excluded_weekdays: newSettings.excludedWeekdays,
+        excluded_event_ids: newSettings.excludedEventIds,
         updated_at: new Date().toISOString(),
       };
 

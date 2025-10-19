@@ -48,6 +48,7 @@ export default function AdminBillboardModal({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [events, setEvents] = useState<SimpleEvent[]>([]);
+  const [mainBillboardEvents, setMainBillboardEvents] = useState<SimpleEvent[]>([]);
 
   // 서브 관리자의 설정 불러오기
   useEffect(() => {
@@ -63,12 +64,13 @@ export default function AdminBillboardModal({
     }
   }, [userSettings, adminType]);
 
-  // 메인 빌보드 날짜 기본값 초기화
+  // 메인 빌보드 이벤트 목록 불러오기
   useEffect(() => {
     if (isOpen && adminType === "super") {
+      loadMainBillboardEvents();
       initializeDateDefaults();
     }
-  }, [isOpen, adminType]);
+  }, [isOpen, adminType, settings.excludedWeekdays, settings.dateRangeStart, settings.dateRangeEnd]);
 
   // 날짜 기본값 초기화 (시작: 오늘, 종료: 마지막 이벤트의 다음날)
   const initializeDateDefaults = async () => {
