@@ -76,7 +76,7 @@ export default function HomePage() {
       // QR 이벤트 ID 저장
       setQrEventId(id);
       
-      // 이벤트 정보 조회 후 달력 이동
+      // 이벤트 정보 조회 후 달력 이동 및 강제 리로드
       const loadEventAndNavigate = async () => {
         try {
           const { data: event } = await supabase
@@ -92,6 +92,9 @@ export default function HomePage() {
               const date = new Date(eventDate);
               setCurrentMonth(date);
             }
+            
+            // 이벤트 리스트 강제 리로드
+            setRefreshTrigger(prev => prev + 1);
           }
         } catch (error) {
           console.error('Error loading event for QR navigation:', error);
