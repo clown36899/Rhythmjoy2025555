@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const DEFAULT_THUMBNAIL_KEY = 'default_thumbnail_url';
+import { supabase } from '../lib/supabase';
 
 export function useDefaultThumbnail() {
   const [defaultThumbnailUrl, setDefaultThumbnailUrl] = useState<string>('');
@@ -10,12 +9,21 @@ export function useDefaultThumbnail() {
     loadDefaultThumbnail();
   }, []);
 
-  const loadDefaultThumbnail = () => {
+  const loadDefaultThumbnail = async () => {
     try {
-      const stored = localStorage.getItem(DEFAULT_THUMBNAIL_KEY);
-      setDefaultThumbnailUrl(stored || '');
+      const { data, error } = await supabase
+        .from('billboard_settings')
+        .select('default_thumbnail_url')
+        .eq('id', 1)
+        .single();
+
+      if (error) {
+        console.error('Error loading default thumbnail:', error);
+      } else if (data) {
+        setDefaultThumbnailUrl(data.default_thumbnail_url || '');
+      }
     } catch (error) {
-      console.error('Error loading default thumbnail:', error);
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }

@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 
-const DEFAULT_THUMBNAIL_KEY = 'default_thumbnail_url';
-
 interface DefaultThumbnailSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -24,13 +22,22 @@ export default function DefaultThumbnailSettingsModal({
     }
   }, [isOpen]);
 
-  const loadDefaultThumbnail = () => {
+  const loadDefaultThumbnail = async () => {
     try {
-      const stored = localStorage.getItem(DEFAULT_THUMBNAIL_KEY);
-      setDefaultThumbnailUrl(stored || "");
-      setImagePreview(stored || "");
+      const { data, error } = await supabase
+        .from("billboard_settings")
+        .select("default_thumbnail_url")
+        .eq("id", 1)
+        .single();
+
+      if (error) {
+        console.error("Error loading default thumbnail:", error);
+      } else if (data) {
+        setDefaultThumbnailUrl(data.default_thumbnail_url || "");
+        setImagePreview(data.default_thumbnail_url || "");
+      }
     } catch (error) {
-      console.error("Error loading default thumbnail:", error);
+      console.error("Error:", error);
     }
   };
 
@@ -101,9 +108,17 @@ export default function DefaultThumbnailSettingsModal({
         }
       }
 
-      localStorage.setItem(DEFAULT_THUMBNAIL_KEY, thumbnailUrl);
-      
-      window.dispatchEvent(new CustomEvent('defaultThumbnailChanged', { detail: thumbnailUrl }));
+      const { error } = await supabase
+        .from("billboard_settings")
+        .update({
+          default_thumbnail_url: thumbnailUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+
+      if (error) {
+        throw error;
+      }
 
       alert("기본 썸네일이 저장되었습니다.");
       onClose();
