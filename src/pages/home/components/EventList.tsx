@@ -4,7 +4,7 @@ import type { Event } from "../../../lib/supabase";
 import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
 import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
-import { getVideoThumbnail, downloadThumbnailAsBlob } from "../../../utils/videoThumbnail";
+import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from "../../../utils/videoThumbnail";
 import QRCodeImage from "./QRCodeImage";
 
 
@@ -119,6 +119,8 @@ export default function EventList({
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
   const [editVideoPreview, setEditVideoPreview] = useState<{ provider: string | null; embedUrl: string | null }>({ provider: null, embedUrl: null });
+  const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
+  const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
@@ -2103,26 +2105,10 @@ export default function EventList({
                           type="button"
                           onClick={async () => {
                             try {
-                              const thumbnailUrl = await getVideoThumbnail(editFormData.videoUrl);
-                              if (thumbnailUrl) {
-                                const blob = await downloadThumbnailAsBlob(thumbnailUrl);
-                                if (blob) {
-                                  // Blob을 File로 변환
-                                  const file = new File([blob], 'video-thumbnail.jpg', { type: 'image/jpeg' });
-                                  setEditImageFile(file);
-                                  setEditImagePreview(URL.createObjectURL(blob));
-                                  
-                                  // 영상 URL 제거 (이미지와 상호 배타적)
-                                  setEditFormData((prev) => ({
-                                    ...prev,
-                                    videoUrl: '',
-                                  }));
-                                  setEditVideoPreview({ provider: null, embedUrl: null });
-                                  
-                                  alert('썸네일이 추출되었습니다!');
-                                } else {
-                                  alert('썸네일 다운로드에 실패했습니다.');
-                                }
+                              const options = await getVideoThumbnailOptions(editFormData.videoUrl);
+                              if (options.length > 0) {
+                                setThumbnailOptions(options);
+                                setShowThumbnailSelector(true);
                               } else {
                                 alert('이 영상에서 썸네일을 추출할 수 없습니다.');
                               }
@@ -2134,7 +2120,7 @@ export default function EventList({
                           className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                         >
                           <i className="ri-image-add-line mr-1"></i>
-                          썸네일 추출하기
+                          썸네일 추출하기 {editVideoPreview.provider === 'youtube' && '(여러 장면 선택 가능)'}
                         </button>
                       )}
                     </div>
@@ -2595,6 +2581,84 @@ export default function EventList({
             />
           </div>
         )}
+
+      {/* 썸네일 선택 모달 */}
+      {showThumbnailSelector && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.9)" }}>
+          <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex justify-between items-center z-10">
+              <h2 className="text-xl font-bold text-white">썸네일 선택</h2>
+              <button
+                onClick={() => {
+                  setShowThumbnailSelector(false);
+                  setThumbnailOptions([]);
+                }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <i className="ri-close-line text-2xl"></i>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-gray-400 text-sm mb-4">
+                원하는 썸네일을 선택하세요. YouTube 쇼츠도 지원됩니다.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                {thumbnailOptions.map((option, index) => (
+                  <div
+                    key={index}
+                    onClick={async () => {
+                      try {
+                        const blob = await downloadThumbnailAsBlob(option.url);
+                        if (blob) {
+                          const file = new File([blob], 'video-thumbnail.jpg', { type: 'image/jpeg' });
+                          setEditImageFile(file);
+                          setEditImagePreview(URL.createObjectURL(blob));
+                          
+                          // 영상 URL 제거 (이미지와 상호 배타적)
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            videoUrl: '',
+                          }));
+                          setEditVideoPreview({ provider: null, embedUrl: null });
+                          
+                          // 모달 닫기
+                          setShowThumbnailSelector(false);
+                          setThumbnailOptions([]);
+                          
+                          alert('썸네일이 추출되었습니다!');
+                        } else {
+                          alert('썸네일 다운로드에 실패했습니다.');
+                        }
+                      } catch (error) {
+                        console.error('썸네일 다운로드 오류:', error);
+                        alert('썸네일 다운로드 중 오류가 발생했습니다.');
+                      }
+                    }}
+                    className="cursor-pointer group"
+                  >
+                    <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-800 border-2 border-gray-700 group-hover:border-blue-500 transition-colors">
+                      <img
+                        src={option.url}
+                        alt={option.label}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                        <i className="ri-checkbox-circle-fill text-4xl text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                      </div>
+                    </div>
+                    <p className="text-center text-sm text-gray-300 mt-2">{option.label}</p>
+                    {option.quality === 'high' && (
+                      <span className="block text-center text-xs text-green-400 mt-1">고화질</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
