@@ -727,18 +727,14 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                           setImageFile(file);
                           setImagePreview(URL.createObjectURL(blob));
                           
-                          // 영상 URL 제거 (이미지와 상호 배타적)
-                          setFormData((prev) => ({
-                            ...prev,
-                            videoUrl: '',
-                          }));
-                          setVideoPreview({ provider: null, embedUrl: null });
+                          // 영상 URL은 유지 (빌보드에서 영상 재생, 리스트에서는 썸네일 표시)
+                          // 영상 URL 삭제하지 않음!
                           
                           // 모달 닫기
                           setShowThumbnailSelector(false);
                           setThumbnailOptions([]);
                           
-                          alert('썸네일이 추출되었습니다!');
+                          alert('썸네일이 추출되었습니다! 리스트에서는 썸네일이, 빌보드에서는 영상이 표시됩니다.');
                         } else {
                           alert('썸네일 다운로드에 실패했습니다.');
                         }

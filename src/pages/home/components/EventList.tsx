@@ -919,20 +919,14 @@ export default function EventList({
         updated_at: new Date().toISOString(), // 캐시 무효화를 위해 항상 갱신
       };
 
-      // 영상 URL이 있으면 이미지 필드를 빈 문자열로 설정
-      if (editFormData.videoUrl) {
-        updateData.image = '';
-        updateData.image_thumbnail = null;
-        updateData.image_medium = null;
-        updateData.image_full = null;
-      }
       // 이미지가 삭제되었으면 (editImagePreview가 비어있고 editImageFile도 없음)
-      else if (!editImagePreview && !editImageFile) {
+      if (!editImagePreview && !editImageFile) {
         updateData.image = '';
         updateData.image_thumbnail = null;
         updateData.image_medium = null;
         updateData.image_full = null;
       }
+      // 주의: 영상 URL이 있어도 이미지를 삭제하지 않음 (영상과 썸네일 공존 가능)
 
       // 새 이미지가 업로드되었으면 Supabase Storage에 3가지 크기로 업로드
       if (editImageFile) {
@@ -2616,18 +2610,14 @@ export default function EventList({
                           setEditImageFile(file);
                           setEditImagePreview(URL.createObjectURL(blob));
                           
-                          // 영상 URL 제거 (이미지와 상호 배타적)
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            videoUrl: '',
-                          }));
-                          setEditVideoPreview({ provider: null, embedUrl: null });
+                          // 영상 URL은 유지 (빌보드에서 영상 재생, 리스트에서는 썸네일 표시)
+                          // 영상 URL 삭제하지 않음!
                           
                           // 모달 닫기
                           setShowThumbnailSelector(false);
                           setThumbnailOptions([]);
                           
-                          alert('썸네일이 추출되었습니다!');
+                          alert('썸네일이 추출되었습니다! 리스트에서는 썸네일이, 빌보드에서는 영상이 표시됩니다.');
                         } else {
                           alert('썸네일 다운로드에 실패했습니다.');
                         }
