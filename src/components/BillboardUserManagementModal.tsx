@@ -503,25 +503,31 @@ export default function BillboardUserManagementModal({
                     {events.length === 0 ? (
                       <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
                     ) : (
-                      events.map((event) => (
-                        <label
-                          key={event.id}
-                          className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 p-2 rounded"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={excludedEventIds.includes(event.id)}
-                            onChange={() => toggleEvent(event.id)}
-                            className="w-4 h-4"
-                          />
-                          <span className="text-white text-sm flex-1">
-                            {event.title}
-                            <span className="text-gray-400 text-xs ml-2">
-                              ({event.start_date})
+                      events.map((event) => {
+                        const eventDate = new Date(event.start_date);
+                        const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                        const weekday = weekdayNames[eventDate.getDay()];
+                        
+                        return (
+                          <label
+                            key={event.id}
+                            className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 p-2 rounded"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={excludedEventIds.includes(event.id)}
+                              onChange={() => toggleEvent(event.id)}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-white text-sm flex-1">
+                              {event.title}
+                              <span className="text-gray-400 text-xs ml-2">
+                                ({event.start_date} {weekday})
+                              </span>
                             </span>
-                          </span>
-                        </label>
-                      ))
+                          </label>
+                        );
+                      })
                     )}
                   </div>
                 </div>
