@@ -15,6 +15,8 @@ export default function HomePage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
+  const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [calendarHeight, setCalendarHeight] = useState(240); // 기본 높이
   const calendarRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
@@ -434,8 +436,14 @@ export default function HomePage() {
     }
   };
 
-  const handleAdminModeToggle = (adminMode: boolean) => {
+  const handleAdminModeToggle = (
+    adminMode: boolean, 
+    type: "super" | "sub" | null = null,
+    userId: string | null = null
+  ) => {
     setIsAdminMode(adminMode);
+    setAdminType(type);
+    setBillboardUserId(userId);
   };
 
   const handleCategoryChange = (category: string) => {
@@ -787,6 +795,8 @@ export default function HomePage() {
         settings={settings}
         onUpdateSettings={updateSettings}
         onResetSettings={resetSettings}
+        adminType={adminType}
+        billboardUserId={billboardUserId}
       />
     </div>
   );

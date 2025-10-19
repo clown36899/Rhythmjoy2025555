@@ -3,14 +3,17 @@ import { createPortal } from "react-dom";
 import QRCodeModal from "../../../components/QRCodeModal";
 import BillboardUserManagementModal from "../../../components/BillboardUserManagementModal";
 import { supabase } from "../../../lib/supabase";
-import QRCodeImage from "./QRCodeImage"
 
 
 interface HeaderProps {
   currentMonth?: Date;
   onNavigateMonth?: (direction: "prev" | "next") => void;
   onDateChange?: (date: Date) => void;
-  onAdminModeToggle?: (isAdmin: boolean) => void;
+  onAdminModeToggle?: (
+    isAdmin: boolean,
+    type?: "super" | "sub" | null,
+    userId?: string | null
+  ) => void;
   onBillboardOpen?: () => void;
   onBillboardSettingsOpen?: () => void;
   viewMode?: "month" | "year";
@@ -37,6 +40,8 @@ export default function Header({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
+  const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] = useState(false);
@@ -98,22 +103,57 @@ export default function Header({
     setShowSettingsModal(true);
   };
 
-  const handleAdminLogin = () => {
-    // 관리자 비밀번호: admin123
+  const handleAdminLogin = async () => {
+    // 메인 관리자 비밀번호: admin123
     if (adminPassword === "admin123") {
       setIsAdminMode(true);
-      onAdminModeToggle?.(true);
+      setAdminType("super");
+      setBillboardUserId(null);
+      onAdminModeToggle?.(true, "super", null);
       setShowSettingsModal(false);
       setAdminPassword("");
-      alert("관리자 모드로 전환되었습니다.");
-    } else {
+      alert("메인 관리자 모드로 전환되었습니다.");
+      return;
+    }
+
+    // 서브 관리자 로그인 시도
+    try {
+      const { data: users, error } = await supabase
+        .from("billboard_users")
+        .select("*")
+        .eq("is_active", true);
+
+      if (error) throw error;
+
+      // 비밀번호 검증
+      for (const user of users || []) {
+        const { verifyPassword } = await import("../../../utils/passwordHash");
+        const isValid = await verifyPassword(adminPassword, user.password_hash);
+        
+        if (isValid) {
+          setIsAdminMode(true);
+          setAdminType("sub");
+          setBillboardUserId(user.id);
+          onAdminModeToggle?.(true, "sub", user.id);
+          setShowSettingsModal(false);
+          setAdminPassword("");
+          alert(`${user.name} 빌보드 관리자 모드로 전환되었습니다.`);
+          return;
+        }
+      }
+
       alert("비밀번호가 올바르지 않습니다.");
+    } catch (error) {
+      console.error("로그인 오류:", error);
+      alert("로그인 중 오류가 발생했습니다.");
     }
   };
 
   const handleAdminLogout = () => {
     setIsAdminMode(false);
-    onAdminModeToggle?.(false);
+    setAdminType(null);
+    setBillboardUserId(null);
+    onAdminModeToggle?.(false, null, null);
     setShowSettingsModal(false);
     alert("일반 모드로 전환되었습니다.");
   };
@@ -443,7 +483,9 @@ export default function Header({
                     관리자 모드 활성화됨
                   </h4>
                   <p className="text-gray-300 text-sm mb-4">
-                    현재 관리자 모드입니다. 모든 이벤트를 관리할 수 있습니다.
+                    {adminType === "super" 
+                      ? "메인 관리자 모드입니다. 모든 기능을 사용할 수 있습니다."
+                      : "빌보드 관리자 모드입니다. 자신의 빌보드 설정을 관리할 수 있습니다."}
                   </p>
                   <div className="space-y-3">
                     <button
@@ -456,16 +498,18 @@ export default function Header({
                       <i className="ri-image-2-line"></i>
                       광고판 설정
                     </button>
-                    <button
-                      onClick={() => {
-                        setShowSettingsModal(false);
-                        setShowBillboardUserManagement(true);
-                      }}
-                      className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
-                    >
-                      <i className="ri-user-settings-line"></i>
-                      빌보드 사용자 관리
-                    </button>
+                    {adminType === "super" && (
+                      <button
+                        onClick={() => {
+                          setShowSettingsModal(false);
+                          setShowBillboardUserManagement(true);
+                        }}
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                      >
+                        <i className="ri-user-settings-line"></i>
+                        빌보드 사용자 관리
+                      </button>
+                    )}
                     <button
                       onClick={() => setShowColorPanel(!showColorPanel)}
                       className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"

@@ -1,4 +1,6 @@
 import { createPortal } from "react-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "../../../lib/supabase";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
 
 interface AdminBillboardModalProps {
@@ -7,6 +9,19 @@ interface AdminBillboardModalProps {
   settings: BillboardSettings;
   onUpdateSettings: (updates: Partial<BillboardSettings>) => void;
   onResetSettings: () => void;
+  adminType: "super" | "sub" | null;
+  billboardUserId: string | null;
+}
+
+interface BillboardUserSettings {
+  id: string;
+  billboard_user_id: string;
+  exclude_weekdays: number[];
+  exclude_event_ids: number[];
+  date_range_start: string | null;
+  date_range_end: string | null;
+  auto_slide_interval: number;
+  play_order: 'sequential' | 'random';
 }
 
 export default function AdminBillboardModal({
@@ -15,7 +30,77 @@ export default function AdminBillboardModal({
   settings,
   onUpdateSettings,
   onResetSettings,
+  adminType,
+  billboardUserId,
 }: AdminBillboardModalProps) {
+  const [userSettings, setUserSettings] = useState<BillboardUserSettings | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // 서브 관리자의 설정 불러오기
+  useEffect(() => {
+    if (isOpen && adminType === "sub" && billboardUserId) {
+      loadUserSettings();
+    }
+  }, [isOpen, adminType, billboardUserId]);
+
+  const loadUserSettings = async () => {
+    if (!billboardUserId) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("billboard_user_settings")
+        .select("*")
+        .eq("billboard_user_id", billboardUserId)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+
+      setUserSettings(data || {
+        id: billboardUserId,
+        billboard_user_id: billboardUserId,
+        exclude_weekdays: [],
+        exclude_event_ids: [],
+        date_range_start: null,
+        date_range_end: null,
+        auto_slide_interval: 5000,
+        play_order: 'sequential',
+      });
+    } catch (error) {
+      console.error("설정 불러오기 오류:", error);
+      alert("설정을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUserSettings = async (updates: Partial<BillboardUserSettings>) => {
+    if (!billboardUserId || !userSettings) return;
+
+    const newSettings = { ...userSettings, ...updates };
+    setUserSettings(newSettings);
+
+    try {
+      const { error } = await supabase
+        .from("billboard_user_settings")
+        .upsert({
+          billboard_user_id: billboardUserId,
+          exclude_weekdays: newSettings.exclude_weekdays,
+          exclude_event_ids: newSettings.exclude_event_ids,
+          date_range_start: newSettings.date_range_start,
+          date_range_end: newSettings.date_range_end,
+          auto_slide_interval: newSettings.auto_slide_interval,
+          play_order: newSettings.play_order,
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("설정 업데이트 오류:", error);
+      alert("설정 업데이트 중 오류가 발생했습니다.");
+    }
+  };
   // 재생 순서 변경 핸들러
   const handlePlayOrderChange = (newOrder: 'sequential' | 'random') => {
     onUpdateSettings({ playOrder: newOrder });
@@ -45,6 +130,181 @@ export default function AdminBillboardModal({
     }
   };
 
+  // 서브 관리자용 UI 렌더링
+  if (adminType === "sub") {
+    if (loading) {
+      return createPortal(
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-white text-xl">로딩 중...</div>
+        </div>,
+        document.body
+      );
+    }
+
+    if (!userSettings) return null;
+
+    const weekDays = [
+      { value: 0, label: "일요일" },
+      { value: 1, label: "월요일" },
+      { value: 2, label: "화요일" },
+      { value: 3, label: "수요일" },
+      { value: 4, label: "목요일" },
+      { value: 5, label: "금요일" },
+      { value: 6, label: "토요일" },
+    ];
+
+    return createPortal(
+      <div
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={handleBackdropClick}
+      >
+        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <i className="ri-settings-3-line"></i>
+              내 빌보드 설정
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              <i className="ri-close-line text-2xl"></i>
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 space-y-6">
+            {/* 제외 요일 */}
+            <div className="p-4 bg-gray-700/50 rounded-lg">
+              <label className="text-white font-medium block mb-3">제외 요일</label>
+              <p className="text-sm text-gray-400 mb-3">선택한 요일의 이벤트는 표시되지 않습니다</p>
+              <div className="grid grid-cols-7 gap-2">
+                {weekDays.map((day) => (
+                  <button
+                    key={day.value}
+                    onClick={() => {
+                      const excluded = userSettings.exclude_weekdays || [];
+                      const newExcluded = excluded.includes(day.value)
+                        ? excluded.filter((d) => d !== day.value)
+                        : [...excluded, day.value];
+                      updateUserSettings({ exclude_weekdays: newExcluded });
+                    }}
+                    className={`py-2 px-1 text-xs rounded-lg font-medium transition-colors ${
+                      (userSettings.exclude_weekdays || []).includes(day.value)
+                        ? "bg-red-500 text-white"
+                        : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                    }`}
+                  >
+                    {day.label.substring(0, 1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 자동 슬라이드 시간 */}
+            <div className="p-4 bg-gray-700/50 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-white font-medium">자동 슬라이드 시간</label>
+                <span className="text-blue-400 font-bold">
+                  {formatTime(userSettings.auto_slide_interval)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1000"
+                max="30000"
+                step="500"
+                value={userSettings.auto_slide_interval}
+                onChange={(e) =>
+                  updateUserSettings({ auto_slide_interval: parseInt(e.target.value) })
+                }
+                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+            </div>
+
+            {/* 재생 순서 */}
+            <div className="p-4 bg-gray-700/50 rounded-lg">
+              <label className="text-white font-medium block mb-3">재생 순서</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => updateUserSettings({ play_order: 'sequential' })}
+                  className={`py-3 px-4 rounded-lg font-medium transition-colors ${
+                    userSettings.play_order === 'sequential'
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                  }`}
+                >
+                  순차 재생
+                </button>
+                <button
+                  onClick={() => updateUserSettings({ play_order: 'random' })}
+                  className={`py-3 px-4 rounded-lg font-medium transition-colors ${
+                    userSettings.play_order === 'random'
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                  }`}
+                >
+                  랜덤 재생
+                </button>
+              </div>
+            </div>
+
+            {/* 날짜 범위 필터 */}
+            <div className="p-4 bg-gray-700/50 rounded-lg">
+              <label className="text-white font-medium block mb-3">날짜 범위 필터</label>
+              <p className="text-sm text-gray-400 mb-3">특정 기간의 이벤트만 표시합니다</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-gray-400 block mb-1">시작 날짜</label>
+                  <input
+                    type="date"
+                    value={userSettings.date_range_start || ""}
+                    onChange={(e) =>
+                      updateUserSettings({ date_range_start: e.target.value || null })
+                    }
+                    className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400 block mb-1">종료 날짜</label>
+                  <input
+                    type="date"
+                    value={userSettings.date_range_end || ""}
+                    onChange={(e) =>
+                      updateUserSettings({ date_range_end: e.target.value || null })
+                    }
+                    className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
+                  />
+                </div>
+                {(userSettings.date_range_start || userSettings.date_range_end) && (
+                  <button
+                    onClick={() =>
+                      updateUserSettings({ date_range_start: null, date_range_end: null })
+                    }
+                    className="text-sm text-red-400 hover:text-red-300"
+                  >
+                    날짜 범위 초기화
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 닫기 버튼 */}
+            <button
+              onClick={onClose}
+              className="w-full bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  // 메인 관리자용 UI (기존 코드)
   return createPortal(
     <div
       className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
@@ -55,7 +315,7 @@ export default function AdminBillboardModal({
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <i className="ri-image-2-line"></i>
-            광고판 설정
+            메인 광고판 설정
           </h2>
           <button
             onClick={onClose}
