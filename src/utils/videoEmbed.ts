@@ -27,7 +27,6 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   if (isInstagramUrl(trimmedUrl)) {
     const match = trimmedUrl.match(/\/(p|reel|tv)\/([^/?]+)/);
     if (match) {
-      const resourceType = match[1];
       const resourceId = match[2];
       const baseUrl = trimmedUrl.split('?')[0].replace(/\/$/, '');
       const embedUrl = `${baseUrl}/embed/`;
