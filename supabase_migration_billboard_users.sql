@@ -60,31 +60,31 @@ CREATE POLICY "Public billboard settings are viewable by everyone"
   ON billboard_user_settings FOR SELECT
   USING (TRUE);
 
--- 삽입/업데이트/삭제는 인증된 사용자만 (관리자 전용)
--- 실제 운영 시 관리자 권한 체크 로직 추가 필요
-CREATE POLICY "Only authenticated users can insert billboard users"
+-- 삽입/업데이트/삭제는 모든 사용자 허용 (프론트엔드에서 관리자 비밀번호로 보호)
+-- 주의: 실제 운영 환경에서는 Supabase Auth를 사용하여 보안 강화 권장
+CREATE POLICY "Allow insert billboard users"
   ON billboard_users FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK (TRUE);
 
-CREATE POLICY "Only authenticated users can update billboard users"
+CREATE POLICY "Allow update billboard users"
   ON billboard_users FOR UPDATE
-  USING (auth.role() = 'authenticated');
+  USING (TRUE);
 
-CREATE POLICY "Only authenticated users can delete billboard users"
+CREATE POLICY "Allow delete billboard users"
   ON billboard_users FOR DELETE
-  USING (auth.role() = 'authenticated');
+  USING (TRUE);
 
-CREATE POLICY "Only authenticated users can insert billboard settings"
+CREATE POLICY "Allow insert billboard settings"
   ON billboard_user_settings FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK (TRUE);
 
-CREATE POLICY "Only authenticated users can update billboard settings"
+CREATE POLICY "Allow update billboard settings"
   ON billboard_user_settings FOR UPDATE
-  USING (auth.role() = 'authenticated');
+  USING (TRUE);
 
-CREATE POLICY "Only authenticated users can delete billboard settings"
+CREATE POLICY "Allow delete billboard settings"
   ON billboard_user_settings FOR DELETE
-  USING (auth.role() = 'authenticated');
+  USING (TRUE);
 
 -- 6. 샘플 데이터 (선택사항 - 테스트용)
 -- INSERT INTO billboard_users (id, name, password_hash, is_active) 
