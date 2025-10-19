@@ -501,43 +501,42 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </p>
               </div>
 
-              {/* 포스터 이미지 업로드 - 영상이 없을 때만 표시 */}
+              {/* 포스터 이미지 업로드 */}
               <div>
                 <label className="block text-gray-300 text-sm font-medium mb-1">
                   포스터 이미지 (선택사항)
                 </label>
-                {!formData.videoUrl && (
-                  <div className="space-y-2">
-                    {imagePreview && (
-                      <div className="relative">
-                        <img
-                          src={imagePreview}
-                          alt="이미지 미리보기"
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setImagePreview("");
-                            setImageFile(null);
-                          }}
-                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
-                        >
-                          이미지 삭제
-                        </button>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
-                    />
-                  </div>
-                )}
-                {formData.videoUrl && (
-                  <p className="text-xs text-gray-400 mt-1">영상 URL이 설정되어 있어 이미지를 업로드할 수 없습니다.</p>
-                )}
+                <div className="space-y-2">
+                  {imagePreview && (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="이미지 미리보기"
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview("");
+                          setImageFile(null);
+                        }}
+                        className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                      >
+                        이미지 삭제
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+                  />
+                  <p className="text-xs text-gray-400">
+                    <i className="ri-information-line mr-1"></i>
+                    썸네일은 이벤트 배너와 상세보기에 표시됩니다.
+                  </p>
+                </div>
               </div>
 
               {/* 영상 URL 입력 */}
@@ -652,7 +651,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     </p>
                     <p className="text-xs text-orange-400">
                       <i className="ri-alert-line mr-1"></i>
-                      <strong>Instagram, Facebook:</strong> 빌보드 재생만 가능 (썸네일은 직접 업로드 필요)
+                      <strong>Instagram, Facebook:</strong> 빌보드 재생만 가능 (썸네일은 위 이미지 업로드로 직접 등록)
                     </p>
                   </div>
                   {formData.videoUrl && !videoPreview.provider && (

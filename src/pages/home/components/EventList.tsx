@@ -1972,44 +1972,43 @@ export default function EventList({
 
                 <div>
                   <label className="block text-gray-300 text-xs font-medium mb-1">
-                    이벤트 이미지 {!editFormData.videoUrl && "(선택사항)"}
+                    이벤트 이미지 (선택사항)
                   </label>
-                  {!editFormData.videoUrl && (
-                    <div className="space-y-2">
-                      {editImagePreview && (
-                        <div className="relative">
-                          <img
-                            src={editImagePreview}
-                            alt="이벤트 이미지"
-                            className="w-full h-48 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditImagePreview("");
-                              setEditImageFile(null);
-                              setEditFormData((prev) => ({
-                                ...prev,
-                                image: "",
-                              }));
-                            }}
-                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
-                          >
-                            이미지 삭제
-                          </button>
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleEditImageChange}
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
-                      />
-                    </div>
-                  )}
-                  {editFormData.videoUrl && (
-                    <p className="text-xs text-gray-400 mt-1">영상 URL이 설정되어 있어 이미지를 업로드할 수 없습니다.</p>
-                  )}
+                  <div className="space-y-2">
+                    {editImagePreview && (
+                      <div className="relative">
+                        <img
+                          src={editImagePreview}
+                          alt="이벤트 이미지"
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditImagePreview("");
+                            setEditImageFile(null);
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              image: "",
+                            }));
+                          }}
+                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                        >
+                          이미지 삭제
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditImageChange}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-400">
+                      <i className="ri-information-line mr-1"></i>
+                      썸네일은 이벤트 배너와 상세보기에 표시됩니다.
+                    </p>
+                  </div>
                 </div>
 
                 <div>
@@ -2137,7 +2136,7 @@ export default function EventList({
                       </p>
                       <p className="text-xs text-orange-400">
                         <i className="ri-alert-line mr-1"></i>
-                        <strong>Instagram, Facebook:</strong> 빌보드 재생만 가능 (썸네일은 직접 업로드 필요)
+                        <strong>Instagram, Facebook:</strong> 빌보드 재생만 가능 (썸네일은 위 이미지로 직접 등록)
                       </p>
                     </div>
                     {editFormData.videoUrl && !editVideoPreview.provider && (
