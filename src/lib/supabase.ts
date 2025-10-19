@@ -60,15 +60,20 @@ export interface BillboardUserSettings {
   updated_at: string;
 }
 
-export interface ThemeSettings {
+export interface BillboardSettings {
   id: number;
-  background_color?: string;
-  calendar_bg_color?: string;
-  event_list_bg_color?: string;
-  event_list_outer_bg_color?: string;
-  header_bg_color?: string;
-  page_bg_color?: string;
+  enabled: boolean;
+  auto_slide_interval: number;
+  inactivity_timeout: number;
+  auto_open_on_load: boolean;
+  transition_duration: number;
+  date_range_start: string | null;
+  date_range_end: string | null;
+  show_date_range: boolean;
+  play_order: 'sequential' | 'random';
+  excluded_weekdays: number[];
+  excluded_event_ids: number[];
   default_thumbnail_url?: string | null;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
 }

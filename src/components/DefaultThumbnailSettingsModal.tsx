@@ -25,7 +25,7 @@ export default function DefaultThumbnailSettingsModal({
   const loadDefaultThumbnail = async () => {
     try {
       const { data, error } = await supabase
-        .from("theme_settings")
+        .from("billboard_settings")
         .select("default_thumbnail_url")
         .eq("id", 1)
         .single();
@@ -109,12 +109,12 @@ export default function DefaultThumbnailSettingsModal({
       }
 
       const { error } = await supabase
-        .from("theme_settings")
-        .upsert({
-          id: 1,
+        .from("billboard_settings")
+        .update({
           default_thumbnail_url: thumbnailUrl,
           updated_at: new Date().toISOString(),
-        });
+        })
+        .eq("id", 1);
 
       if (error) {
         throw error;
