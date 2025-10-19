@@ -1017,15 +1017,9 @@ export default function EventList({
         alert("이벤트 수정 중 오류가 발생했습니다.");
       } else {
         alert("이벤트가 수정되었습니다.");
-        setShowEditModal(false);
-        setEventToEdit(null);
-        setEditImageFile(null);
-        setEditImagePreview("");
         
-        // 달력, 빌보드 및 이벤트 목록 업데이트 (refreshTrigger를 통해 자동으로 fetchEvents 호출됨)
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("eventDeleted"));
-        }
+        // 이미지/영상 캐시 문제 해결을 위해 페이지 새로고침
+        window.location.reload();
       }
     } catch (error) {
       console.error("Error:", error);
@@ -1149,7 +1143,7 @@ export default function EventList({
                         ) : (event.image_thumbnail || event.image) ? (
                           // 영상 URL 없고 이미지만 있으면 이미지 표시
                           <img
-                            src={`${event.image_thumbnail || event.image}?t=${Date.now()}`}
+                            src={event.image_thumbnail || event.image}
                             alt={event.title}
                             className="w-full aspect-[3/4] object-cover object-top"
                           />
@@ -2301,7 +2295,7 @@ export default function EventList({
               {selectedEvent.image_medium || selectedEvent.image ? (
                 <>
                   <img
-                    src={`${selectedEvent.image_medium || selectedEvent.image}?t=${Date.now()}`}
+                    src={selectedEvent.image_medium || selectedEvent.image}
                     alt={selectedEvent.title}
                     className="w-full h-full object-cover"
                   />
@@ -2553,7 +2547,7 @@ export default function EventList({
               <i className="ri-close-line text-2xl"></i>
             </button>
             <img
-              src={`${selectedEvent.image_full || selectedEvent.image}?t=${Date.now()}`}
+              src={selectedEvent.image_full || selectedEvent.image}
               alt={selectedEvent.title}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
