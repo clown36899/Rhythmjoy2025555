@@ -2126,9 +2126,20 @@ export default function EventList({
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                       placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
                     />
-                    <p className="text-xs text-gray-400 mt-1">
-                      YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요.
-                    </p>
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-gray-400">
+                        <i className="ri-information-line mr-1"></i>
+                        영상은 전면 빌보드에서 자동재생됩니다.
+                      </p>
+                      <p className="text-xs text-green-400">
+                        <i className="ri-check-line mr-1"></i>
+                        <strong>YouTube, Vimeo:</strong> 썸네일 자동 추출 + 영상 재생 가능
+                      </p>
+                      <p className="text-xs text-orange-400">
+                        <i className="ri-alert-line mr-1"></i>
+                        <strong>Instagram, Facebook:</strong> 빌보드 재생만 가능 (썸네일은 직접 업로드 필요)
+                      </p>
+                    </div>
                     {editFormData.videoUrl && !editVideoPreview.provider && (
                       <p className="text-xs text-red-400 mt-1">
                         지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
