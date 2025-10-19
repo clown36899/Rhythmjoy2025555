@@ -530,6 +530,14 @@ export default function HomePage() {
         <Header
           currentMonth={currentMonth}
           onNavigateMonth={(direction) => {
+            if (isAnimating) return;
+            
+            setIsAnimating(true);
+            
+            const screenWidth = window.innerWidth;
+            const targetOffset = direction === "prev" ? screenWidth : -screenWidth;
+            setDragOffset(targetOffset);
+
             const newMonth = new Date(currentMonth);
             if (viewMode === "year") {
               // 연간 보기: 년 단위로 이동
@@ -546,12 +554,17 @@ export default function HomePage() {
                 newMonth.setMonth(currentMonth.getMonth() + 1);
               }
             }
-            setCurrentMonth(newMonth);
-            // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
-            setSelectedDate(null);
-            setSelectedCategory("all");
-            // 달력 펼치기
-            setIsCalendarCollapsed(false);
+
+            setTimeout(() => {
+              setCurrentMonth(newMonth);
+              setDragOffset(0);
+              setIsAnimating(false);
+              // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
+              setSelectedDate(null);
+              setSelectedCategory("all");
+              // 달력 펼치기
+              setIsCalendarCollapsed(false);
+            }, 300);
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
