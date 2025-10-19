@@ -301,7 +301,7 @@ export default function FullscreenBillboard({
                 title="QR 스캔으로 바로 보기"
               >
                 <QRCodeSVG
-                  value={`${window.location.origin}?event=${sortedEvents[currentIndex].id}&from=qr`}
+                  value={`${window.location.origin}/?event=${sortedEvents[currentIndex].id}&from=qr`}
                   size={70}
                   level="M"
                   includeMargin={false}

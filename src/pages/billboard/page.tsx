@@ -255,7 +255,7 @@ export default function BillboardPage() {
           
           <div className="bg-white p-3 rounded-lg ml-6 flex-shrink-0">
             <QRCodeCanvas
-              value={`${window.location.origin}?event=${currentEvent.id}&from=qr`}
+              value={`${window.location.origin}/?event=${currentEvent.id}&from=qr`}
               size={120}
               level="M"
               includeMargin={false}
