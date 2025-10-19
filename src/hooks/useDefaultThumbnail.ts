@@ -12,7 +12,7 @@ export function useDefaultThumbnail() {
   const loadDefaultThumbnail = async () => {
     try {
       const { data, error } = await supabase
-        .from('site_settings')
+        .from('theme_settings')
         .select('default_thumbnail_url')
         .eq('id', 1)
         .single();

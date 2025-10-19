@@ -60,9 +60,15 @@ export interface BillboardUserSettings {
   updated_at: string;
 }
 
-export interface SiteSettings {
+export interface ThemeSettings {
   id: number;
-  default_thumbnail_url: string | null;
+  background_color?: string;
+  calendar_bg_color?: string;
+  event_list_bg_color?: string;
+  event_list_outer_bg_color?: string;
+  header_bg_color?: string;
+  page_bg_color?: string;
+  default_thumbnail_url?: string | null;
   created_at?: string;
   updated_at?: string;
 }

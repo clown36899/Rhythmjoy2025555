@@ -25,7 +25,7 @@ export default function DefaultThumbnailSettingsModal({
   const loadDefaultThumbnail = async () => {
     try {
       const { data, error } = await supabase
-        .from("site_settings")
+        .from("theme_settings")
         .select("default_thumbnail_url")
         .eq("id", 1)
         .single();
@@ -104,12 +104,12 @@ export default function DefaultThumbnailSettingsModal({
         
         if (defaultThumbnailUrl && defaultThumbnailUrl.includes("supabase")) {
           const oldPath = defaultThumbnailUrl.split("/").slice(-2).join("/");
-          await supabase.storage.from("event-images").remove([oldPath]);
+          await supabase.storage.from("images").remove([oldPath]);
         }
       }
 
       const { error } = await supabase
-        .from("site_settings")
+        .from("theme_settings")
         .upsert({
           id: 1,
           default_thumbnail_url: thumbnailUrl,
