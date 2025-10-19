@@ -114,6 +114,19 @@ export default function HomePage() {
     }
   }, [searchTerm]);
 
+  // 이벤트 삭제/수정 시 빌보드 재로딩
+  useEffect(() => {
+    const handleEventUpdate = () => {
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('eventDeleted', handleEventUpdate);
+    
+    return () => {
+      window.removeEventListener('eventDeleted', handleEventUpdate);
+    };
+  }, []);
+
   // 검색 시작 시 호출되는 콜백
   const handleSearchStart = () => {
     // 전체 모드로 전환
@@ -295,7 +308,7 @@ export default function HomePage() {
     };
 
     loadBillboardImages();
-  }, [settings.enabled, settings.autoOpenOnLoad, settings.dateRangeStart, settings.dateRangeEnd, settings.excludedWeekdays, settings.excludedEventIds, fromQR]);
+  }, [settings.enabled, settings.autoOpenOnLoad, settings.dateRangeStart, settings.dateRangeEnd, settings.excludedWeekdays, settings.excludedEventIds, fromQR, refreshTrigger]);
 
   const handleBillboardClose = () => {
     setIsBillboardOpen(false);

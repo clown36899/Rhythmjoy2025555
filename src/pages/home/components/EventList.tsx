@@ -778,7 +778,8 @@ export default function EventList({
       } else {
         alert("이벤트가 삭제되었습니다.");
         fetchEvents();
-        // 달력 업데이트를 위해 상위 컴포넌트에 알림
+        
+        // 상위 컴포넌트 refreshTrigger 증가 (달력, 빌보드 업데이트)
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("eventDeleted"));
         }
