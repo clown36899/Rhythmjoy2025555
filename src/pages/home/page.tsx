@@ -14,6 +14,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [qrLoading, setQrLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
@@ -63,6 +64,7 @@ export default function HomePage() {
 
     if (source === 'qr' && eventId) {
       const id = parseInt(eventId);
+      setQrLoading(true);
       
       // 이벤트 정보 조회 후 달력 이동
       const loadEventAndNavigate = async () => {
@@ -81,13 +83,19 @@ export default function HomePage() {
               setCurrentMonth(date);
             }
             
-            // 충분한 시간을 두고 하이라이트 (이벤트 로딩 완료 대기)
+            // 로딩 해제 후 하이라이트
             setTimeout(() => {
-              setHighlightEvent({ id, nonce: Date.now() });
-            }, 2000);
+              setQrLoading(false);
+              setTimeout(() => {
+                setHighlightEvent({ id, nonce: Date.now() });
+              }, 500);
+            }, 100);
+          } else {
+            setQrLoading(false);
           }
         } catch (error) {
           console.error('Error loading event for QR navigation:', error);
+          setQrLoading(false);
         }
       };
       
@@ -755,6 +763,10 @@ export default function HomePage() {
                   sortBy={sortBy}
                   setSortBy={setSortBy}
                 />
+              ) : qrLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-gray-400">이벤트 로딩 중...</div>
+                </div>
               ) : (
                 <EventList
                   selectedDate={selectedDate}
