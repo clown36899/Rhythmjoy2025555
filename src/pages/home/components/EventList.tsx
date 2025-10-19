@@ -1020,11 +1020,9 @@ export default function EventList({
         setEventToEdit(null);
         setEditImageFile(null);
         setEditImagePreview("");
-        fetchEvents();
-        // 달력 업데이트
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("eventDeleted"));
-        }
+        
+        // 이미지/영상 변경 시 캐시 문제 방지를 위해 페이지 새로고침
+        window.location.reload();
       }
     } catch (error) {
       console.error("Error:", error);
