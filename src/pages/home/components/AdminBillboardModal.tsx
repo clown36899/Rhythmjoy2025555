@@ -17,10 +17,10 @@ interface AdminBillboardModalProps {
 interface BillboardUserSettings {
   id: string;
   billboard_user_id: string;
-  exclude_weekdays: number[];
-  exclude_event_ids: number[];
-  date_range_start: string | null;
-  date_range_end: string | null;
+  excluded_weekdays: number[];
+  excluded_event_ids: number[];
+  date_filter_start: string | null;
+  date_filter_end: string | null;
   auto_slide_interval: number;
   play_order: 'sequential' | 'random';
 }
@@ -66,10 +66,10 @@ export default function AdminBillboardModal({
       setUserSettings(data || {
         id: billboardUserId,
         billboard_user_id: billboardUserId,
-        exclude_weekdays: [],
-        exclude_event_ids: [],
-        date_range_start: null,
-        date_range_end: null,
+        excluded_weekdays: [],
+        excluded_event_ids: [],
+        date_filter_start: null,
+        date_filter_end: null,
         auto_slide_interval: 5000,
         play_order: 'sequential',
       });
@@ -92,10 +92,10 @@ export default function AdminBillboardModal({
         .from("billboard_user_settings")
         .upsert({
           billboard_user_id: billboardUserId,
-          exclude_weekdays: newSettings.exclude_weekdays,
-          exclude_event_ids: newSettings.exclude_event_ids,
-          date_range_start: newSettings.date_range_start,
-          date_range_end: newSettings.date_range_end,
+          excluded_weekdays: newSettings.excluded_weekdays,
+          excluded_event_ids: newSettings.excluded_event_ids,
+          date_filter_start: newSettings.date_filter_start,
+          date_filter_end: newSettings.date_filter_end,
           auto_slide_interval: newSettings.auto_slide_interval,
           play_order: newSettings.play_order,
         });
@@ -249,14 +249,14 @@ export default function AdminBillboardModal({
                   <button
                     key={day.value}
                     onClick={() => {
-                      const excluded = userSettings.exclude_weekdays || [];
+                      const excluded = userSettings.excluded_weekdays || [];
                       const newExcluded = excluded.includes(day.value)
                         ? excluded.filter((d) => d !== day.value)
                         : [...excluded, day.value];
-                      updateUserSettings({ exclude_weekdays: newExcluded });
+                      updateUserSettings({ excluded_weekdays: newExcluded });
                     }}
                     className={`py-2 px-1 text-xs rounded-lg font-medium transition-colors ${
-                      (userSettings.exclude_weekdays || []).includes(day.value)
+                      (userSettings.excluded_weekdays || []).includes(day.value)
                         ? "bg-red-500 text-white"
                         : "bg-gray-600 text-gray-300 hover:bg-gray-500"
                     }`}
@@ -324,9 +324,9 @@ export default function AdminBillboardModal({
                   <label className="text-sm text-gray-400 block mb-1">시작 날짜</label>
                   <input
                     type="date"
-                    value={userSettings.date_range_start || ""}
+                    value={userSettings.date_filter_start || ""}
                     onChange={(e) =>
-                      updateUserSettings({ date_range_start: e.target.value || null })
+                      updateUserSettings({ date_filter_start: e.target.value || null })
                     }
                     className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
                   />
@@ -335,17 +335,17 @@ export default function AdminBillboardModal({
                   <label className="text-sm text-gray-400 block mb-1">종료 날짜</label>
                   <input
                     type="date"
-                    value={userSettings.date_range_end || ""}
+                    value={userSettings.date_filter_end || ""}
                     onChange={(e) =>
-                      updateUserSettings({ date_range_end: e.target.value || null })
+                      updateUserSettings({ date_filter_end: e.target.value || null })
                     }
                     className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
                   />
                 </div>
-                {(userSettings.date_range_start || userSettings.date_range_end) && (
+                {(userSettings.date_filter_start || userSettings.date_filter_end) && (
                   <button
                     onClick={() =>
-                      updateUserSettings({ date_range_start: null, date_range_end: null })
+                      updateUserSettings({ date_filter_start: null, date_filter_end: null })
                     }
                     className="text-sm text-red-400 hover:text-red-300"
                   >
