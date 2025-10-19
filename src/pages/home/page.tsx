@@ -271,11 +271,12 @@ export default function HomePage() {
             return true;
           });
 
-          const images = filteredEvents
-            .map((event) => event.image_full || event.image)
-            .filter(Boolean);
+          // 이미지 또는 영상 URL 추출 (인덱스 일치 보장)
+          const imagesOrVideos = filteredEvents.map((event) => 
+            event.video_url || event.image_full || event.image
+          );
           
-          setBillboardImages(images);
+          setBillboardImages(imagesOrVideos);
           setBillboardEvents(filteredEvents);
 
           // 자동 열기 설정이 켜져있을 때만 자동으로 표시 (QR 스캔으로 접속한 경우 제외)
@@ -285,7 +286,7 @@ export default function HomePage() {
               "billboardDismissedDate",
             );
 
-            if (dismissedDate !== todayStr && images.length > 0) {
+            if (dismissedDate !== todayStr && imagesOrVideos.length > 0) {
               setIsBillboardOpen(true);
             }
           }
