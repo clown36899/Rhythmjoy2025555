@@ -15,13 +15,19 @@ export interface BillboardSettings {
   excludedEventIds: number[]; // 제외할 이벤트 ID 목록
 }
 
+// 오늘 날짜 (YYYY-MM-DD 형식)
+const getTodayString = () => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
+
 const DEFAULT_SETTINGS: BillboardSettings = {
   enabled: true,
   autoSlideInterval: 5000, // 5초
   inactivityTimeout: 600000, // 10분
   autoOpenOnLoad: true,
   transitionDuration: 300, // 0.3초
-  dateRangeStart: null,
+  dateRangeStart: getTodayString(), // 오늘 날짜
   dateRangeEnd: null,
   showDateRange: true,
   playOrder: 'random',

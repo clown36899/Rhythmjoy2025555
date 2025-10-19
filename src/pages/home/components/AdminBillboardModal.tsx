@@ -68,8 +68,41 @@ export default function AdminBillboardModal({
   useEffect(() => {
     if (isOpen && adminType === "super") {
       loadMainBillboardEvents();
+      initializeDateDefaults();
     }
   }, [isOpen, adminType, settings.excludedWeekdays, settings.dateRangeStart, settings.dateRangeEnd]);
+
+  // 날짜 기본값 초기화 (시작: 오늘, 종료: 마지막 이벤트의 다음날)
+  const initializeDateDefaults = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+
+      // 시작 날짜가 없으면 오늘로 설정
+      if (!settings.dateRangeStart) {
+        onUpdateSettings({ dateRangeStart: todayStr });
+      }
+
+      // 종료 날짜가 없으면 마지막 이벤트의 다음날로 설정
+      if (!settings.dateRangeEnd) {
+        const { data, error } = await supabase
+          .from('events')
+          .select('start_date')
+          .order('start_date', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          const lastEventDate = new Date(data[0].start_date);
+          lastEventDate.setDate(lastEventDate.getDate() + 1); // 다음날
+          const endDateStr = lastEventDate.toISOString().split('T')[0];
+          onUpdateSettings({ dateRangeEnd: endDateStr });
+        }
+      }
+    } catch (error) {
+      console.error('날짜 기본값 초기화 실패:', error);
+    }
+  };
 
   // 메인 빌보드용 이벤트 목록 불러오기 (설정 필터 적용 후 재생될 이벤트만)
   const loadMainBillboardEvents = async () => {
