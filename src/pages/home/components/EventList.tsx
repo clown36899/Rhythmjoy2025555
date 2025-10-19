@@ -314,25 +314,25 @@ export default function EventList({
         console.error("Error fetching events:", error);
       } else {
         setEvents(data || []);
+        
+        // QR 접속 시 이벤트 로딩 완료되면 즉시 콜백 호출
+        if (qrEventId && onEventsLoaded && data && data.length > 0) {
+          setTimeout(() => {
+            onEventsLoaded();
+          }, 100);
+        }
       }
     } catch (error) {
       console.error("Error:", error);
     } finally {
       setLoading(false);
     }
-  }, [isAdminMode]);
+  }, [isAdminMode, qrEventId, onEventsLoaded]);
 
   // 이벤트 데이터 로드
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents, refreshTrigger]);
-
-  // QR 이벤트 로딩 완료 시 콜백 호출
-  useEffect(() => {
-    if (!loading && events.length > 0 && qrEventId && onEventsLoaded) {
-      onEventsLoaded();
-    }
-  }, [loading, events.length, qrEventId, onEventsLoaded]);
 
   // 달 변경 시 스크롤 위치 리셋
   useEffect(() => {
