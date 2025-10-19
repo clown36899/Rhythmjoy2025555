@@ -1172,45 +1172,36 @@ export default function EventList({
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {(() => {
-                          // 배너 이미지 로직 시작
-                          const hasEventImage = event.image_thumbnail || event.image;
-                          const hasVideo = event.video_url;
+                          // 이미지 우선순위: 이벤트 이미지 > 기본 썸네일 > 텍스트 fallback
+                          const eventImage = event.image_thumbnail || event.image;
                           
-                          // 디버깅 로그
-                          if (!hasEventImage && !hasVideo) {
-                            console.log('🔍 이미지 없는 이벤트 발견:', {
-                              title: event.title,
-                              hasEventImage,
-                              hasVideo,
-                              defaultThumbnailUrl,
-                              willUseDefault: !!defaultThumbnailUrl
-                            });
-                          }
-                          
-                          // 최종 썸네일 URL 결정
-                          let thumbnailUrl = '';
-                          if (hasEventImage) {
-                            thumbnailUrl = hasEventImage;
-                          } else if (!hasVideo && defaultThumbnailUrl) {
-                            thumbnailUrl = defaultThumbnailUrl;
-                            console.log('✅ 기본 썸네일 사용:', event.title, defaultThumbnailUrl);
-                          }
-                          
-                          if (thumbnailUrl) {
+                          if (eventImage) {
+                            // 1순위: 이벤트 이미지
                             return (
                               <img
-                                src={thumbnailUrl}
+                                src={eventImage}
                                 alt={event.title}
                                 className="w-full aspect-[3/4] object-cover object-top"
                               />
                             );
                           } else if (event.video_url) {
+                            // 2순위: 비디오 (재생 아이콘)
                             return (
                               <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
                                 <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
                               </div>
                             );
+                          } else if (defaultThumbnailUrl) {
+                            // 3순위: 기본 썸네일
+                            return (
+                              <img
+                                src={defaultThumbnailUrl}
+                                alt={event.title}
+                                className="w-full aspect-[3/4] object-cover object-top"
+                              />
+                            );
                           } else {
+                            // 4순위: 텍스트 fallback (기존 하드코딩)
                             return (
                               <div
                                 className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
