@@ -424,67 +424,6 @@ export default function HomePage() {
     }
   };
 
-  // 마우스 드래그 핸들러
-  const onMouseDown = (e: React.MouseEvent) => {
-    if (isAnimating) return;
-    setTouchStart(e.clientX);
-    setIsDragging(true);
-    setDragOffset(0);
-  };
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || touchStart === null) return;
-
-    const currentMouse = e.clientX;
-    const diff = currentMouse - touchStart;
-
-    setDragOffset(diff);
-  };
-
-  const onMouseUp = () => {
-    if (!isDragging || touchStart === null) return;
-
-    setIsDragging(false);
-
-    const distance = dragOffset;
-    const threshold = minSwipeDistance;
-
-    if (Math.abs(distance) > threshold) {
-      setIsAnimating(true);
-
-      const screenWidth = window.innerWidth;
-      const direction = distance < 0 ? "next" : "prev";
-      const targetOffset = distance < 0 ? -screenWidth : screenWidth;
-
-      setDragOffset(targetOffset);
-
-      // 월 변경 계산
-      const newMonth = new Date(currentMonth);
-      if (direction === "prev") {
-        newMonth.setMonth(currentMonth.getMonth() - 1);
-      } else {
-        newMonth.setMonth(currentMonth.getMonth() + 1);
-      }
-
-      // 애니메이션 종료 후 월 변경 및 상태 리셋
-      setTimeout(() => {
-        setCurrentMonth(newMonth);
-        setDragOffset(0);
-        setIsAnimating(false);
-        setTouchStart(null);
-      }, 300);
-    } else {
-      setDragOffset(0);
-      setTouchStart(null);
-    }
-  };
-
-  // 마우스가 컴포넌트 밖으로 나갔을 때도 처리
-  const onMouseLeave = () => {
-    if (isDragging) {
-      onMouseUp();
-    }
-  };
 
   const handleEventsUpdate = async (createdDate?: Date) => {
     setRefreshTrigger((prev) => prev + 1);
@@ -659,10 +598,6 @@ export default function HomePage() {
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
-                onMouseDown={onMouseDown}
-                onMouseMove={onMouseMove}
-                onMouseUp={onMouseUp}
-                onMouseLeave={onMouseLeave}
                 dragOffset={dragOffset}
                 isAnimating={isAnimating}
               />
@@ -801,14 +736,16 @@ export default function HomePage() {
                   onTouchStart={onTouchStart}
                   onTouchMove={onTouchMove}
                   onTouchEnd={onTouchEnd}
-                  onMouseDown={onMouseDown}
-                  onMouseMove={onMouseMove}
-                  onMouseUp={onMouseUp}
-                  onMouseLeave={onMouseLeave}
                 />
               )}
             </div>
-            <Footer />
+            <div
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
+              <Footer />
+            </div>
           </div>
         </div>
       </div>

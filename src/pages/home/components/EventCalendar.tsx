@@ -12,14 +12,10 @@ interface EventCalendarProps {
   onEventsUpdate?: (createdDate?: Date) => void;
   viewMode?: "month" | "year";
   hoveredEventId?: number | null;
-  // 공통 스와이프/드래그 상태
+  // 공통 스와이프 상태
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: () => void;
-  onMouseDown?: (e: React.MouseEvent) => void;
-  onMouseMove?: (e: React.MouseEvent) => void;
-  onMouseUp?: () => void;
-  onMouseLeave?: () => void;
   dragOffset?: number;
   isAnimating?: boolean;
 }
@@ -36,10 +32,6 @@ export default function EventCalendar({
   onTouchStart: externalOnTouchStart,
   onTouchMove: externalOnTouchMove,
   onTouchEnd: externalOnTouchEnd,
-  onMouseDown: externalOnMouseDown,
-  onMouseMove: externalOnMouseMove,
-  onMouseUp: externalOnMouseUp,
-  onMouseLeave: externalOnMouseLeave,
   dragOffset: externalDragOffset = 0,
   isAnimating: externalIsAnimating = false,
 }: EventCalendarProps) {
@@ -630,10 +622,6 @@ export default function EventCalendar({
                 onTouchStart={externalOnTouchStart}
                 onTouchMove={externalOnTouchMove}
                 onTouchEnd={externalOnTouchEnd}
-                onMouseDown={externalOnMouseDown}
-                onMouseMove={externalOnMouseMove}
-                onMouseUp={externalOnMouseUp}
-                onMouseLeave={externalOnMouseLeave}
               >
                 {/* 이전 달 */}
                 <div

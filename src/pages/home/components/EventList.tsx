@@ -37,10 +37,6 @@ interface EventListProps {
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: () => void;
-  onMouseDown?: (e: React.MouseEvent) => void;
-  onMouseMove?: (e: React.MouseEvent) => void;
-  onMouseUp?: () => void;
-  onMouseLeave?: () => void;
 }
 
 export default function EventList({
@@ -67,10 +63,6 @@ export default function EventList({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
-  onMouseDown,
-  onMouseMove,
-  onMouseUp,
-  onMouseLeave,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -1176,10 +1168,6 @@ export default function EventList({
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onMouseLeave={onMouseLeave}
           >
             {/* 이전 달 - 독립 컨테이너 */}
             <div 
