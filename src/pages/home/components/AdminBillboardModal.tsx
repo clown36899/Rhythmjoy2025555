@@ -455,16 +455,6 @@ export default function AdminBillboardModal({
                     className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
                   />
                 </div>
-                {(userSettings.date_filter_start || userSettings.date_filter_end) && (
-                  <button
-                    onClick={() =>
-                      updateLocalSettings({ date_filter_start: null, date_filter_end: null })
-                    }
-                    className="text-sm text-red-400 hover:text-red-300"
-                  >
-                    날짜 범위 초기화
-                  </button>
-                )}
               </div>
             </div>
 
