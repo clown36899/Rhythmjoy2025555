@@ -1300,23 +1300,27 @@ export default function EventList({
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
-                            {(event.image_thumbnail || event.image) ? (
-                              <img
-                                src={event.image_thumbnail || event.image}
-                                alt={event.title}
-                                className="w-full aspect-[3/4] object-cover object-top"
-                              />
-                            ) : event.video_url ? (
-                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                              </div>
-                            ) : (
-                              <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
-                                <span className="text-white/10 text-4xl font-bold relative">
-                                  {event.category === "class" ? "강습" : "행사"}
-                                </span>
-                              </div>
-                            )}
+                            {(() => {
+                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
+                              
+                              if (finalThumbnailUrl) {
+                                return (
+                                  <img
+                                    src={finalThumbnailUrl}
+                                    alt={event.title}
+                                    className="w-full aspect-[3/4] object-cover object-top"
+                                  />
+                                );
+                              } else {
+                                return (
+                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                    <span className="text-white/10 text-4xl font-bold relative">
+                                      {event.category === "class" ? "강습" : "행사"}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            })()}
                             <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
@@ -1408,23 +1412,27 @@ export default function EventList({
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
-                            {(event.image_thumbnail || event.image) ? (
-                              <img
-                                src={event.image_thumbnail || event.image}
-                                alt={event.title}
-                                className="w-full aspect-[3/4] object-cover object-top"
-                              />
-                            ) : event.video_url ? (
-                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                              </div>
-                            ) : (
-                              <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
-                                <span className="text-white/10 text-4xl font-bold relative">
-                                  {event.category === "class" ? "강습" : "행사"}
-                                </span>
-                              </div>
-                            )}
+                            {(() => {
+                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
+                              
+                              if (finalThumbnailUrl) {
+                                return (
+                                  <img
+                                    src={finalThumbnailUrl}
+                                    alt={event.title}
+                                    className="w-full aspect-[3/4] object-cover object-top"
+                                  />
+                                );
+                              } else {
+                                return (
+                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                    <span className="text-white/10 text-4xl font-bold relative">
+                                      {event.category === "class" ? "강습" : "행사"}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            })()}
                             <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
@@ -1506,23 +1514,27 @@ export default function EventList({
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
-                            {(event.image_thumbnail || event.image) ? (
-                              <img
-                                src={event.image_thumbnail || event.image}
-                                alt={event.title}
-                                className="w-full aspect-[3/4] object-cover object-top"
-                              />
-                            ) : event.video_url ? (
-                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                              </div>
-                            ) : (
-                              <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
-                                <span className="text-white/10 text-4xl font-bold relative">
-                                  {event.category === "class" ? "강습" : "행사"}
-                                </span>
-                              </div>
-                            )}
+                            {(() => {
+                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
+                              
+                              if (finalThumbnailUrl) {
+                                return (
+                                  <img
+                                    src={finalThumbnailUrl}
+                                    alt={event.title}
+                                    className="w-full aspect-[3/4] object-cover object-top"
+                                  />
+                                );
+                              } else {
+                                return (
+                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                    <span className="text-white/10 text-4xl font-bold relative">
+                                      {event.category === "class" ? "강습" : "행사"}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            })()}
                             <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
