@@ -11,6 +11,7 @@ interface AdminBillboardModalProps {
   onResetSettings: () => void;
   adminType: "super" | "sub" | null;
   billboardUserId: string | null;
+  billboardUserName?: string;
 }
 
 interface BillboardUserSettings {
@@ -32,6 +33,7 @@ export default function AdminBillboardModal({
   onResetSettings,
   adminType,
   billboardUserId,
+  billboardUserName = "",
 }: AdminBillboardModalProps) {
   const [userSettings, setUserSettings] = useState<BillboardUserSettings | null>(null);
   const [loading, setLoading] = useState(false);
@@ -226,7 +228,7 @@ export default function AdminBillboardModal({
           <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               <i className="ri-settings-3-line"></i>
-              내 빌보드 설정
+              {billboardUserName} 빌보드 설정
             </h2>
             <button
               onClick={onClose}

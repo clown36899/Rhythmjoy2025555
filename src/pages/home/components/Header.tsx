@@ -12,7 +12,8 @@ interface HeaderProps {
   onAdminModeToggle?: (
     isAdmin: boolean,
     type?: "super" | "sub" | null,
-    userId?: string | null
+    userId?: string | null,
+    userName?: string
   ) => void;
   onBillboardOpen?: () => void;
   onBillboardSettingsOpen?: () => void;
@@ -110,7 +111,8 @@ export default function Header({
       setIsAdminMode(true);
       setAdminType("super");
       setBillboardUserId(null);
-      onAdminModeToggle?.(true, "super", null);
+      setBillboardUserName("");
+      onAdminModeToggle?.(true, "super", null, "");
       setShowSettingsModal(false);
       setAdminPassword("");
       alert("메인 관리자 모드로 전환되었습니다.");
@@ -136,8 +138,9 @@ export default function Header({
           setAdminType("sub");
           setBillboardUserId(user.id);
           setBillboardUserName(user.name);
-          onAdminModeToggle?.(true, "sub", user.id);
-          setShowSettingsModal(false);
+          onAdminModeToggle?.(true, "sub", user.id, user.name);
+          // 서브 관리자는 설정 모달을 닫지 않고 유지
+          // setShowSettingsModal(false);
           setAdminPassword("");
           alert(`${user.name} 빌보드 관리자 모드로 전환되었습니다.`);
           return;
@@ -156,9 +159,9 @@ export default function Header({
     setAdminType(null);
     setBillboardUserId(null);
     setBillboardUserName("");
-    onAdminModeToggle?.(false, null, null);
+    onAdminModeToggle?.(false, null, null, "");
     setShowSettingsModal(false);
-    alert("일반 모드로 전환되었습니다.");
+    alert("로그아웃되었습니다.");
   };
 
   // 색상 설정 불러오기
@@ -257,7 +260,20 @@ export default function Header({
   // 초기 색상 불러오기
   useEffect(() => {
     loadThemeColors();
-  }, []);
+
+    // 서브 관리자가 빌보드 설정 창을 닫으면 설정 모달 다시 열기
+    const handleReopenSettings = () => {
+      if (adminType === "sub") {
+        setShowSettingsModal(true);
+      }
+    };
+
+    window.addEventListener('reopenAdminSettings', handleReopenSettings);
+
+    return () => {
+      window.removeEventListener('reopenAdminSettings', handleReopenSettings);
+    };
+  }, [adminType]);
 
   return (
     <>
@@ -528,7 +544,7 @@ export default function Header({
                       onClick={handleAdminLogout}
                       className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      일반 모드로 전환
+                      로그아웃
                     </button>
                   </div>
                 </div>

@@ -17,6 +17,7 @@ export default function HomePage() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
+  const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [calendarHeight, setCalendarHeight] = useState(240); // 기본 높이
   const calendarRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
@@ -439,11 +440,13 @@ export default function HomePage() {
   const handleAdminModeToggle = (
     adminMode: boolean, 
     type: "super" | "sub" | null = null,
-    userId: string | null = null
+    userId: string | null = null,
+    userName: string = ""
   ) => {
     setIsAdminMode(adminMode);
     setAdminType(type);
     setBillboardUserId(userId);
+    setBillboardUserName(userName);
   };
 
   const handleCategoryChange = (category: string) => {
@@ -791,12 +794,21 @@ export default function HomePage() {
       {/* Admin Billboard Settings Modal */}
       <AdminBillboardModal
         isOpen={isBillboardSettingsOpen}
-        onClose={handleBillboardSettingsClose}
+        onClose={() => {
+          handleBillboardSettingsClose();
+          // 서브 관리자는 설정 창 닫아도 설정 모달 다시 열기
+          if (adminType === "sub") {
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('reopenAdminSettings'));
+            }, 100);
+          }
+        }}
         settings={settings}
         onUpdateSettings={updateSettings}
         onResetSettings={resetSettings}
         adminType={adminType}
         billboardUserId={billboardUserId}
+        billboardUserName={billboardUserName}
       />
     </div>
   );
