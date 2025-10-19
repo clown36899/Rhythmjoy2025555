@@ -1176,6 +1176,15 @@ export default function EventList({
                           // 이미지 우선순위: 이벤트 이미지 > 기본 썸네일 > 텍스트 fallback
                           const eventImage = event.image_thumbnail || event.image;
                           
+                          // 디버깅: 배너 렌더링 시점의 defaultThumbnailUrl 확인
+                          if (!eventImage && !event.video_url) {
+                            console.log('🎨 배너 렌더링:', {
+                              eventTitle: event.title,
+                              defaultThumbnailUrl,
+                              willUseDefault: !!defaultThumbnailUrl
+                            });
+                          }
+                          
                           if (eventImage) {
                             // 1순위: 이벤트 이미지
                             return (
