@@ -42,6 +42,7 @@ export default function Header({
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
+  const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] = useState(false);
@@ -134,6 +135,7 @@ export default function Header({
           setIsAdminMode(true);
           setAdminType("sub");
           setBillboardUserId(user.id);
+          setBillboardUserName(user.name);
           onAdminModeToggle?.(true, "sub", user.id);
           setShowSettingsModal(false);
           setAdminPassword("");
@@ -153,6 +155,7 @@ export default function Header({
     setIsAdminMode(false);
     setAdminType(null);
     setBillboardUserId(null);
+    setBillboardUserName("");
     onAdminModeToggle?.(false, null, null);
     setShowSettingsModal(false);
     alert("일반 모드로 전환되었습니다.");
@@ -480,7 +483,9 @@ export default function Header({
               ) : (
                 <div>
                   <h4 className="text-lg font-semibold text-white mb-4">
-                    관리자 모드 활성화됨
+                    {adminType === "super" 
+                      ? "메인 관리자 모드 활성화됨"
+                      : `${billboardUserName} 서브 관리자 모드`}
                   </h4>
                   <p className="text-gray-300 text-sm mb-4">
                     {adminType === "super" 
@@ -499,24 +504,26 @@ export default function Header({
                       광고판 설정
                     </button>
                     {adminType === "super" && (
-                      <button
-                        onClick={() => {
-                          setShowSettingsModal(false);
-                          setShowBillboardUserManagement(true);
-                        }}
-                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
-                      >
-                        <i className="ri-user-settings-line"></i>
-                        빌보드 사용자 관리
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setShowSettingsModal(false);
+                            setShowBillboardUserManagement(true);
+                          }}
+                          className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                        >
+                          <i className="ri-user-settings-line"></i>
+                          빌보드 사용자 관리
+                        </button>
+                        <button
+                          onClick={() => setShowColorPanel(!showColorPanel)}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                        >
+                          <i className="ri-palette-line"></i>
+                          색상 설정
+                        </button>
+                      </>
                     )}
-                    <button
-                      onClick={() => setShowColorPanel(!showColorPanel)}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
-                    >
-                      <i className="ri-palette-line"></i>
-                      색상 설정
-                    </button>
                     <button
                       onClick={handleAdminLogout}
                       className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
@@ -531,9 +538,10 @@ export default function Header({
           document.body,
         )}
 
-      {/* 색상 설정 패널 */}
+      {/* 색상 설정 패널 (메인 관리자 전용) */}
       {showColorPanel &&
         isAdminMode &&
+        adminType === "super" &&
         createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
             <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
