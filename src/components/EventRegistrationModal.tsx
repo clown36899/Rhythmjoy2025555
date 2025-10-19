@@ -213,6 +213,15 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       return;
     }
 
+    // YouTube/Vimeo URL이 있고 썸네일이 없으면 추출 필수
+    if (formData.videoUrl && !imageFile && !imagePreview) {
+      const videoInfo = parseVideoUrl(formData.videoUrl);
+      if (videoInfo.provider === 'youtube' || videoInfo.provider === 'vimeo') {
+        alert('YouTube 또는 Vimeo 영상은 썸네일 이미지가 필요합니다. 이미지를 업로드하거나 썸네일 추출 기능을 사용해주세요.');
+        return;
+      }
+    }
+
     // 이미지와 영상 중 하나는 있어야 함 (선택사항이므로 둘 다 없어도 됨)
 
     // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함

@@ -896,6 +896,15 @@ export default function EventList({
         alert('지원하지 않는 영상 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.');
         return;
       }
+      
+      // YouTube/Vimeo URL이 있고 썸네일이 없으면 추출 필수
+      if (!editImageFile && !editImagePreview) {
+        const videoInfo = parseVideoUrl(editFormData.videoUrl);
+        if (videoInfo.provider === 'youtube' || videoInfo.provider === 'vimeo') {
+          alert('YouTube 또는 Vimeo 영상은 썸네일 이미지가 필요합니다. 이미지를 업로드하거나 썸네일 추출 기능을 사용해주세요.');
+          return;
+        }
+      }
     }
 
     // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함
