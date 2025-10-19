@@ -4,6 +4,7 @@ import type { Event } from "../../../lib/supabase";
 import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
 import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
+import { getVideoThumbnail, downloadThumbnailAsBlob } from "../../../utils/videoThumbnail";
 import QRCodeImage from "./QRCodeImage";
 
 
@@ -2096,6 +2097,45 @@ export default function EventList({
                         <p className="text-xs text-red-400 mt-1">
                           지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
                         </p>
+                      )}
+                      {editFormData.videoUrl && (editVideoPreview.provider === 'youtube' || editVideoPreview.provider === 'vimeo') && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const thumbnailUrl = await getVideoThumbnail(editFormData.videoUrl);
+                              if (thumbnailUrl) {
+                                const blob = await downloadThumbnailAsBlob(thumbnailUrl);
+                                if (blob) {
+                                  // Blob을 File로 변환
+                                  const file = new File([blob], 'video-thumbnail.jpg', { type: 'image/jpeg' });
+                                  setEditImageFile(file);
+                                  setEditImagePreview(URL.createObjectURL(blob));
+                                  
+                                  // 영상 URL 제거 (이미지와 상호 배타적)
+                                  setEditFormData((prev) => ({
+                                    ...prev,
+                                    videoUrl: '',
+                                  }));
+                                  setEditVideoPreview({ provider: null, embedUrl: null });
+                                  
+                                  alert('썸네일이 추출되었습니다!');
+                                } else {
+                                  alert('썸네일 다운로드에 실패했습니다.');
+                                }
+                              } else {
+                                alert('이 영상에서 썸네일을 추출할 수 없습니다.');
+                              }
+                            } catch (error) {
+                              console.error('썸네일 추출 오류:', error);
+                              alert('썸네일 추출 중 오류가 발생했습니다.');
+                            }
+                          }}
+                          className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                        >
+                          <i className="ri-image-add-line mr-1"></i>
+                          썸네일 추출하기
+                        </button>
                       )}
                     </div>
                   )}
