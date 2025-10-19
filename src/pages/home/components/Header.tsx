@@ -519,6 +519,19 @@ export default function Header({
                       <i className="ri-image-2-line"></i>
                       광고판 설정
                     </button>
+                    {adminType === "sub" && billboardUserId && (
+                      <button
+                        onClick={() => {
+                          const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
+                          navigator.clipboard.writeText(billboardUrl);
+                          alert("빌보드 주소가 복사되었습니다!");
+                        }}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                      >
+                        <i className="ri-link"></i>
+                        빌보드 주소 복사
+                      </button>
+                    )}
                     {adminType === "super" && (
                       <>
                         <button
