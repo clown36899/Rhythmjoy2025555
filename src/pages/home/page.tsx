@@ -48,21 +48,22 @@ export default function HomePage() {
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // QR 스캔으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
+  // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
   const [fromQR] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('from') === 'qr';
+    const source = params.get('from');
+    return source === 'qr' || source === 'edit';
   });
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
-  // URL 파라미터 처리 (QR 코드 스캔 시 이벤트 하이라이트)
+  // URL 파라미터 처리 (QR 코드 스캔 또는 이벤트 수정 후 하이라이트)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const eventId = params.get('event');
     const source = params.get('from');
 
-    if (source === 'qr' && eventId) {
+    if ((source === 'qr' || source === 'edit') && eventId) {
       const id = parseInt(eventId);
       setQrLoading(true);
       
@@ -94,7 +95,7 @@ export default function HomePage() {
             setQrLoading(false);
           }
         } catch (error) {
-          console.error('Error loading event for QR navigation:', error);
+          console.error('Error loading event for navigation:', error);
           setQrLoading(false);
         }
       };

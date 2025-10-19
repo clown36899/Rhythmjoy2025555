@@ -1018,8 +1018,9 @@ export default function EventList({
       } else {
         alert("이벤트가 수정되었습니다.");
         
-        // 이미지/영상 캐시 문제 해결을 위해 페이지 새로고침
-        window.location.reload();
+        // 이미지/영상 캐시 문제 해결을 위해 페이지 새로고침 + 수정한 이벤트로 스크롤
+        const eventId = eventToEdit.id;
+        window.location.href = `${window.location.pathname}?from=edit&event=${eventId}`;
       }
     } catch (error) {
       console.error("Error:", error);
