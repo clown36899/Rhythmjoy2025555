@@ -2029,7 +2029,37 @@ export default function EventList({
                     영상 URL {!editImagePreview && "(선택사항)"}
                   </label>
                   {!editImagePreview && !editImageFile && (
-                    <div>
+                    <div className="space-y-2">
+                      {editVideoPreview.provider && editVideoPreview.embedUrl && (
+                        <div className="relative">
+                          <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                            <i className="ri-check-line"></i>
+                            <span>영상 인식됨</span>
+                          </div>
+                          <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                            <iframe
+                              src={editVideoPreview.embedUrl}
+                              className="absolute top-0 left-0 w-full h-full rounded-lg"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            ></iframe>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditVideoPreview({ provider: null, embedUrl: null });
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                videoUrl: '',
+                              }));
+                            }}
+                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                          >
+                            영상 삭제
+                          </button>
+                        </div>
+                      )}
                       <input
                         type="url"
                         value={editFormData.videoUrl}
@@ -2066,23 +2096,6 @@ export default function EventList({
                       <p className="text-xs text-gray-400 mt-1">
                         YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요.
                       </p>
-                      {editVideoPreview.provider && editVideoPreview.embedUrl && (
-                        <div className="mt-2">
-                          <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
-                            <i className="ri-check-line"></i>
-                            <span>영상 인식됨</span>
-                          </div>
-                          <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-                            <iframe
-                              src={editVideoPreview.embedUrl}
-                              className="absolute top-0 left-0 w-full h-full rounded-lg"
-                              frameBorder="0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            ></iframe>
-                          </div>
-                        </div>
-                      )}
                       {editFormData.videoUrl && !editVideoPreview.provider && (
                         <p className="text-xs text-red-400 mt-1">
                           지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
