@@ -1809,39 +1809,21 @@ export default function EventList({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      장소
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.location}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          location: e.target.value,
-                        }))
-                      }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      주최자
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.organizer}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          organizer: e.target.value,
-                        }))
-                      }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    장소
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.location}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        location: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
                 </div>
 
                 {/* 등록자 정보 (관리자 전용, 비공개) */}

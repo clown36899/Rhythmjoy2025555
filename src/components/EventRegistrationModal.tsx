@@ -441,36 +441,20 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </select>
               </div>
 
-              {/* 장소와 주최자 */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    장소
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="이벤트 장소"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    주최자
-                  </label>
-                  <input
-                    type="text"
-                    name="organizer"
-                    value={formData.organizer}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="주최자명"
-                  />
-                </div>
+              {/* 장소 */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  장소
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  onFocus={handleInputFocus}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="이벤트 장소"
+                />
               </div>
 
               {/* 등록자 정보 (관리자 전용, 비공개) */}
