@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
+import { parseVideoUrl } from "../utils/videoEmbed";
 
 interface FullscreenBillboardProps {
   images: string[];
@@ -165,17 +166,48 @@ export default function FullscreenBillboard({
       onClick={handleBackgroundClick}
     >
       <div className="relative w-full h-full" onClick={handleBackgroundClick}>
-        {/* 포스터 이미지 - 상단 여백 없이 배치 */}
+        {/* 미디어 컨텐츠 (이미지 또는 영상) - 상단 여백 없이 배치 */}
         <div className="absolute top-0 left-0 right-0 flex justify-center">
-          <img
-            src={sortedImages[currentIndex]}
-            alt="Event Billboard"
-            className={`max-w-full max-h-screen object-contain transition-opacity cursor-pointer ${
-              isTransitioning ? "opacity-0" : "opacity-100"
-            }`}
-            style={{ transitionDuration: `${transitionDuration}ms` }}
-            onClick={handleImageClick}
-          />
+          {(() => {
+            const currentEvent = sortedEvents[currentIndex];
+            const videoUrl = currentEvent?.video_url;
+            
+            if (videoUrl) {
+              const videoInfo = parseVideoUrl(videoUrl);
+              if (videoInfo.embedUrl) {
+                return (
+                  <div 
+                    className={`w-full h-screen flex items-center justify-center transition-opacity cursor-pointer ${
+                      isTransitioning ? "opacity-0" : "opacity-100"
+                    }`}
+                    style={{ transitionDuration: `${transitionDuration}ms` }}
+                    onClick={handleImageClick}
+                  >
+                    <iframe
+                      src={videoInfo.embedUrl}
+                      className="w-full h-full"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      style={{ maxHeight: '100vh', objectFit: 'contain' }}
+                    ></iframe>
+                  </div>
+                );
+              }
+            }
+            
+            return (
+              <img
+                src={sortedImages[currentIndex]}
+                alt="Event Billboard"
+                className={`max-w-full max-h-screen object-contain transition-opacity cursor-pointer ${
+                  isTransitioning ? "opacity-0" : "opacity-100"
+                }`}
+                style={{ transitionDuration: `${transitionDuration}ms` }}
+                onClick={handleImageClick}
+              />
+            );
+          })()}
         </div>
 
         {/* 화면 기준 하단 - 제목 + 버튼/QR (이미지와 분리) */}

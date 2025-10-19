@@ -216,13 +216,13 @@ export default function HomePage() {
 
         const { data: events } = await supabase
           .from("events")
-          .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at")
+          .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at")
           .order("date", { ascending: true });
 
         if (events && events.length > 0) {
           const filteredEvents = events.filter((event) => {
-            // 이미지가 있는지 확인 (image_full 또는 image)
-            if (!event.image_full && !event.image) {
+            // 이미지 또는 영상이 있는지 확인
+            if (!event.image_full && !event.image && !event.video_url) {
               return false;
             }
 
