@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useDefaultThumbnail() {
-  const [defaultThumbnailUrl, setDefaultThumbnailUrl] = useState<string>('');
+  // localStorage에서 즉시 로드 (타이밍 문제 해결)
+  const cachedUrl = typeof window !== 'undefined' ? localStorage.getItem('cached_default_thumbnail') || '' : '';
+  const [defaultThumbnailUrl, setDefaultThumbnailUrl] = useState<string>(cachedUrl);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,7 +22,12 @@ export function useDefaultThumbnail() {
       if (error) {
         console.error('Error loading default thumbnail:', error);
       } else if (data) {
-        setDefaultThumbnailUrl(data.default_thumbnail_url || '');
+        const url = data.default_thumbnail_url || '';
+        setDefaultThumbnailUrl(url);
+        // DB 값으로 localStorage 업데이트
+        if (url) {
+          localStorage.setItem('cached_default_thumbnail', url);
+        }
       }
     } catch (error) {
       console.error('Error:', error);

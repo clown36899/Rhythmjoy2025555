@@ -120,6 +120,9 @@ export default function DefaultThumbnailSettingsModal({
         throw error;
       }
 
+      // localStorage에도 저장 (즉시 사용 가능하도록)
+      localStorage.setItem('cached_default_thumbnail', thumbnailUrl);
+
       alert("기본 썸네일이 저장되었습니다.");
       onClose();
     } catch (error) {
