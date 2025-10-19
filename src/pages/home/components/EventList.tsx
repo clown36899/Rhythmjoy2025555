@@ -2099,8 +2099,8 @@ export default function EventList({
                     영상 URL (선택사항)
                   </label>
                   <div className="space-y-2">
-                    {/* 영상 프리뷰 */}
-                    {editVideoPreview.provider && editVideoPreview.embedUrl && (
+                    {/* 영상 프리뷰 또는 입력 */}
+                    {editVideoPreview.provider && editVideoPreview.embedUrl ? (
                       <div className="relative">
                         <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
                           <i className="ri-check-line"></i>
@@ -2123,7 +2123,6 @@ export default function EventList({
                               ...prev,
                               videoUrl: '',
                             }));
-                            // 추출 썸네일도 삭제
                             setEditImageFile(null);
                             setEditImagePreview('');
                           }}
@@ -2132,32 +2131,31 @@ export default function EventList({
                           영상 삭제
                         </button>
                       </div>
+                    ) : (
+                      <input
+                        type="url"
+                        value={editFormData.videoUrl}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            videoUrl: value,
+                          }));
+                          
+                          if (value.trim() === '') {
+                            setEditVideoPreview({ provider: null, embedUrl: null });
+                          } else {
+                            const videoInfo = parseVideoUrl(value);
+                            setEditVideoPreview({ 
+                              provider: videoInfo.provider, 
+                              embedUrl: videoInfo.embedUrl 
+                            });
+                          }
+                        }}
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
+                      />
                     )}
-                    
-                    <input
-                      type="url"
-                      value={editFormData.videoUrl}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          videoUrl: value,
-                        }));
-                        
-                        if (value.trim() === '') {
-                          setEditVideoPreview({ provider: null, embedUrl: null });
-                        } else {
-                          const videoInfo = parseVideoUrl(value);
-                          setEditVideoPreview({ 
-                            provider: videoInfo.provider, 
-                            embedUrl: videoInfo.embedUrl 
-                          });
-                          // 영상 URL 입력 시 이미지는 유지 (추출 썸네일일 수 있음)
-                        }
-                      }}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
-                    />
                     <div className="mt-2 space-y-1">
                       <p className="text-xs text-gray-400">
                         <i className="ri-information-line mr-1"></i>

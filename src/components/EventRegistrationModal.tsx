@@ -593,8 +593,8 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   영상 URL (선택사항)
                 </label>
                 <div className="space-y-2">
-                  {/* 영상 프리뷰 */}
-                  {videoPreview.provider && videoPreview.embedUrl && (
+                  {/* 영상 프리뷰 또는 입력 */}
+                  {videoPreview.provider && videoPreview.embedUrl ? (
                     <div className="relative">
                       <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
                         <i className="ri-check-line"></i>
@@ -617,7 +617,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                             ...prev,
                             videoUrl: '',
                           }));
-                          // 추출 썸네일도 삭제
                           setImageFile(null);
                           setImagePreview('');
                         }}
@@ -626,17 +625,17 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                         영상 삭제
                       </button>
                     </div>
+                  ) : (
+                    <input
+                      type="url"
+                      name="videoUrl"
+                      value={formData.videoUrl}
+                      onChange={handleInputChange}
+                      onFocus={handleInputFocus}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
+                    />
                   )}
-                  
-                  <input
-                    type="url"
-                    name="videoUrl"
-                    value={formData.videoUrl}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
-                  />
                   <div className="mt-2 space-y-1">
                     <p className="text-xs text-gray-400">
                       <i className="ri-information-line mr-1"></i>
