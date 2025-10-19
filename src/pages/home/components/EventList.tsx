@@ -723,15 +723,14 @@ export default function EventList({
         videoUrl: event.video_url || "",
       });
       
-      // 영상 URL이 있으면 이미지 프리뷰를 로드하지 않음 (mutual exclusion)
+      // 영상 URL과 이미지를 모두 로드 (추출 썸네일 지원)
+      setEditImagePreview(event.image || "");
+      setEditImageFile(null);
+      
       if (event.video_url) {
-        setEditImagePreview("");
-        setEditImageFile(null);
         const videoInfo = parseVideoUrl(event.video_url);
         setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
       } else {
-        setEditImagePreview(event.image || "");
-        setEditImageFile(null);
         setEditVideoPreview({ provider: null, embedUrl: null });
       }
       setShowEditModal(true);
@@ -1133,19 +1132,20 @@ export default function EventList({
 
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
-                        {event.video_url ? (
-                          // 영상 URL이 있으면 플레이 아이콘만 표시
-                          <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                            <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                          </div>
-                        ) : (event.image_thumbnail || event.image) ? (
-                          // 영상 URL 없고 이미지만 있으면 이미지 표시
+                        {(event.image_thumbnail || event.image) ? (
+                          // 이미지가 있으면 이미지 표시 (추출 썸네일 우선)
                           <img
                             src={event.image_thumbnail || event.image}
                             alt={event.title}
                             className="w-full aspect-[3/4] object-cover object-top"
                           />
+                        ) : event.video_url ? (
+                          // 이미지 없고 영상만 있으면 플레이 아이콘
+                          <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
+                            <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
+                          </div>
                         ) : (
+                          // 둘 다 없으면 기본 배경
                           <div
                             className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
                             style={{
@@ -1256,16 +1256,16 @@ export default function EventList({
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
-                            {event.video_url ? (
-                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                              </div>
-                            ) : (event.image_thumbnail || event.image) ? (
+                            {(event.image_thumbnail || event.image) ? (
                               <img
                                 src={event.image_thumbnail || event.image}
                                 alt={event.title}
                                 className="w-full aspect-[3/4] object-cover object-top"
                               />
+                            ) : event.video_url ? (
+                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
+                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
+                              </div>
                             ) : (
                               <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                 <span className="text-white/10 text-4xl font-bold relative">
@@ -1364,16 +1364,16 @@ export default function EventList({
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
-                            {event.video_url ? (
-                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                              </div>
-                            ) : (event.image_thumbnail || event.image) ? (
+                            {(event.image_thumbnail || event.image) ? (
                               <img
                                 src={event.image_thumbnail || event.image}
                                 alt={event.title}
                                 className="w-full aspect-[3/4] object-cover object-top"
                               />
+                            ) : event.video_url ? (
+                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
+                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
+                              </div>
                             ) : (
                               <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                 <span className="text-white/10 text-4xl font-bold relative">
@@ -1462,16 +1462,16 @@ export default function EventList({
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
-                            {event.video_url ? (
-                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                              </div>
-                            ) : (event.image_thumbnail || event.image) ? (
+                            {(event.image_thumbnail || event.image) ? (
                               <img
                                 src={event.image_thumbnail || event.image}
                                 alt={event.title}
                                 className="w-full aspect-[3/4] object-cover object-top"
                               />
+                            ) : event.video_url ? (
+                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
+                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
+                              </div>
                             ) : (
                               <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                 <span className="text-white/10 text-4xl font-bold relative">
