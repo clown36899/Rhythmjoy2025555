@@ -788,6 +788,8 @@ export default function HomePage() {
           dateRangeEnd={settings.dateRangeEnd}
           showDateRange={settings.showDateRange}
           playOrder={settings.playOrder}
+          excludedWeekdays={settings.excludedWeekdays}
+          excludedEventIds={settings.excludedEventIds}
         />
       )}
 

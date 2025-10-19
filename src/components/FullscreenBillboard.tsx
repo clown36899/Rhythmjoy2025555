@@ -14,6 +14,8 @@ interface FullscreenBillboardProps {
   dateRangeEnd?: string | null;
   showDateRange?: boolean;
   playOrder?: "sequential" | "random";
+  excludedWeekdays?: number[];
+  excludedEventIds?: number[];
 }
 
 // 배열 셔플 함수
@@ -38,6 +40,8 @@ export default function FullscreenBillboard({
   dateRangeEnd,
   showDateRange = true,
   playOrder = "random",
+  excludedWeekdays = [],
+  excludedEventIds = [],
 }: FullscreenBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -45,24 +49,48 @@ export default function FullscreenBillboard({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 이벤트 필터링 (요일 제외, 특정 이벤트 제외)
+  const filteredData = useMemo(() => {
+    const filtered: { images: string[], events: any[] } = { images: [], events: [] };
+    
+    events.forEach((event, index) => {
+      // 특정 이벤트 제외
+      if (excludedEventIds.includes(event.id)) {
+        return;
+      }
+      
+      // 요일 제외
+      const eventDate = new Date(event.start_date || event.date);
+      const dayOfWeek = eventDate.getDay();
+      if (excludedWeekdays.includes(dayOfWeek)) {
+        return;
+      }
+      
+      filtered.images.push(images[index]);
+      filtered.events.push(event);
+    });
+    
+    return filtered;
+  }, [images, events, excludedWeekdays, excludedEventIds]);
+
   // 이미지와 이벤트를 재생 순서에 따라 정렬
   const { sortedImages, sortedEvents } = useMemo(() => {
     if (playOrder === "random") {
       // 랜덤 순서로 셔플 (이미지와 이벤트를 함께 셔플)
-      const indices = images.map((_, i) => i);
+      const indices = filteredData.images.map((_, i) => i);
       const shuffledIndices = shuffleArray(indices);
       return {
-        sortedImages: shuffledIndices.map((i) => images[i]),
-        sortedEvents: shuffledIndices.map((i) => events[i]),
+        sortedImages: shuffledIndices.map((i) => filteredData.images[i]),
+        sortedEvents: shuffledIndices.map((i) => filteredData.events[i]),
       };
     } else {
       // 순차 재생
       return {
-        sortedImages: images,
-        sortedEvents: events,
+        sortedImages: filteredData.images,
+        sortedEvents: filteredData.events,
       };
     }
-  }, [images, events, playOrder, isOpen]); // isOpen이 변경될 때마다 재생성 (광고판 열릴 때 새로 셔플)
+  }, [filteredData, playOrder, isOpen]); // isOpen이 변경될 때마다 재생성 (광고판 열릴 때 새로 셔플)
 
   useEffect(() => {
     if (!isOpen || sortedImages.length === 0) {
