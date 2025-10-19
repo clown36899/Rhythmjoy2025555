@@ -214,37 +214,25 @@ export default function HomePage() {
       try {
         const today = new Date();
 
-        console.log('🎬 빌보드 필터 설정:', {
-          excludedWeekdays: settings.excludedWeekdays,
-          excludedEventIds: settings.excludedEventIds,
-          dateRangeStart: settings.dateRangeStart,
-          dateRangeEnd: settings.dateRangeEnd,
-        });
-
         const { data: events } = await supabase
           .from("events")
           .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at")
           .order("date", { ascending: true });
 
-        console.log('📊 전체 이벤트:', events?.length || 0);
-
         if (events && events.length > 0) {
           const filteredEvents = events.filter((event) => {
             // 이미지가 있는지 확인 (image_full 또는 image)
             if (!event.image_full && !event.image) {
-              console.log(`❌ 이벤트 ${event.id} (${event.title}): 이미지 없음`);
               return false;
             }
 
             const endDate = event.end_date || event.start_date || event.date;
             if (!endDate) {
-              console.log(`❌ 이벤트 ${event.id} (${event.title}): 날짜 없음`);
               return false;
             }
 
             // 특정 이벤트 제외
             if (settings.excludedEventIds && settings.excludedEventIds.includes(event.id)) {
-              console.log(`❌ 이벤트 ${event.id} (${event.title}): 특정 이벤트 제외 목록에 포함`);
               return false;
             }
 
@@ -253,7 +241,6 @@ export default function HomePage() {
               const eventDate = new Date(event.start_date || event.date);
               const dayOfWeek = eventDate.getDay();
               if (settings.excludedWeekdays.includes(dayOfWeek)) {
-                console.log(`❌ 이벤트 ${event.id} (${event.title}): 요일 제외 (${dayOfWeek})`);
                 return false;
               }
             }
@@ -263,25 +250,20 @@ export default function HomePage() {
               const eventStartDate = event.start_date || event.date;
               
               if (settings.dateRangeStart && eventStartDate < settings.dateRangeStart) {
-                console.log(`❌ 이벤트 ${event.id} (${event.title}): 시작 날짜가 범위 시작(${settings.dateRangeStart})보다 이전`);
                 return false;
               }
               
               if (settings.dateRangeEnd && eventStartDate > settings.dateRangeEnd) {
-                console.log(`❌ 이벤트 ${event.id} (${event.title}): 시작 날짜가 범위 종료(${settings.dateRangeEnd})보다 이후`);
                 return false;
               }
             }
 
-            console.log(`✅ 이벤트 ${event.id} (${event.title}): 통과`);
             return true;
           });
 
           const images = filteredEvents
             .map((event) => event.image_full || event.image)
             .filter(Boolean);
-          
-          console.log(`🎯 최종 필터링된 이벤트: ${filteredEvents.length}개`, filteredEvents.map(e => `${e.id}:${e.title}`));
           
           setBillboardImages(images);
           setBillboardEvents(filteredEvents);
