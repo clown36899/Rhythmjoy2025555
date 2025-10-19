@@ -867,12 +867,6 @@ export default function EventList({
       setEditImageFile(file);
       const previewUrl = URL.createObjectURL(file);
       setEditImagePreview(previewUrl);
-      
-      setEditFormData((prev) => ({
-        ...prev,
-        videoUrl: '',
-      }));
-      setEditVideoPreview({ provider: null, embedUrl: null });
     }
   };
 

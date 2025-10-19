@@ -96,12 +96,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
-      
-      setFormData(prev => ({
-        ...prev,
-        videoUrl: ''
-      }));
-      setVideoPreview({ provider: null, embedUrl: null });
     }
   };
 
