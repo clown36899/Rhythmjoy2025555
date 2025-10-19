@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import QRCodeModal from "../../../components/QRCodeModal";
+import BillboardUserManagementModal from "../../../components/BillboardUserManagementModal";
 import { supabase } from "../../../lib/supabase";
 import QRCodeImage from "./QRCodeImage"
 
@@ -38,6 +39,7 @@ export default function Header({
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
+  const [showBillboardUserManagement, setShowBillboardUserManagement] = useState(false);
   const [themeColors, setThemeColors] = useState({
     background_color: "#000000",
     header_bg_color: "#1f2937",
@@ -455,6 +457,16 @@ export default function Header({
                       광고판 설정
                     </button>
                     <button
+                      onClick={() => {
+                        setShowSettingsModal(false);
+                        setShowBillboardUserManagement(true);
+                      }}
+                      className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                    >
+                      <i className="ri-user-settings-line"></i>
+                      빌보드 사용자 관리
+                    </button>
+                    <button
                       onClick={() => setShowColorPanel(!showColorPanel)}
                       className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
                     >
@@ -656,6 +668,12 @@ export default function Header({
           </div>,
           document.body,
         )}
+
+      {/* Billboard User Management Modal */}
+      <BillboardUserManagementModal
+        isOpen={showBillboardUserManagement}
+        onClose={() => setShowBillboardUserManagement(false)}
+      />
 
       {/* QR Code Modal */}
       <QRCodeModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} />
