@@ -32,6 +32,15 @@ export default function HomePage() {
     id: number;
     nonce: number;
   } | null>(null);
+  const [qrEventId, setQrEventId] = useState<number | null>(null);
+
+  // QR 이벤트 로딩 완료 시 하이라이트
+  const handleEventsLoadedForQR = useCallback(() => {
+    if (qrEventId) {
+      setHighlightEvent({ id: qrEventId, nonce: Date.now() });
+      setQrEventId(null); // 한 번만 실행
+    }
+  }, [qrEventId]);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -63,9 +72,11 @@ export default function HomePage() {
 
     if (source === 'qr' && eventId) {
       const id = parseInt(eventId);
-      let eventsLoadedTriggered = false;
       
-      // 이벤트 정보 조회 후 달력 이동 및 하이라이트
+      // QR 이벤트 ID 저장
+      setQrEventId(id);
+      
+      // 이벤트 정보 조회 후 달력 이동
       const loadEventAndNavigate = async () => {
         try {
           const { data: event } = await supabase
@@ -81,32 +92,6 @@ export default function HomePage() {
               const date = new Date(eventDate);
               setCurrentMonth(date);
             }
-            
-            console.log('[QR] 이벤트 로딩 대기 시작, Event ID:', id);
-            
-            // 이벤트 로딩 완료를 기다리는 리스너
-            const handleEventsLoaded = () => {
-              console.log('[QR] eventsLoaded 이벤트 수신');
-              if (!eventsLoadedTriggered) {
-                eventsLoadedTriggered = true;
-                console.log('[QR] 하이라이트 실행');
-                setHighlightEvent({ id, nonce: Date.now() });
-                window.removeEventListener('eventsLoaded', handleEventsLoaded);
-              }
-            };
-            
-            window.addEventListener('eventsLoaded', handleEventsLoaded);
-            console.log('[QR] eventsLoaded 리스너 등록 완료');
-            
-            // 만약 5초 내에 로딩이 안 되면 강제 실행 (폴백)
-            setTimeout(() => {
-              if (!eventsLoadedTriggered) {
-                console.log('[QR] 5초 타임아웃 - 강제 하이라이트 실행');
-                eventsLoadedTriggered = true;
-                setHighlightEvent({ id, nonce: Date.now() });
-                window.removeEventListener('eventsLoaded', handleEventsLoaded);
-              }
-            }, 5000);
           }
         } catch (error) {
           console.error('Error loading event for QR navigation:', error);
@@ -788,6 +773,8 @@ export default function HomePage() {
                   searchTerm={searchTerm}
                   setSearchTerm={setSearchTerm}
                   onSearchStart={handleSearchStart}
+                  qrEventId={qrEventId}
+                  onEventsLoaded={handleEventsLoadedForQR}
                   showSearchModal={showSearchModal}
                   setShowSearchModal={setShowSearchModal}
                   showSortModal={showSortModal}

@@ -38,6 +38,8 @@ interface EventListProps {
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: () => void;
+  qrEventId?: number | null;
+  onEventsLoaded?: () => void;
 }
 
 export default function EventList({
@@ -64,6 +66,8 @@ export default function EventList({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
+  qrEventId,
+  onEventsLoaded,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -323,14 +327,12 @@ export default function EventList({
     fetchEvents();
   }, [fetchEvents, refreshTrigger]);
 
-  // 이벤트 로딩 완료 시 custom event 발생
+  // QR 이벤트 로딩 완료 시 콜백 호출
   useEffect(() => {
-    console.log('[EventList] loading:', loading, 'events.length:', events.length);
-    if (!loading && events.length > 0) {
-      console.log('[EventList] eventsLoaded 이벤트 발생');
-      window.dispatchEvent(new CustomEvent('eventsLoaded'));
+    if (!loading && events.length > 0 && qrEventId && onEventsLoaded) {
+      onEventsLoaded();
     }
-  }, [loading, events]);
+  }, [loading, events.length, qrEventId, onEventsLoaded]);
 
   // 달 변경 시 스크롤 위치 리셋
   useEffect(() => {
