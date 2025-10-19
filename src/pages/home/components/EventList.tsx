@@ -1170,7 +1170,19 @@ export default function EventList({
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {(() => {
-                          const thumbnailUrl = event.image_thumbnail || event.image || getEventThumbnail(event, defaultThumbnailUrl);
+                          const thumbnailFromEvent = event.image_thumbnail || event.image;
+                          const thumbnailFromHelper = getEventThumbnail(event, defaultThumbnailUrl);
+                          const thumbnailUrl = thumbnailFromEvent || thumbnailFromHelper;
+                          
+                          // 디버깅: 이미지 없는 이벤트만 로그
+                          if (!event.image && !event.image_thumbnail && !event.video_url) {
+                            console.log('이미지 없는 이벤트:', event.title, {
+                              thumbnailFromEvent,
+                              thumbnailFromHelper,
+                              thumbnailUrl,
+                              defaultThumbnailUrl
+                            });
+                          }
                           
                           if (thumbnailUrl) {
                             return (
