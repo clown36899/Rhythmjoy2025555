@@ -125,13 +125,14 @@ export default function EventList({
   const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
   
   const { defaultThumbnailUrl, loading: defaultThumbnailLoading } = useDefaultThumbnail();
-  const [forceUpdate, setForceUpdate] = useState(0);
   
-  // 기본 썸네일 로드 완료 시 리렌더링
+  // 디버깅: 기본 썸네일 로드 상태 확인
   useEffect(() => {
-    if (!defaultThumbnailLoading && defaultThumbnailUrl) {
-      setForceUpdate(prev => prev + 1);
-    }
+    console.log('🔍 기본 썸네일 상태:', {
+      loading: defaultThumbnailLoading,
+      url: defaultThumbnailUrl,
+      hasUrl: !!defaultThumbnailUrl
+    });
   }, [defaultThumbnailUrl, defaultThumbnailLoading]);
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
