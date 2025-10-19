@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from '../../lib/supabase';
@@ -12,6 +12,8 @@ export default function BillboardPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!userId) {
@@ -93,7 +95,24 @@ export default function BillboardPage() {
   useEffect(() => {
     if (!settings || events.length === 0) return;
 
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+
+    setProgress(0);
+
+    const progressStep = (50 / settings.auto_slide_interval) * 100;
+    progressIntervalRef.current = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          return 0;
+        }
+        return prev + progressStep;
+      });
+    }, 50);
+
     const interval = setInterval(() => {
+      setProgress(0);
       if (settings.play_order === 'random') {
         setCurrentIndex(Math.floor(Math.random() * events.length));
       } else {
@@ -101,7 +120,12 @@ export default function BillboardPage() {
       }
     }, settings.auto_slide_interval);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
   }, [events, settings]);
 
   if (isLoading) {
@@ -144,11 +168,41 @@ export default function BillboardPage() {
           style={{ transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out` }}
         />
 
-        <div className="absolute top-6 left-6 bg-black/70 backdrop-blur-sm rounded-lg px-6 py-4">
-          <h2 className="text-white text-3xl font-bold">{billboardUser?.name}</h2>
-          <p className="text-gray-300 text-lg mt-1">
-            {currentIndex + 1} / {events.length}
-          </p>
+        <div className="absolute top-6 left-6">
+          {events.length > 1 && (
+            <div className="relative w-24 h-24 mb-3">
+              <svg className="transform -rotate-90 w-24 h-24">
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="42"
+                  stroke="rgba(255, 255, 255, 0.2)"
+                  strokeWidth="6"
+                  fill="none"
+                />
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="42"
+                  stroke="white"
+                  strokeWidth="6"
+                  fill="none"
+                  strokeDasharray="264"
+                  strokeDashoffset={264 - (264 * progress) / 100}
+                  style={{ transition: 'stroke-dashoffset 0.05s linear' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-white text-xl font-bold">
+                  {currentIndex + 1}/{events.length}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <div className="bg-black/70 backdrop-blur-sm rounded-lg px-6 py-4">
+            <h2 className="text-white text-2xl font-bold">{billboardUser?.name}</h2>
+          </div>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10 flex items-end justify-between">
