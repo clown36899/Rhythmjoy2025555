@@ -125,11 +125,13 @@ export default function EventList({
   const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
   
   const { defaultThumbnailUrl, loading: defaultThumbnailLoading } = useDefaultThumbnail();
+  const [forceUpdate, setForceUpdate] = useState(0);
   
-  // 디버깅용
+  // 기본 썸네일 로드 완료 시 리렌더링
   useEffect(() => {
-    console.log('기본 썸네일 URL:', defaultThumbnailUrl);
-    console.log('기본 썸네일 로딩:', defaultThumbnailLoading);
+    if (!defaultThumbnailLoading && defaultThumbnailUrl) {
+      setForceUpdate(prev => prev + 1);
+    }
   }, [defaultThumbnailUrl, defaultThumbnailLoading]);
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
@@ -1170,19 +1172,7 @@ export default function EventList({
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {(() => {
-                          const thumbnailFromEvent = event.image_thumbnail || event.image;
-                          const thumbnailFromHelper = getEventThumbnail(event, defaultThumbnailUrl);
-                          const thumbnailUrl = thumbnailFromEvent || thumbnailFromHelper;
-                          
-                          // 디버깅: 이미지 없는 이벤트만 로그
-                          if (!event.image && !event.image_thumbnail && !event.video_url) {
-                            console.log('이미지 없는 이벤트:', event.title, {
-                              thumbnailFromEvent,
-                              thumbnailFromHelper,
-                              thumbnailUrl,
-                              defaultThumbnailUrl
-                            });
-                          }
+                          const thumbnailUrl = event.image_thumbnail || event.image || getEventThumbnail(event, defaultThumbnailUrl);
                           
                           if (thumbnailUrl) {
                             return (
