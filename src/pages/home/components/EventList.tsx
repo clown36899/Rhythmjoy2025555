@@ -1015,14 +1015,31 @@ export default function EventList({
         console.error("Error updating event:", error);
         alert("이벤트 수정 중 오류가 발생했습니다.");
       } else {
+        const updatedEventId = eventToEdit.id;
+        
         alert("이벤트가 수정되었습니다.");
         setShowEditModal(false);
         setEventToEdit(null);
         setEditImageFile(null);
         setEditImagePreview("");
         
-        // 이미지/영상 변경 시 캐시 문제 방지를 위해 페이지 새로고침
-        window.location.reload();
+        // 이벤트 목록 새로고침
+        await fetchEvents();
+        
+        // 달력 및 빌보드 업데이트
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("eventDeleted"));
+        }
+        
+        // 수정된 이벤트로 스크롤 및 하이라이트 (약간의 지연 후)
+        setTimeout(() => {
+          if (onHighlightComplete) {
+            // 하이라이트 이벤트 발생 (상위 컴포넌트에서 처리)
+            window.dispatchEvent(new CustomEvent('scrollToEvent', { 
+              detail: { eventId: updatedEventId } 
+            }));
+          }
+        }, 500);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -1146,7 +1163,7 @@ export default function EventList({
                         ) : (event.image_thumbnail || event.image) ? (
                           // 영상 URL 없고 이미지만 있으면 이미지 표시
                           <img
-                            src={event.image_thumbnail || event.image}
+                            src={`${event.image_thumbnail || event.image}?t=${event.updated_at || event.created_at}`}
                             alt={event.title}
                             className="w-full aspect-[3/4] object-cover object-top"
                           />
