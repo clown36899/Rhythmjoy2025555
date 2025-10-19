@@ -129,7 +129,7 @@ export default function AdminBillboardModal({
     updateLocalSettings({ excluded_event_ids: newExcluded });
   };
 
-  // DB에 저장
+  // DB에 저장 (모달은 닫지 않음)
   const saveUserSettings = async () => {
     if (!billboardUserId || !userSettings) return;
 
@@ -158,6 +158,12 @@ export default function AdminBillboardModal({
       console.error("설정 저장 오류:", error);
       alert("설정 저장 중 오류가 발생했습니다.");
     }
+  };
+
+  // 닫기 버튼 클릭 시 변경사항 무시
+  const handleClose = () => {
+    loadUserSettings(); // 원래 설정으로 복원
+    onClose();
   };
 
   const handleChangePassword = async () => {
@@ -476,19 +482,16 @@ export default function AdminBillboardModal({
               </div>
             </div>
 
-            {/* 저장 및 취소 버튼 */}
+            {/* 저장 및 닫기 버튼 */}
             <div className="flex gap-3 pt-4">
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
               >
-                취소
+                닫기
               </button>
               <button
-                onClick={() => {
-                  saveUserSettings();
-                  onClose();
-                }}
+                onClick={saveUserSettings}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
               >
                 저장
