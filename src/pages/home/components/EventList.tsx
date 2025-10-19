@@ -1149,7 +1149,7 @@ export default function EventList({
                         ) : (event.image_thumbnail || event.image) ? (
                           // 영상 URL 없고 이미지만 있으면 이미지 표시
                           <img
-                            src={`${event.image_thumbnail || event.image}?t=${event.updated_at || event.created_at}`}
+                            src={`${event.image_thumbnail || event.image}?t=${Date.now()}`}
                             alt={event.title}
                             className="w-full aspect-[3/4] object-cover object-top"
                           />
@@ -2301,7 +2301,7 @@ export default function EventList({
               {selectedEvent.image_medium || selectedEvent.image ? (
                 <>
                   <img
-                    src={`${selectedEvent.image_medium || selectedEvent.image}?t=${selectedEvent.updated_at || selectedEvent.created_at}`}
+                    src={`${selectedEvent.image_medium || selectedEvent.image}?t=${Date.now()}`}
                     alt={selectedEvent.title}
                     className="w-full h-full object-cover"
                   />
@@ -2553,7 +2553,7 @@ export default function EventList({
               <i className="ri-close-line text-2xl"></i>
             </button>
             <img
-              src={`${selectedEvent.image_full || selectedEvent.image}?t=${selectedEvent.updated_at || selectedEvent.created_at}`}
+              src={`${selectedEvent.image_full || selectedEvent.image}?t=${Date.now()}`}
               alt={selectedEvent.title}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
