@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import QRCodeModal from "../../../components/QRCodeModal";
 import BillboardUserManagementModal from "../../../components/BillboardUserManagementModal";
+import DefaultThumbnailSettingsModal from "../../../components/DefaultThumbnailSettingsModal";
 import { supabase } from "../../../lib/supabase";
 
 
@@ -47,6 +48,7 @@ export default function Header({
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] = useState(false);
+  const [showDefaultThumbnailSettings, setShowDefaultThumbnailSettings] = useState(false);
   const [themeColors, setThemeColors] = useState({
     background_color: "#000000",
     header_bg_color: "#1f2937",
@@ -545,6 +547,16 @@ export default function Header({
                           빌보드 사용자 관리
                         </button>
                         <button
+                          onClick={() => {
+                            setShowSettingsModal(false);
+                            setShowDefaultThumbnailSettings(true);
+                          }}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                        >
+                          <i className="ri-image-2-line"></i>
+                          기본 썸네일 설정
+                        </button>
+                        <button
                           onClick={() => setShowColorPanel(!showColorPanel)}
                           className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
                         >
@@ -754,6 +766,12 @@ export default function Header({
       <BillboardUserManagementModal
         isOpen={showBillboardUserManagement}
         onClose={() => setShowBillboardUserManagement(false)}
+      />
+
+      {/* Default Thumbnail Settings Modal */}
+      <DefaultThumbnailSettingsModal
+        isOpen={showDefaultThumbnailSettings}
+        onClose={() => setShowDefaultThumbnailSettings(false)}
       />
 
       {/* QR Code Modal */}
