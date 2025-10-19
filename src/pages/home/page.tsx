@@ -81,10 +81,10 @@ export default function HomePage() {
               setCurrentMonth(date);
             }
             
-            // 달력 렌더링 후 하이라이트
+            // 이벤트 리스트 로드를 기다린 후 하이라이트 (1.5초 대기)
             setTimeout(() => {
               setHighlightEvent({ id, nonce: Date.now() });
-            }, 300);
+            }, 1500);
           }
         } catch (error) {
           console.error('Error loading event for QR navigation:', error);
