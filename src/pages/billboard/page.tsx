@@ -139,7 +139,7 @@ export default function BillboardPage() {
         <img
           src={imageUrl}
           alt={currentEvent.title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           style={{ transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out` }}
         />
 
