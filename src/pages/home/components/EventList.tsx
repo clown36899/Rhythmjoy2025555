@@ -5,6 +5,8 @@ import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
 import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
 import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from "../../../utils/videoThumbnail";
+import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
+import { getEventThumbnail } from "../../../utils/getEventThumbnail";
 import QRCodeImage from "./QRCodeImage";
 
 
@@ -121,6 +123,8 @@ export default function EventList({
   const [editVideoPreview, setEditVideoPreview] = useState<{ provider: string | null; embedUrl: string | null }>({ provider: null, embedUrl: null });
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
+  
+  const { defaultThumbnailUrl } = useDefaultThumbnail();
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
@@ -1156,34 +1160,41 @@ export default function EventList({
 
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
-                        {(event.image_thumbnail || event.image) ? (
-                          // 이미지가 있으면 이미지 표시 (추출 썸네일 우선)
-                          <img
-                            src={event.image_thumbnail || event.image}
-                            alt={event.title}
-                            className="w-full aspect-[3/4] object-cover object-top"
-                          />
-                        ) : event.video_url ? (
-                          // 이미지 없고 영상만 있으면 플레이 아이콘
-                          <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                            <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                          </div>
-                        ) : (
-                          // 둘 다 없으면 기본 배경
-                          <div
-                            className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
-                            style={{
-                              backgroundImage: "url(/grunge.png)",
-                            }}
-                          >
-                            <div
-                              className={`absolute inset-0 ${event.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
-                            ></div>
-                            <span className="text-white/10 text-4xl font-bold relative">
-                              {event.category === "class" ? "강습" : "행사"}
-                            </span>
-                          </div>
-                        )}
+                        {(() => {
+                          const thumbnailUrl = event.image_thumbnail || event.image || getEventThumbnail(event, defaultThumbnailUrl);
+                          
+                          if (thumbnailUrl) {
+                            return (
+                              <img
+                                src={thumbnailUrl}
+                                alt={event.title}
+                                className="w-full aspect-[3/4] object-cover object-top"
+                              />
+                            );
+                          } else if (event.video_url) {
+                            return (
+                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
+                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div
+                                className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
+                                style={{
+                                  backgroundImage: "url(/grunge.png)",
+                                }}
+                              >
+                                <div
+                                  className={`absolute inset-0 ${event.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
+                                ></div>
+                                <span className="text-white/10 text-4xl font-bold relative">
+                                  {event.category === "class" ? "강습" : "행사"}
+                                </span>
+                              </div>
+                            );
+                          }
+                        })()}
                         {/* 왼쪽 상단 카테고리 배지 */}
                         <div
                           className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}
