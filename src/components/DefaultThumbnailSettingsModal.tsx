@@ -65,7 +65,7 @@ export default function DefaultThumbnailSettingsModal({
       const filePath = `default-thumbnails/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("event-images")
+        .from("images")
         .upload(filePath, file);
 
       if (uploadError) {
@@ -73,7 +73,7 @@ export default function DefaultThumbnailSettingsModal({
       }
 
       const { data: urlData } = supabase.storage
-        .from("event-images")
+        .from("images")
         .getPublicUrl(filePath);
 
       return urlData.publicUrl;
@@ -96,7 +96,7 @@ export default function DefaultThumbnailSettingsModal({
           
           if (defaultThumbnailUrl && defaultThumbnailUrl.includes("supabase")) {
             const oldPath = defaultThumbnailUrl.split("/").slice(-2).join("/");
-            await supabase.storage.from("event-images").remove([oldPath]);
+            await supabase.storage.from("images").remove([oldPath]);
           }
         }
       } else if (!imagePreview) {
