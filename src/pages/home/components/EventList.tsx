@@ -125,21 +125,6 @@ export default function EventList({
   const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
   
   const { defaultThumbnailUrl, loading: defaultThumbnailLoading } = useDefaultThumbnail();
-  
-  // 기본 썸네일 로드 완료 시 강제 리렌더링
-  const [thumbnailReady, setThumbnailReady] = useState(false);
-  useEffect(() => {
-    console.log('🔍 기본 썸네일 상태:', {
-      loading: defaultThumbnailLoading,
-      url: defaultThumbnailUrl,
-      hasUrl: !!defaultThumbnailUrl
-    });
-    
-    if (!defaultThumbnailLoading && defaultThumbnailUrl) {
-      setThumbnailReady(true);
-      console.log('✅ 기본 썸네일 준비 완료, 리렌더링 트리거');
-    }
-  }, [defaultThumbnailUrl, defaultThumbnailLoading]);
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
@@ -1179,45 +1164,27 @@ export default function EventList({
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {(() => {
-                          // 이미지 우선순위: 이벤트 이미지 > 기본 썸네일 > 텍스트 fallback
-                          const eventImage = event.image_thumbnail || event.image;
+                          // getEventThumbnail 유틸리티 함수로 최종 썸네일 URL 결정
+                          const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
                           
-                          // 디버깅: 배너 렌더링 시점의 defaultThumbnailUrl 확인
-                          if (!eventImage && !event.video_url) {
-                            console.log('🎨 배너 렌더링:', {
-                              eventTitle: event.title,
-                              defaultThumbnailUrl,
-                              willUseDefault: !!defaultThumbnailUrl
-                            });
-                          }
-                          
-                          if (eventImage) {
-                            // 1순위: 이벤트 이미지
+                          if (finalThumbnailUrl) {
+                            // 1순위: 최종 썸네일 (이벤트 이미지 또는 기본 이미지)
                             return (
                               <img
-                                src={eventImage}
+                                src={finalThumbnailUrl}
                                 alt={event.title}
                                 className="w-full aspect-[3/4] object-cover object-top"
                               />
                             );
                           } else if (event.video_url) {
-                            // 2순위: 비디오 (재생 아이콘)
+                            // 2순위: 이미지 없고 비디오만 있을 때 (재생 아이콘)
                             return (
                               <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
                                 <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
                               </div>
                             );
-                          } else if (defaultThumbnailUrl) {
-                            // 3순위: 기본 썸네일
-                            return (
-                              <img
-                                src={defaultThumbnailUrl}
-                                alt={event.title}
-                                className="w-full aspect-[3/4] object-cover object-top"
-                              />
-                            );
                           } else {
-                            // 4순위: 텍스트 fallback (기존 하드코딩)
+                            // 3순위: 이미지도 비디오도 없을 때 (텍스트 fallback)
                             return (
                               <div
                                 className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
