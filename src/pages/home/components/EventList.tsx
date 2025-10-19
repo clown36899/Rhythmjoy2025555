@@ -325,7 +325,9 @@ export default function EventList({
 
   // 이벤트 로딩 완료 시 custom event 발생
   useEffect(() => {
+    console.log('[EventList] loading:', loading, 'events.length:', events.length);
     if (!loading && events.length > 0) {
+      console.log('[EventList] eventsLoaded 이벤트 발생');
       window.dispatchEvent(new CustomEvent('eventsLoaded'));
     }
   }, [loading, events]);

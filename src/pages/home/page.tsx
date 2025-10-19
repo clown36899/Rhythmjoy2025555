@@ -82,20 +82,26 @@ export default function HomePage() {
               setCurrentMonth(date);
             }
             
+            console.log('[QR] 이벤트 로딩 대기 시작, Event ID:', id);
+            
             // 이벤트 로딩 완료를 기다리는 리스너
             const handleEventsLoaded = () => {
+              console.log('[QR] eventsLoaded 이벤트 수신');
               if (!eventsLoadedTriggered) {
                 eventsLoadedTriggered = true;
+                console.log('[QR] 하이라이트 실행');
                 setHighlightEvent({ id, nonce: Date.now() });
                 window.removeEventListener('eventsLoaded', handleEventsLoaded);
               }
             };
             
             window.addEventListener('eventsLoaded', handleEventsLoaded);
+            console.log('[QR] eventsLoaded 리스너 등록 완료');
             
             // 만약 5초 내에 로딩이 안 되면 강제 실행 (폴백)
             setTimeout(() => {
               if (!eventsLoadedTriggered) {
+                console.log('[QR] 5초 타임아웃 - 강제 하이라이트 실행');
                 eventsLoadedTriggered = true;
                 setHighlightEvent({ id, nonce: Date.now() });
                 window.removeEventListener('eventsLoaded', handleEventsLoaded);
