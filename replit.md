@@ -21,6 +21,8 @@ Events support multi-day occurrences with `start_date` and `end_date` fields, al
 
 **Registrant Information Privacy**: Events include private registrant fields (`organizer_name`, `organizer_phone`) that are required during registration but only visible in admin mode. Non-admin users never receive these fields via network requests—EventList uses conditional Supabase queries that explicitly exclude sensitive columns when `isAdminMode=false`. Billboard queries also exclude registrant data for all users.
 
+**Category-Specific Default Thumbnails**: Admin can configure separate default thumbnails for events without images via `billboard_settings` table (`default_thumbnail_class` for 강습, `default_thumbnail_event` for 행사). The `getEventThumbnail` utility applies these defaults to event banners and detail views (but NOT to billboard displays). Defaults display even when a video URL is present, ensuring consistent visual presentation across the main site.
+
 ### Search & Filter Architecture
 Event discovery features date-based filtering via calendar selection, category filtering (all/class/event), and text search across titles and descriptions. Search suggestions are generated from existing event titles. Events can be sorted by random, time, title, or newest.
 
