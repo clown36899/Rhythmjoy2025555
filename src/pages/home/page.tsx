@@ -63,6 +63,7 @@ export default function HomePage() {
 
     if (source === 'qr' && eventId) {
       const id = parseInt(eventId);
+      let eventsLoadedTriggered = false;
       
       // 이벤트 정보 조회 후 달력 이동 및 하이라이트
       const loadEventAndNavigate = async () => {
@@ -81,10 +82,25 @@ export default function HomePage() {
               setCurrentMonth(date);
             }
             
-            // 이벤트 리스트 로드를 기다린 후 하이라이트 (1.5초 대기)
+            // 이벤트 로딩 완료를 기다리는 리스너
+            const handleEventsLoaded = () => {
+              if (!eventsLoadedTriggered) {
+                eventsLoadedTriggered = true;
+                setHighlightEvent({ id, nonce: Date.now() });
+                window.removeEventListener('eventsLoaded', handleEventsLoaded);
+              }
+            };
+            
+            window.addEventListener('eventsLoaded', handleEventsLoaded);
+            
+            // 만약 5초 내에 로딩이 안 되면 강제 실행 (폴백)
             setTimeout(() => {
-              setHighlightEvent({ id, nonce: Date.now() });
-            }, 1500);
+              if (!eventsLoadedTriggered) {
+                eventsLoadedTriggered = true;
+                setHighlightEvent({ id, nonce: Date.now() });
+                window.removeEventListener('eventsLoaded', handleEventsLoaded);
+              }
+            }, 5000);
           }
         } catch (error) {
           console.error('Error loading event for QR navigation:', error);

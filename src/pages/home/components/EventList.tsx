@@ -323,6 +323,13 @@ export default function EventList({
     fetchEvents();
   }, [fetchEvents, refreshTrigger]);
 
+  // 이벤트 로딩 완료 시 custom event 발생
+  useEffect(() => {
+    if (!loading && events.length > 0) {
+      window.dispatchEvent(new CustomEvent('eventsLoaded'));
+    }
+  }, [loading, events]);
+
   // 달 변경 시 스크롤 위치 리셋
   useEffect(() => {
     const scrollContainer = document.querySelector(".overflow-y-auto");
