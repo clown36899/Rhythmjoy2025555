@@ -1168,7 +1168,7 @@ export default function EventList({
                           const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
                           
                           if (finalThumbnailUrl) {
-                            // 1순위: 최종 썸네일 (이벤트 이미지 또는 기본 이미지)
+                            // 최종 썸네일 (이벤트 이미지 또는 기본 이미지)
                             return (
                               <img
                                 src={finalThumbnailUrl}
@@ -1176,15 +1176,8 @@ export default function EventList({
                                 className="w-full aspect-[3/4] object-cover object-top"
                               />
                             );
-                          } else if (event.video_url) {
-                            // 2순위: 이미지 없고 비디오만 있을 때 (재생 아이콘)
-                            return (
-                              <div className="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center">
-                                <i className="ri-play-circle-fill text-white text-6xl opacity-90"></i>
-                              </div>
-                            );
                           } else {
-                            // 3순위: 이미지도 비디오도 없을 때 (텍스트 fallback)
+                            // 텍스트 fallback (이미지도 기본 썸네일도 없을 때)
                             return (
                               <div
                                 className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"

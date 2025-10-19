@@ -13,11 +13,6 @@ export function getEventThumbnail(
     return event.image_thumbnail || event.image || '';
   }
 
-  // 2순위: 비디오 URL이 없으면 기본 썸네일
-  if (!event.video_url) {
-    return defaultThumbnailUrl || '';
-  }
-
-  // 3순위: 비디오 URL이 있으면 빈 문자열 (배너에서 재생 아이콘 표시)
-  return '';
+  // 2순위: 기본 썸네일 (영상이 있든 없든 사용)
+  return defaultThumbnailUrl || '';
 }
