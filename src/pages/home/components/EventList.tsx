@@ -1844,42 +1844,54 @@ export default function EventList({
                   </div>
                 </div>
 
-                {/* 등록자 정보 (관리자 전용) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      등록자 이름
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.organizerName}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          organizerName: e.target.value,
-                        }))
-                      }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="등록자 이름"
-                    />
+                {/* 등록자 정보 (관리자 전용, 비공개) */}
+                <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <i className="ri-lock-line text-orange-400 text-sm"></i>
+                    <h3 className="text-orange-400 text-xs font-bold">등록자 정보 (비공개 - 관리자만 확인 가능)</h3>
                   </div>
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      등록자 전화번호
-                    </label>
-                    <input
-                      type="tel"
-                      value={editFormData.organizerPhone}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          organizerPhone: e.target.value,
-                        }))
-                      }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="010-0000-0000"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-orange-300 text-xs font-medium mb-1">
+                        등록자 이름 <span className="text-red-400">*필수</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.organizerName}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            organizerName: e.target.value,
+                          }))
+                        }
+                        required
+                        className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        placeholder="등록자 이름"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-orange-300 text-xs font-medium mb-1">
+                        등록자 전화번호 <span className="text-red-400">*필수</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={editFormData.organizerPhone}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            organizerPhone: e.target.value,
+                          }))
+                        }
+                        required
+                        className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        placeholder="010-0000-0000"
+                      />
+                    </div>
                   </div>
+                  <p className="text-xs text-orange-300/80 mt-2">
+                    <i className="ri-information-line mr-1"></i>
+                    수정 등 문제가 있을 경우 연락받으실 번호입니다
+                  </p>
                 </div>
 
                 <div>
