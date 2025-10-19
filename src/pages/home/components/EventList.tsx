@@ -124,7 +124,13 @@ export default function EventList({
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
   
-  const { defaultThumbnailUrl } = useDefaultThumbnail();
+  const { defaultThumbnailUrl, loading: defaultThumbnailLoading } = useDefaultThumbnail();
+  
+  // 디버깅용
+  useEffect(() => {
+    console.log('기본 썸네일 URL:', defaultThumbnailUrl);
+    console.log('기본 썸네일 로딩:', defaultThumbnailLoading);
+  }, [defaultThumbnailUrl, defaultThumbnailLoading]);
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
