@@ -1293,14 +1293,24 @@ export default function EventList({
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+                              const isDefaultThumbnail = !event.image && !event.image_thumbnail && finalThumbnailUrl;
                               
                               if (finalThumbnailUrl) {
                                 return (
-                                  <img
-                                    src={finalThumbnailUrl}
-                                    alt={event.title}
-                                    className="w-full aspect-[3/4] object-cover object-top"
-                                  />
+                                  <>
+                                    <img
+                                      src={finalThumbnailUrl}
+                                      alt={event.title}
+                                      className="w-full aspect-[3/4] object-cover object-top"
+                                    />
+                                    {isDefaultThumbnail && (
+                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <span className="text-white/50 text-4xl font-bold">
+                                          {event.category === "class" ? "강습" : "행사"}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </>
                                 );
                               } else {
                                 return (
@@ -1405,14 +1415,24 @@ export default function EventList({
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+                              const isDefaultThumbnail = !event.image && !event.image_thumbnail && finalThumbnailUrl;
                               
                               if (finalThumbnailUrl) {
                                 return (
-                                  <img
-                                    src={finalThumbnailUrl}
-                                    alt={event.title}
-                                    className="w-full aspect-[3/4] object-cover object-top"
-                                  />
+                                  <>
+                                    <img
+                                      src={finalThumbnailUrl}
+                                      alt={event.title}
+                                      className="w-full aspect-[3/4] object-cover object-top"
+                                    />
+                                    {isDefaultThumbnail && (
+                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <span className="text-white/50 text-4xl font-bold">
+                                          {event.category === "class" ? "강습" : "행사"}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </>
                                 );
                               } else {
                                 return (
@@ -1507,14 +1527,24 @@ export default function EventList({
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+                              const isDefaultThumbnail = !event.image && !event.image_thumbnail && finalThumbnailUrl;
                               
                               if (finalThumbnailUrl) {
                                 return (
-                                  <img
-                                    src={finalThumbnailUrl}
-                                    alt={event.title}
-                                    className="w-full aspect-[3/4] object-cover object-top"
-                                  />
+                                  <>
+                                    <img
+                                      src={finalThumbnailUrl}
+                                      alt={event.title}
+                                      className="w-full aspect-[3/4] object-cover object-top"
+                                    />
+                                    {isDefaultThumbnail && (
+                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <span className="text-white/50 text-4xl font-bold">
+                                          {event.category === "class" ? "강습" : "행사"}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </>
                                 );
                               } else {
                                 return (
@@ -2376,20 +2406,35 @@ export default function EventList({
                 setShowFullscreenImage(true)
               }
             >
-              {selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? (
-                <>
-                  <img
-                    src={selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent)}
-                    alt={selectedEvent.title}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* 이미지 확대 아이콘 */}
-                  <div className="absolute top-4 left-4 bg-black/50 text-white px-2 py-1 rounded-lg text-xs backdrop-blur-sm">
-                    <i className="ri-zoom-in-line mr-1"></i>
-                    클릭하여 크게 보기
-                  </div>
-                </>
-              ) : (
+              {(() => {
+                const detailImageUrl = selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent);
+                const isDefaultThumbnail = !selectedEvent.image_medium && !selectedEvent.image && detailImageUrl;
+                
+                if (detailImageUrl) {
+                  return (
+                    <>
+                      <img
+                        src={detailImageUrl}
+                        alt={selectedEvent.title}
+                        className="w-full h-full object-cover"
+                      />
+                      {isDefaultThumbnail && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-white/50 text-6xl font-bold">
+                            {selectedEvent.category === "class" ? "강습" : "행사"}
+                          </span>
+                        </div>
+                      )}
+                      {/* 이미지 확대 아이콘 */}
+                      <div className="absolute top-4 left-4 bg-black/50 text-white px-2 py-1 rounded-lg text-xs backdrop-blur-sm">
+                        <i className="ri-zoom-in-line mr-1"></i>
+                        클릭하여 크게 보기
+                      </div>
+                    </>
+                  );
+                }
+                
+                return (
                 <>
                   <div
                     className={`absolute inset-0 ${selectedEvent.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
@@ -2398,7 +2443,8 @@ export default function EventList({
                     {selectedEvent.category === "class" ? "강습" : "행사"}
                   </span>
                 </>
-              )}
+                );
+              })()}
 
               {/* 수정/닫기 버튼 - 이미지 위 우측 상단 */}
               <div className="absolute top-4 right-4 z-30 flex space-x-2">
