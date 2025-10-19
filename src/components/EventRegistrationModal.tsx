@@ -535,9 +535,54 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     onChange={handleImageChange}
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
                   />
+                  
+                  {/* 썸네일 추출 버튼 (영상 URL이 있을 때만) */}
+                  {formData.videoUrl && videoPreview.provider && (
+                    <>
+                      {(videoPreview.provider === 'youtube' || videoPreview.provider === 'vimeo') ? (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const options = await getVideoThumbnailOptions(formData.videoUrl);
+                              if (options.length > 0) {
+                                setThumbnailOptions(options);
+                                setShowThumbnailSelector(true);
+                              } else {
+                                alert('이 영상에서 썸네일을 추출할 수 없습니다.');
+                              }
+                            } catch (error) {
+                              console.error('썸네일 추출 오류:', error);
+                              alert('썸네일 추출 중 오류가 발생했습니다.');
+                            }
+                          }}
+                          className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                        >
+                          <i className="ri-image-add-line mr-1"></i>
+                          썸네일 추출하기 {videoPreview.provider === 'youtube' && '(여러 장면 선택 가능)'}
+                        </button>
+                      ) : (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full bg-gray-600 text-gray-400 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed opacity-60"
+                          >
+                            <i className="ri-image-add-line mr-1"></i>
+                            썸네일 추출 불가능
+                          </button>
+                          <p className="text-xs text-orange-400 mt-2">
+                            <i className="ri-alert-line mr-1"></i>
+                            Instagram/Facebook은 썸네일 자동 추출이 지원되지 않습니다. 위 이미지 업로드로 썸네일을 직접 등록해주세요.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
                   <p className="text-xs text-gray-400">
                     <i className="ri-information-line mr-1"></i>
-                    썸네일은 이벤트 배너와 상세보기에 표시됩니다.
+                    포스터 이미지는 이벤트 배너와 상세보기에 표시됩니다.
                   </p>
                 </div>
               </div>
@@ -583,57 +628,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     </div>
                   )}
                   
-                  {/* 추출 썸네일 미리보기 (영상 URL이 있을 때만) */}
-                  {formData.videoUrl && (imagePreview || imageFile) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-blue-400 mb-1">
-                        <i className="ri-image-line"></i>
-                        <span>추출 썸네일 (리스트/상세보기용)</span>
-                      </div>
-                      <div className="relative">
-                        <img
-                          src={imagePreview}
-                          alt="추출 썸네일"
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setImagePreview("");
-                            setImageFile(null);
-                          }}
-                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
-                        >
-                          썸네일 삭제
-                        </button>
-                      </div>
-                      {/* 썸네일 변경 버튼 */}
-                      {(videoPreview.provider === 'youtube' || videoPreview.provider === 'vimeo') && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              const options = await getVideoThumbnailOptions(formData.videoUrl);
-                              if (options.length > 0) {
-                                setThumbnailOptions(options);
-                                setShowThumbnailSelector(true);
-                              } else {
-                                alert('이 영상에서 썸네일을 추출할 수 없습니다.');
-                              }
-                            } catch (error) {
-                              console.error('썸네일 추출 오류:', error);
-                              alert('썸네일 추출 중 오류가 발생했습니다.');
-                            }
-                          }}
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                        >
-                          <i className="ri-refresh-line mr-1"></i>
-                          썸네일 변경하기
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  
                   <input
                     type="url"
                     name="videoUrl"
@@ -661,49 +655,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     <p className="text-xs text-red-400 mt-1">
                       지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
                     </p>
-                  )}
-                  {/* 썸네일 추출 버튼 */}
-                  {formData.videoUrl && videoPreview.provider && (
-                    <>
-                      {(videoPreview.provider === 'youtube' || videoPreview.provider === 'vimeo') ? (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              const options = await getVideoThumbnailOptions(formData.videoUrl);
-                              if (options.length > 0) {
-                                setThumbnailOptions(options);
-                                setShowThumbnailSelector(true);
-                              } else {
-                                alert('이 영상에서 썸네일을 추출할 수 없습니다.');
-                              }
-                            } catch (error) {
-                              console.error('썸네일 추출 오류:', error);
-                              alert('썸네일 추출 중 오류가 발생했습니다.');
-                            }
-                          }}
-                          className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                        >
-                          <i className="ri-image-add-line mr-1"></i>
-                          썸네일 추출하기 {videoPreview.provider === 'youtube' && '(여러 장면 선택 가능)'}
-                        </button>
-                      ) : (
-                        <div className="mt-2">
-                          <button
-                            type="button"
-                            disabled
-                            className="w-full bg-gray-600 text-gray-400 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed opacity-60"
-                          >
-                            <i className="ri-image-add-line mr-1"></i>
-                            썸네일 추출 불가능
-                          </button>
-                          <p className="text-xs text-orange-400 mt-2">
-                            <i className="ri-alert-line mr-1"></i>
-                            Instagram/Facebook은 썸네일 자동 추출이 지원되지 않습니다. 위 이미지 업로드로 썸네일을 직접 등록해주세요.
-                          </p>
-                        </div>
-                      )}
-                    </>
                   )}
                 </div>
               </div>
