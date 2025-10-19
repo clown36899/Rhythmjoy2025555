@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../../lib/supabase';
 import type { BillboardUser, BillboardUserSettings, Event } from '../../lib/supabase';
 
@@ -150,27 +151,18 @@ export default function BillboardPage() {
           </p>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10">
-          <h3 className="text-white text-4xl font-bold mb-4">{currentEvent.title}</h3>
-          <div className="flex flex-col gap-3 text-gray-300 text-xl">
-            {currentEvent.time && (
-              <div className="flex items-center gap-3">
-                <i className="ri-time-line text-2xl"></i>
-                <span>{currentEvent.time}</span>
-              </div>
-            )}
-            {currentEvent.location && (
-              <div className="flex items-center gap-3">
-                <i className="ri-map-pin-line text-2xl"></i>
-                <span>{currentEvent.location}</span>
-              </div>
-            )}
-            {currentEvent.price && (
-              <div className="flex items-center gap-3">
-                <i className="ri-price-tag-3-line text-2xl"></i>
-                <span>{currentEvent.price}</span>
-              </div>
-            )}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10 flex items-end justify-between">
+          <div className="flex-1">
+            <h3 className="text-white text-4xl font-bold">{currentEvent.title}</h3>
+          </div>
+          
+          <div className="bg-white p-3 rounded-lg ml-6 flex-shrink-0">
+            <QRCodeSVG
+              value={`${window.location.origin}?event=${currentEvent.id}&from=qr`}
+              size={120}
+              level="M"
+              includeMargin={false}
+            />
           </div>
         </div>
       </div>
