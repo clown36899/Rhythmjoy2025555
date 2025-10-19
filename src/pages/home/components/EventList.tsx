@@ -1089,11 +1089,18 @@ export default function EventList({
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {event.image_thumbnail || event.image ? (
-                          <img
-                            src={event.image_thumbnail || event.image}
-                            alt={event.title}
-                            className="w-full aspect-[3/4] object-cover object-top"
-                          />
+                          <>
+                            <img
+                              src={event.image_thumbnail || event.image}
+                              alt={event.title}
+                              className="w-full aspect-[3/4] object-cover object-top"
+                            />
+                            {event.video_url && (
+                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <i className="ri-play-circle-fill text-white text-5xl opacity-80"></i>
+                              </div>
+                            )}
+                          </>
                         ) : (
                           <div
                             className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
@@ -1206,11 +1213,18 @@ export default function EventList({
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {event.image_thumbnail || event.image ? (
-                              <img
-                                src={event.image_thumbnail || event.image}
-                                alt={event.title}
-                                className="w-full aspect-[3/4] object-cover object-top"
-                              />
+                              <>
+                                <img
+                                  src={event.image_thumbnail || event.image}
+                                  alt={event.title}
+                                  className="w-full aspect-[3/4] object-cover object-top"
+                                />
+                                {event.video_url && (
+                                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                    <i className="ri-play-circle-fill text-white text-5xl opacity-80"></i>
+                                  </div>
+                                )}
+                              </>
                             ) : (
                               <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                 <span className="text-white/10 text-4xl font-bold relative">
@@ -1310,11 +1324,18 @@ export default function EventList({
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {event.image_thumbnail || event.image ? (
-                              <img
-                                src={event.image_thumbnail || event.image}
-                                alt={event.title}
-                                className="w-full aspect-[3/4] object-cover object-top"
-                              />
+                              <>
+                                <img
+                                  src={event.image_thumbnail || event.image}
+                                  alt={event.title}
+                                  className="w-full aspect-[3/4] object-cover object-top"
+                                />
+                                {event.video_url && (
+                                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                    <i className="ri-play-circle-fill text-white text-5xl opacity-80"></i>
+                                  </div>
+                                )}
+                              </>
                             ) : (
                               <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                 <span className="text-white/10 text-4xl font-bold relative">
@@ -1404,11 +1425,18 @@ export default function EventList({
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {event.image_thumbnail || event.image ? (
-                              <img
-                                src={event.image_thumbnail || event.image}
-                                alt={event.title}
-                                className="w-full aspect-[3/4] object-cover object-top"
-                              />
+                              <>
+                                <img
+                                  src={event.image_thumbnail || event.image}
+                                  alt={event.title}
+                                  className="w-full aspect-[3/4] object-cover object-top"
+                                />
+                                {event.video_url && (
+                                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                    <i className="ri-play-circle-fill text-white text-5xl opacity-80"></i>
+                                  </div>
+                                )}
+                              </>
                             ) : (
                               <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                 <span className="text-white/10 text-4xl font-bold relative">

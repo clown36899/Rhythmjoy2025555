@@ -25,10 +25,22 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   }
 
   if (isInstagramUrl(trimmedUrl)) {
-    const embedUrl = trimmedUrl.replace(/\/(p|reel|tv)\/([^/?]+).*/, '/p/$2/embed/');
+    const match = trimmedUrl.match(/\/(p|reel|tv)\/([^/?]+)/);
+    if (match) {
+      const resourceType = match[1];
+      const resourceId = match[2];
+      const baseUrl = trimmedUrl.split('?')[0].replace(/\/$/, '');
+      const embedUrl = `${baseUrl}/embed/`;
+      return {
+        provider: 'instagram',
+        embedUrl,
+        thumbnailUrl: null,
+        videoId: resourceId,
+      };
+    }
     return {
-      provider: 'instagram',
-      embedUrl,
+      provider: null,
+      embedUrl: null,
       thumbnailUrl: null,
       videoId: null,
     };
