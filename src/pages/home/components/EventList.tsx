@@ -1015,31 +1015,19 @@ export default function EventList({
         console.error("Error updating event:", error);
         alert("이벤트 수정 중 오류가 발생했습니다.");
       } else {
-        const updatedEventId = eventToEdit.id;
-        
         alert("이벤트가 수정되었습니다.");
         setShowEditModal(false);
         setEventToEdit(null);
         setEditImageFile(null);
         setEditImagePreview("");
         
-        // 이벤트 목록 새로고침
+        // 이벤트 목록 새로고침 (썸네일 즉시 반영)
         await fetchEvents();
         
         // 달력 및 빌보드 업데이트
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("eventDeleted"));
         }
-        
-        // 수정된 이벤트로 스크롤 및 하이라이트 (약간의 지연 후)
-        setTimeout(() => {
-          if (onHighlightComplete) {
-            // 하이라이트 이벤트 발생 (상위 컴포넌트에서 처리)
-            window.dispatchEvent(new CustomEvent('scrollToEvent', { 
-              detail: { eventId: updatedEventId } 
-            }));
-          }
-        }, 500);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -2315,7 +2303,7 @@ export default function EventList({
               {selectedEvent.image_medium || selectedEvent.image ? (
                 <>
                   <img
-                    src={selectedEvent.image_medium || selectedEvent.image}
+                    src={`${selectedEvent.image_medium || selectedEvent.image}?t=${selectedEvent.updated_at || selectedEvent.created_at}`}
                     alt={selectedEvent.title}
                     className="w-full h-full object-cover"
                   />
@@ -2567,7 +2555,7 @@ export default function EventList({
               <i className="ri-close-line text-2xl"></i>
             </button>
             <img
-              src={selectedEvent.image_full || selectedEvent.image}
+              src={`${selectedEvent.image_full || selectedEvent.image}?t=${selectedEvent.updated_at || selectedEvent.created_at}`}
               alt={selectedEvent.title}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}

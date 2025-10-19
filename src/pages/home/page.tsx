@@ -120,25 +120,10 @@ export default function HomePage() {
       setRefreshTrigger(prev => prev + 1);
     };
 
-    const handleScrollToEvent = (e: CustomEvent) => {
-      const { eventId } = e.detail;
-      if (eventId) {
-        // 전면 빌보드 닫기
-        setIsBillboardOpen(false);
-        
-        // 이벤트 하이라이트 및 스크롤
-        setTimeout(() => {
-          setHighlightEvent({ id: eventId, nonce: Date.now() });
-        }, 300);
-      }
-    };
-
     window.addEventListener('eventDeleted', handleEventUpdate);
-    window.addEventListener('scrollToEvent', handleScrollToEvent as EventListener);
     
     return () => {
       window.removeEventListener('eventDeleted', handleEventUpdate);
-      window.removeEventListener('scrollToEvent', handleScrollToEvent as EventListener);
     };
   }, []);
 
