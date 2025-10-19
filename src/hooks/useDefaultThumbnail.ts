@@ -2,25 +2,27 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useDefaultThumbnail() {
-  const [defaultThumbnailUrl, setDefaultThumbnailUrl] = useState<string>('');
+  const [defaultThumbnailClass, setDefaultThumbnailClass] = useState<string>('');
+  const [defaultThumbnailEvent, setDefaultThumbnailEvent] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDefaultThumbnail();
+    loadDefaultThumbnails();
   }, []);
 
-  const loadDefaultThumbnail = async () => {
+  const loadDefaultThumbnails = async () => {
     try {
       const { data, error } = await supabase
         .from('billboard_settings')
-        .select('default_thumbnail_url')
+        .select('default_thumbnail_class, default_thumbnail_event')
         .eq('id', 1)
         .single();
 
       if (error) {
-        console.error('Error loading default thumbnail:', error);
+        console.error('Error loading default thumbnails:', error);
       } else if (data) {
-        setDefaultThumbnailUrl(data.default_thumbnail_url || '');
+        setDefaultThumbnailClass(data.default_thumbnail_class || '');
+        setDefaultThumbnailEvent(data.default_thumbnail_event || '');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -29,5 +31,5 @@ export function useDefaultThumbnail() {
     }
   };
 
-  return { defaultThumbnailUrl, loading };
+  return { defaultThumbnailClass, defaultThumbnailEvent, loading };
 }

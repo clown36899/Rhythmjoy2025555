@@ -124,16 +124,7 @@ export default function EventList({
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
   
-  const { defaultThumbnailUrl, loading: defaultThumbnailLoading } = useDefaultThumbnail();
-  
-  // 디버깅: 기본 썸네일 로딩 상태 확인
-  useEffect(() => {
-    console.log('📊 defaultThumbnailUrl 상태:', {
-      loading: defaultThumbnailLoading,
-      url: defaultThumbnailUrl,
-      hasUrl: !!defaultThumbnailUrl
-    });
-  }, [defaultThumbnailUrl, defaultThumbnailLoading]);
+  const { defaultThumbnailClass, defaultThumbnailEvent, loading: defaultThumbnailLoading } = useDefaultThumbnail();
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
@@ -1174,7 +1165,7 @@ export default function EventList({
                       <div className="relative">
                         {(() => {
                           // getEventThumbnail 유틸리티 함수로 최종 썸네일 URL 결정
-                          const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
+                          const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
                           
                           if (finalThumbnailUrl) {
                             // 최종 썸네일 (이벤트 이미지 또는 기본 이미지)
@@ -1301,7 +1292,7 @@ export default function EventList({
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
+                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
                               
                               if (finalThumbnailUrl) {
                                 return (
@@ -1413,7 +1404,7 @@ export default function EventList({
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
+                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
                               
                               if (finalThumbnailUrl) {
                                 return (
@@ -1515,7 +1506,7 @@ export default function EventList({
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailUrl);
+                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
                               
                               if (finalThumbnailUrl) {
                                 return (
@@ -2372,23 +2363,23 @@ export default function EventList({
           >
             {/* 이미지 영역 - 클릭 시 풀스크린 */}
             <div
-              className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl) ? "bg-black" : "bg-cover bg-center"}`}
+              className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
               style={
-                !(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl))
+                !(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
                   ? {
                     backgroundImage: "url(/grunge.png)",
                   }
                   : undefined
               }
               onClick={() =>
-                (selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl)) &&
+                (selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent)) &&
                 setShowFullscreenImage(true)
               }
             >
-              {selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl) ? (
+              {selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? (
                 <>
                   <img
-                    src={selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl)}
+                    src={selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent)}
                     alt={selectedEvent.title}
                     className="w-full h-full object-cover"
                   />
@@ -2628,7 +2619,7 @@ export default function EventList({
 
       {/* 풀스크린 이미지 모달 */}
       {showFullscreenImage && selectedEvent &&
-        (selectedEvent.image_full || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl)) && (
+        (selectedEvent.image_full || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent)) && (
           <div
             className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
             onClick={() => setShowFullscreenImage(false)}
@@ -2640,7 +2631,7 @@ export default function EventList({
               <i className="ri-close-line text-2xl"></i>
             </button>
             <img
-              src={selectedEvent.image_full || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl)}
+              src={selectedEvent.image_full || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent)}
               alt={selectedEvent.title}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
