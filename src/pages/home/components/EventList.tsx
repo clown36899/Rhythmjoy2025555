@@ -2354,23 +2354,23 @@ export default function EventList({
           >
             {/* 이미지 영역 - 클릭 시 풀스크린 */}
             <div
-              className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${selectedEvent.image_medium || selectedEvent.image ? "bg-black" : "bg-cover bg-center"}`}
+              className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl) ? "bg-black" : "bg-cover bg-center"}`}
               style={
-                !(selectedEvent.image_medium || selectedEvent.image)
+                !(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl))
                   ? {
                     backgroundImage: "url(/grunge.png)",
                   }
                   : undefined
               }
               onClick={() =>
-                (selectedEvent.image_medium || selectedEvent.image) &&
+                (selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl)) &&
                 setShowFullscreenImage(true)
               }
             >
-              {selectedEvent.image_medium || selectedEvent.image ? (
+              {selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl) ? (
                 <>
                   <img
-                    src={selectedEvent.image_medium || selectedEvent.image}
+                    src={selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl)}
                     alt={selectedEvent.title}
                     className="w-full h-full object-cover"
                   />
@@ -2609,8 +2609,8 @@ export default function EventList({
       )}
 
       {/* 풀스크린 이미지 모달 */}
-      {showFullscreenImage &&
-        (selectedEvent?.image_full || selectedEvent?.image) && (
+      {showFullscreenImage && selectedEvent &&
+        (selectedEvent.image_full || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl)) && (
           <div
             className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
             onClick={() => setShowFullscreenImage(false)}
@@ -2622,7 +2622,7 @@ export default function EventList({
               <i className="ri-close-line text-2xl"></i>
             </button>
             <img
-              src={selectedEvent.image_full || selectedEvent.image}
+              src={selectedEvent.image_full || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailUrl)}
               alt={selectedEvent.title}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}

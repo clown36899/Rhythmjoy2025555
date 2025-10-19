@@ -8,6 +8,8 @@ import FullscreenBillboard from "../../components/FullscreenBillboard";
 import AdminBillboardModal from "./components/AdminBillboardModal";
 import { supabase } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
+import { useDefaultThumbnail } from "../../hooks/useDefaultThumbnail";
+import { getEventThumbnail } from "../../utils/getEventThumbnail";
 
 export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -56,6 +58,7 @@ export default function HomePage() {
   });
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
+  const { defaultThumbnailUrl } = useDefaultThumbnail();
 
   // URL 파라미터 처리 (QR 코드 스캔 또는 이벤트 수정 후 하이라이트)
   useEffect(() => {
@@ -285,7 +288,7 @@ export default function HomePage() {
 
           // 이미지 또는 영상 URL 추출 (인덱스 일치 보장)
           const imagesOrVideos = filteredEvents.map((event) => 
-            event.video_url || event.image_full || event.image
+            event.video_url || event.image_full || event.image || getEventThumbnail(event, defaultThumbnailUrl)
           );
           
           setBillboardImages(imagesOrVideos);
