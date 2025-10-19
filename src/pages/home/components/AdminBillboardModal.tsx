@@ -81,11 +81,16 @@ export default function AdminBillboardModal({
     }
   };
 
-  const updateUserSettings = async (updates: Partial<BillboardUserSettings>) => {
-    if (!billboardUserId || !userSettings) return;
-
+  // 로컬 state만 변경 (DB 저장 안함)
+  const updateLocalSettings = (updates: Partial<BillboardUserSettings>) => {
+    if (!userSettings) return;
     const newSettings = { ...userSettings, ...updates };
     setUserSettings(newSettings);
+  };
+
+  // DB에 저장
+  const saveUserSettings = async () => {
+    if (!billboardUserId || !userSettings) return;
 
     try {
       const { error } = await supabase
@@ -93,12 +98,12 @@ export default function AdminBillboardModal({
         .upsert(
           {
             billboard_user_id: billboardUserId,
-            excluded_weekdays: newSettings.excluded_weekdays,
-            excluded_event_ids: newSettings.excluded_event_ids,
-            date_filter_start: newSettings.date_filter_start,
-            date_filter_end: newSettings.date_filter_end,
-            auto_slide_interval: newSettings.auto_slide_interval,
-            play_order: newSettings.play_order,
+            excluded_weekdays: userSettings.excluded_weekdays,
+            excluded_event_ids: userSettings.excluded_event_ids,
+            date_filter_start: userSettings.date_filter_start,
+            date_filter_end: userSettings.date_filter_end,
+            auto_slide_interval: userSettings.auto_slide_interval,
+            play_order: userSettings.play_order,
           },
           {
             onConflict: 'billboard_user_id'
@@ -106,9 +111,11 @@ export default function AdminBillboardModal({
         );
 
       if (error) throw error;
+      
+      alert("설정이 저장되었습니다.");
     } catch (error) {
-      console.error("설정 업데이트 오류:", error);
-      alert("설정 업데이트 중 오류가 발생했습니다.");
+      console.error("설정 저장 오류:", error);
+      alert("설정 저장 중 오류가 발생했습니다.");
     }
   };
 
@@ -258,7 +265,7 @@ export default function AdminBillboardModal({
                       const newExcluded = excluded.includes(day.value)
                         ? excluded.filter((d) => d !== day.value)
                         : [...excluded, day.value];
-                      updateUserSettings({ excluded_weekdays: newExcluded });
+                      updateLocalSettings({ excluded_weekdays: newExcluded });
                     }}
                     className={`py-2 px-1 text-xs rounded-lg font-medium transition-colors ${
                       (userSettings.excluded_weekdays || []).includes(day.value)
@@ -287,7 +294,7 @@ export default function AdminBillboardModal({
                 step="500"
                 value={userSettings.auto_slide_interval}
                 onChange={(e) =>
-                  updateUserSettings({ auto_slide_interval: parseInt(e.target.value) })
+                  updateLocalSettings({ auto_slide_interval: parseInt(e.target.value) })
                 }
                 className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
@@ -298,7 +305,7 @@ export default function AdminBillboardModal({
               <label className="text-white font-medium block mb-3">재생 순서</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => updateUserSettings({ play_order: 'sequential' })}
+                  onClick={() => updateLocalSettings({ play_order: 'sequential' })}
                   className={`py-3 px-4 rounded-lg font-medium transition-colors ${
                     userSettings.play_order === 'sequential'
                       ? "bg-blue-500 text-white"
@@ -308,7 +315,7 @@ export default function AdminBillboardModal({
                   순차 재생
                 </button>
                 <button
-                  onClick={() => updateUserSettings({ play_order: 'random' })}
+                  onClick={() => updateLocalSettings({ play_order: 'random' })}
                   className={`py-3 px-4 rounded-lg font-medium transition-colors ${
                     userSettings.play_order === 'random'
                       ? "bg-blue-500 text-white"
@@ -331,7 +338,7 @@ export default function AdminBillboardModal({
                     type="date"
                     value={userSettings.date_filter_start || ""}
                     onChange={(e) =>
-                      updateUserSettings({ date_filter_start: e.target.value || null })
+                      updateLocalSettings({ date_filter_start: e.target.value || null })
                     }
                     className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
                   />
@@ -342,7 +349,7 @@ export default function AdminBillboardModal({
                     type="date"
                     value={userSettings.date_filter_end || ""}
                     onChange={(e) =>
-                      updateUserSettings({ date_filter_end: e.target.value || null })
+                      updateLocalSettings({ date_filter_end: e.target.value || null })
                     }
                     className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
                   />
@@ -350,7 +357,7 @@ export default function AdminBillboardModal({
                 {(userSettings.date_filter_start || userSettings.date_filter_end) && (
                   <button
                     onClick={() =>
-                      updateUserSettings({ date_filter_start: null, date_filter_end: null })
+                      updateLocalSettings({ date_filter_start: null, date_filter_end: null })
                     }
                     className="text-sm text-red-400 hover:text-red-300"
                   >
@@ -395,13 +402,24 @@ export default function AdminBillboardModal({
               </div>
             </div>
 
-            {/* 닫기 버튼 */}
-            <button
-              onClick={onClose}
-              className="w-full bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold transition-colors mt-4"
-            >
-              닫기
-            </button>
+            {/* 저장 및 취소 버튼 */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={onClose}
+                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  saveUserSettings();
+                  onClose();
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+              >
+                저장
+              </button>
+            </div>
           </div>
         </div>
       </div>,
