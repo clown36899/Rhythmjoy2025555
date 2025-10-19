@@ -59,3 +59,10 @@ export interface BillboardUserSettings {
   created_at: string;
   updated_at: string;
 }
+
+export interface SiteSettings {
+  id: number;
+  default_thumbnail_url: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
