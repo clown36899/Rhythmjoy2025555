@@ -2175,49 +2175,6 @@ export default function EventList({
                         지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
                       </p>
                     )}
-                    {/* 썸네일 추출 버튼 */}
-                    {editFormData.videoUrl && editVideoPreview.provider && (
-                      <>
-                        {(editVideoPreview.provider === 'youtube' || editVideoPreview.provider === 'vimeo') ? (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                const options = await getVideoThumbnailOptions(editFormData.videoUrl);
-                                if (options.length > 0) {
-                                  setThumbnailOptions(options);
-                                  setShowThumbnailSelector(true);
-                                } else {
-                                  alert('이 영상에서 썸네일을 추출할 수 없습니다.');
-                                }
-                              } catch (error) {
-                                console.error('썸네일 추출 오류:', error);
-                                alert('썸네일 추출 중 오류가 발생했습니다.');
-                              }
-                            }}
-                            className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                          >
-                            <i className="ri-image-add-line mr-1"></i>
-                            썸네일 추출하기 {editVideoPreview.provider === 'youtube' && '(여러 장면 선택 가능)'}
-                          </button>
-                        ) : (
-                          <div className="mt-2">
-                            <button
-                              type="button"
-                              disabled
-                              className="w-full bg-gray-600 text-gray-400 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed opacity-60"
-                            >
-                              <i className="ri-image-add-line mr-1"></i>
-                              썸네일 추출 불가능
-                            </button>
-                            <p className="text-xs text-orange-400 mt-2">
-                              <i className="ri-alert-line mr-1"></i>
-                              Instagram/Facebook은 썸네일 자동 추출이 지원되지 않습니다. 위 이미지로 썸네일을 직접 등록해주세요.
-                            </p>
-                          </div>
-                        )}
-                      </>
-                    )}
                   </div>
                 </div>
 
