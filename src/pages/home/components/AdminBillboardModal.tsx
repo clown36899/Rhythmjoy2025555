@@ -90,15 +90,20 @@ export default function AdminBillboardModal({
     try {
       const { error } = await supabase
         .from("billboard_user_settings")
-        .upsert({
-          billboard_user_id: billboardUserId,
-          excluded_weekdays: newSettings.excluded_weekdays,
-          excluded_event_ids: newSettings.excluded_event_ids,
-          date_filter_start: newSettings.date_filter_start,
-          date_filter_end: newSettings.date_filter_end,
-          auto_slide_interval: newSettings.auto_slide_interval,
-          play_order: newSettings.play_order,
-        });
+        .upsert(
+          {
+            billboard_user_id: billboardUserId,
+            excluded_weekdays: newSettings.excluded_weekdays,
+            excluded_event_ids: newSettings.excluded_event_ids,
+            date_filter_start: newSettings.date_filter_start,
+            date_filter_end: newSettings.date_filter_end,
+            auto_slide_interval: newSettings.auto_slide_interval,
+            play_order: newSettings.play_order,
+          },
+          {
+            onConflict: 'billboard_user_id'
+          }
+        );
 
       if (error) throw error;
     } catch (error) {
