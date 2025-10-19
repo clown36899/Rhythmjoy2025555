@@ -47,6 +47,13 @@ export default function BillboardUserManagementModal({
     }
   }, [isOpen]);
 
+  // 필터 설정이 변경되면 이벤트 목록 다시 로드
+  useEffect(() => {
+    if (showEditModal) {
+      loadEvents();
+    }
+  }, [excludedWeekdays, dateFilterStart, dateFilterEnd, showEditModal]);
+
   const loadBillboardUsers = async () => {
     try {
       const { data, error } = await supabase
@@ -67,14 +74,31 @@ export default function BillboardUserManagementModal({
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
 
-      const { data, error } = await supabase
+      // 날짜 필터 적용
+      const startDate = dateFilterStart || todayStr;
+      const endDate = dateFilterEnd;
+
+      let query = supabase
         .from('events')
         .select('id, title, start_date, date')
-        .gte('start_date', todayStr)
-        .order('start_date', { ascending: true });
+        .gte('start_date', startDate);
+
+      if (endDate) {
+        query = query.lte('start_date', endDate);
+      }
+
+      const { data, error } = await query.order('start_date', { ascending: true });
 
       if (error) throw error;
-      setEvents(data || []);
+
+      // 제외 요일 필터 적용
+      const filteredEvents = (data || []).filter(event => {
+        const eventDate = new Date(event.start_date);
+        const dayOfWeek = eventDate.getDay();
+        return !excludedWeekdays.includes(dayOfWeek);
+      });
+
+      setEvents(filteredEvents);
     } catch (error) {
       console.error('이벤트 로드 실패:', error);
     }
@@ -164,13 +188,33 @@ export default function BillboardUserManagementModal({
 
       if (error) throw error;
 
+      // 날짜 초기값 계산
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+
+      // 마지막 이벤트 날짜 조회
+      const { data: lastEvent } = await supabase
+        .from('events')
+        .select('start_date')
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      let defaultEndDate = '';
+      if (lastEvent?.start_date) {
+        const lastEventDate = new Date(lastEvent.start_date);
+        lastEventDate.setDate(lastEventDate.getDate() + 1);
+        defaultEndDate = lastEventDate.toISOString().split('T')[0];
+      }
+
       setSelectedSettings(data);
       setExcludedWeekdays(data.excluded_weekdays || []);
       setExcludedEventIds(data.excluded_event_ids || []);
       setAutoSlideInterval(data.auto_slide_interval);
       setPlayOrder(data.play_order);
-      setDateFilterStart(data.date_filter_start || '');
-      setDateFilterEnd(data.date_filter_end || '');
+      setDateFilterStart(data.date_filter_start || todayStr);
+      setDateFilterEnd(data.date_filter_end || defaultEndDate);
       setShowEditModal(true);
     } catch (error) {
       console.error('설정 로드 실패:', error);

@@ -53,25 +53,51 @@ export default function AdminBillboardModal({
   useEffect(() => {
     if (isOpen && adminType === "sub" && billboardUserId) {
       loadUserSettings();
-      loadEvents();
     }
   }, [isOpen, adminType, billboardUserId]);
 
-  // 이벤트 목록 불러오기 (당일 포함 이후만)
+  // userSettings가 로드되면 이벤트 목록 불러오기
+  useEffect(() => {
+    if (userSettings && adminType === "sub") {
+      loadEvents();
+    }
+  }, [userSettings, adminType]);
+
+  // 이벤트 목록 불러오기 (설정 필터 적용 후 재생될 이벤트만)
   const loadEvents = async () => {
+    if (!userSettings) return;
+
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
 
-      const { data, error } = await supabase
+      // 날짜 필터 적용
+      const startDate = userSettings.date_filter_start || todayStr;
+      const endDate = userSettings.date_filter_end;
+
+      let query = supabase
         .from('events')
         .select('id, title, start_date, date')
-        .gte('start_date', todayStr)
-        .order('start_date', { ascending: true });
+        .gte('start_date', startDate);
+
+      if (endDate) {
+        query = query.lte('start_date', endDate);
+      }
+
+      const { data, error } = await query.order('start_date', { ascending: true });
 
       if (error) throw error;
-      setEvents(data || []);
+
+      // 제외 요일 필터 적용
+      const excludedWeekdays = userSettings.excluded_weekdays || [];
+      const filteredEvents = (data || []).filter(event => {
+        const eventDate = new Date(event.start_date);
+        const dayOfWeek = eventDate.getDay();
+        return !excludedWeekdays.includes(dayOfWeek);
+      });
+
+      setEvents(filteredEvents);
     } catch (error) {
       console.error('이벤트 로드 실패:', error);
     }
@@ -92,13 +118,33 @@ export default function AdminBillboardModal({
         throw error;
       }
 
+      // 초기 날짜 설정값 계산
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+
+      // 마지막 이벤트 날짜 조회
+      const { data: lastEvent } = await supabase
+        .from('events')
+        .select('start_date')
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      let defaultEndDate = null;
+      if (lastEvent?.start_date) {
+        const lastEventDate = new Date(lastEvent.start_date);
+        lastEventDate.setDate(lastEventDate.getDate() + 1);
+        defaultEndDate = lastEventDate.toISOString().split('T')[0];
+      }
+
       setUserSettings(data || {
         id: billboardUserId,
         billboard_user_id: billboardUserId,
         excluded_weekdays: [],
         excluded_event_ids: [],
-        date_filter_start: null,
-        date_filter_end: null,
+        date_filter_start: todayStr,
+        date_filter_end: defaultEndDate,
         auto_slide_interval: 5000,
         play_order: 'sequential',
       });
@@ -115,6 +161,14 @@ export default function AdminBillboardModal({
     if (!userSettings) return;
     const newSettings = { ...userSettings, ...updates };
     setUserSettings(newSettings);
+    
+    // 요일/날짜 필터가 변경되면 이벤트 목록 다시 로드
+    if (updates.excluded_weekdays !== undefined || 
+        updates.date_filter_start !== undefined || 
+        updates.date_filter_end !== undefined) {
+      // 다음 렌더링에서 useEffect가 실행되도록 하기 위해
+      // 여기서는 아무것도 하지 않음 (useEffect가 처리)
+    }
   };
 
   // 특정 이벤트 제외 토글
