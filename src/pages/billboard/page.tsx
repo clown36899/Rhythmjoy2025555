@@ -134,8 +134,8 @@ export default function BillboardPage() {
   const imageUrl = currentEvent.image_full || currentEvent.image;
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
-      <div className="relative w-full h-full flex flex-col">
+    <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
+      <div className="portrait-container">
         <img
           src={imageUrl}
           alt={currentEvent.title}
@@ -174,6 +174,16 @@ export default function BillboardPage() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        .portrait-container {
+          position: relative;
+          width: 100vh;
+          height: 100vw;
+          transform: rotate(90deg);
+          transform-origin: center center;
+        }
+      `}</style>
     </div>
   );
 }

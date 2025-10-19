@@ -57,6 +57,8 @@ A hierarchical management system allows super admins to create and manage multip
 
 **Portrait Billboard Display**:
 - Optimized for vertical monitors (1080x1920 or similar)
+- CSS rotation (90deg) for monitors without auto-rotation detection
+- Works with monitors physically rotated but recognized as landscape by the system
 - Fullscreen event slideshow with automatic transitions
 - Event information overlay (title, time, location, price)
 - User name and slide count indicator
