@@ -1726,23 +1726,41 @@ export default function EventList({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
-                    카테고리
-                  </label>
-                  <select
-                    value={editFormData.category}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        category: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-[#242424] text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
-                  >
-                    <option value="class">강습</option>
-                    <option value="event">행사</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                      카테고리
+                    </label>
+                    <select
+                      value={editFormData.category}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          category: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#242424] text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
+                    >
+                      <option value="class">강습</option>
+                      <option value="event">행사</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                      장소
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.location}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          location: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1807,23 +1825,6 @@ export default function EventList({
                       <i className="ri-calendar-line"></i>
                     </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
-                    장소
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.location}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        location: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  />
                 </div>
 
                 {/* 등록자 정보 (관리자 전용, 비공개) */}
