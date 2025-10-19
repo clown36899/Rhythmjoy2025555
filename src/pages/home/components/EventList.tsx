@@ -2038,6 +2038,12 @@ export default function EventList({
                               provider: videoInfo.provider, 
                               embedUrl: videoInfo.embedUrl 
                             });
+                            
+                            // 유효한 영상 URL이 입력되면 기존 이미지 삭제
+                            if (videoInfo.provider) {
+                              setEditImageFile(null);
+                              setEditImagePreview('');
+                            }
                           }
                         }}
                         className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
