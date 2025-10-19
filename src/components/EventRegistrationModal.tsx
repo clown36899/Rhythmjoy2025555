@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { createResizedImages } from '../utils/imageResize';
+import { parseVideoUrl, isValidVideoUrl, getVideoProviderName } from '../utils/videoEmbed';
 
 interface EventRegistrationModalProps {
   isOpen: boolean;
@@ -32,12 +33,14 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
     linkName1: '',
     linkName2: '',
     linkName3: '',
-    password: ''
+    password: '',
+    videoUrl: ''
   });
   const [endDate, setEndDate] = useState<Date>(selectedDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [videoPreview, setVideoPreview] = useState<{ provider: string | null; embedUrl: string | null }>({ provider: null, embedUrl: null });
 
   // selectedDate가 변경되면 endDate도 업데이트
   useEffect(() => {
@@ -55,6 +58,18 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       ...prev,
       [name]: value
     }));
+
+    if (name === 'videoUrl') {
+      if (value.trim() === '') {
+        setVideoPreview({ provider: null, embedUrl: null });
+      } else {
+        const videoInfo = parseVideoUrl(value);
+        setVideoPreview({ 
+          provider: videoInfo.provider, 
+          embedUrl: videoInfo.embedUrl 
+        });
+      }
+    }
   };
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -178,6 +193,14 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
       return;
     }
 
+    // 영상 URL 유효성 검증
+    if (formData.videoUrl && !isValidVideoUrl(formData.videoUrl)) {
+      alert('지원하지 않는 영상 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.');
+      return;
+    }
+
+    // 이미지와 영상 중 하나는 있어야 함 (선택사항이므로 둘 다 없어도 됨)
+
     // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함
     if (formData.linkName1 && !formData.link1) {
       alert('링크1 제목을 입력했다면 링크 주소도 입력해주세요.');
@@ -240,6 +263,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         image_thumbnail: imageUrls.thumbnail || null,
         image_medium: imageUrls.medium || null,
         image_full: imageUrls.full || null,
+        video_url: formData.videoUrl || null,
         description: '',
         organizer: formData.organizer,
         organizer_name: formData.organizerName,
@@ -278,10 +302,12 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
           linkName1: '',
           linkName2: '',
           linkName3: '',
-          password: ''
+          password: '',
+          videoUrl: ''
         });
         setImageFile(null);
         setImagePreview('');
+        setVideoPreview({ provider: null, embedUrl: null });
         onEventCreated(selectedDate);
         onClose();
       }
@@ -491,6 +517,47 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       className="w-24 h-32 object-cover object-top rounded-lg"
                     />
                   </div>
+                )}
+              </div>
+
+              {/* 영상 URL 입력 */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  영상 URL (선택사항)
+                </label>
+                <input
+                  type="url"
+                  name="videoUrl"
+                  value={formData.videoUrl}
+                  onChange={handleInputChange}
+                  onFocus={handleInputFocus}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요. 빌보드에서 자동재생됩니다.
+                </p>
+                {videoPreview.provider && videoPreview.embedUrl && (
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                      <i className="ri-check-line"></i>
+                      <span>{getVideoProviderName(formData.videoUrl)} 영상 인식됨</span>
+                    </div>
+                    <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                      <iframe
+                        src={videoPreview.embedUrl}
+                        className="absolute top-0 left-0 w-full h-full rounded-lg"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  </div>
+                )}
+                {formData.videoUrl && !videoPreview.provider && (
+                  <p className="text-xs text-red-400 mt-1">
+                    지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
+                  </p>
                 )}
               </div>
 
