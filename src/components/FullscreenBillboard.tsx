@@ -177,11 +177,10 @@ export default function FullscreenBillboard({
               if (videoInfo.embedUrl) {
                 return (
                   <div 
-                    className={`w-full h-screen flex items-center justify-center transition-opacity cursor-pointer ${
+                    className={`relative w-full h-screen flex items-center justify-center transition-opacity cursor-pointer ${
                       isTransitioning ? "opacity-0" : "opacity-100"
                     }`}
                     style={{ transitionDuration: `${transitionDuration}ms` }}
-                    onClick={handleImageClick}
                   >
                     <iframe
                       src={videoInfo.embedUrl}
@@ -191,6 +190,12 @@ export default function FullscreenBillboard({
                       allowFullScreen
                       style={{ maxHeight: '100vh', objectFit: 'contain' }}
                     ></iframe>
+                    {/* 투명 오버레이: 인스타 클릭 차단 및 상세보기로 이동 */}
+                    <div 
+                      className="absolute inset-0 z-10 cursor-pointer"
+                      onClick={handleImageClick}
+                      title="클릭하여 상세보기"
+                    ></div>
                   </div>
                 );
               }
