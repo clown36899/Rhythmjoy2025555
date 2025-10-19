@@ -114,7 +114,15 @@ export default function BillboardPage() {
     const interval = setInterval(() => {
       setProgress(0);
       if (settings.play_order === 'random') {
-        setCurrentIndex(Math.floor(Math.random() * events.length));
+        // 연속으로 같은 이벤트가 재생되지 않도록 개선
+        setCurrentIndex((prev) => {
+          if (events.length <= 1) return 0;
+          let nextIndex;
+          do {
+            nextIndex = Math.floor(Math.random() * events.length);
+          } while (nextIndex === prev);
+          return nextIndex;
+        });
       } else {
         setCurrentIndex((prev) => (prev + 1) % events.length);
       }
