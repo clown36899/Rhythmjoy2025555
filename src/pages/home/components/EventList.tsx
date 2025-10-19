@@ -1172,10 +1172,29 @@ export default function EventList({
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {(() => {
-                          // 이미지 우선순위: 이벤트 썸네일 > 이벤트 이미지 > 기본 썸네일
+                          // 배너 이미지 로직 시작
                           const hasEventImage = event.image_thumbnail || event.image;
-                          const shouldUseDefault = !hasEventImage && !event.video_url && defaultThumbnailUrl;
-                          const thumbnailUrl = hasEventImage || (shouldUseDefault ? defaultThumbnailUrl : '');
+                          const hasVideo = event.video_url;
+                          
+                          // 디버깅 로그
+                          if (!hasEventImage && !hasVideo) {
+                            console.log('🔍 이미지 없는 이벤트 발견:', {
+                              title: event.title,
+                              hasEventImage,
+                              hasVideo,
+                              defaultThumbnailUrl,
+                              willUseDefault: !!defaultThumbnailUrl
+                            });
+                          }
+                          
+                          // 최종 썸네일 URL 결정
+                          let thumbnailUrl = '';
+                          if (hasEventImage) {
+                            thumbnailUrl = hasEventImage;
+                          } else if (!hasVideo && defaultThumbnailUrl) {
+                            thumbnailUrl = defaultThumbnailUrl;
+                            console.log('✅ 기본 썸네일 사용:', event.title, defaultThumbnailUrl);
+                          }
                           
                           if (thumbnailUrl) {
                             return (
