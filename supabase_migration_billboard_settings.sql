@@ -44,7 +44,7 @@ CREATE POLICY "Public billboard settings are viewable by everyone"
   ON billboard_settings FOR SELECT
   USING (TRUE);
 
--- 관리자만 수정 가능 (인증된 사용자)
-CREATE POLICY "Only authenticated users can update billboard settings"
+-- 모든 사용자가 수정 가능 (프론트엔드에서 관리자 비밀번호로 보호)
+CREATE POLICY "Allow update billboard settings"
   ON billboard_settings FOR UPDATE
-  USING (auth.role() = 'authenticated');
+  USING (TRUE);
