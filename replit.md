@@ -36,6 +36,37 @@ The billboard (fullscreen slideshow) features random/sequential playback, auto-o
 
 **Billboard Settings (DB-Persisted)**: All billboard configuration is stored in Supabase `billboard_settings` table (single-row, id=1) including enabled state, auto-slide interval, inactivity timeout, transition duration, play order (sequential/random), and admin-controlled date range filters (start/end dates with optional on-screen display). Settings use upsert operations to ensure persistence even if the initial row is missing. The system no longer filters events to "today or later" by default—admins have full control over the displayed date range.
 
+### Multi-User Billboard System
+A hierarchical management system allows super admins to create and manage multiple billboard users, each with their own customizable billboard display accessible via unique URLs (`/billboard/:userId`). Key features:
+
+**Billboard Users (Sub-admins)**:
+- Each user has a dedicated billboard page with portrait (vertical) layout optimized for 40-inch monitors
+- Customizable event filtering per user:
+  - Exclude specific weekdays (e.g., remove weekends)
+  - Exclude individual events by ID
+  - Date range filtering (start/end dates)
+  - Auto-slide interval and play order (sequential/random)
+- Secure password authentication using salt + 10,000-iteration SHA-256 hashing
+- Each billboard user gets a shareable URL for their customized billboard
+
+**Super Admin Controls**:
+- Create/delete billboard users via "빌보드 사용자 관리" in admin settings
+- Edit settings for all billboard users
+- Copy shareable URLs for distribution
+- Full CRUD access to all billboard configurations
+
+**Portrait Billboard Display**:
+- Optimized for vertical monitors (1080x1920 or similar)
+- Fullscreen event slideshow with automatic transitions
+- Event information overlay (title, time, location, price)
+- User name and slide count indicator
+- Filtering applied in real-time based on user settings
+
+**Data Model**:
+- `billboard_users` table: user credentials and metadata
+- `billboard_user_settings` table: per-user filtering and display preferences
+- Row-level security policies ensure public read access for active billboards
+
 ## External Dependencies
 
 ### Backend Services
