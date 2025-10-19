@@ -35,6 +35,8 @@ export default function BillboardUserManagementModal({
   const [playOrder, setPlayOrder] = useState<'sequential' | 'random'>('sequential');
   const [dateFilterStart, setDateFilterStart] = useState('');
   const [dateFilterEnd, setDateFilterEnd] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -231,6 +233,49 @@ export default function BillboardUserManagementModal({
     setPlayOrder('sequential');
     setDateFilterStart('');
     setDateFilterEnd('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleChangePassword = async () => {
+    if (!selectedUser) return;
+
+    if (!newPassword.trim()) {
+      alert('새 비밀번호를 입력하세요.');
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      alert('비밀번호는 최소 4자 이상이어야 합니다.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('비밀번호 확인이 일치하지 않습니다.');
+      return;
+    }
+
+    if (!confirm(`'${selectedUser.name}' 사용자의 비밀번호를 변경하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const passwordHash = await hashPassword(newPassword);
+
+      const { error } = await supabase
+        .from('billboard_users')
+        .update({ password_hash: passwordHash })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      alert('비밀번호가 변경되었습니다.');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('비밀번호 변경 실패:', error);
+      alert('비밀번호 변경에 실패했습니다.');
+    }
   };
 
   if (!isOpen) return null;
@@ -487,6 +532,35 @@ export default function BillboardUserManagementModal({
                       className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="종료 날짜"
                     />
+                  </div>
+                </div>
+
+                {/* 비밀번호 변경 섹션 */}
+                <div className="border-t border-gray-700 pt-4">
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    🔑 비밀번호 변경
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="새 비밀번호 (최소 4자)"
+                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="비밀번호 확인"
+                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={handleChangePassword}
+                      className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg font-medium transition-colors"
+                    >
+                      비밀번호 변경
+                    </button>
                   </div>
                 </div>
 
