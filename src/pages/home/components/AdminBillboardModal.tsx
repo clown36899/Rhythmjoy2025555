@@ -48,6 +48,7 @@ export default function AdminBillboardModal({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [events, setEvents] = useState<SimpleEvent[]>([]);
+  const [mainBillboardEvents, setMainBillboardEvents] = useState<SimpleEvent[]>([]);
 
   // 서브 관리자의 설정 불러오기
   useEffect(() => {
@@ -62,6 +63,51 @@ export default function AdminBillboardModal({
       loadEvents();
     }
   }, [userSettings, adminType]);
+
+  // 메인 빌보드 이벤트 목록 불러오기
+  useEffect(() => {
+    if (isOpen && adminType === "super") {
+      loadMainBillboardEvents();
+    }
+  }, [isOpen, adminType, settings.excludedWeekdays, settings.dateRangeStart, settings.dateRangeEnd]);
+
+  // 메인 빌보드용 이벤트 목록 불러오기 (설정 필터 적용 후 재생될 이벤트만)
+  const loadMainBillboardEvents = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+
+      // 날짜 필터 적용
+      const startDate = settings.dateRangeStart || todayStr;
+      const endDate = settings.dateRangeEnd;
+
+      let query = supabase
+        .from('events')
+        .select('id, title, start_date, date')
+        .gte('start_date', startDate);
+
+      if (endDate) {
+        query = query.lte('start_date', endDate);
+      }
+
+      const { data, error } = await query.order('start_date', { ascending: true });
+
+      if (error) throw error;
+
+      // 제외 요일 필터 적용
+      const excludedWeekdays = settings.excludedWeekdays || [];
+      const filteredEvents = (data || []).filter(event => {
+        const eventDate = new Date(event.start_date);
+        const dayOfWeek = eventDate.getDay();
+        return !excludedWeekdays.includes(dayOfWeek);
+      });
+
+      setMainBillboardEvents(filteredEvents);
+    } catch (error) {
+      console.error('이벤트 로드 실패:', error);
+    }
+  };
 
   // 이벤트 목록 불러오기 (설정 필터 적용 후 재생될 이벤트만)
   const loadEvents = async () => {
@@ -797,6 +843,86 @@ export default function AdminBillboardModal({
                   }`}
                 />
               </button>
+            </div>
+          </div>
+
+          {/* 제외 요일 */}
+          <div className="p-4 bg-gray-700/50 rounded-lg">
+            <label className="text-white font-medium block mb-3">제외 요일</label>
+            <p className="text-sm text-gray-400 mb-3">선택한 요일의 이벤트는 표시되지 않습니다</p>
+            <div className="grid grid-cols-7 gap-2">
+              {[
+                { value: 0, label: "일요일" },
+                { value: 1, label: "월요일" },
+                { value: 2, label: "화요일" },
+                { value: 3, label: "수요일" },
+                { value: 4, label: "목요일" },
+                { value: 5, label: "금요일" },
+                { value: 6, label: "토요일" },
+              ].map((day) => (
+                <button
+                  key={day.value}
+                  onClick={() => {
+                    const excluded = settings.excludedWeekdays || [];
+                    const newExcluded = excluded.includes(day.value)
+                      ? excluded.filter((d) => d !== day.value)
+                      : [...excluded, day.value];
+                    onUpdateSettings({ excludedWeekdays: newExcluded });
+                  }}
+                  className={`py-2 px-1 text-xs rounded-lg font-medium transition-colors ${
+                    (settings.excludedWeekdays || []).includes(day.value)
+                      ? "bg-red-500 text-white"
+                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                  }`}
+                >
+                  {day.label.substring(0, 1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 특정 이벤트 제외 */}
+          <div className="p-4 bg-gray-700/50 rounded-lg">
+            <label className="text-white font-medium block mb-3">
+              🚫 제외할 이벤트
+            </label>
+            <p className="text-sm text-gray-400 mb-3">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
+            <div className="max-h-60 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
+              {mainBillboardEvents.length === 0 ? (
+                <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
+              ) : (
+                mainBillboardEvents.map((event) => {
+                  const eventDate = new Date(event.start_date);
+                  const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                  const weekday = weekdayNames[eventDate.getDay()];
+                  
+                  return (
+                    <label
+                      key={event.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 p-2 rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(settings.excludedEventIds || []).includes(event.id)}
+                        onChange={() => {
+                          const excluded = settings.excludedEventIds || [];
+                          const newExcluded = excluded.includes(event.id)
+                            ? excluded.filter(id => id !== event.id)
+                            : [...excluded, event.id];
+                          onUpdateSettings({ excludedEventIds: newExcluded });
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-white text-sm flex-1">
+                        {event.title}
+                        <span className="text-gray-400 text-xs ml-2">
+                          ({event.start_date} {weekday})
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })
+              )}
             </div>
           </div>
 
