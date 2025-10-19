@@ -1030,7 +1030,7 @@ export default function EventList({
         <div
           className="p-4"
           style={{
-            margin: "14px",
+            margin: "14px 0",
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
@@ -1065,7 +1065,7 @@ export default function EventList({
         <div
           className="p-4"
           style={{
-            margin: "14px",
+            margin: "14px 0",
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
@@ -1219,7 +1219,7 @@ export default function EventList({
               <div
                 className="p-4"
                 style={{
-                  margin: "14px",
+                  margin: "14px 0",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
@@ -1314,7 +1314,7 @@ export default function EventList({
               <div
                 className="p-4"
                 style={{
-                  margin: "14px",
+                  margin: "14px 0",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
@@ -1431,7 +1431,7 @@ export default function EventList({
               <div
                 className="p-4"
                 style={{
-                  margin: "14px",
+                  margin: "14px 0",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
