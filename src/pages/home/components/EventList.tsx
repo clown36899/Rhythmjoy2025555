@@ -3,6 +3,7 @@ import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
+import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
 import QRCodeImage from "./QRCodeImage";
 
 
@@ -112,9 +113,11 @@ export default function EventList({
     image: "",
     start_date: "",
     end_date: "",
+    videoUrl: "",
   });
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
+  const [editVideoPreview, setEditVideoPreview] = useState<{ provider: string | null; embedUrl: string | null }>({ provider: null, embedUrl: null });
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
@@ -714,9 +717,16 @@ export default function EventList({
         image: event.image || "",
         start_date: event.start_date || event.date || "",
         end_date: event.end_date || event.date || "",
+        videoUrl: event.video_url || "",
       });
       setEditImagePreview(event.image || "");
       setEditImageFile(null);
+      if (event.video_url) {
+        const videoInfo = parseVideoUrl(event.video_url);
+        setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
+      } else {
+        setEditVideoPreview({ provider: null, embedUrl: null });
+      }
       setShowEditModal(true);
       setSelectedEvent(null); // 상세 모달 닫기
     } else {
@@ -798,9 +808,16 @@ export default function EventList({
         image: eventToEdit.image || "",
         start_date: eventToEdit.start_date || eventToEdit.date || "",
         end_date: eventToEdit.end_date || eventToEdit.date || "",
+        videoUrl: eventToEdit.video_url || "",
       });
       setEditImagePreview(eventToEdit.image || "");
       setEditImageFile(null);
+      if (eventToEdit.video_url) {
+        const videoInfo = parseVideoUrl(eventToEdit.video_url);
+        setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
+      } else {
+        setEditVideoPreview({ provider: null, embedUrl: null });
+      }
       setShowPasswordModal(false);
       setShowEditModal(true);
       setEventPassword("");
@@ -815,6 +832,12 @@ export default function EventList({
       setEditImageFile(file);
       const previewUrl = URL.createObjectURL(file);
       setEditImagePreview(previewUrl);
+      
+      setEditFormData((prev) => ({
+        ...prev,
+        videoUrl: '',
+      }));
+      setEditVideoPreview({ provider: null, embedUrl: null });
     }
   };
 
@@ -830,6 +853,14 @@ export default function EventList({
     ) {
       alert("종료일은 시작일보다 빠를 수 없습니다.");
       return;
+    }
+
+    // 영상 URL 유효성 검증
+    if (editFormData.videoUrl) {
+      if (!isValidVideoUrl(editFormData.videoUrl)) {
+        alert('지원하지 않는 영상 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.');
+        return;
+      }
     }
 
     // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함
@@ -876,6 +907,7 @@ export default function EventList({
         link_name3: editFormData.linkName3 || null,
         start_date: editFormData.start_date || null,
         end_date: editFormData.end_date || null,
+        video_url: editFormData.videoUrl || null,
       };
 
       // 새 이미지가 업로드되었으면 Supabase Storage에 3가지 크기로 업로드
@@ -1942,39 +1974,105 @@ export default function EventList({
 
                 <div>
                   <label className="block text-gray-300 text-xs font-medium mb-1">
-                    이벤트 이미지
+                    이벤트 이미지 {!editFormData.videoUrl && "(선택사항)"}
                   </label>
-                  <div className="space-y-2">
-                    {editImagePreview && (
-                      <div className="relative">
-                        <img
-                          src={editImagePreview}
-                          alt="이벤트 이미지"
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditImagePreview("");
-                            setEditImageFile(null);
-                            setEditFormData((prev) => ({
-                              ...prev,
-                              image: "",
-                            }));
-                          }}
-                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
-                        >
-                          이미지 삭제
-                        </button>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleEditImageChange}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
-                    />
-                  </div>
+                  {!editFormData.videoUrl && (
+                    <div className="space-y-2">
+                      {editImagePreview && (
+                        <div className="relative">
+                          <img
+                            src={editImagePreview}
+                            alt="이벤트 이미지"
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditImagePreview("");
+                              setEditImageFile(null);
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                image: "",
+                              }));
+                            }}
+                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                          >
+                            이미지 삭제
+                          </button>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditImageChange}
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                      />
+                    </div>
+                  )}
+                  {editFormData.videoUrl && (
+                    <p className="text-xs text-gray-400 mt-1">영상 URL이 설정되어 있어 이미지를 업로드할 수 없습니다.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    영상 URL {!editImagePreview && "(선택사항)"}
+                  </label>
+                  {!editImagePreview && !editImageFile && (
+                    <div>
+                      <input
+                        type="url"
+                        value={editFormData.videoUrl}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            videoUrl: value,
+                          }));
+                          
+                          if (value.trim() === '') {
+                            setEditVideoPreview({ provider: null, embedUrl: null });
+                          } else {
+                            const videoInfo = parseVideoUrl(value);
+                            setEditVideoPreview({ 
+                              provider: videoInfo.provider, 
+                              embedUrl: videoInfo.embedUrl 
+                            });
+                          }
+                        }}
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요.
+                      </p>
+                      {editVideoPreview.provider && editVideoPreview.embedUrl && (
+                        <div className="mt-2">
+                          <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                            <i className="ri-check-line"></i>
+                            <span>영상 인식됨</span>
+                          </div>
+                          <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                            <iframe
+                              src={editVideoPreview.embedUrl}
+                              className="absolute top-0 left-0 w-full h-full rounded-lg"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            ></iframe>
+                          </div>
+                        </div>
+                      )}
+                      {editFormData.videoUrl && !editVideoPreview.provider && (
+                        <p className="text-xs text-red-400 mt-1">
+                          지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {(editImagePreview || editImageFile) && (
+                    <p className="text-xs text-gray-400 mt-1">이미지가 업로드되어 있어 영상 URL을 입력할 수 없습니다.</p>
+                  )}
                 </div>
 
                 <div className="flex space-x-3 pt-2">

@@ -68,6 +68,11 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
           provider: videoInfo.provider, 
           embedUrl: videoInfo.embedUrl 
         });
+        
+        if (videoInfo.provider) {
+          setImageFile(null);
+          setImagePreview('');
+        }
       }
     }
   };
@@ -88,6 +93,12 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+      
+      setFormData(prev => ({
+        ...prev,
+        videoUrl: ''
+      }));
+      setVideoPreview({ provider: null, embedUrl: null });
     }
   };
 
@@ -498,68 +509,72 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </p>
               </div>
 
-              {/* 포스터 이미지 업로드 - 축소 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  포스터 이미지 (선택사항)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
-                />
-                {imagePreview && (
-                  <div className="flex justify-center mt-2">
-                    <img
-                      src={imagePreview}
-                      alt="미리보기"
-                      className="w-24 h-32 object-cover object-top rounded-lg"
-                    />
-                  </div>
-                )}
-              </div>
+              {/* 포스터 이미지 업로드 - 영상이 없을 때만 표시 */}
+              {!formData.videoUrl && (
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    포스터 이미지 (선택사항)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+                  />
+                  {imagePreview && (
+                    <div className="flex justify-center mt-2">
+                      <img
+                        src={imagePreview}
+                        alt="미리보기"
+                        className="w-24 h-32 object-cover object-top rounded-lg"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* 영상 URL 입력 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  영상 URL (선택사항)
-                </label>
-                <input
-                  type="url"
-                  name="videoUrl"
-                  value={formData.videoUrl}
-                  onChange={handleInputChange}
-                  onFocus={handleInputFocus}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요. 빌보드에서 자동재생됩니다.
-                </p>
-                {videoPreview.provider && videoPreview.embedUrl && (
-                  <div className="mt-2">
-                    <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
-                      <i className="ri-check-line"></i>
-                      <span>{getVideoProviderName(formData.videoUrl)} 영상 인식됨</span>
-                    </div>
-                    <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-                      <iframe
-                        src={videoPreview.embedUrl}
-                        className="absolute top-0 left-0 w-full h-full rounded-lg"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      ></iframe>
-                    </div>
-                  </div>
-                )}
-                {formData.videoUrl && !videoPreview.provider && (
-                  <p className="text-xs text-red-400 mt-1">
-                    지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
+              {/* 영상 URL 입력 - 이미지가 없을 때만 표시 */}
+              {!imageFile && !imagePreview && (
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    영상 URL (선택사항)
+                  </label>
+                  <input
+                    type="url"
+                    name="videoUrl"
+                    value={formData.videoUrl}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    YouTube, Instagram, Facebook, Vimeo 영상 링크를 붙여넣으세요. 빌보드에서 자동재생됩니다.
                   </p>
-                )}
-              </div>
+                  {videoPreview.provider && videoPreview.embedUrl && (
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                        <i className="ri-check-line"></i>
+                        <span>{getVideoProviderName(formData.videoUrl)} 영상 인식됨</span>
+                      </div>
+                      <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                        <iframe
+                          src={videoPreview.embedUrl}
+                          className="absolute top-0 left-0 w-full h-full rounded-lg"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        ></iframe>
+                      </div>
+                    </div>
+                  )}
+                  {formData.videoUrl && !videoPreview.provider && (
+                    <p className="text-xs text-red-400 mt-1">
+                      지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* 바로가기 링크 3개 - 축소 */}
               <div>
