@@ -4,6 +4,16 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from '../../lib/supabase';
 import type { BillboardUser, BillboardUserSettings, Event } from '../../lib/supabase';
 
+// 배열 셔플 함수
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export default function BillboardPage() {
   const { userId } = useParams<{ userId: string }>();
   const [billboardUser, setBillboardUser] = useState<BillboardUser | null>(null);
@@ -14,6 +24,8 @@ export default function BillboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
+  const playlistIndexRef = useRef(0);
 
   useEffect(() => {
     if (!userId) {
@@ -55,6 +67,15 @@ export default function BillboardPage() {
 
       const filteredEvents = filterEvents(allEvents || [], userSettings);
       setEvents(filteredEvents);
+      
+      // 랜덤 모드면 초기 재생목록 생성
+      if (userSettings.play_order === 'random' && filteredEvents.length > 0) {
+        const indices = filteredEvents.map((_, i) => i);
+        setShuffledPlaylist(shuffleArray(indices));
+        playlistIndexRef.current = 0;
+        setCurrentIndex(0);
+      }
+      
       setIsLoading(false);
     } catch (err: any) {
       console.error('빌보드 데이터 로드 실패:', err);
@@ -114,15 +135,19 @@ export default function BillboardPage() {
     const interval = setInterval(() => {
       setProgress(0);
       if (settings.play_order === 'random') {
-        // 연속으로 같은 이벤트가 재생되지 않도록 개선
-        setCurrentIndex((prev) => {
-          if (events.length <= 1) return 0;
-          let nextIndex;
-          do {
-            nextIndex = Math.floor(Math.random() * events.length);
-          } while (nextIndex === prev);
-          return nextIndex;
-        });
+        // 셔플된 재생목록 사용
+        const currentPlaylist = shuffledPlaylist;
+        const nextPlaylistIdx = (playlistIndexRef.current + 1) % currentPlaylist.length;
+        playlistIndexRef.current = nextPlaylistIdx;
+        
+        // 재생목록 끝에 도달하면 새로 셔플
+        if (nextPlaylistIdx === 0 && currentPlaylist.length > 0) {
+          const newPlaylist = shuffleArray(currentPlaylist);
+          setShuffledPlaylist(newPlaylist);
+          setCurrentIndex(newPlaylist[0] || 0);
+        } else {
+          setCurrentIndex(currentPlaylist[nextPlaylistIdx] || 0);
+        }
       } else {
         setCurrentIndex((prev) => (prev + 1) % events.length);
       }
@@ -134,7 +159,7 @@ export default function BillboardPage() {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [events, settings]);
+  }, [events, settings, shuffledPlaylist]);
 
   if (isLoading) {
     return (
