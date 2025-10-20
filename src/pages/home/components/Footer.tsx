@@ -3,7 +3,6 @@ import QRCodeModal from "../../../components/QRCodeModal";
 
 export default function Footer() {
   const [showQRModal, setShowQRModal] = useState(false);
-  const siteUrl = typeof window !== 'undefined' ? window.location.href : "https://loading-site-url.com";
 
   return (
     // ⭐️ 1. 전체를 Fragment (<>)로 감싸서 두 요소를 반환
