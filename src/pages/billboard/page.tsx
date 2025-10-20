@@ -364,26 +364,35 @@ export default function BillboardPage() {
   };
 
   const currentEvent = events[currentIndex];
-  const nextIndex = (currentIndex + 1) % events.length;
-  const nextEvent = events[nextIndex];
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
-      {/* 현재 슬라이드 */}
-      {renderSlide(currentEvent, true)}
+    <>
+      {/* YouTube DNS prefetch 및 preconnect로 로딩 속도 개선 */}
+      <link rel="dns-prefetch" href="https://www.youtube.com" />
+      <link rel="preconnect" href="https://www.youtube.com" />
+      <link rel="preconnect" href="https://i.ytimg.com" />
       
-      {/* 다음 슬라이드 미리 로드 (영상만) */}
-      {events.length > 1 && nextEvent.video_url && (
-        renderSlide(nextEvent, false, true)
-      )}
+      <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
+        {/* 현재 슬라이드 */}
+        {renderSlide(currentEvent, true)}
+        
+        {/* 모든 비디오 슬라이드를 백그라운드에 미리 로드 (안드로이드 TV 최적화) */}
+        {events.map((event, idx) => {
+          // 현재 슬라이드가 아니고 비디오가 있는 경우만 미리 로드
+          if (idx !== currentIndex && event.video_url) {
+            return <div key={`preload-${event.id}`}>{renderSlide(event, false, true)}</div>;
+          }
+          return null;
+        })}
 
-      <style>{`
-        .portrait-container {
-          position: relative;
-          width: 100vh;
-          height: 100vw;
-        }
-      `}</style>
-    </div>
+        <style>{`
+          .portrait-container {
+            position: relative;
+            width: 100vh;
+            height: 100vw;
+          }
+        `}</style>
+      </div>
+    </>
   );
 }
