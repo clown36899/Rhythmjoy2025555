@@ -862,6 +862,7 @@ export default function EventList({
             title: fullEvent.title,
             time: fullEvent.time,
             location: fullEvent.location,
+            locationLink: fullEvent.location_link || "",
             category: fullEvent.category,
             organizer: fullEvent.organizer,
             organizerName: fullEvent.organizer_name || "",
@@ -2774,17 +2775,20 @@ export default function EventList({
                 {selectedEvent.location && (
                   <div className="flex items-center space-x-3 text-gray-300">
                     <i className="ri-map-pin-line text-blue-400 text-xl"></i>
-                    <span>{selectedEvent.location}</span>
-                    {selectedEvent.location_link && (
-                      <a
-                        href={selectedEvent.location_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
-                      >
-                        바로가기
-                      </a>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <span>{selectedEvent.location}</span>
+                      {selectedEvent.location_link && (
+                        <a
+                          href={selectedEvent.location_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1 hover:bg-blue-600/20 rounded transition-colors"
+                          title="지도 보기"
+                        >
+                          <i className="ri-external-link-line text-blue-400 text-lg"></i>
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
 
