@@ -43,9 +43,9 @@ export default function BillboardPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events' },
-        (payload) => {
-          console.log('🔥 이벤트 변경 감지:', payload.eventType, payload);
-          loadBillboardData();
+        () => {
+          console.log('🔥 이벤트 변경 감지 - 페이지 새로고침');
+          window.location.reload();
         }
       )
       .subscribe((status) => {
@@ -58,10 +58,9 @@ export default function BillboardPage() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'billboard_user_settings' },
         (payload) => {
-          console.log('⚙️ 설정 변경 감지:', payload);
           if (payload.new.billboard_user_id === parseInt(userId)) {
-            console.log('✅ 현재 빌보드 설정 업데이트 중...');
-            loadBillboardData();
+            console.log('⚙️ 설정 변경 감지 - 페이지 새로고침');
+            window.location.reload();
           }
         }
       )
