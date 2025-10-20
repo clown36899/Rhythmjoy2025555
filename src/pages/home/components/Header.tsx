@@ -287,25 +287,11 @@ export default function Header({
           <div className="flex items-center justify-between h-16">
 
             <div className="flex items-center space-x-8">
-              <button
-                onClick={() => setShowQRModal(true)}
-                className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer group"
-                title="즐겨찾기 QR 코드"
-              >
-                {/* <div className="text-2xl">
-                  <i className="ri-qr-code-line text-purple-400 group-hover:text-purple-300"></i>
-                </div> */}
-                <div className="text-xs bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="text-sm font-bold text-gray-300 group-hover:text-white hidden sm:inline">
-                      사이트
-                    </span>
-                    <span className="text-sm font-bold text-gray-300 group-hover:text-white">
-                      qr공유
-                    </span>
-                  </span>
-                </div>
-              </button>
+              <div className="flex items-center">
+                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                  광고판
+                </h1>
+              </div>
             </div>
 
             {/* Calendar Controls - Center */}
