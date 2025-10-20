@@ -162,6 +162,7 @@ export default function EventList({
         requestAnimationFrame(() => {
           if (currentMonthRef.current) {
             const height = currentMonthRef.current.offsetHeight;
+            console.log('📏 슬라이드 높이 측정:', height);
             setSlideContainerHeight(height);
           }
         });
