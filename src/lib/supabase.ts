@@ -12,6 +12,7 @@ export interface Event {
   date?: string;
   start_date?: string;
   end_date?: string;
+  event_dates?: string[]; // 특정 날짜들 (예: ["2025-01-11", "2025-01-25", "2025-01-31"])
   time: string;
   location: string;
   category: string;

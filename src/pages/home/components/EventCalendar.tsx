@@ -126,6 +126,12 @@ export default function EventCalendar({
     const dateString = `${year}-${month}-${day}`;
 
     return events.filter((event) => {
+      // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
+      if (event.event_dates && event.event_dates.length > 0) {
+        return event.event_dates.includes(dateString);
+      }
+      
+      // 연속 기간 모드: 기존 로직
       const startDate = event.start_date || event.date || "";
       const endDate = event.end_date || event.date || "";
 
@@ -145,7 +151,14 @@ export default function EventCalendar({
     const map = new Map<number, { lane: number; color: string }>();
 
     // 현재 월의 멀티데이 이벤트만 필터링
+    // 특정 날짜 모드(event_dates)는 불연속적이므로 레인 할당 제외
     const multiDayEvents = events.filter((event) => {
+      // 특정 날짜 모드는 개별 박스로 표시 (레인 할당 안 함)
+      if (event.event_dates && event.event_dates.length > 0) {
+        return false;
+      }
+      
+      // 연속 기간 모드: start_date와 end_date가 다르면 멀티데이
       const startDate = event.start_date || event.date || "";
       const endDate = event.end_date || event.date || "";
       return startDate !== endDate;
@@ -331,12 +344,22 @@ export default function EventCalendar({
 
       // 연속 이벤트와 단일 이벤트 분리
       const multiDayEvents = dayEvents.filter((event) => {
+        // 특정 날짜 모드는 단일 이벤트로 처리
+        if (event.event_dates && event.event_dates.length > 0) {
+          return false;
+        }
+        
         const startDate = event.start_date || event.date || "";
         const endDate = event.end_date || event.date || "";
         return startDate !== endDate;
       });
 
       const singleDayEvents = dayEvents.filter((event) => {
+        // 특정 날짜 모드는 단일 이벤트로 처리
+        if (event.event_dates && event.event_dates.length > 0) {
+          return true;
+        }
+        
         const startDate = event.start_date || event.date || "";
         const endDate = event.end_date || event.date || "";
         return startDate === endDate;
@@ -347,6 +370,11 @@ export default function EventCalendar({
         ? new Set(
             getEventsForDate(selectedDate)
               .filter((event) => {
+                // 특정 날짜 모드는 제외
+                if (event.event_dates && event.event_dates.length > 0) {
+                  return false;
+                }
+                
                 const startDate = event.start_date || event.date || "";
                 const endDate = event.end_date || event.date || "";
                 return startDate !== endDate;

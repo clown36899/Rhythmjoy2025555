@@ -44,10 +44,15 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
   const [videoPreview, setVideoPreview] = useState<{ provider: string | null; embedUrl: string | null }>({ provider: null, embedUrl: null });
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
+  
+  // 날짜 선택 모드: 'range' (연속 기간) 또는 'specific' (특정 날짜들)
+  const [dateMode, setDateMode] = useState<'range' | 'specific'>('range');
+  const [specificDates, setSpecificDates] = useState<Date[]>([selectedDate]);
 
-  // selectedDate가 변경되면 endDate도 업데이트
+  // selectedDate가 변경되면 endDate와 specificDates도 업데이트
   useEffect(() => {
     setEndDate(selectedDate);
+    setSpecificDates([selectedDate]);
   }, [selectedDate]);
 
   const categories = [
@@ -257,21 +262,36 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         imageUrls = await uploadImages(imageFile);
       }
 
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      const localDateString = `${year}-${month}-${day}`;
+      // 날짜 데이터 준비
+      let localDateString: string;
+      let endDateString: string;
+      let eventDatesArray: string[] | null = null;
 
-      const endYear = endDate.getFullYear();
-      const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
-      const endDay = String(endDate.getDate()).padStart(2, '0');
-      const endDateString = `${endYear}-${endMonth}-${endDay}`;
+      if (dateMode === 'specific') {
+        // 특정 날짜 모드: 선택된 날짜들을 배열로 저장
+        const sortedDates = [...specificDates].sort((a, b) => a.getTime() - b.getTime());
+        eventDatesArray = sortedDates.map(date => formatDateForInput(date));
+        localDateString = eventDatesArray[0]; // 최소 날짜
+        endDateString = eventDatesArray[eventDatesArray.length - 1]; // 최대 날짜
+      } else {
+        // 연속 기간 모드: 기존 방식
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        localDateString = `${year}-${month}-${day}`;
+
+        const endYear = endDate.getFullYear();
+        const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+        const endDay = String(endDate.getDate()).padStart(2, '0');
+        endDateString = `${endYear}-${endMonth}-${endDay}`;
+      }
 
       const eventData = {
         title: formData.title,
         date: localDateString,
         start_date: localDateString,
         end_date: endDateString,
+        event_dates: eventDatesArray,
         time: '00:00',
         location: formData.location,
         category: formData.category,
@@ -378,32 +398,113 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 />
               </div>
 
-              {/* 시작일과 종료일 */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    시작일
+              {/* 날짜 선택 모드 */}
+              <div className="bg-gray-700/50 rounded-lg p-3">
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  날짜 선택 방식
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={dateMode === 'range'}
+                      onChange={() => setDateMode('range')}
+                      className="mr-2"
+                    />
+                    <span className="text-white text-sm">연속 기간 (1~4일)</span>
                   </label>
-                  <input
-                    type="date"
-                    value={formatDateForInput(selectedDate)}
-                    disabled
-                    className="w-full bg-gray-600 text-gray-300 rounded-lg px-3 py-2 cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    종료일
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={dateMode === 'specific'}
+                      onChange={() => setDateMode('specific')}
+                      className="mr-2"
+                    />
+                    <span className="text-white text-sm">특정 날짜 선택</span>
                   </label>
-                  <input
-                    type="date"
-                    value={formatDateForInput(endDate)}
-                    min={formatDateForInput(selectedDate)}
-                    onChange={(e) => setEndDate(new Date(e.target.value + 'T00:00:00'))}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
                 </div>
               </div>
+
+              {/* 연속 기간 모드 */}
+              {dateMode === 'range' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1">
+                      시작일
+                    </label>
+                    <input
+                      type="date"
+                      value={formatDateForInput(selectedDate)}
+                      disabled
+                      className="w-full bg-gray-600 text-gray-300 rounded-lg px-3 py-2 cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1">
+                      종료일
+                    </label>
+                    <input
+                      type="date"
+                      value={formatDateForInput(endDate)}
+                      min={formatDateForInput(selectedDate)}
+                      onChange={(e) => setEndDate(new Date(e.target.value + 'T00:00:00'))}
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 특정 날짜 선택 모드 */}
+              {dateMode === 'specific' && (
+                <div className="bg-gray-700/50 rounded-lg p-3">
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    선택된 날짜 ({specificDates.length}개)
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {specificDates.sort((a, b) => a.getTime() - b.getTime()).map((date, index) => (
+                      <div
+                        key={index}
+                        className="inline-flex items-center bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
+                      >
+                        <span>{date.getMonth() + 1}/{date.getDate()}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (specificDates.length > 1) {
+                              setSpecificDates(prev => prev.filter((_, i) => i !== index));
+                            }
+                          }}
+                          className="ml-2 hover:text-red-300"
+                        >
+                          <i className="ri-close-line"></i>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="date"
+                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const newDate = new Date(e.target.value + 'T00:00:00');
+                          // 중복 체크
+                          const isDuplicate = specificDates.some(
+                            d => formatDateForInput(d) === formatDateForInput(newDate)
+                          );
+                          if (!isDuplicate) {
+                            setSpecificDates(prev => [...prev, newDate]);
+                          }
+                          e.target.value = ''; // 입력 필드 초기화
+                        }
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
+                  </p>
+                </div>
+              )}
 
               {/* 이벤트 비밀번호 */}
               <div>

@@ -306,7 +306,7 @@ export default function EventList({
       } else {
         const result = await supabase
           .from("events")
-          .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
+          .select("id,title,date,start_date,end_date,event_dates,time,location,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
           .order("start_date", { ascending: true, nullsFirst: false })
           .order("date", { ascending: true, nullsFirst: false });
         data = result.data;
@@ -527,13 +527,21 @@ export default function EventList({
         const day = String(selectedDate.getDate()).padStart(2, "0");
         const selectedDateString = `${year}-${month}-${day}`;
 
-        const startDate = event.start_date || event.date || "";
-        const endDate = event.end_date || event.date || "";
-        const matchesDate =
-          startDate &&
-          endDate &&
-          selectedDateString >= startDate &&
-          selectedDateString <= endDate;
+        let matchesDate = false;
+        
+        // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
+        if (event.event_dates && event.event_dates.length > 0) {
+          matchesDate = event.event_dates.includes(selectedDateString);
+        } else {
+          // 연속 기간 모드: 기존 로직
+          const startDate = event.start_date || event.date || "";
+          const endDate = event.end_date || event.date || "";
+          matchesDate =
+            startDate &&
+            endDate &&
+            selectedDateString >= startDate &&
+            selectedDateString <= endDate;
+        }
 
         return matchesDate && matchesCategory;
       }
@@ -541,35 +549,54 @@ export default function EventList({
       // 날짜가 선택되지 않은 경우 - 월 필터 적용
       let matchesDate = true;
       if (currentMonth) {
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
-
-        // 날짜 정보가 없는 이벤트는 필터링에서 제외
-        if (!startDate || !endDate) {
-          matchesDate = false;
-        } else {
-          const eventStartDate = new Date(startDate);
-          const eventEndDate = new Date(endDate);
-
+        // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
+        if (event.event_dates && event.event_dates.length > 0) {
+          const currentYear = currentMonth.getFullYear();
+          const currentMonthNum = currentMonth.getMonth() + 1; // 1~12
+          
           if (viewMode === "year") {
-            // 연간 보기: 해당 년도의 모든 이벤트
-            const yearStart = new Date(currentMonth.getFullYear(), 0, 1);
-            const yearEnd = new Date(currentMonth.getFullYear(), 11, 31);
-            matchesDate =
-              eventStartDate <= yearEnd && eventEndDate >= yearStart;
+            // 연간 보기: event_dates 중 하나라도 해당 년도에 속하면 표시
+            matchesDate = event.event_dates.some(dateStr => {
+              const year = parseInt(dateStr.split('-')[0]);
+              return year === currentYear;
+            });
           } else {
-            // 월간 보기: 시간대 문제 해결을 위해 날짜 문자열로 비교
-            const currentYear = currentMonth.getFullYear();
-            const currentMonthNum = currentMonth.getMonth() + 1; // 1~12
-            
-            // 월의 첫날과 마지막 날을 문자열로 생성
-            const monthStartStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}-01`;
-            const monthEndStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}-${new Date(currentYear, currentMonthNum, 0).getDate()}`;
+            // 월간 보기: event_dates 중 하나라도 현재 월에 속하면 표시
+            const monthPrefix = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}`;
+            matchesDate = event.event_dates.some(dateStr => dateStr.startsWith(monthPrefix));
+          }
+        } else {
+          // 연속 기간 모드: 기존 로직
+          const startDate = event.start_date || event.date;
+          const endDate = event.end_date || event.date;
 
-            // 이벤트가 현재 월과 겹치는지 확인 (문자열 비교)
-            // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
-            matchesDate =
-              startDate <= monthEndStr && endDate >= monthStartStr;
+          // 날짜 정보가 없는 이벤트는 필터링에서 제외
+          if (!startDate || !endDate) {
+            matchesDate = false;
+          } else {
+            const eventStartDate = new Date(startDate);
+            const eventEndDate = new Date(endDate);
+
+            if (viewMode === "year") {
+              // 연간 보기: 해당 년도의 모든 이벤트
+              const yearStart = new Date(currentMonth.getFullYear(), 0, 1);
+              const yearEnd = new Date(currentMonth.getFullYear(), 11, 31);
+              matchesDate =
+                eventStartDate <= yearEnd && eventEndDate >= yearStart;
+            } else {
+              // 월간 보기: 시간대 문제 해결을 위해 날짜 문자열로 비교
+              const currentYear = currentMonth.getFullYear();
+              const currentMonthNum = currentMonth.getMonth() + 1; // 1~12
+              
+              // 월의 첫날과 마지막 날을 문자열로 생성
+              const monthStartStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}-01`;
+              const monthEndStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}-${new Date(currentYear, currentMonthNum, 0).getDate()}`;
+
+              // 이벤트가 현재 월과 겹치는지 확인 (문자열 비교)
+              // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
+              matchesDate =
+                startDate <= monthEndStr && endDate >= monthStartStr;
+            }
           }
         }
       }
