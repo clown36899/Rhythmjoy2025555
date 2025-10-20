@@ -36,6 +36,39 @@ export default function BillboardPage() {
     }
 
     loadBillboardData();
+
+    // Realtime 구독 설정
+    const eventsChannel = supabase
+      .channel('billboard-events-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        () => {
+          // 이벤트 변경 시 데이터 다시 로드
+          loadBillboardData();
+        }
+      )
+      .subscribe();
+
+    const settingsChannel = supabase
+      .channel('billboard-settings-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'billboard_user_settings' },
+        (payload) => {
+          // 현재 빌보드 사용자 설정만 업데이트
+          if (payload.new.billboard_user_id === parseInt(userId)) {
+            loadBillboardData();
+          }
+        }
+      )
+      .subscribe();
+
+    // 클린업
+    return () => {
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(settingsChannel);
+    };
   }, [userId]);
 
   const loadBillboardData = async () => {
