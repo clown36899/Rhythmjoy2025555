@@ -483,21 +483,16 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     ))}
                   </div>
                   <div className="flex gap-2 mb-2">
-                    <div 
-                      className="flex-1 relative cursor-pointer"
-                      onClick={(e) => {
-                        // div 클릭 시 input을 클릭한 것처럼 동작
-                        const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
-                        if (input && e.target === e.currentTarget) {
-                          input.focus();
-                          input.click();
-                        }
-                      }}
-                    >
+                    <div className="flex-1 relative">
                       <input
                         type="date"
+                        ref={(el) => {
+                          if (el) {
+                            (el as any)._dateInput = el;
+                          }
+                        }}
                         value={tempDateInput}
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         onKeyDown={(e) => {
                           // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
                           if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
@@ -508,6 +503,12 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                           setTempDateInput(e.target.value);
                         }}
                       />
+                      <div className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 pointer-events-none flex items-center justify-between">
+                        <span className="text-sm">
+                          {tempDateInput ? new Date(tempDateInput + 'T00:00:00').toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '날짜를 선택하세요'}
+                        </span>
+                        <i className="ri-calendar-line text-gray-400"></i>
+                      </div>
                     </div>
                     <button
                       type="button"
