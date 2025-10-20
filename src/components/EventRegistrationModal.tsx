@@ -490,12 +490,9 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       onChange={(e) => {
                         setTempDateInput(e.target.value);
                       }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (tempDateInput) {
-                          const newDate = new Date(tempDateInput + 'T00:00:00');
+                      onBlur={(e) => {
+                        if (e.target.value) {
+                          const newDate = new Date(e.target.value + 'T00:00:00');
                           // 중복 체크
                           const isDuplicate = specificDates.some(
                             d => formatDateForInput(d) === formatDateForInput(newDate)
@@ -506,10 +503,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                           setTempDateInput(''); // 입력 필드 초기화
                         }
                       }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      추가
-                    </button>
+                    />
                   </div>
                   <p className="text-xs text-gray-400">
                     예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
