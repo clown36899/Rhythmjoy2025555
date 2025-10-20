@@ -7,7 +7,7 @@ import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
 import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from "../../../utils/videoThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
-import QRCodeImage from "./QRCodeImage";
+import { QRCodeSVG } from "qrcode.react";
 
 
 const formatDateForInput = (date: Date): string => {
