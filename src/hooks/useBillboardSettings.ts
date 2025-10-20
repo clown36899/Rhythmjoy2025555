@@ -24,7 +24,7 @@ const getTodayString = () => {
 const DEFAULT_SETTINGS: BillboardSettings = {
   enabled: true,
   autoSlideInterval: 5000, // 5초
-  inactivityTimeout: 600000, // 10분
+  inactivityTimeout: 300000, // 5분
   autoOpenOnLoad: true,
   transitionDuration: 300, // 0.3초
   dateRangeStart: getTodayString(), // 오늘 날짜
