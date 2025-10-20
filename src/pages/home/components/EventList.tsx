@@ -825,12 +825,7 @@ export default function EventList({
         alert("이벤트 삭제 중 오류가 발생했습니다.");
       } else {
         alert("이벤트가 삭제되었습니다.");
-        fetchEvents();
-        
-        // 상위 컴포넌트 refreshTrigger 증가 (달력, 빌보드 업데이트)
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("eventDeleted"));
-        }
+        window.location.reload();
       }
     } catch (error) {
       console.error("Error:", error);
