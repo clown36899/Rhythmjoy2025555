@@ -2814,14 +2814,9 @@ export default function EventList({
                   </div>
                 )}
 
-                {/* 바로가기 링크 */}
                 {/* 바로가기 링크 (버튼 + QR) */}
                 {(selectedEvent.link1 || selectedEvent.link2 || selectedEvent.link3) && (
                   <div className="pt-3 border-t border-gray-700">
-                    <div className="mb-3 flex items-center gap-2">
-                      <i className="ri-external-link-line text-blue-400"></i>
-                      <span className="text-gray-300 font-semibold">바로가기</span>
-                    </div>
 
                     {(() => {
                       const links = [
