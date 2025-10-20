@@ -264,8 +264,12 @@ export default function BillboardPage() {
 
     return (
       <div 
-        className="portrait-container absolute inset-0"
+        className="portrait-container"
         style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: `translate(-50%, -50%) rotate(90deg)`,
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? 'auto' : 'none',
           transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out`,
@@ -285,7 +289,7 @@ export default function BillboardPage() {
           <img
             src={imageUrl}
             alt={event.title}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
             loading={preload ? "eager" : "lazy"}
           />
         )}
@@ -378,8 +382,6 @@ export default function BillboardPage() {
           position: relative;
           width: 100vh;
           height: 100vw;
-          transform: rotate(90deg);
-          transform-origin: center center;
         }
       `}</style>
     </div>
