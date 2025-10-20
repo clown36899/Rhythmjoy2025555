@@ -1260,6 +1260,16 @@ export default function EventList({
                       <div className="p-1">
                         <p className="text-xs text-gray-300 text-center">
                           {(() => {
+                            // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                            if (event.event_dates && event.event_dates.length > 0) {
+                              const formatDate = (dateStr: string) => {
+                                const date = new Date(dateStr);
+                                return `${date.getMonth() + 1}/${date.getDate()}`;
+                              };
+                              return event.event_dates.map(formatDate).join(', ');
+                            }
+                            
+                            // 연속 기간 모드
                             const startDate = event.start_date || event.date;
                             const endDate = event.end_date || event.date;
 
@@ -1383,6 +1393,16 @@ export default function EventList({
                           <div className="p-1">
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
+                                // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                                if (event.event_dates && event.event_dates.length > 0) {
+                                  const formatDate = (dateStr: string) => {
+                                    const date = new Date(dateStr);
+                                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                                  };
+                                  return event.event_dates.map(formatDate).join(', ');
+                                }
+                                
+                                // 연속 기간 모드
                                 const startDate = event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
@@ -1499,6 +1519,16 @@ export default function EventList({
                           <div className="p-1">
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
+                                // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                                if (event.event_dates && event.event_dates.length > 0) {
+                                  const formatDate = (dateStr: string) => {
+                                    const date = new Date(dateStr);
+                                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                                  };
+                                  return event.event_dates.map(formatDate).join(', ');
+                                }
+                                
+                                // 연속 기간 모드
                                 const startDate = event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
@@ -1605,6 +1635,16 @@ export default function EventList({
                           <div className="p-1">
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
+                                // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                                if (event.event_dates && event.event_dates.length > 0) {
+                                  const formatDate = (dateStr: string) => {
+                                    const date = new Date(dateStr);
+                                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                                  };
+                                  return event.event_dates.map(formatDate).join(', ');
+                                }
+                                
+                                // 연속 기간 모드
                                 const startDate = event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
@@ -2531,6 +2571,30 @@ export default function EventList({
                   <i className="ri-calendar-line text-blue-400 text-xl"></i>
                   <span>
                     {(() => {
+                      // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                      if (selectedEvent.event_dates && selectedEvent.event_dates.length > 0) {
+                        const dates = selectedEvent.event_dates.map(dateStr => new Date(dateStr));
+                        const firstDate = dates[0];
+                        const year = firstDate.getFullYear();
+                        const month = firstDate.toLocaleDateString("ko-KR", { month: "long" });
+                        
+                        // 같은 년월인지 확인
+                        const sameYearMonth = dates.every(d => 
+                          d.getFullYear() === year && 
+                          d.toLocaleDateString("ko-KR", { month: "long" }) === month
+                        );
+                        
+                        if (sameYearMonth) {
+                          // 같은 년월: "2025년 10월 11일, 25일, 31일"
+                          const days = dates.map(d => d.getDate()).join('일, ');
+                          return `${year}년 ${month} ${days}일`;
+                        } else {
+                          // 다른 년월: "10/11, 11/25, 12/31"
+                          return dates.map(d => `${d.getMonth() + 1}/${d.getDate()}`).join(', ');
+                        }
+                      }
+                      
+                      // 연속 기간 모드
                       const startDate =
                         selectedEvent.start_date || selectedEvent.date;
                       const endDate = selectedEvent.end_date;
