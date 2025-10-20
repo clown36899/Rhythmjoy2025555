@@ -103,6 +103,7 @@ export default function EventList({
     title: "",
     time: "",
     location: "",
+    locationLink: "",
     category: "",
     organizer: "",
     organizerName: "",
@@ -745,6 +746,7 @@ export default function EventList({
         title: event.title,
         time: event.time,
         location: event.location,
+        locationLink: event.location_link || "",
         category: event.category,
         organizer: event.organizer,
         organizerName: event.organizer_name || "",
@@ -985,6 +987,7 @@ export default function EventList({
         title: editFormData.title,
         time: editFormData.time,
         location: editFormData.location,
+        location_link: editFormData.locationLink || null,
         category: editFormData.category,
         description: "",
         organizer: editFormData.organizer,
@@ -1887,41 +1890,59 @@ export default function EventList({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      카테고리
-                    </label>
-                    <select
-                      value={editFormData.category}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          category: e.target.value,
-                        }))
-                      }
-                      className="w-full bg-[#242424] text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
-                    >
-                      <option value="class">강습</option>
-                      <option value="event">행사</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      장소
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.location}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          location: e.target.value,
-                        }))
-                      }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    카테고리
+                  </label>
+                  <select
+                    value={editFormData.category}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        category: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-[#242424] text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
+                  >
+                    <option value="class">강습</option>
+                    <option value="event">행사</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    장소 이름
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.location}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        location: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="예: 홍대 연습실"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    주소 링크 (선택)
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.locationLink}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        locationLink: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="예: https://map.naver.com/..."
+                  />
                 </div>
 
                 {/* 날짜 선택 모드 */}
@@ -2754,6 +2775,16 @@ export default function EventList({
                   <div className="flex items-center space-x-3 text-gray-300">
                     <i className="ri-map-pin-line text-blue-400 text-xl"></i>
                     <span>{selectedEvent.location}</span>
+                    {selectedEvent.location_link && (
+                      <a
+                        href={selectedEvent.location_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                      >
+                        바로가기
+                      </a>
+                    )}
                   </div>
                 )}
 

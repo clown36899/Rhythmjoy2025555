@@ -15,6 +15,7 @@ export interface Event {
   event_dates?: string[]; // 특정 날짜들 (예: ["2025-01-11", "2025-01-25", "2025-01-31"])
   time: string;
   location: string;
+  location_link?: string;
   category: string;
   price: string;
   image: string;
