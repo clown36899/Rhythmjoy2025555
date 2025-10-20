@@ -484,6 +484,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   <div className="flex gap-2 mb-2">
                     <input
                       type="date"
+                      value=""
                       className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onChange={(e) => {
                         if (e.target.value) {
