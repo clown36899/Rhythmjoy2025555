@@ -2848,7 +2848,7 @@ export default function EventList({
                 {/* 추가 링크 */}
                 {selectedEvent.link1 && (
                   <div className="pt-3 border-t border-gray-700">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
                       <a
                         href={selectedEvent.link1}
                         target="_blank"
@@ -2858,7 +2858,20 @@ export default function EventList({
                         <i className="ri-external-link-line text-lg"></i>
                         <span className="font-medium">{selectedEvent.link_name1 || "바로가기"}</span>
                       </a>
-                      <QRCodeModal url={selectedEvent.link1} label={selectedEvent.link_name1 || "링크"} />
+                      <a
+                        href={selectedEvent.link1}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 bg-white p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        title="QR 코드로 바로가기"
+                      >
+                        <QRCodeSVG
+                          value={selectedEvent.link1}
+                          size={64}
+                          level="M"
+                          includeMargin={false}
+                        />
+                      </a>
                     </div>
                   </div>
                 )}

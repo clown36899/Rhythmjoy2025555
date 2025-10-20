@@ -795,72 +795,30 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </div>
               </div>
 
-              {/* 바로가기 링크 3개 - 축소 */}
+              {/* 바로가기 링크 1개만 */}
               <div>
                 <label className="block text-gray-300 text-sm font-medium mb-1">
                   바로가기 링크 (선택사항)
                 </label>
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="url"
-                      name="link1"
-                      value={formData.link1}
-                      onChange={handleInputChange}
-                      onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="링크 1 URL"
-                    />
-                    <input
-                      type="text"
-                      name="linkName1"
-                      value={formData.linkName1}
-                      onChange={handleInputChange}
-                      onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="링크 1 이름"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="url"
-                      name="link2"
-                      value={formData.link2}
-                      onChange={handleInputChange}
-                      onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="링크 2 URL"
-                    />
-                    <input
-                      type="text"
-                      name="linkName2"
-                      value={formData.linkName2}
-                      onChange={handleInputChange}
-                      onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="링크 2 이름"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="url"
-                      name="link3"
-                      value={formData.link3}
-                      onChange={handleInputChange}
-                      onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="링크 3 URL"
-                    />
-                    <input
-                      type="text"
-                      name="linkName3"
-                      value={formData.linkName3}
-                      onChange={handleInputChange}
-                      onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="링크 3 이름"
-                    />
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="url"
+                    name="link1"
+                    value={formData.link1}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="링크 URL"
+                  />
+                  <input
+                    type="text"
+                    name="linkName1"
+                    value={formData.linkName1}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="링크 이름"
+                  />
                 </div>
               </div>
 
