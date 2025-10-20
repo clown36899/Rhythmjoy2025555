@@ -1941,7 +1941,7 @@ export default function EventList({
                         }}
                         className="mr-2"
                       />
-                      <span className="text-gray-300 text-sm">연속 기간 (1~4일)</span>
+                      <span className="text-gray-300 text-sm">연속 기간</span>
                     </label>
                     <label className="flex items-center cursor-pointer">
                       <input

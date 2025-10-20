@@ -412,7 +412,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       onChange={() => setDateMode('range')}
                       className="mr-2"
                     />
-                    <span className="text-white text-sm">연속 기간 (1~4일)</span>
+                    <span className="text-white text-sm">연속 기간</span>
                   </label>
                   <label className="flex items-center cursor-pointer">
                     <input
