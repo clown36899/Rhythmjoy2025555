@@ -48,6 +48,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
   // 날짜 선택 모드: 'range' (연속 기간) 또는 'specific' (특정 날짜들)
   const [dateMode, setDateMode] = useState<'range' | 'specific'>('range');
   const [specificDates, setSpecificDates] = useState<Date[]>([selectedDate]);
+  const [tempDateInput, setTempDateInput] = useState<string>(''); // 날짜 추가 전 임시 값
 
   // selectedDate가 변경되면 endDate와 specificDates도 업데이트
   useEffect(() => {
@@ -484,11 +485,17 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   <div className="flex gap-2 mb-2">
                     <input
                       type="date"
-                      value=""
+                      value={tempDateInput}
                       className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onChange={(e) => {
-                        if (e.target.value) {
-                          const newDate = new Date(e.target.value + 'T00:00:00');
+                        setTempDateInput(e.target.value);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (tempDateInput) {
+                          const newDate = new Date(tempDateInput + 'T00:00:00');
                           // 중복 체크
                           const isDuplicate = specificDates.some(
                             d => formatDateForInput(d) === formatDateForInput(newDate)
@@ -496,10 +503,13 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                           if (!isDuplicate) {
                             setSpecificDates(prev => [...prev, newDate]);
                           }
-                          e.target.value = ''; // 입력 필드 초기화
+                          setTempDateInput(''); // 입력 필드 초기화
                         }
                       }}
-                    />
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      추가
+                    </button>
                   </div>
                   <p className="text-xs text-gray-400">
                     예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
