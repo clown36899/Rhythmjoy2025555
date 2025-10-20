@@ -72,7 +72,7 @@ export default function AdminBillboardModal({
     }
   }, [isOpen, adminType, settings.excludedWeekdays, settings.dateRangeStart, settings.dateRangeEnd]);
 
-  // 날짜 기본값 초기화 (시작: 오늘, 종료: 마지막 이벤트의 다음날)
+  // 날짜 기본값 초기화 (시작: 오늘)
   const initializeDateDefaults = async () => {
     try {
       const today = new Date();
@@ -83,22 +83,7 @@ export default function AdminBillboardModal({
       if (!settings.dateRangeStart) {
         onUpdateSettings({ dateRangeStart: todayStr });
       }
-
-      // 종료 날짜가 없으면 마지막 이벤트의 다음날로 설정
-      if (!settings.dateRangeEnd) {
-        const { data, error } = await supabase
-          .from('events')
-          .select('start_date')
-          .order('start_date', { ascending: false })
-          .limit(1);
-
-        if (!error && data && data.length > 0) {
-          const lastEventDate = new Date(data[0].start_date);
-          lastEventDate.setDate(lastEventDate.getDate() + 1); // 다음날
-          const endDateStr = lastEventDate.toISOString().split('T')[0];
-          onUpdateSettings({ dateRangeEnd: endDateStr });
-        }
-      }
+      // 종료 날짜는 선택 사항 (미설정 시 모든 이벤트 표시)
     } catch (error) {
       console.error('날짜 기본값 초기화 실패:', error);
     }
@@ -202,28 +187,13 @@ export default function AdminBillboardModal({
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
 
-      // 마지막 이벤트 날짜 조회
-      const { data: lastEvent } = await supabase
-        .from('events')
-        .select('start_date')
-        .order('start_date', { ascending: false })
-        .limit(1)
-        .single();
-
-      let defaultEndDate = null;
-      if (lastEvent?.start_date) {
-        const lastEventDate = new Date(lastEvent.start_date);
-        lastEventDate.setDate(lastEventDate.getDate() + 1);
-        defaultEndDate = lastEventDate.toISOString().split('T')[0];
-      }
-
       setUserSettings(data || {
         id: billboardUserId,
         billboard_user_id: billboardUserId,
         excluded_weekdays: [],
         excluded_event_ids: [],
         date_filter_start: todayStr,
-        date_filter_end: defaultEndDate,
+        date_filter_end: null, // 종료 날짜는 선택 사항
         auto_slide_interval: 5000,
         play_order: 'sequential',
       });
@@ -524,7 +494,7 @@ export default function AdminBillboardModal({
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-400 block mb-1">종료 날짜</label>
+                  <label className="text-sm text-gray-400 block mb-1">종료 날짜 (선택)</label>
                   <input
                     type="date"
                     value={userSettings.date_filter_end || ""}
@@ -533,6 +503,7 @@ export default function AdminBillboardModal({
                     }
                     className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
                   />
+                  <p className="text-xs text-gray-400 mt-1">미설정 시 모든 이벤트 표시</p>
                 </div>
               </div>
             </div>
@@ -844,13 +815,14 @@ export default function AdminBillboardModal({
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">종료 날짜</label>
+                <label className="text-sm text-gray-400 mb-1 block">종료 날짜 (선택)</label>
                 <input
                   type="date"
                   value={settings.dateRangeEnd || ''}
                   onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
                   className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
                 />
+                <p className="text-xs text-gray-400 mt-1">미설정 시 모든 이벤트 표시</p>
               </div>
             </div>
             
