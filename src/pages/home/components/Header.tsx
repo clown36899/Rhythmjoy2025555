@@ -380,75 +380,6 @@ export default function Header({
         </div>
       </header>
 
-      {/* Date Selection Modal */}
-      {showDateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[9999999] p-4 pt-20 overflow-y-auto">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-white mb-6 text-center">
-              날짜 선택
-            </h3>
-
-            {/* Year Selection */}
-            <div className="mb-6">
-              <label className="block text-gray-300 text-sm font-medium mb-3">
-                년도
-              </label>
-              <div className="grid grid-cols-5 gap-2">
-                {years.map((year) => (
-                  <button
-                    key={year}
-                    onClick={() => setSelectedYear(year)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedYear === year
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      }`}
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Month Selection */}
-            <div className="mb-6">
-              <label className="block text-gray-300 text-sm font-medium mb-3">
-                월
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {monthNames.map((month, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedMonth(index)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedMonth === index
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      }`}
-                  >
-                    {month}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-3">
-              <button
-                onClick={handleDateCancel}
-                className="flex-1 bg-[#242424] hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleDateConfirm}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Settings Modal */}
       {showSettingsModal &&
         createPortal(
@@ -776,6 +707,76 @@ export default function Header({
 
       {/* QR Code Modal */}
       <QRCodeModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} />
+
+      {/* Date Selection Modal */}
+      {showDateModal && createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[9999999] p-4 pt-20 overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-white mb-6 text-center">
+              날짜 선택
+            </h3>
+
+            {/* Year Selection */}
+            <div className="mb-6">
+              <label className="block text-gray-300 text-sm font-medium mb-3">
+                년도
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {years.map((year) => (
+                  <button
+                    key={year}
+                    onClick={() => setSelectedYear(year)}
+                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedYear === year
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      }`}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Month Selection */}
+            <div className="mb-6">
+              <label className="block text-gray-300 text-sm font-medium mb-3">
+                월
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {monthNames.map((month, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedMonth(index)}
+                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedMonth === index
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      }`}
+                  >
+                    {month}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3">
+              <button
+                onClick={handleDateCancel}
+                className="flex-1 bg-[#242424] hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDateConfirm}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
