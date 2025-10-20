@@ -362,7 +362,7 @@ export default function AdminBillboardModal({
   if (adminType === "sub") {
     if (loading) {
       return createPortal(
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+        <div className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center">
           <div className="text-white text-xl">로딩 중...</div>
         </div>,
         document.body
@@ -383,7 +383,7 @@ export default function AdminBillboardModal({
 
     return createPortal(
       <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
         onClick={handleBackdropClick}
       >
         <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -619,7 +619,7 @@ export default function AdminBillboardModal({
   // 메인 관리자용 UI (기존 코드)
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
       <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">

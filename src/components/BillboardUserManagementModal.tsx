@@ -330,7 +330,7 @@ export default function BillboardUserManagementModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-10 overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[99999999] p-4 pt-10 overflow-y-auto">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-white">빌보드 사용자 관리</h3>
