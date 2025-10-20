@@ -93,12 +93,12 @@ export default defineConfig({
     host: SERVER_HOST, // 로컬: 'localhost', Replit: '0.0.0.0'
     strictPort: true,
     hmr: { clientPort: 443 },
-    // 모든 호스트 허용 (TV 브라우저 등 다양한 클라이언트 지원)
-    allowedHosts: true,
+    // allowedHosts 설정은 그대로 유지하여 Blocked Request 방지
+    allowedHosts: [".replit.dev", ".repl.co", "localhost", "127.0.0.1"],
   },
   preview: {
     host: SERVER_HOST,
     port: SERVER_PORT,
-    allowedHosts: true,
+    allowedHosts: [".replit.dev", ".repl.co", "localhost", "127.0.0.1"],
   },
 });
