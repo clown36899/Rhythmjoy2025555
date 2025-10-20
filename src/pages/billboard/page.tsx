@@ -27,7 +27,6 @@ export default function BillboardPage() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
-  const [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!userId) {
@@ -257,17 +256,11 @@ export default function BillboardPage() {
     return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
   };
 
-  // 비디오 로드 완료 핸들러
-  const handleVideoLoad = (eventId: string) => {
-    setLoadedVideos(prev => new Set(prev).add(eventId));
-  };
-
   // 슬라이드 렌더링 함수
   const renderSlide = (event: any, isVisible: boolean, preload: boolean = false) => {
     const imageUrl = event.image_full || event.image;
     const videoUrl = event.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
-    const isVideoLoaded = loadedVideos.has(event.id);
 
     return (
       <div 
@@ -284,32 +277,14 @@ export default function BillboardPage() {
         }}
       >
         {videoInfo?.embedUrl ? (
-          <>
-            {/* 썸네일을 먼저 표시 (로딩 중) */}
-            {!isVideoLoaded && (
-              <img
-                src={imageUrl}
-                alt={event.title}
-                className="w-full h-full object-contain absolute inset-0"
-                style={{ zIndex: 3 }}
-              />
-            )}
-            
-            {/* 유튜브 iframe (백그라운드 로딩) */}
-            <iframe
-              key={`video-${event.id}`}
-              src={`${videoInfo.embedUrl}&rel=0&modestbranding=1&playsinline=1`}
-              className="w-full h-full"
-              style={{ 
-                opacity: isVideoLoaded ? 1 : 0,
-                transition: 'opacity 500ms ease-in-out'
-              }}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              onLoad={() => handleVideoLoad(event.id)}
-            ></iframe>
-          </>
+          <iframe
+            key={`video-${event.id}`}
+            src={`${videoInfo.embedUrl}&rel=0&modestbranding=1&playsinline=1&vq=small`}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
         ) : (
           <img
             src={imageUrl}
@@ -401,7 +376,7 @@ export default function BillboardPage() {
         {/* 현재 슬라이드 */}
         {renderSlide(currentEvent, true)}
         
-        {/* tvbro용 프리로드 영역: 화면 밖에서 실제로 로드 */}
+        {/* tvbro용 프리로드 영역: 화면 밖에서 실제로 로드 (낮은 화질) */}
         <div 
           className="fixed"
           style={{
@@ -420,7 +395,7 @@ export default function BillboardPage() {
                 return (
                   <iframe
                     key={`preload-${event.id}`}
-                    src={`${videoInfo.embedUrl}&rel=0&modestbranding=1&playsinline=1`}
+                    src={`${videoInfo.embedUrl}&rel=0&modestbranding=1&playsinline=1&vq=small`}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -430,7 +405,6 @@ export default function BillboardPage() {
                       border: 'none'
                     }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    onLoad={() => handleVideoLoad(String(event.id))}
                   />
                 );
               }
