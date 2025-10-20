@@ -2202,92 +2202,31 @@ export default function EventList({
                   <label className="block text-gray-300 text-xs font-medium mb-1">
                     바로가기 링크
                   </label>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="url"
-                        value={editFormData.link1}
-                        onChange={(e) =>
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            link1: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-
-                        none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="링크 1 URL"
-                      />
-                      <input
-                        type="text"
-                        value={editFormData.linkName1}
-                        onChange={(e) =>
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            linkName1: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-
-                        none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="링크 1 이름"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="url"
-                        value={editFormData.link2}
-                        onChange={(e) =>
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            link2: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-
-                        none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="링크 2 URL"
-                      />
-                      <input
-                        type="text"
-                        value={editFormData.linkName2}
-                        onChange={(e) =>
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            linkName2: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-
-                        none focus:ring-2 focus:ring-blue-5
-                        text-sm"
-                        placeholder="링크 2 이름"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="url"
-                        value={editFormData.link3}
-                        onChange={(e) =>
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            link3: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-
-                        none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="링크 3 URL"
-                      />
-                      <input
-                        type="text"
-                        value={editFormData.linkName3}
-                        onChange={(e) =>
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            linkName3: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-
-                        none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="링크 3 이름"
-                      />
-                    </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="url"
+                      value={editFormData.link1}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          link1: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="링크 URL"
+                    />
+                    <input
+                      type="text"
+                      value={editFormData.linkName1}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          linkName1: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="링크 이름"
+                    />
                   </div>
                 </div>
 
