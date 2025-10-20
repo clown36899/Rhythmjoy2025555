@@ -214,7 +214,8 @@ export default function BillboardUserManagementModal({
       setAutoSlideInterval(data.auto_slide_interval);
       setPlayOrder(data.play_order);
       setDateFilterStart(data.date_filter_start || todayStr);
-      setDateFilterEnd(data.date_filter_end || defaultEndDate);
+      // null이면 빈 문자열로 설정 (종료 날짜 제한 없음)
+      setDateFilterEnd(data.date_filter_end || '');
       setShowEditModal(true);
     } catch (error) {
       console.error('설정 로드 실패:', error);
@@ -586,13 +587,30 @@ export default function BillboardUserManagementModal({
                       className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="시작 날짜"
                     />
-                    <input
-                      type="date"
-                      value={dateFilterEnd}
-                      onChange={(e) => setDateFilterEnd(e.target.value)}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="종료 날짜"
-                    />
+                    <div className="space-y-1">
+                      <div className="flex gap-2">
+                        <input
+                          type="date"
+                          value={dateFilterEnd}
+                          onChange={(e) => setDateFilterEnd(e.target.value)}
+                          className="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="종료 날짜"
+                        />
+                        <button
+                          onClick={() => setDateFilterEnd('')}
+                          className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                          title="종료 날짜 제한 없음"
+                        >
+                          지정 안 함
+                        </button>
+                      </div>
+                      {!dateFilterEnd && (
+                        <p className="text-xs text-green-400">
+                          <i className="ri-check-line mr-1"></i>
+                          종료 날짜 제한 없음 - 모든 미래 일정 표시
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
