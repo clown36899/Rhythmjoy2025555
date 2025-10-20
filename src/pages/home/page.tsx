@@ -847,39 +847,8 @@ export default function HomePage() {
                 />
               )}
             </div>
-            {/* Footer - 3개월 슬라이드 구조 */}
-            <div 
-              className="overflow-hidden relative"
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-            >
-              <div
-                className="flex transition-transform"
-                style={{
-                  transform: `translateX(${
-                    -window.innerWidth + dragOffset
-                  }px)`,
-                  transitionDuration: isAnimating ? "300ms" : "0ms",
-                  transitionTimingFunction: "ease-out",
-                }}
-              >
-                {/* 이전 달 푸터 */}
-                <div className="flex-shrink-0" style={{ width: `${window.innerWidth}px` }}>
-                  <Footer />
-                </div>
-                
-                {/* 현재 달 푸터 */}
-                <div className="flex-shrink-0" style={{ width: `${window.innerWidth}px` }}>
-                  <Footer />
-                </div>
-                
-                {/* 다음 달 푸터 */}
-                <div className="flex-shrink-0" style={{ width: `${window.innerWidth}px` }}>
-                  <Footer />
-                </div>
-              </div>
-            </div>
+            {/* Footer - 고정 (슬라이드 영향 없음) */}
+            <Footer />
           </div>
         </div>
       </div>
