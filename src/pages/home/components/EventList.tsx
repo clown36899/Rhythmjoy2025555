@@ -156,28 +156,25 @@ export default function EventList({
       return;
     }
 
-    const measureHeight = () => {
-      // 애니메이션 중이 아닐 때만 측정
-      if (!externalIsAnimating && currentMonthRef.current) {
+    // 애니메이션이 끝난 후에만 높이 측정
+    if (!externalIsAnimating && currentMonthRef.current) {
+      const measureHeight = () => {
         requestAnimationFrame(() => {
-          if (currentMonthRef.current) {
-            const height = currentMonthRef.current.offsetHeight;
-            console.log('📏 슬라이드 높이 측정:', height);
-            setSlideContainerHeight(height);
-          }
+          requestAnimationFrame(() => {
+            if (currentMonthRef.current) {
+              const height = currentMonthRef.current.offsetHeight;
+              console.log('📏 슬라이드 높이 측정:', height, '월:', (currentMonth?.getMonth() ?? -1) + 1);
+              setSlideContainerHeight(height);
+            }
+          });
         });
-      }
-    };
+      };
 
-    // 초기 높이 측정
-    measureHeight();
-
-    // 슬라이드 전환이 완료된 후 높이 재측정
-    if (!externalIsAnimating) {
-      const timer = setTimeout(measureHeight, 350); // 애니메이션 0.3s + 여유 50ms
+      // 약간의 지연을 줘서 DOM이 완전히 렌더링된 후 측정
+      const timer = setTimeout(measureHeight, 50);
       return () => clearTimeout(timer);
     }
-  }, [currentMonth, externalIsAnimating, events, searchTerm, selectedDate, selectedCategory, sortBy, refreshTrigger]);
+  }, [externalIsAnimating, searchTerm, selectedDate]);
 
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
