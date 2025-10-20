@@ -573,7 +573,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="이벤트 장소"
+                    placeholder="장소명 (주소링크입력가능)"
                   />
                 </div>
               </div>
