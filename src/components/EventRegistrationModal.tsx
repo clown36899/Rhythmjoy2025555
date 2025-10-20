@@ -49,6 +49,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
   const [dateMode, setDateMode] = useState<'range' | 'specific'>('range');
   const [specificDates, setSpecificDates] = useState<Date[]>([selectedDate]);
   const [tempDateInput, setTempDateInput] = useState<string>(''); // 날짜 추가 전 임시 값
+  const [userClicked, setUserClicked] = useState<boolean>(false); // 사용자가 실제로 클릭했는지 추적
 
   // selectedDate가 변경되면 endDate와 specificDates도 업데이트
   useEffect(() => {
@@ -487,9 +488,13 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       type="date"
                       value={tempDateInput}
                       className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onMouseDown={() => {
+                        // date picker 내에서 클릭이 발생하면 플래그 설정
+                        setUserClicked(true);
+                      }}
                       onChange={(e) => {
                         const newValue = e.target.value;
-                        if (newValue && newValue !== tempDateInput) {
+                        if (newValue && newValue !== tempDateInput && userClicked) {
                           const newDate = new Date(newValue + 'T00:00:00');
                           // 중복 체크
                           const isDuplicate = specificDates.some(
@@ -498,11 +503,18 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                           if (!isDuplicate) {
                             setSpecificDates(prev => [...prev, newDate]);
                           }
-                          // 입력 필드 초기화를 약간 지연시켜 브라우저가 달력을 완전히 닫을 시간을 줌
-                          setTimeout(() => setTempDateInput(''), 100);
+                          // 입력 필드 초기화
+                          setTimeout(() => {
+                            setTempDateInput('');
+                            setUserClicked(false);
+                          }, 100);
                         } else {
                           setTempDateInput(newValue);
                         }
+                      }}
+                      onBlur={() => {
+                        // picker가 닫히면 클릭 플래그 리셋
+                        setUserClicked(false);
                       }}
                     />
                   </div>
