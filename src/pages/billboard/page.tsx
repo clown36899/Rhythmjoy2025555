@@ -324,7 +324,7 @@ export default function BillboardPage() {
                   {formatDateRange(currentEvent.start_date, currentEvent.end_date)}
                 </div>
               )}
-              {currentEvent.location && (
+              {currentEvent.location && currentEvent.location.trim() && currentEvent.location !== '미정' && (
                 <div className="text-gray-300 text-lg">
                   <i className="ri-map-pin-line mr-2"></i>
                   {currentEvent.location}
