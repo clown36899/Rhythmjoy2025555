@@ -495,14 +495,25 @@ export default function AdminBillboardModal({
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">종료 날짜 (선택)</label>
-                  <input
-                    type="date"
-                    value={userSettings.date_filter_end || ""}
-                    onChange={(e) =>
-                      updateLocalSettings({ date_filter_end: e.target.value || null })
-                    }
-                    className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={userSettings.date_filter_end || ""}
+                      onChange={(e) =>
+                        updateLocalSettings({ date_filter_end: e.target.value || null })
+                      }
+                      className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
+                    />
+                    {userSettings.date_filter_end && (
+                      <button
+                        onClick={() => updateLocalSettings({ date_filter_end: null })}
+                        className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                        title="종료 날짜 초기화"
+                      >
+                        <i className="ri-close-line text-lg"></i>
+                      </button>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400 mt-1">미설정 시 모든 이벤트 표시</p>
                 </div>
               </div>
@@ -816,12 +827,23 @@ export default function AdminBillboardModal({
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">종료 날짜 (선택)</label>
-                <input
-                  type="date"
-                  value={settings.dateRangeEnd || ''}
-                  onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
-                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={settings.dateRangeEnd || ''}
+                    onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
+                    className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                  />
+                  {settings.dateRangeEnd && (
+                    <button
+                      onClick={() => onUpdateSettings({ dateRangeEnd: null })}
+                      className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                      title="종료 날짜 초기화"
+                    >
+                      <i className="ri-close-line text-lg"></i>
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-gray-400 mt-1">미설정 시 모든 이벤트 표시</p>
               </div>
             </div>
