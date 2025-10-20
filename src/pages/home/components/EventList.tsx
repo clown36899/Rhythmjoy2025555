@@ -132,6 +132,12 @@ export default function EventList({
   
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
+  // 슬라이드 높이 동적 조정을 위한 상태 및 ref
+  const [slideContainerHeight, setSlideContainerHeight] = useState<number | null>(null);
+  const prevMonthRef = useRef<HTMLDivElement>(null);
+  const currentMonthRef = useRef<HTMLDivElement>(null);
+  const nextMonthRef = useRef<HTMLDivElement>(null);
+
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
     [key: string]: Event[]; // key: "YYYY-MM-category-sortBy"
@@ -141,6 +147,36 @@ export default function EventList({
   useEffect(() => {
     sortedEventsCache.current = {};
   }, [selectedCategory, sortBy]);
+
+  // 슬라이드 높이 측정 및 업데이트 (애니메이션 종료 후)
+  useEffect(() => {
+    // 검색/날짜 선택 모드에서는 슬라이드가 아니므로 높이 조정 불필요
+    if (searchTerm.trim() || selectedDate) {
+      setSlideContainerHeight(null);
+      return;
+    }
+
+    const measureHeight = () => {
+      // 애니메이션 중이 아닐 때만 측정
+      if (!externalIsAnimating && currentMonthRef.current) {
+        requestAnimationFrame(() => {
+          if (currentMonthRef.current) {
+            const height = currentMonthRef.current.offsetHeight;
+            setSlideContainerHeight(height);
+          }
+        });
+      }
+    };
+
+    // 초기 높이 측정
+    measureHeight();
+
+    // 슬라이드 전환이 완료된 후 높이 재측정
+    if (!externalIsAnimating) {
+      const timer = setTimeout(measureHeight, 350); // 애니메이션 0.3s + 여유 50ms
+      return () => clearTimeout(timer);
+    }
+  }, [currentMonth, externalIsAnimating, events, searchTerm, selectedDate, selectedCategory, sortBy, refreshTrigger]);
 
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
@@ -1316,6 +1352,10 @@ export default function EventList({
           // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
           <div 
             className="overflow-hidden"
+            style={{
+              height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
+              transition: slideContainerHeight && !externalIsAnimating ? 'height 0.3s ease-out' : 'none'
+            }}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
@@ -1328,7 +1368,7 @@ export default function EventList({
               }}
             >
               {/* 이전 달 - 독립 컨테이너 */}
-              <div className="flex-shrink-0 w-full">
+              <div ref={prevMonthRef} className="flex-shrink-0 w-full">
               <div
                 className="p-4"
                 style={{
@@ -1438,7 +1478,7 @@ export default function EventList({
               </div>
 
               {/* 현재 달 - 독립 컨테이너 */}
-              <div className="flex-shrink-0 w-full">
+              <div ref={currentMonthRef} className="flex-shrink-0 w-full">
               <div
                 className="p-4"
                 style={{
@@ -1570,7 +1610,7 @@ export default function EventList({
               </div>
 
               {/* 다음 달 - 독립 컨테이너 */}
-              <div className="flex-shrink-0 w-full">
+              <div ref={nextMonthRef} className="flex-shrink-0 w-full">
               <div
                 className="p-4"
                 style={{
