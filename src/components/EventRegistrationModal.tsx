@@ -74,14 +74,20 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         setVideoPreview({ provider: null, embedUrl: null });
       } else {
         const videoInfo = parseVideoUrl(value);
-        setVideoPreview({ 
-          provider: videoInfo.provider, 
-          embedUrl: videoInfo.embedUrl 
-        });
         
-        if (videoInfo.provider) {
-          setImageFile(null);
-          setImagePreview('');
+        // 유튜브만 허용
+        if (videoInfo.provider && videoInfo.provider !== 'youtube') {
+          setVideoPreview({ provider: null, embedUrl: null });
+        } else {
+          setVideoPreview({ 
+            provider: videoInfo.provider, 
+            embedUrl: videoInfo.embedUrl 
+          });
+          
+          if (videoInfo.provider === 'youtube') {
+            setImageFile(null);
+            setImagePreview('');
+          }
         }
       }
     }
@@ -770,7 +776,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       onChange={handleInputChange}
                       onFocus={handleInputFocus}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
+                      placeholder="YouTube 링크만 가능"
                     />
                   )}
                   <div className="mt-2 space-y-1">
@@ -780,16 +786,17 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     </p>
                     <p className="text-xs text-green-400">
                       <i className="ri-check-line mr-1"></i>
-                      <strong>YouTube, Vimeo:</strong> 썸네일 자동 추출 + 영상 재생 가능
+                      <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상 재생 가능
                     </p>
-                    <p className="text-xs text-orange-400">
-                      <i className="ri-alert-line mr-1"></i>
-                      <strong>Instagram, Facebook:</strong> 빌보드 재생만 가능 (썸네일은 위 이미지 업로드로 직접 등록)
+                    <p className="text-xs text-red-400">
+                      <i className="ri-close-line mr-1"></i>
+                      <strong>Instagram, Vimeo는 지원하지 않습니다</strong>
                     </p>
                   </div>
                   {formData.videoUrl && !videoPreview.provider && (
                     <p className="text-xs text-red-400 mt-1">
-                      지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
+                      <i className="ri-alert-line mr-1"></i>
+                      YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수 없습니다.
                     </p>
                   )}
                 </div>
