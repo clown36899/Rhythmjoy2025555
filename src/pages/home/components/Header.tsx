@@ -287,11 +287,19 @@ export default function Header({
           <div className="flex items-center justify-between h-16">
 
             <div className="flex items-center space-x-8">
-              <div className="flex items-center">
-                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+              <button 
+                onClick={() => {
+                  window.scrollTo({
+                    top: document.documentElement.scrollHeight,
+                    behavior: 'smooth'
+                  });
+                }}
+                className="flex items-center cursor-pointer"
+              >
+                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-300 hover:to-pink-300 transition-all">
                   광고판
                 </h1>
-              </div>
+              </button>
             </div>
 
             {/* Calendar Controls - Center */}
