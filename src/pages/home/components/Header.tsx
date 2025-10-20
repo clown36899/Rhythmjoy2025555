@@ -5,7 +5,6 @@ import BillboardUserManagementModal from "../../../components/BillboardUserManag
 import DefaultThumbnailSettingsModal from "../../../components/DefaultThumbnailSettingsModal";
 import { supabase } from "../../../lib/supabase";
 
-
 interface HeaderProps {
   currentMonth?: Date;
   onNavigateMonth?: (direction: "prev" | "next") => void;
@@ -14,7 +13,7 @@ interface HeaderProps {
     isAdmin: boolean,
     type?: "super" | "sub" | null,
     userId?: string | null,
-    userName?: string
+    userName?: string,
   ) => void;
   onBillboardOpen?: () => void;
   onBillboardSettingsOpen?: () => void;
@@ -47,8 +46,10 @@ export default function Header({
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
-  const [showBillboardUserManagement, setShowBillboardUserManagement] = useState(false);
-  const [showDefaultThumbnailSettings, setShowDefaultThumbnailSettings] = useState(false);
+  const [showBillboardUserManagement, setShowBillboardUserManagement] =
+    useState(false);
+  const [showDefaultThumbnailSettings, setShowDefaultThumbnailSettings] =
+    useState(false);
   const [themeColors, setThemeColors] = useState({
     background_color: "#000000",
     header_bg_color: "#1f2937",
@@ -134,7 +135,7 @@ export default function Header({
       for (const user of users || []) {
         const { verifyPassword } = await import("../../../utils/passwordHash");
         const isValid = await verifyPassword(adminPassword, user.password_hash);
-        
+
         if (isValid) {
           setIsAdminMode(true);
           setAdminType("sub");
@@ -270,10 +271,10 @@ export default function Header({
       }
     };
 
-    window.addEventListener('reopenAdminSettings', handleReopenSettings);
+    window.addEventListener("reopenAdminSettings", handleReopenSettings);
 
     return () => {
-      window.removeEventListener('reopenAdminSettings', handleReopenSettings);
+      window.removeEventListener("reopenAdminSettings", handleReopenSettings);
     };
   }, [adminType]);
 
@@ -285,31 +286,36 @@ export default function Header({
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-
             <div className="flex items-center space-x-8">
-              <button 
+              <button
                 onClick={() => {
-                  const categoryPanel = document.querySelector('[data-category-panel]');
-                  const footer = document.querySelector('footer');
-                  
+                  const categoryPanel = document.querySelector(
+                    "[data-category-panel]",
+                  );
+                  const footer = document.querySelector("footer");
+
                   if (categoryPanel && footer) {
-                    const categoryPanelRect = categoryPanel.getBoundingClientRect();
+                    const categoryPanelRect =
+                      categoryPanel.getBoundingClientRect();
                     const footerRect = footer.getBoundingClientRect();
                     const currentScrollY = window.scrollY;
-                    
+
                     // 푸터 상단이 카테고리 패널 하단에 오도록 스크롤 위치 계산
-                    const targetScrollY = currentScrollY + footerRect.top - categoryPanelRect.bottom;
-                    
+                    const targetScrollY =
+                      currentScrollY +
+                      footerRect.top -
+                      categoryPanelRect.bottom;
+
                     window.scrollTo({
                       top: targetScrollY,
-                      behavior: 'smooth'
+                      behavior: "smooth",
                     });
                   }
                 }}
                 className="flex items-center cursor-pointer"
               >
                 <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-300 hover:to-pink-300 transition-all">
-                  광고판
+                 달력
                 </h1>
               </button>
             </div>
@@ -342,10 +348,11 @@ export default function Header({
                     onClick={() =>
                       onViewModeChange(viewMode === "month" ? "year" : "month")
                     }
-                    className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${viewMode === "year"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
-                      }`}
+                    className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${
+                      viewMode === "year"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
+                    }`}
                   >
                     {viewMode === "month" ? "년" : "월"}
                   </button>
@@ -441,12 +448,12 @@ export default function Header({
               ) : (
                 <div>
                   <h4 className="text-lg font-semibold text-white mb-4">
-                    {adminType === "super" 
+                    {adminType === "super"
                       ? "메인 관리자 모드 활성화됨"
                       : `${billboardUserName} 서브 관리자 모드`}
                   </h4>
                   <p className="text-gray-300 text-sm mb-4">
-                    {adminType === "super" 
+                    {adminType === "super"
                       ? "메인 관리자 모드입니다. 모든 기능을 사용할 수 있습니다."
                       : "빌보드 관리자 모드입니다. 자신의 빌보드 설정을 관리할 수 있습니다."}
                   </p>
@@ -718,74 +725,77 @@ export default function Header({
       <QRCodeModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} />
 
       {/* Date Selection Modal */}
-      {showDateModal && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[9999999] p-4 pt-20 overflow-y-auto">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-white mb-6 text-center">
-              날짜 선택
-            </h3>
+      {showDateModal &&
+        createPortal(
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[9999999] p-4 pt-20 overflow-y-auto">
+            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-xl font-bold text-white mb-6 text-center">
+                날짜 선택
+              </h3>
 
-            {/* Year Selection */}
-            <div className="mb-6">
-              <label className="block text-gray-300 text-sm font-medium mb-3">
-                년도
-              </label>
-              <div className="grid grid-cols-5 gap-2">
-                {years.map((year) => (
-                  <button
-                    key={year}
-                    onClick={() => setSelectedYear(year)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedYear === year
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              {/* Year Selection */}
+              <div className="mb-6">
+                <label className="block text-gray-300 text-sm font-medium mb-3">
+                  년도
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {years.map((year) => (
+                    <button
+                      key={year}
+                      onClick={() => setSelectedYear(year)}
+                      className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                        selectedYear === year
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                       }`}
-                  >
-                    {year}
-                  </button>
-                ))}
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Month Selection */}
+              <div className="mb-6">
+                <label className="block text-gray-300 text-sm font-medium mb-3">
+                  월
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {monthNames.map((month, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedMonth(index)}
+                      className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                        selectedMonth === index
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      }`}
+                    >
+                      {month}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleDateCancel}
+                  className="flex-1 bg-[#242424] hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDateConfirm}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                >
+                  확인
+                </button>
               </div>
             </div>
-
-            {/* Month Selection */}
-            <div className="mb-6">
-              <label className="block text-gray-300 text-sm font-medium mb-3">
-                월
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {monthNames.map((month, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedMonth(index)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedMonth === index
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      }`}
-                  >
-                    {month}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-3">
-              <button
-                onClick={handleDateCancel}
-                className="flex-1 bg-[#242424] hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleDateConfirm}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
