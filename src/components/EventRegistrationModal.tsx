@@ -483,29 +483,20 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     ))}
                   </div>
                   <div className="flex gap-2 mb-2">
-                    <label className="flex-1 cursor-pointer">
-                      <input
-                        type="date"
-                        id="specific-date-input"
-                        value={tempDateInput}
-                        className="sr-only"
-                        onKeyDown={(e) => {
-                          // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
-                          if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
-                            e.preventDefault();
-                          }
-                        }}
-                        onChange={(e) => {
-                          setTempDateInput(e.target.value);
-                        }}
-                      />
-                      <div className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 flex items-center justify-between">
-                        <span className="text-sm">
-                          {tempDateInput ? new Date(tempDateInput + 'T00:00:00').toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '날짜를 선택하세요'}
-                        </span>
-                        <i className="ri-calendar-line text-gray-400"></i>
-                      </div>
-                    </label>
+                    <input
+                      type="date"
+                      value={tempDateInput}
+                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onKeyDown={(e) => {
+                        // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
+                        if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+                          e.preventDefault();
+                        }
+                      }}
+                      onChange={(e) => {
+                        setTempDateInput(e.target.value);
+                      }}
+                    />
                     <button
                       type="button"
                       onClick={() => {
