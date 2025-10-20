@@ -739,7 +739,7 @@ export default function EventList({
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (adminType === "super") {
-      // 슈퍼 관리자만 바로 수정 모달 열기
+      // 슈퍼 관리자는 비밀번호 없이 바로 수정 모달 열기
       setEventToEdit(event);
       // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
       const hasEventDates = event.event_dates && event.event_dates.length > 0;
@@ -790,7 +790,7 @@ export default function EventList({
   const handleDeleteClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (adminType === "super") {
-      // 슈퍼 관리자만 바로 삭제
+      // 슈퍼 관리자는 비밀번호 없이 바로 삭제
       if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
         deleteEvent(event.id);
         setSelectedEvent(null); // 상세 모달 닫기
@@ -2658,18 +2658,16 @@ export default function EventList({
 
               {/* 수정/닫기 버튼 - 이미지 위 우측 상단 */}
               <div className="absolute top-4 right-4 z-30 flex space-x-2">
-                {adminType === "super" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditClick(selectedEvent, e);
-                    }}
-                    className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
-                    title="이벤트 수정"
-                  >
-                    <i className="ri-edit-line text-xl"></i>
-                  </button>
-                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditClick(selectedEvent, e);
+                  }}
+                  className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+                  title="이벤트 수정"
+                >
+                  <i className="ri-edit-line text-xl"></i>
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
