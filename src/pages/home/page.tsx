@@ -847,8 +847,14 @@ export default function HomePage() {
                 />
               )}
             </div>
-            {/* Footer - 고정 (슬라이드 영향 없음) */}
-            <Footer />
+            {/* Footer - 고정 (위치는 고정이지만 터치 슬라이드 인식) */}
+            <div
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
+              <Footer />
+            </div>
           </div>
         </div>
       </div>
