@@ -227,11 +227,6 @@ export default function BillboardPage() {
     );
   }
 
-  const currentEvent = events[currentIndex];
-  const imageUrl = currentEvent.image_full || currentEvent.image;
-  const videoUrl = currentEvent.video_url;
-  const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
-
   // 날짜 포맷 함수
   const formatDateRange = (startDate: string, endDate?: string | null) => {
     if (!endDate || startDate === endDate) {
@@ -261,89 +256,122 @@ export default function BillboardPage() {
     return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
   };
 
-  return (
-    <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
-      <div className="portrait-container">
+  // 슬라이드 렌더링 함수
+  const renderSlide = (event: any, isVisible: boolean, preload: boolean = false) => {
+    const imageUrl = event.image_full || event.image;
+    const videoUrl = event.video_url;
+    const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
+
+    return (
+      <div 
+        className="portrait-container absolute inset-0"
+        style={{
+          opacity: isVisible ? 1 : 0,
+          pointerEvents: isVisible ? 'auto' : 'none',
+          transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out`,
+          zIndex: isVisible ? 2 : 1
+        }}
+      >
         {videoInfo?.embedUrl ? (
           <iframe
+            key={`video-${event.id}`}
             src={videoInfo.embedUrl}
             className="w-full h-full"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            style={{ transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out` }}
           ></iframe>
         ) : (
           <img
             src={imageUrl}
-            alt={currentEvent.title}
+            alt={event.title}
             className="w-full h-full object-contain"
-            style={{ transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out` }}
+            loading={preload ? "eager" : "lazy"}
           />
         )}
 
-        <div className="absolute top-6 left-6">
-          {events.length > 1 && (
-            <div className="relative w-24 h-24">
-              <svg className="transform -rotate-90 w-24 h-24">
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="42"
-                  stroke="rgba(255, 255, 255, 0.2)"
-                  strokeWidth="6"
-                  fill="none"
+        {isVisible && (
+          <>
+            <div className="absolute top-6 left-6">
+              {events.length > 1 && (
+                <div className="relative w-24 h-24">
+                  <svg className="transform -rotate-90 w-24 h-24">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="42"
+                      stroke="rgba(255, 255, 255, 0.2)"
+                      strokeWidth="6"
+                      fill="none"
+                    />
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="42"
+                      stroke="white"
+                      strokeWidth="6"
+                      fill="none"
+                      strokeDasharray="264"
+                      strokeDashoffset={264 - (264 * progress) / 100}
+                      style={{ transition: 'stroke-dashoffset 0.05s linear' }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-white text-xl font-bold">
+                      {currentIndex + 1}/{events.length}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10 flex items-end justify-between">
+              <div className="flex-1">
+                <div className="mb-2 space-y-1">
+                  {event.start_date && (
+                    <div className="text-blue-400 text-lg font-semibold">
+                      <i className="ri-calendar-line mr-2"></i>
+                      {formatDateRange(event.start_date, event.end_date)}
+                    </div>
+                  )}
+                  {event.location && event.location.trim() && event.location !== '미정' && (
+                    <div className="text-gray-300 text-lg">
+                      <i className="ri-map-pin-line mr-2"></i>
+                      {event.location}
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-white text-4xl font-bold">{event.title}</h3>
+              </div>
+              
+              <div className="bg-white p-3 rounded-lg ml-6 flex-shrink-0">
+                <QRCodeCanvas
+                  value={`${window.location.origin}/?event=${event.id}&from=qr`}
+                  size={120}
+                  level="M"
+                  includeMargin={false}
                 />
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="42"
-                  stroke="white"
-                  strokeWidth="6"
-                  fill="none"
-                  strokeDasharray="264"
-                  strokeDashoffset={264 - (264 * progress) / 100}
-                  style={{ transition: 'stroke-dashoffset 0.05s linear' }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-white text-xl font-bold">
-                  {currentIndex + 1}/{events.length}
-                </span>
               </div>
             </div>
-          )}
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10 flex items-end justify-between">
-          <div className="flex-1">
-            <div className="mb-2 space-y-1">
-              {currentEvent.start_date && (
-                <div className="text-blue-400 text-lg font-semibold">
-                  <i className="ri-calendar-line mr-2"></i>
-                  {formatDateRange(currentEvent.start_date, currentEvent.end_date)}
-                </div>
-              )}
-              {currentEvent.location && currentEvent.location.trim() && currentEvent.location !== '미정' && (
-                <div className="text-gray-300 text-lg">
-                  <i className="ri-map-pin-line mr-2"></i>
-                  {currentEvent.location}
-                </div>
-              )}
-            </div>
-            <h3 className="text-white text-4xl font-bold">{currentEvent.title}</h3>
-          </div>
-          
-          <div className="bg-white p-3 rounded-lg ml-6 flex-shrink-0">
-            <QRCodeCanvas
-              value={`${window.location.origin}/?event=${currentEvent.id}&from=qr`}
-              size={120}
-              level="M"
-              includeMargin={false}
-            />
-          </div>
-        </div>
+          </>
+        )}
       </div>
+    );
+  };
+
+  const currentEvent = events[currentIndex];
+  const nextIndex = (currentIndex + 1) % events.length;
+  const nextEvent = events[nextIndex];
+
+  return (
+    <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
+      {/* 현재 슬라이드 */}
+      {renderSlide(currentEvent, true)}
+      
+      {/* 다음 슬라이드 미리 로드 (영상만) */}
+      {events.length > 1 && nextEvent.video_url && (
+        renderSlide(nextEvent, false, true)
+      )}
 
       <style>{`
         .portrait-container {
