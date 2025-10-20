@@ -232,6 +232,35 @@ export default function BillboardPage() {
   const videoUrl = currentEvent.video_url;
   const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
 
+  // 날짜 포맷 함수
+  const formatDateRange = (startDate: string, endDate?: string | null) => {
+    if (!endDate || startDate === endDate) {
+      return startDate;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+    const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+    const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+    const startDay = String(start.getDate()).padStart(2, '0');
+    const endDay = String(end.getDate()).padStart(2, '0');
+
+    // 같은 년도
+    if (startYear === endYear) {
+      // 같은 월
+      if (startMonth === endMonth) {
+        return `${startYear}-${startMonth}-${startDay}~${endDay}`;
+      }
+      // 다른 월
+      return `${startYear}-${startMonth}-${startDay}~${endMonth}-${endDay}`;
+    }
+
+    // 다른 년도
+    return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
+  };
+
   return (
     <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
       <div className="portrait-container">
@@ -288,20 +317,18 @@ export default function BillboardPage() {
 
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10 flex items-end justify-between">
           <div className="flex-1">
-            <div className="mb-2 flex items-center gap-4">
+            <div className="mb-2 space-y-1">
               {currentEvent.start_date && (
-                <span className="text-blue-400 text-lg font-semibold">
+                <div className="text-blue-400 text-lg font-semibold">
                   <i className="ri-calendar-line mr-2"></i>
-                  {currentEvent.start_date === currentEvent.end_date || !currentEvent.end_date
-                    ? currentEvent.start_date
-                    : `${currentEvent.start_date} ~ ${currentEvent.end_date}`}
-                </span>
+                  {formatDateRange(currentEvent.start_date, currentEvent.end_date)}
+                </div>
               )}
               {currentEvent.location && (
-                <span className="text-gray-300 text-lg">
+                <div className="text-gray-300 text-lg">
                   <i className="ri-map-pin-line mr-2"></i>
                   {currentEvent.location}
-                </span>
+                </div>
               )}
             </div>
             <h3 className="text-white text-4xl font-bold">{currentEvent.title}</h3>
