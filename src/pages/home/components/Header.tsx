@@ -388,7 +388,10 @@ export default function Header({
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">설정</h3>
                 <button
-                  onClick={() => setShowSettingsModal(false)}
+                  onClick={() => {
+                    setShowSettingsModal(false);
+                    window.location.reload(); // 설정 모달 닫을 때 새로고침
+                  }}
                   className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <i className="ri-close-line text-xl"></i>
@@ -444,7 +447,6 @@ export default function Header({
                   <div className="space-y-3">
                     <button
                       onClick={() => {
-                        setShowSettingsModal(false);
                         onBillboardSettingsOpen?.();
                       }}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
@@ -469,7 +471,6 @@ export default function Header({
                       <>
                         <button
                           onClick={() => {
-                            setShowSettingsModal(false);
                             setShowBillboardUserManagement(true);
                           }}
                           className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
@@ -479,7 +480,6 @@ export default function Header({
                         </button>
                         <button
                           onClick={() => {
-                            setShowSettingsModal(false);
                             setShowDefaultThumbnailSettings(true);
                           }}
                           className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
@@ -520,7 +520,10 @@ export default function Header({
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">색상 설정</h3>
                 <button
-                  onClick={() => setShowColorPanel(false)}
+                  onClick={() => {
+                    setShowColorPanel(false);
+                    // 설정 모달로 돌아가기 (이미 showSettingsModal이 true이므로 자동으로 보임)
+                  }}
                   className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <i className="ri-close-line text-xl"></i>
