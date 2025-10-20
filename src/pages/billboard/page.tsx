@@ -58,16 +58,10 @@ export default function BillboardPage() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'billboard_user_settings' },
         (payload) => {
-          console.log('⚙️ 설정 변경 감지:', payload);
-          console.log('현재 userId:', userId, '(타입:', typeof userId, ')');
-          console.log('payload billboard_user_id:', payload.new.billboard_user_id, '(타입:', typeof payload.new.billboard_user_id, ')');
-          console.log('비교 결과:', payload.new.billboard_user_id === parseInt(userId));
-          
-          if (payload.new.billboard_user_id === parseInt(userId)) {
-            console.log('✅ 일치! 페이지 새로고침');
+          console.log('⚙️ 설정 변경 감지 - userId:', userId);
+          if (payload.new.billboard_user_id === userId) {
+            console.log('✅ 현재 빌보드 설정 변경 - 페이지 새로고침');
             window.location.reload();
-          } else {
-            console.log('❌ 불일치 - 다른 빌보드 설정 변경');
           }
         }
       )
