@@ -125,6 +125,7 @@ export default function EventList({
   const [editVideoPreview, setEditVideoPreview] = useState<{ provider: string | null; embedUrl: string | null }>({ provider: null, embedUrl: null });
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
+  const [tempDateInput, setTempDateInput] = useState<string>(''); // 편집 모달에서 특정 날짜 추가용
   
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
@@ -852,6 +853,9 @@ export default function EventList({
         }
 
         if (fullEvent) {
+          // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
+          const hasEventDates = fullEvent.event_dates && fullEvent.event_dates.length > 0;
+          
           setEditFormData({
             title: fullEvent.title,
             time: fullEvent.time,
@@ -869,6 +873,8 @@ export default function EventList({
             image: fullEvent.image || "",
             start_date: fullEvent.start_date || fullEvent.date || "",
             end_date: fullEvent.end_date || fullEvent.date || "",
+            event_dates: fullEvent.event_dates || [],
+            dateMode: hasEventDates ? "specific" : "range",
             videoUrl: fullEvent.video_url || "",
           });
           setEditImagePreview(fullEvent.image || "");
@@ -1918,69 +1924,176 @@ export default function EventList({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      시작일
+                {/* 날짜 선택 모드 */}
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-2">
+                    날짜 선택 방식
+                  </label>
+                  <div className="flex gap-4 mb-3">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-dateMode"
+                        value="range"
+                        checked={editFormData.dateMode === 'range'}
+                        onChange={() => {
+                          setEditFormData(prev => ({ ...prev, dateMode: 'range', event_dates: [] }));
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-gray-300 text-sm">연속 기간 (1~4일)</span>
                     </label>
-                    <div
-                      onClick={() => {
-                        setDatePickerMonth(
-                          editFormData.start_date
-                            ? new Date(editFormData.start_date)
-                            : new Date(),
-                        );
-                        setShowDatePickerModal("start");
-                      }}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
-                    >
-                      <span>
-                        {editFormData.start_date
-                          ? new Date(
-                            editFormData.start_date,
-                          ).toLocaleDateString("ko-KR", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })
-                          : "날짜 선택"}
-                      </span>
-                      <i className="ri-calendar-line"></i>
-                    </div>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-dateMode"
+                        value="specific"
+                        checked={editFormData.dateMode === 'specific'}
+                        onChange={() => {
+                          setEditFormData(prev => ({ ...prev, dateMode: 'specific' }));
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-gray-300 text-sm">특정 날짜 선택</span>
+                    </label>
                   </div>
-                  <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
-                      종료일
-                    </label>
-                    <div
-                      onClick={() => {
-                        setDatePickerMonth(
-                          editFormData.end_date
-                            ? new Date(editFormData.end_date)
-                            : editFormData.start_date
+                </div>
+
+                {editFormData.dateMode === 'range' ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-gray-300 text-xs font-medium mb-1">
+                        시작일
+                      </label>
+                      <div
+                        onClick={() => {
+                          setDatePickerMonth(
+                            editFormData.start_date
                               ? new Date(editFormData.start_date)
                               : new Date(),
-                        );
-                        setShowDatePickerModal("end");
-                      }}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
-                    >
-                      <span>
-                        {editFormData.end_date
-                          ? new Date(editFormData.end_date).toLocaleDateString(
-                            "ko-KR",
-                            {
+                          );
+                          setShowDatePickerModal("start");
+                        }}
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
+                      >
+                        <span>
+                          {editFormData.start_date
+                            ? new Date(
+                              editFormData.start_date,
+                            ).toLocaleDateString("ko-KR", {
                               year: "numeric",
                               month: "long",
                               day: "numeric",
-                            },
-                          )
-                          : "날짜 선택"}
-                      </span>
-                      <i className="ri-calendar-line"></i>
+                            })
+                            : "날짜 선택"}
+                        </span>
+                        <i className="ri-calendar-line"></i>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 text-xs font-medium mb-1">
+                        종료일
+                      </label>
+                      <div
+                        onClick={() => {
+                          setDatePickerMonth(
+                            editFormData.end_date
+                              ? new Date(editFormData.end_date)
+                              : editFormData.start_date
+                                ? new Date(editFormData.start_date)
+                                : new Date(),
+                          );
+                          setShowDatePickerModal("end");
+                        }}
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
+                      >
+                        <span>
+                          {editFormData.end_date
+                            ? new Date(editFormData.end_date).toLocaleDateString(
+                              "ko-KR",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              },
+                            )
+                            : "날짜 선택"}
+                        </span>
+                        <i className="ri-calendar-line"></i>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-gray-700/50 rounded-lg p-3">
+                    <label className="block text-gray-300 text-sm font-medium mb-2">
+                      선택된 날짜 ({editFormData.event_dates.length}개)
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {editFormData.event_dates.sort((a, b) => a.localeCompare(b)).map((dateStr, index) => {
+                        const date = new Date(dateStr);
+                        return (
+                          <div
+                            key={index}
+                            className="inline-flex items-center bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
+                          >
+                            <span>{date.getMonth() + 1}/{date.getDate()}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editFormData.event_dates.length > 1) {
+                                  setEditFormData(prev => ({
+                                    ...prev,
+                                    event_dates: prev.event_dates.filter((_, i) => i !== index)
+                                  }));
+                                }
+                              }}
+                              className="ml-2 hover:text-red-300"
+                            >
+                              <i className="ri-close-line"></i>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="date"
+                        value={tempDateInput}
+                        className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          setTempDateInput(e.target.value);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tempDateInput) {
+                            const newDate = tempDateInput;
+                            const isDuplicate = editFormData.event_dates.includes(newDate);
+                            if (!isDuplicate) {
+                              setEditFormData(prev => ({
+                                ...prev,
+                                event_dates: [...prev.event_dates, newDate]
+                              }));
+                            }
+                            setTempDateInput('');
+                          }
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        추가
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
+                    </p>
+                  </div>
+                )}
 
                 {/* 등록자 정보 (관리자 전용, 비공개) */}
                 <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-3">
