@@ -289,10 +289,22 @@ export default function Header({
             <div className="flex items-center space-x-8">
               <button 
                 onClick={() => {
-                  window.scrollTo({
-                    top: document.documentElement.scrollHeight,
-                    behavior: 'smooth'
-                  });
+                  const categoryPanel = document.querySelector('[data-category-panel]');
+                  const footer = document.querySelector('footer');
+                  
+                  if (categoryPanel && footer) {
+                    const categoryPanelRect = categoryPanel.getBoundingClientRect();
+                    const footerRect = footer.getBoundingClientRect();
+                    const currentScrollY = window.scrollY;
+                    
+                    // 푸터 상단이 카테고리 패널 하단에 오도록 스크롤 위치 계산
+                    const targetScrollY = currentScrollY + footerRect.top - categoryPanelRect.bottom;
+                    
+                    window.scrollTo({
+                      top: targetScrollY,
+                      behavior: 'smooth'
+                    });
+                  }
                 }}
                 className="flex items-center cursor-pointer"
               >
