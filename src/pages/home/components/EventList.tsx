@@ -2845,72 +2845,21 @@ export default function EventList({
                   </div>
                 )}
 
-                {/* 바로가기 링크 (버튼 + QR) */}
-                {(selectedEvent.link1 || selectedEvent.link2 || selectedEvent.link3) && (
+                {/* 추가 링크 */}
+                {selectedEvent.link1 && (
                   <div className="pt-3 border-t border-gray-700">
-
-                    {(() => {
-                      const links = [
-                        { url: selectedEvent.link1, name: selectedEvent.link_name1 || "링크 1" },
-                        { url: selectedEvent.link2, name: selectedEvent.link_name2 || "링크 2" },
-                        { url: selectedEvent.link3, name: selectedEvent.link_name3 || "링크 3" },
-                      ].filter(l => !!l.url);
-
-                      if (links.length === 0) return null;
-
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {/* 좌측: 버튼 리스트 */}
-                          <div className="space-y-2">
-                            {links.map((l, idx) => (
-                              <a
-                                key={idx}
-                                href={l.url!}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-[90px] transition-colors cursor-pointer"
-                              >
-                                <i className="ri-external-link-line"></i>
-                                <span className="truncate">{l.name}</span>
-                              </a>
-                            ))}
-                          </div>
-
-                          {/* 우측: QR 그리드 */}
-                          <div className="bg-gray-700/40 rounded-lg p-3">
-                            <div className="text-xs text-gray-400 mb-2 flex items-center gap-1">
-                              <i className="ri-qr-code-line"></i>
-                              <span>QR로 바로 열기</span>
-                            </div>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                              {links.map((l, idx) => (
-                                <a
-                                  key={idx}
-                                  href={l.url!}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="group flex flex-col gap-1 rounded-md p-2 hover:bg-gray-700/60 transition-colors cursor-pointer"
-                                  title={l.name}
-                                >
-                                  <QRCodeImage
-                                    url={selectedEvent.link1!}
-                                    scale={7}
-                                    marginModules={1}
-                                    className="bg-white p-1 rounded-md border border-gray-300"
-                                  />
-                                  <span className="text-[11px] text-gray-300 truncate max-w-[110px]">
-                                    {l.name}
-                                  </span>
-                                </a>
-                              ))}
-                            </div>
-                            <div className="mt-2 text-[10px] text-gray-500">
-                              * QR 이미지를 클릭해도 링크가 열립니다.
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    <div className="flex items-center justify-between gap-3">
+                      <a
+                        href={selectedEvent.link1}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <i className="ri-external-link-line text-lg"></i>
+                        <span className="font-medium">{selectedEvent.link_name1 || "바로가기"}</span>
+                      </a>
+                      <QRCodeModal url={selectedEvent.link1} label={selectedEvent.link_name1 || "링크"} />
+                    </div>
                   </div>
                 )}
 
