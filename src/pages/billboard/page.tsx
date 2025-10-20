@@ -401,14 +401,43 @@ export default function BillboardPage() {
         {/* 현재 슬라이드 */}
         {renderSlide(currentEvent, true)}
         
-        {/* 모든 비디오 슬라이드를 백그라운드에 미리 로드 (안드로이드 TV 최적화) */}
-        {events.map((event, idx) => {
-          // 현재 슬라이드가 아니고 비디오가 있는 경우만 미리 로드
-          if (idx !== currentIndex && event.video_url) {
-            return <div key={`preload-${event.id}`}>{renderSlide(event, false, true)}</div>;
-          }
-          return null;
-        })}
+        {/* tvbro용 프리로드 영역: 화면 밖에서 실제로 로드 */}
+        <div 
+          className="fixed"
+          style={{
+            top: '-9999px',
+            left: '-9999px',
+            width: '100vh',
+            height: '100vw',
+            pointerEvents: 'none'
+          }}
+        >
+          {events.map((event, idx) => {
+            // 현재 슬라이드가 아니고 비디오가 있는 경우만 미리 로드
+            if (idx !== currentIndex && event.video_url) {
+              const videoInfo = parseVideoUrl(event.video_url);
+              if (videoInfo?.embedUrl) {
+                return (
+                  <iframe
+                    key={`preload-${event.id}`}
+                    src={`${videoInfo.embedUrl}&rel=0&modestbranding=1&playsinline=1`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      border: 'none'
+                    }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    onLoad={() => handleVideoLoad(String(event.id))}
+                  />
+                );
+              }
+            }
+            return null;
+          })}
+        </div>
 
         <style>{`
           .portrait-container {
