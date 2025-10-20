@@ -43,12 +43,14 @@ export default function BillboardPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events' },
-        () => {
-          // 이벤트 변경 시 데이터 다시 로드
+        (payload) => {
+          console.log('🔥 이벤트 변경 감지:', payload.eventType, payload);
           loadBillboardData();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 이벤트 채널 상태:', status);
+      });
 
     const settingsChannel = supabase
       .channel('billboard-settings-changes')
@@ -56,13 +58,16 @@ export default function BillboardPage() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'billboard_user_settings' },
         (payload) => {
-          // 현재 빌보드 사용자 설정만 업데이트
+          console.log('⚙️ 설정 변경 감지:', payload);
           if (payload.new.billboard_user_id === parseInt(userId)) {
+            console.log('✅ 현재 빌보드 설정 업데이트 중...');
             loadBillboardData();
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 설정 채널 상태:', status);
+      });
 
     // 클린업
     return () => {
