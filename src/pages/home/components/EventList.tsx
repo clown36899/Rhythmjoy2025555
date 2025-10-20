@@ -3,7 +3,7 @@ import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
-import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
+import { parseVideoUrl } from "../../../utils/videoEmbed";
 import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from "../../../utils/videoThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
@@ -957,18 +957,18 @@ export default function EventList({
 
     // 영상 URL 유효성 검증
     if (editFormData.videoUrl) {
-      if (!isValidVideoUrl(editFormData.videoUrl)) {
-        alert('지원하지 않는 영상 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.');
+      const videoInfo = parseVideoUrl(editFormData.videoUrl);
+      
+      // 유튜브만 허용
+      if (!videoInfo.provider || videoInfo.provider !== 'youtube') {
+        alert('YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수 없습니다.');
         return;
       }
       
-      // YouTube/Vimeo URL이 있고 썸네일이 없으면 추출 필수
+      // YouTube URL이 있고 썸네일이 없으면 추출 필수
       if (!editImageFile && !editImagePreview) {
-        const videoInfo = parseVideoUrl(editFormData.videoUrl);
-        if (videoInfo.provider === 'youtube' || videoInfo.provider === 'vimeo') {
-          alert('YouTube 또는 Vimeo 영상은 썸네일 이미지가 필요합니다. 이미지를 업로드하거나 썸네일 추출 기능을 사용해주세요.');
-          return;
-        }
+        alert('YouTube 영상은 썸네일 이미지가 필요합니다. 이미지를 업로드하거나 썸네일 추출 기능을 사용해주세요.');
+        return;
       }
     }
 
@@ -2368,14 +2368,20 @@ export default function EventList({
                             setEditVideoPreview({ provider: null, embedUrl: null });
                           } else {
                             const videoInfo = parseVideoUrl(value);
-                            setEditVideoPreview({ 
-                              provider: videoInfo.provider, 
-                              embedUrl: videoInfo.embedUrl 
-                            });
+                            
+                            // 유튜브만 허용
+                            if (videoInfo.provider && videoInfo.provider !== 'youtube') {
+                              setEditVideoPreview({ provider: null, embedUrl: null });
+                            } else {
+                              setEditVideoPreview({ 
+                                provider: videoInfo.provider, 
+                                embedUrl: videoInfo.embedUrl 
+                              });
+                            }
                           }
                         }}
                         className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="YouTube, Instagram, Facebook, Vimeo 링크"
+                        placeholder="YouTube 링크만 가능"
                       />
                     )}
                     <div className="mt-2 space-y-1">
@@ -2385,16 +2391,17 @@ export default function EventList({
                       </p>
                       <p className="text-xs text-green-400">
                         <i className="ri-check-line mr-1"></i>
-                        <strong>YouTube, Vimeo:</strong> 썸네일 자동 추출 + 영상 재생 가능
+                        <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상 재생 가능
                       </p>
-                      <p className="text-xs text-orange-400">
-                        <i className="ri-alert-line mr-1"></i>
-                        <strong>Instagram, Facebook:</strong> 빌보드 재생만 가능 (썸네일은 위 이미지로 직접 등록)
+                      <p className="text-xs text-red-400">
+                        <i className="ri-close-line mr-1"></i>
+                        <strong>Instagram, Vimeo는 지원하지 않습니다</strong>
                       </p>
                     </div>
                     {editFormData.videoUrl && !editVideoPreview.provider && (
                       <p className="text-xs text-red-400 mt-1">
-                        지원하지 않는 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.
+                        <i className="ri-alert-line mr-1"></i>
+                        YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수 없습니다.
                       </p>
                     )}
                   </div>
