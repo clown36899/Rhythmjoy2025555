@@ -468,7 +468,7 @@ export default function BillboardUserManagementModal({
         )}
 
         {showEditModal && selectedUser && createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[9999999] p-4 pt-10 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999999] p-4 pt-10 overflow-y-auto">
             <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
               <h4 className="text-xl font-bold text-white mb-4">{selectedUser.name} 설정</h4>
               
