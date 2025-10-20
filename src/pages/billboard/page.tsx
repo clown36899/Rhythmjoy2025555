@@ -250,6 +250,18 @@ export default function BillboardPage() {
 
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10 flex items-end justify-between">
           <div className="flex-1">
+            <div className="mb-2 flex items-center gap-3">
+              <span className="text-blue-400 text-lg font-semibold">
+                {billboardUser?.name}
+              </span>
+              <span className="text-gray-400 text-sm">
+                {settings?.date_filter_start && settings?.date_filter_end
+                  ? `${settings.date_filter_start} ~ ${settings.date_filter_end}`
+                  : settings?.date_filter_start
+                  ? `${settings.date_filter_start}부터`
+                  : '전체 일정'}
+              </span>
+            </div>
             <h3 className="text-white text-4xl font-bold">{currentEvent.title}</h3>
           </div>
           
