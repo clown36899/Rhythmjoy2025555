@@ -116,6 +116,8 @@ export default function EventList({
     image: "",
     start_date: "",
     end_date: "",
+    event_dates: [] as string[],
+    dateMode: "range" as "range" | "specific",
     videoUrl: "",
   });
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
@@ -536,11 +538,12 @@ export default function EventList({
           // 연속 기간 모드: 기존 로직
           const startDate = event.start_date || event.date || "";
           const endDate = event.end_date || event.date || "";
-          matchesDate =
+          matchesDate = Boolean(
             startDate &&
             endDate &&
             selectedDateString >= startDate &&
-            selectedDateString <= endDate;
+            selectedDateString <= endDate
+          );
         }
 
         return matchesDate && matchesCategory;
@@ -734,6 +737,9 @@ export default function EventList({
     if (isAdminMode) {
       // 관리자 모드에서는 바로 수정 모달 열기
       setEventToEdit(event);
+      // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
+      const hasEventDates = event.event_dates && event.event_dates.length > 0;
+      
       setEditFormData({
         title: event.title,
         time: event.time,
@@ -751,6 +757,8 @@ export default function EventList({
         image: event.image || "",
         start_date: event.start_date || event.date || "",
         end_date: event.end_date || event.date || "",
+        event_dates: event.event_dates || [],
+        dateMode: hasEventDates ? "specific" : "range",
         videoUrl: event.video_url || "",
       });
       
@@ -955,6 +963,18 @@ export default function EventList({
     }
 
     try {
+      // 날짜 데이터 준비
+      let eventDatesArray: string[] | null = null;
+      let startDate = editFormData.start_date || null;
+      let endDate = editFormData.end_date || null;
+      
+      if (editFormData.dateMode === 'specific' && editFormData.event_dates.length > 0) {
+        // 특정 날짜 모드: event_dates 배열 사용
+        eventDatesArray = [...editFormData.event_dates].sort();
+        startDate = eventDatesArray[0];
+        endDate = eventDatesArray[eventDatesArray.length - 1];
+      }
+      
       let updateData: any = {
         title: editFormData.title,
         time: editFormData.time,
@@ -970,8 +990,9 @@ export default function EventList({
         link_name1: editFormData.linkName1 || null,
         link_name2: editFormData.linkName2 || null,
         link_name3: editFormData.linkName3 || null,
-        start_date: editFormData.start_date || null,
-        end_date: editFormData.end_date || null,
+        start_date: startDate,
+        end_date: endDate,
+        event_dates: eventDatesArray,
         video_url: editFormData.videoUrl || null,
         updated_at: new Date().toISOString(), // 캐시 무효화를 위해 항상 갱신
       };
