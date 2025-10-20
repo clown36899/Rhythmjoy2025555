@@ -486,13 +486,11 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     <input
                       type="date"
                       value={tempDateInput}
-                      readOnly
                       className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                      onClick={(e) => {
-                        // 전체 영역 클릭 시 달력 열기
-                        const input = e.currentTarget;
-                        if (input.showPicker) {
-                          input.showPicker();
+                      onKeyDown={(e) => {
+                        // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
+                        if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+                          e.preventDefault();
                         }
                       }}
                       onChange={(e) => {
