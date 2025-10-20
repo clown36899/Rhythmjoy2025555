@@ -483,16 +483,12 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     ))}
                   </div>
                   <div className="flex gap-2 mb-2">
-                    <div className="flex-1 relative">
+                    <label className="flex-1 cursor-pointer">
                       <input
                         type="date"
-                        ref={(el) => {
-                          if (el) {
-                            (el as any)._dateInput = el;
-                          }
-                        }}
+                        id="specific-date-input"
                         value={tempDateInput}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        className="sr-only"
                         onKeyDown={(e) => {
                           // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
                           if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
@@ -503,13 +499,13 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                           setTempDateInput(e.target.value);
                         }}
                       />
-                      <div className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 pointer-events-none flex items-center justify-between">
+                      <div className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 flex items-center justify-between">
                         <span className="text-sm">
                           {tempDateInput ? new Date(tempDateInput + 'T00:00:00').toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '날짜를 선택하세요'}
                         </span>
                         <i className="ri-calendar-line text-gray-400"></i>
                       </div>
-                    </div>
+                    </label>
                     <button
                       type="button"
                       onClick={() => {
