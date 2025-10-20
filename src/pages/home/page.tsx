@@ -37,10 +37,11 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
-  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'horizontal' | 'vertical' | null>(null);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -414,21 +415,48 @@ export default function HomePage() {
   // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
   const minSwipeDistance = 50;
 
-  // 터치 핸들러
+  // 터치 핸들러 - 좌우 슬라이드와 상하 스크롤 명확히 구분
   const onTouchStart = (e: React.TouchEvent) => {
     if (isAnimating) return;
-    setTouchStart(e.targetTouches[0].clientX);
+    const touch = e.targetTouches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
     setIsDragging(true);
     setDragOffset(0);
+    setSwipeDirection(null);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || touchStart === null) return;
 
-    const currentTouch = e.targetTouches[0].clientX;
-    const diff = currentTouch - touchStart;
+    const touch = e.targetTouches[0];
+    const diffX = touch.clientX - touchStart.x;
+    const diffY = touch.clientY - touchStart.y;
 
-    setDragOffset(diff);
+    // 방향이 아직 결정되지 않았으면 결정
+    if (swipeDirection === null) {
+      const absX = Math.abs(diffX);
+      const absY = Math.abs(diffY);
+      
+      // 임계값: 최소 10px 이동 후 방향 결정
+      if (absX > 10 || absY > 10) {
+        // Y축 이동이 X축보다 1.5배 이상 크면 수직 스크롤
+        if (absY > absX * 1.5) {
+          setSwipeDirection('vertical');
+        } 
+        // X축 이동이 Y축보다 1.5배 이상 크면 수평 슬라이드
+        else if (absX > absY * 1.5) {
+          setSwipeDirection('horizontal');
+        }
+      }
+    }
+
+    // 수평 슬라이드로 결정되었을 때만 dragOffset 업데이트
+    if (swipeDirection === 'horizontal') {
+      setDragOffset(diffX);
+    } else if (swipeDirection === 'vertical') {
+      // 수직 스크롤은 기본 동작 허용 (dragOffset 업데이트 안 함)
+      return;
+    }
   };
 
   const onTouchEnd = () => {
@@ -436,36 +464,46 @@ export default function HomePage() {
 
     setIsDragging(false);
 
-    const distance = dragOffset;
-    const threshold = minSwipeDistance;
+    // 수평 슬라이드로 인식된 경우만 월 변경
+    if (swipeDirection === 'horizontal') {
+      const distance = dragOffset;
+      const threshold = minSwipeDistance;
 
-    if (Math.abs(distance) > threshold) {
-      setIsAnimating(true);
+      if (Math.abs(distance) > threshold) {
+        setIsAnimating(true);
 
-      const screenWidth = window.innerWidth;
-      const direction = distance < 0 ? "next" : "prev";
-      const targetOffset = distance < 0 ? -screenWidth : screenWidth;
+        const screenWidth = window.innerWidth;
+        const direction = distance < 0 ? "next" : "prev";
+        const targetOffset = distance < 0 ? -screenWidth : screenWidth;
 
-      setDragOffset(targetOffset);
+        setDragOffset(targetOffset);
 
-      // 월 변경 계산
-      const newMonth = new Date(currentMonth);
-      if (direction === "prev") {
-        newMonth.setMonth(currentMonth.getMonth() - 1);
+        // 월 변경 계산
+        const newMonth = new Date(currentMonth);
+        if (direction === "prev") {
+          newMonth.setMonth(currentMonth.getMonth() - 1);
+        } else {
+          newMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+
+        // 애니메이션 종료 후 월 변경 및 상태 리셋
+        setTimeout(() => {
+          setCurrentMonth(newMonth);
+          setDragOffset(0);
+          setIsAnimating(false);
+          setTouchStart(null);
+          setSwipeDirection(null);
+        }, 300);
       } else {
-        newMonth.setMonth(currentMonth.getMonth() + 1);
-      }
-
-      // 애니메이션 종료 후 월 변경 및 상태 리셋
-      setTimeout(() => {
-        setCurrentMonth(newMonth);
         setDragOffset(0);
-        setIsAnimating(false);
         setTouchStart(null);
-      }, 300);
+        setSwipeDirection(null);
+      }
     } else {
+      // 수직 스크롤이거나 방향 미결정인 경우 상태만 리셋
       setDragOffset(0);
       setTouchStart(null);
+      setSwipeDirection(null);
     }
   };
 
