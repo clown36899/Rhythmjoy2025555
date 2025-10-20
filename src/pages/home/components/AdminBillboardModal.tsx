@@ -496,26 +496,31 @@ export default function AdminBillboardModal({
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">종료 날짜 (선택)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      value={userSettings.date_filter_end || ""}
-                      onChange={(e) =>
-                        updateLocalSettings({ date_filter_end: e.target.value || null })
-                      }
-                      className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
-                    />
-                    {userSettings.date_filter_end && (
+                  <div className="space-y-1">
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={userSettings.date_filter_end || ""}
+                        onChange={(e) =>
+                          updateLocalSettings({ date_filter_end: e.target.value || null })
+                        }
+                        className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
+                      />
                       <button
                         onClick={() => updateLocalSettings({ date_filter_end: null })}
-                        className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                        title="종료 날짜 초기화"
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                        title="종료 날짜 제한 없음"
                       >
-                        <i className="ri-close-line text-lg"></i>
+                        지정 안 함
                       </button>
+                    </div>
+                    {!userSettings.date_filter_end && (
+                      <p className="text-xs text-green-400">
+                        <i className="ri-check-line mr-1"></i>
+                        종료 날짜 제한 없음 - 모든 미래 일정 표시
+                      </p>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">미설정 시 모든 이벤트 표시</p>
                 </div>
               </div>
             </div>
@@ -563,6 +568,11 @@ export default function AdminBillboardModal({
             <div className="p-4 bg-gray-700/50 rounded-lg border-t border-gray-600 pt-6 mt-6">
               <label className="text-white font-medium block mb-3">비밀번호 변경</label>
               <p className="text-sm text-gray-400 mb-3">현재 비밀번호를 알고 있어야 변경 가능합니다</p>
+              <p className="text-xs text-orange-400 mb-3">
+                <i className="ri-alert-line mr-1"></i>
+                비밀번호를 잃어버렸을 경우 메인 관리자에게 문의하세요<br />
+                <span className="ml-4">010-4801-7180 여인태(조이)</span>
+              </p>
               <div className="space-y-3">
                 <input
                   type="password"
