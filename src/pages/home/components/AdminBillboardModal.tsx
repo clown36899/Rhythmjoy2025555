@@ -232,7 +232,7 @@ export default function AdminBillboardModal({
     updateLocalSettings({ excluded_event_ids: newExcluded });
   };
 
-  // DB에 저장 (모달은 닫지 않음)
+  // DB에 저장 후 모달 닫기
   const saveUserSettings = async () => {
     if (!billboardUserId || !userSettings) return;
 
@@ -257,6 +257,7 @@ export default function AdminBillboardModal({
       if (error) throw error;
       
       alert("설정이 저장되었습니다.");
+      onClose(); // 저장 후 모달 닫기
     } catch (error) {
       console.error("설정 저장 오류:", error);
       alert("설정 저장 중 오류가 발생했습니다.");
