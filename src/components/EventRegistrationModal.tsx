@@ -488,11 +488,9 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       value={tempDateInput}
                       className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onChange={(e) => {
-                        setTempDateInput(e.target.value);
-                      }}
-                      onBlur={(e) => {
-                        if (e.target.value) {
-                          const newDate = new Date(e.target.value + 'T00:00:00');
+                        const newValue = e.target.value;
+                        if (newValue && newValue !== tempDateInput) {
+                          const newDate = new Date(newValue + 'T00:00:00');
                           // 중복 체크
                           const isDuplicate = specificDates.some(
                             d => formatDateForInput(d) === formatDateForInput(newDate)
@@ -500,7 +498,10 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                           if (!isDuplicate) {
                             setSpecificDates(prev => [...prev, newDate]);
                           }
-                          setTempDateInput(''); // 입력 필드 초기화
+                          // 입력 필드 초기화를 약간 지연시켜 브라우저가 달력을 완전히 닫을 시간을 줌
+                          setTimeout(() => setTempDateInput(''), 100);
+                        } else {
+                          setTempDateInput(newValue);
                         }
                       }}
                     />
