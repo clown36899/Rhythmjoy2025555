@@ -807,7 +807,7 @@ export default function HomePage() {
             <div className="-mt-10">
               {selectedCategory === "practice" ? (
                 <PracticeRoomList 
-                  isAdminMode={isAdminMode}
+                  adminType={adminType}
                   showSearchModal={showSearchModal}
                   setShowSearchModal={setShowSearchModal}
                   showSortModal={showSortModal}
@@ -826,6 +826,7 @@ export default function HomePage() {
                   currentMonth={currentMonth}
                   refreshTrigger={refreshTrigger}
                   isAdminMode={isAdminMode}
+                  adminType={adminType}
                   viewMode={viewMode}
                   onEventHover={setHoveredEventId}
                   searchTerm={searchTerm}

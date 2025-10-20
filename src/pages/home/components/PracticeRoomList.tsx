@@ -19,7 +19,7 @@ interface PracticeRoom {
 }
 
 interface PracticeRoomListProps {
-  isAdminMode: boolean;
+  adminType?: "super" | "sub" | null;
   showSearchModal: boolean;
   setShowSearchModal: (show: boolean) => void;
   showSortModal: boolean;
@@ -29,7 +29,7 @@ interface PracticeRoomListProps {
 }
 
 export default function PracticeRoomList({ 
-  isAdminMode,
+  adminType = null,
   showSearchModal,
   setShowSearchModal,
   showSortModal,
@@ -208,7 +208,7 @@ export default function PracticeRoomList({
     return (
       <div className="text-center py-20 text-gray-400">
         등록된 연습실이 없습니다
-        {isAdminMode && (
+        {adminType === "super" && (
           <div className="mt-4">
             <button
               onClick={() => setShowModal(true)}
@@ -225,7 +225,7 @@ export default function PracticeRoomList({
   return (
     <>
       <div className="px-4 py-6">
-        {isAdminMode && (
+        {adminType === "super" && (
           <div className="mb-4">
             <button
               onClick={handleAddNewRoom}
@@ -313,7 +313,7 @@ export default function PracticeRoomList({
           // 모달 닫을 때 리스트 새로고침 (정렬 순서는 유지됨)
           fetchRooms();
         }}
-        isAdminMode={isAdminMode}
+        isAdminMode={adminType === "super"}
         selectedRoom={selectedRoom}
         initialRoom={selectedRoom}
         openToForm={openToForm}
