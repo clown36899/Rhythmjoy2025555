@@ -150,14 +150,22 @@ export default function EventList({
 
   // 슬라이드 높이 측정 및 업데이트 (애니메이션 종료 후)
   useEffect(() => {
+    console.log('🔍 useEffect 트리거:', {
+      currentMonth: currentMonth?.getMonth(),
+      isAnimating: externalIsAnimating,
+      hasRef: !!currentMonthRef.current
+    });
+
     // 검색/날짜 선택 모드에서는 슬라이드가 아니므로 높이 조정 불필요
     if (searchTerm.trim() || selectedDate) {
+      console.log('❌ 검색/날짜 모드 - 높이 조정 스킵');
       setSlideContainerHeight(null);
       return;
     }
 
     // 애니메이션이 끝난 후에만 높이 측정
     if (!externalIsAnimating && currentMonthRef.current) {
+      console.log('✅ 높이 측정 시작...');
       const measureHeight = () => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -173,8 +181,10 @@ export default function EventList({
       // 약간의 지연을 줘서 DOM이 완전히 렌더링된 후 측정
       const timer = setTimeout(measureHeight, 50);
       return () => clearTimeout(timer);
+    } else {
+      console.log('⏳ 애니메이션 진행 중이거나 ref 없음');
     }
-  }, [externalIsAnimating, searchTerm, selectedDate]);
+  }, [currentMonth, externalIsAnimating, searchTerm, selectedDate]);
 
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
