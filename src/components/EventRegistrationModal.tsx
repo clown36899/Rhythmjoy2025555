@@ -483,20 +483,32 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     ))}
                   </div>
                   <div className="flex gap-2 mb-2">
-                    <input
-                      type="date"
-                      value={tempDateInput}
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                      onKeyDown={(e) => {
-                        // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
-                        if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
-                          e.preventDefault();
+                    <div 
+                      className="flex-1 relative cursor-pointer"
+                      onClick={(e) => {
+                        // div 클릭 시 input을 클릭한 것처럼 동작
+                        const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
+                        if (input && e.target === e.currentTarget) {
+                          input.focus();
+                          input.click();
                         }
                       }}
-                      onChange={(e) => {
-                        setTempDateInput(e.target.value);
-                      }}
-                    />
+                    >
+                      <input
+                        type="date"
+                        value={tempDateInput}
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        onKeyDown={(e) => {
+                          // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
+                          if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          setTempDateInput(e.target.value);
+                        }}
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
