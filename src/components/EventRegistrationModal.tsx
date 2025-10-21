@@ -575,36 +575,36 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
               )}
 
 
-              {/* 장소 이름 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  장소 이름
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  onFocus={handleInputFocus}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="예: 홍대 연습실"
-                />
-              </div>
-
-              {/* 주소 링크 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  주소 링크 (선택)
-                </label>
-                <input
-                  type="text"
-                  name="locationLink"
-                  value={formData.locationLink}
-                  onChange={handleInputChange}
-                  onFocus={handleInputFocus}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="예: https://map.naver.com/..."
-                />
+              {/* 장소 이름 & 주소 링크 (한 줄) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    장소 이름
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="예: 홍대 연습실"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    주소 링크 (선택)
+                  </label>
+                  <input
+                    type="text"
+                    name="locationLink"
+                    value={formData.locationLink}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="지도 링크"
+                  />
+                </div>
               </div>
 
               {/* 문의 정보 (공개) */}
@@ -627,48 +627,31 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </p>
               </div>
 
-              {/* 등록자 정보 (관리자 전용, 비공개) */}
-              <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <i className="ri-lock-line text-orange-400"></i>
-                  <h3 className="text-orange-400 text-sm font-bold">등록자 정보 (비공개 - 관리자만 확인 가능)</h3>
+              {/* 바로가기 링크 1개만 */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  바로가기 링크 (선택사항)
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="url"
+                    name="link1"
+                    value={formData.link1}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="링크 URL"
+                  />
+                  <input
+                    type="text"
+                    name="linkName1"
+                    value={formData.linkName1}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="링크 이름"
+                  />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-orange-300 text-sm font-medium mb-1">
-                      등록자 이름 <span className="text-red-400">*필수</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="organizerName"
-                      value={formData.organizerName}
-                      onChange={handleInputChange}
-                      onFocus={handleInputFocus}
-                      required
-                      className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      placeholder="등록자 이름"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-orange-300 text-sm font-medium mb-1">
-                      등록자 전화번호 <span className="text-red-400">*필수</span>
-                    </label>
-                    <input
-                      type="tel"
-                      name="organizerPhone"
-                      value={formData.organizerPhone}
-                      onChange={handleInputChange}
-                      onFocus={handleInputFocus}
-                      required
-                      className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      placeholder="010-0000-0000"
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-orange-300/80 mt-2">
-                  <i className="ri-information-line mr-1"></i>
-                  수정 등 문제가 있을 경우 연락받으실 번호를 입력해주세요
-                </p>
               </div>
 
               {/* 포스터 이미지 업로드 */}
@@ -826,31 +809,48 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </div>
               </div>
 
-              {/* 바로가기 링크 1개만 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  바로가기 링크 (선택사항)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="url"
-                    name="link1"
-                    value={formData.link1}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="링크 URL"
-                  />
-                  <input
-                    type="text"
-                    name="linkName1"
-                    value={formData.linkName1}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="링크 이름"
-                  />
+              {/* 등록자 정보 (관리자 전용, 비공개) */}
+              <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <i className="ri-lock-line text-orange-400"></i>
+                  <h3 className="text-orange-400 text-sm font-bold">등록자 정보 (비공개 - 관리자만 확인 가능)</h3>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-orange-300 text-sm font-medium mb-1">
+                      등록자 이름 <span className="text-red-400">*필수</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="organizerName"
+                      value={formData.organizerName}
+                      onChange={handleInputChange}
+                      onFocus={handleInputFocus}
+                      required
+                      className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="등록자 이름"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-orange-300 text-sm font-medium mb-1">
+                      등록자 전화번호 <span className="text-red-400">*필수</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="organizerPhone"
+                      value={formData.organizerPhone}
+                      onChange={handleInputChange}
+                      onFocus={handleInputFocus}
+                      required
+                      className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="010-0000-0000"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-orange-300/80 mt-2">
+                  <i className="ri-information-line mr-1"></i>
+                  수정 등 문제가 있을 경우 연락받으실 번호를 입력해주세요
+                </p>
               </div>
 
               {/* 버튼 - 축소 */}
