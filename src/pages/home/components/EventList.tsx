@@ -2735,22 +2735,14 @@ export default function EventList({
               >
                 {selectedEvent.category === "class" ? "강습" : "행사"}
               </div>
-            </div>
 
-            {/* 스크롤 가능한 컨텐츠 영역 */}
-            <div 
-              className="flex-1 overflow-y-auto"
-              onScroll={(e) => {
-                const target = e.currentTarget;
-                setDetailScrollY(target.scrollTop);
-              }}
-            >
-              {/* 제목 영역 (스크롤 내부) */}
+              {/* 제목 - 이미지 위 오버레이 */}
               <div 
-                className="bg-gray-800 border-b border-gray-700"
+                className="absolute left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
                 style={{
-                  padding: `${Math.max(8, 16 - (detailScrollY / 300) * 8)}px 16px`,
-                  transition: 'padding 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                  bottom: `${Math.max(0, (256 - Math.max(80, 256 - (detailScrollY / 300) * 176)) - detailScrollY)}px`,
+                  padding: `${Math.max(8, 64 - (detailScrollY / 300) * 56)}px 16px ${Math.max(8, 16 - (detailScrollY / 300) * 8)}px 16px`,
+                  transition: 'bottom 0.1s linear, padding 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
                 }}
               >
                 <h2 
@@ -2763,9 +2755,26 @@ export default function EventList({
                   {selectedEvent.title}
                 </h2>
               </div>
+            </div>
+
+            {/* 스크롤 가능한 컨텐츠 영역 */}
+            <div 
+              className="flex-1 overflow-y-auto"
+              onScroll={(e) => {
+                const target = e.currentTarget;
+                setDetailScrollY(target.scrollTop);
+              }}
+            >
+              {/* 제목 높이만큼 빈 공간 (제목이 상단에 닿을 때까지) */}
+              <div 
+                style={{
+                  height: `${Math.max(0, 80 - detailScrollY)}px`,
+                  transition: 'height 0.1s linear',
+                }}
+              />
 
               {/* 세부 정보 */}
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3 bg-gray-800">
                 <div className="flex items-center space-x-3 text-gray-300">
                   <i className="ri-calendar-line text-blue-400 text-xl"></i>
                   <span>
