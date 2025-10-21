@@ -107,12 +107,13 @@ export default function BillboardPage() {
       const filteredEvents = filterEvents(allEvents || [], userSettings);
       setEvents(filteredEvents);
       
-      // 랜덤 모드면 초기 재생목록 생성
+      // 랜덤 모드면 초기 재생목록 생성 (인덱스 배열을 섞음)
       if (userSettings.play_order === 'random' && filteredEvents.length > 0) {
-        const indices = filteredEvents.map((_, i) => i);
-        setShuffledPlaylist(shuffleArray(indices));
+        const indices = Array.from({ length: filteredEvents.length }, (_, i) => i);
+        const shuffled = shuffleArray(indices);
+        setShuffledPlaylist(shuffled);
         playlistIndexRef.current = 0;
-        setCurrentIndex(0);
+        setCurrentIndex(shuffled[0] || 0);
       }
       
       setIsLoading(false);
@@ -174,18 +175,20 @@ export default function BillboardPage() {
     const interval = setInterval(() => {
       setProgress(0);
       if (settings.play_order === 'random') {
-        // 셔플된 재생목록 사용
-        const currentPlaylist = shuffledPlaylist;
-        const nextPlaylistIdx = (playlistIndexRef.current + 1) % currentPlaylist.length;
-        playlistIndexRef.current = nextPlaylistIdx;
+        // 현재 재생목록에서 다음 인덱스로 이동
+        const nextPlaylistIdx = playlistIndexRef.current + 1;
         
-        // 재생목록 끝에 도달하면 새로 셔플
-        if (nextPlaylistIdx === 0 && currentPlaylist.length > 0) {
-          const newPlaylist = shuffleArray(currentPlaylist);
+        // 재생목록 끝에 도달하면 원본 인덱스 배열을 새로 섞음
+        if (nextPlaylistIdx >= shuffledPlaylist.length) {
+          const newIndices = Array.from({ length: events.length }, (_, i) => i);
+          const newPlaylist = shuffleArray(newIndices);
           setShuffledPlaylist(newPlaylist);
+          playlistIndexRef.current = 0;
           setCurrentIndex(newPlaylist[0] || 0);
         } else {
-          setCurrentIndex(currentPlaylist[nextPlaylistIdx] || 0);
+          // 현재 재생목록 계속 진행
+          playlistIndexRef.current = nextPlaylistIdx;
+          setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
         }
       } else {
         setCurrentIndex((prev) => (prev + 1) % events.length);
