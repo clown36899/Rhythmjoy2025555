@@ -2735,12 +2735,21 @@ export default function EventList({
               >
                 {selectedEvent.category === "class" ? "강습" : "행사"}
               </div>
+            </div>
 
-              {/* 제목 - 이미지 위 그라데이션 오버레이 */}
+            {/* 스크롤 가능한 컨텐츠 영역 */}
+            <div 
+              className="flex-1 overflow-y-auto"
+              onScroll={(e) => {
+                const target = e.currentTarget;
+                setDetailScrollY(target.scrollTop);
+              }}
+            >
+              {/* 제목 영역 (스크롤 내부) */}
               <div 
-                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
+                className="bg-gray-800 border-b border-gray-700"
                 style={{
-                  padding: `${Math.max(8, 64 - (detailScrollY / 300) * 56)}px 16px ${Math.max(8, 16 - (detailScrollY / 300) * 8)}px 16px`,
+                  padding: `${Math.max(8, 16 - (detailScrollY / 300) * 8)}px 16px`,
                   transition: 'padding 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
                 }}
               >
@@ -2754,16 +2763,7 @@ export default function EventList({
                   {selectedEvent.title}
                 </h2>
               </div>
-            </div>
 
-            {/* 스크롤 가능한 컨텐츠 영역 */}
-            <div 
-              className="flex-1 overflow-y-auto"
-              onScroll={(e) => {
-                const target = e.currentTarget;
-                setDetailScrollY(target.scrollTop);
-              }}
-            >
               {/* 세부 정보 */}
               <div className="p-4 space-y-3">
                 <div className="flex items-center space-x-3 text-gray-300">
