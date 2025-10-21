@@ -77,7 +77,6 @@ export default function EventList({
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
-  const [detailScrollY, setDetailScrollY] = useState(0);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -780,12 +779,10 @@ export default function EventList({
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);
-    setDetailScrollY(0); // 스크롤 위치 초기화
   };
 
   const closeModal = () => {
     setSelectedEvent(null);
-    setDetailScrollY(0); // 스크롤 위치 초기화
   };
 
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
@@ -2676,13 +2673,7 @@ export default function EventList({
             </div>
 
             {/* 스크롤 가능한 전체 영역 */}
-            <div 
-              className="overflow-y-auto max-h-[90vh]"
-              onScroll={(e) => {
-                const target = e.currentTarget;
-                setDetailScrollY(target.scrollTop);
-              }}
-            >
+            <div className="overflow-y-auto max-h-[90vh]">
               {/* 이미지 영역 (스크롤과 함께 사라짐) */}
               <div
                 className={`relative w-full ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}

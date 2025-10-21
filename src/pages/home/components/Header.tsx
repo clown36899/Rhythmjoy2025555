@@ -314,11 +314,16 @@ export default function Header({
                     });
                   }
                 }}
-                className="flex items-center cursor-pointer"
+                className="flex flex-col items-center justify-center cursor-pointer group -my-2"
               >
-                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-300 hover:to-pink-300 transition-all">
-                 달력
-                </h1>
+                <img 
+                  src="/dangong-logo.png" 
+                  alt="DANGONG Logo" 
+                  className="h-8 w-8 rounded-md transition-transform group-hover:scale-105"
+                />
+                <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 group-hover:from-purple-300 group-hover:to-pink-300 transition-all -mt-0.5">
+                  단공
+                </span>
               </button>
             </div>
 
