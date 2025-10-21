@@ -6,7 +6,13 @@ export interface ContactInfo {
   icon: string;
 }
 
-export function parseContact(contact: string): ContactInfo {
+export function parseMultipleContacts(contact: string): ContactInfo[] {
+  // 쉼표로 구분된 여러 문의 방법 처리
+  const parts = contact.split(',').map(p => p.trim()).filter(p => p.length > 0);
+  return parts.map(part => parseSingleContact(part));
+}
+
+function parseSingleContact(contact: string): ContactInfo {
   const trimmed = contact.trim();
   const lower = trimmed.toLowerCase();
 
