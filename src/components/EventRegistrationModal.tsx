@@ -411,6 +411,45 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 />
               </div>
 
+              {/* 비밀번호 & 카테고리 (한 줄) */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* 이벤트 비밀번호 */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    수정 비밀번호 *
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    required
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="비밀번호"
+                  />
+                </div>
+
+                {/* 카테고리 */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                    카테고리 *
+                  </label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                  >
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* 날짜 선택 모드 */}
               <div className="bg-gray-700/50 rounded-lg p-3">
                 <label className="block text-gray-300 text-sm font-medium mb-2">
@@ -535,44 +574,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </div>
               )}
 
-              {/* 이벤트 비밀번호 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  이벤트 수정 비밀번호 *
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  onFocus={handleInputFocus}
-                  required
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="이벤트 수정을 위한 비밀번호를 설정하세요"
-                />
-                <p className="text-gray-400 text-xs mt-1">
-                  이 비밀번호로 나중에 이벤트를 수정하거나 삭제할 수 있습니다.
-                </p>
-              </div>
-
-              {/* 카테고리 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  카테고리
-                </label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
-                >
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
               {/* 장소 이름 */}
               <div>
