@@ -33,6 +33,7 @@ export interface Event {
   organizer: string;
   organizer_name?: string;
   organizer_phone?: string;
+  contact?: string;
   capacity: number;
   registered: number;
   link1?: string;
