@@ -27,6 +27,7 @@ export default function BillboardPage() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
+  const [realtimeStatus, setRealtimeStatus] = useState<string>('연결중...');
 
   // 모바일 주소창 숨기기
   useEffect(() => {
@@ -64,12 +65,13 @@ export default function BillboardPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events' },
         () => {
-          console.log('🔥 이벤트 변경 감지 - 데이터 새로고침 (주소창 유지)');
+          setRealtimeStatus('이벤트 변경 감지!');
           loadBillboardData();
+          setTimeout(() => setRealtimeStatus('연결됨'), 3000);
         }
       )
       .subscribe((status) => {
-        console.log('📡 이벤트 채널 상태:', status);
+        setRealtimeStatus(`이벤트 채널: ${status}`);
       });
 
     const settingsChannel = supabase
@@ -78,15 +80,15 @@ export default function BillboardPage() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'billboard_user_settings' },
         (payload) => {
-          console.log('⚙️ 설정 변경 감지 - userId:', userId);
           if (payload.new.billboard_user_id === userId) {
-            console.log('✅ 현재 빌보드 설정 변경 - 데이터 새로고침 (주소창 유지)');
+            setRealtimeStatus('설정 변경 감지!');
             loadBillboardData();
+            setTimeout(() => setRealtimeStatus('연결됨'), 3000);
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 설정 채널 상태:', status);
+        setRealtimeStatus(`설정 채널: ${status}`);
       });
 
     // 클린업
@@ -396,6 +398,11 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://i.ytimg.com" />
       
       <div className="fixed inset-0 bg-black overflow-auto flex items-center justify-center" style={{ minHeight: 'calc(100vh + 1px)' }}>
+        {/* Realtime 상태 표시 (디버깅용) */}
+        <div className="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded text-xs z-50">
+          {realtimeStatus}
+        </div>
+        
         {/* 현재 슬라이드만 렌더링 */}
         {renderSlide(currentEvent, true)}
 
