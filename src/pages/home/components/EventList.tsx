@@ -110,6 +110,7 @@ export default function EventList({
     organizer: "",
     organizerName: "",
     organizerPhone: "",
+    contact: "",
     link1: "",
     link2: "",
     link3: "",
@@ -783,6 +784,7 @@ export default function EventList({
         organizer: event.organizer,
         organizerName: event.organizer_name || "",
         organizerPhone: event.organizer_phone || "",
+        contact: event.contact || "",
         link1: event.link1 || "",
         link2: event.link2 || "",
         link3: event.link3 || "",
@@ -894,6 +896,7 @@ export default function EventList({
             organizer: fullEvent.organizer,
             organizerName: fullEvent.organizer_name || "",
             organizerPhone: fullEvent.organizer_phone || "",
+            contact: fullEvent.contact || "",
             link1: fullEvent.link1 || "",
             link2: fullEvent.link2 || "",
             link3: fullEvent.link3 || "",
@@ -1021,6 +1024,7 @@ export default function EventList({
         organizer: editFormData.organizer,
         organizer_name: editFormData.organizerName || null,
         organizer_phone: editFormData.organizerPhone || null,
+        contact: editFormData.contact || null,
         link1: editFormData.link1 || null,
         link2: editFormData.link2 || null,
         link3: editFormData.link3 || null,
@@ -2148,6 +2152,29 @@ export default function EventList({
                   </div>
                 )}
 
+                {/* 문의 정보 (공개) */}
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    문의
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.contact}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        contact: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    <i className="ri-information-line mr-1"></i>
+                    참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
+                  </p>
+                </div>
+
                 {/* 등록자 정보 (관리자 전용, 비공개) */}
                 <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -2765,6 +2792,16 @@ export default function EventList({
                           <i className="ri-external-link-line text-blue-400 text-lg"></i>
                         </a>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedEvent.contact && (
+                  <div className="flex items-center space-x-3 text-gray-300">
+                    <i className="ri-chat-3-line text-green-400 text-xl"></i>
+                    <div>
+                      <span className="text-sm text-gray-400 block">문의</span>
+                      <span>{selectedEvent.contact}</span>
                     </div>
                   </div>
                 )}
