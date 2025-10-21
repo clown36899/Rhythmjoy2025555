@@ -5,11 +5,8 @@ import AutoImport from "unplugin-auto-import/vite";
 
 //const base = process.env.BASE_PATH || "/";//
 
-// ✅ 1) 먼저 isNetlify를 정의
-const isNetlify = process.env.NETLIFY === "true";
-
-// ✅ 2) 그 다음 base를 결정
-const base = isNetlify ? "./" : "/";
+// ✅ 항상 상대 경로 사용 (Netlify, Replit 모두 호환)
+const base = "./";
 
 // ✅ Replit 환경 변수를 통해 Replit 환경인지 확인
 const isReplit = !!process.env.REPL_ID || !!process.env.REPL_SLUG; // REPL_ID나 REPL_SLUG가 있으면 Replit으로 간주
