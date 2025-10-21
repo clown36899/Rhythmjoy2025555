@@ -314,16 +314,13 @@ export default function Header({
                     });
                   }
                 }}
-                className="flex flex-col items-center justify-center cursor-pointer group -my-2"
+                className="flex items-center justify-center cursor-pointer group"
               >
                 <img 
                   src="/dangong-logo.png" 
                   alt="DANGONG Logo" 
-                  className="h-8 w-8 transition-transform group-hover:scale-105"
+                  className="h-12 w-12 transition-transform group-hover:scale-105"
                 />
-                <span className="text-[9px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 group-hover:from-purple-300 group-hover:to-pink-300 transition-all -mt-0.5 tracking-tighter" style={{ maxWidth: '32px' }}>
-                  DANGONG
-                </span>
               </button>
             </div>
 
