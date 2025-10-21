@@ -104,6 +104,7 @@ export default function EventList({
   const setSortBy = externalSetSortBy ?? setInternalSortBy;
   const [editFormData, setEditFormData] = useState({
     title: "",
+    description: "",
     time: "",
     location: "",
     locationLink: "",
@@ -778,6 +779,7 @@ export default function EventList({
       
       setEditFormData({
         title: event.title,
+        description: event.description || "",
         time: event.time,
         location: event.location,
         locationLink: event.location_link || "",
@@ -890,6 +892,7 @@ export default function EventList({
           
           setEditFormData({
             title: fullEvent.title,
+            description: fullEvent.description || "",
             time: fullEvent.time,
             location: fullEvent.location,
             locationLink: fullEvent.location_link || "",
@@ -1021,7 +1024,7 @@ export default function EventList({
         location: editFormData.location,
         location_link: editFormData.locationLink || null,
         category: editFormData.category,
-        description: "",
+        description: editFormData.description || "",
         organizer: editFormData.organizer,
         organizer_name: editFormData.organizerName || null,
         organizer_phone: editFormData.organizerPhone || null,
@@ -2176,6 +2179,25 @@ export default function EventList({
                   </p>
                 </div>
 
+                {/* 내용 */}
+                <div>
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    내용 (선택사항)
+                  </label>
+                  <textarea
+                    value={editFormData.description}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    rows={4}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+                    placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
+                  />
+                </div>
+
                 {/* 등록자 정보 (관리자 전용, 비공개) */}
                 <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -2792,6 +2814,18 @@ export default function EventList({
                           <i className="ri-external-link-line text-blue-400 text-lg"></i>
                         </a>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedEvent.description && (
+                  <div className="pt-3 border-t border-gray-700">
+                    <div className="flex items-start space-x-3 text-gray-300">
+                      <i className="ri-file-text-line text-blue-400 text-xl flex-shrink-0 mt-0.5"></i>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-400 mb-1 font-medium">내용</p>
+                        <p className="whitespace-pre-wrap leading-relaxed">{selectedEvent.description}</p>
+                      </div>
                     </div>
                   </div>
                 )}

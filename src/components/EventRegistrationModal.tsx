@@ -23,6 +23,7 @@ const formatDateForInput = (date: Date): string => {
 export default function EventRegistrationModal({ isOpen, onClose, selectedDate, onEventCreated }: EventRegistrationModalProps) {
   const [formData, setFormData] = useState({
     title: '',
+    description: '',
     location: '',
     locationLink: '',
     category: 'class',
@@ -311,7 +312,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         image_medium: imageUrls.medium || null,
         image_full: imageUrls.full || null,
         video_url: formData.videoUrl || null,
-        description: '',
+        description: formData.description || '',
         organizer: formData.organizer,
         organizer_name: formData.organizerName,
         organizer_phone: formData.organizerPhone,
@@ -625,6 +626,22 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   <i className="ri-information-line mr-1"></i>
                   참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
                 </p>
+              </div>
+
+              {/* 내용 */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  내용 (선택사항)
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  onFocus={handleInputFocus}
+                  rows={4}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
+                />
               </div>
 
               {/* 바로가기 링크 1개만 */}
