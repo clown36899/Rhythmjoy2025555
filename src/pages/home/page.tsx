@@ -716,8 +716,9 @@ export default function HomePage() {
             </div>
 
             {/* Category Filter Panel - Always visible */}
-            <div className="flex items-center gap-2 p-2 border-t border-b border-x-0 border-t-[#22262a] border-b-black">
-              <div className="flex gap-2 flex-1 overflow-x-auto">
+            <div className="flex items-center gap-2 p-1.5 border-t border-b border-x-0 border-t-[#22262a] border-b-black">
+              {/* 이벤트 카테고리 그룹 (전체/강습/행사) */}
+              <div className="flex gap-1 bg-gray-800/30 rounded-lg p-1">
                 <button
                   onClick={() => handleCategoryChange("all")}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
@@ -764,6 +765,10 @@ export default function HomePage() {
                 >
                   <span>행사</span>
                 </button>
+              </div>
+              
+              {/* 연습실 그룹 (별도) */}
+              <div className="flex gap-1 bg-gray-900/30 rounded-lg p-1">
                 <button
                   onClick={() => {
                     setSelectedCategory("practice");
@@ -778,6 +783,8 @@ export default function HomePage() {
                   <span>연습실</span>
                 </button>
               </div>
+              
+              <div className="flex-1"></div>
 
               {/* 정렬 버튼 */}
               <button
