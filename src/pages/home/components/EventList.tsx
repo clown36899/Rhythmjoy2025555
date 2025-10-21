@@ -2653,9 +2653,10 @@ export default function EventList({
           >
             {/* 이미지 영역 */}
             <div
-              className={`relative w-full flex-shrink-0 transition-all duration-300 ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
+              className={`relative w-full flex-shrink-0 ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
               style={{
-                height: detailScrollY > 50 ? '80px' : '256px',
+                height: `${Math.max(80, 256 - (detailScrollY / 150) * 176)}px`,
+                transition: 'height 0.1s ease-out',
                 ...(!(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
                   ? { backgroundImage: "url(/grunge.png)" }
                   : {}),
@@ -2737,16 +2738,17 @@ export default function EventList({
 
               {/* 제목 - 이미지 위 그라데이션 오버레이 */}
               <div 
-                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent transition-all duration-300"
+                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
                 style={{
-                  padding: detailScrollY > 50 ? '8px 16px' : '16px 16px 16px 16px',
-                  paddingTop: detailScrollY > 50 ? '8px' : '64px',
+                  padding: `${Math.max(8, 64 - (detailScrollY / 150) * 56)}px 16px ${Math.max(8, 16 - (detailScrollY / 150) * 8)}px 16px`,
+                  transition: 'padding 0.1s ease-out',
                 }}
               >
                 <h2 
-                  className="font-bold text-white leading-tight transition-all duration-300"
+                  className="font-bold text-white leading-tight"
                   style={{
-                    fontSize: detailScrollY > 50 ? '1.25rem' : '1.5rem',
+                    fontSize: `${Math.max(1.25, 1.5 - (detailScrollY / 150) * 0.25)}rem`,
+                    transition: 'font-size 0.1s ease-out',
                   }}
                 >
                   {selectedEvent.title}
