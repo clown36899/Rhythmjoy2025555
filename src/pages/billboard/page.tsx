@@ -376,45 +376,8 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://i.ytimg.com" />
       
       <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
-        {/* 현재 슬라이드 */}
+        {/* 현재 슬라이드만 렌더링 */}
         {renderSlide(currentEvent, true)}
-        
-        {/* tvbro용 프리로드 영역: 화면 밖에서 실제로 로드 (낮은 화질) */}
-        <div 
-          className="fixed"
-          style={{
-            top: '-9999px',
-            left: '-9999px',
-            width: '100vh',
-            height: '100vw',
-            pointerEvents: 'none'
-          }}
-        >
-          {events.map((event, idx) => {
-            // 현재 슬라이드가 아니고 비디오가 있는 경우만 미리 로드
-            if (idx !== currentIndex && event.video_url) {
-              const videoInfo = parseVideoUrl(event.video_url);
-              if (videoInfo?.embedUrl) {
-                return (
-                  <iframe
-                    key={`preload-${event.id}`}
-                    src={`${videoInfo.embedUrl}&rel=0&modestbranding=1&playsinline=1&vq=small`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      border: 'none'
-                    }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  />
-                );
-              }
-            }
-            return null;
-          })}
-        </div>
 
         <style>{`
           .portrait-container {
