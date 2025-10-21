@@ -450,9 +450,9 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 </div>
               </div>
 
-              {/* 날짜 선택 모드 */}
-              <div className="bg-gray-700/50 rounded-lg p-3">
-                <label className="block text-gray-300 text-sm font-medium mb-2">
+              {/* 날짜 선택 섹션 (날짜 선택 방식 + 시작일/종료일) */}
+              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
+                <label className="block text-gray-300 text-sm font-medium">
                   날짜 선택 방식
                 </label>
                 <div className="flex gap-4">
@@ -475,104 +475,104 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                     <span className="text-white text-sm">특정 날짜 선택</span>
                   </label>
                 </div>
-              </div>
 
-              {/* 연속 기간 모드 */}
-              {dateMode === 'range' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-1">
-                      시작일
-                    </label>
-                    <input
-                      type="date"
-                      value={formatDateForInput(selectedDate)}
-                      disabled
-                      className="w-full bg-gray-600 text-gray-300 rounded-lg px-3 py-2 cursor-not-allowed"
-                    />
+                {/* 연속 기간 모드 */}
+                {dateMode === 'range' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1">
+                        시작일
+                      </label>
+                      <input
+                        type="date"
+                        value={formatDateForInput(selectedDate)}
+                        disabled
+                        className="w-full bg-gray-600 text-gray-300 rounded-lg px-3 py-2 cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1">
+                        종료일
+                      </label>
+                      <input
+                        type="date"
+                        value={formatDateForInput(endDate)}
+                        min={formatDateForInput(selectedDate)}
+                        onChange={(e) => setEndDate(new Date(e.target.value + 'T00:00:00'))}
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-1">
-                      종료일
-                    </label>
-                    <input
-                      type="date"
-                      value={formatDateForInput(endDate)}
-                      min={formatDateForInput(selectedDate)}
-                      onChange={(e) => setEndDate(new Date(e.target.value + 'T00:00:00'))}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
 
-              {/* 특정 날짜 선택 모드 */}
-              {dateMode === 'specific' && (
-                <div className="bg-gray-700/50 rounded-lg p-3">
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    선택된 날짜 ({specificDates.length}개)
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {specificDates.sort((a, b) => a.getTime() - b.getTime()).map((date, index) => (
-                      <div
-                        key={index}
-                        className="inline-flex items-center bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
-                      >
-                        <span>{date.getMonth() + 1}/{date.getDate()}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (specificDates.length > 1) {
-                              setSpecificDates(prev => prev.filter((_, i) => i !== index));
-                            }
-                          }}
-                          className="ml-2 hover:text-red-300"
+                {/* 특정 날짜 선택 모드 */}
+                {dateMode === 'specific' && (
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-2">
+                      선택된 날짜 ({specificDates.length}개)
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {specificDates.sort((a, b) => a.getTime() - b.getTime()).map((date, index) => (
+                        <div
+                          key={index}
+                          className="inline-flex items-center bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
                         >
-                          <i className="ri-close-line"></i>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      type="date"
-                      value={tempDateInput}
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      onKeyDown={(e) => {
-                        // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
-                        if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
-                          e.preventDefault();
-                        }
-                      }}
-                      onChange={(e) => {
-                        setTempDateInput(e.target.value);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (tempDateInput) {
-                          const newDate = new Date(tempDateInput + 'T00:00:00');
-                          // 중복 체크
-                          const isDuplicate = specificDates.some(
-                            d => formatDateForInput(d) === formatDateForInput(newDate)
-                          );
-                          if (!isDuplicate) {
-                            setSpecificDates(prev => [...prev, newDate]);
+                          <span>{date.getMonth() + 1}/{date.getDate()}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (specificDates.length > 1) {
+                                setSpecificDates(prev => prev.filter((_, i) => i !== index));
+                              }
+                            }}
+                            className="ml-2 hover:text-red-300"
+                          >
+                            <i className="ri-close-line"></i>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="date"
+                        value={tempDateInput}
+                        className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onKeyDown={(e) => {
+                          // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
+                          if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+                            e.preventDefault();
                           }
-                          setTempDateInput(''); // 입력 필드 초기화
-                        }
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      추가
-                    </button>
+                        }}
+                        onChange={(e) => {
+                          setTempDateInput(e.target.value);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tempDateInput) {
+                            const newDate = new Date(tempDateInput + 'T00:00:00');
+                            // 중복 체크
+                            const isDuplicate = specificDates.some(
+                              d => formatDateForInput(d) === formatDateForInput(newDate)
+                            );
+                            if (!isDuplicate) {
+                              setSpecificDates(prev => [...prev, newDate]);
+                            }
+                            setTempDateInput(''); // 입력 필드 초기화
+                          }
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        추가
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-400">
-                    예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
-                  </p>
-                </div>
-              )}
+                )}
+              </div>
 
 
               {/* 장소 이름 & 주소 링크 (한 줄) */}
