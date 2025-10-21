@@ -2655,8 +2655,8 @@ export default function EventList({
             <div
               className={`relative w-full flex-shrink-0 ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
               style={{
-                height: `${Math.max(80, 256 - (detailScrollY / 150) * 176)}px`,
-                transition: 'height 0.1s ease-out',
+                height: `${Math.max(80, 256 - (detailScrollY / 300) * 176)}px`,
+                transition: 'height 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
                 ...(!(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
                   ? { backgroundImage: "url(/grunge.png)" }
                   : {}),
@@ -2740,15 +2740,15 @@ export default function EventList({
               <div 
                 className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
                 style={{
-                  padding: `${Math.max(8, 64 - (detailScrollY / 150) * 56)}px 16px ${Math.max(8, 16 - (detailScrollY / 150) * 8)}px 16px`,
-                  transition: 'padding 0.1s ease-out',
+                  padding: `${Math.max(8, 64 - (detailScrollY / 300) * 56)}px 16px ${Math.max(8, 16 - (detailScrollY / 300) * 8)}px 16px`,
+                  transition: 'padding 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
                 }}
               >
                 <h2 
                   className="font-bold text-white leading-tight"
                   style={{
-                    fontSize: `${Math.max(1.25, 1.5 - (detailScrollY / 150) * 0.25)}rem`,
-                    transition: 'font-size 0.1s ease-out',
+                    fontSize: `${Math.max(1.25, 1.5 - (detailScrollY / 300) * 0.25)}rem`,
+                    transition: 'font-size 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
                   }}
                 >
                   {selectedEvent.title}
