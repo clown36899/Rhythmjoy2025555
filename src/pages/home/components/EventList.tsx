@@ -2609,19 +2609,15 @@ export default function EventList({
             className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border-2"
             style={{ borderColor: "rgb(255 191 19)" }}
           >
-            {/* 이미지 영역 - 클릭 시 풀스크린 */}
+            {/* 이미지 영역 */}
             <div
-              className={`relative w-full h-64 flex-shrink-0 cursor-pointer ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
+              className={`relative w-full h-64 flex-shrink-0 ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
               style={
                 !(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
                   ? {
                     backgroundImage: "url(/grunge.png)",
                   }
                   : undefined
-              }
-              onClick={() =>
-                (selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent)) &&
-                setShowFullscreenImage(true)
               }
             >
               {(() => {
@@ -2643,11 +2639,14 @@ export default function EventList({
                           </span>
                         </div>
                       )}
-                      {/* 이미지 확대 아이콘 */}
-                      <div className="absolute top-4 left-4 bg-black/50 text-white px-2 py-1 rounded-lg text-xs backdrop-blur-sm">
+                      {/* 크게보기 버튼 */}
+                      <button
+                        onClick={() => setShowFullscreenImage(true)}
+                        className="absolute top-4 left-4 bg-black/50 hover:bg-black/70 text-white px-3 py-2 rounded-lg text-xs backdrop-blur-sm transition-colors cursor-pointer"
+                      >
                         <i className="ri-zoom-in-line mr-1"></i>
-                        클릭하여 크게 보기
-                      </div>
+                        크게 보기
+                      </button>
                     </>
                   );
                 }
