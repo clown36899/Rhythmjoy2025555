@@ -64,8 +64,8 @@ export default function BillboardPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'events' },
         () => {
-          console.log('🔥 이벤트 변경 감지 - 페이지 새로고침');
-          window.location.reload();
+          console.log('🔥 이벤트 변경 감지 - 데이터 새로고침 (주소창 유지)');
+          loadBillboardData();
         }
       )
       .subscribe((status) => {
@@ -80,8 +80,8 @@ export default function BillboardPage() {
         (payload) => {
           console.log('⚙️ 설정 변경 감지 - userId:', userId);
           if (payload.new.billboard_user_id === userId) {
-            console.log('✅ 현재 빌보드 설정 변경 - 페이지 새로고침');
-            window.location.reload();
+            console.log('✅ 현재 빌보드 설정 변경 - 데이터 새로고침 (주소창 유지)');
+            loadBillboardData();
           }
         }
       )
