@@ -1,9 +1,13 @@
-import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { QRCodeCanvas } from 'qrcode.react';
-import { supabase } from '../../lib/supabase';
-import type { BillboardUser, BillboardUserSettings, Event } from '../../lib/supabase';
-import { parseVideoUrl } from '../../utils/videoEmbed';
+import { useEffect, useState, useRef } from "react";
+import { useParams } from "react-router-dom";
+import { QRCodeCanvas } from "qrcode.react";
+import { supabase } from "../../lib/supabase";
+import type {
+  BillboardUser,
+  BillboardUserSettings,
+  Event,
+} from "../../lib/supabase";
+import { parseVideoUrl } from "../../utils/videoEmbed";
 
 // 배열 셔플 함수
 function shuffleArray<T>(array: T[]): T[] {
@@ -17,7 +21,9 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export default function BillboardPage() {
   const { userId } = useParams<{ userId: string }>();
-  const [billboardUser, setBillboardUser] = useState<BillboardUser | null>(null);
+  const [billboardUser, setBillboardUser] = useState<BillboardUser | null>(
+    null,
+  );
   const [settings, setSettings] = useState<BillboardUserSettings | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -27,7 +33,7 @@ export default function BillboardPage() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
-  const [realtimeStatus, setRealtimeStatus] = useState<string>('연결중...');
+  const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
 
   // 모바일 주소창 숨기기
   useEffect(() => {
@@ -35,23 +41,23 @@ export default function BillboardPage() {
     const hideAddressBar = () => {
       window.scrollTo(0, 1);
     };
-    
+
     // 페이지 로드 후 실행
     setTimeout(hideAddressBar, 100);
     setTimeout(hideAddressBar, 500);
     setTimeout(hideAddressBar, 1000);
-    
+
     // 화면 회전 시에도 실행
-    window.addEventListener('orientationchange', hideAddressBar);
-    
+    window.addEventListener("orientationchange", hideAddressBar);
+
     return () => {
-      window.removeEventListener('orientationchange', hideAddressBar);
+      window.removeEventListener("orientationchange", hideAddressBar);
     };
   }, []);
 
   useEffect(() => {
     if (!userId) {
-      setError('빌보드 사용자 ID가 없습니다.');
+      setError("빌보드 사용자 ID가 없습니다.");
       setIsLoading(false);
       return;
     }
@@ -60,35 +66,35 @@ export default function BillboardPage() {
 
     // Realtime 구독 설정
     const eventsChannel = supabase
-      .channel('billboard-events-changes')
+      .channel("billboard-events-changes")
       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'events' },
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events" },
         () => {
-          setRealtimeStatus('이벤트 변경 감지!');
+          setRealtimeStatus("이벤트 변경 감지!");
           loadBillboardData();
-          setTimeout(() => setRealtimeStatus('연결됨'), 3000);
-        }
+          setTimeout(() => setRealtimeStatus("연결됨"), 3000);
+        },
       )
       .subscribe((status) => {
-        setRealtimeStatus(`이벤트 채널: ${status}`);
+        setRealtimeStatus(`데이터: ${status}`);
       });
 
     const settingsChannel = supabase
-      .channel('billboard-settings-changes')
+      .channel("billboard-settings-changes")
       .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'billboard_user_settings' },
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "billboard_user_settings" },
         (payload) => {
           if (payload.new.billboard_user_id === userId) {
-            setRealtimeStatus('설정 변경 감지!');
+            setRealtimeStatus("설정 변경 감지!");
             loadBillboardData();
-            setTimeout(() => setRealtimeStatus('연결됨'), 3000);
+            setTimeout(() => setRealtimeStatus("연결됨"), 3000);
           }
-        }
+        },
       )
       .subscribe((status) => {
-        setRealtimeStatus(`설정 채널: ${status}`);
+        setRealtimeStatus(`설정: ${status}`);
       });
 
     // 클린업
@@ -101,58 +107,64 @@ export default function BillboardPage() {
   const loadBillboardData = async () => {
     try {
       const { data: user, error: userError } = await supabase
-        .from('billboard_users')
-        .select('*')
-        .eq('id', userId)
-        .eq('is_active', true)
+        .from("billboard_users")
+        .select("*")
+        .eq("id", userId)
+        .eq("is_active", true)
         .single();
 
-      if (userError) throw new Error('빌보드 사용자를 찾을 수 없습니다.');
+      if (userError) throw new Error("빌보드 사용자를 찾을 수 없습니다.");
       setBillboardUser(user);
 
       const { data: userSettings, error: settingsError } = await supabase
-        .from('billboard_user_settings')
-        .select('*')
-        .eq('billboard_user_id', userId)
+        .from("billboard_user_settings")
+        .select("*")
+        .eq("billboard_user_id", userId)
         .single();
 
-      if (settingsError) throw new Error('빌보드 설정을 불러올 수 없습니다.');
+      if (settingsError) throw new Error("빌보드 설정을 불러올 수 없습니다.");
       setSettings(userSettings);
 
       const { data: allEvents, error: eventsError } = await supabase
-        .from('events')
-        .select('*')
-        .order('start_date', { ascending: true });
+        .from("events")
+        .select("*")
+        .order("start_date", { ascending: true });
 
       if (eventsError) throw eventsError;
 
       const filteredEvents = filterEvents(allEvents || [], userSettings);
       setEvents(filteredEvents);
-      
+
       // 랜덤 모드면 초기 재생목록 생성 (인덱스 배열을 섞음)
-      if (userSettings.play_order === 'random' && filteredEvents.length > 0) {
-        const indices = Array.from({ length: filteredEvents.length }, (_, i) => i);
+      if (userSettings.play_order === "random" && filteredEvents.length > 0) {
+        const indices = Array.from(
+          { length: filteredEvents.length },
+          (_, i) => i,
+        );
         const shuffled = shuffleArray(indices);
         setShuffledPlaylist(shuffled);
         playlistIndexRef.current = 0;
         setCurrentIndex(shuffled[0] || 0);
       }
-      
+
       setIsLoading(false);
     } catch (err: any) {
-      console.error('빌보드 데이터 로드 실패:', err);
-      setError(err.message || '데이터를 불러오는데 실패했습니다.');
+      console.error("빌보드 데이터 로드 실패:", err);
+      setError(err.message || "데이터를 불러오는데 실패했습니다.");
       setIsLoading(false);
     }
   };
 
-  const filterEvents = (allEvents: Event[], settings: BillboardUserSettings): Event[] => {
+  const filterEvents = (
+    allEvents: Event[],
+    settings: BillboardUserSettings,
+  ): Event[] => {
     return allEvents.filter((event) => {
       if (!event.image_full && !event.image && !event.video_url) return false;
 
       if (settings.excluded_event_ids.includes(event.id)) return false;
 
-      const eventDate = new Date(event.start_date || event.date || '');
+      const eventDate = new Date(event.start_date || event.date || "");
       const weekday = eventDate.getDay();
       if (settings.excluded_weekdays.includes(weekday)) return false;
 
@@ -168,7 +180,9 @@ export default function BillboardPage() {
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const eventEndDate = new Date(event.end_date || event.start_date || event.date || '');
+      const eventEndDate = new Date(
+        event.end_date || event.start_date || event.date || "",
+      );
       if (eventEndDate < today) return false;
 
       return true;
@@ -196,10 +210,10 @@ export default function BillboardPage() {
 
     const interval = setInterval(() => {
       setProgress(0);
-      if (settings.play_order === 'random') {
+      if (settings.play_order === "random") {
         // 현재 재생목록에서 다음 인덱스로 이동
         const nextPlaylistIdx = playlistIndexRef.current + 1;
-        
+
         // 재생목록 끝에 도달하면 원본 인덱스 배열을 새로 섞음
         if (nextPlaylistIdx >= shuffledPlaylist.length) {
           const newIndices = Array.from({ length: events.length }, (_, i) => i);
@@ -262,10 +276,10 @@ export default function BillboardPage() {
     const end = new Date(endDate);
     const startYear = start.getFullYear();
     const endYear = end.getFullYear();
-    const startMonth = String(start.getMonth() + 1).padStart(2, '0');
-    const endMonth = String(end.getMonth() + 1).padStart(2, '0');
-    const startDay = String(start.getDate()).padStart(2, '0');
-    const endDay = String(end.getDate()).padStart(2, '0');
+    const startMonth = String(start.getMonth() + 1).padStart(2, "0");
+    const endMonth = String(end.getMonth() + 1).padStart(2, "0");
+    const startDay = String(start.getDate()).padStart(2, "0");
+    const endDay = String(end.getDate()).padStart(2, "0");
 
     // 같은 년도
     if (startYear === endYear) {
@@ -282,23 +296,27 @@ export default function BillboardPage() {
   };
 
   // 슬라이드 렌더링 함수
-  const renderSlide = (event: any, isVisible: boolean, preload: boolean = false) => {
+  const renderSlide = (
+    event: any,
+    isVisible: boolean,
+    preload: boolean = false,
+  ) => {
     const imageUrl = event.image_full || event.image;
     const videoUrl = event.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
 
     return (
-      <div 
+      <div
         className="portrait-container"
         style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
+          position: "absolute",
+          top: "50%",
+          left: "50%",
           transform: `translate(-50%, -50%) rotate(90deg)`,
           opacity: isVisible ? 1 : 0,
-          pointerEvents: isVisible ? 'auto' : 'none',
+          pointerEvents: isVisible ? "auto" : "none",
           transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out`,
-          zIndex: isVisible ? 2 : 1
+          zIndex: isVisible ? 2 : 1,
         }}
       >
         {videoInfo?.embedUrl ? (
@@ -342,7 +360,7 @@ export default function BillboardPage() {
                       fill="none"
                       strokeDasharray="264"
                       strokeDashoffset={264 - (264 * progress) / 100}
-                      style={{ transition: 'stroke-dashoffset 0.05s linear' }}
+                      style={{ transition: "stroke-dashoffset 0.05s linear" }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -363,16 +381,18 @@ export default function BillboardPage() {
                       {formatDateRange(event.start_date, event.end_date)}
                     </div>
                   )}
-                  {event.location && event.location.trim() && event.location !== '미정' && (
-                    <div className="text-gray-300 text-lg">
-                      <i className="ri-map-pin-line mr-2"></i>
-                      {event.location}
-                    </div>
-                  )}
+                  {event.location &&
+                    event.location.trim() &&
+                    event.location !== "미정" && (
+                      <div className="text-gray-300 text-lg">
+                        <i className="ri-map-pin-line mr-2"></i>
+                        {event.location}
+                      </div>
+                    )}
                 </div>
                 <h3 className="text-white text-4xl font-bold">{event.title}</h3>
               </div>
-              
+
               <div className="bg-white p-3 rounded-lg ml-6 flex-shrink-0">
                 <QRCodeCanvas
                   value={`${window.location.origin}/?event=${event.id}&from=qr`}
@@ -396,13 +416,16 @@ export default function BillboardPage() {
       <link rel="dns-prefetch" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
-      
-      <div className="fixed inset-0 bg-black overflow-auto flex items-center justify-center" style={{ minHeight: 'calc(100vh + 1px)' }}>
+
+      <div
+        className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
+        style={{ minHeight: "calc(100vh + 1px)" }}
+      >
         {/* Realtime 상태 표시 (디버깅용) */}
         <div className="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded text-xs z-50">
           {realtimeStatus}
         </div>
-        
+
         {/* 현재 슬라이드만 렌더링 */}
         {renderSlide(currentEvent, true)}
 
