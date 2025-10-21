@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
 import AutoImport from "unplugin-auto-import/vite";
@@ -92,7 +92,11 @@ export default defineConfig({
     port: SERVER_PORT, // 로컬: 5173, Replit: 5000
     host: SERVER_HOST, // 로컬: 'localhost', Replit: '0.0.0.0'
     strictPort: true,
-    hmr: { clientPort: 443 },
+    hmr: isReplit ? {
+      protocol: 'wss',
+      host: process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : undefined,
+      clientPort: 443,
+    } : true,
     // allowedHosts 설정은 그대로 유지하여 Blocked Request 방지
     allowedHosts: [".replit.dev", ".repl.co", "localhost", "127.0.0.1"],
   },
