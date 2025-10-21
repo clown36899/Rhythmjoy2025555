@@ -77,6 +77,7 @@ export default function EventList({
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
+  const [detailScrollY, setDetailScrollY] = useState(0);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -779,10 +780,12 @@ export default function EventList({
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);
+    setDetailScrollY(0); // 스크롤 위치 초기화
   };
 
   const closeModal = () => {
     setSelectedEvent(null);
+    setDetailScrollY(0); // 스크롤 위치 초기화
   };
 
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
@@ -2650,14 +2653,13 @@ export default function EventList({
           >
             {/* 이미지 영역 */}
             <div
-              className={`relative w-full h-64 flex-shrink-0 ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
-              style={
-                !(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
-                  ? {
-                    backgroundImage: "url(/grunge.png)",
-                  }
-                  : undefined
-              }
+              className={`relative w-full flex-shrink-0 transition-all duration-300 ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
+              style={{
+                height: detailScrollY > 50 ? '80px' : '256px',
+                ...(!(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
+                  ? { backgroundImage: "url(/grunge.png)" }
+                  : {}),
+              }}
             >
               {(() => {
                 const detailImageUrl = selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent);
@@ -2734,15 +2736,32 @@ export default function EventList({
               </div>
 
               {/* 제목 - 이미지 위 그라데이션 오버레이 */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 pt-16">
-                <h2 className="text-2xl font-bold text-white leading-tight">
+              <div 
+                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent transition-all duration-300"
+                style={{
+                  padding: detailScrollY > 50 ? '8px 16px' : '16px 16px 16px 16px',
+                  paddingTop: detailScrollY > 50 ? '8px' : '64px',
+                }}
+              >
+                <h2 
+                  className="font-bold text-white leading-tight transition-all duration-300"
+                  style={{
+                    fontSize: detailScrollY > 50 ? '1.25rem' : '1.5rem',
+                  }}
+                >
                   {selectedEvent.title}
                 </h2>
               </div>
             </div>
 
             {/* 스크롤 가능한 컨텐츠 영역 */}
-            <div className="flex-1 overflow-y-auto">
+            <div 
+              className="flex-1 overflow-y-auto"
+              onScroll={(e) => {
+                const target = e.currentTarget;
+                setDetailScrollY(target.scrollTop);
+              }}
+            >
               {/* 세부 정보 */}
               <div className="p-4 space-y-3">
                 <div className="flex items-center space-x-3 text-gray-300">
