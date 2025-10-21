@@ -28,6 +28,26 @@ export default function BillboardPage() {
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
 
+  // 모바일 주소창 숨기기
+  useEffect(() => {
+    // 스크롤 트릭으로 주소창 숨기기
+    const hideAddressBar = () => {
+      window.scrollTo(0, 1);
+    };
+    
+    // 페이지 로드 후 실행
+    setTimeout(hideAddressBar, 100);
+    setTimeout(hideAddressBar, 500);
+    setTimeout(hideAddressBar, 1000);
+    
+    // 화면 회전 시에도 실행
+    window.addEventListener('orientationchange', hideAddressBar);
+    
+    return () => {
+      window.removeEventListener('orientationchange', hideAddressBar);
+    };
+  }, []);
+
   useEffect(() => {
     if (!userId) {
       setError('빌보드 사용자 ID가 없습니다.');
@@ -375,7 +395,7 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
       
-      <div className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center">
+      <div className="fixed inset-0 bg-black overflow-auto flex items-center justify-center" style={{ minHeight: 'calc(100vh + 1px)' }}>
         {/* 현재 슬라이드만 렌더링 */}
         {renderSlide(currentEvent, true)}
 
@@ -384,6 +404,11 @@ export default function BillboardPage() {
             position: relative;
             width: 100vh;
             height: 100vw;
+          }
+          
+          /* 모바일 주소창 숨기기를 위한 추가 높이 */
+          body {
+            min-height: calc(100vh + 1px);
           }
         `}</style>
       </div>
