@@ -639,7 +639,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                   onChange={handleInputChange}
                   onFocus={handleInputFocus}
                   rows={4}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
                   placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
                 />
               </div>
