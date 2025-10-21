@@ -315,6 +315,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         organizer: formData.organizer,
         organizer_name: formData.organizerName,
         organizer_phone: formData.organizerPhone,
+        contact: formData.contact || null,
         capacity: 50,
         registered: 0,
         link1: formData.link1 || null,
@@ -344,6 +345,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
           organizer: '',
           organizerName: '',
           organizerPhone: '',
+          contact: '',
           link1: '',
           link2: '',
           link3: '',
@@ -604,6 +606,26 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 />
               </div>
 
+              {/* 문의 정보 (공개) */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  문의
+                </label>
+                <input
+                  type="text"
+                  name="contact"
+                  value={formData.contact}
+                  onChange={handleInputChange}
+                  onFocus={handleInputFocus}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  <i className="ri-information-line mr-1"></i>
+                  참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
+                </p>
+              </div>
+
               {/* 등록자 정보 (관리자 전용, 비공개) */}
               <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -641,26 +663,6 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                       placeholder="010-0000-0000"
                     />
                   </div>
-                </div>
-                
-                {/* 문의 정보 (공개) */}
-                <div className="mt-3">
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
-                    문의
-                  </label>
-                  <input
-                    type="text"
-                    name="contact"
-                    value={formData.contact}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    <i className="ri-information-line mr-1"></i>
-                    참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
-                  </p>
                 </div>
                 <p className="text-xs text-orange-300/80 mt-2">
                   <i className="ri-information-line mr-1"></i>
