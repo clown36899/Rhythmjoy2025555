@@ -116,6 +116,13 @@ export default function HomePage() {
     }
   }, [searchTerm]);
 
+  // 날짜 선택 시 스크롤 최상단으로 이동
+  useEffect(() => {
+    if (selectedDate && !qrLoading) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedDate]);
+
   // 이벤트 삭제/수정 시 빌보드 재로딩
   useEffect(() => {
     const handleEventUpdate = () => {
