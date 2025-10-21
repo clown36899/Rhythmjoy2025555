@@ -99,10 +99,18 @@ export default defineConfig({
     } : true,
     // allowedHosts 설정은 그대로 유지하여 Blocked Request 방지
     allowedHosts: [".replit.dev", ".repl.co", "localhost", "127.0.0.1"],
+    headers: {
+      'X-Frame-Options': 'ALLOWALL',
+      'Content-Security-Policy': "frame-ancestors *",
+    },
   },
   preview: {
     host: SERVER_HOST,
     port: SERVER_PORT,
     allowedHosts: [".replit.dev", ".repl.co", "localhost", "127.0.0.1"],
+    headers: {
+      'X-Frame-Options': 'ALLOWALL',
+      'Content-Security-Policy': "frame-ancestors *",
+    },
   },
 });
