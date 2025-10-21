@@ -151,6 +151,22 @@ export default function EventList({
     sortedEventsCache.current = {};
   }, [selectedCategory, sortBy]);
 
+  // 모달 열림/닫힘 시 body 스크롤 제어
+  useEffect(() => {
+    if (selectedEvent || showEditModal) {
+      // 모달이 열리면 body 스크롤 차단
+      document.body.style.overflow = 'hidden';
+    } else {
+      // 모달이 닫히면 body 스크롤 복원
+      document.body.style.overflow = '';
+    }
+
+    // 컴포넌트 언마운트 시 스크롤 복원
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedEvent, showEditModal]);
+
   // 슬라이드 높이 측정 및 업데이트 (애니메이션과 동시에)
   useEffect(() => {
     // 검색/날짜 선택 모드에서는 슬라이드가 아니므로 높이 조정 불필요
