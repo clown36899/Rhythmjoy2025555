@@ -343,7 +343,7 @@ export default function EventList({
       } else {
         const result = await supabase
           .from("events")
-          .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
+          .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
           .order("start_date", { ascending: true, nullsFirst: false })
           .order("date", { ascending: true, nullsFirst: false });
         data = result.data;
