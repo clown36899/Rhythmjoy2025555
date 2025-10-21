@@ -10,13 +10,43 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     
-    <!-- PWA 설정 -->
-    <link rel="manifest" href="manifest.json" />
+    <!-- PWA 설정 - 동적 manifest -->
+    <link rel="manifest" id="manifest-placeholder" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="빌보드" />
     <meta name="theme-color" content="#000000" />
+    
+    <!-- 동적 Manifest 생성 -->
+    <script>
+      (function() {
+        const currentPath = window.location.pathname;
+        const manifestData = {
+          name: currentPath.includes('/billboard/') ? '광고판 빌보드' : '광고판',
+          short_name: currentPath.includes('/billboard/') ? '빌보드' : '광고판',
+          description: '이벤트 빌보드 디스플레이',
+          start_url: currentPath,
+          display: 'fullscreen',
+          background_color: '#000000',
+          theme_color: '#000000',
+          orientation: currentPath.includes('/billboard/') ? 'portrait' : 'any',
+          scope: '/',
+          icons: [
+            {
+              src: '/vite.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            }
+          ]
+        };
+        
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
+      })();
+    </script>
     
     <title>광고판 - Discover Amazing Events</title>
     <meta name="description" content="Find concerts, workshops, conferences and more happening near you. Create and discover amazing events with 광고판.">
