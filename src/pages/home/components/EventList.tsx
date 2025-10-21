@@ -1948,48 +1948,50 @@ export default function EventList({
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
-                    장소 이름
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.location}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        location: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="예: 홍대 연습실"
-                  />
+                {/* 장소 이름 & 주소 링크 (한 줄) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                      장소 이름
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.location}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          location: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="예: 홍대 연습실"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                      주소 링크 (선택)
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.locationLink}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          locationLink: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="지도 링크"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
-                    주소 링크 (선택)
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.locationLink}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        locationLink: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="예: https://map.naver.com/..."
-                  />
-                </div>
-
-                {/* 날짜 선택 모드 */}
-                <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-2">
+                {/* 날짜 선택 섹션 (통합 박스) */}
+                <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
+                  <label className="block text-gray-300 text-xs font-medium">
                     날짜 선택 방식
                   </label>
-                  <div className="flex gap-4 mb-3">
+                  <div className="flex gap-4">
                     <label className="flex items-center cursor-pointer">
                       <input
                         type="radio"
@@ -2017,7 +2019,6 @@ export default function EventList({
                       <span className="text-gray-300 text-sm">특정 날짜 선택</span>
                     </label>
                   </div>
-                </div>
 
                 {editFormData.dateMode === 'range' ? (
                   <div className="grid grid-cols-2 gap-3">
@@ -2084,7 +2085,7 @@ export default function EventList({
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-gray-700/50 rounded-lg p-3">
+                  <div>
                     <label className="block text-gray-300 text-sm font-medium mb-2">
                       선택된 날짜 ({editFormData.event_dates.length}개)
                     </label>
@@ -2154,6 +2155,7 @@ export default function EventList({
                     </p>
                   </div>
                 )}
+                </div>
 
                 {/* 문의 정보 (공개) */}
                 <div>
@@ -2195,56 +2197,6 @@ export default function EventList({
                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
                     placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
                   />
-                </div>
-
-                {/* 등록자 정보 (관리자 전용, 비공개) */}
-                <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <i className="ri-lock-line text-orange-400 text-sm"></i>
-                    <h3 className="text-orange-400 text-xs font-bold">등록자 정보 (비공개 - 관리자만 확인 가능)</h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-orange-300 text-xs font-medium mb-1">
-                        등록자 이름 <span className="text-red-400">*필수</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={editFormData.organizerName}
-                        onChange={(e) =>
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            organizerName: e.target.value,
-                          }))
-                        }
-                        required
-                        className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                        placeholder="등록자 이름"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-orange-300 text-xs font-medium mb-1">
-                        등록자 전화번호 <span className="text-red-400">*필수</span>
-                      </label>
-                      <input
-                        type="tel"
-                        value={editFormData.organizerPhone}
-                        onChange={(e) =>
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            organizerPhone: e.target.value,
-                          }))
-                        }
-                        required
-                        className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                        placeholder="010-0000-0000"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-orange-300/80 mt-2">
-                    <i className="ri-information-line mr-1"></i>
-                    수정 등 문제가 있을 경우 연락받으실 번호입니다
-                  </p>
                 </div>
 
                 <div>
@@ -2454,6 +2406,56 @@ export default function EventList({
                       </p>
                     )}
                   </div>
+                </div>
+
+                {/* 등록자 정보 (관리자 전용, 비공개) - 최하단 */}
+                <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <i className="ri-lock-line text-orange-400 text-sm"></i>
+                    <h3 className="text-orange-400 text-xs font-bold">등록자 정보 (비공개 - 관리자만 확인 가능)</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-orange-300 text-xs font-medium mb-1">
+                        등록자 이름 <span className="text-red-400">*필수</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.organizerName}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            organizerName: e.target.value,
+                          }))
+                        }
+                        required
+                        className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        placeholder="등록자 이름"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-orange-300 text-xs font-medium mb-1">
+                        등록자 전화번호 <span className="text-red-400">*필수</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={editFormData.organizerPhone}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            organizerPhone: e.target.value,
+                          }))
+                        }
+                        required
+                        className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        placeholder="010-0000-0000"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-orange-300/80 mt-2">
+                    <i className="ri-information-line mr-1"></i>
+                    수정 등 문제가 있을 경우 연락받으실 번호입니다
+                  </p>
                 </div>
 
                 <div className="flex space-x-3 pt-2">
