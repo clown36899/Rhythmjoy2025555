@@ -2854,7 +2854,25 @@ export default function EventList({
                       <i className="ri-file-text-line text-blue-400 text-xl flex-shrink-0 mt-0.5"></i>
                       <div className="flex-1">
                         <p className="text-sm text-gray-400 mb-1 font-medium">내용</p>
-                        <p className="whitespace-pre-wrap leading-relaxed">{selectedEvent.description}</p>
+                        <p className="whitespace-pre-wrap leading-relaxed">
+                          {selectedEvent.description.split(/(\bhttps?:\/\/[^\s]+)/g).map((part, idx) => {
+                            if (part.match(/^https?:\/\//)) {
+                              return (
+                                <a
+                                  key={idx}
+                                  href={part}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {part}
+                                </a>
+                              );
+                            }
+                            return <span key={idx}>{part}</span>;
+                          })}
+                        </p>
                       </div>
                     </div>
                   </div>
