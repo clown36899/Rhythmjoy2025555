@@ -2893,8 +2893,8 @@ export default function EventList({
                 )}
 
 
-                {/* 등록 날짜 */}
-                {selectedEvent.created_at && (
+                {/* 등록 날짜 (관리자만) */}
+                {isAdminMode && selectedEvent.created_at && (
                   <div className="pt-3 border-t border-gray-700">
                     <span className="text-xs text-gray-500">
                       등록:{" "}
