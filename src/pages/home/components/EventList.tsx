@@ -2644,24 +2644,55 @@ export default function EventList({
         </div>
       )}
 
-      {/* Event Detail Modal - 새로운 세로 배치 */}
+      {/* Event Detail Modal - Sticky Header */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div
-            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border-2"
+            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden border-2"
             style={{ borderColor: "rgb(255 191 19)" }}
           >
-            {/* 이미지 영역 */}
-            <div
-              className={`relative w-full flex-shrink-0 ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
-              style={{
-                height: `${Math.max(80, 256 - (detailScrollY / 300) * 176)}px`,
-                transition: 'height 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                ...(!(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
-                  ? { backgroundImage: "url(/grunge.png)" }
-                  : {}),
+            {/* 닫기/수정 버튼 - 최상단 고정 */}
+            <div className="absolute top-4 right-4 z-50 flex space-x-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditClick(selectedEvent, e);
+                }}
+                className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+                title="이벤트 수정"
+              >
+                <i className="ri-edit-line text-xl"></i>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeModal();
+                }}
+                className="bg-gray-700/90 hover:bg-gray-600 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+                title="닫기"
+              >
+                <i className="ri-close-line text-xl"></i>
+              </button>
+            </div>
+
+            {/* 스크롤 가능한 전체 영역 */}
+            <div 
+              className="overflow-y-auto max-h-[90vh]"
+              onScroll={(e) => {
+                const target = e.currentTarget;
+                setDetailScrollY(target.scrollTop);
               }}
             >
+              {/* 이미지 영역 (스크롤과 함께 사라짐) */}
+              <div
+                className={`relative w-full ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
+                style={{
+                  height: '256px',
+                  ...(!(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
+                    ? { backgroundImage: "url(/grunge.png)" }
+                    : {}),
+                }}
+              >
               {(() => {
                 const detailImageUrl = selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent);
                 const isDefaultThumbnail = !selectedEvent.image_medium && !selectedEvent.image && detailImageUrl;
@@ -2705,73 +2736,25 @@ export default function EventList({
                 );
               })()}
 
-              {/* 수정/닫기 버튼 - 이미지 위 우측 상단 */}
-              <div className="absolute top-4 right-4 z-30 flex space-x-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditClick(selectedEvent, e);
-                  }}
-                  className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
-                  title="이벤트 수정"
+                {/* 카테고리 배지 - 좌측 하단 */}
+                <div
+                  className={`absolute bottom-4 left-4 px-3 py-1 text-white text-sm font-bold rounded-lg ${selectedEvent.category === "class" ? "bg-purple-600" : "bg-[#242424]"}`}
                 >
-                  <i className="ri-edit-line text-xl"></i>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    closeModal();
-                  }}
-                  className="bg-gray-700/90 hover:bg-gray-600 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
-                  title="닫기"
-                >
-                  <i className="ri-close-line text-xl"></i>
-                </button>
+                  {selectedEvent.category === "class" ? "강습" : "행사"}
+                </div>
               </div>
 
-              {/* 카테고리 배지 - 좌측 하단 */}
-              <div
-                className={`absolute bottom-4 left-4 px-3 py-1 text-white text-sm font-bold rounded-lg ${selectedEvent.category === "class" ? "bg-purple-600" : "bg-[#242424]"}`}
-              >
-                {selectedEvent.category === "class" ? "강습" : "행사"}
-              </div>
-
-              {/* 제목 - 이미지 위 오버레이 */}
+              {/* 제목 - Sticky Header */}
               <div 
-                className="absolute left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"
+                className="sticky top-0 z-40 bg-gray-800 border-b border-gray-700"
                 style={{
-                  bottom: `${Math.max(0, (256 - Math.max(80, 256 - (detailScrollY / 300) * 176)) - detailScrollY)}px`,
-                  padding: `${Math.max(8, 64 - (detailScrollY / 300) * 56)}px 16px ${Math.max(8, 16 - (detailScrollY / 300) * 8)}px 16px`,
-                  transition: 'bottom 0.1s linear, padding 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                  padding: '16px',
                 }}
               >
-                <h2 
-                  className="font-bold text-white leading-tight"
-                  style={{
-                    fontSize: `${Math.max(1.25, 1.5 - (detailScrollY / 300) * 0.25)}rem`,
-                    transition: 'font-size 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                  }}
-                >
+                <h2 className="text-xl font-bold text-white leading-tight">
                   {selectedEvent.title}
                 </h2>
               </div>
-            </div>
-
-            {/* 스크롤 가능한 컨텐츠 영역 */}
-            <div 
-              className="flex-1 overflow-y-auto"
-              onScroll={(e) => {
-                const target = e.currentTarget;
-                setDetailScrollY(target.scrollTop);
-              }}
-            >
-              {/* 제목 높이만큼 빈 공간 (제목이 상단에 닿을 때까지) */}
-              <div 
-                style={{
-                  height: `${Math.max(0, 80 - detailScrollY)}px`,
-                  transition: 'height 0.1s linear',
-                }}
-              />
 
               {/* 세부 정보 */}
               <div className="p-4 space-y-3 bg-gray-800">
