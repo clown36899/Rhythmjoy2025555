@@ -2,15 +2,15 @@
   "name": "광고판 빌보드",
   "short_name": "빌보드",
   "description": "이벤트 빌보드 디스플레이",
-  "start_url": "./",
+  "start_url": "/",
   "display": "fullscreen",
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait",
-  "scope": "./",
+  "scope": "/",
   "icons": [
     {
-      "src": "./vite.svg",
+      "src": "/vite.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
