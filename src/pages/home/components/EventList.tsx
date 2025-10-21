@@ -1856,8 +1856,7 @@ export default function EventList({
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold text-white mb-4">이벤트 수정</h3>
             <p className="text-gray-300 mb-4">
-              &quot;{eventToEdit.title}&quot; 이벤트를 수정하려면 비밀번호를
-              입력하e��요.
+              &quot;{eventToEdit.title}&quot; 이벤트를 수정하려면 비밀번호를 입력하세요.
             </p>
             <input
               type="password"
