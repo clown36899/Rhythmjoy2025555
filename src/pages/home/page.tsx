@@ -677,6 +677,7 @@ export default function HomePage() {
           onBillboardSettingsOpen={handleBillboardSettingsOpen}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
+          billboardEnabled={settings.enabled}
         />
       </div>
 

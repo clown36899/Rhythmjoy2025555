@@ -19,6 +19,7 @@ interface HeaderProps {
   onBillboardSettingsOpen?: () => void;
   viewMode?: "month" | "year";
   onViewModeChange?: (mode: "month" | "year") => void;
+  billboardEnabled?: boolean;
 }
 
 export default function Header({
@@ -30,6 +31,7 @@ export default function Header({
   onBillboardSettingsOpen,
   viewMode = "month",
   onViewModeChange,
+  billboardEnabled = true,
 }: HeaderProps) {
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(
@@ -373,7 +375,7 @@ export default function Header({
                   관리자
                 </span>
               )}
-              {onBillboardOpen && (
+              {billboardEnabled && onBillboardOpen && (
                 <button
                   onClick={onBillboardOpen}
                   className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
