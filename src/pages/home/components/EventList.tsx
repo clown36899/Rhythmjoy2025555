@@ -7,6 +7,7 @@ import { parseVideoUrl } from "../../../utils/videoEmbed";
 import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from "../../../utils/videoThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
+import { parseContact, copyToClipboard } from "../../../utils/contactLink";
 import { QRCodeSVG } from "qrcode.react";
 
 
@@ -2796,15 +2797,43 @@ export default function EventList({
                   </div>
                 )}
 
-                {selectedEvent.contact && (
-                  <div className="flex items-center space-x-3 text-gray-300">
-                    <i className="ri-chat-3-line text-green-400 text-xl"></i>
-                    <div>
-                      <span className="text-sm text-gray-400 block">문의</span>
-                      <span>{selectedEvent.contact}</span>
+                {selectedEvent.contact && (() => {
+                  const contactInfo = parseContact(selectedEvent.contact);
+                  
+                  const handleContactClick = async () => {
+                    if (contactInfo.link) {
+                      // 링크가 있으면 열기
+                      window.open(contactInfo.link, '_blank');
+                    } else {
+                      // 링크가 없으면 복사
+                      try {
+                        await copyToClipboard(contactInfo.value);
+                        alert('복사되었습니다!');
+                      } catch (err) {
+                        console.error('복사 실패:', err);
+                        alert('복사에 실패했습니다.');
+                      }
+                    }
+                  };
+
+                  return (
+                    <div className="flex items-center space-x-3 text-gray-300">
+                      <i className={`${contactInfo.icon} text-green-400 text-xl`}></i>
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-400 block">문의</span>
+                        <button
+                          onClick={handleContactClick}
+                          className="text-left hover:text-green-400 transition-colors underline decoration-dashed underline-offset-4"
+                        >
+                          {contactInfo.displayText}
+                        </button>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {contactInfo.link ? '탭하여 열기' : '탭하여 복사'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* 관리자 전용: 등록자 정보 */}
                 {isAdminMode && (selectedEvent.organizer_name || selectedEvent.organizer_phone) && (
