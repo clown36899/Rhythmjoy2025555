@@ -26,8 +26,8 @@ export default function Footer() {
                     <br></br>공공의 이익에 해가되면 삭제수정될수있습니다.
                   </p>
 
-                  {/* 연습실 문구: 설명글과 같은 스타일 */}
-                  <p className="text-gray-400 text-sm mb-4">
+                  {/* 연습실 문구: 강조 스타일 */}
+                  <p className="text-orange-400 text-base font-semibold mb-4">
                     연습실 등록은 별도문의(사용불가능한 연습실은 등록불가)
                   </p>
 
