@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
@@ -27,6 +27,7 @@ export default function BillboardPage() {
   const [settings, setSettings] = useState<BillboardUserSettings | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const currentIndexRef = useRef(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -221,8 +222,15 @@ export default function BillboardPage() {
     });
   };
 
-  // 슬라이드 타이머 시작 함수
-  const startSlideTimer = useCallback(() => {
+  // currentIndex ref 동기화
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  // 슬라이드 타이머 시작 함수 ref
+  const startSlideTimerRef = useRef<(() => void) | null>(null);
+  
+  startSlideTimerRef.current = () => {
     if (!settings || events.length === 0) return;
 
     // 기존 타이머 정리
@@ -233,8 +241,8 @@ export default function BillboardPage() {
       clearInterval(progressIntervalRef.current);
     }
 
-    // 현재 이벤트가 영상인지 확인
-    const currentEvent = events[currentIndex];
+    // 현재 이벤트가 영상인지 확인 (ref 사용)
+    const currentEvent = events[currentIndexRef.current];
     const isVideo = currentEvent?.video_url ? true : false;
     
     // 이벤트 타입에 따라 다른 슬라이드 시간 사용
@@ -282,6 +290,11 @@ export default function BillboardPage() {
           }
           setSlideOffset(0);
           setIsTransitioning(false);
+          
+          // 다음 슬라이드 타이머 시작
+          setTimeout(() => {
+            startSlideTimerRef.current?.();
+          }, 50);
         }, effectSpeed);
       } else {
         setIsTransitioning(true);
@@ -305,15 +318,18 @@ export default function BillboardPage() {
           
           setTimeout(() => {
             setIsTransitioning(false);
+            
+            // 다음 슬라이드 타이머 시작
+            startSlideTimerRef.current?.();
           }, 50);
         }, effectSpeed);
       }
     }, slideInterval);
-  }, [events, settings, shuffledPlaylist, currentIndex]);
+  };
 
-  // currentIndex 변경 시 타이머 재시작
+  // 타이머 시작 (초기 및 설정 변경 시)
   useEffect(() => {
-    startSlideTimer();
+    startSlideTimerRef.current?.();
 
     return () => {
       if (slideTimeoutRef.current) {
@@ -323,7 +339,7 @@ export default function BillboardPage() {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [startSlideTimer]);
+  }, [events, settings, shuffledPlaylist]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
