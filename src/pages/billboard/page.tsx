@@ -187,15 +187,31 @@ export default function BillboardPage() {
     allEvents: Event[],
     settings: BillboardUserSettings,
   ): Event[] => {
-    return allEvents.filter((event) => {
+    console.log('[빌보드 필터링] 시작:', {
+      excluded_event_ids: settings.excluded_event_ids,
+      excluded_weekdays: settings.excluded_weekdays,
+      total_events: allEvents.length
+    });
+
+    const filtered = allEvents.filter((event) => {
+      // 이미지/영상 없는 이벤트 제외
       if (!event.image_full && !event.image && !event.video_url) return false;
 
-      if (settings.excluded_event_ids.includes(event.id)) return false;
+      // ID 필터
+      if (settings.excluded_event_ids.includes(event.id)) {
+        console.log('[빌보드 필터링] ID로 제외:', event.id, event.title);
+        return false;
+      }
 
+      // 요일 필터
       const eventDate = new Date(event.start_date || event.date || "");
       const weekday = eventDate.getDay();
-      if (settings.excluded_weekdays.includes(weekday)) return false;
+      if (settings.excluded_weekdays.includes(weekday)) {
+        console.log('[빌보드 필터링] 요일로 제외:', event.id, event.title, weekday);
+        return false;
+      }
 
+      // 날짜 범위 필터
       if (settings.date_filter_start) {
         const startDate = new Date(settings.date_filter_start);
         if (eventDate < startDate) return false;
@@ -206,6 +222,7 @@ export default function BillboardPage() {
         if (eventDate > endDate) return false;
       }
 
+      // 과거 이벤트 제외
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const eventEndDate = new Date(
@@ -215,6 +232,14 @@ export default function BillboardPage() {
 
       return true;
     });
+
+    console.log('[빌보드 필터링] 완료:', {
+      원본: allEvents.length,
+      필터링후: filtered.length,
+      제외됨: allEvents.length - filtered.length
+    });
+
+    return filtered;
   };
 
   useEffect(() => {
