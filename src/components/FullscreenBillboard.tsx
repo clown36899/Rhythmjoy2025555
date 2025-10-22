@@ -47,6 +47,7 @@ export default function FullscreenBillboard({
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [slideOffset, setSlideOffset] = useState(0); // 슬라이드 캐러셀용 오프셋
 
   // 이미지와 이벤트를 재생 순서에 따라 정렬 (필터링은 이미 완료됨)
   const { sortedImages, sortedEvents } = useMemo(() => {
@@ -109,15 +110,28 @@ export default function FullscreenBillboard({
 
     // 새로운 자동 재생 시작
     intervalRef.current = setInterval(() => {
-      setIsTransitioning(true);
-      setProgress(0);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
-        // 인덱스 변경 후 약간의 딜레이를 두고 페이드인
+      if (effectType === 'slide') {
+        // 슬라이드 전환: 부드러운 캐러셀 효과
+        setIsTransitioning(true);
+        setSlideOffset(-100); // 왼쪽으로 이동
+        setProgress(0);
+        
         setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
+          setSlideOffset(0); // 오프셋 리셋
           setIsTransitioning(false);
-        }, 50);
-      }, effectSpeed);
+        }, effectSpeed);
+      } else {
+        // 페이드/없음 전환
+        setIsTransitioning(true);
+        setProgress(0);
+        setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
+          setTimeout(() => {
+            setIsTransitioning(false);
+          }, 50);
+        }, effectSpeed);
+      }
     }, autoSlideInterval);
 
     return () => {
@@ -170,92 +184,131 @@ export default function FullscreenBillboard({
       className="fixed inset-0 z-50 bg-black flex items-center justify-center"
       onClick={handleBackgroundClick}
     >
-      <div className="relative w-full h-full" onClick={handleBackgroundClick}>
-        {/* 미디어 컨텐츠 (이미지 또는 영상) - 상단 여백 없이 배치 */}
-        <div className="absolute top-0 left-0 right-0 flex justify-center">
-          {(() => {
-            const currentEvent = sortedEvents[currentIndex];
-            const videoUrl = currentEvent?.video_url;
-            
-            if (videoUrl) {
-              const videoInfo = parseVideoUrl(videoUrl);
-              if (videoInfo.embedUrl) {
-                const getVideoTransitionStyle = () => {
-                  if (effectType === 'none') {
-                    return {
-                      opacity: isTransitioning ? 0 : 1,
-                      transition: 'none'
-                    };
-                  } else if (effectType === 'slide') {
-                    return {
-                      transform: `translateX(${isTransitioning ? '100%' : '0'})`,
-                      transition: `all ${effectSpeed}ms ease-in-out`
-                    };
-                  } else {
-                    return {
-                      opacity: isTransitioning ? 0 : 1,
-                      transform: `scale(${isTransitioning ? 0.95 : 1})`,
-                      filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
-                      transition: `all ${effectSpeed}ms ease-in-out`
-                    };
+      <div className="relative w-full h-full overflow-hidden" onClick={handleBackgroundClick}>
+        {/* 미디어 컨텐츠 (이미지 또는 영상) - 캐러셀 방식 */}
+        <div 
+          className="absolute top-0 left-0 right-0 flex"
+          style={{
+            transform: effectType === 'slide' ? `translateX(${slideOffset}%)` : 'none',
+            transition: effectType === 'slide' && isTransitioning ? `transform ${effectSpeed}ms ease-in-out` : 'none',
+          }}
+        >
+          {/* 현재 슬라이드 */}
+          <div className="min-w-full flex justify-center items-center" style={{ height: '100vh' }}>
+            {(() => {
+              const currentEvent = sortedEvents[currentIndex];
+              const videoUrl = currentEvent?.video_url;
+              
+              if (videoUrl) {
+                const videoInfo = parseVideoUrl(videoUrl);
+                if (videoInfo.embedUrl) {
+                  const getVideoTransitionStyle = () => {
+                    if (effectType === 'none') {
+                      return {
+                        opacity: isTransitioning ? 0 : 1,
+                        transition: 'none'
+                      };
+                    } else if (effectType === 'slide') {
+                      return {}; // 슬라이드는 부모 컨테이너가 처리
+                    } else {
+                      return {
+                        opacity: isTransitioning ? 0 : 1,
+                        transform: `scale(${isTransitioning ? 0.95 : 1})`,
+                        filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
+                        transition: `all ${effectSpeed}ms ease-in-out`
+                      };
+                    }
+                  };
+                  
+                  return (
+                    <div 
+                      className="relative w-full h-screen flex items-center justify-center cursor-pointer"
+                      style={getVideoTransitionStyle()}
+                    >
+                      <iframe
+                        src={videoInfo.embedUrl}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        style={{ maxHeight: '100vh', objectFit: 'contain' }}
+                      ></iframe>
+                      <div 
+                        className="absolute inset-0 z-10 cursor-pointer"
+                        onClick={handleImageClick}
+                        title="클릭하여 상세보기"
+                      ></div>
+                    </div>
+                  );
+                }
+              }
+              
+              const getImageTransitionStyle = () => {
+                if (effectType === 'none') {
+                  return {
+                    opacity: isTransitioning ? 0 : 1,
+                    transition: 'none'
+                  };
+                } else if (effectType === 'slide') {
+                  return {}; // 슬라이드는 부모 컨테이너가 처리
+                } else {
+                  return {
+                    opacity: isTransitioning ? 0 : 1,
+                    transform: `scale(${isTransitioning ? 0.95 : 1})`,
+                    filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
+                    transition: `all ${effectSpeed}ms ease-in-out`
+                  };
+                }
+              };
+              
+              return (
+                <img
+                  src={sortedImages[currentIndex]}
+                  alt="Event Billboard"
+                  className="max-w-full max-h-screen object-contain cursor-pointer"
+                  style={getImageTransitionStyle()}
+                  onClick={handleImageClick}
+                />
+              );
+            })()}
+          </div>
+
+          {/* 다음 슬라이드 (슬라이드 효과일 때만 렌더링) */}
+          {effectType === 'slide' && (
+            <div className="min-w-full flex justify-center items-center" style={{ height: '100vh' }}>
+              {(() => {
+                const nextIndex = (currentIndex + 1) % sortedImages.length;
+                const nextEvent = sortedEvents[nextIndex];
+                const videoUrl = nextEvent?.video_url;
+                
+                if (videoUrl) {
+                  const videoInfo = parseVideoUrl(videoUrl);
+                  if (videoInfo.embedUrl) {
+                    return (
+                      <div className="relative w-full h-screen flex items-center justify-center">
+                        <iframe
+                          src={videoInfo.embedUrl}
+                          className="w-full h-full"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          style={{ maxHeight: '100vh', objectFit: 'contain' }}
+                        ></iframe>
+                      </div>
+                    );
                   }
-                };
+                }
                 
                 return (
-                  <div 
-                    className="relative w-full h-screen flex items-center justify-center cursor-pointer"
-                    style={getVideoTransitionStyle()}
-                  >
-                    <iframe
-                      src={videoInfo.embedUrl}
-                      className="w-full h-full"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      style={{ maxHeight: '100vh', objectFit: 'contain' }}
-                    ></iframe>
-                    {/* 투명 오버레이: 인스타 클릭 차단 및 상세보기로 이동 */}
-                    <div 
-                      className="absolute inset-0 z-10 cursor-pointer"
-                      onClick={handleImageClick}
-                      title="클릭하여 상세보기"
-                    ></div>
-                  </div>
+                  <img
+                    src={sortedImages[nextIndex]}
+                    alt="Next Event Billboard"
+                    className="max-w-full max-h-screen object-contain"
+                  />
                 );
-              }
-            }
-            
-            const getImageTransitionStyle = () => {
-              if (effectType === 'none') {
-                return {
-                  opacity: isTransitioning ? 0 : 1,
-                  transition: 'none'
-                };
-              } else if (effectType === 'slide') {
-                return {
-                  transform: `translateX(${isTransitioning ? '100%' : '0'})`,
-                  transition: `all ${effectSpeed}ms ease-in-out`
-                };
-              } else {
-                return {
-                  opacity: isTransitioning ? 0 : 1,
-                  transform: `scale(${isTransitioning ? 0.95 : 1})`,
-                  filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
-                  transition: `all ${effectSpeed}ms ease-in-out`
-                };
-              }
-            };
-            
-            return (
-              <img
-                src={sortedImages[currentIndex]}
-                alt="Event Billboard"
-                className="max-w-full max-h-screen object-contain cursor-pointer"
-                style={getImageTransitionStyle()}
-                onClick={handleImageClick}
-              />
-            );
-          })()}
+              })()}
+            </div>
+          )}
         </div>
 
         {/* 화면 기준 하단 - 제목 + 버튼/QR (이미지와 분리) */}
