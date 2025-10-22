@@ -38,9 +38,8 @@ export default function BillboardPage() {
   // 해상도 기반 스케일 계산 (기준: 1080px = 1.0배)
   const [scale, setScale] = useState(1);
   
-  // YouTube 플레이어 상태 관리
-  const [youtubeReady, setYoutubeReady] = useState<Record<string, boolean>>({});
-  const youtubePlayersRef = useRef<Record<string, any>>({});
+  // 비디오 iframe 로딩 상태
+  const [videoLoaded, setVideoLoaded] = useState<Record<string, boolean>>({});
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -265,57 +264,6 @@ export default function BillboardPage() {
     };
   }, [events, settings, shuffledPlaylist]);
 
-  // YouTube 플레이어 ref 콜백 (React 충돌 방지)
-  const initYouTubePlayer = (element: HTMLDivElement | null, eventId: string, videoId: string) => {
-    if (!element) return;
-    
-    const win = window as any;
-    
-    const tryInit = () => {
-      if (!win.YT || !win.YT.Player) {
-        setTimeout(tryInit, 100);
-        return;
-      }
-      
-      // 이미 플레이어가 있으면 스킵
-      if (youtubePlayersRef.current[eventId]) {
-        setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
-        return;
-      }
-      
-      try {
-        youtubePlayersRef.current[eventId] = new win.YT.Player(element, {
-          videoId: videoId,
-          playerVars: {
-            autoplay: 1,
-            mute: 1,
-            loop: 1,
-            playlist: videoId,
-            controls: 0,
-            playsinline: 1,
-            rel: 0,
-            enablejsapi: 1,
-            origin: window.location.origin,
-          },
-          events: {
-            onReady: () => {
-              setTimeout(() => {
-                setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
-              }, 500);
-            },
-            onError: () => {
-              // 에러 시 썸네일만 표시
-            }
-          }
-        });
-      } catch (err) {
-        console.error('YouTube Player 초기화 실패:', err);
-      }
-    };
-    
-    setTimeout(tryInit, 100);
-  };
-
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -381,8 +329,7 @@ export default function BillboardPage() {
     const imageUrl = event.image_full || event.image;
     const videoUrl = event.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
-    const isYouTube = videoInfo?.provider === 'youtube';
-    const isPlayerReady = youtubeReady[event.id] || false;
+    const isLoaded = videoLoaded[event.id] || false;
 
     return (
       <div
@@ -398,9 +345,30 @@ export default function BillboardPage() {
           zIndex: isVisible ? 2 : 1,
         }}
       >
-        {isYouTube ? (
-          <>
-            {/* YouTube 썸네일 + 로딩 스피너 */}
+        {videoInfo?.embedUrl ? (
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {/* 비디오 iframe */}
+            <iframe
+              key={`video-${event.id}`}
+              src={isVisible ? videoInfo.embedUrl : 'about:blank'}
+              className="w-full h-full"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={event.title}
+              onLoad={() => {
+                setTimeout(() => {
+                  setVideoLoaded(prev => ({ ...prev, [event.id]: true }));
+                }, 1500);
+              }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+              }}
+            />
+            
+            {/* 썸네일 오버레이 (로딩 중) */}
             <div
               style={{
                 position: 'absolute',
@@ -408,9 +376,9 @@ export default function BillboardPage() {
                 left: 0,
                 width: '100%',
                 height: '100%',
-                opacity: isPlayerReady ? 0 : 1,
+                opacity: isLoaded ? 0 : 1,
                 transition: 'opacity 1s ease-in-out',
-                pointerEvents: isPlayerReady ? 'none' : 'auto',
+                pointerEvents: isLoaded ? 'none' : 'auto',
                 zIndex: 2,
                 backgroundColor: '#000',
               }}
@@ -421,7 +389,7 @@ export default function BillboardPage() {
                 className="w-full h-full object-contain"
               />
               {/* 로딩 스피너 */}
-              {isVisible && !isPlayerReady && (
+              {isVisible && !isLoaded && (
                 <div
                   style={{
                     position: 'absolute',
@@ -440,27 +408,7 @@ export default function BillboardPage() {
                 </div>
               )}
             </div>
-            
-            {/* YouTube Player 영역 - ref로 초기화 */}
-            <div
-              ref={isVisible ? (el) => initYouTubePlayer(el, event.id, videoInfo.videoId!) : null}
-              className="w-full h-full"
-              style={{
-                opacity: isPlayerReady ? 1 : 0,
-                transition: 'opacity 1s ease-in-out',
-              }}
-            />
-          </>
-        ) : videoInfo?.embedUrl ? (
-          <iframe
-            key={`video-${event.id}`}
-            src={videoInfo.embedUrl}
-            className="w-full h-full"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={event.title}
-          />
+          </div>
         ) : (
           <img
             src={imageUrl}
