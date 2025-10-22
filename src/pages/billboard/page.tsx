@@ -264,6 +264,11 @@ export default function BillboardPage() {
     };
   }, [events, settings, shuffledPlaylist]);
 
+  // 슬라이드 변경 시 비디오 로딩 상태 리셋
+  useEffect(() => {
+    setVideoLoaded({});
+  }, [currentIndex]);
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
