@@ -286,7 +286,16 @@ export default function BillboardPage() {
     const hasVideo = currentEvent.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
     const isLoaded = videoLoaded[currentEvent.id];
 
+    console.log('[빌보드] 영상 체크:', {
+      eventId: currentEvent.id,
+      hasVideo,
+      isLoaded,
+      videoUrl: currentEvent.video_url
+    });
+
     if (hasVideo && isLoaded && settings) {
+      console.log('[빌보드] 영상 로딩 완료! 10초 타이머 시작');
+      
       // 기존 progress interval 정리
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
@@ -306,6 +315,7 @@ export default function BillboardPage() {
 
       // 영상 로딩 완료 시점부터 정확히 10초 후 다음 슬라이드
       videoPlayTimeoutRef.current = setTimeout(() => {
+        console.log('[빌보드] 10초 완료! 다음 슬라이드로 전환');
         setProgress(0);
         if (settings.play_order === "random") {
           const nextPlaylistIdx = playlistIndexRef.current + 1;
@@ -328,10 +338,11 @@ export default function BillboardPage() {
 
     return () => {
       if (videoPlayTimeoutRef.current) {
+        console.log('[빌보드] 타이머 정리');
         clearTimeout(videoPlayTimeoutRef.current);
       }
     };
-  }, [videoLoaded, currentIndex, events, settings, shuffledPlaylist]);
+  }, [videoLoaded, currentIndex, events, settings]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
