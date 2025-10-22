@@ -6,8 +6,7 @@ export interface BillboardSettings {
   autoSlideInterval: number; // milliseconds
   inactivityTimeout: number; // milliseconds (0 = disabled)
   autoOpenOnLoad: boolean;
-  effectSpeed: number; // milliseconds
-  effectType: 'none' | 'fade' | 'slide'; // 전환 효과 종류
+  transitionDuration: number; // milliseconds
   dateRangeStart: string | null; // YYYY-MM-DD
   dateRangeEnd: string | null; // YYYY-MM-DD
   showDateRange: boolean; // 날짜 범위 표시 여부
@@ -27,8 +26,7 @@ const DEFAULT_SETTINGS: BillboardSettings = {
   autoSlideInterval: 5000, // 5초
   inactivityTimeout: 300000, // 5분
   autoOpenOnLoad: true,
-  effectSpeed: 300, // 0.3초
-  effectType: 'fade', // 기본: 페이드 효과
+  transitionDuration: 300, // 0.3초
   dateRangeStart: getTodayString(), // 오늘 날짜
   dateRangeEnd: null,
   showDateRange: true,
@@ -60,8 +58,7 @@ export function useBillboardSettings() {
               auto_slide_interval: DEFAULT_SETTINGS.autoSlideInterval,
               inactivity_timeout: DEFAULT_SETTINGS.inactivityTimeout,
               auto_open_on_load: DEFAULT_SETTINGS.autoOpenOnLoad,
-              effect_speed: DEFAULT_SETTINGS.effectSpeed,
-              effect_type: DEFAULT_SETTINGS.effectType,
+              transition_duration: DEFAULT_SETTINGS.transitionDuration,
               date_range_start: DEFAULT_SETTINGS.dateRangeStart,
               date_range_end: DEFAULT_SETTINGS.dateRangeEnd,
               show_date_range: DEFAULT_SETTINGS.showDateRange,
@@ -76,8 +73,7 @@ export function useBillboardSettings() {
             autoSlideInterval: data.auto_slide_interval ?? DEFAULT_SETTINGS.autoSlideInterval,
             inactivityTimeout: data.inactivity_timeout ?? DEFAULT_SETTINGS.inactivityTimeout,
             autoOpenOnLoad: data.auto_open_on_load ?? DEFAULT_SETTINGS.autoOpenOnLoad,
-            effectSpeed: data.effect_speed ?? DEFAULT_SETTINGS.effectSpeed,
-            effectType: data.effect_type ?? DEFAULT_SETTINGS.effectType,
+            transitionDuration: data.transition_duration ?? DEFAULT_SETTINGS.transitionDuration,
             dateRangeStart: data.date_range_start ?? DEFAULT_SETTINGS.dateRangeStart,
             dateRangeEnd: data.date_range_end ?? DEFAULT_SETTINGS.dateRangeEnd,
             showDateRange: data.show_date_range ?? DEFAULT_SETTINGS.showDateRange,
@@ -102,14 +98,14 @@ export function useBillboardSettings() {
     setSettings(newSettings);
     
     try {
+      // DB 형식으로 변환
       const dbData = {
         id: 1,
         enabled: newSettings.enabled,
         auto_slide_interval: newSettings.autoSlideInterval,
         inactivity_timeout: newSettings.inactivityTimeout,
         auto_open_on_load: newSettings.autoOpenOnLoad,
-        effect_speed: newSettings.effectSpeed,
-        effect_type: newSettings.effectType,
+        transition_duration: newSettings.transitionDuration,
         date_range_start: newSettings.dateRangeStart,
         date_range_end: newSettings.dateRangeEnd,
         show_date_range: newSettings.showDateRange,
@@ -141,8 +137,7 @@ export function useBillboardSettings() {
         auto_slide_interval: DEFAULT_SETTINGS.autoSlideInterval,
         inactivity_timeout: DEFAULT_SETTINGS.inactivityTimeout,
         auto_open_on_load: DEFAULT_SETTINGS.autoOpenOnLoad,
-        effect_speed: DEFAULT_SETTINGS.effectSpeed,
-        effect_type: DEFAULT_SETTINGS.effectType,
+        transition_duration: DEFAULT_SETTINGS.transitionDuration,
         date_range_start: DEFAULT_SETTINGS.dateRangeStart,
         date_range_end: DEFAULT_SETTINGS.dateRangeEnd,
         show_date_range: DEFAULT_SETTINGS.showDateRange,

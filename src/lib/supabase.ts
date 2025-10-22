@@ -61,9 +61,7 @@ export interface BillboardUserSettings {
   excluded_weekdays: number[];
   excluded_event_ids: number[];
   auto_slide_interval: number;
-  auto_slide_interval_video: number;
-  effect_speed: number;
-  effect_type: 'none' | 'fade' | 'slide';
+  transition_duration: number;
   play_order: 'sequential' | 'random';
   date_filter_start: string | null;
   date_filter_end: string | null;
@@ -77,8 +75,7 @@ export interface BillboardSettings {
   auto_slide_interval: number;
   inactivity_timeout: number;
   auto_open_on_load: boolean;
-  effect_speed: number;
-  effect_type: 'none' | 'fade' | 'slide';
+  transition_duration: number;
   date_range_start: string | null;
   date_range_end: string | null;
   show_date_range: boolean;

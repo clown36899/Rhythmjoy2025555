@@ -42,10 +42,6 @@ export default function BillboardPage() {
   const [videoLoaded, setVideoLoaded] = useState<Record<string, boolean>>({});
   const [loadTimes, setLoadTimes] = useState<number[]>([]);
   const loadStartTimeRef = useRef<number>(0);
-  
-  // 슬라이드 전환 상태
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [slideOffset, setSlideOffset] = useState(0);
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -220,72 +216,32 @@ export default function BillboardPage() {
     });
   };
 
-  // 슬라이드 자동 전환 - 이미지/영상 시간 구분, 영상은 전환 효과 없음
   useEffect(() => {
     if (!settings || events.length === 0) return;
 
-    // 현재 이벤트가 영상인지 확인
-    const currentEvent = events[currentIndex];
-    const isVideo = currentEvent?.video_url ? true : false;
-    
-    // 이벤트 타입에 따라 다른 슬라이드 시간 사용
-    const slideInterval = isVideo 
-      ? settings.auto_slide_interval_video 
-      : settings.auto_slide_interval;
-
-    // 프로그레스 바 초기화
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
 
     setProgress(0);
-    const progressStep = (50 / slideInterval) * 100;
+
+    const progressStep = (50 / settings.auto_slide_interval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) return 0;
+        if (prev >= 100) {
+          return 0;
+        }
         return prev + progressStep;
       });
     }, 50);
 
-    // 다음 슬라이드로 전환
-    const timeout = setTimeout(() => {
+    const interval = setInterval(() => {
       setProgress(0);
-      
-      // 영상이 아닌 경우에만 전환 효과 적용
-      if (!isVideo) {
-        const effectType = settings.effect_type || 'fade';
-        const effectSpeed = settings.effect_speed || 500;
-        
-        if (effectType === 'slide') {
-          setIsTransitioning(true);
-          setSlideOffset(-100);
-          
-          setTimeout(() => {
-            advanceToNextSlide();
-            setSlideOffset(0);
-            setIsTransitioning(false);
-          }, effectSpeed);
-          return;
-        } else if (effectType === 'fade') {
-          setIsTransitioning(true);
-          
-          setTimeout(() => {
-            advanceToNextSlide();
-            setTimeout(() => {
-              setIsTransitioning(false);
-            }, 50);
-          }, effectSpeed);
-          return;
-        }
-      }
-      
-      // 영상이거나 전환 효과 없음: 바로 다음 슬라이드
-      advanceToNextSlide();
-    }, slideInterval);
-
-    function advanceToNextSlide() {
       if (settings.play_order === "random") {
+        // 현재 재생목록에서 다음 인덱스로 이동
         const nextPlaylistIdx = playlistIndexRef.current + 1;
+
+        // 재생목록 끝에 도달하면 원본 인덱스 배열을 새로 섞음
         if (nextPlaylistIdx >= shuffledPlaylist.length) {
           const newIndices = Array.from({ length: events.length }, (_, i) => i);
           const newPlaylist = shuffleArray(newIndices);
@@ -293,21 +249,22 @@ export default function BillboardPage() {
           playlistIndexRef.current = 0;
           setCurrentIndex(newPlaylist[0] || 0);
         } else {
+          // 현재 재생목록 계속 진행
           playlistIndexRef.current = nextPlaylistIdx;
           setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
         }
       } else {
         setCurrentIndex((prev) => (prev + 1) % events.length);
       }
-    }
+    }, settings.auto_slide_interval);
 
     return () => {
-      clearTimeout(timeout);
+      clearInterval(interval);
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [events, settings, shuffledPlaylist, currentIndex]);
+  }, [events, settings, shuffledPlaylist]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
@@ -381,45 +338,20 @@ export default function BillboardPage() {
     const videoUrl = event.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
     const isLoaded = videoLoaded[event.id] || false;
-    const isVideoEvent = videoUrl ? true : false;
-    
-    // 전환 효과 스타일 (영상 이벤트는 항상 표시, 이미지만 전환 효과 적용)
-    const getTransitionStyle = () => {
-      // 영상 이벤트는 전환 효과 없이 항상 표시
-      if (isVideoEvent) {
-        return {
-          opacity: isVisible ? 1 : 0,
-          transition: 'none',
-        };
-      }
-      
-      // 이미지 이벤트는 전환 효과 적용
-      const effect = settings?.effect_type || 'fade';
-      const duration = settings?.effect_speed || 500;
-      
-      if (effect === 'none') {
-        return {
-          opacity: isVisible ? 1 : 0,
-          transition: 'none',
-        };
-      } else if (effect === 'slide') {
-        // 슬라이드는 부모 컨테이너가 처리
-        return {};
-      } else {
-        // 페이드 효과
-        return {
-          opacity: !isTransitioning && isVisible ? 1 : 0,
-          transform: `scale(${!isTransitioning && isVisible ? 1 : 0.95})`,
-          filter: !isTransitioning && isVisible ? 'blur(0px)' : 'blur(10px)',
-          transition: `all ${duration}ms ease-in-out`,
-        };
-      }
-    };
 
     return (
       <div
-        className="portrait-slide-content"
-        style={getTransitionStyle()}
+        className="portrait-container"
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: `translate(-50%, -50%) rotate(90deg)`,
+          opacity: isVisible ? 1 : 0,
+          pointerEvents: isVisible ? "auto" : "none",
+          transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out`,
+          zIndex: isVisible ? 2 : 1,
+        }}
       >
         {videoInfo?.embedUrl ? (
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -574,7 +506,7 @@ export default function BillboardPage() {
                       </div>
                     )}
                 </div>
-                <h3 className="text-white font-bold" style={{ fontSize: `${54 * scale}px` }}>{event.title}</h3>
+                <h3 className="text-white font-bold" style={{ fontSize: `${36 * scale}px` }}>{event.title}</h3>
               </div>
 
               <div 
@@ -599,9 +531,6 @@ export default function BillboardPage() {
   };
 
   const currentEvent = events[currentIndex];
-  const nextEvent = events[(currentIndex + 1) % events.length];
-  const effectType = settings?.effect_type || 'fade';
-  const effectSpeed = settings?.effect_speed || 500;
 
   return (
     <>
@@ -611,7 +540,7 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://i.ytimg.com" />
 
       <div
-        className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center"
+        className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
         style={{ minHeight: "calc(100vh + 1px)" }}
       >
         {/* Realtime 상태 표시 (디버깅용) */}
@@ -619,53 +548,14 @@ export default function BillboardPage() {
           {realtimeStatus}
         </div>
 
-        {/* 캐러셀 컨테이너 */}
-        <div 
-          className="portrait-carousel-container"
-          style={{
-            transform: effectType === 'slide' 
-              ? `translate(-50%, -50%) rotate(90deg) translateX(${slideOffset}%)` 
-              : `translate(-50%, -50%) rotate(90deg)`,
-            transition: effectType === 'slide' && isTransitioning 
-              ? `transform ${effectSpeed}ms ease-in-out` 
-              : 'none',
-          }}
-        >
-          {/* 현재 슬라이드 */}
-          <div className="portrait-slide">
-            {renderSlide(currentEvent, true)}
-          </div>
-
-          {/* 다음 슬라이드 (슬라이드 효과일 때만) */}
-          {effectType === 'slide' && (
-            <div className="portrait-slide">
-              {renderSlide(nextEvent, false, true)}
-            </div>
-          )}
-        </div>
+        {/* 현재 슬라이드만 렌더링 */}
+        {renderSlide(currentEvent, true)}
 
         <style>{`
-          .portrait-carousel-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            display: flex;
+          .portrait-container {
+            position: relative;
             width: 100vh;
             height: 100vw;
-          }
-          
-          .portrait-slide {
-            position: relative;
-            min-width: 100vh;
-            width: 100vh;
-            height: 100vw;
-            flex-shrink: 0;
-          }
-          
-          .portrait-slide-content {
-            position: relative;
-            width: 100%;
-            height: 100%;
           }
           
           /* 모바일 주소창 숨기기를 위한 추가 높이 */
