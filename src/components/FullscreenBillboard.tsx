@@ -331,7 +331,7 @@ export default function FullscreenBillboard({
               <button
                 onClick={handleImageClick}
                 style={{
-                  effectSpeed: `${effectSpeed}ms`,
+                  transitionDuration: `${effectSpeed}ms`,
                 }}
                 className={`bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium text-base inline-flex items-center gap-2 transition-all hover:scale-105 ${
                   isTransitioning ? "opacity-0" : "opacity-100"
@@ -346,7 +346,7 @@ export default function FullscreenBillboard({
                 className={`bg-white p-2 rounded-lg transition-opacity ${
                   isTransitioning ? "opacity-0" : "opacity-100"
                 }`}
-                style={{ effectSpeed: `${effectSpeed}ms` }}
+                style={{ transitionDuration: `${effectSpeed}ms` }}
                 title="QR 스캔으로 바로 보기"
               >
                 <QRCodeSVG
