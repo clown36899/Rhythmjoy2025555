@@ -346,10 +346,11 @@ export default function BillboardPage() {
           position: "absolute",
           top: "50%",
           left: "50%",
-          transform: `translate(-50%, -50%) rotate(90deg)`,
+          transform: `translate(-50%, -50%) rotate(90deg) scale(${isVisible ? 1 : 0.95})`,
           opacity: isVisible ? 1 : 0,
+          filter: isVisible ? 'blur(0px)' : 'blur(10px)',
           pointerEvents: isVisible ? "auto" : "none",
-          transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out`,
+          transition: `all ${settings?.transition_duration || 500}ms ease-in-out`,
           zIndex: isVisible ? 2 : 1,
         }}
       >
