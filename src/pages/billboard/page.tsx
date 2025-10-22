@@ -223,13 +223,22 @@ export default function BillboardPage() {
   useEffect(() => {
     if (!settings || events.length === 0) return;
 
+    // 현재 이벤트가 영상인지 확인
+    const currentEvent = events[currentIndex];
+    const isVideo = currentEvent?.video_url ? true : false;
+    
+    // 이벤트 타입에 따라 다른 슬라이드 시간 사용
+    const slideInterval = isVideo 
+      ? settings.auto_slide_interval_video 
+      : settings.auto_slide_interval;
+
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
 
     setProgress(0);
 
-    const progressStep = (50 / settings.auto_slide_interval) * 100;
+    const progressStep = (50 / slideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
@@ -295,7 +304,7 @@ export default function BillboardPage() {
           }, 50);
         }, effectSpeed);
       }
-    }, settings.auto_slide_interval);
+    }, slideInterval);
 
     return () => {
       clearInterval(interval);
@@ -303,7 +312,7 @@ export default function BillboardPage() {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [events, settings, shuffledPlaylist]);
+  }, [events, settings, shuffledPlaylist, currentIndex]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
