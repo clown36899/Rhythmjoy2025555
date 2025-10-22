@@ -190,45 +190,61 @@ export default function BillboardPage() {
     console.log('[빌보드 필터링] 시작:', {
       excluded_event_ids: settings.excluded_event_ids,
       excluded_weekdays: settings.excluded_weekdays,
+      date_filter_start: settings.date_filter_start,
+      date_filter_end: settings.date_filter_end,
       total_events: allEvents.length
     });
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const filtered = allEvents.filter((event) => {
       // 이미지/영상 없는 이벤트 제외
-      if (!event.image_full && !event.image && !event.video_url) return false;
+      if (!event.image_full && !event.image && !event.video_url) {
+        console.log('[필터] 미디어 없음:', event.id, event.title);
+        return false;
+      }
 
       // ID 필터
       if (settings.excluded_event_ids.includes(event.id)) {
-        console.log('[빌보드 필터링] ID로 제외:', event.id, event.title);
+        console.log('[필터] ID 제외:', event.id, event.title);
         return false;
       }
 
       // 요일 필터
       const eventDate = new Date(event.start_date || event.date || "");
       const weekday = eventDate.getDay();
+      const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
       if (settings.excluded_weekdays.includes(weekday)) {
-        console.log('[빌보드 필터링] 요일로 제외:', event.id, event.title, weekday);
+        console.log('[필터] 요일 제외:', event.id, event.title, `${weekdayNames[weekday]}요일(${weekday})`);
         return false;
       }
 
       // 날짜 범위 필터
       if (settings.date_filter_start) {
         const startDate = new Date(settings.date_filter_start);
-        if (eventDate < startDate) return false;
+        if (eventDate < startDate) {
+          console.log('[필터] 시작일 이전:', event.id, event.title, eventDate.toISOString().split('T')[0], '<', settings.date_filter_start);
+          return false;
+        }
       }
 
       if (settings.date_filter_end) {
         const endDate = new Date(settings.date_filter_end);
-        if (eventDate > endDate) return false;
+        if (eventDate > endDate) {
+          console.log('[필터] 종료일 이후:', event.id, event.title, eventDate.toISOString().split('T')[0], '>', settings.date_filter_end);
+          return false;
+        }
       }
 
       // 과거 이벤트 제외
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       const eventEndDate = new Date(
         event.end_date || event.start_date || event.date || "",
       );
-      if (eventEndDate < today) return false;
+      if (eventEndDate < today) {
+        console.log('[필터] 과거 이벤트:', event.id, event.title, eventEndDate.toISOString().split('T')[0], '<', today.toISOString().split('T')[0]);
+        return false;
+      }
 
       return true;
     });
