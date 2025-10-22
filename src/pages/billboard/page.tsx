@@ -294,16 +294,16 @@ export default function BillboardPage() {
     });
 
     if (hasVideo && isLoaded && settings) {
-      console.log('[빌보드] 영상 로딩 완료! 10초 타이머 시작');
+      console.log('[빌보드] 영상 로딩 완료! 타이머 시작:', settings.video_play_duration / 1000, '초');
       
       // 기존 progress interval 정리
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
 
-      // Progress bar 리셋 후 10초 기준으로 재시작
+      // Progress bar 리셋 후 설정된 시간 기준으로 재시작
       setProgress(0);
-      const videoProgressStep = (50 / 10000) * 100; // 10초 기준
+      const videoProgressStep = (50 / (settings.video_play_duration || 10000)) * 100;
       progressIntervalRef.current = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
@@ -315,7 +315,7 @@ export default function BillboardPage() {
 
       // 영상 로딩 완료 시점부터 정확히 10초 후 다음 슬라이드
       videoPlayTimeoutRef.current = setTimeout(() => {
-        console.log('[빌보드] 10초 완료! 다음 슬라이드로 전환');
+        console.log('[빌보드] 영상 재생 완료! 다음 슬라이드로 전환');
         setProgress(0);
         if (settings.play_order === "random") {
           const nextPlaylistIdx = playlistIndexRef.current + 1;
@@ -333,7 +333,7 @@ export default function BillboardPage() {
         } else {
           setCurrentIndex((prev) => (prev + 1) % events.length);
         }
-      }, 10000); // 정확히 10초
+      }, settings.video_play_duration || 10000); // 설정된 영상 재생 시간
     }
 
     return () => {

@@ -32,6 +32,7 @@ export default function BillboardUserManagementModal({
   const [excludedWeekdays, setExcludedWeekdays] = useState<number[]>([]);
   const [excludedEventIds, setExcludedEventIds] = useState<number[]>([]);
   const [autoSlideInterval, setAutoSlideInterval] = useState(5000);
+  const [videoPlayDuration, setVideoPlayDuration] = useState(10000);
   const [playOrder, setPlayOrder] = useState<'sequential' | 'random'>('sequential');
   const [dateFilterStart, setDateFilterStart] = useState('');
   const [dateFilterEnd, setDateFilterEnd] = useState('');
@@ -137,6 +138,7 @@ export default function BillboardUserManagementModal({
           excluded_weekdays: excludedWeekdays,
           excluded_event_ids: [],
           auto_slide_interval: 5000,
+          video_play_duration: 10000,
           transition_duration: 500,
           play_order: 'sequential',
           date_filter_start: null,
@@ -212,6 +214,7 @@ export default function BillboardUserManagementModal({
       setExcludedWeekdays(data.excluded_weekdays || []);
       setExcludedEventIds(data.excluded_event_ids || []);
       setAutoSlideInterval(data.auto_slide_interval);
+      setVideoPlayDuration(data.video_play_duration || 10000);
       setPlayOrder(data.play_order);
       setDateFilterStart(data.date_filter_start || todayStr);
       // null이면 빈 문자열로 설정 (종료 날짜 제한 없음)
@@ -233,6 +236,7 @@ export default function BillboardUserManagementModal({
           excluded_weekdays: excludedWeekdays,
           excluded_event_ids: excludedEventIds,
           auto_slide_interval: autoSlideInterval,
+          video_play_duration: videoPlayDuration,
           play_order: playOrder,
           date_filter_start: dateFilterStart || null,
           date_filter_end: dateFilterEnd || null,
@@ -535,7 +539,7 @@ export default function BillboardUserManagementModal({
 
                 <div>
                   <label className="block text-gray-300 text-sm font-medium mb-2">
-                    ⚙️ 슬라이드 간격 (초)
+                    ⚙️ 슬라이드 간격 (초) - 일반 이벤트
                   </label>
                   <input
                     type="number"
@@ -545,6 +549,23 @@ export default function BillboardUserManagementModal({
                     max="60"
                     className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    🎬 영상 재생 시간 (초) - 영상 이벤트
+                  </label>
+                  <input
+                    type="number"
+                    value={videoPlayDuration / 1000}
+                    onChange={(e) => setVideoPlayDuration(Number(e.target.value) * 1000)}
+                    min="5"
+                    max="60"
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-gray-400 text-xs mt-1">
+                    영상 로딩 완료 후 재생되는 시간입니다.
+                  </p>
                 </div>
 
                 <div>

@@ -65,6 +65,7 @@ export interface BillboardUserSettings {
   play_order: 'sequential' | 'random';
   date_filter_start: string | null;
   date_filter_end: string | null;
+  video_play_duration: number;
   created_at: string;
   updated_at: string;
 }
