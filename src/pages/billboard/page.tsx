@@ -341,14 +341,25 @@ export default function BillboardPage() {
           zIndex: isVisible ? 2 : 1,
         }}
       >
-        {videoInfo?.embedUrl ? (
+        {videoInfo?.embedUrl && videoInfo?.provider === 'youtube' ? (
           <iframe
             key={`video-${event.id}`}
-            src={`${videoInfo.embedUrl}&rel=0&playsinline=1`}
+            src={videoInfo.embedUrl}
             className="w-full h-full"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            title={event.title}
+          ></iframe>
+        ) : videoInfo?.embedUrl ? (
+          <iframe
+            key={`video-${event.id}`}
+            src={videoInfo.embedUrl}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={event.title}
           ></iframe>
         ) : (
           <img
