@@ -389,7 +389,7 @@ export default function BillboardPage() {
               }}
             />
             
-            {/* 썸네일 오버레이 (로딩 중) */}
+            {/* 썸네일 오버레이 (로딩 중) - 사용자가 등록한 이미지 사용 */}
             <div
               style={{
                 position: 'absolute',
@@ -401,18 +401,15 @@ export default function BillboardPage() {
                 transition: 'opacity 1s ease-in-out',
                 pointerEvents: isLoaded ? 'none' : 'auto',
                 zIndex: 2,
-                backgroundColor: '#000',
               }}
             >
-              {videoInfo.thumbnailUrl ? (
+              {imageUrl && (
                 <img
-                  src={videoInfo.thumbnailUrl}
+                  src={imageUrl}
                   alt={event.title}
                   className="w-full h-full object-contain"
+                  style={{ backgroundColor: '#000' }}
                 />
-              ) : (
-                // 쇼츠 등 썸네일이 없을 때는 검은 배경만
-                <div className="w-full h-full bg-black" />
               )}
               {/* 로딩 스피너 */}
               {isVisible && !isLoaded && (
