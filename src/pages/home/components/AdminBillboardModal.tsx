@@ -241,28 +241,20 @@ export default function AdminBillboardModal({
     if (!billboardUserId || !userSettings) return;
 
     try {
-      // transition_effect, transition_duration을 제외한 필드들 먼저 저장 (Supabase 스키마 캐시 이슈 회피)
-      const { error } = await supabase
-        .from("billboard_user_settings")
-        .upsert(
-          {
-            billboard_user_id: billboardUserId,
-            excluded_weekdays: userSettings.excluded_weekdays,
-            excluded_event_ids: userSettings.excluded_event_ids,
-            date_filter_start: userSettings.date_filter_start,
-            date_filter_end: userSettings.date_filter_end,
-            auto_slide_interval: userSettings.auto_slide_interval,
-            play_order: userSettings.play_order,
-          },
-          {
-            onConflict: 'billboard_user_id'
-          }
-        );
+      // RPC 함수를 사용하여 스키마 캐시 이슈 우회
+      const { error } = await supabase.rpc('update_billboard_user_settings', {
+        p_billboard_user_id: billboardUserId,
+        p_excluded_weekdays: userSettings.excluded_weekdays,
+        p_excluded_event_ids: userSettings.excluded_event_ids,
+        p_date_filter_start: userSettings.date_filter_start,
+        p_date_filter_end: userSettings.date_filter_end,
+        p_auto_slide_interval: userSettings.auto_slide_interval,
+        p_transition_duration: userSettings.transition_duration,
+        p_transition_effect: userSettings.transition_effect,
+        p_play_order: userSettings.play_order,
+      });
 
       if (error) throw error;
-      
-      // transition_effect, transition_duration은 Supabase 스키마 캐시 이슈로 저장 불가
-      // 추후 Supabase 대시보드에서 스키마 새로고침 필요
       
       alert("설정이 저장되었습니다.");
       onClose(); // 저장 후 모달 닫기

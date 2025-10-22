@@ -101,34 +101,25 @@ export function useBillboardSettings() {
     setSettings(newSettings);
     
     try {
-      // transition_effect를 제외한 필드들 먼저 저장 (Supabase 스키마 캐시 이슈 회피)
-      const dbData = {
-        id: 1,
-        enabled: newSettings.enabled,
-        auto_slide_interval: newSettings.autoSlideInterval,
-        inactivity_timeout: newSettings.inactivityTimeout,
-        auto_open_on_load: newSettings.autoOpenOnLoad,
-        transition_duration: newSettings.transitionDuration,
-        date_range_start: newSettings.dateRangeStart,
-        date_range_end: newSettings.dateRangeEnd,
-        show_date_range: newSettings.showDateRange,
-        play_order: newSettings.playOrder,
-        excluded_weekdays: newSettings.excludedWeekdays,
-        excluded_event_ids: newSettings.excludedEventIds,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase
-        .from("billboard_settings")
-        .upsert(dbData, { onConflict: 'id' });
+      // RPC 함수를 사용하여 스키마 캐시 이슈 우회
+      const { error } = await supabase.rpc('update_billboard_settings', {
+        p_enabled: newSettings.enabled,
+        p_auto_slide_interval: newSettings.autoSlideInterval,
+        p_inactivity_timeout: newSettings.inactivityTimeout,
+        p_auto_open_on_load: newSettings.autoOpenOnLoad,
+        p_transition_duration: newSettings.transitionDuration,
+        p_transition_effect: newSettings.transitionEffect,
+        p_date_range_start: newSettings.dateRangeStart,
+        p_date_range_end: newSettings.dateRangeEnd,
+        p_show_date_range: newSettings.showDateRange,
+        p_play_order: newSettings.playOrder,
+        p_excluded_weekdays: newSettings.excludedWeekdays,
+        p_excluded_event_ids: newSettings.excludedEventIds,
+      });
 
       if (error) {
         console.error("Error saving billboard settings:", error);
-        return;
       }
-      
-      // transition_effect는 Supabase 스키마 캐시 이슈로 저장 불가
-      // 추후 Supabase 대시보드에서 스키마 새로고침 필요
     } catch (error) {
       console.error("Error saving billboard settings:", error);
     }
@@ -138,31 +129,25 @@ export function useBillboardSettings() {
     setSettings(DEFAULT_SETTINGS);
     
     try {
-      // transition_effect를 제외한 필드들 먼저 저장
-      const dbData = {
-        id: 1,
-        enabled: DEFAULT_SETTINGS.enabled,
-        auto_slide_interval: DEFAULT_SETTINGS.autoSlideInterval,
-        inactivity_timeout: DEFAULT_SETTINGS.inactivityTimeout,
-        auto_open_on_load: DEFAULT_SETTINGS.autoOpenOnLoad,
-        transition_duration: DEFAULT_SETTINGS.transitionDuration,
-        date_range_start: DEFAULT_SETTINGS.dateRangeStart,
-        date_range_end: DEFAULT_SETTINGS.dateRangeEnd,
-        show_date_range: DEFAULT_SETTINGS.showDateRange,
-        play_order: DEFAULT_SETTINGS.playOrder,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase
-        .from("billboard_settings")
-        .upsert(dbData, { onConflict: 'id' });
+      // RPC 함수를 사용하여 스키마 캐시 이슈 우회
+      const { error } = await supabase.rpc('update_billboard_settings', {
+        p_enabled: DEFAULT_SETTINGS.enabled,
+        p_auto_slide_interval: DEFAULT_SETTINGS.autoSlideInterval,
+        p_inactivity_timeout: DEFAULT_SETTINGS.inactivityTimeout,
+        p_auto_open_on_load: DEFAULT_SETTINGS.autoOpenOnLoad,
+        p_transition_duration: DEFAULT_SETTINGS.transitionDuration,
+        p_transition_effect: DEFAULT_SETTINGS.transitionEffect,
+        p_date_range_start: DEFAULT_SETTINGS.dateRangeStart,
+        p_date_range_end: DEFAULT_SETTINGS.dateRangeEnd,
+        p_show_date_range: DEFAULT_SETTINGS.showDateRange,
+        p_play_order: DEFAULT_SETTINGS.playOrder,
+        p_excluded_weekdays: DEFAULT_SETTINGS.excludedWeekdays,
+        p_excluded_event_ids: DEFAULT_SETTINGS.excludedEventIds,
+      });
 
       if (error) {
         console.error("Error resetting billboard settings:", error);
-        return;
       }
-      
-      // transition_effect는 Supabase 스키마 캐시 이슈로 저장 불가
     } catch (error) {
       console.error("Error resetting billboard settings:", error);
     }
