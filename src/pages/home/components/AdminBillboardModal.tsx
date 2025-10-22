@@ -197,6 +197,8 @@ export default function AdminBillboardModal({
         date_filter_start: todayStr,
         date_filter_end: null, // 종료 날짜는 선택 사항
         auto_slide_interval: 5000,
+        transition_duration: 500,
+        transition_effect: 'fade',
         play_order: 'sequential',
       });
     } catch (error) {
@@ -249,6 +251,8 @@ export default function AdminBillboardModal({
             date_filter_start: userSettings.date_filter_start,
             date_filter_end: userSettings.date_filter_end,
             auto_slide_interval: userSettings.auto_slide_interval,
+            transition_duration: userSettings.transition_duration,
+            transition_effect: userSettings.transition_effect,
             play_order: userSettings.play_order,
           },
           {
