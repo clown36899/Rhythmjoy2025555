@@ -265,62 +265,46 @@ export default function BillboardPage() {
     };
   }, [events, settings, shuffledPlaylist]);
 
-  // YouTube 플레이어 초기화 (현재 슬라이드만)
-  useEffect(() => {
-    if (events.length === 0 || currentIndex >= events.length) return;
+  // YouTube 플레이어 ref 콜백 (React 충돌 방지)
+  const initYouTubePlayer = (element: HTMLDivElement | null, eventId: string, videoId: string) => {
+    if (!element) return;
     
-    const currentEvent = events[currentIndex];
-    if (!currentEvent.video_url) return;
+    const win = window as any;
     
-    const videoInfo = parseVideoUrl(currentEvent.video_url);
-    if (videoInfo?.provider !== 'youtube' || !videoInfo?.videoId) return;
-    
-    const eventId = currentEvent.id;
-    const playerId = `yt-${eventId}`;
-    
-    // 플레이어 초기화 함수
-    const initPlayer = () => {
-      const win = window as any;
+    const tryInit = () => {
       if (!win.YT || !win.YT.Player) {
-        setTimeout(initPlayer, 100);
+        setTimeout(tryInit, 100);
         return;
       }
       
-      // DOM 요소가 존재하는지 확인
-      const playerElement = document.getElementById(playerId);
-      if (!playerElement) {
-        setTimeout(initPlayer, 100);
-        return;
-      }
-      
-      // 이미 플레이어가 있으면 제거 후 재생성
+      // 이미 플레이어가 있으면 스킵
       if (youtubePlayersRef.current[eventId]) {
-        try {
-          youtubePlayersRef.current[eventId].destroy();
-          delete youtubePlayersRef.current[eventId];
-        } catch (err) {
-          // 무시
-        }
+        setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
+        return;
       }
       
       try {
-        youtubePlayersRef.current[eventId] = new win.YT.Player(playerId, {
-          videoId: videoInfo.videoId,
+        youtubePlayersRef.current[eventId] = new win.YT.Player(element, {
+          videoId: videoId,
           playerVars: {
             autoplay: 1,
             mute: 1,
             loop: 1,
-            playlist: videoInfo.videoId,
+            playlist: videoId,
             controls: 0,
             playsinline: 1,
             rel: 0,
+            enablejsapi: 1,
+            origin: window.location.origin,
           },
           events: {
             onReady: () => {
-              setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
+              setTimeout(() => {
+                setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
+              }, 500);
             },
-            onError: (e: any) => {
-              console.log('YouTube Player 에러:', e.data);
+            onError: () => {
+              // 에러 시 썸네일만 표시
             }
           }
         });
@@ -329,21 +313,8 @@ export default function BillboardPage() {
       }
     };
     
-    const timer = setTimeout(initPlayer, 300);
-    
-    return () => {
-      clearTimeout(timer);
-      // cleanup: 플레이어 제거
-      if (youtubePlayersRef.current[eventId]) {
-        try {
-          youtubePlayersRef.current[eventId].destroy();
-          delete youtubePlayersRef.current[eventId];
-        } catch (err) {
-          // 무시
-        }
-      }
-    };
-  }, [currentIndex, events]);
+    setTimeout(tryInit, 100);
+  };
 
   if (isLoading) {
     return (
@@ -450,27 +421,29 @@ export default function BillboardPage() {
                 className="w-full h-full object-contain"
               />
               {/* 로딩 스피너 */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                }}
-              >
+              {isVisible && !isPlayerReady && (
                 <div
-                  className="animate-spin rounded-full border-4 border-white border-t-transparent"
                   style={{
-                    width: `${64 * scale}px`,
-                    height: `${64 * scale}px`,
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
                   }}
-                />
-              </div>
+                >
+                  <div
+                    className="animate-spin rounded-full border-4 border-white border-t-transparent"
+                    style={{
+                      width: `${64 * scale}px`,
+                      height: `${64 * scale}px`,
+                    }}
+                  />
+                </div>
+              )}
             </div>
             
-            {/* YouTube Player 영역 */}
+            {/* YouTube Player 영역 - ref로 초기화 */}
             <div
-              id={`yt-${event.id}`}
+              ref={isVisible ? (el) => initYouTubePlayer(el, event.id, videoInfo.videoId!) : null}
               className="w-full h-full"
               style={{
                 opacity: isPlayerReady ? 1 : 0,
