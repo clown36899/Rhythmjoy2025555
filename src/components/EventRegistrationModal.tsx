@@ -676,6 +676,9 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
                 <label className="block text-gray-300 text-sm font-medium mb-1">
                   포스터 이미지 (선택사항)
                 </label>
+                <p className="text-xs text-yellow-400 mb-2">
+                  ⚠️ 이미지 또는 영상이 없으면 광고판에 나오지 않습니다
+                </p>
                 <div className="space-y-2">
                   {imagePreview && (
                     <div className="relative">

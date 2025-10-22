@@ -533,6 +533,7 @@ export default function BillboardUserManagementModal({
                         const eventDate = new Date(event.start_date || event.date || '');
                         const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
                         const weekday = weekdayNames[eventDate.getDay()];
+                        const hasMedia = !!(event.image_full || event.image || event.video_url);
                         
                         return (
                           <label
@@ -550,6 +551,11 @@ export default function BillboardUserManagementModal({
                               <span className="text-gray-400 text-xs ml-2">
                                 ({event.start_date || event.date} {weekday})
                               </span>
+                              {!hasMedia && (
+                                <span className="text-red-400 text-xs ml-2">
+                                  [이미지 없음 - 광고판 미노출]
+                                </span>
+                              )}
                             </span>
                           </label>
                         );
