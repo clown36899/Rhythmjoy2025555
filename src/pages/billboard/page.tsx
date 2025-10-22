@@ -37,6 +37,10 @@ export default function BillboardPage() {
   
   // 해상도 기반 스케일 계산 (기준: 1080px = 1.0배)
   const [scale, setScale] = useState(1);
+  
+  // YouTube 플레이어 상태 관리
+  const [youtubeReady, setYoutubeReady] = useState<Record<string, boolean>>({});
+  const youtubePlayersRef = useRef<Record<string, any>>({});
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -261,6 +265,58 @@ export default function BillboardPage() {
     };
   }, [events, settings, shuffledPlaylist]);
 
+  // YouTube 플레이어 초기화 (현재 슬라이드만)
+  useEffect(() => {
+    if (events.length === 0 || currentIndex >= events.length) return;
+    
+    const currentEvent = events[currentIndex];
+    if (!currentEvent.video_url) return;
+    
+    const videoInfo = parseVideoUrl(currentEvent.video_url);
+    if (videoInfo?.provider !== 'youtube' || !videoInfo?.videoId) return;
+    
+    const eventId = currentEvent.id;
+    const playerId = `yt-${eventId}`;
+    
+    // 플레이어 초기화 함수
+    const initPlayer = () => {
+      const win = window as any;
+      if (!win.YT || !win.YT.Player) {
+        setTimeout(initPlayer, 100);
+        return;
+      }
+      
+      // 이미 플레이어가 있으면 스킵
+      if (youtubePlayersRef.current[eventId]) {
+        setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
+        return;
+      }
+      
+      try {
+        youtubePlayersRef.current[eventId] = new win.YT.Player(playerId, {
+          videoId: videoInfo.videoId,
+          playerVars: {
+            autoplay: 1,
+            mute: 1,
+            loop: 1,
+            playlist: videoInfo.videoId,
+            controls: 0,
+            playsinline: 1,
+          },
+          events: {
+            onReady: () => {
+              setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
+            },
+          }
+        });
+      } catch (err) {
+        console.error('YouTube Player 초기화 실패:', err);
+      }
+    };
+    
+    setTimeout(initPlayer, 300);
+  }, [currentIndex, events]);
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -326,6 +382,8 @@ export default function BillboardPage() {
     const imageUrl = event.image_full || event.image;
     const videoUrl = event.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
+    const isYouTube = videoInfo?.provider === 'youtube';
+    const isPlayerReady = youtubeReady[event.id] || false;
 
     return (
       <div
@@ -341,10 +399,61 @@ export default function BillboardPage() {
           zIndex: isVisible ? 2 : 1,
         }}
       >
-        {videoInfo?.embedUrl ? (
+        {isYouTube ? (
+          <>
+            {/* YouTube 썸네일 + 로딩 스피너 */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: isPlayerReady ? 0 : 1,
+                transition: 'opacity 1s ease-in-out',
+                pointerEvents: isPlayerReady ? 'none' : 'auto',
+                zIndex: 2,
+                backgroundColor: '#000',
+              }}
+            >
+              <img
+                src={videoInfo.thumbnailUrl || imageUrl}
+                alt={event.title}
+                className="w-full h-full object-contain"
+              />
+              {/* 로딩 스피너 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <div
+                  className="animate-spin rounded-full border-4 border-white border-t-transparent"
+                  style={{
+                    width: `${64 * scale}px`,
+                    height: `${64 * scale}px`,
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* YouTube Player 영역 */}
+            <div
+              id={`yt-${event.id}`}
+              className="w-full h-full"
+              style={{
+                opacity: isPlayerReady ? 1 : 0,
+                transition: 'opacity 1s ease-in-out',
+              }}
+            />
+          </>
+        ) : videoInfo?.embedUrl ? (
           <iframe
             key={`video-${event.id}`}
-            src={isVisible ? videoInfo.embedUrl : 'about:blank'}
+            src={videoInfo.embedUrl}
             className="w-full h-full"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
