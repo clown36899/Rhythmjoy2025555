@@ -1450,7 +1450,7 @@ export default function EventList({
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white text-base font-bold leading-tight line-clamp-3">
+                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
                                 {event.title}
                               </h3>
                             </div>
@@ -1576,7 +1576,7 @@ export default function EventList({
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white text-base font-bold leading-tight line-clamp-3">
+                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
                                 {event.title}
                               </h3>
                             </div>
@@ -1692,7 +1692,7 @@ export default function EventList({
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white text-base font-bold leading-tight line-clamp-3">
+                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
                                 {event.title}
                               </h3>
                             </div>
