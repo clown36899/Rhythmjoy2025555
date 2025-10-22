@@ -42,8 +42,8 @@ export default function BillboardPage() {
   useEffect(() => {
     const updateScale = () => {
       const height = window.innerHeight;
-      // 720px = 0.6배, 1080px = 1.0배, 1440px = 1.3배, 2160px = 2.0배
-      const calculatedScale = Math.max(0.5, Math.min(2.5, height / 1080));
+      // 720px = 0.8배, 1080px = 1.2배, 1440px = 1.6배, 2160px = 2.4배
+      const calculatedScale = Math.max(0.6, Math.min(3.0, height / 900));
       setScale(calculatedScale);
     };
 
