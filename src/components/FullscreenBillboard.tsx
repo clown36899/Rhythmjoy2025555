@@ -111,7 +111,10 @@ export default function FullscreenBillboard({
       setProgress(0);
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
-        setIsTransitioning(false);
+        // 인덱스 변경 후 약간의 딜레이를 두고 페이드인
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50);
       }, transitionDuration);
     }, autoSlideInterval);
 
