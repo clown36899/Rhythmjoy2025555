@@ -286,10 +286,21 @@ export default function BillboardPage() {
         return;
       }
       
-      // 이미 플레이어가 있으면 스킵
-      if (youtubePlayersRef.current[eventId]) {
-        setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
+      // DOM 요소가 존재하는지 확인
+      const playerElement = document.getElementById(playerId);
+      if (!playerElement) {
+        setTimeout(initPlayer, 100);
         return;
+      }
+      
+      // 이미 플레이어가 있으면 제거 후 재생성
+      if (youtubePlayersRef.current[eventId]) {
+        try {
+          youtubePlayersRef.current[eventId].destroy();
+          delete youtubePlayersRef.current[eventId];
+        } catch (err) {
+          // 무시
+        }
       }
       
       try {
@@ -302,11 +313,15 @@ export default function BillboardPage() {
             playlist: videoInfo.videoId,
             controls: 0,
             playsinline: 1,
+            rel: 0,
           },
           events: {
             onReady: () => {
               setYoutubeReady(prev => ({ ...prev, [eventId]: true }));
             },
+            onError: (e: any) => {
+              console.log('YouTube Player 에러:', e.data);
+            }
           }
         });
       } catch (err) {
@@ -314,7 +329,20 @@ export default function BillboardPage() {
       }
     };
     
-    setTimeout(initPlayer, 300);
+    const timer = setTimeout(initPlayer, 300);
+    
+    return () => {
+      clearTimeout(timer);
+      // cleanup: 플레이어 제거
+      if (youtubePlayersRef.current[eventId]) {
+        try {
+          youtubePlayersRef.current[eventId].destroy();
+          delete youtubePlayersRef.current[eventId];
+        } catch (err) {
+          // 무시
+        }
+      }
+    };
   }, [currentIndex, events]);
 
   if (isLoading) {
