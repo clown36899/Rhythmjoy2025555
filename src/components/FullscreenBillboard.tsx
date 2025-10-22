@@ -177,10 +177,13 @@ export default function FullscreenBillboard({
               if (videoInfo.embedUrl) {
                 return (
                   <div 
-                    className={`relative w-full h-screen flex items-center justify-center transition-opacity cursor-pointer ${
-                      isTransitioning ? "opacity-0" : "opacity-100"
-                    }`}
-                    style={{ transitionDuration: `${transitionDuration}ms` }}
+                    className="relative w-full h-screen flex items-center justify-center cursor-pointer"
+                    style={{ 
+                      opacity: isTransitioning ? 0 : 1,
+                      transform: `scale(${isTransitioning ? 0.95 : 1})`,
+                      filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
+                      transition: `all ${transitionDuration}ms ease-in-out`
+                    }}
                   >
                     <iframe
                       src={videoInfo.embedUrl}
@@ -205,10 +208,13 @@ export default function FullscreenBillboard({
               <img
                 src={sortedImages[currentIndex]}
                 alt="Event Billboard"
-                className={`max-w-full max-h-screen object-contain transition-opacity cursor-pointer ${
-                  isTransitioning ? "opacity-0" : "opacity-100"
-                }`}
-                style={{ transitionDuration: `${transitionDuration}ms` }}
+                className="max-w-full max-h-screen object-contain cursor-pointer"
+                style={{ 
+                  opacity: isTransitioning ? 0 : 1,
+                  transform: `scale(${isTransitioning ? 0.95 : 1})`,
+                  filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
+                  transition: `all ${transitionDuration}ms ease-in-out`
+                }}
                 onClick={handleImageClick}
               />
             );
@@ -220,11 +226,12 @@ export default function FullscreenBillboard({
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent pt-16 px-6 pointer-events-none">
             {/* 대형 제목 - 40인치 디스플레이용, 단어 단위 줄바꿈 */}
             <h2
-              className={`text-white text-3xl md:text-4xl lg:text-5xl font-black text-center leading-tight tracking-tight transition-opacity ${
-                isTransitioning ? "opacity-0" : "opacity-100"
-              }`}
+              className="text-white text-3xl md:text-4xl lg:text-5xl font-black text-center leading-tight tracking-tight"
               style={{
-                transitionDuration: `${transitionDuration}ms`,
+                opacity: isTransitioning ? 0 : 1,
+                transform: `scale(${isTransitioning ? 0.95 : 1})`,
+                filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
+                transition: `all ${transitionDuration}ms ease-in-out`,
                 textShadow: "0 4px 20px rgba(0,0,0,0.8)",
                 whiteSpace: "pre-line",
                 maxWidth: "90%",
