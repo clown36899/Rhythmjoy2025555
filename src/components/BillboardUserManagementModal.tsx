@@ -229,6 +229,11 @@ export default function BillboardUserManagementModal({
   const handleSaveSettings = async () => {
     if (!selectedUser || !selectedSettings) return;
 
+    console.log('[빌보드 설정 저장]', {
+      excluded_event_ids: excludedEventIds,
+      count: excludedEventIds.length
+    });
+
     try {
       const { error } = await supabase
         .from('billboard_user_settings')
@@ -261,9 +266,20 @@ export default function BillboardUserManagementModal({
   };
 
   const toggleEvent = (eventId: number) => {
-    setExcludedEventIds((prev) =>
-      prev.includes(eventId) ? prev.filter((id) => id !== eventId) : [...prev, eventId]
-    );
+    setExcludedEventIds((prev) => {
+      const newList = prev.includes(eventId)
+        ? prev.filter((id) => id !== eventId)
+        : [...prev, eventId];
+      
+      console.log('[이벤트 토글]', {
+        eventId,
+        action: prev.includes(eventId) ? '제거' : '추가',
+        이전목록: prev,
+        새목록: newList
+      });
+      
+      return newList;
+    });
   };
 
   const copyBillboardUrl = (userId: string) => {
