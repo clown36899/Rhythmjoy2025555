@@ -1449,8 +1449,8 @@ export default function EventList({
                             <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
-                              <h3 className="text-white text-xs font-bold leading-tight line-clamp-2">
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
+                              <h3 className="text-white text-base font-bold leading-tight line-clamp-3">
                                 {event.title}
                               </h3>
                             </div>
@@ -1575,8 +1575,8 @@ export default function EventList({
                             <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
-                              <h3 className="text-white text-xs font-bold leading-tight line-clamp-2">
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
+                              <h3 className="text-white text-base font-bold leading-tight line-clamp-3">
                                 {event.title}
                               </h3>
                             </div>
@@ -1691,8 +1691,8 @@ export default function EventList({
                             <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
-                              <h3 className="text-white text-xs font-bold leading-tight line-clamp-2">
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
+                              <h3 className="text-white text-base font-bold leading-tight line-clamp-3">
                                 {event.title}
                               </h3>
                             </div>
