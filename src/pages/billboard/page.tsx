@@ -220,89 +220,107 @@ export default function BillboardPage() {
     });
   };
 
-  // 슬라이드 자동 전환
+  // 슬라이드 자동 전환 - currentIndex 의존성 제거로 썸네일→영상 전환 시 타이머 리셋 방지
   useEffect(() => {
     if (!settings || events.length === 0) return;
 
-    // 현재 이벤트가 영상인지 확인
-    const currentEvent = events[currentIndex];
-    const isVideo = currentEvent?.video_url ? true : false;
+    let currentIdx = currentIndex;
     
-    // 이벤트 타입에 따라 다른 슬라이드 시간 사용
-    const slideInterval = isVideo 
-      ? settings.auto_slide_interval_video 
-      : settings.auto_slide_interval;
-
-    // 프로그레스 바 초기화 및 업데이트
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
-    setProgress(0);
-    const progressStep = (50 / slideInterval) * 100;
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) return 0;
-        return prev + progressStep;
-      });
-    }, 50);
-
-    // 슬라이드 전환 타이머
-    const timeout = setTimeout(() => {
-      const effectType = settings.effect_type || 'fade';
-      const effectSpeed = settings.effect_speed || 500;
+    const scheduleNext = () => {
+      // 현재 이벤트가 영상인지 확인
+      const currentEvent = events[currentIdx];
+      const isVideo = currentEvent?.video_url ? true : false;
       
+      // 이벤트 타입에 따라 다른 슬라이드 시간 사용
+      const slideInterval = isVideo 
+        ? settings.auto_slide_interval_video 
+        : settings.auto_slide_interval;
+
+      // 프로그레스 바 초기화 및 업데이트
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+
       setProgress(0);
-      
-      if (effectType === 'slide') {
-        setIsTransitioning(true);
-        setSlideOffset(-100);
+      const progressStep = (50 / slideInterval) * 100;
+      progressIntervalRef.current = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) return 0;
+          return prev + progressStep;
+        });
+      }, 50);
+
+      // 슬라이드 전환 타이머
+      return setTimeout(() => {
+        const effectType = settings.effect_type || 'fade';
+        const effectSpeed = settings.effect_speed || 500;
         
-        setTimeout(() => {
-          if (settings.play_order === "random") {
-            const nextPlaylistIdx = playlistIndexRef.current + 1;
-            if (nextPlaylistIdx >= shuffledPlaylist.length) {
-              const newIndices = Array.from({ length: events.length }, (_, i) => i);
-              const newPlaylist = shuffleArray(newIndices);
-              setShuffledPlaylist(newPlaylist);
-              playlistIndexRef.current = 0;
-              setCurrentIndex(newPlaylist[0] || 0);
-            } else {
-              playlistIndexRef.current = nextPlaylistIdx;
-              setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
-            }
-          } else {
-            setCurrentIndex((prev) => (prev + 1) % events.length);
-          }
-          setSlideOffset(0);
-          setIsTransitioning(false);
-        }, effectSpeed);
-      } else {
-        setIsTransitioning(true);
+        setProgress(0);
         
-        setTimeout(() => {
-          if (settings.play_order === "random") {
-            const nextPlaylistIdx = playlistIndexRef.current + 1;
-            if (nextPlaylistIdx >= shuffledPlaylist.length) {
-              const newIndices = Array.from({ length: events.length }, (_, i) => i);
-              const newPlaylist = shuffleArray(newIndices);
-              setShuffledPlaylist(newPlaylist);
-              playlistIndexRef.current = 0;
-              setCurrentIndex(newPlaylist[0] || 0);
-            } else {
-              playlistIndexRef.current = nextPlaylistIdx;
-              setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
-            }
-          } else {
-            setCurrentIndex((prev) => (prev + 1) % events.length);
-          }
+        if (effectType === 'slide') {
+          setIsTransitioning(true);
+          setSlideOffset(-100);
           
           setTimeout(() => {
+            if (settings.play_order === "random") {
+              const nextPlaylistIdx = playlistIndexRef.current + 1;
+              if (nextPlaylistIdx >= shuffledPlaylist.length) {
+                const newIndices = Array.from({ length: events.length }, (_, i) => i);
+                const newPlaylist = shuffleArray(newIndices);
+                setShuffledPlaylist(newPlaylist);
+                playlistIndexRef.current = 0;
+                currentIdx = newPlaylist[0] || 0;
+                setCurrentIndex(currentIdx);
+              } else {
+                playlistIndexRef.current = nextPlaylistIdx;
+                currentIdx = shuffledPlaylist[nextPlaylistIdx] || 0;
+                setCurrentIndex(currentIdx);
+              }
+            } else {
+              currentIdx = (currentIdx + 1) % events.length;
+              setCurrentIndex(currentIdx);
+            }
+            setSlideOffset(0);
             setIsTransitioning(false);
-          }, 50);
-        }, effectSpeed);
-      }
-    }, slideInterval);
+            
+            // 다음 슬라이드 스케줄
+            scheduleNext();
+          }, effectSpeed);
+        } else {
+          setIsTransitioning(true);
+          
+          setTimeout(() => {
+            if (settings.play_order === "random") {
+              const nextPlaylistIdx = playlistIndexRef.current + 1;
+              if (nextPlaylistIdx >= shuffledPlaylist.length) {
+                const newIndices = Array.from({ length: events.length }, (_, i) => i);
+                const newPlaylist = shuffleArray(newIndices);
+                setShuffledPlaylist(newPlaylist);
+                playlistIndexRef.current = 0;
+                currentIdx = newPlaylist[0] || 0;
+                setCurrentIndex(currentIdx);
+              } else {
+                playlistIndexRef.current = nextPlaylistIdx;
+                currentIdx = shuffledPlaylist[nextPlaylistIdx] || 0;
+                setCurrentIndex(currentIdx);
+              }
+            } else {
+              currentIdx = (currentIdx + 1) % events.length;
+              setCurrentIndex(currentIdx);
+            }
+            
+            setTimeout(() => {
+              setIsTransitioning(false);
+              
+              // 다음 슬라이드 스케줄
+              scheduleNext();
+            }, 50);
+          }, effectSpeed);
+        }
+      }, slideInterval);
+    };
+
+    const timeout = scheduleNext();
 
     return () => {
       clearTimeout(timeout);
@@ -310,7 +328,7 @@ export default function BillboardPage() {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [events, settings, shuffledPlaylist, currentIndex]);
+  }, [events, settings, shuffledPlaylist]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
