@@ -15,10 +15,12 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   if (isYouTubeUrl(trimmedUrl)) {
     const videoId = extractYouTubeId(trimmedUrl);
     if (videoId) {
+      // 쇼츠는 썸네일 사용 안 함 (가로 이미지로 나오기 때문)
+      const isShorts = isYouTubeShorts(trimmedUrl);
       return {
         provider: 'youtube',
         embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`,
-        thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        thumbnailUrl: isShorts ? null : `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
         videoId,
       };
     }
@@ -72,6 +74,10 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
 
 function isYouTubeUrl(url: string): boolean {
   return /(?:youtube\.com|youtu\.be)/.test(url);
+}
+
+function isYouTubeShorts(url: string): boolean {
+  return /youtube\.com\/shorts\//.test(url);
 }
 
 function extractYouTubeId(url: string): string | null {

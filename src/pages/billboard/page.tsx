@@ -40,6 +40,8 @@ export default function BillboardPage() {
   
   // 비디오 iframe 로딩 상태
   const [videoLoaded, setVideoLoaded] = useState<Record<string, boolean>>({});
+  const [loadTimes, setLoadTimes] = useState<number[]>([]);
+  const loadStartTimeRef = useRef<number>(0);
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -264,9 +266,10 @@ export default function BillboardPage() {
     };
   }, [events, settings, shuffledPlaylist]);
 
-  // 슬라이드 변경 시 비디오 로딩 상태 리셋
+  // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
     setVideoLoaded({});
+    loadStartTimeRef.current = Date.now();
   }, [currentIndex]);
 
   if (isLoading) {
@@ -362,9 +365,22 @@ export default function BillboardPage() {
               allowFullScreen
               title={event.title}
               onLoad={() => {
+                const loadTime = Date.now() - loadStartTimeRef.current;
+                
+                // 로딩 시간 기록 (최근 5개 평균 사용)
+                setLoadTimes(prev => {
+                  const updated = [...prev, loadTime];
+                  return updated.slice(-5);
+                });
+                
+                // 평균 로딩 시간 계산 (최소 1초, 최대 5초)
+                const avgLoadTime = loadTimes.length > 0
+                  ? Math.min(5000, Math.max(1000, loadTimes.reduce((a, b) => a + b, 0) / loadTimes.length))
+                  : 3000;
+                
                 setTimeout(() => {
                   setVideoLoaded(prev => ({ ...prev, [event.id]: true }));
-                }, 3000);
+                }, avgLoadTime);
               }}
               style={{
                 position: 'absolute',
@@ -388,11 +404,16 @@ export default function BillboardPage() {
                 backgroundColor: '#000',
               }}
             >
-              <img
-                src={videoInfo.thumbnailUrl || imageUrl}
-                alt={event.title}
-                className="w-full h-full object-contain"
-              />
+              {videoInfo.thumbnailUrl ? (
+                <img
+                  src={videoInfo.thumbnailUrl}
+                  alt={event.title}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                // 쇼츠 등 썸네일이 없을 때는 검은 배경만
+                <div className="w-full h-full bg-black" />
+              )}
               {/* 로딩 스피너 */}
               {isVisible && !isLoaded && (
                 <div
