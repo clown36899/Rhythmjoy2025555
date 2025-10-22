@@ -560,7 +560,7 @@ export default function BillboardPage() {
                       </div>
                     )}
                 </div>
-                <h3 className="text-white font-bold" style={{ fontSize: `${36 * scale}px` }}>{event.title}</h3>
+                <h3 className="text-white font-bold" style={{ fontSize: `${54 * scale}px` }}>{event.title}</h3>
               </div>
 
               <div 
