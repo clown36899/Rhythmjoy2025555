@@ -22,8 +22,8 @@ interface BillboardUserSettings {
   date_filter_start: string | null;
   date_filter_end: string | null;
   auto_slide_interval: number;
-  transition_duration: number;
-  transition_effect: 'none' | 'fade' | 'slide';
+  effect_speed: number;
+  effect_type: 'none' | 'fade' | 'slide';
   play_order: 'sequential' | 'random';
 }
 
@@ -197,8 +197,8 @@ export default function AdminBillboardModal({
         date_filter_start: todayStr,
         date_filter_end: null, // 종료 날짜는 선택 사항
         auto_slide_interval: 5000,
-        transition_duration: 500,
-        transition_effect: 'fade',
+        effect_speed: 500,
+        effect_type: 'fade',
         play_order: 'sequential',
       });
     } catch (error) {
@@ -241,18 +241,24 @@ export default function AdminBillboardModal({
     if (!billboardUserId || !userSettings) return;
 
     try {
-      // RPC 함수를 사용하여 스키마 캐시 이슈 우회
-      const { error } = await supabase.rpc('update_billboard_user_settings', {
-        p_billboard_user_id: billboardUserId,
-        p_excluded_weekdays: userSettings.excluded_weekdays,
-        p_excluded_event_ids: userSettings.excluded_event_ids,
-        p_date_filter_start: userSettings.date_filter_start,
-        p_date_filter_end: userSettings.date_filter_end,
-        p_auto_slide_interval: userSettings.auto_slide_interval,
-        p_transition_duration: userSettings.transition_duration,
-        p_transition_effect: userSettings.transition_effect,
-        p_play_order: userSettings.play_order,
-      });
+      const { error } = await supabase
+        .from("billboard_user_settings")
+        .upsert(
+          {
+            billboard_user_id: billboardUserId,
+            excluded_weekdays: userSettings.excluded_weekdays,
+            excluded_event_ids: userSettings.excluded_event_ids,
+            date_filter_start: userSettings.date_filter_start,
+            date_filter_end: userSettings.date_filter_end,
+            auto_slide_interval: userSettings.auto_slide_interval,
+            effect_speed: userSettings.effect_speed,
+            effect_type: userSettings.effect_type,
+            play_order: userSettings.play_order,
+          },
+          {
+            onConflict: 'billboard_user_id'
+          }
+        );
 
       if (error) throw error;
       
@@ -459,9 +465,9 @@ export default function AdminBillboardModal({
               </p>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <button
-                  onClick={() => updateLocalSettings({ transition_effect: 'none' })}
+                  onClick={() => updateLocalSettings({ effect_type: 'none' })}
                   className={`p-3 rounded-lg border-2 transition-all ${
-                    userSettings.transition_effect === 'none'
+                    userSettings.effect_type === 'none'
                       ? 'border-blue-500 bg-blue-500/20 text-white'
                       : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
                   }`}
@@ -472,9 +478,9 @@ export default function AdminBillboardModal({
                   </div>
                 </button>
                 <button
-                  onClick={() => updateLocalSettings({ transition_effect: 'fade' })}
+                  onClick={() => updateLocalSettings({ effect_type: 'fade' })}
                   className={`p-3 rounded-lg border-2 transition-all ${
-                    userSettings.transition_effect === 'fade'
+                    userSettings.effect_type === 'fade'
                       ? 'border-blue-500 bg-blue-500/20 text-white'
                       : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
                   }`}
@@ -485,9 +491,9 @@ export default function AdminBillboardModal({
                   </div>
                 </button>
                 <button
-                  onClick={() => updateLocalSettings({ transition_effect: 'slide' })}
+                  onClick={() => updateLocalSettings({ effect_type: 'slide' })}
                   className={`p-3 rounded-lg border-2 transition-all ${
-                    userSettings.transition_effect === 'slide'
+                    userSettings.effect_type === 'slide'
                       ? 'border-blue-500 bg-blue-500/20 text-white'
                       : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
                   }`}
@@ -504,7 +510,7 @@ export default function AdminBillboardModal({
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-white font-medium text-sm">전환 속도</label>
                   <span className="text-blue-400 font-bold text-sm">
-                    {formatTime(userSettings.transition_duration)}
+                    {formatTime(userSettings.effect_speed)}
                   </span>
                 </div>
                 <input
@@ -512,9 +518,9 @@ export default function AdminBillboardModal({
                   min="100"
                   max="2000"
                   step="50"
-                  value={userSettings.transition_duration}
+                  value={userSettings.effect_speed}
                   onChange={(e) =>
-                    updateLocalSettings({ transition_duration: parseInt(e.target.value) })
+                    updateLocalSettings({ effect_speed: parseInt(e.target.value) })
                   }
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
                 />
@@ -836,9 +842,9 @@ export default function AdminBillboardModal({
             </p>
             <div className="grid grid-cols-3 gap-3">
               <button
-                onClick={() => onUpdateSettings({ transitionEffect: 'none' })}
+                onClick={() => onUpdateSettings({ effectType: 'none' })}
                 className={`p-3 rounded-lg border-2 transition-all ${
-                  settings.transitionEffect === 'none'
+                  settings.effectType === 'none'
                     ? 'border-purple-500 bg-purple-500/20 text-white'
                     : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
                 }`}
@@ -849,9 +855,9 @@ export default function AdminBillboardModal({
                 </div>
               </button>
               <button
-                onClick={() => onUpdateSettings({ transitionEffect: 'fade' })}
+                onClick={() => onUpdateSettings({ effectType: 'fade' })}
                 className={`p-3 rounded-lg border-2 transition-all ${
-                  settings.transitionEffect === 'fade'
+                  settings.effectType === 'fade'
                     ? 'border-purple-500 bg-purple-500/20 text-white'
                     : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
                 }`}
@@ -862,9 +868,9 @@ export default function AdminBillboardModal({
                 </div>
               </button>
               <button
-                onClick={() => onUpdateSettings({ transitionEffect: 'slide' })}
+                onClick={() => onUpdateSettings({ effectType: 'slide' })}
                 className={`p-3 rounded-lg border-2 transition-all ${
-                  settings.transitionEffect === 'slide'
+                  settings.effectType === 'slide'
                     ? 'border-purple-500 bg-purple-500/20 text-white'
                     : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
                 }`}
@@ -882,7 +888,7 @@ export default function AdminBillboardModal({
             <div className="flex items-center justify-between mb-3">
               <label className="text-white font-medium">전환 효과 속도</label>
               <span className="text-purple-400 font-bold">
-                {formatTime(settings.transitionDuration)}
+                {formatTime(settings.effectSpeed)}
               </span>
             </div>
             <p className="text-sm text-gray-400 mb-4">
@@ -893,9 +899,9 @@ export default function AdminBillboardModal({
               min="100"
               max="2000"
               step="50"
-              value={settings.transitionDuration}
+              value={settings.effectSpeed}
               onChange={(e) =>
-                onUpdateSettings({ transitionDuration: parseInt(e.target.value) })
+                onUpdateSettings({ effectSpeed: parseInt(e.target.value) })
               }
               className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider-purple"
             />
@@ -1117,7 +1123,7 @@ export default function AdminBillboardModal({
               </div>
               <div className="flex justify-between">
                 <span>전환 속도:</span>
-                <span className="text-purple-300 font-medium">{formatTime(settings.transitionDuration)}</span>
+                <span className="text-purple-300 font-medium">{formatTime(settings.effectSpeed)}</span>
               </div>
               <div className="flex justify-between">
                 <span>재생 순서:</span>

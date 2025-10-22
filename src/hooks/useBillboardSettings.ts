@@ -6,8 +6,8 @@ export interface BillboardSettings {
   autoSlideInterval: number; // milliseconds
   inactivityTimeout: number; // milliseconds (0 = disabled)
   autoOpenOnLoad: boolean;
-  transitionDuration: number; // milliseconds
-  transitionEffect: 'none' | 'fade' | 'slide'; // 전환 효과 종류
+  effectSpeed: number; // milliseconds
+  effectType: 'none' | 'fade' | 'slide'; // 전환 효과 종류
   dateRangeStart: string | null; // YYYY-MM-DD
   dateRangeEnd: string | null; // YYYY-MM-DD
   showDateRange: boolean; // 날짜 범위 표시 여부
@@ -27,8 +27,8 @@ const DEFAULT_SETTINGS: BillboardSettings = {
   autoSlideInterval: 5000, // 5초
   inactivityTimeout: 300000, // 5분
   autoOpenOnLoad: true,
-  transitionDuration: 300, // 0.3초
-  transitionEffect: 'fade', // 기본: 페이드 효과
+  effectSpeed: 300, // 0.3초
+  effectType: 'fade', // 기본: 페이드 효과
   dateRangeStart: getTodayString(), // 오늘 날짜
   dateRangeEnd: null,
   showDateRange: true,
@@ -75,8 +75,8 @@ export function useBillboardSettings() {
             autoSlideInterval: data.auto_slide_interval ?? DEFAULT_SETTINGS.autoSlideInterval,
             inactivityTimeout: data.inactivity_timeout ?? DEFAULT_SETTINGS.inactivityTimeout,
             autoOpenOnLoad: data.auto_open_on_load ?? DEFAULT_SETTINGS.autoOpenOnLoad,
-            transitionDuration: data.transition_duration ?? DEFAULT_SETTINGS.transitionDuration,
-            transitionEffect: data.transition_effect ?? DEFAULT_SETTINGS.transitionEffect,
+            effectSpeed: data.effect_speed ?? DEFAULT_SETTINGS.effectSpeed,
+            effectType: data.effect_type ?? DEFAULT_SETTINGS.effectType,
             dateRangeStart: data.date_range_start ?? DEFAULT_SETTINGS.dateRangeStart,
             dateRangeEnd: data.date_range_end ?? DEFAULT_SETTINGS.dateRangeEnd,
             showDateRange: data.show_date_range ?? DEFAULT_SETTINGS.showDateRange,
@@ -101,21 +101,26 @@ export function useBillboardSettings() {
     setSettings(newSettings);
     
     try {
-      // RPC 함수를 사용하여 스키마 캐시 이슈 우회
-      const { error } = await supabase.rpc('update_billboard_settings', {
-        p_enabled: newSettings.enabled,
-        p_auto_slide_interval: newSettings.autoSlideInterval,
-        p_inactivity_timeout: newSettings.inactivityTimeout,
-        p_auto_open_on_load: newSettings.autoOpenOnLoad,
-        p_transition_duration: newSettings.transitionDuration,
-        p_transition_effect: newSettings.transitionEffect,
-        p_date_range_start: newSettings.dateRangeStart,
-        p_date_range_end: newSettings.dateRangeEnd,
-        p_show_date_range: newSettings.showDateRange,
-        p_play_order: newSettings.playOrder,
-        p_excluded_weekdays: newSettings.excludedWeekdays,
-        p_excluded_event_ids: newSettings.excludedEventIds,
-      });
+      const dbData = {
+        id: 1,
+        enabled: newSettings.enabled,
+        auto_slide_interval: newSettings.autoSlideInterval,
+        inactivity_timeout: newSettings.inactivityTimeout,
+        auto_open_on_load: newSettings.autoOpenOnLoad,
+        effect_speed: newSettings.effectSpeed,
+        effect_type: newSettings.effectType,
+        date_range_start: newSettings.dateRangeStart,
+        date_range_end: newSettings.dateRangeEnd,
+        show_date_range: newSettings.showDateRange,
+        play_order: newSettings.playOrder,
+        excluded_weekdays: newSettings.excludedWeekdays,
+        excluded_event_ids: newSettings.excludedEventIds,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from("billboard_settings")
+        .upsert(dbData, { onConflict: 'id' });
 
       if (error) {
         console.error("Error saving billboard settings:", error);
@@ -129,21 +134,24 @@ export function useBillboardSettings() {
     setSettings(DEFAULT_SETTINGS);
     
     try {
-      // RPC 함수를 사용하여 스키마 캐시 이슈 우회
-      const { error } = await supabase.rpc('update_billboard_settings', {
-        p_enabled: DEFAULT_SETTINGS.enabled,
-        p_auto_slide_interval: DEFAULT_SETTINGS.autoSlideInterval,
-        p_inactivity_timeout: DEFAULT_SETTINGS.inactivityTimeout,
-        p_auto_open_on_load: DEFAULT_SETTINGS.autoOpenOnLoad,
-        p_transition_duration: DEFAULT_SETTINGS.transitionDuration,
-        p_transition_effect: DEFAULT_SETTINGS.transitionEffect,
-        p_date_range_start: DEFAULT_SETTINGS.dateRangeStart,
-        p_date_range_end: DEFAULT_SETTINGS.dateRangeEnd,
-        p_show_date_range: DEFAULT_SETTINGS.showDateRange,
-        p_play_order: DEFAULT_SETTINGS.playOrder,
-        p_excluded_weekdays: DEFAULT_SETTINGS.excludedWeekdays,
-        p_excluded_event_ids: DEFAULT_SETTINGS.excludedEventIds,
-      });
+      const dbData = {
+        id: 1,
+        enabled: DEFAULT_SETTINGS.enabled,
+        auto_slide_interval: DEFAULT_SETTINGS.autoSlideInterval,
+        inactivity_timeout: DEFAULT_SETTINGS.inactivityTimeout,
+        auto_open_on_load: DEFAULT_SETTINGS.autoOpenOnLoad,
+        effect_speed: DEFAULT_SETTINGS.effectSpeed,
+        effect_type: DEFAULT_SETTINGS.effectType,
+        date_range_start: DEFAULT_SETTINGS.dateRangeStart,
+        date_range_end: DEFAULT_SETTINGS.dateRangeEnd,
+        show_date_range: DEFAULT_SETTINGS.showDateRange,
+        play_order: DEFAULT_SETTINGS.playOrder,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from("billboard_settings")
+        .upsert(dbData, { onConflict: 'id' });
 
       if (error) {
         console.error("Error resetting billboard settings:", error);

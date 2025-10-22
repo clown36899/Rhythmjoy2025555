@@ -10,8 +10,8 @@ interface FullscreenBillboardProps {
   onClose: () => void;
   onEventClick: (event: any) => void;
   autoSlideInterval?: number;
-  transitionDuration?: number;
-  transitionEffect?: 'none' | 'fade' | 'slide';
+  effectSpeed?: number;
+  effectType?: 'none' | 'fade' | 'slide';
   dateRangeStart?: string | null;
   dateRangeEnd?: string | null;
   showDateRange?: boolean;
@@ -35,8 +35,8 @@ export default function FullscreenBillboard({
   onClose,
   onEventClick,
   autoSlideInterval = 5000,
-  transitionDuration = 300,
-  transitionEffect = 'fade',
+  effectSpeed = 300,
+  effectType = 'fade',
   dateRangeStart,
   dateRangeEnd,
   showDateRange = true,
@@ -117,7 +117,7 @@ export default function FullscreenBillboard({
         setTimeout(() => {
           setIsTransitioning(false);
         }, 50);
-      }, transitionDuration);
+      }, effectSpeed);
     }, autoSlideInterval);
 
     return () => {
@@ -130,7 +130,7 @@ export default function FullscreenBillboard({
         progressIntervalRef.current = null;
       }
     };
-  }, [isOpen, sortedImages.length, autoSlideInterval, transitionDuration]);
+  }, [isOpen, sortedImages.length, autoSlideInterval, effectSpeed]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -181,22 +181,22 @@ export default function FullscreenBillboard({
               const videoInfo = parseVideoUrl(videoUrl);
               if (videoInfo.embedUrl) {
                 const getVideoTransitionStyle = () => {
-                  if (transitionEffect === 'none') {
+                  if (effectType === 'none') {
                     return {
                       opacity: isTransitioning ? 0 : 1,
                       transition: 'none'
                     };
-                  } else if (transitionEffect === 'slide') {
+                  } else if (effectType === 'slide') {
                     return {
                       transform: `translateX(${isTransitioning ? '100%' : '0'})`,
-                      transition: `all ${transitionDuration}ms ease-in-out`
+                      transition: `all ${effectSpeed}ms ease-in-out`
                     };
                   } else {
                     return {
                       opacity: isTransitioning ? 0 : 1,
                       transform: `scale(${isTransitioning ? 0.95 : 1})`,
                       filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
-                      transition: `all ${transitionDuration}ms ease-in-out`
+                      transition: `all ${effectSpeed}ms ease-in-out`
                     };
                   }
                 };
@@ -226,22 +226,22 @@ export default function FullscreenBillboard({
             }
             
             const getImageTransitionStyle = () => {
-              if (transitionEffect === 'none') {
+              if (effectType === 'none') {
                 return {
                   opacity: isTransitioning ? 0 : 1,
                   transition: 'none'
                 };
-              } else if (transitionEffect === 'slide') {
+              } else if (effectType === 'slide') {
                 return {
                   transform: `translateX(${isTransitioning ? '100%' : '0'})`,
-                  transition: `all ${transitionDuration}ms ease-in-out`
+                  transition: `all ${effectSpeed}ms ease-in-out`
                 };
               } else {
                 return {
                   opacity: isTransitioning ? 0 : 1,
                   transform: `scale(${isTransitioning ? 0.95 : 1})`,
                   filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
-                  transition: `all ${transitionDuration}ms ease-in-out`
+                  transition: `all ${effectSpeed}ms ease-in-out`
                 };
               }
             };
@@ -268,7 +268,7 @@ export default function FullscreenBillboard({
                 opacity: isTransitioning ? 0 : 1,
                 transform: `scale(${isTransitioning ? 0.95 : 1})`,
                 filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
-                transition: `all ${transitionDuration}ms ease-in-out`,
+                transition: `all ${effectSpeed}ms ease-in-out`,
                 textShadow: "0 4px 20px rgba(0,0,0,0.8)",
                 whiteSpace: "pre-line",
                 maxWidth: "90%",
@@ -331,7 +331,7 @@ export default function FullscreenBillboard({
               <button
                 onClick={handleImageClick}
                 style={{
-                  transitionDuration: `${transitionDuration}ms`,
+                  effectSpeed: `${effectSpeed}ms`,
                 }}
                 className={`bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium text-base inline-flex items-center gap-2 transition-all hover:scale-105 ${
                   isTransitioning ? "opacity-0" : "opacity-100"
@@ -346,7 +346,7 @@ export default function FullscreenBillboard({
                 className={`bg-white p-2 rounded-lg transition-opacity ${
                   isTransitioning ? "opacity-0" : "opacity-100"
                 }`}
-                style={{ transitionDuration: `${transitionDuration}ms` }}
+                style={{ effectSpeed: `${effectSpeed}ms` }}
                 title="QR 스캔으로 바로 보기"
               >
                 <QRCodeSVG
