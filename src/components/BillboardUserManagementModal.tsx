@@ -203,12 +203,7 @@ export default function BillboardUserManagementModal({
         .limit(1)
         .single();
 
-      let defaultEndDate = '';
-      if (lastEvent?.start_date) {
-        const lastEventDate = new Date(lastEvent.start_date);
-        lastEventDate.setDate(lastEventDate.getDate() + 1);
-        defaultEndDate = lastEventDate.toISOString().split('T')[0];
-      }
+      // defaultEndDate 계산 (현재 사용하지 않음)
 
       setSelectedSettings(data);
       setExcludedWeekdays(data.excluded_weekdays || []);
@@ -525,7 +520,7 @@ export default function BillboardUserManagementModal({
                       <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
                     ) : (
                       events.map((event) => {
-                        const eventDate = new Date(event.start_date);
+                        const eventDate = new Date(event.start_date || event.date || '');
                         const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
                         const weekday = weekdayNames[eventDate.getDay()];
                         
@@ -543,7 +538,7 @@ export default function BillboardUserManagementModal({
                             <span className="text-white text-sm flex-1">
                               {event.title}
                               <span className="text-gray-400 text-xs ml-2">
-                                ({event.start_date} {weekday})
+                                ({event.start_date || event.date} {weekday})
                               </span>
                             </span>
                           </label>
