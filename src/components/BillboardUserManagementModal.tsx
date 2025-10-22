@@ -81,7 +81,7 @@ export default function BillboardUserManagementModal({
 
       let query = supabase
         .from('events')
-        .select('id, title, start_date, date')
+        .select('id, title, start_date, date, image_full, image, video_url')
         .gte('start_date', startDate);
 
       if (endDate) {
