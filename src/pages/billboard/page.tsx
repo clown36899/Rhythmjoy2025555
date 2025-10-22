@@ -344,7 +344,7 @@ export default function BillboardPage() {
         {videoInfo?.embedUrl ? (
           <iframe
             key={`video-${event.id}`}
-            src={`${videoInfo.embedUrl}&rel=0&modestbranding=1&playsinline=1&vq=small`}
+            src={`${videoInfo.embedUrl}&rel=0&playsinline=1`}
             className="w-full h-full"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
