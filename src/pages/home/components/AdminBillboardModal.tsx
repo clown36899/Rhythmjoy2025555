@@ -170,6 +170,8 @@ export default function AdminBillboardModal({
   const loadUserSettings = async () => {
     if (!billboardUserId) return;
     
+    console.log('[서브관리자 설정] 로드 시작:', billboardUserId);
+    
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -187,7 +189,7 @@ export default function AdminBillboardModal({
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
 
-      setUserSettings(data || {
+      const settings = data || {
         id: billboardUserId,
         billboard_user_id: billboardUserId,
         excluded_weekdays: [],
@@ -196,7 +198,14 @@ export default function AdminBillboardModal({
         date_filter_end: null, // 종료 날짜는 선택 사항
         auto_slide_interval: 5000,
         play_order: 'sequential',
+      };
+      
+      console.log('[서브관리자 설정] 로드 완료:', {
+        excluded_event_ids: settings.excluded_event_ids || [],
+        count: (settings.excluded_event_ids || []).length
       });
+      
+      setUserSettings(settings);
     } catch (error) {
       console.error("설정 불러오기 오류:", error);
       alert("설정을 불러오는 중 오류가 발생했습니다.");
@@ -224,10 +233,20 @@ export default function AdminBillboardModal({
   const toggleEventExclusion = (eventId: number) => {
     if (!userSettings) return;
     
+    console.log('[서브 이벤트 토글] 시작:', eventId);
+    
     const currentExcluded = userSettings.excluded_event_ids || [];
-    const newExcluded = currentExcluded.includes(eventId)
+    const isCurrentlyExcluded = currentExcluded.includes(eventId);
+    const newExcluded = isCurrentlyExcluded
       ? currentExcluded.filter(id => id !== eventId)
       : [...currentExcluded, eventId];
+    
+    console.log('[서브 이벤트 토글] 완료:', {
+      eventId,
+      action: isCurrentlyExcluded ? '제거' : '추가',
+      이전: currentExcluded,
+      새로운: newExcluded
+    });
     
     updateLocalSettings({ excluded_event_ids: newExcluded });
   };
@@ -235,6 +254,11 @@ export default function AdminBillboardModal({
   // DB에 저장 후 모달 닫기
   const saveUserSettings = async () => {
     if (!billboardUserId || !userSettings) return;
+
+    console.log('[서브 설정 저장]', {
+      excluded_event_ids: userSettings.excluded_event_ids,
+      count: (userSettings.excluded_event_ids || []).length
+    });
 
     try {
       const { error } = await supabase
