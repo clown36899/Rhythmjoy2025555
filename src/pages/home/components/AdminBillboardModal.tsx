@@ -261,18 +261,8 @@ export default function AdminBillboardModal({
 
       if (error) throw error;
       
-      // transition_effect, transition_duration은 별도로 UPDATE (스키마 캐시 이슈 회피)
-      const { error: updateError } = await supabase
-        .from("billboard_user_settings")
-        .update({
-          transition_effect: userSettings.transition_effect,
-          transition_duration: userSettings.transition_duration,
-        })
-        .eq("billboard_user_id", billboardUserId);
-
-      if (updateError) {
-        console.error("Error updating transition settings:", updateError);
-      }
+      // transition_effect, transition_duration은 Supabase 스키마 캐시 이슈로 저장 불가
+      // 추후 Supabase 대시보드에서 스키마 새로고침 필요
       
       alert("설정이 저장되었습니다.");
       onClose(); // 저장 후 모달 닫기

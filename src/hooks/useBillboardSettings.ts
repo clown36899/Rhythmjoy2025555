@@ -126,16 +126,9 @@ export function useBillboardSettings() {
         console.error("Error saving billboard settings:", error);
         return;
       }
-
-      // transition_effect는 별도로 UPDATE (스키마 캐시 이슈 회피)
-      const { error: updateError } = await supabase
-        .from("billboard_settings")
-        .update({ transition_effect: newSettings.transitionEffect })
-        .eq("id", 1);
-
-      if (updateError) {
-        console.error("Error updating transition_effect:", updateError);
-      }
+      
+      // transition_effect는 Supabase 스키마 캐시 이슈로 저장 불가
+      // 추후 Supabase 대시보드에서 스키마 새로고침 필요
     } catch (error) {
       console.error("Error saving billboard settings:", error);
     }
@@ -168,16 +161,8 @@ export function useBillboardSettings() {
         console.error("Error resetting billboard settings:", error);
         return;
       }
-
-      // transition_effect는 별도로 UPDATE
-      const { error: updateError } = await supabase
-        .from("billboard_settings")
-        .update({ transition_effect: DEFAULT_SETTINGS.transitionEffect })
-        .eq("id", 1);
-
-      if (updateError) {
-        console.error("Error updating transition_effect:", updateError);
-      }
+      
+      // transition_effect는 Supabase 스키마 캐시 이슈로 저장 불가
     } catch (error) {
       console.error("Error resetting billboard settings:", error);
     }
