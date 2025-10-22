@@ -27,12 +27,10 @@ export default function BillboardPage() {
   const [settings, setSettings] = useState<BillboardUserSettings | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentIndexRef = useRef(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const slideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
@@ -222,27 +220,12 @@ export default function BillboardPage() {
     });
   };
 
-  // currentIndex ref 동기화
+  // 슬라이드 자동 전환
   useEffect(() => {
-    currentIndexRef.current = currentIndex;
-  }, [currentIndex]);
-
-  // 슬라이드 타이머 시작 함수 ref
-  const startSlideTimerRef = useRef<(() => void) | null>(null);
-  
-  startSlideTimerRef.current = () => {
     if (!settings || events.length === 0) return;
 
-    // 기존 타이머 정리
-    if (slideTimeoutRef.current) {
-      clearTimeout(slideTimeoutRef.current);
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
-    // 현재 이벤트가 영상인지 확인 (ref 사용)
-    const currentEvent = events[currentIndexRef.current];
+    // 현재 이벤트가 영상인지 확인
+    const currentEvent = events[currentIndex];
     const isVideo = currentEvent?.video_url ? true : false;
     
     // 이벤트 타입에 따라 다른 슬라이드 시간 사용
@@ -250,9 +233,12 @@ export default function BillboardPage() {
       ? settings.auto_slide_interval_video 
       : settings.auto_slide_interval;
 
-    setProgress(0);
+    // 프로그레스 바 초기화 및 업데이트
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
 
-    // 프로그레스 바 업데이트
+    setProgress(0);
     const progressStep = (50 / slideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((prev) => {
@@ -261,8 +247,8 @@ export default function BillboardPage() {
       });
     }, 50);
 
-    // 다음 슬라이드로 전환 타이머
-    slideTimeoutRef.current = setTimeout(() => {
+    // 슬라이드 전환 타이머
+    const timeout = setTimeout(() => {
       const effectType = settings.effect_type || 'fade';
       const effectSpeed = settings.effect_speed || 500;
       
@@ -290,11 +276,6 @@ export default function BillboardPage() {
           }
           setSlideOffset(0);
           setIsTransitioning(false);
-          
-          // 다음 슬라이드 타이머 시작
-          setTimeout(() => {
-            startSlideTimerRef.current?.();
-          }, 50);
         }, effectSpeed);
       } else {
         setIsTransitioning(true);
@@ -318,28 +299,18 @@ export default function BillboardPage() {
           
           setTimeout(() => {
             setIsTransitioning(false);
-            
-            // 다음 슬라이드 타이머 시작
-            startSlideTimerRef.current?.();
           }, 50);
         }, effectSpeed);
       }
     }, slideInterval);
-  };
-
-  // 타이머 시작 (초기 및 설정 변경 시)
-  useEffect(() => {
-    startSlideTimerRef.current?.();
 
     return () => {
-      if (slideTimeoutRef.current) {
-        clearTimeout(slideTimeoutRef.current);
-      }
+      clearTimeout(timeout);
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [events, settings, shuffledPlaylist]);
+  }, [events, settings, shuffledPlaylist, currentIndex]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
