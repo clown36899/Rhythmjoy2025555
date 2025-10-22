@@ -42,6 +42,9 @@ export default function BillboardPage() {
   const [videoLoaded, setVideoLoaded] = useState<Record<string, boolean>>({});
   const [loadTimes, setLoadTimes] = useState<number[]>([]);
   const loadStartTimeRef = useRef<number>(0);
+  
+  // 슬라이드 전환 상태
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -237,25 +240,34 @@ export default function BillboardPage() {
 
     const interval = setInterval(() => {
       setProgress(0);
-      if (settings.play_order === "random") {
-        // 현재 재생목록에서 다음 인덱스로 이동
-        const nextPlaylistIdx = playlistIndexRef.current + 1;
+      setIsTransitioning(true);
+      
+      setTimeout(() => {
+        if (settings.play_order === "random") {
+          // 현재 재생목록에서 다음 인덱스로 이동
+          const nextPlaylistIdx = playlistIndexRef.current + 1;
 
-        // 재생목록 끝에 도달하면 원본 인덱스 배열을 새로 섞음
-        if (nextPlaylistIdx >= shuffledPlaylist.length) {
-          const newIndices = Array.from({ length: events.length }, (_, i) => i);
-          const newPlaylist = shuffleArray(newIndices);
-          setShuffledPlaylist(newPlaylist);
-          playlistIndexRef.current = 0;
-          setCurrentIndex(newPlaylist[0] || 0);
+          // 재생목록 끝에 도달하면 원본 인덱스 배열을 새로 섞음
+          if (nextPlaylistIdx >= shuffledPlaylist.length) {
+            const newIndices = Array.from({ length: events.length }, (_, i) => i);
+            const newPlaylist = shuffleArray(newIndices);
+            setShuffledPlaylist(newPlaylist);
+            playlistIndexRef.current = 0;
+            setCurrentIndex(newPlaylist[0] || 0);
+          } else {
+            // 현재 재생목록 계속 진행
+            playlistIndexRef.current = nextPlaylistIdx;
+            setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+          }
         } else {
-          // 현재 재생목록 계속 진행
-          playlistIndexRef.current = nextPlaylistIdx;
-          setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+          setCurrentIndex((prev) => (prev + 1) % events.length);
         }
-      } else {
-        setCurrentIndex((prev) => (prev + 1) % events.length);
-      }
+        
+        // 인덱스 변경 후 약간의 딜레이를 두고 페이드인
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50);
+      }, settings?.transition_duration || 500);
     }, settings.auto_slide_interval);
 
     return () => {
@@ -346,9 +358,9 @@ export default function BillboardPage() {
           position: "absolute",
           top: "50%",
           left: "50%",
-          transform: `translate(-50%, -50%) rotate(90deg) scale(${isVisible ? 1 : 0.95})`,
-          opacity: isVisible ? 1 : 0,
-          filter: isVisible ? 'blur(0px)' : 'blur(10px)',
+          transform: `translate(-50%, -50%) rotate(90deg) scale(${!isTransitioning && isVisible ? 1 : 0.95})`,
+          opacity: !isTransitioning && isVisible ? 1 : 0,
+          filter: !isTransitioning && isVisible ? 'blur(0px)' : 'blur(10px)',
           pointerEvents: isVisible ? "auto" : "none",
           transition: `all ${settings?.transition_duration || 500}ms ease-in-out`,
           zIndex: isVisible ? 2 : 1,
