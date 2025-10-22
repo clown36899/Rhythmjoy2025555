@@ -43,9 +43,9 @@ export default function BillboardPage() {
   const [loadTimes, setLoadTimes] = useState<number[]>([]);
   const loadStartTimeRef = useRef<number>(0);
   
-  // 슬라이드 전환 상태 (전환 효과는 일단 비활성화)
-  // const [isTransitioning, setIsTransitioning] = useState(false);
-  // const [slideOffset, setSlideOffset] = useState(0);
+  // 슬라이드 전환 상태
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [slideOffset, setSlideOffset] = useState(0);
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -220,7 +220,7 @@ export default function BillboardPage() {
     });
   };
 
-  // 슬라이드 자동 전환 - 이미지/영상 시간 구분
+  // 슬라이드 자동 전환 - 이미지/영상 시간 구분, 영상은 전환 효과 없음
   useEffect(() => {
     if (!settings || events.length === 0) return;
 
@@ -251,6 +251,39 @@ export default function BillboardPage() {
     const timeout = setTimeout(() => {
       setProgress(0);
       
+      // 영상이 아닌 경우에만 전환 효과 적용
+      if (!isVideo) {
+        const effectType = settings.effect_type || 'fade';
+        const effectSpeed = settings.effect_speed || 500;
+        
+        if (effectType === 'slide') {
+          setIsTransitioning(true);
+          setSlideOffset(-100);
+          
+          setTimeout(() => {
+            advanceToNextSlide();
+            setSlideOffset(0);
+            setIsTransitioning(false);
+          }, effectSpeed);
+          return;
+        } else if (effectType === 'fade') {
+          setIsTransitioning(true);
+          
+          setTimeout(() => {
+            advanceToNextSlide();
+            setTimeout(() => {
+              setIsTransitioning(false);
+            }, 50);
+          }, effectSpeed);
+          return;
+        }
+      }
+      
+      // 영상이거나 전환 효과 없음: 바로 다음 슬라이드
+      advanceToNextSlide();
+    }, slideInterval);
+
+    function advanceToNextSlide() {
       if (settings.play_order === "random") {
         const nextPlaylistIdx = playlistIndexRef.current + 1;
         if (nextPlaylistIdx >= shuffledPlaylist.length) {
@@ -266,7 +299,7 @@ export default function BillboardPage() {
       } else {
         setCurrentIndex((prev) => (prev + 1) % events.length);
       }
-    }, slideInterval);
+    }
 
     return () => {
       clearTimeout(timeout);
@@ -338,7 +371,7 @@ export default function BillboardPage() {
     return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
   };
 
-  // 슬라이드 렌더링 함수 (캐러셀용 - 페이드/없음 효과만 사용)
+  // 슬라이드 렌더링 함수
   const renderSlide = (
     event: any,
     isVisible: boolean,
@@ -348,9 +381,19 @@ export default function BillboardPage() {
     const videoUrl = event.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
     const isLoaded = videoLoaded[event.id] || false;
+    const isVideoEvent = videoUrl ? true : false;
     
-    // 페이드/없음 효과용 스타일 (슬라이드는 컨테이너가 처리)
+    // 전환 효과 스타일 (영상 이벤트는 항상 표시, 이미지만 전환 효과 적용)
     const getTransitionStyle = () => {
+      // 영상 이벤트는 전환 효과 없이 항상 표시
+      if (isVideoEvent) {
+        return {
+          opacity: isVisible ? 1 : 0,
+          transition: 'none',
+        };
+      }
+      
+      // 이미지 이벤트는 전환 효과 적용
       const effect = settings?.effect_type || 'fade';
       const duration = settings?.effect_speed || 500;
       
