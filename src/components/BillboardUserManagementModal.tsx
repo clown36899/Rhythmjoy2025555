@@ -538,15 +538,18 @@ export default function BillboardUserManagementModal({
                         return (
                           <label
                             key={event.id}
-                            className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 p-2 rounded"
+                            className={`flex items-center gap-2 p-2 rounded ${
+                              hasMedia ? 'cursor-pointer hover:bg-gray-600' : 'cursor-not-allowed opacity-60'
+                            }`}
                           >
                             <input
                               type="checkbox"
                               checked={excludedEventIds.includes(event.id)}
                               onChange={() => toggleEvent(event.id)}
+                              disabled={!hasMedia}
                               className="w-4 h-4"
                             />
-                            <span className="text-white text-sm flex-1">
+                            <span className={`text-sm flex-1 ${hasMedia ? 'text-white' : 'text-gray-500'}`}>
                               {event.title}
                               <span className="text-gray-400 text-xs ml-2">
                                 ({event.start_date || event.date} {weekday})
