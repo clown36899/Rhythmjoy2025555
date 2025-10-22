@@ -42,6 +42,7 @@ export default function BillboardPage() {
   const [videoLoaded, setVideoLoaded] = useState<Record<string, boolean>>({});
   const [loadTimes, setLoadTimes] = useState<number[]>([]);
   const loadStartTimeRef = useRef<number>(0);
+  const videoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -219,8 +220,14 @@ export default function BillboardPage() {
   useEffect(() => {
     if (!settings || events.length === 0) return;
 
+    const currentEvent = events[currentIndex];
+    const hasVideo = currentEvent?.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
+
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
+    }
+    if (videoPlayTimeoutRef.current) {
+      clearTimeout(videoPlayTimeoutRef.current);
     }
 
     setProgress(0);
@@ -235,36 +242,79 @@ export default function BillboardPage() {
       });
     }, 50);
 
-    const interval = setInterval(() => {
-      setProgress(0);
-      if (settings.play_order === "random") {
-        // 현재 재생목록에서 다음 인덱스로 이동
-        const nextPlaylistIdx = playlistIndexRef.current + 1;
+    // 영상이 아닌 경우만 일반 타이머 사용
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (!hasVideo) {
+      interval = setInterval(() => {
+        setProgress(0);
+        if (settings.play_order === "random") {
+          const nextPlaylistIdx = playlistIndexRef.current + 1;
 
-        // 재생목록 끝에 도달하면 원본 인덱스 배열을 새로 섞음
-        if (nextPlaylistIdx >= shuffledPlaylist.length) {
-          const newIndices = Array.from({ length: events.length }, (_, i) => i);
-          const newPlaylist = shuffleArray(newIndices);
-          setShuffledPlaylist(newPlaylist);
-          playlistIndexRef.current = 0;
-          setCurrentIndex(newPlaylist[0] || 0);
+          if (nextPlaylistIdx >= shuffledPlaylist.length) {
+            const newIndices = Array.from({ length: events.length }, (_, i) => i);
+            const newPlaylist = shuffleArray(newIndices);
+            setShuffledPlaylist(newPlaylist);
+            playlistIndexRef.current = 0;
+            setCurrentIndex(newPlaylist[0] || 0);
+          } else {
+            playlistIndexRef.current = nextPlaylistIdx;
+            setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+          }
         } else {
-          // 현재 재생목록 계속 진행
-          playlistIndexRef.current = nextPlaylistIdx;
-          setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+          setCurrentIndex((prev) => (prev + 1) % events.length);
         }
-      } else {
-        setCurrentIndex((prev) => (prev + 1) % events.length);
-      }
-    }, settings.auto_slide_interval);
+      }, settings.auto_slide_interval);
+    }
 
     return () => {
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
+      if (videoPlayTimeoutRef.current) {
+        clearTimeout(videoPlayTimeoutRef.current);
+      }
     };
-  }, [events, settings, shuffledPlaylist]);
+  }, [events, settings, shuffledPlaylist, currentIndex]);
+
+  // 영상 로딩 완료 감지 후 10초 재생
+  useEffect(() => {
+    const currentEvent = events[currentIndex];
+    if (!currentEvent) return;
+
+    const hasVideo = currentEvent.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
+    const isLoaded = videoLoaded[currentEvent.id];
+
+    if (hasVideo && isLoaded && settings) {
+      // 영상 로딩 완료 시점부터 10초 후 다음 슬라이드
+      videoPlayTimeoutRef.current = setTimeout(() => {
+        setProgress(0);
+        if (settings.play_order === "random") {
+          const nextPlaylistIdx = playlistIndexRef.current + 1;
+
+          if (nextPlaylistIdx >= shuffledPlaylist.length) {
+            const newIndices = Array.from({ length: events.length }, (_, i) => i);
+            const newPlaylist = shuffleArray(newIndices);
+            setShuffledPlaylist(newPlaylist);
+            playlistIndexRef.current = 0;
+            setCurrentIndex(newPlaylist[0] || 0);
+          } else {
+            playlistIndexRef.current = nextPlaylistIdx;
+            setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+          }
+        } else {
+          setCurrentIndex((prev) => (prev + 1) % events.length);
+        }
+      }, 10000); // 10초
+    }
+
+    return () => {
+      if (videoPlayTimeoutRef.current) {
+        clearTimeout(videoPlayTimeoutRef.current);
+      }
+    };
+  }, [videoLoaded, currentIndex, events, settings, shuffledPlaylist]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
