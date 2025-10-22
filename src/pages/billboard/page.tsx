@@ -359,7 +359,7 @@ export default function BillboardPage() {
               onLoad={() => {
                 setTimeout(() => {
                   setVideoLoaded(prev => ({ ...prev, [event.id]: true }));
-                }, 1500);
+                }, 3000);
               }}
               style={{
                 position: 'absolute',
