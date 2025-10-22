@@ -22,6 +22,7 @@ interface BillboardUserSettings {
   date_filter_start: string | null;
   date_filter_end: string | null;
   auto_slide_interval: number;
+  auto_slide_interval_video: number;
   effect_speed: number;
   effect_type: 'none' | 'fade' | 'slide';
   play_order: 'sequential' | 'random';
@@ -197,6 +198,7 @@ export default function AdminBillboardModal({
         date_filter_start: todayStr,
         date_filter_end: null, // 종료 날짜는 선택 사항
         auto_slide_interval: 5000,
+        auto_slide_interval_video: 8000,
         effect_speed: 500,
         effect_type: 'fade',
         play_order: 'sequential',
@@ -251,6 +253,7 @@ export default function AdminBillboardModal({
             date_filter_start: userSettings.date_filter_start,
             date_filter_end: userSettings.date_filter_end,
             auto_slide_interval: userSettings.auto_slide_interval,
+            auto_slide_interval_video: userSettings.auto_slide_interval_video,
             effect_speed: userSettings.effect_speed,
             effect_type: userSettings.effect_type,
             play_order: userSettings.play_order,
@@ -436,10 +439,13 @@ export default function AdminBillboardModal({
               </div>
             </div>
 
-            {/* 자동 슬라이드 시간 */}
+            {/* 자동 슬라이드 시간 - 이미지 */}
             <div className="p-4 bg-gray-700/50 rounded-lg">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-white font-medium">자동 슬라이드 시간</label>
+                <label className="text-white font-medium">
+                  이미지 슬라이드 시간
+                  <span className="text-gray-400 text-sm ml-2">(이미지 이벤트)</span>
+                </label>
                 <span className="text-blue-400 font-bold">
                   {formatTime(userSettings.auto_slide_interval)}
                 </span>
@@ -455,6 +461,33 @@ export default function AdminBillboardModal({
                 }
                 className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
+            </div>
+
+            {/* 자동 슬라이드 시간 - 영상 */}
+            <div className="p-4 bg-gray-700/50 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-white font-medium">
+                  영상 슬라이드 시간
+                  <span className="text-gray-400 text-sm ml-2">(영상 이벤트)</span>
+                </label>
+                <span className="text-green-400 font-bold">
+                  {formatTime(userSettings.auto_slide_interval_video)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1000"
+                max="60000"
+                step="500"
+                value={userSettings.auto_slide_interval_video}
+                onChange={(e) =>
+                  updateLocalSettings({ auto_slide_interval_video: parseInt(e.target.value) })
+                }
+                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-green-500"
+              />
+              <p className="text-gray-400 text-xs mt-2">
+                💡 영상은 자동 재생되므로 충분한 시간을 설정하세요
+              </p>
             </div>
 
             {/* 전환 효과 */}
