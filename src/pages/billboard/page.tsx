@@ -443,7 +443,7 @@ export default function BillboardPage() {
 
         {isVisible && (
           <>
-            <div className="absolute left-6" style={{ top: `${24 * scale}px` }}>
+            <div className="absolute left-6" style={{ top: `${24 * scale}px`, zIndex: 10 }}>
               {events.length > 1 && (
                 <div className="relative" style={{ width: `${96 * scale}px`, height: `${96 * scale}px` }}>
                   <svg 
@@ -485,7 +485,8 @@ export default function BillboardPage() {
                 paddingLeft: `${32 * scale}px`, 
                 paddingRight: `${32 * scale}px`,
                 paddingTop: `${40 * scale}px`,
-                paddingBottom: `${40 * scale}px`
+                paddingBottom: `${40 * scale}px`,
+                zIndex: 10
               }}
             >
               <div className="flex-1">
