@@ -179,6 +179,7 @@ export default function BillboardUserManagementModal({
   };
 
   const handleEditUser = async (user: BillboardUser) => {
+    console.log('[빌보드 편집] 시작:', user.name);
     setSelectedUser(user);
 
     try {
@@ -214,6 +215,12 @@ export default function BillboardUserManagementModal({
       setDateFilterStart(data.date_filter_start || todayStr);
       // null이면 빈 문자열로 설정 (종료 날짜 제한 없음)
       setDateFilterEnd(data.date_filter_end || '');
+      
+      console.log('[빌보드 편집] 로드 완료:', {
+        excluded_event_ids: data.excluded_event_ids || [],
+        count: (data.excluded_event_ids || []).length
+      });
+      
       setShowEditModal(true);
     } catch (error) {
       console.error('설정 로드 실패:', error);
@@ -261,16 +268,19 @@ export default function BillboardUserManagementModal({
   };
 
   const toggleEvent = (eventId: number) => {
+    console.log('[이벤트 토글] 시작:', eventId);
+    
     setExcludedEventIds((prev) => {
-      const newList = prev.includes(eventId)
+      const isCurrentlyExcluded = prev.includes(eventId);
+      const newList = isCurrentlyExcluded
         ? prev.filter((id) => id !== eventId)
         : [...prev, eventId];
       
-      console.log('[이벤트 토글]', {
+      console.log('[이벤트 토글] 완료:', {
         eventId,
-        action: prev.includes(eventId) ? '제거' : '추가',
-        이전목록: prev,
-        새목록: newList
+        action: isCurrentlyExcluded ? '제거' : '추가',
+        이전: prev,
+        새로운: newList
       });
       
       return newList;
