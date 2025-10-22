@@ -435,8 +435,10 @@ export default function HomePage() {
     // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
     setSelectedDate(null);
     setSelectedCategory("all");
-    // 달력 펼치기
-    setIsCalendarCollapsed(false);
+    // 스티키 활성화 시에는 달력 펼치지 않음
+    if (!isStickyActive) {
+      setIsCalendarCollapsed(false);
+    }
   };
 
   // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
@@ -566,8 +568,8 @@ export default function HomePage() {
     if (category === "all") {
       setSelectedDate(null);
     }
-    // 연습실 외 다른 카테고리 선택 시 달력 펼치기
-    if (category !== "practice") {
+    // 연습실 외 다른 카테고리 선택 시 달력 펼치기 (스티키 활성화 시 제외)
+    if (category !== "practice" && !isStickyActive) {
       setIsCalendarCollapsed(false);
     }
   };
@@ -631,8 +633,10 @@ export default function HomePage() {
     setViewMode(mode);
     // 뷰 모드 변경 시 이벤트 리스트 표시
     setSelectedCategory("all");
-    // 달력 펼치기
-    setIsCalendarCollapsed(false);
+    // 스티키 활성화 시에는 달력 펼치지 않음
+    if (!isStickyActive) {
+      setIsCalendarCollapsed(false);
+    }
   };
 
   return (
@@ -680,8 +684,10 @@ export default function HomePage() {
               // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
               setSelectedDate(null);
               setSelectedCategory("all");
-              // 달력 펼치기
-              setIsCalendarCollapsed(false);
+              // 스티키 활성화 시에는 달력 펼치지 않음
+              if (!isStickyActive) {
+                setIsCalendarCollapsed(false);
+              }
             }, 300);
           }}
           onDateChange={(newMonth) => {
@@ -689,8 +695,10 @@ export default function HomePage() {
             // 날짜 변경 시 날짜 리셋하고 이벤트 리스트 표시
             setSelectedDate(null);
             setSelectedCategory("all");
-            // 달력 펼치기
-            setIsCalendarCollapsed(false);
+            // 스티키 활성화 시에는 달력 펼치지 않음
+            if (!isStickyActive) {
+              setIsCalendarCollapsed(false);
+            }
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
