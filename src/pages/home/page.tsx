@@ -822,7 +822,7 @@ export default function HomePage() {
           </div>
 
           {/* Scrollable Content Area - Events/Practice Rooms and Footer */}
-          <div className="w-full max-w-[650px] mx-auto bg-[#1f1f1f]">
+          <div className="w-full max-w-[650px] mx-auto bg-[#1f1f1f] -mt-12 pt-12">
             {selectedCategory === "practice" ? (
                 <PracticeRoomList 
                   adminType={adminType}
