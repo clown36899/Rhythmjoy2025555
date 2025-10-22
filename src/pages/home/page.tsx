@@ -681,14 +681,13 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Mobile Layout - Fixed Header and Calendar, Scrollable Events and Footer */}
+      {/* Mobile Layout - Scrollable with Sticky Category Panel */}
       <div>
-        <div className="h-screen flex flex-col">
-          {/* Fixed Calendar and Category Section */}
+        <div className="pt-16">
+          {/* Calendar Section - Not Fixed */}
           <div
             ref={calendarRef}
-            data-category-panel
-            className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-[9]"
+            className="w-full max-w-[650px] mx-auto"
             style={{ backgroundColor: "var(--calendar-bg-color)" }}
           >
             {/* Calendar - Collapsible */}
@@ -714,8 +713,16 @@ export default function HomePage() {
                 isAnimating={isAnimating}
               />
             </div>
+          </div>
 
-            {/* Category Filter Panel - Always visible */}
+          {/* Category Filter Panel - Sticky */}
+          <div 
+            data-category-panel
+            className="sticky top-16 w-full max-w-[650px] mx-auto z-[10]"
+            style={{ 
+              backgroundColor: "var(--calendar-bg-color)"
+            }}
+          >
             <div className="flex items-center gap-2 p-1.5 border-t border-b border-x-0 border-t-[#22262a] border-b-black">
               {/* 이벤트 카테고리 그룹 (전체/강습/행사) */}
               <div className="flex gap-1 bg-gray-800/30 rounded-lg p-1">
@@ -815,12 +822,8 @@ export default function HomePage() {
           </div>
 
           {/* Scrollable Content Area - Events/Practice Rooms and Footer */}
-          <div
-            className="flex-1 bg-[#1f1f1f]"
-            style={{ paddingTop: `calc(0rem + ${calendarHeight}px + 95px)` }}
-          >
-            <div className="-mt-10">
-              {selectedCategory === "practice" ? (
+          <div className="w-full max-w-[650px] mx-auto bg-[#1f1f1f]">
+            {selectedCategory === "practice" ? (
                 <PracticeRoomList 
                   adminType={adminType}
                   showSearchModal={showSearchModal}
@@ -862,7 +865,7 @@ export default function HomePage() {
                   onTouchEnd={onTouchEnd}
                 />
               )}
-            </div>
+
             {/* Footer - 고정 (위치는 고정이지만 터치 슬라이드 인식) */}
             <div
               onTouchStart={onTouchStart}
