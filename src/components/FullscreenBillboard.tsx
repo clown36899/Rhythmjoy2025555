@@ -11,6 +11,7 @@ interface FullscreenBillboardProps {
   onEventClick: (event: any) => void;
   autoSlideInterval?: number;
   transitionDuration?: number;
+  transitionEffect?: 'none' | 'fade' | 'slide';
   dateRangeStart?: string | null;
   dateRangeEnd?: string | null;
   showDateRange?: boolean;
@@ -35,6 +36,7 @@ export default function FullscreenBillboard({
   onEventClick,
   autoSlideInterval = 5000,
   transitionDuration = 300,
+  transitionEffect = 'fade',
   dateRangeStart,
   dateRangeEnd,
   showDateRange = true,
@@ -178,15 +180,31 @@ export default function FullscreenBillboard({
             if (videoUrl) {
               const videoInfo = parseVideoUrl(videoUrl);
               if (videoInfo.embedUrl) {
-                return (
-                  <div 
-                    className="relative w-full h-screen flex items-center justify-center cursor-pointer"
-                    style={{ 
+                const getVideoTransitionStyle = () => {
+                  if (transitionEffect === 'none') {
+                    return {
+                      opacity: isTransitioning ? 0 : 1,
+                      transition: 'none'
+                    };
+                  } else if (transitionEffect === 'slide') {
+                    return {
+                      transform: `translateX(${isTransitioning ? '100%' : '0'})`,
+                      transition: `all ${transitionDuration}ms ease-in-out`
+                    };
+                  } else {
+                    return {
                       opacity: isTransitioning ? 0 : 1,
                       transform: `scale(${isTransitioning ? 0.95 : 1})`,
                       filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
                       transition: `all ${transitionDuration}ms ease-in-out`
-                    }}
+                    };
+                  }
+                };
+                
+                return (
+                  <div 
+                    className="relative w-full h-screen flex items-center justify-center cursor-pointer"
+                    style={getVideoTransitionStyle()}
                   >
                     <iframe
                       src={videoInfo.embedUrl}
@@ -207,17 +225,33 @@ export default function FullscreenBillboard({
               }
             }
             
+            const getImageTransitionStyle = () => {
+              if (transitionEffect === 'none') {
+                return {
+                  opacity: isTransitioning ? 0 : 1,
+                  transition: 'none'
+                };
+              } else if (transitionEffect === 'slide') {
+                return {
+                  transform: `translateX(${isTransitioning ? '100%' : '0'})`,
+                  transition: `all ${transitionDuration}ms ease-in-out`
+                };
+              } else {
+                return {
+                  opacity: isTransitioning ? 0 : 1,
+                  transform: `scale(${isTransitioning ? 0.95 : 1})`,
+                  filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
+                  transition: `all ${transitionDuration}ms ease-in-out`
+                };
+              }
+            };
+            
             return (
               <img
                 src={sortedImages[currentIndex]}
                 alt="Event Billboard"
                 className="max-w-full max-h-screen object-contain cursor-pointer"
-                style={{ 
-                  opacity: isTransitioning ? 0 : 1,
-                  transform: `scale(${isTransitioning ? 0.95 : 1})`,
-                  filter: isTransitioning ? 'blur(10px)' : 'blur(0px)',
-                  transition: `all ${transitionDuration}ms ease-in-out`
-                }}
+                style={getImageTransitionStyle()}
                 onClick={handleImageClick}
               />
             );

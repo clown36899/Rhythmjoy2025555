@@ -22,6 +22,8 @@ interface BillboardUserSettings {
   date_filter_start: string | null;
   date_filter_end: string | null;
   auto_slide_interval: number;
+  transition_duration: number;
+  transition_effect: 'none' | 'fade' | 'slide';
   play_order: 'sequential' | 'random';
 }
 
@@ -451,6 +453,81 @@ export default function AdminBillboardModal({
               />
             </div>
 
+            {/* 전환 효과 */}
+            <div className="p-4 bg-gray-700/50 rounded-lg">
+              <label className="text-white font-medium block mb-3">전환 효과</label>
+              <p className="text-sm text-gray-400 mb-4">
+                이벤트가 바뀔 때 적용되는 전환 효과를 선택합니다
+              </p>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <button
+                  onClick={() => updateLocalSettings({ transition_effect: 'none' })}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    userSettings.transition_effect === 'none'
+                      ? 'border-blue-500 bg-blue-500/20 text-white'
+                      : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <i className="ri-close-line text-xl"></i>
+                    <span className="font-medium text-sm">없음</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => updateLocalSettings({ transition_effect: 'fade' })}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    userSettings.transition_effect === 'fade'
+                      ? 'border-blue-500 bg-blue-500/20 text-white'
+                      : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <i className="ri-contrast-2-line text-xl"></i>
+                    <span className="font-medium text-sm">페이드</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => updateLocalSettings({ transition_effect: 'slide' })}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    userSettings.transition_effect === 'slide'
+                      ? 'border-blue-500 bg-blue-500/20 text-white'
+                      : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <i className="ri-arrow-right-line text-xl"></i>
+                    <span className="font-medium text-sm">슬라이드</span>
+                  </div>
+                </button>
+              </div>
+              
+              {/* 전환 효과 속도 */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-white font-medium text-sm">전환 속도</label>
+                  <span className="text-blue-400 font-bold text-sm">
+                    {formatTime(userSettings.transition_duration)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="100"
+                  max="2000"
+                  step="50"
+                  value={userSettings.transition_duration}
+                  onChange={(e) =>
+                    updateLocalSettings({ transition_duration: parseInt(e.target.value) })
+                  }
+                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>0.1초</span>
+                  <span>1초</span>
+                  <span>2초</span>
+                </div>
+              </div>
+            </div>
+
             {/* 재생 순서 */}
             <div className="p-4 bg-gray-700/50 rounded-lg">
               <label className="text-white font-medium block mb-3">재생 순서</label>
@@ -753,6 +830,55 @@ export default function AdminBillboardModal({
             </button>
           </div>
 
+          {/* 전환 효과 종류 */}
+          <div className="p-4 bg-gray-700/50 rounded-lg">
+            <label className="text-white font-medium block mb-3">전환 효과</label>
+            <p className="text-sm text-gray-400 mb-4">
+              이벤트가 바뀔 때 적용되는 전환 효과를 선택합니다
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={() => onUpdateSettings({ transitionEffect: 'none' })}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  settings.transitionEffect === 'none'
+                    ? 'border-purple-500 bg-purple-500/20 text-white'
+                    : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <i className="ri-close-line text-xl"></i>
+                  <span className="font-medium text-sm">없음</span>
+                </div>
+              </button>
+              <button
+                onClick={() => onUpdateSettings({ transitionEffect: 'fade' })}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  settings.transitionEffect === 'fade'
+                    ? 'border-purple-500 bg-purple-500/20 text-white'
+                    : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <i className="ri-contrast-2-line text-xl"></i>
+                  <span className="font-medium text-sm">페이드</span>
+                </div>
+              </button>
+              <button
+                onClick={() => onUpdateSettings({ transitionEffect: 'slide' })}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  settings.transitionEffect === 'slide'
+                    ? 'border-purple-500 bg-purple-500/20 text-white'
+                    : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <i className="ri-arrow-right-line text-xl"></i>
+                  <span className="font-medium text-sm">슬라이드</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
           {/* 전환 효과 속도 (슬라이더) */}
           <div className="p-4 bg-gray-700/50 rounded-lg">
             <div className="flex items-center justify-between mb-3">
@@ -762,7 +888,7 @@ export default function AdminBillboardModal({
               </span>
             </div>
             <p className="text-sm text-gray-400 mb-4">
-              이미지가 전환될 때 페이드 인/아웃 효과의 속도 (0.1초 ~ 2초)
+              전환 효과가 진행되는 속도 (0.1초 ~ 2초)
             </p>
             <input
               type="range"

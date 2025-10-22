@@ -7,6 +7,7 @@ export interface BillboardSettings {
   inactivityTimeout: number; // milliseconds (0 = disabled)
   autoOpenOnLoad: boolean;
   transitionDuration: number; // milliseconds
+  transitionEffect: 'none' | 'fade' | 'slide'; // 전환 효과 종류
   dateRangeStart: string | null; // YYYY-MM-DD
   dateRangeEnd: string | null; // YYYY-MM-DD
   showDateRange: boolean; // 날짜 범위 표시 여부
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: BillboardSettings = {
   inactivityTimeout: 300000, // 5분
   autoOpenOnLoad: true,
   transitionDuration: 300, // 0.3초
+  transitionEffect: 'fade', // 기본: 페이드 효과
   dateRangeStart: getTodayString(), // 오늘 날짜
   dateRangeEnd: null,
   showDateRange: true,
@@ -74,6 +76,7 @@ export function useBillboardSettings() {
             inactivityTimeout: data.inactivity_timeout ?? DEFAULT_SETTINGS.inactivityTimeout,
             autoOpenOnLoad: data.auto_open_on_load ?? DEFAULT_SETTINGS.autoOpenOnLoad,
             transitionDuration: data.transition_duration ?? DEFAULT_SETTINGS.transitionDuration,
+            transitionEffect: data.transition_effect ?? DEFAULT_SETTINGS.transitionEffect,
             dateRangeStart: data.date_range_start ?? DEFAULT_SETTINGS.dateRangeStart,
             dateRangeEnd: data.date_range_end ?? DEFAULT_SETTINGS.dateRangeEnd,
             showDateRange: data.show_date_range ?? DEFAULT_SETTINGS.showDateRange,
@@ -106,6 +109,7 @@ export function useBillboardSettings() {
         inactivity_timeout: newSettings.inactivityTimeout,
         auto_open_on_load: newSettings.autoOpenOnLoad,
         transition_duration: newSettings.transitionDuration,
+        transition_effect: newSettings.transitionEffect,
         date_range_start: newSettings.dateRangeStart,
         date_range_end: newSettings.dateRangeEnd,
         show_date_range: newSettings.showDateRange,
@@ -138,6 +142,7 @@ export function useBillboardSettings() {
         inactivity_timeout: DEFAULT_SETTINGS.inactivityTimeout,
         auto_open_on_load: DEFAULT_SETTINGS.autoOpenOnLoad,
         transition_duration: DEFAULT_SETTINGS.transitionDuration,
+        transition_effect: DEFAULT_SETTINGS.transitionEffect,
         date_range_start: DEFAULT_SETTINGS.dateRangeStart,
         date_range_end: DEFAULT_SETTINGS.dateRangeEnd,
         show_date_range: DEFAULT_SETTINGS.showDateRange,

@@ -932,6 +932,7 @@ export default function HomePage() {
           onEventClick={handleBillboardEventClick}
           autoSlideInterval={settings.autoSlideInterval}
           transitionDuration={settings.transitionDuration}
+          transitionEffect={settings.transitionEffect}
           dateRangeStart={settings.dateRangeStart}
           dateRangeEnd={settings.dateRangeEnd}
           showDateRange={settings.showDateRange}

@@ -350,21 +350,56 @@ export default function BillboardPage() {
     const videoUrl = event.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
     const isLoaded = videoLoaded[event.id] || false;
-
-    return (
-      <div
-        className="portrait-container"
-        style={{
-          position: "absolute",
+    
+    // 전환 효과에 따른 스타일
+    const getTransitionStyle = () => {
+      const effect = settings?.transition_effect || 'fade';
+      const duration = settings?.transition_duration || 500;
+      
+      if (effect === 'none') {
+        // 전환 효과 없음 - 바로 표시/숨김
+        return {
+          position: "absolute" as const,
+          top: "50%",
+          left: "50%",
+          transform: `translate(-50%, -50%) rotate(90deg)`,
+          opacity: isVisible ? 1 : 0,
+          pointerEvents: isVisible ? ("auto" as const) : ("none" as const),
+          transition: 'none',
+          zIndex: isVisible ? 2 : 1,
+        };
+      } else if (effect === 'slide') {
+        // 슬라이드 효과 - 왼쪽에서 오른쪽으로
+        return {
+          position: "absolute" as const,
+          top: "50%",
+          left: !isTransitioning && isVisible ? "50%" : (isVisible ? "-50%" : "150%"),
+          transform: `translate(-50%, -50%) rotate(90deg)`,
+          opacity: 1,
+          pointerEvents: isVisible ? ("auto" as const) : ("none" as const),
+          transition: `all ${duration}ms ease-in-out`,
+          zIndex: isVisible ? 2 : 1,
+        };
+      } else {
+        // 페이드 효과 (기본)
+        return {
+          position: "absolute" as const,
           top: "50%",
           left: "50%",
           transform: `translate(-50%, -50%) rotate(90deg) scale(${!isTransitioning && isVisible ? 1 : 0.95})`,
           opacity: !isTransitioning && isVisible ? 1 : 0,
           filter: !isTransitioning && isVisible ? 'blur(0px)' : 'blur(10px)',
-          pointerEvents: isVisible ? "auto" : "none",
-          transition: `all ${settings?.transition_duration || 500}ms ease-in-out`,
+          pointerEvents: isVisible ? ("auto" as const) : ("none" as const),
+          transition: `all ${duration}ms ease-in-out`,
           zIndex: isVisible ? 2 : 1,
-        }}
+        };
+      }
+    };
+
+    return (
+      <div
+        className="portrait-container"
+        style={getTransitionStyle()}
       >
         {videoInfo?.embedUrl ? (
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
