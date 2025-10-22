@@ -34,6 +34,28 @@ export default function BillboardPage() {
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
+  
+  // 해상도 기반 스케일 계산 (기준: 1080px = 1.0배)
+  const [scale, setScale] = useState(1);
+
+  // 화면 해상도에 따른 스케일 조정
+  useEffect(() => {
+    const updateScale = () => {
+      const height = window.innerHeight;
+      // 720px = 0.6배, 1080px = 1.0배, 1440px = 1.3배, 2160px = 2.0배
+      const calculatedScale = Math.max(0.5, Math.min(2.5, height / 1080));
+      setScale(calculatedScale);
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    window.addEventListener('orientationchange', updateScale);
+
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      window.removeEventListener('orientationchange', updateScale);
+    };
+  }, []);
 
   // 모바일 주소창 숨기기
   useEffect(() => {
@@ -339,32 +361,35 @@ export default function BillboardPage() {
 
         {isVisible && (
           <>
-            <div className="absolute top-6 left-6">
+            <div className="absolute left-6" style={{ top: `${24 * scale}px` }}>
               {events.length > 1 && (
-                <div className="relative w-24 h-24">
-                  <svg className="transform -rotate-90 w-24 h-24">
+                <div className="relative" style={{ width: `${96 * scale}px`, height: `${96 * scale}px` }}>
+                  <svg 
+                    className="transform -rotate-90" 
+                    style={{ width: `${96 * scale}px`, height: `${96 * scale}px` }}
+                  >
                     <circle
-                      cx="48"
-                      cy="48"
-                      r="42"
+                      cx={48 * scale}
+                      cy={48 * scale}
+                      r={42 * scale}
                       stroke="rgba(255, 255, 255, 0.2)"
-                      strokeWidth="6"
+                      strokeWidth={6 * scale}
                       fill="none"
                     />
                     <circle
-                      cx="48"
-                      cy="48"
-                      r="42"
+                      cx={48 * scale}
+                      cy={48 * scale}
+                      r={42 * scale}
                       stroke="white"
-                      strokeWidth="6"
+                      strokeWidth={6 * scale}
                       fill="none"
-                      strokeDasharray="264"
-                      strokeDashoffset={264 - (264 * progress) / 100}
+                      strokeDasharray={264 * scale}
+                      strokeDashoffset={(264 * scale) - ((264 * scale) * progress) / 100}
                       style={{ transition: "stroke-dashoffset 0.05s linear" }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white text-xl font-bold">
+                    <span className="text-white font-bold" style={{ fontSize: `${20 * scale}px` }}>
                       {currentIndex + 1}/{events.length}
                     </span>
                   </div>
@@ -372,31 +397,45 @@ export default function BillboardPage() {
               )}
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-8 py-10 flex items-end justify-between">
+            <div 
+              className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent flex items-end justify-between"
+              style={{ 
+                paddingLeft: `${32 * scale}px`, 
+                paddingRight: `${32 * scale}px`,
+                paddingTop: `${40 * scale}px`,
+                paddingBottom: `${40 * scale}px`
+              }}
+            >
               <div className="flex-1">
-                <div className="mb-2 space-y-1">
+                <div style={{ marginBottom: `${8 * scale}px`, display: 'flex', flexDirection: 'column', gap: `${4 * scale}px` }}>
                   {event.start_date && (
-                    <div className="text-blue-400 text-lg font-semibold">
-                      <i className="ri-calendar-line mr-2"></i>
+                    <div className="text-blue-400 font-semibold" style={{ fontSize: `${18 * scale}px` }}>
+                      <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
                       {formatDateRange(event.start_date, event.end_date)}
                     </div>
                   )}
                   {event.location &&
                     event.location.trim() &&
                     event.location !== "미정" && (
-                      <div className="text-gray-300 text-lg">
-                        <i className="ri-map-pin-line mr-2"></i>
+                      <div className="text-gray-300" style={{ fontSize: `${18 * scale}px` }}>
+                        <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
                         {event.location}
                       </div>
                     )}
                 </div>
-                <h3 className="text-white text-4xl font-bold">{event.title}</h3>
+                <h3 className="text-white font-bold" style={{ fontSize: `${36 * scale}px` }}>{event.title}</h3>
               </div>
 
-              <div className="bg-white p-3 rounded-lg ml-6 flex-shrink-0">
+              <div 
+                className="bg-white rounded-lg flex-shrink-0" 
+                style={{ 
+                  padding: `${12 * scale}px`,
+                  marginLeft: `${24 * scale}px`
+                }}
+              >
                 <QRCodeCanvas
                   value={`${window.location.origin}/?event=${event.id}&from=qr`}
-                  size={120}
+                  size={Math.round(120 * scale)}
                   level="M"
                   includeMargin={false}
                 />
