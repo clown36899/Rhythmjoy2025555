@@ -35,6 +35,7 @@ export default function HomePage() {
   } | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isStickyActive, setIsStickyActive] = useState(false);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -107,6 +108,25 @@ export default function HomePage() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // 스크롤 감지 - 분류 컨테이너가 스티키되면 달력 자동 접기
+  useEffect(() => {
+    const handleScroll = () => {
+      if (calendarRef.current) {
+        const rect = calendarRef.current.getBoundingClientRect();
+        // 달력이 헤더 아래로 완전히 사라지면 스티키 활성화
+        const shouldBeSticky = rect.bottom <= 64; // 64px = header height
+        
+        if (shouldBeSticky && !isStickyActive) {
+          setIsStickyActive(true);
+          setIsCalendarCollapsed(true);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isStickyActive]);
 
   // 검색 취소 시 전체 모드로 리셋
   useEffect(() => {
@@ -724,6 +744,21 @@ export default function HomePage() {
             }}
           >
             <div className="flex items-center gap-2 p-1.5 border-t border-b border-x-0 border-t-[#22262a] border-b-black">
+              {/* 달력 펼치기 버튼 (스티키 활성화 시에만 표시) */}
+              {isStickyActive && isCalendarCollapsed && (
+                <button
+                  onClick={() => {
+                    setIsCalendarCollapsed(false);
+                    setIsStickyActive(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex items-center justify-center h-6 px-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                  aria-label="달력 보기"
+                >
+                  <i className="ri-calendar-line text-sm leading-none align-middle"></i>
+                </button>
+              )}
+              
               {/* 이벤트 카테고리 그룹 (전체/강습/행사) */}
               <div className="flex gap-1 bg-gray-800/30 rounded-lg p-1">
                 <button
@@ -780,6 +815,7 @@ export default function HomePage() {
                   onClick={() => {
                     setSelectedCategory("practice");
                     setIsCalendarCollapsed(true);
+                    setIsStickyActive(false);
                   }}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("practice")
