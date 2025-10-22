@@ -7,6 +7,7 @@ import type {
   BillboardUserSettings,
   Event,
 } from "../../lib/supabase";
+import { parseVideoUrl } from "../../utils/videoEmbed";
 
 // 배열 셔플 함수
 function shuffleArray<T>(array: T[]): T[] {
