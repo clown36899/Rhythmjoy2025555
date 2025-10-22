@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
@@ -31,6 +31,7 @@ export default function BillboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const slideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
@@ -220,8 +221,17 @@ export default function BillboardPage() {
     });
   };
 
-  useEffect(() => {
+  // 슬라이드 타이머 시작 함수
+  const startSlideTimer = useCallback(() => {
     if (!settings || events.length === 0) return;
+
+    // 기존 타이머 정리
+    if (slideTimeoutRef.current) {
+      clearTimeout(slideTimeoutRef.current);
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
 
     // 현재 이벤트가 영상인지 확인
     const currentEvent = events[currentIndex];
@@ -232,32 +242,27 @@ export default function BillboardPage() {
       ? settings.auto_slide_interval_video 
       : settings.auto_slide_interval;
 
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
     setProgress(0);
 
+    // 프로그레스 바 업데이트
     const progressStep = (50 / slideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
-          return 0;
-        }
+        if (prev >= 100) return 0;
         return prev + progressStep;
       });
     }, 50);
 
-    const interval = setInterval(() => {
+    // 다음 슬라이드로 전환 타이머
+    slideTimeoutRef.current = setTimeout(() => {
       const effectType = settings.effect_type || 'fade';
       const effectSpeed = settings.effect_speed || 500;
       
       setProgress(0);
       
       if (effectType === 'slide') {
-        // 슬라이드 전환: 부드러운 캐러셀 효과
         setIsTransitioning(true);
-        setSlideOffset(-100); // 왼쪽으로 이동
+        setSlideOffset(-100);
         
         setTimeout(() => {
           if (settings.play_order === "random") {
@@ -275,11 +280,10 @@ export default function BillboardPage() {
           } else {
             setCurrentIndex((prev) => (prev + 1) % events.length);
           }
-          setSlideOffset(0); // 오프셋 리셋
+          setSlideOffset(0);
           setIsTransitioning(false);
         }, effectSpeed);
       } else {
-        // 페이드/없음 전환
         setIsTransitioning(true);
         
         setTimeout(() => {
@@ -305,14 +309,21 @@ export default function BillboardPage() {
         }, effectSpeed);
       }
     }, slideInterval);
+  }, [events, settings, shuffledPlaylist, currentIndex]);
+
+  // currentIndex 변경 시 타이머 재시작
+  useEffect(() => {
+    startSlideTimer();
 
     return () => {
-      clearInterval(interval);
+      if (slideTimeoutRef.current) {
+        clearTimeout(slideTimeoutRef.current);
+      }
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [events, settings, shuffledPlaylist, currentIndex]);
+  }, [startSlideTimer]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
