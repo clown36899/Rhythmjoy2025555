@@ -489,10 +489,10 @@ export default function BillboardPage() {
                 zIndex: 10
               }}
             >
-              <div className="flex-1">
+              <div className="flex-1" style={{ maxWidth: `${216 * scale}px` }}>
                 <div style={{ marginBottom: `${8 * scale}px`, display: 'flex', flexDirection: 'column', gap: `${4 * scale}px` }}>
                   {event.start_date && (
-                    <div className="text-blue-400 font-semibold" style={{ fontSize: `${18 * scale}px` }}>
+                    <div className="text-blue-400 font-semibold" style={{ fontSize: `${Math.min(31 * scale, 216)}px` }}>
                       <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
                       {formatDateRange(event.start_date, event.end_date)}
                     </div>
@@ -500,13 +500,23 @@ export default function BillboardPage() {
                   {event.location &&
                     event.location.trim() &&
                     event.location !== "미정" && (
-                      <div className="text-gray-300" style={{ fontSize: `${18 * scale}px` }}>
+                      <div className="text-gray-300" style={{ fontSize: `${Math.min(31 * scale, 216)}px` }}>
                         <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
                         {event.location}
                       </div>
                     )}
                 </div>
-                <h3 className="text-white font-bold" style={{ fontSize: `${36 * scale}px` }}>{event.title}</h3>
+                <h3 
+                  className="text-white font-bold break-words" 
+                  style={{ 
+                    fontSize: `${Math.min(62 * scale, 216)}px`,
+                    lineHeight: 1.2,
+                    wordBreak: 'keep-all',
+                    overflowWrap: 'break-word'
+                  }}
+                >
+                  {event.title}
+                </h3>
               </div>
 
               <div 
@@ -518,7 +528,7 @@ export default function BillboardPage() {
               >
                 <QRCodeCanvas
                   value={`${window.location.origin}/?event=${event.id}&from=qr`}
-                  size={Math.round(120 * scale)}
+                  size={Math.round(144 * scale)}
                   level="M"
                   includeMargin={false}
                 />
