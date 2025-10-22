@@ -61,6 +61,7 @@ export interface BillboardUserSettings {
   excluded_weekdays: number[];
   excluded_event_ids: number[];
   auto_slide_interval: number;
+  auto_slide_interval_video: number;
   effect_speed: number;
   effect_type: 'none' | 'fade' | 'slide';
   play_order: 'sequential' | 'random';
