@@ -37,6 +37,10 @@ export default function BillboardPage() {
   
   // 해상도 기반 스케일 계산 (기준: 1080px = 1.0배)
   const [scale, setScale] = useState(1);
+  
+  // YouTube 비디오 로딩 상태 관리
+  const [videoLoadingStates, setVideoLoadingStates] = useState<Record<string, boolean>>({});
+  const youtubePlayersRef = useRef<Record<string, any>>({});
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -317,6 +321,68 @@ export default function BillboardPage() {
     return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
   };
 
+  // YouTube Player 초기화 (현재 보이는 슬라이드)
+  useEffect(() => {
+    if (events.length === 0 || currentIndex >= events.length) return;
+    
+    const currentEvent = events[currentIndex];
+    const videoUrl = currentEvent.video_url;
+    if (!videoUrl) return;
+    
+    const videoInfo = parseVideoUrl(videoUrl);
+    if (videoInfo?.provider !== 'youtube' || !videoInfo?.videoId) return;
+    
+    const eventId = currentEvent.id;
+    const playerId = `youtube-player-${eventId}`;
+    
+    // YouTube API 준비 대기 및 플레이어 생성
+    const initPlayer = () => {
+      const win = window as any;
+      if (typeof win.YT === 'undefined' || !win.YT.Player) {
+        setTimeout(initPlayer, 100);
+        return;
+      }
+      
+      // 이미 플레이어가 있으면 스킵
+      if (youtubePlayersRef.current[eventId]) {
+        setVideoLoadingStates(prev => ({ ...prev, [eventId]: true }));
+        return;
+      }
+      
+      try {
+        youtubePlayersRef.current[eventId] = new win.YT.Player(playerId, {
+          videoId: videoInfo.videoId,
+          playerVars: {
+            autoplay: 1,
+            mute: 1,
+            loop: 1,
+            playlist: videoInfo.videoId,
+            controls: 0,
+            modestbranding: 1,
+            playsinline: 1,
+          },
+          events: {
+            onReady: () => {
+              setVideoLoadingStates(prev => ({ ...prev, [eventId]: true }));
+            },
+            onError: () => {
+              setVideoLoadingStates(prev => ({ ...prev, [eventId]: false }));
+            }
+          }
+        });
+      } catch (err) {
+        console.error('YouTube Player 생성 실패:', err);
+      }
+    };
+    
+    // 200ms 딜레이 후 플레이어 초기화 (DOM 준비 대기)
+    const timer = setTimeout(initPlayer, 200);
+    
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [currentIndex, events]);
+
   // 슬라이드 렌더링 함수
   const renderSlide = (
     event: any,
@@ -326,6 +392,8 @@ export default function BillboardPage() {
     const imageUrl = event.image_full || event.image;
     const videoUrl = event.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
+    const isYouTube = videoInfo?.provider === 'youtube';
+    const isVideoLoaded = videoLoadingStates[event.id] || false;
 
     return (
       <div
@@ -341,16 +409,57 @@ export default function BillboardPage() {
           zIndex: isVisible ? 2 : 1,
         }}
       >
-        {videoInfo?.embedUrl && videoInfo?.provider === 'youtube' ? (
-          <iframe
-            key={`video-${event.id}`}
-            src={videoInfo.embedUrl}
-            className="w-full h-full"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={event.title}
-          ></iframe>
+        {isYouTube ? (
+          <>
+            {/* 썸네일 + 로딩 스피너 (YouTube) */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: isVideoLoaded ? 0 : 1,
+                transition: 'opacity 800ms ease-in-out',
+                pointerEvents: isVideoLoaded ? 'none' : 'auto',
+                zIndex: 2,
+              }}
+            >
+              <img
+                src={videoInfo.thumbnailUrl || imageUrl}
+                alt={event.title}
+                className="w-full h-full object-contain"
+                loading="eager"
+              />
+              {/* 로딩 스피너 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <div
+                  className="animate-spin rounded-full border-4 border-white border-t-transparent"
+                  style={{
+                    width: `${64 * scale}px`,
+                    height: `${64 * scale}px`,
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* YouTube Player iframe */}
+            <div
+              id={`youtube-player-${event.id}`}
+              className="w-full h-full"
+              style={{
+                opacity: isVideoLoaded ? 1 : 0,
+                transition: 'opacity 800ms ease-in-out',
+              }}
+            />
+          </>
         ) : videoInfo?.embedUrl ? (
           <iframe
             key={`video-${event.id}`}
@@ -360,7 +469,8 @@ export default function BillboardPage() {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             title={event.title}
-          ></iframe>
+            loading="lazy"
+          />
         ) : (
           <img
             src={imageUrl}
