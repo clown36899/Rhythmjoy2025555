@@ -367,7 +367,7 @@ export default function BillboardPage() {
     return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
   };
 
-  // 슬라이드 렌더링 함수
+  // 슬라이드 렌더링 함수 (캐러셀용 - 페이드/없음 효과만 사용)
   const renderSlide = (
     event: any,
     isVisible: boolean,
@@ -378,54 +378,33 @@ export default function BillboardPage() {
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
     const isLoaded = videoLoaded[event.id] || false;
     
-    // 전환 효과에 따른 스타일
+    // 페이드/없음 효과용 스타일 (슬라이드는 컨테이너가 처리)
     const getTransitionStyle = () => {
       const effect = settings?.effect_type || 'fade';
       const duration = settings?.effect_speed || 500;
       
       if (effect === 'none') {
-        // 전환 효과 없음 - 바로 표시/숨김
         return {
-          position: "absolute" as const,
-          top: "50%",
-          left: "50%",
-          transform: `translate(-50%, -50%) rotate(90deg)`,
           opacity: isVisible ? 1 : 0,
-          pointerEvents: isVisible ? ("auto" as const) : ("none" as const),
           transition: 'none',
-          zIndex: isVisible ? 2 : 1,
         };
       } else if (effect === 'slide') {
-        // 슬라이드 효과 - 캐러셀 방식
-        return {
-          position: "absolute" as const,
-          top: "50%",
-          left: "50%",
-          transform: `translate(-50%, -50%) rotate(90deg) translateX(${slideOffset}%)`,
-          opacity: 1,
-          pointerEvents: isVisible ? ("auto" as const) : ("none" as const),
-          transition: isTransitioning ? `transform ${duration}ms ease-in-out` : 'none',
-          zIndex: isVisible ? 2 : 1,
-        };
+        // 슬라이드는 부모 컨테이너가 처리
+        return {};
       } else {
-        // 페이드 효과 (기본)
+        // 페이드 효과
         return {
-          position: "absolute" as const,
-          top: "50%",
-          left: "50%",
-          transform: `translate(-50%, -50%) rotate(90deg) scale(${!isTransitioning && isVisible ? 1 : 0.95})`,
           opacity: !isTransitioning && isVisible ? 1 : 0,
+          transform: `scale(${!isTransitioning && isVisible ? 1 : 0.95})`,
           filter: !isTransitioning && isVisible ? 'blur(0px)' : 'blur(10px)',
-          pointerEvents: isVisible ? ("auto" as const) : ("none" as const),
           transition: `all ${duration}ms ease-in-out`,
-          zIndex: isVisible ? 2 : 1,
         };
       }
     };
 
     return (
       <div
-        className="portrait-container"
+        className="portrait-slide-content"
         style={getTransitionStyle()}
       >
         {videoInfo?.embedUrl ? (
@@ -606,6 +585,9 @@ export default function BillboardPage() {
   };
 
   const currentEvent = events[currentIndex];
+  const nextEvent = events[(currentIndex + 1) % events.length];
+  const effectType = settings?.effect_type || 'fade';
+  const effectSpeed = settings?.effect_speed || 500;
 
   return (
     <>
@@ -615,7 +597,7 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://i.ytimg.com" />
 
       <div
-        className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
+        className="fixed inset-0 bg-black overflow-hidden flex items-center justify-center"
         style={{ minHeight: "calc(100vh + 1px)" }}
       >
         {/* Realtime 상태 표시 (디버깅용) */}
@@ -623,14 +605,53 @@ export default function BillboardPage() {
           {realtimeStatus}
         </div>
 
-        {/* 현재 슬라이드만 렌더링 */}
-        {renderSlide(currentEvent, true)}
+        {/* 캐러셀 컨테이너 */}
+        <div 
+          className="portrait-carousel-container"
+          style={{
+            transform: effectType === 'slide' 
+              ? `translate(-50%, -50%) rotate(90deg) translateX(${slideOffset}%)` 
+              : `translate(-50%, -50%) rotate(90deg)`,
+            transition: effectType === 'slide' && isTransitioning 
+              ? `transform ${effectSpeed}ms ease-in-out` 
+              : 'none',
+          }}
+        >
+          {/* 현재 슬라이드 */}
+          <div className="portrait-slide">
+            {renderSlide(currentEvent, true)}
+          </div>
+
+          {/* 다음 슬라이드 (슬라이드 효과일 때만) */}
+          {effectType === 'slide' && (
+            <div className="portrait-slide">
+              {renderSlide(nextEvent, false, true)}
+            </div>
+          )}
+        </div>
 
         <style>{`
-          .portrait-container {
-            position: relative;
+          .portrait-carousel-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            display: flex;
             width: 100vh;
             height: 100vw;
+          }
+          
+          .portrait-slide {
+            position: relative;
+            min-width: 100vh;
+            width: 100vh;
+            height: 100vw;
+            flex-shrink: 0;
+          }
+          
+          .portrait-slide-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
           }
           
           /* 모바일 주소창 숨기기를 위한 추가 높이 */
