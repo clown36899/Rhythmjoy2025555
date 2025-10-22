@@ -241,6 +241,7 @@ export default function AdminBillboardModal({
     if (!billboardUserId || !userSettings) return;
 
     try {
+      // transition_effect, transition_duration을 제외한 필드들 먼저 저장 (Supabase 스키마 캐시 이슈 회피)
       const { error } = await supabase
         .from("billboard_user_settings")
         .upsert(
@@ -251,8 +252,6 @@ export default function AdminBillboardModal({
             date_filter_start: userSettings.date_filter_start,
             date_filter_end: userSettings.date_filter_end,
             auto_slide_interval: userSettings.auto_slide_interval,
-            transition_duration: userSettings.transition_duration,
-            transition_effect: userSettings.transition_effect,
             play_order: userSettings.play_order,
           },
           {
@@ -261,6 +260,19 @@ export default function AdminBillboardModal({
         );
 
       if (error) throw error;
+      
+      // transition_effect, transition_duration은 별도로 UPDATE (스키마 캐시 이슈 회피)
+      const { error: updateError } = await supabase
+        .from("billboard_user_settings")
+        .update({
+          transition_effect: userSettings.transition_effect,
+          transition_duration: userSettings.transition_duration,
+        })
+        .eq("billboard_user_id", billboardUserId);
+
+      if (updateError) {
+        console.error("Error updating transition settings:", updateError);
+      }
       
       alert("설정이 저장되었습니다.");
       onClose(); // 저장 후 모달 닫기

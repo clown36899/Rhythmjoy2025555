@@ -101,7 +101,7 @@ export function useBillboardSettings() {
     setSettings(newSettings);
     
     try {
-      // DB 형식으로 변환
+      // transition_effect를 제외한 필드들 먼저 저장 (Supabase 스키마 캐시 이슈 회피)
       const dbData = {
         id: 1,
         enabled: newSettings.enabled,
@@ -109,7 +109,6 @@ export function useBillboardSettings() {
         inactivity_timeout: newSettings.inactivityTimeout,
         auto_open_on_load: newSettings.autoOpenOnLoad,
         transition_duration: newSettings.transitionDuration,
-        transition_effect: newSettings.transitionEffect,
         date_range_start: newSettings.dateRangeStart,
         date_range_end: newSettings.dateRangeEnd,
         show_date_range: newSettings.showDateRange,
@@ -125,6 +124,17 @@ export function useBillboardSettings() {
 
       if (error) {
         console.error("Error saving billboard settings:", error);
+        return;
+      }
+
+      // transition_effect는 별도로 UPDATE (스키마 캐시 이슈 회피)
+      const { error: updateError } = await supabase
+        .from("billboard_settings")
+        .update({ transition_effect: newSettings.transitionEffect })
+        .eq("id", 1);
+
+      if (updateError) {
+        console.error("Error updating transition_effect:", updateError);
       }
     } catch (error) {
       console.error("Error saving billboard settings:", error);
@@ -135,6 +145,7 @@ export function useBillboardSettings() {
     setSettings(DEFAULT_SETTINGS);
     
     try {
+      // transition_effect를 제외한 필드들 먼저 저장
       const dbData = {
         id: 1,
         enabled: DEFAULT_SETTINGS.enabled,
@@ -142,7 +153,6 @@ export function useBillboardSettings() {
         inactivity_timeout: DEFAULT_SETTINGS.inactivityTimeout,
         auto_open_on_load: DEFAULT_SETTINGS.autoOpenOnLoad,
         transition_duration: DEFAULT_SETTINGS.transitionDuration,
-        transition_effect: DEFAULT_SETTINGS.transitionEffect,
         date_range_start: DEFAULT_SETTINGS.dateRangeStart,
         date_range_end: DEFAULT_SETTINGS.dateRangeEnd,
         show_date_range: DEFAULT_SETTINGS.showDateRange,
@@ -156,6 +166,17 @@ export function useBillboardSettings() {
 
       if (error) {
         console.error("Error resetting billboard settings:", error);
+        return;
+      }
+
+      // transition_effect는 별도로 UPDATE
+      const { error: updateError } = await supabase
+        .from("billboard_settings")
+        .update({ transition_effect: DEFAULT_SETTINGS.transitionEffect })
+        .eq("id", 1);
+
+      if (updateError) {
+        console.error("Error updating transition_effect:", updateError);
       }
     } catch (error) {
       console.error("Error resetting billboard settings:", error);
