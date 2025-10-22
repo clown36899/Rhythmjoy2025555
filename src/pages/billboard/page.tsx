@@ -45,6 +45,7 @@ export default function BillboardPage() {
   
   // 슬라이드 전환 상태
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [slideOffset, setSlideOffset] = useState(0); // 슬라이드 캐러셀용 오프셋
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
@@ -239,35 +240,61 @@ export default function BillboardPage() {
     }, 50);
 
     const interval = setInterval(() => {
-      setProgress(0);
-      setIsTransitioning(true);
+      const effectType = settings.effect_type || 'fade';
+      const effectSpeed = settings.effect_speed || 500;
       
-      setTimeout(() => {
-        if (settings.play_order === "random") {
-          // 현재 재생목록에서 다음 인덱스로 이동
-          const nextPlaylistIdx = playlistIndexRef.current + 1;
-
-          // 재생목록 끝에 도달하면 원본 인덱스 배열을 새로 섞음
-          if (nextPlaylistIdx >= shuffledPlaylist.length) {
-            const newIndices = Array.from({ length: events.length }, (_, i) => i);
-            const newPlaylist = shuffleArray(newIndices);
-            setShuffledPlaylist(newPlaylist);
-            playlistIndexRef.current = 0;
-            setCurrentIndex(newPlaylist[0] || 0);
-          } else {
-            // 현재 재생목록 계속 진행
-            playlistIndexRef.current = nextPlaylistIdx;
-            setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
-          }
-        } else {
-          setCurrentIndex((prev) => (prev + 1) % events.length);
-        }
+      setProgress(0);
+      
+      if (effectType === 'slide') {
+        // 슬라이드 전환: 부드러운 캐러셀 효과
+        setIsTransitioning(true);
+        setSlideOffset(-100); // 왼쪽으로 이동
         
-        // 인덱스 변경 후 약간의 딜레이를 두고 페이드인
         setTimeout(() => {
+          if (settings.play_order === "random") {
+            const nextPlaylistIdx = playlistIndexRef.current + 1;
+            if (nextPlaylistIdx >= shuffledPlaylist.length) {
+              const newIndices = Array.from({ length: events.length }, (_, i) => i);
+              const newPlaylist = shuffleArray(newIndices);
+              setShuffledPlaylist(newPlaylist);
+              playlistIndexRef.current = 0;
+              setCurrentIndex(newPlaylist[0] || 0);
+            } else {
+              playlistIndexRef.current = nextPlaylistIdx;
+              setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+            }
+          } else {
+            setCurrentIndex((prev) => (prev + 1) % events.length);
+          }
+          setSlideOffset(0); // 오프셋 리셋
           setIsTransitioning(false);
-        }, 50);
-      }, settings?.transition_duration || 500);
+        }, effectSpeed);
+      } else {
+        // 페이드/없음 전환
+        setIsTransitioning(true);
+        
+        setTimeout(() => {
+          if (settings.play_order === "random") {
+            const nextPlaylistIdx = playlistIndexRef.current + 1;
+            if (nextPlaylistIdx >= shuffledPlaylist.length) {
+              const newIndices = Array.from({ length: events.length }, (_, i) => i);
+              const newPlaylist = shuffleArray(newIndices);
+              setShuffledPlaylist(newPlaylist);
+              playlistIndexRef.current = 0;
+              setCurrentIndex(newPlaylist[0] || 0);
+            } else {
+              playlistIndexRef.current = nextPlaylistIdx;
+              setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+            }
+          } else {
+            setCurrentIndex((prev) => (prev + 1) % events.length);
+          }
+          
+          setTimeout(() => {
+            setIsTransitioning(false);
+          }, 50);
+        }, effectSpeed);
+      }
     }, settings.auto_slide_interval);
 
     return () => {
@@ -353,8 +380,8 @@ export default function BillboardPage() {
     
     // 전환 효과에 따른 스타일
     const getTransitionStyle = () => {
-      const effect = settings?.transition_effect || 'fade';
-      const duration = settings?.transition_duration || 500;
+      const effect = settings?.effect_type || 'fade';
+      const duration = settings?.effect_speed || 500;
       
       if (effect === 'none') {
         // 전환 효과 없음 - 바로 표시/숨김
@@ -369,15 +396,15 @@ export default function BillboardPage() {
           zIndex: isVisible ? 2 : 1,
         };
       } else if (effect === 'slide') {
-        // 슬라이드 효과 - 왼쪽에서 오른쪽으로
+        // 슬라이드 효과 - 캐러셀 방식
         return {
           position: "absolute" as const,
           top: "50%",
-          left: !isTransitioning && isVisible ? "50%" : (isVisible ? "-50%" : "150%"),
-          transform: `translate(-50%, -50%) rotate(90deg)`,
+          left: "50%",
+          transform: `translate(-50%, -50%) rotate(90deg) translateX(${slideOffset}%)`,
           opacity: 1,
           pointerEvents: isVisible ? ("auto" as const) : ("none" as const),
-          transition: `all ${duration}ms ease-in-out`,
+          transition: isTransitioning ? `transform ${duration}ms ease-in-out` : 'none',
           zIndex: isVisible ? 2 : 1,
         };
       } else {
