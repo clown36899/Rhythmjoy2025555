@@ -407,7 +407,7 @@ export default function BillboardPage() {
                 <img
                   src={imageUrl}
                   alt={event.title}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                   style={{ backgroundColor: '#000' }}
                 />
               )}
@@ -436,7 +436,7 @@ export default function BillboardPage() {
           <img
             src={imageUrl}
             alt={event.title}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
             loading={preload ? "eager" : "lazy"}
           />
         )}
