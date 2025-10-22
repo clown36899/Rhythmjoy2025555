@@ -287,7 +287,24 @@ export default function BillboardPage() {
     const isLoaded = videoLoaded[currentEvent.id];
 
     if (hasVideo && isLoaded && settings) {
-      // 영상 로딩 완료 시점부터 10초 후 다음 슬라이드
+      // 기존 progress interval 정리
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+
+      // Progress bar 리셋 후 10초 기준으로 재시작
+      setProgress(0);
+      const videoProgressStep = (50 / 10000) * 100; // 10초 기준
+      progressIntervalRef.current = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            return 0;
+          }
+          return prev + videoProgressStep;
+        });
+      }, 50);
+
+      // 영상 로딩 완료 시점부터 정확히 10초 후 다음 슬라이드
       videoPlayTimeoutRef.current = setTimeout(() => {
         setProgress(0);
         if (settings.play_order === "random") {
@@ -306,7 +323,7 @@ export default function BillboardPage() {
         } else {
           setCurrentIndex((prev) => (prev + 1) % events.length);
         }
-      }, 10000); // 10초
+      }, 10000); // 정확히 10초
     }
 
     return () => {
