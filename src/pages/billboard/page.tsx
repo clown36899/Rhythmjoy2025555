@@ -560,7 +560,7 @@ export default function BillboardPage() {
                     position: 'absolute',
                     top: 0,
                     left: 0,
-                    width: '30%',
+                    width: '100%',
                     height: '100%',
                     overflow: 'hidden',
                     zIndex: 4,
@@ -573,20 +573,17 @@ export default function BillboardPage() {
                     left: 0,
                     right: 0,
                     color: 'white',
-                    fontSize: isLoaded 
-                      ? `${Math.max(16, Math.min(20 * scale, 60))}px`
-                      : `${Math.max(24, Math.min(31 * scale, 108))}px`,
+                    fontSize: `${Math.max(20, Math.min(24 * scale, 86))}px`,
                     lineHeight: 1.6,
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'keep-all',
                     overflowWrap: 'break-word',
                     paddingLeft: `${32 * scale}px`,
                     paddingRight: `${32 * scale}px`,
-                    paddingTop: isLoaded ? `${16 * scale}px` : `${32 * scale}px`,
-                    paddingBottom: isLoaded ? `${16 * scale}px` : `${32 * scale}px`,
+                    paddingTop: `${32 * scale}px`,
+                    paddingBottom: `${32 * scale}px`,
                     transform: 'translateY(100%)',
-                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 2 / 1000}s cubic-bezier(0.33, 0, 0.2, 1) forwards`,
-                    transition: 'font-size 1s ease-in-out, padding-top 1s ease-in-out, padding-bottom 1s ease-in-out',
+                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 4 / 3 / 1000}s linear forwards`,
                     ['--bottom-offset' as any]: `${(40 + 40 + 8) * scale + Math.max(48, Math.min(62 * scale, 216)) + Math.max(24, Math.min(31 * scale, 216)) * 2}px`,
                   } as React.CSSProperties}
                 >
