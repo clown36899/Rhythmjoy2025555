@@ -134,17 +134,14 @@ export default function BillboardPage() {
         (payload) => {
           console.log('🚀 새 배포 감지!', payload);
           setRealtimeStatus("🚀 새 배포! 5초 후 새로고침...");
+          setTimeout(() => setRealtimeStatus("연결됨"), 3000);
           setTimeout(() => {
             window.location.reload();
           }, 5000);
         },
       )
-      .subscribe((status, err) => {
-        console.log('배포 구독:', status, err ? `에러: ${err}` : '');
+      .subscribe((status) => {
         setRealtimeStatus(`배포: ${status}`);
-        if (status === 'CHANNEL_ERROR') {
-          console.error('❌ 배포 채널 에러:', err);
-        }
       });
 
     // 클린업
