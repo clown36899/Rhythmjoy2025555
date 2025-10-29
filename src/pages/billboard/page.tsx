@@ -611,7 +611,21 @@ export default function BillboardPage() {
 
         {isVisible && (
           <>
-            <div className="absolute left-6" style={{ top: `${24 * scale}px`, zIndex: 10 }}>
+            <div 
+              className="absolute" 
+              style={{ 
+                width: '100%',
+                padding: '0 42px',
+                top: '20.0267px',
+                zIndex: 10,
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                alignContent: 'space-between',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
               {events.length > 1 && (
                 <div className="relative" style={{ width: `${96 * scale}px`, height: `${96 * scale}px` }}>
                   <svg 
@@ -650,9 +664,7 @@ export default function BillboardPage() {
               <div 
                 className="bg-black/70 text-white px-3 py-1 rounded text-xs"
                 style={{ 
-                  marginTop: `${16 * scale}px`,
-                  transform: 'rotate(90deg)', 
-                  transformOrigin: 'left top',
+                  position: 'relative',
                   width: 'max-content'
                 }}
               >
