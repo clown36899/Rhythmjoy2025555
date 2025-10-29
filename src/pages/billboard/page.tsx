@@ -125,10 +125,28 @@ export default function BillboardPage() {
         setRealtimeStatus(`설정: ${status}`);
       });
 
+    // 🚀 배포 감지 (Realtime) - 새 배포 시 즉시 새로고침!
+    const deployChannel = supabase
+      .channel("billboard-deploy-changes")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "deployments" },
+        () => {
+          console.log('🚀 새 배포 감지! 5초 후 자동 새로고침...');
+          setTimeout(() => {
+            window.location.reload();
+          }, 5000); // 5초 후 새로고침 (배포 완전히 완료되도록)
+        },
+      )
+      .subscribe((status) => {
+        console.log('배포 구독:', status);
+      });
+
     // 클린업
     return () => {
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(settingsChannel);
+      supabase.removeChannel(deployChannel);
     };
   }, [userId]);
 

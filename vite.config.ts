@@ -1,4 +1,5 @@
-import { defineConfig, Plugin } from "vite";
+import { defineConfig } from "vite";
+import type { Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
