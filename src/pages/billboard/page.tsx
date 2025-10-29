@@ -454,6 +454,7 @@ export default function BillboardPage() {
   const renderSlide = (
     event: any,
     isVisible: boolean,
+    slideIndex: number,
     preload: boolean = false,
   ) => {
     const imageUrl = event.image_full || event.image;
@@ -537,7 +538,7 @@ export default function BillboardPage() {
             
             {/* 이벤트 내용 스크롤 (썸네일부터 시작) */}
             {isVisible && event.description && (
-              <div key={`scroll-${event.id}-${isVisible}`}>
+              <div key={`scroll-${event.id}-${slideIndex}`}>
                 {/* 반투명 배경 레이어 (페이드아웃만) */}
                 <div
                   style={{
@@ -740,7 +741,7 @@ export default function BillboardPage() {
         </div>
 
         {/* 현재 슬라이드만 렌더링 */}
-        {renderSlide(currentEvent, true)}
+        {renderSlide(currentEvent, true, currentIndex)}
 
         <style>{`
           .portrait-container {
