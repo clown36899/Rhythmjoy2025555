@@ -710,8 +710,8 @@ export default function BillboardPage() {
                 style={{
                   position: 'absolute',
                   top: 0,
-                  left: 0,
-                  right: 0,
+                  left: `${48 * scale}px`,
+                  right: `${48 * scale}px`,
                   height: `${2 * scale}px`,
                   backgroundColor: 'rgba(255, 255, 255, 0.3)',
                   transformOrigin: 'left',
