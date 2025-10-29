@@ -566,7 +566,7 @@ export default function BillboardPage() {
                     overflowWrap: 'break-word',
                     padding: isLoaded ? `${16 * scale}px` : `${32 * scale}px`,
                     transform: 'translateY(100%)',
-                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 2 / 1000}s linear forwards`,
+                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 2 / 1000}s cubic-bezier(0.33, 0, 0.2, 1) forwards`,
                     transition: 'font-size 1s ease-in-out, padding 1s ease-in-out',
                   }}
                 >
