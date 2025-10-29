@@ -105,6 +105,29 @@
           });
         }
       }
+      
+      // 🔄 빌보드 페이지에서만 자동 새로고침 체크 (5분마다)
+      if (window.location.pathname.includes('/billboard/')) {
+        const BUILD_TIME = '__BUILD_TIME__';
+        
+        function checkForUpdates() {
+          fetch('/version.json?t=' + Date.now())
+            .then(res => res.json())
+            .then(data => {
+              if (data.buildTime !== BUILD_TIME) {
+                console.log('새 버전 감지! 자동 새로고침 중...');
+                window.location.reload();
+              }
+            })
+            .catch(() => {}); // 에러 무시
+        }
+        
+        // 5분마다 체크
+        setInterval(checkForUpdates, 5 * 60 * 1000);
+        
+        // 10초 후 첫 체크
+        setTimeout(checkForUpdates, 10000);
+      }
     </script>
   </body>
 </html>

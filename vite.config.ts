@@ -1,6 +1,7 @@
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
+import { writeFileSync } from "node:fs";
 import AutoImport from "unplugin-auto-import/vite";
 
 //const base = process.env.BASE_PATH || "/";//
@@ -16,6 +17,28 @@ const SERVER_PORT = isReplit ? 5000 : 5173;
 const SERVER_HOST = isReplit ? "0.0.0.0" : "localhost";
 
 const isPreview = process.env.IS_PREVIEW ? true : false;
+
+// 빌드 타임스탬프 생성 플러그인
+const BUILD_TIME = Date.now().toString();
+
+function buildVersionPlugin(): Plugin {
+  return {
+    name: 'build-version',
+    transformIndexHtml(html) {
+      // index.html에서 __BUILD_TIME__을 실제 빌드 타임으로 교체
+      return html.replace(/__BUILD_TIME__/g, BUILD_TIME);
+    },
+    closeBundle() {
+      const version = {
+        buildTime: BUILD_TIME,
+        date: new Date().toISOString()
+      };
+      writeFileSync('dist/version.json', JSON.stringify(version));
+      console.log('✅ version.json 생성됨:', version.date);
+    }
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   define: {
@@ -24,6 +47,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    buildVersionPlugin(),
     AutoImport({
       imports: [
         {
