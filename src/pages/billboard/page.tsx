@@ -592,16 +592,21 @@ export default function BillboardPage() {
                 paddingRight: `${32 * scale}px`,
                 paddingTop: `${40 * scale}px`,
                 paddingBottom: `${40 * scale}px`,
-                zIndex: 10,
-                animation: `slideUpFadeIn 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
-                opacity: 0,
-                transform: `translateY(${50 * scale}px)`
+                zIndex: 10
               }}
             >
               <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
                 <div style={{ marginBottom: `${8 * scale}px`, display: 'flex', flexDirection: 'column', gap: `${4 * scale}px` }}>
                   {event.start_date && (
-                    <div className="text-blue-400 font-semibold" style={{ fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px` }}>
+                    <div 
+                      className="text-blue-400 font-semibold" 
+                      style={{ 
+                        fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                        animation: `slideInLeft 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards`,
+                        opacity: 0,
+                        transform: `translateX(-${100 * scale}px)`
+                      }}
+                    >
                       <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
                       {formatDateRange(event.start_date, event.end_date)}
                     </div>
@@ -609,7 +614,15 @@ export default function BillboardPage() {
                   {event.location &&
                     event.location.trim() &&
                     event.location !== "미정" && (
-                      <div className="text-gray-300" style={{ fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px` }}>
+                      <div 
+                        className="text-gray-300" 
+                        style={{ 
+                          fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                          animation: `slideInRight 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards`,
+                          opacity: 0,
+                          transform: `translateX(${100 * scale}px)`
+                        }}
+                      >
                         <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
                         {event.location}
                       </div>
@@ -629,7 +642,10 @@ export default function BillboardPage() {
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
-                    width: '100%'
+                    width: '100%',
+                    animation: `zoomInUp 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards`,
+                    opacity: 0,
+                    transform: `scale(0.5) translateY(${50 * scale}px)`
                   }}
                 >
                   {event.title}
@@ -640,7 +656,10 @@ export default function BillboardPage() {
                 className="bg-white rounded-lg flex-shrink-0" 
                 style={{ 
                   padding: `${12 * scale}px`,
-                  marginLeft: `${24 * scale}px`
+                  marginLeft: `${24 * scale}px`,
+                  animation: `rotateInFade 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.5s forwards`,
+                  opacity: 0,
+                  transform: `rotate(180deg) scale(0.3)`
                 }}
               >
                 <QRCodeCanvas
@@ -668,14 +687,59 @@ export default function BillboardPage() {
       
       {/* 제목/날짜/장소 등장 애니메이션 */}
       <style>{`
-        @keyframes slideUpFadeIn {
+        @keyframes slideInLeft {
           0% {
             opacity: 0;
-            transform: translateY(50px);
+            transform: translateX(-100px);
+          }
+          60% {
+            transform: translateX(10px);
           }
           100% {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slideInRight {
+          0% {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          60% {
+            transform: translateX(-10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes zoomInUp {
+          0% {
+            opacity: 0;
+            transform: scale(0.5) translateY(50px);
+          }
+          50% {
+            transform: scale(1.1) translateY(-5px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        @keyframes rotateInFade {
+          0% {
+            opacity: 0;
+            transform: rotate(180deg) scale(0.3);
+          }
+          60% {
+            transform: rotate(-10deg) scale(1.1);
+          }
+          100% {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
           }
         }
       `}</style>
