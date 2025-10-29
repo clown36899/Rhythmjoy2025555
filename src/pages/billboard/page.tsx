@@ -573,7 +573,7 @@ export default function BillboardPage() {
                     left: 0,
                     right: 0,
                     color: 'white',
-                    fontSize: `${Math.max(30, Math.min(36 * scale, 129))}px`,
+                    fontSize: `${Math.max(15, Math.min(18 * scale, 65))}px`,
                     lineHeight: 1.6,
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'keep-all',
