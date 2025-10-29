@@ -530,23 +530,36 @@ export default function BillboardPage() {
                   style={{ backgroundColor: '#000' }}
                 />
               )}
-              {/* 로딩 스피너 */}
-              {isVisible && !isLoaded && (
+              {/* 이벤트 내용 스크롤 (로딩 중 및 영상 재생 중) */}
+              {isVisible && event.description && (
                 <div
                   style={{
                     position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    padding: `${32 * scale}px`,
+                    zIndex: 3,
                   }}
                 >
                   <div
-                    className="animate-spin rounded-full border-4 border-white border-t-transparent"
                     style={{
-                      width: `${64 * scale}px`,
-                      height: `${64 * scale}px`,
+                      color: 'white',
+                      fontSize: `${Math.max(24, Math.min(31 * scale, 108))}px`,
+                      lineHeight: 1.6,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'keep-all',
+                      overflowWrap: 'break-word',
+                      animation: `scrollUp ${(settings?.video_play_duration || 10000) / 1000}s linear forwards`,
                     }}
-                  />
+                  >
+                    {event.description}
+                  </div>
                 </div>
               )}
             </div>
@@ -667,6 +680,18 @@ export default function BillboardPage() {
       <link rel="dns-prefetch" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
+      
+      {/* 이벤트 내용 스크롤 애니메이션 */}
+      <style>{`
+        @keyframes scrollUp {
+          0% {
+            transform: translateY(0);
+          }
+          100% {
+            transform: translateY(-100%);
+          }
+        }
+      `}</style>
 
       <div
         className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
