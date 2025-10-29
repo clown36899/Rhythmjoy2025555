@@ -109,24 +109,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // 스크롤 감지 - 분류 컨테이너가 스티키되면 달력 자동 접기
-  useEffect(() => {
-    const handleScroll = () => {
-      if (calendarRef.current) {
-        const rect = calendarRef.current.getBoundingClientRect();
-        // 달력이 헤더 아래로 완전히 사라지면 스티키 활성화
-        const shouldBeSticky = rect.bottom <= 64; // 64px = header height
-        
-        if (shouldBeSticky && !isStickyActive) {
-          setIsStickyActive(true);
-          setIsCalendarCollapsed(true);
-        }
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isStickyActive]);
 
   // 검색 취소 시 전체 모드로 리셋
   useEffect(() => {
@@ -568,10 +550,6 @@ export default function HomePage() {
     if (category === "all") {
       setSelectedDate(null);
     }
-    // 연습실 외 다른 카테고리 선택 시 달력 펼치기 (스티키 활성화 시 제외)
-    if (category !== "practice" && !isStickyActive) {
-      setIsCalendarCollapsed(false);
-    }
   };
 
   const getSortIcon = () => {
@@ -822,8 +800,6 @@ export default function HomePage() {
                 <button
                   onClick={() => {
                     setSelectedCategory("practice");
-                    setIsCalendarCollapsed(true);
-                    setIsStickyActive(false);
                   }}
                   className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                     isCategoryActive("practice")
@@ -834,6 +810,17 @@ export default function HomePage() {
                   <span>연습실</span>
                 </button>
               </div>
+              
+              {/* 달력 접기/펴기 토글 버튼 */}
+              <button
+                onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                className="flex items-center justify-center h-6 w-8
+                           bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                           rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기"}
+              >
+                <i className={`${isCalendarCollapsed ? 'ri-calendar-line' : 'ri-calendar-close-line'} text-sm leading-none align-middle`}></i>
+              </button>
               
               <div className="flex-1"></div>
 
