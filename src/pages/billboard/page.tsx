@@ -639,6 +639,16 @@ export default function BillboardPage() {
               )}
             </div>
 
+            {/* 내용 가리는 불투명 레이어 (영상은 안 가림) */}
+            <div
+              className="absolute bottom-0 left-0 right-0"
+              style={{
+                height: `${(40 + 40 + 8) * scale}px`,
+                backgroundColor: 'black',
+                zIndex: 5,
+              }}
+            />
+
             <div 
               className="absolute bottom-0 left-0 right-0 flex items-end justify-between"
               style={{ 
