@@ -1102,10 +1102,10 @@ export default function BillboardPage() {
         <div 
           className="absolute bg-black/70 text-white px-3 py-1 rounded text-xs z-50"
           style={{ 
-            right: `${24 * scale}px`,
+            left: `${24 * scale}px`,
             bottom: `${24 * scale}px`,
             transform: 'rotate(90deg)', 
-            transformOrigin: 'bottom right' 
+            transformOrigin: 'bottom left' 
           }}
         >
           {realtimeStatus}
