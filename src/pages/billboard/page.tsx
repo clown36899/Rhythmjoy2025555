@@ -127,10 +127,10 @@ export default function BillboardPage() {
 
     // 🚀 배포 감지 (Realtime) - 새 배포 시 즉시 새로고침!
     const deployChannel = supabase
-      .channel("billboard-deploy-changes")
+      .channel("deploy-updates")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "deployments" },
+        { event: "*", schema: "public", table: "deployments" },
         (payload) => {
           console.log('🚀 새 배포 감지!', payload);
           console.log('🚀 5초 후 자동 새로고침...');
