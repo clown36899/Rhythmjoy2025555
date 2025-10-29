@@ -322,7 +322,7 @@ export default function BillboardPage() {
     };
   }, [events, settings, shuffledPlaylist, currentIndex]);
 
-  // 영상 로딩 완료 감지 후 10초 재생
+  // 영상 로딩 완료 감지 후 재생 (currentIndex와 이벤트 ID 기반 체크)
   useEffect(() => {
     const currentEvent = events[currentIndex];
     if (!currentEvent) return;
@@ -357,7 +357,7 @@ export default function BillboardPage() {
         });
       }, 50);
 
-      // 영상 로딩 완료 시점부터 정확히 10초 후 다음 슬라이드
+      // 영상 로딩 완료 시점부터 정확히 설정된 시간 후 다음 슬라이드
       videoPlayTimeoutRef.current = setTimeout(() => {
         console.log('[빌보드] 영상 재생 완료! 다음 슬라이드로 전환');
         setProgress(0);
@@ -377,7 +377,7 @@ export default function BillboardPage() {
         } else {
           setCurrentIndex((prev) => (prev + 1) % events.length);
         }
-      }, settings.video_play_duration || 10000); // 설정된 영상 재생 시간
+      }, settings.video_play_duration || 10000);
     }
 
     return () => {
@@ -386,7 +386,7 @@ export default function BillboardPage() {
         clearTimeout(videoPlayTimeoutRef.current);
       }
     };
-  }, [videoLoaded, currentIndex, events, settings]);
+  }, [currentIndex, events, settings, shuffledPlaylist, videoLoaded[events[currentIndex]?.id]]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
