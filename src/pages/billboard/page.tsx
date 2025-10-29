@@ -573,7 +573,7 @@ export default function BillboardPage() {
                     left: 0,
                     right: 0,
                     color: 'white',
-                    fontSize: `${Math.max(20, Math.min(24 * scale, 86))}px`,
+                    fontSize: `${Math.max(30, Math.min(36 * scale, 129))}px`,
                     lineHeight: 1.6,
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'keep-all',
@@ -583,7 +583,7 @@ export default function BillboardPage() {
                     paddingTop: `${32 * scale}px`,
                     paddingBottom: `${32 * scale}px`,
                     transform: 'translateY(100%)',
-                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 4 / 3 / 1000}s linear forwards`,
+                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear forwards`,
                     ['--bottom-offset' as any]: `${(40 + 40 + 8) * scale + Math.max(48, Math.min(62 * scale, 216)) + Math.max(24, Math.min(31 * scale, 216)) * 2}px`,
                   } as React.CSSProperties}
                 >
