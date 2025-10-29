@@ -544,22 +544,23 @@ export default function BillboardPage() {
                     height: '100%',
                     backgroundColor: 'rgba(0, 0, 0, 0.7)',
                     overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                    padding: `${32 * scale}px`,
-                    paddingBottom: `${40 * scale}px`, // 하단 여백
                     zIndex: 3,
                   }}
                 >
                   <div
                     style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
                       color: 'white',
                       fontSize: `${Math.max(24, Math.min(31 * scale, 108))}px`,
                       lineHeight: 1.6,
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'keep-all',
                       overflowWrap: 'break-word',
+                      padding: `${32 * scale}px`,
+                      transform: 'translateY(100%)',
                       animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 2 / 1000}s linear forwards`,
                     }}
                   >
@@ -690,10 +691,10 @@ export default function BillboardPage() {
       <style>{`
         @keyframes scrollUpFromBottom {
           0% {
-            transform: translateY(0);
+            transform: translateY(100%);
           }
           100% {
-            transform: translateY(calc(-100% - 100vh + 180px));
+            transform: translateY(calc(-100% + 180px));
           }
         }
       `}</style>
