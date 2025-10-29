@@ -570,7 +570,7 @@ export default function BillboardPage() {
                 <div
                   style={{
                     position: 'absolute',
-                    bottom: `${(40 + 40 + 8) * scale + 2 * scale}px`,
+                    bottom: 0,
                     left: 0,
                     right: 0,
                     color: 'white',
