@@ -537,19 +537,35 @@ export default function BillboardPage() {
             
             {/* 이벤트 내용 스크롤 (로딩 중 및 영상 재생 중) */}
             {isVisible && event.description && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: isLoaded ? '30%' : '100%',
-                  height: '100%',
-                  backgroundColor: isLoaded ? 'transparent' : 'rgba(0, 0, 0, 0.7)',
-                  overflow: 'hidden',
-                  transition: 'width 1s ease-in-out, background-color 1s ease-in-out',
-                  zIndex: 3,
-                }}
-              >
+              <>
+                {/* 반투명 배경 레이어 (페이드아웃만) */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    opacity: isLoaded ? 0 : 1,
+                    transition: 'opacity 1s ease-in-out',
+                    pointerEvents: 'none',
+                    zIndex: 3,
+                  }}
+                />
+                
+                {/* 내용 레이어 */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '30%',
+                    height: '100%',
+                    overflow: 'hidden',
+                    zIndex: 4,
+                  }}
+                >
                 <div
                   style={{
                     position: 'absolute',
@@ -577,6 +593,7 @@ export default function BillboardPage() {
                   {event.description}
                 </div>
               </div>
+              </>
             )}
           </div>
         ) : (
