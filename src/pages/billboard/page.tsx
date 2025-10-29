@@ -541,9 +541,8 @@ export default function BillboardPage() {
                     height: '100%',
                     backgroundColor: 'rgba(0, 0, 0, 0.7)',
                     overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'flex-end',
                     padding: `${32 * scale}px`,
+                    paddingTop: `${(24 + 96 + 32) * scale}px`, // progress circle 아래 여백
                     zIndex: 3,
                   }}
                 >
@@ -555,7 +554,8 @@ export default function BillboardPage() {
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'keep-all',
                       overflowWrap: 'break-word',
-                      animation: `scrollUp ${(settings?.video_play_duration || 10000) / 1000}s linear forwards`,
+                      transform: 'translateY(100%)',
+                      animation: `scrollUpLimited ${(settings?.video_play_duration || 10000) * 2 / 1000}s linear forwards`,
                     }}
                   >
                     {event.description}
@@ -683,9 +683,9 @@ export default function BillboardPage() {
       
       {/* 이벤트 내용 스크롤 애니메이션 */}
       <style>{`
-        @keyframes scrollUp {
+        @keyframes scrollUpLimited {
           0% {
-            transform: translateY(0);
+            transform: translateY(100%);
           }
           100% {
             transform: translateY(-100%);
