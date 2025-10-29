@@ -668,12 +668,14 @@ export default function BillboardPage() {
                     )}
                 </div>
                 <h3 
-                  className="text-white font-bold break-words" 
+                  className="text-white font-bold" 
                   style={{ 
                     fontSize: `${Math.max(48, Math.min(62 * scale, 216))}px`,
                     lineHeight: 1.2,
                     wordBreak: 'keep-all',
-                    overflowWrap: 'break-word'
+                    whiteSpace: 'pre-wrap',
+                    width: '100%',
+                    textAlign: 'left'
                   }}
                 >
                   {event.title}
