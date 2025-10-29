@@ -570,7 +570,7 @@ export default function BillboardPage() {
                 <div
                   style={{
                     position: 'absolute',
-                    bottom: 0,
+                    bottom: `${(40 + 40 + 8) * scale + 2 * scale}px`,
                     left: 0,
                     right: 0,
                     color: 'white',
@@ -581,10 +581,10 @@ export default function BillboardPage() {
                     overflowWrap: 'break-word',
                     paddingLeft: `${32 * scale}px`,
                     paddingRight: `${32 * scale}px`,
-                    paddingTop: `${32 * scale}px`,
-                    paddingBottom: `${32 * scale}px`,
-                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear 0s forwards`,
-                    ['--bottom-offset' as any]: `${(40 + 40 + 8) * scale + Math.max(48, Math.min(62 * scale, 216)) + Math.max(24, Math.min(31 * scale, 216)) * 2}px`,
+                    paddingTop: `${8 * scale}px`,
+                    paddingBottom: 0,
+                    animation: `scrollUpSimple ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear 0s forwards`,
+                    ['--scroll-distance' as any]: `${Math.max(48, Math.min(62 * scale, 216)) + Math.max(24, Math.min(31 * scale, 216)) * 2 + 100 * scale}px`,
                   } as React.CSSProperties}
                 >
                   {event.description}
@@ -647,7 +647,8 @@ export default function BillboardPage() {
                 paddingRight: `${32 * scale}px`,
                 paddingTop: `${40 * scale}px`,
                 paddingBottom: `${40 * scale}px`,
-                zIndex: 10
+                zIndex: 10,
+                borderTop: `${2 * scale}px solid rgba(255, 255, 255, 0.3)`
               }}
             >
               <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
@@ -720,12 +721,12 @@ export default function BillboardPage() {
       
       {/* 이벤트 내용 스크롤 애니메이션 */}
       <style>{`
-        @keyframes scrollUpFromBottom {
+        @keyframes scrollUpSimple {
           0% {
-            transform: translateY(0%);
+            transform: translateY(0);
           }
           100% {
-            transform: translateY(calc(-1 * var(--bottom-offset, 250px)));
+            transform: translateY(calc(-1 * var(--scroll-distance, 300px)));
           }
         }
       `}</style>
