@@ -705,7 +705,7 @@ export default function BillboardPage() {
                 }}
               />
 
-              {/* 경계선 */}
+              {/* 경계선 - 그어지는 애니메이션 */}
               <div
                 style={{
                   position: 'absolute',
@@ -713,7 +713,10 @@ export default function BillboardPage() {
                   left: 0,
                   right: 0,
                   height: `${2 * scale}px`,
-                  backgroundColor: 'rgba(255, 255, 255, 0.3)'
+                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                  transformOrigin: 'left',
+                  animation: `drawLine 1.2s ease-out 4.2s forwards`,
+                  transform: 'scaleX(0)'
                 }}
               />
 
@@ -947,6 +950,15 @@ export default function BillboardPage() {
           100% {
             opacity: 0;
             transform: translateY(-15px) scale(0.6);
+          }
+        }
+        
+        @keyframes drawLine {
+          0% {
+            transform: scaleX(0);
+          }
+          100% {
+            transform: scaleX(1);
           }
         }
         
