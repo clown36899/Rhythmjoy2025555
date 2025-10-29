@@ -555,14 +555,14 @@ export default function BillboardPage() {
                   }}
                 />
                 
-                {/* 내용 레이어 */}
+                {/* 내용 레이어 - 경계선 위까지만 */}
                 <div
                   style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
-                    height: '100%',
+                    bottom: `${(40 + 40 + 8) * scale}px`,
                     overflow: 'hidden',
                     zIndex: 4,
                   }}
@@ -581,8 +581,8 @@ export default function BillboardPage() {
                     overflowWrap: 'break-word',
                     paddingLeft: `${32 * scale}px`,
                     paddingRight: `${32 * scale}px`,
-                    paddingTop: `${8 * scale}px`,
-                    paddingBottom: 0,
+                    paddingTop: `${32 * scale}px`,
+                    paddingBottom: `${32 * scale}px`,
                     animation: `scrollUpSimple ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear 0s forwards`,
                     ['--scroll-distance' as any]: `${Math.max(48, Math.min(62 * scale, 216)) + Math.max(24, Math.min(31 * scale, 216)) * 2 + 100 * scale}px`,
                   } as React.CSSProperties}
