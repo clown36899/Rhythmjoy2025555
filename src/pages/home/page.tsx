@@ -643,48 +643,50 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Mobile Layout - Scrollable with Sticky Category Panel */}
+      {/* Mobile Layout - Scrollable with Sticky Calendar & Category Panel */}
       <div>
         <div className="pt-16">
-          {/* Calendar Section - Not Fixed */}
-          <div
-            ref={calendarRef}
-            className="w-full max-w-[650px] mx-auto"
-            style={{ backgroundColor: "var(--calendar-bg-color)" }}
-          >
-            {/* Calendar - Collapsible */}
+          {/* Calendar & Category Section - Sticky Container */}
+          <div className="sticky top-16 w-full max-w-[650px] mx-auto z-[10]">
+            {/* Calendar Section */}
             <div
-              className="transition-all duration-300 ease-in-out overflow-hidden border-b border-[#22262a]"
-              style={{
-                maxHeight: isCalendarCollapsed ? '0px' : '2000px',
+              ref={calendarRef}
+              className="w-full"
+              style={{ backgroundColor: "var(--calendar-bg-color)" }}
+            >
+              {/* Calendar - Collapsible */}
+              <div
+                className="transition-all duration-300 ease-in-out overflow-hidden border-b border-[#22262a]"
+                style={{
+                  maxHeight: isCalendarCollapsed ? '0px' : '2000px',
+                }}
+              >
+                <EventCalendar
+                  selectedDate={selectedDate}
+                  onDateSelect={handleDateSelect}
+                  onMonthChange={handleMonthChange}
+                  showHeader={false}
+                  currentMonth={currentMonth}
+                  onEventsUpdate={handleEventsUpdate}
+                  viewMode={viewMode}
+                  hoveredEventId={hoveredEventId}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                  dragOffset={dragOffset}
+                  isAnimating={isAnimating}
+                />
+              </div>
+            </div>
+
+            {/* Category Filter Panel */}
+            <div 
+              data-category-panel
+              className="w-full"
+              style={{ 
+                backgroundColor: "var(--calendar-bg-color)"
               }}
             >
-              <EventCalendar
-                selectedDate={selectedDate}
-                onDateSelect={handleDateSelect}
-                onMonthChange={handleMonthChange}
-                showHeader={false}
-                currentMonth={currentMonth}
-                onEventsUpdate={handleEventsUpdate}
-                viewMode={viewMode}
-                hoveredEventId={hoveredEventId}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-                dragOffset={dragOffset}
-                isAnimating={isAnimating}
-              />
-            </div>
-          </div>
-
-          {/* Category Filter Panel - Sticky */}
-          <div 
-            data-category-panel
-            className="sticky top-16 w-full max-w-[650px] mx-auto z-[10]"
-            style={{ 
-              backgroundColor: "var(--calendar-bg-color)"
-            }}
-          >
             <div className="flex items-center gap-2 p-1.5 border-t border-b border-x-0 border-t-[#22262a] border-b-black">
               
               {/* 이벤트 카테고리 그룹 (전체/강습/행사) */}
@@ -791,6 +793,7 @@ export default function HomePage() {
               >
                 <i className="ri-search-line text-sm leading-none align-middle"></i>
               </button>
+            </div>
             </div>
           </div>
 
