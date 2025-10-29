@@ -340,6 +340,7 @@ export default function EventRegistrationModal({ isOpen, onClose, selectedDate, 
         alert('이벤트가 성공적으로 등록되었습니다!');
         setFormData({
           title: '',
+          description: '',
           location: '',
           locationLink: '',
           category: 'class',
