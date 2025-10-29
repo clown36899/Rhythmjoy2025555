@@ -533,42 +533,47 @@ export default function BillboardPage() {
                   style={{ backgroundColor: '#000' }}
                 />
               )}
-              {/* 이벤트 내용 스크롤 (로딩 중 및 영상 재생 중) */}
-              {isVisible && event.description && (
+            </div>
+            
+            {/* 이벤트 내용 스크롤 (로딩 중 및 영상 재생 중) */}
+            {isVisible && event.description && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: isLoaded ? '30%' : '100%',
+                  height: '100%',
+                  backgroundColor: isLoaded ? 'transparent' : 'rgba(0, 0, 0, 0.7)',
+                  overflow: 'hidden',
+                  transition: 'width 1s ease-in-out, background-color 1s ease-in-out',
+                  zIndex: 3,
+                }}
+              >
                 <div
                   style={{
                     position: 'absolute',
-                    top: 0,
+                    bottom: 0,
                     left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    overflow: 'hidden',
-                    zIndex: 3,
+                    right: 0,
+                    color: 'white',
+                    fontSize: isLoaded 
+                      ? `${Math.max(16, Math.min(20 * scale, 60))}px`
+                      : `${Math.max(24, Math.min(31 * scale, 108))}px`,
+                    lineHeight: 1.6,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'keep-all',
+                    overflowWrap: 'break-word',
+                    padding: isLoaded ? `${16 * scale}px` : `${32 * scale}px`,
+                    transform: 'translateY(100%)',
+                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 2 / 1000}s linear forwards`,
+                    transition: 'font-size 1s ease-in-out, padding 1s ease-in-out',
                   }}
                 >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      color: 'white',
-                      fontSize: `${Math.max(24, Math.min(31 * scale, 108))}px`,
-                      lineHeight: 1.6,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'keep-all',
-                      overflowWrap: 'break-word',
-                      padding: `${32 * scale}px`,
-                      transform: 'translateY(100%)',
-                      animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 2 / 1000}s linear forwards`,
-                    }}
-                  >
-                    {event.description}
-                  </div>
+                  {event.description}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         ) : (
           <img
