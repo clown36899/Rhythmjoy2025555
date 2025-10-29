@@ -650,7 +650,7 @@ export default function BillboardPage() {
                 zIndex: 10
               }}
             >
-              <div className="flex-1" style={{ minWidth: 0 }}>
+              <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
                 <div style={{ marginBottom: `${8 * scale}px`, display: 'flex', flexDirection: 'column', gap: `${4 * scale}px` }}>
                   {event.start_date && (
                     <div className="text-blue-400 font-semibold" style={{ fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px` }}>
@@ -670,12 +670,18 @@ export default function BillboardPage() {
                 <h3 
                   className="text-white font-bold" 
                   style={{ 
-                    fontSize: `${Math.max(48, Math.min(62 * scale, 216))}px`,
+                    fontSize: event.title.length > 30 
+                      ? event.title.length > 50
+                        ? `${Math.max(32, Math.min(40 * scale, 140))}px`
+                        : `${Math.max(40, Math.min(50 * scale, 175))}px`
+                      : `${Math.max(48, Math.min(62 * scale, 216))}px`,
                     lineHeight: 1.2,
                     wordBreak: 'keep-all',
-                    whiteSpace: 'pre-wrap',
-                    width: '100%',
-                    textAlign: 'left'
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    width: '100%'
                   }}
                 >
                   {event.title}
