@@ -237,13 +237,16 @@ export default function BillboardPage() {
         }
       }
 
-      // 과거 이벤트 제외
-      const eventEndDate = new Date(
-        event.end_date || event.start_date || event.date || "",
-      );
-      if (eventEndDate < today) {
-        console.log('[필터] 과거 이벤트:', event.id, event.title, eventEndDate.toISOString().split('T')[0], '<', today.toISOString().split('T')[0]);
-        return false;
+      // 과거 이벤트 제외 (단, 날짜 범위 필터가 설정되지 않은 경우에만)
+      // 관리자가 날짜 범위를 명시적으로 설정했다면 과거 이벤트도 허용
+      if (!settings.date_filter_start && !settings.date_filter_end) {
+        const eventEndDate = new Date(
+          event.end_date || event.start_date || event.date || "",
+        );
+        if (eventEndDate < today) {
+          console.log('[필터] 과거 이벤트:', event.id, event.title, eventEndDate.toISOString().split('T')[0], '<', today.toISOString().split('T')[0]);
+          return false;
+        }
       }
 
       return true;
