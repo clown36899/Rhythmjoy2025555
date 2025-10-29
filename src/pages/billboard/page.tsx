@@ -699,7 +699,7 @@ export default function BillboardPage() {
             transform: translateY(100%);
           }
           100% {
-            transform: translateY(calc(-100vh + 200px));
+            transform: translateY(-100px);
           }
         }
       `}</style>
