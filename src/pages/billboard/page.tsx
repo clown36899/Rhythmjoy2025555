@@ -582,8 +582,9 @@ export default function BillboardPage() {
                     paddingLeft: `${32 * scale}px`,
                     paddingRight: `${32 * scale}px`,
                     paddingTop: `${32 * scale}px`,
-                    paddingBottom: `${32 * scale}px`,
+                    paddingBottom: 0,
                     animation: `scrollUpFromHidden ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear 0s forwards`,
+                    ['--stop-position' as any]: `${(40 + 40 + 8 + 5) * scale}px`,
                   } as React.CSSProperties}
                 >
                   {event.description}
@@ -639,16 +640,6 @@ export default function BillboardPage() {
               )}
             </div>
 
-            {/* 내용 가리는 불투명 레이어 (영상은 안 가림) */}
-            <div
-              className="absolute bottom-0 left-0 right-0"
-              style={{
-                height: `${(40 + 40 + 8) * scale}px`,
-                backgroundColor: 'black',
-                zIndex: 5,
-              }}
-            />
-
             <div 
               className="absolute bottom-0 left-0 right-0 flex items-end justify-between"
               style={{ 
@@ -657,8 +648,7 @@ export default function BillboardPage() {
                 paddingTop: `${40 * scale}px`,
                 paddingBottom: `${40 * scale}px`,
                 zIndex: 10,
-                borderTop: `${2 * scale}px solid rgba(255, 255, 255, 0.3)`,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0.7) 100%)'
+                borderTop: `${2 * scale}px solid rgba(255, 255, 255, 0.3)`
               }}
             >
               <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
@@ -736,7 +726,7 @@ export default function BillboardPage() {
             bottom: -100%;
           }
           100% {
-            bottom: 100%;
+            bottom: var(--stop-position, 93px);
           }
         }
       `}</style>
