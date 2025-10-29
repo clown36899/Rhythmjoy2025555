@@ -322,75 +322,59 @@ export default function BillboardPage() {
     };
   }, [events, settings, shuffledPlaylist, currentIndex]);
 
-  // 영상 로딩 완료 감지 후 재생
-  useEffect(() => {
-    const currentEvent = events[currentIndex];
-    if (!currentEvent || !settings) return;
-
-    const hasVideo = currentEvent.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
-    const isLoaded = videoLoaded[currentEvent.id];
-
-    console.log('[빌보드] 영상 체크:', {
-      eventId: currentEvent.id,
-      hasVideo,
-      isLoaded,
-      duration: settings?.video_play_duration,
-      videoUrl: currentEvent.video_url
-    });
-
-    // 영상이 있고 로딩 완료된 경우에만 타이머 시작
-    if (hasVideo && isLoaded) {
-      const playDuration = settings.video_play_duration || 10000;
-      console.log('[빌보드] 영상 로딩 완료! 타이머 시작:', playDuration / 1000, '초');
-      
-      // 기존 progress interval 정리
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-
-      // Progress bar 리셋 후 설정된 시간 기준으로 재시작
-      setProgress(0);
-      const videoProgressStep = (50 / playDuration) * 100;
-      progressIntervalRef.current = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            return 0;
-          }
-          return prev + videoProgressStep;
-        });
-      }, 50);
-
-      // 영상 로딩 완료 시점부터 정확히 설정된 시간 후 다음 슬라이드
-      videoPlayTimeoutRef.current = setTimeout(() => {
-        console.log('[빌보드] 영상 재생 완료! 다음 슬라이드로 전환');
-        setProgress(0);
-        if (settings.play_order === "random") {
-          const nextPlaylistIdx = playlistIndexRef.current + 1;
-
-          if (nextPlaylistIdx >= shuffledPlaylist.length) {
-            const newIndices = Array.from({ length: events.length }, (_, i) => i);
-            const newPlaylist = shuffleArray(newIndices);
-            setShuffledPlaylist(newPlaylist);
-            playlistIndexRef.current = 0;
-            setCurrentIndex(newPlaylist[0] || 0);
-          } else {
-            playlistIndexRef.current = nextPlaylistIdx;
-            setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
-          }
-        } else {
-          setCurrentIndex((prev) => (prev + 1) % events.length);
-        }
-      }, playDuration);
+  // 영상 타이머 시작 함수 (중복 실행 방지)
+  const startVideoTimerRef = useRef<(() => void) | undefined>(undefined);
+  startVideoTimerRef.current = () => {
+    if (!settings) return;
+    
+    // 이미 타이머가 실행 중이면 중복 실행 방지
+    if (videoPlayTimeoutRef.current) {
+      console.log('[빌보드] 타이머 이미 실행 중, 스킵');
+      return;
     }
 
-    return () => {
-      if (videoPlayTimeoutRef.current) {
-        console.log('[빌보드] 타이머 정리');
-        clearTimeout(videoPlayTimeoutRef.current);
-        videoPlayTimeoutRef.current = null;
+    const playDuration = settings.video_play_duration || 10000;
+    console.log('[빌보드] 영상 로딩 완료! 타이머 시작:', playDuration / 1000, '초');
+    
+    // 기존 progress interval 정리
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+
+    // Progress bar 리셋 후 설정된 시간 기준으로 재시작
+    setProgress(0);
+    const videoProgressStep = (50 / playDuration) * 100;
+    progressIntervalRef.current = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          return 0;
+        }
+        return prev + videoProgressStep;
+      });
+    }, 50);
+
+    // 영상 로딩 완료 시점부터 정확히 설정된 시간 후 다음 슬라이드
+    videoPlayTimeoutRef.current = setTimeout(() => {
+      console.log('[빌보드] 영상 재생 완료! 다음 슬라이드로 전환');
+      setProgress(0);
+      if (settings.play_order === "random") {
+        const nextPlaylistIdx = playlistIndexRef.current + 1;
+
+        if (nextPlaylistIdx >= shuffledPlaylist.length) {
+          const newIndices = Array.from({ length: events.length }, (_, i) => i);
+          const newPlaylist = shuffleArray(newIndices);
+          setShuffledPlaylist(newPlaylist);
+          playlistIndexRef.current = 0;
+          setCurrentIndex(newPlaylist[0] || 0);
+        } else {
+          playlistIndexRef.current = nextPlaylistIdx;
+          setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+        }
+      } else {
+        setCurrentIndex((prev) => (prev + 1) % events.length);
       }
-    };
-  }, [currentIndex, events, settings, shuffledPlaylist, videoLoaded]);
+    }, playDuration);
+  };
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
@@ -507,6 +491,7 @@ export default function BillboardPage() {
                 
                 setTimeout(() => {
                   setVideoLoaded(prev => ({ ...prev, [event.id]: true }));
+                  startVideoTimerRef.current?.();
                 }, avgLoadTime);
               }}
               style={{
