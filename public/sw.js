@@ -1,5 +1,5 @@
 // Service Worker - PWA 캐싱 및 오프라인 지원
-const CACHE_NAME = 'billboard-v1';
+const CACHE_NAME = 'billboard-v2-20251029-2010';
 
 self.addEventListener('install', (event) => {
   console.log('Service Worker 설치됨');

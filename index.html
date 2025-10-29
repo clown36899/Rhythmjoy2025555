@@ -82,14 +82,28 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- PWA Service Worker 등록 -->
+    <!-- PWA Service Worker 등록 - 캐시 문제로 일시 비활성화 -->
     <script>
+      // Service Worker 제거 (기존 캐시 삭제)
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker 등록 성공:', reg.scope))
-            .catch(err => console.log('Service Worker 등록 실패:', err));
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Service Worker 제거됨');
+          }
         });
+        
+        // 캐시 전체 삭제
+        if ('caches' in window) {
+          caches.keys().then(function(cacheNames) {
+            return Promise.all(
+              cacheNames.map(function(cacheName) {
+                console.log('캐시 삭제:', cacheName);
+                return caches.delete(cacheName);
+              })
+            );
+          });
+        }
       }
     </script>
   </body>
