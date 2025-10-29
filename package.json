@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vite build",
+    "build": "vite build && node scripts/notify-deploy.js",
+    "build:only": "vite build",
     "preview": "vite preview --host"
   },
   "dependencies": {
