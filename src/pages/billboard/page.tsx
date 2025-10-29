@@ -640,14 +640,15 @@ export default function BillboardPage() {
             </div>
 
             <div 
-              className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent flex items-end justify-between"
+              className="absolute bottom-0 left-0 right-0 flex items-end justify-between"
               style={{ 
                 paddingLeft: `${32 * scale}px`, 
                 paddingRight: `${32 * scale}px`,
                 paddingTop: `${40 * scale}px`,
                 paddingBottom: `${40 * scale}px`,
                 zIndex: 10,
-                borderTop: `${2 * scale}px solid rgba(255, 255, 255, 0.3)`
+                borderTop: `${2 * scale}px solid rgba(255, 255, 255, 0.3)`,
+                background: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.95) 85%, rgba(0,0,0,0.8) 100%)'
               }}
             >
               <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
