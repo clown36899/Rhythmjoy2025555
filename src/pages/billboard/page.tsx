@@ -322,10 +322,10 @@ export default function BillboardPage() {
     };
   }, [events, settings, shuffledPlaylist, currentIndex]);
 
-  // 영상 로딩 완료 감지 후 재생 (currentIndex와 이벤트 ID 기반 체크)
+  // 영상 로딩 완료 감지 후 재생
   useEffect(() => {
     const currentEvent = events[currentIndex];
-    if (!currentEvent) return;
+    if (!currentEvent || !settings) return;
 
     const hasVideo = currentEvent.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
     const isLoaded = videoLoaded[currentEvent.id];
@@ -334,11 +334,14 @@ export default function BillboardPage() {
       eventId: currentEvent.id,
       hasVideo,
       isLoaded,
+      duration: settings?.video_play_duration,
       videoUrl: currentEvent.video_url
     });
 
-    if (hasVideo && isLoaded && settings) {
-      console.log('[빌보드] 영상 로딩 완료! 타이머 시작:', settings.video_play_duration / 1000, '초');
+    // 영상이 있고 로딩 완료된 경우에만 타이머 시작
+    if (hasVideo && isLoaded) {
+      const playDuration = settings.video_play_duration || 10000;
+      console.log('[빌보드] 영상 로딩 완료! 타이머 시작:', playDuration / 1000, '초');
       
       // 기존 progress interval 정리
       if (progressIntervalRef.current) {
@@ -347,7 +350,7 @@ export default function BillboardPage() {
 
       // Progress bar 리셋 후 설정된 시간 기준으로 재시작
       setProgress(0);
-      const videoProgressStep = (50 / (settings.video_play_duration || 10000)) * 100;
+      const videoProgressStep = (50 / playDuration) * 100;
       progressIntervalRef.current = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
@@ -377,16 +380,17 @@ export default function BillboardPage() {
         } else {
           setCurrentIndex((prev) => (prev + 1) % events.length);
         }
-      }, settings.video_play_duration || 10000);
+      }, playDuration);
     }
 
     return () => {
       if (videoPlayTimeoutRef.current) {
         console.log('[빌보드] 타이머 정리');
         clearTimeout(videoPlayTimeoutRef.current);
+        videoPlayTimeoutRef.current = null;
       }
     };
-  }, [currentIndex, events, settings, shuffledPlaylist, videoLoaded[events[currentIndex]?.id]]);
+  }, [currentIndex, events, settings, shuffledPlaylist, videoLoaded]);
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
