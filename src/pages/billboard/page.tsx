@@ -133,8 +133,18 @@ export default function BillboardPage() {
         { event: "*", schema: "public", table: "deployments" },
         (payload) => {
           console.log('🚀 새 배포 감지!', payload);
-          setRealtimeStatus("🚀 새 배포! 5초 후 새로고침...");
-          setTimeout(() => setRealtimeStatus("연결됨"), 3000);
+          let countdown = 5;
+          setRealtimeStatus(`🚀 새 배포! ${countdown}초 후 새로고침...`);
+          
+          const countdownInterval = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+              setRealtimeStatus(`🚀 새 배포! ${countdown}초 후 새로고침...`);
+            } else {
+              clearInterval(countdownInterval);
+            }
+          }, 1000);
+          
           setTimeout(() => {
             window.location.reload();
           }, 5000);
