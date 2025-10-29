@@ -356,6 +356,10 @@ export default function BillboardPage() {
     // 영상 로딩 완료 시점부터 정확히 설정된 시간 후 다음 슬라이드
     videoPlayTimeoutRef.current = setTimeout(() => {
       console.log('[빌보드] 영상 재생 완료! 다음 슬라이드로 전환');
+      
+      // 타이머 완료 후 ref 초기화 (중요!)
+      videoPlayTimeoutRef.current = null;
+      
       setProgress(0);
       if (settings.play_order === "random") {
         const nextPlaylistIdx = playlistIndexRef.current + 1;
