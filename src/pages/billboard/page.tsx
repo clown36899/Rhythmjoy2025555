@@ -176,7 +176,8 @@ export default function BillboardPage() {
       console.log('[빌보드] 필터링 완료:', {
         전체: allEvents?.length || 0,
         필터링후: filteredEvents.length,
-        현재인덱스: currentIndex
+        현재인덱스: currentIndex,
+        이벤트목록: filteredEvents.map((e, i) => `[${i}] ${e.title}`)
       });
 
       // 🔧 이벤트 수 변경 시 안전하게 인덱스 조정
@@ -400,13 +401,21 @@ export default function BillboardPage() {
           const newPlaylist = shuffleArray(newIndices);
           setShuffledPlaylist(newPlaylist);
           playlistIndexRef.current = 0;
-          setCurrentIndex(newPlaylist[0] || 0);
+          const newIndex = newPlaylist[0] || 0;
+          console.log('[빌보드] 재생목록 리셋, 새 인덱스:', newIndex);
+          setCurrentIndex(newIndex);
         } else {
           playlistIndexRef.current = nextPlaylistIdx;
-          setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+          const newIndex = shuffledPlaylist[nextPlaylistIdx] || 0;
+          console.log('[빌보드] 랜덤 다음:', nextPlaylistIdx, '→ 인덱스:', newIndex);
+          setCurrentIndex(newIndex);
         }
       } else {
-        setCurrentIndex((prev) => (prev + 1) % events.length);
+        setCurrentIndex((prev) => {
+          const next = (prev + 1) % events.length;
+          console.log('[빌보드] 순차 전환:', prev, '→', next);
+          return next;
+        });
       }
     }, playDuration);
   };
