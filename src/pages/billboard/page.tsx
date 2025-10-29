@@ -537,9 +537,7 @@ export default function BillboardPage() {
             </div>
             
             {/* 이벤트 내용 스크롤 (썸네일부터 시작) */}
-            {isVisible && event.description && (() => {
-              console.log(`[내용 스크롤 시작] 이벤트 ID: ${event.id}, 슬라이드 인덱스: ${slideIndex}, isVisible: ${isVisible}`);
-              return (
+            {isVisible && event.description && (
               <div key={`scroll-${event.id}-${slideIndex}`}>
                 {/* 반투명 배경 레이어 (페이드아웃만) */}
                 <div
@@ -585,10 +583,7 @@ export default function BillboardPage() {
                     paddingRight: `${32 * scale}px`,
                     paddingTop: `${32 * scale}px`,
                     paddingBottom: `${32 * scale}px`,
-                    transform: 'translateY(100%)',
                     animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear 0s forwards`,
-                    animationPlayState: 'running',
-                    willChange: 'transform',
                     ['--bottom-offset' as any]: `${(40 + 40 + 8) * scale + Math.max(48, Math.min(62 * scale, 216)) + Math.max(24, Math.min(31 * scale, 216)) * 2}px`,
                   } as React.CSSProperties}
                 >
@@ -596,8 +591,7 @@ export default function BillboardPage() {
                 </div>
               </div>
               </div>
-              );
-            })()}
+            )}
           </div>
         ) : (
           <img
@@ -728,7 +722,7 @@ export default function BillboardPage() {
       <style>{`
         @keyframes scrollUpFromBottom {
           0% {
-            transform: translateY(100%);
+            transform: translateY(0%);
           }
           100% {
             transform: translateY(calc(-1 * var(--bottom-offset, 250px)));
