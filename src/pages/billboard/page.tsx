@@ -570,7 +570,7 @@ export default function BillboardPage() {
                 <div
                   style={{
                     position: 'absolute',
-                    bottom: 0,
+                    bottom: `-100%`,
                     left: 0,
                     right: 0,
                     color: 'white',
@@ -583,8 +583,7 @@ export default function BillboardPage() {
                     paddingRight: `${32 * scale}px`,
                     paddingTop: `${32 * scale}px`,
                     paddingBottom: `${32 * scale}px`,
-                    animation: `scrollUpSimple ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear 0s forwards`,
-                    ['--scroll-distance' as any]: `${Math.max(48, Math.min(62 * scale, 216)) + Math.max(24, Math.min(31 * scale, 216)) * 2 + 100 * scale}px`,
+                    animation: `scrollUpFromHidden ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear 0s forwards`,
                   } as React.CSSProperties}
                 >
                   {event.description}
@@ -721,12 +720,12 @@ export default function BillboardPage() {
       
       {/* 이벤트 내용 스크롤 애니메이션 */}
       <style>{`
-        @keyframes scrollUpSimple {
+        @keyframes scrollUpFromHidden {
           0% {
-            transform: translateY(0);
+            bottom: -100%;
           }
           100% {
-            transform: translateY(calc(-1 * var(--scroll-distance, 300px)));
+            bottom: 100%;
           }
         }
       `}</style>
