@@ -586,7 +586,7 @@ export default function BillboardPage() {
 
             <div 
               key={`info-${event.id}-${slideIndex}`}
-              className="absolute bottom-0 left-0 right-0 flex items-end justify-between"
+              className="absolute bottom-0 left-0 right-0"
               style={{ 
                 paddingLeft: `${32 * scale}px`, 
                 paddingRight: `${32 * scale}px`,
@@ -595,79 +595,211 @@ export default function BillboardPage() {
                 zIndex: 10
               }}
             >
-              <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
-                <div style={{ marginBottom: `${8 * scale}px`, display: 'flex', flexDirection: 'column', gap: `${4 * scale}px` }}>
-                  {event.start_date && (
-                    <div 
-                      className="text-blue-400 font-semibold" 
-                      style={{ 
-                        fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
-                        animation: `slideInLeft 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards`,
-                        opacity: 0,
-                        transform: `translateX(-${100 * scale}px)`
-                      }}
-                    >
-                      <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
-                      {formatDateRange(event.start_date, event.end_date)}
-                    </div>
-                  )}
-                  {event.location &&
-                    event.location.trim() &&
-                    event.location !== "미정" && (
-                      <div 
-                        className="text-gray-300" 
-                        style={{ 
-                          fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
-                          animation: `slideInRight 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards`,
-                          opacity: 0,
-                          transform: `translateX(${100 * scale}px)`
-                        }}
-                      >
-                        <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
-                        {event.location}
-                      </div>
-                    )}
-                </div>
-                <h3 
-                  className="text-white font-bold" 
-                  style={{ 
-                    fontSize: event.title.length > 30 
-                      ? event.title.length > 50
-                        ? `${Math.max(32, Math.min(40 * scale, 140))}px`
-                        : `${Math.max(40, Math.min(50 * scale, 175))}px`
-                      : `${Math.max(48, Math.min(62 * scale, 216))}px`,
-                    lineHeight: 1.2,
-                    wordBreak: 'keep-all',
-                    overflow: 'hidden',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    width: '100%',
-                    animation: `zoomInUp 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards`,
-                    opacity: 0,
-                    transform: `scale(0.5) translateY(${50 * scale}px)`
-                  }}
-                >
-                  {event.title}
-                </h3>
-              </div>
-
-              <div 
-                className="bg-white rounded-lg flex-shrink-0" 
-                style={{ 
-                  padding: `${12 * scale}px`,
-                  marginLeft: `${24 * scale}px`,
-                  animation: `rotateInFade 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.5s forwards`,
+              {/* 장식 원 1 - 왼쪽 상단 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: `${-80 * scale}px`,
+                  left: `${20 * scale}px`,
+                  width: `${60 * scale}px`,
+                  height: `${60 * scale}px`,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(59, 130, 246, 0.6), rgba(59, 130, 246, 0))',
+                  animation: `float1 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
                   opacity: 0,
-                  transform: `rotate(180deg) scale(0.3)`
+                  transform: `scale(0) translateY(-${50 * scale}px)`
+                }}
+              />
+
+              {/* 장식 원 2 - 오른쪽 상단 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: `${-60 * scale}px`,
+                  right: `${40 * scale}px`,
+                  width: `${80 * scale}px`,
+                  height: `${80 * scale}px`,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(147, 51, 234, 0.5), rgba(147, 51, 234, 0))',
+                  animation: `float2 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards`,
+                  opacity: 0,
+                  transform: `scale(0) translateY(-${80 * scale}px)`
+                }}
+              />
+
+              {/* 장식 별 1 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: `${-40 * scale}px`,
+                  left: `${120 * scale}px`,
+                  fontSize: `${40 * scale}px`,
+                  animation: `twinkle1 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards`,
+                  opacity: 0,
+                  transform: `rotate(0deg) scale(0)`
                 }}
               >
-                <QRCodeCanvas
-                  value={`${window.location.origin}/?event=${event.id}&from=qr`}
-                  size={Math.round(144 * scale)}
-                  level="M"
-                  includeMargin={false}
-                />
+                ✨
+              </div>
+
+              {/* 장식 별 2 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: `${-70 * scale}px`,
+                  right: `${150 * scale}px`,
+                  fontSize: `${50 * scale}px`,
+                  animation: `twinkle2 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.9s forwards`,
+                  opacity: 0,
+                  transform: `rotate(0deg) scale(0)`
+                }}
+              >
+                ⭐
+              </div>
+
+              {/* 장식 다이아몬드 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: `${-90 * scale}px`,
+                  left: `${250 * scale}px`,
+                  width: `${50 * scale}px`,
+                  height: `${50 * scale}px`,
+                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.7), rgba(255, 140, 0, 0.7))',
+                  transform: 'rotate(45deg)',
+                  animation: `diamond 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards`,
+                  opacity: 0
+                }}
+              />
+
+              {/* 빛나는 파티클 1 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: `${10 * scale}px`,
+                  left: `${-30 * scale}px`,
+                  width: `${8 * scale}px`,
+                  height: `${8 * scale}px`,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  boxShadow: `0 0 ${20 * scale}px rgba(59, 130, 246, 0.8)`,
+                  animation: `particle1 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards`,
+                  opacity: 0
+                }}
+              />
+
+              {/* 빛나는 파티클 2 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: `${40 * scale}px`,
+                  right: `${-20 * scale}px`,
+                  width: `${12 * scale}px`,
+                  height: `${12 * scale}px`,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  boxShadow: `0 0 ${25 * scale}px rgba(147, 51, 234, 0.9)`,
+                  animation: `particle2 1.7s cubic-bezier(0.34, 1.56, 0.64, 1) 1.8s forwards`,
+                  opacity: 0
+                }}
+              />
+
+              {/* 웨이브 라인 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: `${-20 * scale}px`,
+                  left: 0,
+                  right: 0,
+                  height: `${3 * scale}px`,
+                  background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), rgba(147, 51, 234, 0.5), transparent)',
+                  animation: `wave 2s cubic-bezier(0.34, 1.56, 0.64, 1) 2.1s forwards`,
+                  opacity: 0,
+                  transform: `scaleX(0)`
+                }}
+              />
+
+              <div className="flex items-end justify-between">
+                <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
+                  <div style={{ marginBottom: `${8 * scale}px`, display: 'flex', flexDirection: 'column', gap: `${4 * scale}px` }}>
+                    {/* 날짜 */}
+                    {event.start_date && (
+                      <div 
+                        className="text-blue-400 font-semibold" 
+                        style={{ 
+                          fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                          animation: `slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards`,
+                          opacity: 0,
+                          transform: `translateX(-${150 * scale}px) rotate(-8deg)`
+                        }}
+                      >
+                        <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                        {formatDateRange(event.start_date, event.end_date)}
+                      </div>
+                    )}
+
+                    {/* 장소 */}
+                    {event.location &&
+                      event.location.trim() &&
+                      event.location !== "미정" && (
+                        <div 
+                          className="text-gray-300" 
+                          style={{ 
+                            fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                            animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards`,
+                            opacity: 0,
+                            transform: `translateX(${150 * scale}px) rotate(8deg)`
+                          }}
+                        >
+                          <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                          {event.location}
+                        </div>
+                      )}
+                  </div>
+
+                  {/* 제목 */}
+                  <h3 
+                    className="text-white font-bold" 
+                    style={{ 
+                      fontSize: event.title.length > 30 
+                        ? event.title.length > 50
+                          ? `${Math.max(32, Math.min(40 * scale, 140))}px`
+                          : `${Math.max(40, Math.min(50 * scale, 175))}px`
+                        : `${Math.max(48, Math.min(62 * scale, 216))}px`,
+                      lineHeight: 1.2,
+                      wordBreak: 'keep-all',
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      width: '100%',
+                      animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 2.4s forwards`,
+                      opacity: 0,
+                      transform: `scale(0.2) translateY(${100 * scale}px) rotate(-15deg)`
+                    }}
+                  >
+                    {event.title}
+                  </h3>
+                </div>
+
+                {/* QR 코드 */}
+                <div 
+                  className="bg-white rounded-lg flex-shrink-0" 
+                  style={{ 
+                    padding: `${12 * scale}px`,
+                    marginLeft: `${24 * scale}px`,
+                    animation: `rotateInFade 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) 4s forwards`,
+                    opacity: 0,
+                    transform: `rotate(540deg) scale(0.1)`
+                  }}
+                >
+                  <QRCodeCanvas
+                    value={`${window.location.origin}/?event=${event.id}&from=qr`}
+                    size={Math.round(144 * scale)}
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
               </div>
             </div>
           </>
@@ -687,55 +819,184 @@ export default function BillboardPage() {
       
       {/* 제목/날짜/장소 등장 애니메이션 */}
       <style>{`
+        @keyframes float1 {
+          0% {
+            opacity: 0;
+            transform: scale(0) translateY(-50px);
+          }
+          50% {
+            transform: scale(1.3) translateY(5px);
+          }
+          100% {
+            opacity: 0.6;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        @keyframes float2 {
+          0% {
+            opacity: 0;
+            transform: scale(0) translateY(-80px);
+          }
+          50% {
+            transform: scale(1.4) translateY(8px);
+          }
+          100% {
+            opacity: 0.5;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        @keyframes twinkle1 {
+          0% {
+            opacity: 0;
+            transform: rotate(0deg) scale(0);
+          }
+          50% {
+            opacity: 1;
+            transform: rotate(180deg) scale(1.5);
+          }
+          100% {
+            opacity: 0.8;
+            transform: rotate(360deg) scale(1);
+          }
+        }
+        
+        @keyframes twinkle2 {
+          0% {
+            opacity: 0;
+            transform: rotate(0deg) scale(0);
+          }
+          50% {
+            opacity: 1;
+            transform: rotate(-180deg) scale(1.6);
+          }
+          100% {
+            opacity: 0.9;
+            transform: rotate(-360deg) scale(1);
+          }
+        }
+        
+        @keyframes diamond {
+          0% {
+            opacity: 0;
+            transform: rotate(45deg) scale(0);
+          }
+          50% {
+            transform: rotate(225deg) scale(1.3);
+          }
+          100% {
+            opacity: 0.7;
+            transform: rotate(405deg) scale(1);
+          }
+        }
+        
+        @keyframes particle1 {
+          0% {
+            opacity: 0;
+            transform: translateX(-100px) translateY(-50px) scale(0);
+          }
+          50% {
+            opacity: 1;
+            transform: translateX(50px) translateY(25px) scale(1.5);
+          }
+          100% {
+            opacity: 0.8;
+            transform: translateX(0) translateY(0) scale(1);
+          }
+        }
+        
+        @keyframes particle2 {
+          0% {
+            opacity: 0;
+            transform: translateX(100px) translateY(-50px) scale(0);
+          }
+          50% {
+            opacity: 1;
+            transform: translateX(-50px) translateY(25px) scale(1.6);
+          }
+          100% {
+            opacity: 0.9;
+            transform: translateX(0) translateY(0) scale(1);
+          }
+        }
+        
+        @keyframes wave {
+          0% {
+            opacity: 0;
+            transform: scaleX(0);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scaleX(1.1);
+          }
+          100% {
+            opacity: 0.6;
+            transform: scaleX(1);
+          }
+        }
+        
         @keyframes slideInLeft {
           0% {
             opacity: 0;
-            transform: translateX(-100px);
+            transform: translateX(-150px) rotate(-8deg);
           }
           60% {
-            transform: translateX(10px);
+            transform: translateX(20px) rotate(4deg);
+          }
+          80% {
+            transform: translateX(-8px) rotate(-2deg);
           }
           100% {
             opacity: 1;
-            transform: translateX(0);
+            transform: translateX(0) rotate(0deg);
           }
         }
         
         @keyframes slideInRight {
           0% {
             opacity: 0;
-            transform: translateX(100px);
+            transform: translateX(150px) rotate(8deg);
           }
           60% {
-            transform: translateX(-10px);
+            transform: translateX(-20px) rotate(-4deg);
+          }
+          80% {
+            transform: translateX(8px) rotate(2deg);
           }
           100% {
             opacity: 1;
-            transform: translateX(0);
+            transform: translateX(0) rotate(0deg);
           }
         }
         
         @keyframes zoomInUp {
           0% {
             opacity: 0;
-            transform: scale(0.5) translateY(50px);
+            transform: scale(0.2) translateY(100px) rotate(-15deg);
           }
-          50% {
-            transform: scale(1.1) translateY(-5px);
+          40% {
+            transform: scale(1.2) translateY(-15px) rotate(5deg);
+          }
+          70% {
+            transform: scale(0.9) translateY(5px) rotate(-3deg);
           }
           100% {
             opacity: 1;
-            transform: scale(1) translateY(0);
+            transform: scale(1) translateY(0) rotate(0deg);
           }
         }
         
         @keyframes rotateInFade {
           0% {
             opacity: 0;
-            transform: rotate(180deg) scale(0.3);
+            transform: rotate(540deg) scale(0.1);
           }
-          60% {
-            transform: rotate(-10deg) scale(1.1);
+          40% {
+            transform: rotate(270deg) scale(1.3);
+          }
+          70% {
+            transform: rotate(-20deg) scale(0.85);
           }
           100% {
             opacity: 1;
