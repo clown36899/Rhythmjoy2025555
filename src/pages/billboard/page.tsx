@@ -173,11 +173,9 @@ export default function BillboardPage() {
 
       const filteredEvents = filterEvents(allEvents || [], userSettings);
       
-      console.log('[빌보드] 필터링 완료:', {
-        전체: allEvents?.length || 0,
-        필터링후: filteredEvents.length,
-        현재인덱스: currentIndex,
-        이벤트목록: filteredEvents.map((e, i) => `[${i}] ${e.title}`)
+      console.log('[빌보드] 필터링 완료:', filteredEvents.length, '개');
+      filteredEvents.forEach((e, i) => {
+        console.log(`  [${i}] ID:${e.id} ${e.title}`);
       });
 
       // 🔧 이벤트 수 변경 시 안전하게 인덱스 조정
@@ -422,9 +420,11 @@ export default function BillboardPage() {
 
   // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
+    const currentEvent = events[currentIndex];
+    console.log('[빌보드] 슬라이드 변경:', currentIndex, '/', events.length - 1, '→', currentEvent?.title || '없음');
     setVideoLoaded({});
     loadStartTimeRef.current = Date.now();
-  }, [currentIndex]);
+  }, [currentIndex, events]);
 
   if (isLoading) {
     return (
