@@ -680,7 +680,8 @@ export default function BillboardPage() {
                 paddingRight: `${32 * scale}px`,
                 paddingTop: `${40 * scale}px`,
                 paddingBottom: `${40 * scale}px`,
-                zIndex: 10
+                zIndex: 10,
+                background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 50%, transparent 100%)'
               }}
             >
               {/* 장식 원 1 - 왼쪽 상단 */}
