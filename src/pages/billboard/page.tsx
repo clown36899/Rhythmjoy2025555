@@ -645,6 +645,19 @@ export default function BillboardPage() {
                   </div>
                 </div>
               )}
+              
+              {/* Realtime 상태 표시 */}
+              <div 
+                className="bg-black/70 text-white px-3 py-1 rounded text-xs"
+                style={{ 
+                  marginTop: `${16 * scale}px`,
+                  transform: 'rotate(90deg)', 
+                  transformOrigin: 'left top',
+                  width: 'max-content'
+                }}
+              >
+                {realtimeStatus}
+              </div>
             </div>
 
             <div 
@@ -1098,19 +1111,6 @@ export default function BillboardPage() {
         className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
         style={{ minHeight: "calc(100vh + 1px)" }}
       >
-        {/* Realtime 상태 표시 (디버깅용) */}
-        <div 
-          className="absolute bg-black/70 text-white px-3 py-1 rounded text-xs z-50"
-          style={{ 
-            right: '42.0267px',
-            top: '20.0267px',
-            transform: 'rotate(90deg)', 
-            transformOrigin: 'right top' 
-          }}
-        >
-          {realtimeStatus}
-        </div>
-
         {/* 현재 슬라이드만 렌더링 */}
         {renderSlide(currentEvent, true, currentIndex)}
 
