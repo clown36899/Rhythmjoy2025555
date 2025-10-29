@@ -604,8 +604,8 @@ export default function BillboardPage() {
                   width: `${60 * scale}px`,
                   height: `${60 * scale}px`,
                   borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(59, 130, 246, 0.6), rgba(59, 130, 246, 0))',
-                  animation: `float1 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
+                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0))',
+                  animation: `float1 2.5s ease-in-out 0s forwards`,
                   opacity: 0,
                   transform: `scale(0) translateY(-${50 * scale}px)`
                 }}
@@ -620,54 +620,39 @@ export default function BillboardPage() {
                   width: `${80 * scale}px`,
                   height: `${80 * scale}px`,
                   borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(147, 51, 234, 0.5), rgba(147, 51, 234, 0))',
-                  animation: `float2 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards`,
+                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0))',
+                  animation: `float2 2.6s ease-in-out 0.3s forwards`,
                   opacity: 0,
                   transform: `scale(0) translateY(-${80 * scale}px)`
                 }}
               />
 
-              {/* 장식 별 1 */}
+              {/* 장식 다이아몬드 1 */}
               <div
                 style={{
                   position: 'absolute',
-                  top: `${-40 * scale}px`,
+                  top: `${-90 * scale}px`,
                   left: `${120 * scale}px`,
-                  fontSize: `${40 * scale}px`,
-                  animation: `twinkle1 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards`,
-                  opacity: 0,
-                  transform: `rotate(0deg) scale(0)`
+                  width: `${40 * scale}px`,
+                  height: `${40 * scale}px`,
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  transform: 'rotate(45deg)',
+                  animation: `diamond 2.8s ease-in-out 0.6s forwards`,
+                  opacity: 0
                 }}
-              >
-                ✨
-              </div>
+              />
 
-              {/* 장식 별 2 */}
+              {/* 장식 다이아몬드 2 */}
               <div
                 style={{
                   position: 'absolute',
                   top: `${-70 * scale}px`,
                   right: `${150 * scale}px`,
-                  fontSize: `${50 * scale}px`,
-                  animation: `twinkle2 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.9s forwards`,
-                  opacity: 0,
-                  transform: `rotate(0deg) scale(0)`
-                }}
-              >
-                ⭐
-              </div>
-
-              {/* 장식 다이아몬드 */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: `${-90 * scale}px`,
-                  left: `${250 * scale}px`,
                   width: `${50 * scale}px`,
                   height: `${50 * scale}px`,
-                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.7), rgba(255, 140, 0, 0.7))',
+                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
                   transform: 'rotate(45deg)',
-                  animation: `diamond 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards`,
+                  animation: `diamond2 2.7s ease-in-out 0.9s forwards`,
                   opacity: 0
                 }}
               />
@@ -678,12 +663,12 @@ export default function BillboardPage() {
                   position: 'absolute',
                   top: `${10 * scale}px`,
                   left: `${-30 * scale}px`,
-                  width: `${8 * scale}px`,
-                  height: `${8 * scale}px`,
+                  width: `${12 * scale}px`,
+                  height: `${12 * scale}px`,
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                  boxShadow: `0 0 ${20 * scale}px rgba(59, 130, 246, 0.8)`,
-                  animation: `particle1 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards`,
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  boxShadow: `0 0 ${20 * scale}px rgba(255, 255, 255, 0.6)`,
+                  animation: `particle1 3s ease-in-out 1.2s forwards`,
                   opacity: 0
                 }}
               />
@@ -694,28 +679,41 @@ export default function BillboardPage() {
                   position: 'absolute',
                   top: `${40 * scale}px`,
                   right: `${-20 * scale}px`,
-                  width: `${12 * scale}px`,
-                  height: `${12 * scale}px`,
+                  width: `${14 * scale}px`,
+                  height: `${14 * scale}px`,
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                  boxShadow: `0 0 ${25 * scale}px rgba(147, 51, 234, 0.9)`,
-                  animation: `particle2 1.7s cubic-bezier(0.34, 1.56, 0.64, 1) 1.8s forwards`,
+                  backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                  boxShadow: `0 0 ${25 * scale}px rgba(255, 255, 255, 0.5)`,
+                  animation: `particle2 2.9s ease-in-out 1.5s forwards`,
                   opacity: 0
                 }}
               />
 
-              {/* 웨이브 라인 */}
+              {/* 빛나는 파티클 3 */}
               <div
                 style={{
                   position: 'absolute',
-                  top: `${-20 * scale}px`,
+                  top: `${-50 * scale}px`,
+                  left: `${250 * scale}px`,
+                  width: `${10 * scale}px`,
+                  height: `${10 * scale}px`,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  boxShadow: `0 0 ${18 * scale}px rgba(255, 255, 255, 0.5)`,
+                  animation: `particle3 2.8s ease-in-out 1.8s forwards`,
+                  opacity: 0
+                }}
+              />
+
+              {/* 경계선 */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
                   left: 0,
                   right: 0,
-                  height: `${3 * scale}px`,
-                  background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), rgba(147, 51, 234, 0.5), transparent)',
-                  animation: `wave 2s cubic-bezier(0.34, 1.56, 0.64, 1) 2.1s forwards`,
-                  opacity: 0,
-                  transform: `scaleX(0)`
+                  height: `${2 * scale}px`,
+                  backgroundColor: 'rgba(255, 255, 255, 0.3)'
                 }}
               />
 
@@ -824,12 +822,17 @@ export default function BillboardPage() {
             opacity: 0;
             transform: scale(0) translateY(-50px);
           }
-          50% {
+          30% {
+            opacity: 0.8;
             transform: scale(1.3) translateY(5px);
           }
-          100% {
+          60% {
             opacity: 0.6;
             transform: scale(1) translateY(0);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(0.8) translateY(10px);
           }
         }
         
@@ -838,42 +841,17 @@ export default function BillboardPage() {
             opacity: 0;
             transform: scale(0) translateY(-80px);
           }
-          50% {
+          30% {
+            opacity: 0.7;
             transform: scale(1.4) translateY(8px);
           }
-          100% {
+          60% {
             opacity: 0.5;
             transform: scale(1) translateY(0);
           }
-        }
-        
-        @keyframes twinkle1 {
-          0% {
-            opacity: 0;
-            transform: rotate(0deg) scale(0);
-          }
-          50% {
-            opacity: 1;
-            transform: rotate(180deg) scale(1.5);
-          }
           100% {
-            opacity: 0.8;
-            transform: rotate(360deg) scale(1);
-          }
-        }
-        
-        @keyframes twinkle2 {
-          0% {
             opacity: 0;
-            transform: rotate(0deg) scale(0);
-          }
-          50% {
-            opacity: 1;
-            transform: rotate(-180deg) scale(1.6);
-          }
-          100% {
-            opacity: 0.9;
-            transform: rotate(-360deg) scale(1);
+            transform: scale(0.7) translateY(15px);
           }
         }
         
@@ -882,12 +860,36 @@ export default function BillboardPage() {
             opacity: 0;
             transform: rotate(45deg) scale(0);
           }
-          50% {
+          30% {
+            opacity: 0.7;
             transform: rotate(225deg) scale(1.3);
           }
-          100% {
-            opacity: 0.7;
+          60% {
+            opacity: 0.5;
             transform: rotate(405deg) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: rotate(495deg) scale(0.6);
+          }
+        }
+        
+        @keyframes diamond2 {
+          0% {
+            opacity: 0;
+            transform: rotate(45deg) scale(0);
+          }
+          30% {
+            opacity: 0.6;
+            transform: rotate(-135deg) scale(1.4);
+          }
+          60% {
+            opacity: 0.4;
+            transform: rotate(-315deg) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: rotate(-405deg) scale(0.5);
           }
         }
         
@@ -896,13 +898,17 @@ export default function BillboardPage() {
             opacity: 0;
             transform: translateX(-100px) translateY(-50px) scale(0);
           }
-          50% {
-            opacity: 1;
+          30% {
+            opacity: 0.9;
             transform: translateX(50px) translateY(25px) scale(1.5);
           }
-          100% {
-            opacity: 0.8;
+          60% {
+            opacity: 0.6;
             transform: translateX(0) translateY(0) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(30px) translateY(-20px) scale(0.5);
           }
         }
         
@@ -911,28 +917,36 @@ export default function BillboardPage() {
             opacity: 0;
             transform: translateX(100px) translateY(-50px) scale(0);
           }
-          50% {
-            opacity: 1;
+          30% {
+            opacity: 0.85;
             transform: translateX(-50px) translateY(25px) scale(1.6);
           }
-          100% {
-            opacity: 0.9;
+          60% {
+            opacity: 0.5;
             transform: translateX(0) translateY(0) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-30px) translateY(-20px) scale(0.4);
           }
         }
         
-        @keyframes wave {
+        @keyframes particle3 {
           0% {
             opacity: 0;
-            transform: scaleX(0);
+            transform: translateY(-80px) scale(0);
           }
-          50% {
+          30% {
             opacity: 0.8;
-            transform: scaleX(1.1);
+            transform: translateY(20px) scale(1.4);
+          }
+          60% {
+            opacity: 0.5;
+            transform: translateY(0) scale(1);
           }
           100% {
-            opacity: 0.6;
-            transform: scaleX(1);
+            opacity: 0;
+            transform: translateY(-15px) scale(0.6);
           }
         }
         
