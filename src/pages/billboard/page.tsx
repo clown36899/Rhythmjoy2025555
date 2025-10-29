@@ -536,62 +536,6 @@ export default function BillboardPage() {
               )}
             </div>
             
-            {/* 이벤트 내용 스크롤 (썸네일부터 시작) */}
-            {isVisible && event.description && (
-              <div key={`scroll-${event.id}-${slideIndex}`}>
-                {/* 반투명 배경 레이어 (페이드아웃만) */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    opacity: isLoaded ? 0 : 1,
-                    transition: 'opacity 1s ease-in-out',
-                    pointerEvents: 'none',
-                    zIndex: 3,
-                  }}
-                />
-                
-                {/* 내용 레이어 - 경계선 위까지만 */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    bottom: `${(40 + 40 + 8) * scale}px`,
-                    overflow: 'hidden',
-                    zIndex: 4,
-                  }}
-                >
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: `-100%`,
-                    left: 0,
-                    right: 0,
-                    color: 'white',
-                    fontSize: `${Math.max(15, Math.min(18 * scale, 65))}px`,
-                    lineHeight: 1.6,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'keep-all',
-                    overflowWrap: 'break-word',
-                    paddingLeft: `${32 * scale}px`,
-                    paddingRight: `${32 * scale}px`,
-                    paddingTop: `${32 * scale}px`,
-                    paddingBottom: 0,
-                    animation: `scrollUpFromHidden ${(settings?.video_play_duration || 10000) * 8 / 3 / 1000}s linear 0s forwards`,
-                    ['--stop-position' as any]: `${(40 + 40 + 8 + 5) * scale}px`,
-                  } as React.CSSProperties}
-                >
-                  {event.description}
-                </div>
-              </div>
-              </div>
-            )}
           </div>
         ) : (
           <img
@@ -641,6 +585,7 @@ export default function BillboardPage() {
             </div>
 
             <div 
+              key={`info-${event.id}-${slideIndex}`}
               className="absolute bottom-0 left-0 right-0 flex items-end justify-between"
               style={{ 
                 paddingLeft: `${32 * scale}px`, 
@@ -648,7 +593,9 @@ export default function BillboardPage() {
                 paddingTop: `${40 * scale}px`,
                 paddingBottom: `${40 * scale}px`,
                 zIndex: 10,
-                borderTop: `${2 * scale}px solid rgba(255, 255, 255, 0.3)`
+                animation: `slideUpFadeIn 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
+                opacity: 0,
+                transform: `translateY(${50 * scale}px)`
               }}
             >
               <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
@@ -719,14 +666,16 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
       
-      {/* 이벤트 내용 스크롤 애니메이션 */}
+      {/* 제목/날짜/장소 등장 애니메이션 */}
       <style>{`
-        @keyframes scrollUpFromHidden {
+        @keyframes slideUpFadeIn {
           0% {
-            bottom: -100%;
+            opacity: 0;
+            transform: translateY(50px);
           }
           100% {
-            bottom: var(--stop-position, 93px);
+            opacity: 1;
+            transform: translateY(0);
           }
         }
       `}</style>
