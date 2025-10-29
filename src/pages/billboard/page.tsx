@@ -648,7 +648,7 @@ export default function BillboardPage() {
                 paddingBottom: `${40 * scale}px`,
                 zIndex: 10,
                 borderTop: `${2 * scale}px solid rgba(255, 255, 255, 0.3)`,
-                background: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.95) 85%, rgba(0,0,0,0.8) 100%)'
+                background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0.7) 100%)'
               }}
             >
               <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
