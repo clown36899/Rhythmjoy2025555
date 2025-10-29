@@ -566,7 +566,7 @@ export default function BillboardPage() {
                     overflowWrap: 'break-word',
                     padding: isLoaded ? `${16 * scale}px` : `${32 * scale}px`,
                     transform: 'translateY(100%)',
-                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 2 / 1000}s cubic-bezier(0.33, 0, 0.2, 1) forwards`,
+                    animation: `scrollUpFromBottom-${scale.toFixed(2)} ${(settings?.video_play_duration || 10000) * 2 / 1000}s cubic-bezier(0.33, 0, 0.2, 1) forwards`,
                     transition: 'font-size 1s ease-in-out, padding 1s ease-in-out',
                   }}
                 >
@@ -694,12 +694,12 @@ export default function BillboardPage() {
       
       {/* 이벤트 내용 스크롤 애니메이션 */}
       <style>{`
-        @keyframes scrollUpFromBottom {
+        @keyframes scrollUpFromBottom-${scale.toFixed(2)} {
           0% {
             transform: translateY(100%);
           }
           100% {
-            transform: translateY(-100px);
+            transform: translateY(calc(-1 * (${40 * scale}px + ${40 * scale}px + ${8 * scale}px + ${Math.max(48, Math.min(62 * scale, 216))}px + ${Math.max(24, Math.min(31 * scale, 216))}px * 2)));
           }
         }
       `}</style>
