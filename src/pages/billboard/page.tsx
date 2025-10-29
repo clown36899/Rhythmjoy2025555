@@ -133,7 +133,7 @@ export default function BillboardPage() {
         { event: "*", schema: "public", table: "deployments" },
         (payload) => {
           console.log('🚀 새 배포 감지!', payload);
-          console.log('🚀 5초 후 자동 새로고침...');
+          setRealtimeStatus("🚀 새 배포! 5초 후 새로고침...");
           setTimeout(() => {
             window.location.reload();
           }, 5000);
@@ -141,6 +141,7 @@ export default function BillboardPage() {
       )
       .subscribe((status, err) => {
         console.log('배포 구독:', status, err ? `에러: ${err}` : '');
+        setRealtimeStatus(`배포: ${status}`);
         if (status === 'CHANNEL_ERROR') {
           console.error('❌ 배포 채널 에러:', err);
         }
