@@ -564,11 +564,15 @@ export default function BillboardPage() {
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'keep-all',
                     overflowWrap: 'break-word',
-                    padding: isLoaded ? `${16 * scale}px` : `${32 * scale}px`,
+                    paddingLeft: `${32 * scale}px`,
+                    paddingRight: `${32 * scale}px`,
+                    paddingTop: isLoaded ? `${16 * scale}px` : `${32 * scale}px`,
+                    paddingBottom: isLoaded ? `${16 * scale}px` : `${32 * scale}px`,
                     transform: 'translateY(100%)',
-                    animation: `scrollUpFromBottom-${scale.toFixed(2)} ${(settings?.video_play_duration || 10000) * 2 / 1000}s cubic-bezier(0.33, 0, 0.2, 1) forwards`,
-                    transition: 'font-size 1s ease-in-out, padding 1s ease-in-out',
-                  }}
+                    animation: `scrollUpFromBottom ${(settings?.video_play_duration || 10000) * 2 / 1000}s cubic-bezier(0.33, 0, 0.2, 1) forwards`,
+                    transition: 'font-size 1s ease-in-out, padding-top 1s ease-in-out, padding-bottom 1s ease-in-out',
+                    ['--bottom-offset' as any]: `${(40 + 40 + 8) * scale + Math.max(48, Math.min(62 * scale, 216)) + Math.max(24, Math.min(31 * scale, 216)) * 2}px`,
+                  } as React.CSSProperties}
                 >
                   {event.description}
                 </div>
@@ -694,12 +698,12 @@ export default function BillboardPage() {
       
       {/* 이벤트 내용 스크롤 애니메이션 */}
       <style>{`
-        @keyframes scrollUpFromBottom-${scale.toFixed(2)} {
+        @keyframes scrollUpFromBottom {
           0% {
             transform: translateY(100%);
           }
           100% {
-            transform: translateY(calc(-1 * (${40 * scale}px + ${40 * scale}px + ${8 * scale}px + ${Math.max(48, Math.min(62 * scale, 216))}px + ${Math.max(24, Math.min(31 * scale, 216))}px * 2)));
+            transform: translateY(calc(-1 * var(--bottom-offset, 250px)));
           }
         }
       `}</style>
