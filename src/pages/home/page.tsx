@@ -19,7 +19,6 @@ export default function HomePage() {
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
-  const [calendarHeight, setCalendarHeight] = useState(240); // 기본 높이
   const calendarRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [savedMonth, setSavedMonth] = useState<Date | null>(null);
@@ -35,7 +34,6 @@ export default function HomePage() {
   } | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isStickyActive, setIsStickyActive] = useState(false);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -143,32 +141,6 @@ export default function HomePage() {
     // 전체 모드로 전환
     setSelectedCategory("all");
   };
-
-  // 달력 높이 측정
-  useEffect(() => {
-    const measureCalendarHeight = () => {
-      if (calendarRef.current) {
-        const height = calendarRef.current.offsetHeight;
-        setCalendarHeight(height);
-      }
-    };
-
-    // 초기 측정
-    measureCalendarHeight();
-
-    // ResizeObserver로 달력 크기 변화 감지
-    const resizeObserver = new ResizeObserver(() => {
-      measureCalendarHeight();
-    });
-
-    if (calendarRef.current) {
-      resizeObserver.observe(calendarRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [currentMonth]);
 
   // 비활동 타이머 초기화 함수
   const resetInactivityTimer = useCallback(() => {
@@ -417,10 +389,6 @@ export default function HomePage() {
     // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
     setSelectedDate(null);
     setSelectedCategory("all");
-    // 스티키 활성화 시에는 달력 펼치지 않음
-    if (!isStickyActive) {
-      setIsCalendarCollapsed(false);
-    }
   };
 
   // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
@@ -611,10 +579,6 @@ export default function HomePage() {
     setViewMode(mode);
     // 뷰 모드 변경 시 이벤트 리스트 표시
     setSelectedCategory("all");
-    // 스티키 활성화 시에는 달력 펼치지 않음
-    if (!isStickyActive) {
-      setIsCalendarCollapsed(false);
-    }
   };
 
   return (
@@ -662,10 +626,6 @@ export default function HomePage() {
               // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
               setSelectedDate(null);
               setSelectedCategory("all");
-              // 스티키 활성화 시에는 달력 펼치지 않음
-              if (!isStickyActive) {
-                setIsCalendarCollapsed(false);
-              }
             }, 300);
           }}
           onDateChange={(newMonth) => {
@@ -673,10 +633,6 @@ export default function HomePage() {
             // 날짜 변경 시 날짜 리셋하고 이벤트 리스트 표시
             setSelectedDate(null);
             setSelectedCategory("all");
-            // 스티키 활성화 시에는 달력 펼치지 않음
-            if (!isStickyActive) {
-              setIsCalendarCollapsed(false);
-            }
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
@@ -730,20 +686,6 @@ export default function HomePage() {
             }}
           >
             <div className="flex items-center gap-2 p-1.5 border-t border-b border-x-0 border-t-[#22262a] border-b-black">
-              {/* 달력 펼치기 버튼 (스티키 활성화 시에만 표시) */}
-              {isStickyActive && isCalendarCollapsed && (
-                <button
-                  onClick={() => {
-                    setIsCalendarCollapsed(false);
-                    setIsStickyActive(false);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="flex items-center justify-center h-6 px-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"
-                  aria-label="달력 보기"
-                >
-                  <i className="ri-calendar-line text-sm leading-none align-middle"></i>
-                </button>
-              )}
               
               {/* 이벤트 카테고리 그룹 (전체/강습/행사) */}
               <div className="flex gap-1 bg-gray-800/30 rounded-lg p-1">
