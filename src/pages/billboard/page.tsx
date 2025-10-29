@@ -131,15 +131,19 @@ export default function BillboardPage() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "deployments" },
-        () => {
-          console.log('🚀 새 배포 감지! 5초 후 자동 새로고침...');
+        (payload) => {
+          console.log('🚀 새 배포 감지!', payload);
+          console.log('🚀 5초 후 자동 새로고침...');
           setTimeout(() => {
             window.location.reload();
-          }, 5000); // 5초 후 새로고침 (배포 완전히 완료되도록)
+          }, 5000);
         },
       )
-      .subscribe((status) => {
-        console.log('배포 구독:', status);
+      .subscribe((status, err) => {
+        console.log('배포 구독:', status, err ? `에러: ${err}` : '');
+        if (status === 'CHANNEL_ERROR') {
+          console.error('❌ 배포 채널 에러:', err);
+        }
       });
 
     // 클린업
