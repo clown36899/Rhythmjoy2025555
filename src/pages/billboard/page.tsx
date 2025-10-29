@@ -1099,7 +1099,10 @@ export default function BillboardPage() {
         style={{ minHeight: "calc(100vh + 1px)" }}
       >
         {/* Realtime 상태 표시 (디버깅용) */}
-        <div className="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded text-xs z-50">
+        <div 
+          className="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded text-xs z-50"
+          style={{ transform: 'rotate(90deg)', transformOrigin: 'top right' }}
+        >
           {realtimeStatus}
         </div>
 
