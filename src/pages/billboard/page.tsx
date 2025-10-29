@@ -134,6 +134,17 @@ export default function BillboardPage() {
 
   const loadBillboardData = async () => {
     try {
+      // 🔧 데이터 리로드 전 모든 타이머 정리 (메모리 누수 방지)
+      console.log('[빌보드] 데이터 리로드: 기존 타이머 정리 중...');
+      if (videoPlayTimeoutRef.current) {
+        clearTimeout(videoPlayTimeoutRef.current);
+        videoPlayTimeoutRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
       const { data: user, error: userError } = await supabase
         .from("billboard_users")
         .select("*")
@@ -161,18 +172,38 @@ export default function BillboardPage() {
       if (eventsError) throw eventsError;
 
       const filteredEvents = filterEvents(allEvents || [], userSettings);
-      setEvents(filteredEvents);
+      
+      console.log('[빌보드] 필터링 완료:', {
+        전체: allEvents?.length || 0,
+        필터링후: filteredEvents.length,
+        현재인덱스: currentIndex
+      });
 
-      // 랜덤 모드면 초기 재생목록 생성 (인덱스 배열을 섞음)
-      if (userSettings.play_order === "random" && filteredEvents.length > 0) {
-        const indices = Array.from(
-          { length: filteredEvents.length },
-          (_, i) => i,
-        );
-        const shuffled = shuffleArray(indices);
-        setShuffledPlaylist(shuffled);
-        playlistIndexRef.current = 0;
-        setCurrentIndex(shuffled[0] || 0);
+      // 🔧 이벤트 수 변경 시 안전하게 인덱스 조정
+      if (filteredEvents.length === 0) {
+        console.log('[빌보드] ⚠️ 표시할 이벤트가 없습니다');
+        setEvents([]);
+        setCurrentIndex(0);
+        setShuffledPlaylist([]);
+      } else {
+        setEvents(filteredEvents);
+        
+        // 현재 인덱스가 범위를 벗어나면 0으로 리셋
+        const safeIndex = currentIndex >= filteredEvents.length ? 0 : currentIndex;
+        
+        // 랜덤 모드면 초기 재생목록 생성 (인덱스 배열을 섞음)
+        if (userSettings.play_order === "random") {
+          const indices = Array.from(
+            { length: filteredEvents.length },
+            (_, i) => i,
+          );
+          const shuffled = shuffleArray(indices);
+          setShuffledPlaylist(shuffled);
+          playlistIndexRef.current = 0;
+          setCurrentIndex(shuffled[0] || 0);
+        } else {
+          setCurrentIndex(safeIndex);
+        }
       }
 
       setIsLoading(false);
