@@ -535,9 +535,9 @@ export default function BillboardPage() {
               )}
             </div>
             
-            {/* 이벤트 내용 스크롤 (로딩 중 및 영상 재생 중) */}
+            {/* 이벤트 내용 스크롤 (썸네일부터 시작) */}
             {isVisible && event.description && (
-              <>
+              <div key={`scroll-${event.id}-${isVisible}`}>
                 {/* 반투명 배경 레이어 (페이드아웃만) */}
                 <div
                   style={{
@@ -590,7 +590,7 @@ export default function BillboardPage() {
                   {event.description}
                 </div>
               </div>
-              </>
+              </div>
             )}
           </div>
         ) : (
