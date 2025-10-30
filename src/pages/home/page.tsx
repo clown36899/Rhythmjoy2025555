@@ -438,6 +438,7 @@ export default function HomePage() {
         // 애니메이션 종료 후 월 변경 및 상태 리셋
         setTimeout(() => {
           setCurrentMonth(newMonth);
+          setSelectedDate(null); // 슬라이드 시 날짜 선택 해제
           setDragOffset(0);
           setIsAnimating(false);
           setTouchStart(null);
