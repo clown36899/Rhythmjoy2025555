@@ -145,14 +145,17 @@ export default function HomePage() {
 
   // 안내창 열릴 때 스크롤 막기 (overflow만 사용 - sticky 보존)
   useEffect(() => {
+    // 이전 값 캡처 (cleanup이 항상 실행되도록)
+    const previousOverflow = document.body.style.overflow;
+    
     if (isGuideOpen) {
-      // overflow만 제어 (position: fixed 사용 안 함)
       document.body.style.overflow = 'hidden';
-      
-      return () => {
-        document.body.style.overflow = '';
-      };
     }
+    
+    // cleanup은 if 밖에서 항상 실행
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, [isGuideOpen]);
 
   // 비활동 타이머 초기화 함수
