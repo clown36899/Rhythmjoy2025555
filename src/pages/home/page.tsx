@@ -589,7 +589,7 @@ export default function HomePage() {
     >
       {/* Fixed Header for all screens */}
       <div
-        className="fixed top-0 left-0 w-full z-10 border-b border-[#22262a]"
+        className="fixed top-0 left-0 w-full z-30 border-b border-[#22262a]"
         style={{ backgroundColor: "var(--header-bg-color)" }}
       >
         <Header
