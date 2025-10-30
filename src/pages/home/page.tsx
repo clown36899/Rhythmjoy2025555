@@ -585,7 +585,7 @@ export default function HomePage() {
       </div>
 
       {/* Mobile Layout - Scrollable Calendar & Content */}
-      <div className="pt-16">
+      <div className="pt-12">
         {/* Calendar Section - 일반 스크롤 (sticky 아님) */}
         <div
           ref={calendarRef}
@@ -619,7 +619,7 @@ export default function HomePage() {
 
         {/* Tools Panel - 달력 아래에서 따라 올라가다가 헤더에 STICKY */}
         <div 
-          className="sticky top-16 w-full z-[15] border-b border-[#22262a]"
+          className="sticky top-12 w-full z-[15] border-b border-[#22262a]"
           style={{ 
             backgroundColor: "var(--calendar-bg-color)"
           }}
