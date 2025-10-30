@@ -262,6 +262,34 @@ export default function EventCalendar({
   };
 
   const handleDateClick = (date: Date) => {
+    // 클릭한 날짜에 이벤트가 있는지 확인
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateString = `${year}-${month}-${day}`;
+
+    const hasEvents = events.some((event) => {
+      // event_dates 배열로 정의된 이벤트 체크
+      if (event.event_dates && event.event_dates.length > 0) {
+        return event.event_dates.includes(dateString);
+      }
+      // start_date/end_date 범위로 정의된 이벤트 체크
+      const startDate = event.start_date || event.date;
+      const endDate = event.end_date || event.date;
+      return startDate && endDate && dateString >= startDate && dateString <= endDate;
+    });
+
+    // 이벤트가 없는 날짜
+    if (!hasEvents) {
+      // 이미 선택된 날짜를 다시 클릭하면 선택 해제 (두 번째 클릭)
+      if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+        onDateSelect(null);
+      }
+      // 첫 번째 클릭은 아무것도 안 함
+      return;
+    }
+
+    // 이벤트가 있는 날짜
     // 이미 선택된 날짜를 다시 클릭하면 이벤트 등록 모달 열기
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
       setClickedDate(date);

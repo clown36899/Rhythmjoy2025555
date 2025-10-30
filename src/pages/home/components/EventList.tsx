@@ -575,34 +575,8 @@ export default function EventList({
         return matchesCategory && matchesSearch && matchesYearRange;
       }
 
-      // 날짜가 선택된 경우
-      if (selectedDate) {
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-        const day = String(selectedDate.getDate()).padStart(2, "0");
-        const selectedDateString = `${year}-${month}-${day}`;
-
-        let matchesDate = false;
-        
-        // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
-        if (event.event_dates && event.event_dates.length > 0) {
-          matchesDate = event.event_dates.includes(selectedDateString);
-        } else {
-          // 연속 기간 모드: 기존 로직
-          const startDate = event.start_date || event.date || "";
-          const endDate = event.end_date || event.date || "";
-          matchesDate = Boolean(
-            startDate &&
-            endDate &&
-            selectedDateString >= startDate &&
-            selectedDateString <= endDate
-          );
-        }
-
-        return matchesDate && matchesCategory;
-      }
-
-      // 날짜가 선택되지 않은 경우 - 월 필터 적용
+      // 날짜가 선택된 경우: 현재 월의 모든 이벤트 표시 (정렬에서 선택 날짜를 상단 배치)
+      // 날짜가 선택되지 않은 경우도 동일하게 월 필터 적용
       let matchesDate = true;
       if (currentMonth) {
         // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
