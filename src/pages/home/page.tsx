@@ -1021,7 +1021,7 @@ export default function HomePage() {
           {/* 연습실 버튼 */}
           <button
             onClick={() => {
-              setSelectedCategory("practice");
+              handleCategoryChange("practice");
               setIsGuideOpen(false);
             }}
             className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
