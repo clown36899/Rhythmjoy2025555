@@ -143,6 +143,19 @@ export default function HomePage() {
     setSelectedCategory("all");
   };
 
+  // 안내창 열릴 때 스크롤 막기
+  useEffect(() => {
+    if (isGuideOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isGuideOpen]);
+
   // 비활동 타이머 초기화 함수
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimerRef.current) {
