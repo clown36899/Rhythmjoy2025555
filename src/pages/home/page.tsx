@@ -143,15 +143,31 @@ export default function HomePage() {
     setSelectedCategory("all");
   };
 
-  // 안내창 열릴 때 스크롤 막기 (position: fixed 사용 안 함 - sticky 유지)
+  // 안내창 열릴 때 스크롤 완전히 막기 (sticky 보존)
   useEffect(() => {
     if (isGuideOpen) {
-      // overflow만 막고 position은 건드리지 않음
-      document.body.style.overflow = 'hidden';
+      // 현재 스크롤 위치 저장
+      const scrollY = window.scrollY;
+      const bodyStyle = document.body.style;
+      
+      // 기존 스타일 저장
+      const previousPosition = bodyStyle.position;
+      const previousTop = bodyStyle.top;
+      const previousWidth = bodyStyle.width;
+      
+      // body를 고정하고 스크롤 위치 유지
+      bodyStyle.position = 'fixed';
+      bodyStyle.top = `-${scrollY}px`;
+      bodyStyle.width = '100%';
       
       return () => {
-        // 원래 상태로 복원
-        document.body.style.overflow = '';
+        // 원래 스타일로 복원
+        bodyStyle.position = previousPosition;
+        bodyStyle.top = previousTop;
+        bodyStyle.width = previousWidth;
+        
+        // 스크롤 위치 복원
+        window.scrollTo(0, scrollY);
       };
     }
   }, [isGuideOpen]);
@@ -835,25 +851,29 @@ export default function HomePage() {
 
       {/* Guide Panel - 사이트 안내 (조건부 렌더링) */}
       {isGuideOpen && (
-        <>
-          {/* Backdrop - 터치 이벤트 차단 */}
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchMove={(e) => {
+            e.preventDefault();
+          }}
+        >
+          {/* Guide Panel - 헤더/하단 네비 고려한 패딩 */}
           <div 
-            className="fixed inset-0 bg-black/50 z-24"
+            className="bg-[#1f1f1f] overflow-y-auto w-full h-full"
+            style={{ 
+              maxWidth: '650px',
+              paddingTop: '64px',
+              paddingBottom: '64px',
+              WebkitOverflowScrolling: 'touch'
+            }}
             onClick={(e) => {
               e.stopPropagation();
             }}
             onTouchMove={(e) => {
-              e.preventDefault();
-            }}
-          />
-
-          {/* Guide Panel */}
-          <div 
-            className="fixed left-0 right-0 bottom-16 top-16 bg-[#1f1f1f] overflow-y-auto z-25"
-            style={{ 
-              maxWidth: '650px', 
-              margin: '0 auto',
-              WebkitOverflowScrolling: 'touch'
+              e.stopPropagation();
             }}
           >
         <div className="p-6 text-white">
@@ -916,7 +936,7 @@ export default function HomePage() {
           </div>
         </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Bottom Navigation - 분류 버튼 */}
