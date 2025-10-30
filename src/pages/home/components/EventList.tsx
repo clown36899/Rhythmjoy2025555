@@ -1323,7 +1323,16 @@ export default function EventList({
                         })()}
                         {/* 왼쪽 상단 카테고리 배지 */}
                         <div
-                          className={`absolute top-0.5 left-0.5 px-1 py-0 text-white text-[6px] font-light rounded-sm ${event.category === "class" ? "bg-purple-600/70" : "bg-blue-600/70"}`}
+                          className={`absolute top-0.5 left-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                            // 지난 행사인지 확인
+                            const endDate = event.end_date || event.date;
+                            if (endDate) {
+                              const today = new Date().toISOString().split('T')[0];
+                              const isPast = endDate < today;
+                              if (isPast) return "bg-gray-500/80";
+                            }
+                            return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
+                          })()}`}
                         >
                           {event.category === "class" ? "강습" : "행사"}
                         </div>
@@ -1495,7 +1504,16 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 left-0.5 px-1 py-0 text-white text-[6px] font-light rounded-sm ${event.category === "class" ? "bg-purple-600/70" : "bg-blue-600/70"}`}>
+                            <div className={`absolute top-0.5 left-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                              // 지난 행사인지 확인
+                              const endDate = event.end_date || event.date;
+                              if (endDate) {
+                                const today = new Date().toISOString().split('T')[0];
+                                const isPast = endDate < today;
+                                if (isPast) return "bg-gray-500/80";
+                              }
+                              return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
+                            })()}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
@@ -1621,7 +1639,16 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 left-0.5 px-1 py-0 text-white text-[6px] font-light rounded-sm ${event.category === "class" ? "bg-purple-600/70" : "bg-blue-600/70"}`}>
+                            <div className={`absolute top-0.5 left-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                              // 지난 행사인지 확인
+                              const endDate = event.end_date || event.date;
+                              if (endDate) {
+                                const today = new Date().toISOString().split('T')[0];
+                                const isPast = endDate < today;
+                                if (isPast) return "bg-gray-500/80";
+                              }
+                              return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
+                            })()}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
@@ -1737,7 +1764,16 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 left-0.5 px-1 py-0 text-white text-[6px] font-light rounded-sm ${event.category === "class" ? "bg-purple-600/70" : "bg-blue-600/70"}`}>
+                            <div className={`absolute top-0.5 left-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                              // 지난 행사인지 확인
+                              const endDate = event.end_date || event.date;
+                              if (endDate) {
+                                const today = new Date().toISOString().split('T')[0];
+                                const isPast = endDate < today;
+                                if (isPast) return "bg-gray-500/80";
+                              }
+                              return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
+                            })()}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
