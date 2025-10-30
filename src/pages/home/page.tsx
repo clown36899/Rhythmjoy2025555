@@ -713,6 +713,23 @@ export default function HomePage() {
           </div>
       </div>
 
+      {/* Month/Year Indicator - Fixed above bottom navigation */}
+      <div 
+        className="fixed left-0 right-0 z-20 border-t border-[#22262a]"
+        style={{ 
+          bottom: '56px', // 바텀 네비 높이만큼 위
+          maxWidth: '650px',
+          margin: '0 auto',
+          backgroundColor: "var(--header-bg-color)"
+        }}
+      >
+        <div className="px-4 py-1 text-center">
+          <span className="text-gray-400 text-xs font-medium">
+            {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+          </span>
+        </div>
+      </div>
+
       {/* Fullscreen Billboard */}
       {settings.enabled && (
         <FullscreenBillboard
