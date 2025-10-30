@@ -107,7 +107,8 @@ export function MobileShell() {
                 </>
               ) : (
                 <>
-                  {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+                  {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월{' '}
+                  {category === 'all' ? '전체' : category === 'class' ? '강습' : '행사'}
                 </>
               )}
             </span>
