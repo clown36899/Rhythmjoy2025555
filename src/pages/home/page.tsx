@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import EventCalendar from "./components/EventCalendar";
 import EventList from "./components/EventList";
-import PracticeRoomList from "./components/PracticeRoomList";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import FullscreenBillboard from "../../components/FullscreenBillboard";
@@ -10,8 +10,19 @@ import { supabase } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 
 export default function HomePage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const selectedCategory = searchParams.get('category') || 'all';
+  
+  // 카테고리 변경 헬퍼 함수
+  const navigateWithCategory = useCallback((cat?: string) => {
+    if (!cat || cat === 'all') {
+      navigate('/');
+    } else {
+      navigate(`/?category=${cat}`);
+    }
+  }, [navigate]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
@@ -34,7 +45,6 @@ export default function HomePage() {
   } | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -113,9 +123,9 @@ export default function HomePage() {
   useEffect(() => {
     if (!searchTerm) {
       // 검색 취소: 전체 모드로 리셋
-      setSelectedCategory("all");
+      navigateWithCategory('all');
     }
-  }, [searchTerm]);
+  }, [searchTerm, navigateWithCategory]);
 
   // 날짜 선택 시 스크롤 최상단으로 이동
   useEffect(() => {
@@ -140,23 +150,8 @@ export default function HomePage() {
   // 검색 시작 시 호출되는 콜백
   const handleSearchStart = () => {
     // 전체 모드로 전환
-    setSelectedCategory("all");
+    navigateWithCategory('all');
   };
-
-  // 안내창 열릴 때 스크롤 막기 (overflow만 사용 - sticky 보존)
-  useEffect(() => {
-    // 이전 값 캡처 (cleanup이 항상 실행되도록)
-    const previousOverflow = document.body.style.overflow;
-    
-    if (isGuideOpen) {
-      document.body.style.overflow = 'hidden';
-    }
-    
-    // cleanup은 if 밖에서 항상 실행
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isGuideOpen]);
 
   // 비활동 타이머 초기화 함수
   const resetInactivityTimer = useCallback(() => {
@@ -377,25 +372,25 @@ export default function HomePage() {
           }) || [];
 
         if (events && events.length > 0) {
-          // 해당 날짜의 모든 고l�� 카테고리 추출
+          // 해당 날짜의 모든 카테고리 추출
           const uniqueCategories = [
             ...new Set(events.map((event) => event.category)),
           ];
 
           // 카테고리가 1개만 있으면 그 카테고리 선택
           if (uniqueCategories.length === 1) {
-            setSelectedCategory(uniqueCategories[0]);
+            navigateWithCategory(uniqueCategories[0]);
           } else {
             // 2개 이상 있으면 "all"로 설정 (모든 카테고리 표시)
-            setSelectedCategory("all");
+            navigateWithCategory('all');
           }
         } else {
           // 이벤트가 없으면 "all" 카테고리로 설정
-          setSelectedCategory("all");
+          navigateWithCategory('all');
         }
       } catch (error) {
         console.error("Error fetching events for date:", error);
-        setSelectedCategory("all");
+        navigateWithCategory('all');
       }
     }
   };
@@ -404,7 +399,7 @@ export default function HomePage() {
     setCurrentMonth(month);
     // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
     setSelectedDate(null);
-    setSelectedCategory("all");
+    navigateWithCategory('all');
   };
 
   // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
@@ -525,17 +520,6 @@ export default function HomePage() {
     setBillboardUserName(userName);
   };
 
-  const handleCategoryChange = (category: string) => {
-    // "전체" 버튼만 검색 취소, 강습/행사는 검색 결과 내 필터링
-    if (category === "all" && searchTerm) {
-      setSearchTerm("");
-    }
-    setSelectedCategory(category);
-    // "모든 이벤트"를 클릭했을 때 선택된 날짜 초기화
-    if (category === "all") {
-      setSelectedDate(null);
-    }
-  };
 
   const getSortIcon = () => {
     switch (sortBy) {
@@ -567,24 +551,6 @@ export default function HomePage() {
     }
   };
 
-  // 카테고리 버튼이 활성화되어야 하는지 확인하는 함수
-  const isCategoryActive = (categoryId: string) => {
-    // 날짜가 선택되었고 selectedCategory가 "all"일 때
-    if (selectedDate && selectedCategory === "all") {
-      // "모든 이벤트" 버튼은 비활성화
-      if (categoryId === "all") {
-        return false;
-      }
-      // 강습/행사 버튼은 활성화 (날짜에 이벤트가 있으면 클릭 가능하도록)
-      if (categoryId === "class" || categoryId === "event") {
-        return true;
-      }
-    }
-
-    // 그 외의 경우는 현재 선택된 카테고리인지 확인
-    return selectedCategory === categoryId;
-  };
-
   const handleViewModeChange = (mode: "month" | "year") => {
     if (mode === "year") {
       // 년 보기로 전환: 현재 월 저장
@@ -595,7 +561,7 @@ export default function HomePage() {
     }
     setViewMode(mode);
     // 뷰 모드 변경 시 이벤트 리스트 표시
-    setSelectedCategory("all");
+    navigateWithCategory('all');
   };
 
   return (
@@ -642,14 +608,14 @@ export default function HomePage() {
               setIsAnimating(false);
               // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
               setSelectedDate(null);
-              setSelectedCategory("all");
+              navigateWithCategory('all');
             }, 300);
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
             // 날짜 변경 시 날짜 리셋하고 이벤트 리스트 표시
             setSelectedDate(null);
-            setSelectedCategory("all");
+            navigateWithCategory('all');
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
@@ -742,50 +708,40 @@ export default function HomePage() {
           </div>
         </div>
 
-          {/* Scrollable Content Area - Events/Practice Rooms and Footer */}
+          {/* Scrollable Content Area - Events and Footer */}
           <div className="w-full bg-[#1f1f1f] pb-16">
-            {selectedCategory === "practice" ? (
-                <PracticeRoomList 
-                  adminType={adminType}
-                  showSearchModal={showSearchModal}
-                  setShowSearchModal={setShowSearchModal}
-                  showSortModal={showSortModal}
-                  setShowSortModal={setShowSortModal}
-                  sortBy={sortBy}
-                  setSortBy={setSortBy}
-                />
-              ) : qrLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-gray-400">이벤트 로딩 중...</div>
-                </div>
-              ) : (
-                <EventList
-                  selectedDate={selectedDate}
-                  selectedCategory={selectedCategory}
-                  currentMonth={currentMonth}
-                  refreshTrigger={refreshTrigger}
-                  isAdminMode={isAdminMode}
-                  adminType={adminType}
-                  viewMode={viewMode}
-                  onEventHover={setHoveredEventId}
-                  searchTerm={searchTerm}
-                  setSearchTerm={setSearchTerm}
-                  onSearchStart={handleSearchStart}
-                  showSearchModal={showSearchModal}
-                  setShowSearchModal={setShowSearchModal}
-                  showSortModal={showSortModal}
-                  setShowSortModal={setShowSortModal}
-                  sortBy={sortBy}
-                  setSortBy={setSortBy}
-                  highlightEvent={highlightEvent}
-                  onHighlightComplete={handleHighlightComplete}
-                  dragOffset={dragOffset}
-                  isAnimating={isAnimating}
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                />
-              )}
+            {qrLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-gray-400">이벤트 로딩 중...</div>
+              </div>
+            ) : (
+              <EventList
+                selectedDate={selectedDate}
+                selectedCategory={selectedCategory}
+                currentMonth={currentMonth}
+                refreshTrigger={refreshTrigger}
+                isAdminMode={isAdminMode}
+                adminType={adminType}
+                viewMode={viewMode}
+                onEventHover={setHoveredEventId}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                onSearchStart={handleSearchStart}
+                showSearchModal={showSearchModal}
+                setShowSearchModal={setShowSearchModal}
+                showSortModal={showSortModal}
+                setShowSortModal={setShowSortModal}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                highlightEvent={highlightEvent}
+                onHighlightComplete={handleHighlightComplete}
+                dragOffset={dragOffset}
+                isAnimating={isAnimating}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              />
+            )}
 
             {/* Footer - 고정 (위치는 고정이지만 터치 슬라이드 인식) */}
             <div
@@ -834,206 +790,6 @@ export default function HomePage() {
         billboardUserId={billboardUserId}
         billboardUserName={billboardUserName}
       />
-
-      {/* Guide Panel - 사이트 안내 (조건부 렌더링) */}
-      {isGuideOpen && (
-        <>
-          {/* Backdrop - 헤더/하단 네비 제외 영역만 덮기 */}
-          <div 
-            className="fixed left-0 right-0 bg-black/50"
-            style={{
-              top: '64px',
-              bottom: '64px',
-              maxWidth: '650px',
-              margin: '0 auto',
-              zIndex: 35
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            onTouchMove={(e) => {
-              e.preventDefault();
-            }}
-          />
-
-          {/* Guide Panel - 헤더와 하단 네비 사이 영역 */}
-          <div 
-            className="fixed left-0 right-0 bg-[#1f1f1f] overflow-y-auto"
-            style={{ 
-              top: '64px',
-              bottom: '64px',
-              maxWidth: '650px',
-              margin: '0 auto',
-              zIndex: 36,
-              WebkitOverflowScrolling: 'touch'
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            onTouchMove={(e) => {
-              e.stopPropagation();
-            }}
-          >
-        <div className="p-6 text-white">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold mb-4 text-blue-400">광고판 사용 안내</h2>
-            
-            {/* 주 문구 */}
-            <div className="mb-6">
-              <p className="text-yellow-400 mb-4 text-base font-bold animate-pulse">
-                누구나 일정 무료 등록가능 (로그인 x),
-              </p>
-
-              <p className="text-gray-400 text-sm mb-1">
-                사용방법 <br />
-                달력을 두번 클릭하면 일정등록폼이 나옵니다.<br />
-                자율등록하시고 비번설정으로 수정가능
-                <br />공공의 이익에 해가되면 삭제수정될수있습니다.
-              </p>
-
-              <p className="text-orange-400 text-base font-semibold mt-4">
-                연습실 등록은 별도문의(사용불가능한 연습실은 등록불가)
-              </p>
-            </div>
-
-            {/* QR 공유 안내 */}
-            <div className="mt-6">
-              <p className="text-sm text-gray-400 mb-2">
-                친구에게 공유하려면 우측 상단 메뉴에서<br />
-                <span className="text-blue-400 font-semibold">QR 코드 공유</span>를 클릭하세요
-              </p>
-            </div>
-
-            {/* 연락처 */}
-            <div className="mt-8 pt-6 border-t border-gray-700">
-              <p className="text-gray-400 text-sm mb-2">
-                이 사이트는 누구나 자유롭게 입력 및 공유할 수 있습니다.
-              </p>
-              <p className="text-gray-400 text-sm">© since 2025. 제작-joy.</p>
-              <p className="text-gray-500 text-xs mt-2">
-                Contact:{" "}
-                <a
-                  href="tel:010-4801-7180"
-                  onClick={(e) => {
-                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    if (!isMobile) {
-                      e.preventDefault();
-                      navigator.clipboard.writeText("010-4801-7180").then(() => {
-                        alert("전화번호가 복사되었습니다!");
-                      }).catch(() => {
-                        alert("복사에 실패했습니다. 번호: 010-4801-7180");
-                      });
-                    }
-                  }}
-                  className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
-                >
-                  010-4801-7180
-                </a>
-              </p>
-            </div>
-          </div>
-        </div>
-          </div>
-        </>
-      )}
-
-      {/* Bottom Navigation - 분류 버튼 */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#22262a]" style={{ maxWidth: '650px', margin: '0 auto', backgroundColor: "var(--header-bg-color)" }}>
-        <div className="flex items-center justify-around px-2 py-2">
-          {/* 전체 버튼 */}
-          <button
-            onClick={() => {
-              handleCategoryChange("all");
-              setIsGuideOpen(false);
-            }}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
-              searchTerm
-                ? "text-gray-400"
-                : isCategoryActive("all")
-                  ? "text-blue-500"
-                  : "text-gray-300 hover:text-white"
-            }`}
-          >
-            <i className="ri-file-list-3-line text-xl mb-0.5"></i>
-            <span className="text-xs">
-              {currentMonth
-                ? viewMode === "year"
-                  ? `${currentMonth.getFullYear()}년`
-                  : `${currentMonth.getMonth() + 1}월`
-                : "전체"}
-            </span>
-          </button>
-
-          {/* 강습 버튼 */}
-          <button
-            onClick={() => {
-              handleCategoryChange("class");
-              setIsGuideOpen(false);
-            }}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
-              searchTerm
-                ? isCategoryActive("class")
-                  ? "text-purple-400"
-                  : "text-gray-400"
-                : isCategoryActive("class")
-                  ? "text-purple-500"
-                  : "text-gray-300 hover:text-white"
-            }`}
-          >
-            <i className="ri-book-open-line text-xl mb-0.5"></i>
-            <span className="text-xs">강습</span>
-          </button>
-
-          {/* 행사 버튼 */}
-          <button
-            onClick={() => {
-              handleCategoryChange("event");
-              setIsGuideOpen(false);
-            }}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
-              searchTerm
-                ? isCategoryActive("event")
-                  ? "text-blue-400"
-                  : "text-gray-400"
-                : isCategoryActive("event")
-                  ? "text-blue-500"
-                  : "text-gray-300 hover:text-white"
-            }`}
-          >
-            <i className="ri-calendar-event-line text-xl mb-0.5"></i>
-            <span className="text-xs">행사</span>
-          </button>
-
-          {/* 연습실 버튼 */}
-          <button
-            onClick={() => {
-              handleCategoryChange("practice");
-              setIsGuideOpen(false);
-            }}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
-              isCategoryActive("practice")
-                ? "text-blue-500"
-                : "text-gray-300 hover:text-white"
-            }`}
-          >
-            <i className="ri-music-2-line text-xl mb-0.5"></i>
-            <span className="text-xs">연습실</span>
-          </button>
-
-          {/* 안내 버튼 */}
-          <button
-            onClick={() => setIsGuideOpen(!isGuideOpen)}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
-              isGuideOpen
-                ? "text-blue-500"
-                : "text-gray-300 hover:text-white"
-            }`}
-          >
-            <i className={`${isGuideOpen ? 'ri-close-line' : 'ri-information-line'} text-xl mb-0.5`}></i>
-            <span className="text-xs">안내</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
