@@ -7,6 +7,7 @@ export function MobileShell() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [viewMode, setViewMode] = useState<"month" | "year">("month");
 
   // 테마 색상 로드 (모든 페이지 공통)
   useEffect(() => {
@@ -52,6 +53,21 @@ export function MobileShell() {
     };
   }, []);
 
+  // HomePage에서 전달되는 viewMode 정보 수신
+  useEffect(() => {
+    const handleViewModeChange = (event: CustomEvent) => {
+      if (event.detail && event.detail.viewMode) {
+        setViewMode(event.detail.viewMode);
+      }
+    };
+
+    window.addEventListener('viewModeChanged', handleViewModeChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('viewModeChanged', handleViewModeChange as EventListener);
+    };
+  }, []);
+
   // 현재 페이지와 카테고리 파악
   const isEventsPage = location.pathname === '/';
   const isPracticePage = location.pathname === '/practice';
@@ -84,7 +100,16 @@ export function MobileShell() {
             }}
           >
             <span className="text-gray-400 font-medium" style={{ fontSize: '12px', lineHeight: '1.2' }}>
-              {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+              {viewMode === "year" ? (
+                <>
+                  {currentMonth.getFullYear()}년{' '}
+                  {category === 'all' ? '전체' : category === 'class' ? '강습' : '행사'}
+                </>
+              ) : (
+                <>
+                  {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+                </>
+              )}
             </span>
           </div>
         )}

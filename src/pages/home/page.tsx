@@ -24,13 +24,7 @@ export default function HomePage() {
   }, [navigate]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  
-  // MobileShell에 현재 월 정보 전달
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('monthChanged', { 
-      detail: { month: currentMonth.toISOString() } 
-    }));
-  }, [currentMonth]);
+  const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -38,7 +32,20 @@ export default function HomePage() {
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const calendarRef = useRef<HTMLDivElement>(null);
-  const [viewMode, setViewMode] = useState<"month" | "year">("month");
+  
+  // MobileShell에 현재 월 정보 전달
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('monthChanged', { 
+      detail: { month: currentMonth.toISOString() } 
+    }));
+  }, [currentMonth]);
+
+  // MobileShell에 viewMode 정보 전달
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('viewModeChanged', { 
+      detail: { viewMode } 
+    }));
+  }, [viewMode]);
   const [savedMonth, setSavedMonth] = useState<Date | null>(null);
   const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
