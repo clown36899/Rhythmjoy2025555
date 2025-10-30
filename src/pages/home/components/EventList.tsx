@@ -194,40 +194,61 @@ export default function EventList({
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
     const eventsCopy = [...eventsToSort];
+    const today = new Date().toISOString().split('T')[0];
 
-    switch (sortType) {
-      case "random":
-        // 랜덤 정렬 - Fisher-Yates 알고리즘 사용
-        for (let i = eventsCopy.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [eventsCopy[i], eventsCopy[j]] = [eventsCopy[j], eventsCopy[i]];
-        }
-        return eventsCopy;
-      case "time":
-        // 시간순 정렬 (날짜 + 시간)
-        return eventsCopy.sort((a, b) => {
-          const dateStrA = a.start_date || a.date;
-          const dateStrB = b.start_date || b.date;
-          if (!dateStrA && !dateStrB) return 0;
-          if (!dateStrA) return 1;
-          if (!dateStrB) return -1;
-          const dateA = new Date(`${dateStrA} ${a.time}`);
-          const dateB = new Date(`${dateStrB} ${b.time}`);
-          return dateA.getTime() - dateB.getTime();
-        });
-      case "title":
-        // 제목순 정렬 (가나다순)
-        return eventsCopy.sort((a, b) => a.title.localeCompare(b.title, "ko"));
-      case "newest":
-        // 최신순 정렬 (created_at 기준)
-        return eventsCopy.sort((a, b) => {
-          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return dateB - dateA;
-        });
-      default:
-        return eventsCopy;
-    }
+    // 진행 중/종료 이벤트 분류 (종료일 기준)
+    const ongoingEvents: Event[] = [];
+    const endedEvents: Event[] = [];
+
+    eventsCopy.forEach((event) => {
+      const endDate = event.end_date || event.date;
+      if (endDate && endDate < today) {
+        endedEvents.push(event);
+      } else {
+        ongoingEvents.push(event);
+      }
+    });
+
+    // 각 그룹 내에서 정렬 적용
+    const sortGroup = (group: Event[]) => {
+      switch (sortType) {
+        case "random":
+          // 랜덤 정렬 - Fisher-Yates 알고리즘 사용
+          const shuffled = [...group];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          return shuffled;
+        case "time":
+          // 시간순 정렬 (날짜 + 시간)
+          return group.sort((a, b) => {
+            const dateStrA = a.start_date || a.date;
+            const dateStrB = b.start_date || b.date;
+            if (!dateStrA && !dateStrB) return 0;
+            if (!dateStrA) return 1;
+            if (!dateStrB) return -1;
+            const dateA = new Date(`${dateStrA} ${a.time}`);
+            const dateB = new Date(`${dateStrB} ${b.time}`);
+            return dateA.getTime() - dateB.getTime();
+          });
+        case "title":
+          // 제목순 정렬 (가나다순)
+          return group.sort((a, b) => a.title.localeCompare(b.title, "ko"));
+        case "newest":
+          // 최신순 정렬 (created_at 기준)
+          return group.sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+          });
+        default:
+          return group;
+      }
+    };
+
+    // 진행 중 이벤트를 위로, 종료된 이벤트를 아래로
+    return [...sortGroup(ongoingEvents), ...sortGroup(endedEvents)];
   };
 
   // 검색 자동완성을 위한 이벤트 데이터에서 키워드 추출
@@ -1334,7 +1355,15 @@ export default function EventList({
                             return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
                           })()}`}
                         >
-                          {event.category === "class" ? "강습" : "행사"}
+                          {(() => {
+                            const endDate = event.end_date || event.date;
+                            if (endDate) {
+                              const today = new Date().toISOString().split('T')[0];
+                              const isPast = endDate < today;
+                              if (isPast) return "종료";
+                            }
+                            return event.category === "class" ? "강습" : "행사";
+                          })()}
                         </div>
                         {/* 하단 그라데이션 오버레이 */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
