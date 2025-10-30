@@ -145,10 +145,11 @@ export default function HomePage() {
 
   // 안내창 열릴 때 스크롤 완전히 막기 (sticky 보존)
   useEffect(() => {
+    const bodyStyle = document.body.style;
+    
     if (isGuideOpen) {
       // 현재 스크롤 위치 저장
       const scrollY = window.scrollY;
-      const bodyStyle = document.body.style;
       
       // 기존 스타일 저장
       const previousPosition = bodyStyle.position;
@@ -169,6 +170,11 @@ export default function HomePage() {
         // 스크롤 위치 복원
         window.scrollTo(0, scrollY);
       };
+    } else {
+      // isGuideOpen이 false일 때도 확실하게 복원
+      bodyStyle.position = '';
+      bodyStyle.top = '';
+      bodyStyle.width = '';
     }
   }, [isGuideOpen]);
 
