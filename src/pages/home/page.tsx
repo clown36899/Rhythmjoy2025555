@@ -806,7 +806,6 @@ export default function HomePage() {
               <Footer />
             </div>
           </div>
-        </div>
       </div>
 
       {/* Fullscreen Billboard */}
