@@ -668,12 +668,15 @@ export default function HomePage() {
             {/* 달력 접기/펴기 토글 버튼 */}
             <button
               onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
-              className="flex items-center justify-center h-6 w-8
+              className="flex items-center justify-center gap-1 h-6 px-2
                          bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
                          rounded-lg transition-colors cursor-pointer flex-shrink-0"
               aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기"}
             >
               <i className={`${isCalendarCollapsed ? 'ri-calendar-line' : 'ri-calendar-close-line'} text-sm leading-none align-middle`}></i>
+              <span className="text-xs leading-none align-middle whitespace-nowrap">
+                {isCalendarCollapsed ? "달력 펼침" : "달력 접기"}
+              </span>
             </button>
             
             <div className="flex-1"></div>
