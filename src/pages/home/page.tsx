@@ -670,55 +670,6 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Tools Panel - 달력 토글 + 정렬 + 검색 (STICKY - 헤더 바로 아래 고정) */}
-      <div 
-        className="sticky top-16 w-full z-[15] border-b border-[#22262a]"
-        style={{ 
-          backgroundColor: "var(--calendar-bg-color)"
-        }}
-      >
-        <div className="flex items-center gap-2 px-2 py-1">
-          {/* 달력 접기/펴기 토글 버튼 */}
-          <button
-            onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
-            className="flex items-center justify-center h-6 w-8
-                       bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                       rounded-lg transition-colors cursor-pointer flex-shrink-0"
-            aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기"}
-          >
-            <i className={`${isCalendarCollapsed ? 'ri-calendar-line' : 'ri-calendar-close-line'} text-sm leading-none align-middle`}></i>
-          </button>
-          
-          <div className="flex-1"></div>
-
-          {/* 정렬 버튼 */}
-          <button
-            onClick={() => setShowSortModal(true)}
-            className="flex items-center justify-center h-6 gap-1 px-2
-                       bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                       rounded-lg transition-colors cursor-pointer flex-shrink-0"
-          >
-            <i
-              className={`${getSortIcon()} text-sm leading-none align-middle`}
-            ></i>
-            <span className="text-xs leading-none align-middle">
-              {getSortLabel()}
-            </span>
-          </button>
-
-          {/* 검색 버튼 */}
-          <button
-            onClick={() => setShowSearchModal(true)}
-            className="flex items-center justify-center h-6 w-8
-                       bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                       rounded-lg transition-colors cursor-pointer flex-shrink-0"
-            aria-label="검색"
-          >
-            <i className="ri-search-line text-sm leading-none align-middle"></i>
-          </button>
-        </div>
-      </div>
-
       {/* Mobile Layout - Scrollable Calendar & Content */}
       <div className="pt-16">
         {/* Calendar Section - 일반 스크롤 (sticky 아님) */}
@@ -749,6 +700,55 @@ export default function HomePage() {
               dragOffset={dragOffset}
               isAnimating={isAnimating}
             />
+          </div>
+        </div>
+
+        {/* Tools Panel - 달력 아래에서 따라 올라가다가 헤더에 STICKY */}
+        <div 
+          className="sticky top-16 w-full z-[15] border-b border-[#22262a]"
+          style={{ 
+            backgroundColor: "var(--calendar-bg-color)"
+          }}
+        >
+          <div className="flex items-center gap-2 px-2 py-1">
+            {/* 달력 접기/펴기 토글 버튼 */}
+            <button
+              onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+              className="flex items-center justify-center h-6 w-8
+                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기"}
+            >
+              <i className={`${isCalendarCollapsed ? 'ri-calendar-line' : 'ri-calendar-close-line'} text-sm leading-none align-middle`}></i>
+            </button>
+            
+            <div className="flex-1"></div>
+
+            {/* 정렬 버튼 */}
+            <button
+              onClick={() => setShowSortModal(true)}
+              className="flex items-center justify-center h-6 gap-1 px-2
+                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
+            >
+              <i
+                className={`${getSortIcon()} text-sm leading-none align-middle`}
+              ></i>
+              <span className="text-xs leading-none align-middle">
+                {getSortLabel()}
+              </span>
+            </button>
+
+            {/* 검색 버튼 */}
+            <button
+              onClick={() => setShowSearchModal(true)}
+              className="flex items-center justify-center h-6 w-8
+                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              aria-label="검색"
+            >
+              <i className="ri-search-line text-sm leading-none align-middle"></i>
+            </button>
           </div>
         </div>
 
