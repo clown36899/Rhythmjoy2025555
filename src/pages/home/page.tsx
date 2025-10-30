@@ -715,18 +715,19 @@ export default function HomePage() {
 
       {/* Month/Year Indicator - Fixed above bottom navigation */}
       <div 
-        className="fixed left-0 right-0 z-20 border-t border-[#22262a] text-center flex items-start justify-center"
+        className="fixed left-0 right-0 z-20 border-t border-[#22262a]"
         style={{ 
-          bottom: '64px',
+          bottom: '56px',
           maxWidth: '650px',
           margin: '0 auto',
           backgroundColor: "var(--header-bg-color)",
-          paddingTop: '1px',
-          paddingBottom: '3px',
-          height: '17px'
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '20px'
         }}
       >
-        <span className="text-gray-400 font-medium" style={{ fontSize: '12px', lineHeight: '12px' }}>
+        <span className="text-gray-400 font-medium" style={{ fontSize: '12px', lineHeight: '1.2' }}>
           {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
         </span>
       </div>
