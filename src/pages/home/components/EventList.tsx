@@ -1495,7 +1495,7 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
+                            <div className={`absolute top-0.5 left-0.5 px-1 py-0 text-white text-[6px] font-light rounded-sm ${event.category === "class" ? "bg-purple-600/70" : "bg-blue-600/70"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
@@ -1621,7 +1621,7 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
+                            <div className={`absolute top-0.5 left-0.5 px-1 py-0 text-white text-[6px] font-light rounded-sm ${event.category === "class" ? "bg-purple-600/70" : "bg-blue-600/70"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
@@ -1737,7 +1737,7 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-1 left-0 px-2 py-0.5 text-white text-[10px] font-bold ${event.category === "class" ? "bg-purple-600" : "bg-blue-600"}`}>
+                            <div className={`absolute top-0.5 left-0.5 px-1 py-0 text-white text-[6px] font-light rounded-sm ${event.category === "class" ? "bg-purple-600/70" : "bg-blue-600/70"}`}>
                               {event.category === "class" ? "강습" : "행사"}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
