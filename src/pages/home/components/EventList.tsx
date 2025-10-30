@@ -1322,13 +1322,14 @@ export default function EventList({
                         if (viewMode === "month" && onEventHover)
                           onEventHover(null);
                       }}
-                      className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#000000]"
+                      className={`overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#000000]"
                         }`}
                       style={{
                         backgroundColor: "var(--event-list-bg-color)",
                         borderColor: isHighlighted
                           ? highlightBorderColor
                           : undefined,
+                        borderRadius: '0.3rem',
                       }}
                     >
                       {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일fu�은 회색 */}
@@ -1525,8 +1526,8 @@ export default function EventList({
                           key={event.id}
                           data-event-id={event.id}
                           onClick={() => handleEventClick(event)}
-                          className="rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
-                          style={{ backgroundColor: "var(--event-list-bg-color)" }}
+                          className="overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
+                          style={{ backgroundColor: "var(--event-list-bg-color)", borderRadius: '0.3rem' }}
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
@@ -1665,10 +1666,11 @@ export default function EventList({
                             e.currentTarget.style.borderColor = "#000000";
                             if (viewMode === "month" && onEventHover) onEventHover(null);
                           }}
-                          className={`rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#000000]"}`}
+                          className={`overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#000000]"}`}
                           style={{
                             backgroundColor: "var(--event-list-bg-color)",
                             borderColor: isHighlighted ? highlightBorderColor : undefined,
+                            borderRadius: '0.3rem',
                           }}
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
@@ -1801,8 +1803,8 @@ export default function EventList({
                           key={event.id}
                           data-event-id={event.id}
                           onClick={() => handleEventClick(event)}
-                          className="rounded-xl overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
-                          style={{ backgroundColor: "var(--event-list-bg-color)" }}
+                          className="overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
+                          style={{ backgroundColor: "var(--event-list-bg-color)", borderRadius: '0.3rem' }}
                         >
                           <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
