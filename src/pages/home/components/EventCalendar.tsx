@@ -468,7 +468,7 @@ export default function EventCalendar({
           key={`${monthDate.getMonth()}-${index}`}
           className="h-5 p-0 relative"
         >
-          <button
+          <div
             onClick={() => handleDateClick(day)}
             className={`w-full h-full flex flex-col items-center justify-center text-[13px] transition-all duration-300 cursor-pointer relative overflow-visible ${
               selectedDate && day.toDateString() === selectedDate.toDateString()
@@ -509,7 +509,7 @@ export default function EventCalendar({
                 </div>
               </div>
             )}
-          </button>
+          </div>
 
           {/* 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 */}
           {eventBarsData.some((bar) => bar !== null) && (
