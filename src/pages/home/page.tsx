@@ -344,54 +344,12 @@ export default function HomePage() {
     setHighlightEvent(null);
   };
 
-  const handleDateSelect = async (date: Date | null) => {
+  const handleDateSelect = (date: Date | null) => {
     setSelectedDate(date);
 
-    // 날짜가 선택되었을 때 해당 날짜의 모든 이벤트 카테고리를 감지
+    // 날짜 선택 시 무조건 전체 리스트로 변경 (해당 날짜 이벤트는 상단에 정렬됨)
     if (date) {
-      try {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const selectedDateString = `${year}-${month}-${day}`;
-
-        // 모든 이벤트를 가져와서 클라이언트에서 날짜 범위 필터링
-        const { data: allEvents } = await supabase
-          .from("events")
-          .select("category, start_date, end_date, date")
-          .order("created_at", { ascending: true });
-
-        // 날짜 범위를 고려한 필터링
-        const events =
-          allEvents?.filter((event: any) => {
-            const startDate = event.start_date || event.date;
-            const endDate = event.end_date || event.date;
-            return (
-              selectedDateString >= startDate && selectedDateString <= endDate
-            );
-          }) || [];
-
-        if (events && events.length > 0) {
-          // 해당 날짜의 모든 카테고리 추출
-          const uniqueCategories = [
-            ...new Set(events.map((event) => event.category)),
-          ];
-
-          // 카테고리가 1개만 있으면 그 카테고리 선택
-          if (uniqueCategories.length === 1) {
-            navigateWithCategory(uniqueCategories[0]);
-          } else {
-            // 2개 이상 있으면 "all"로 설정 (모든 카테고리 표시)
-            navigateWithCategory('all');
-          }
-        } else {
-          // 이벤트가 없으면 "all" 카테고리로 설정
-          navigateWithCategory('all');
-        }
-      } catch (error) {
-        console.error("Error fetching events for date:", error);
-        navigateWithCategory('all');
-      }
+      navigateWithCategory('all');
     }
   };
 

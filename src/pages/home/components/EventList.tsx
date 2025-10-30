@@ -775,7 +775,50 @@ export default function EventList({
   }, [nextMonthEvents, sortBy, nextMonthKey]);
 
   // 레거시 호환을 위해 sortedEvents는 현재 달 이벤트를 가리킴
-  const sortedEvents = sortedCurrentEvents;
+  // 날짜 선택 시 해당 날짜 이벤트를 상단에 배치
+  const sortedEvents = useMemo(() => {
+    // selectedDate가 없으면 기본 정렬 그대로 반환
+    if (!selectedDate) {
+      return sortedCurrentEvents;
+    }
+
+    // selectedDate를 YYYY-MM-DD 형식으로 변환
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(selectedDate.getDate()).padStart(2, "0");
+    const selectedDateString = `${year}-${month}-${day}`;
+
+    // 캐시된 배열을 복사하여 새 배열 생성 (useMemo 재실행 보장)
+    const eventsCopy = [...sortedCurrentEvents];
+
+    // 선택된 날짜에 해당하는 이벤트와 아닌 이벤트로 분리
+    const eventsOnSelectedDate: Event[] = [];
+    const eventsNotOnSelectedDate: Event[] = [];
+
+    eventsCopy.forEach((event) => {
+      let isOnSelectedDate = false;
+
+      // 1. event_dates 배열로 정의된 이벤트 체크 (특정 날짜 모드)
+      if (event.event_dates && event.event_dates.length > 0) {
+        isOnSelectedDate = event.event_dates.includes(selectedDateString);
+      } 
+      // 2. start_date/end_date 범위로 정의된 이벤트 체크 (연속 기간 모드)
+      else {
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+        isOnSelectedDate = !!(startDate && endDate && selectedDateString >= startDate && selectedDateString <= endDate);
+      }
+
+      if (isOnSelectedDate) {
+        eventsOnSelectedDate.push(event);
+      } else {
+        eventsNotOnSelectedDate.push(event);
+      }
+    });
+
+    // 선택된 날짜 이벤트를 상단에, 나머지를 하단에 배치
+    return [...eventsOnSelectedDate, ...eventsNotOnSelectedDate];
+  }, [sortedCurrentEvents, selectedDate]);
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);
