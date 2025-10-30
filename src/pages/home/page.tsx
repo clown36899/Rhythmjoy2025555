@@ -680,126 +680,58 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Category Filter Panel */}
+            {/* Tools Panel - 달력 토글 + 정렬 + 검색 */}
             <div 
-              data-category-panel
-              className="w-full"
+              className="w-full border-b border-[#22262a]"
               style={{ 
                 backgroundColor: "var(--calendar-bg-color)"
               }}
             >
-            <div className="flex items-center gap-2 p-1.5 border-t border-b border-x-0 border-t-[#22262a] border-b-black">
-              
-              {/* 이벤트 카테고리 그룹 (전체/강습/행사) */}
-              <div className="flex gap-1 bg-gray-800/30 rounded-lg p-1">
+              <div className="flex items-center gap-2 px-2 py-1">
+                {/* 달력 접기/펴기 토글 버튼 */}
                 <button
-                  onClick={() => handleCategoryChange("all")}
-                  className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    searchTerm
-                      ? "bg-gray-700/50 text-gray-400 border border-gray-600/50"
-                      : isCategoryActive("all")
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
+                  onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                  className="flex items-center justify-center h-6 w-8
+                             bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                             rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                  aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기"}
                 >
-                  <span>
-                    {currentMonth
-                      ? viewMode === "year"
-                        ? `${currentMonth.getFullYear()} 전체`
-                        : `${currentMonth.getMonth() + 1}월 전체`
-                      : "모든 이벤트"}
+                  <i className={`${isCalendarCollapsed ? 'ri-calendar-line' : 'ri-calendar-close-line'} text-sm leading-none align-middle`}></i>
+                </button>
+                
+                <div className="flex-1"></div>
+
+                {/* 정렬 버튼 */}
+                <button
+                  onClick={() => setShowSortModal(true)}
+                  className="flex items-center justify-center h-6 gap-1 px-2
+                             bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                             rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                >
+                  <i
+                    className={`${getSortIcon()} text-sm leading-none align-middle`}
+                  ></i>
+                  <span className="text-xs leading-none align-middle">
+                    {getSortLabel()}
                   </span>
                 </button>
+
+                {/* 검색 버튼 */}
                 <button
-                  onClick={() => handleCategoryChange("class")}
-                  className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    searchTerm
-                      ? isCategoryActive("class")
-                        ? "bg-purple-600/50 text-purple-200 border border-purple-500/30"
-                        : "bg-[#242424]/50 text-gray-400 border border-gray-600/50"
-                      : isCategoryActive("class")
-                        ? "bg-purple-600 text-white"
-                        : "bg-[#242424] text-gray-300 hover:bg-gray-600"
-                  }`}
+                  onClick={() => setShowSearchModal(true)}
+                  className="flex items-center justify-center h-6 w-8
+                             bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                             rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                  aria-label="검색"
                 >
-                  <span>강습</span>
-                </button>
-                <button
-                  onClick={() => handleCategoryChange("event")}
-                  className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    searchTerm
-                      ? isCategoryActive("event")
-                        ? "bg-blue-600/50 text-blue-200 border border-blue-500/30"
-                        : "bg-[#242424]/50 text-gray-400 border border-gray-600/50"
-                      : isCategoryActive("event")
-                        ? "bg-blue-600 text-white"
-                        : "bg-[#242424] text-gray-300 hover:bg-gray-600"
-                  }`}
-                >
-                  <span>행사</span>
+                  <i className="ri-search-line text-sm leading-none align-middle"></i>
                 </button>
               </div>
-              
-              {/* 연습실 그룹 (별도) */}
-              <div className="flex gap-1 bg-gray-900/30 rounded-lg p-1">
-                <button
-                  onClick={() => {
-                    setSelectedCategory("practice");
-                  }}
-                  className={`flex items-center px-2 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    isCategoryActive("practice")
-                      ? "bg-blue-600 text-white"
-                      : "bg-[#242424] text-gray-300 hover:bg-gray-600"
-                  }`}
-                >
-                  <span>연습실</span>
-                </button>
-              </div>
-              
-              {/* 달력 접기/펴기 토글 버튼 */}
-              <button
-                onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
-                className="flex items-center justify-center h-6 w-8
-                           bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                           rounded-lg transition-colors cursor-pointer flex-shrink-0"
-                aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기"}
-              >
-                <i className={`${isCalendarCollapsed ? 'ri-calendar-line' : 'ri-calendar-close-line'} text-sm leading-none align-middle`}></i>
-              </button>
-              
-              <div className="flex-1"></div>
-
-              {/* 정렬 버튼 */}
-              <button
-                onClick={() => setShowSortModal(true)}
-                className="flex items-center justify-center h-6 gap-1 px-2
-                           bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                           rounded-lg transition-colors cursor-pointer flex-shrink-0"
-              >
-                <i
-                  className={`${getSortIcon()} text-sm leading-none align-middle`}
-                ></i>
-                <span className="text-xs leading-none align-middle">
-                  {getSortLabel()}
-                </span>
-              </button>
-
-              {/* 검색 버튼 */}
-              <button
-                onClick={() => setShowSearchModal(true)}
-                className="flex items-center justify-center h-6 w-8
-                           bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                           rounded-lg transition-colors cursor-pointer flex-shrink-0"
-                aria-label="검색"
-              >
-                <i className="ri-search-line text-sm leading-none align-middle"></i>
-              </button>
-            </div>
             </div>
           </div>
 
           {/* Scrollable Content Area - Events/Practice Rooms and Footer */}
-          <div className="w-full bg-[#1f1f1f] -mt-12 pt-12">
+          <div className="w-full bg-[#1f1f1f] pb-16">
             {selectedCategory === "practice" ? (
                 <PracticeRoomList 
                   adminType={adminType}
@@ -891,6 +823,81 @@ export default function HomePage() {
         billboardUserId={billboardUserId}
         billboardUserName={billboardUserName}
       />
+
+      {/* Bottom Navigation - 분류 버튼 */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#22262a]" style={{ maxWidth: '650px', margin: '0 auto', backgroundColor: "var(--header-bg-color)" }}>
+        <div className="flex items-center justify-around px-2 py-2">
+          {/* 전체 버튼 */}
+          <button
+            onClick={() => handleCategoryChange("all")}
+            className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg transition-colors flex-1 ${
+              searchTerm
+                ? "text-gray-400"
+                : isCategoryActive("all")
+                  ? "text-blue-500"
+                  : "text-gray-300 hover:text-white"
+            }`}
+          >
+            <i className="ri-file-list-3-line text-xl mb-0.5"></i>
+            <span className="text-xs">
+              {currentMonth
+                ? viewMode === "year"
+                  ? `${currentMonth.getFullYear()}년`
+                  : `${currentMonth.getMonth() + 1}월`
+                : "전체"}
+            </span>
+          </button>
+
+          {/* 강습 버튼 */}
+          <button
+            onClick={() => handleCategoryChange("class")}
+            className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg transition-colors flex-1 ${
+              searchTerm
+                ? isCategoryActive("class")
+                  ? "text-purple-400"
+                  : "text-gray-400"
+                : isCategoryActive("class")
+                  ? "text-purple-500"
+                  : "text-gray-300 hover:text-white"
+            }`}
+          >
+            <i className="ri-book-open-line text-xl mb-0.5"></i>
+            <span className="text-xs">강습</span>
+          </button>
+
+          {/* 행사 버튼 */}
+          <button
+            onClick={() => handleCategoryChange("event")}
+            className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg transition-colors flex-1 ${
+              searchTerm
+                ? isCategoryActive("event")
+                  ? "text-blue-400"
+                  : "text-gray-400"
+                : isCategoryActive("event")
+                  ? "text-blue-500"
+                  : "text-gray-300 hover:text-white"
+            }`}
+          >
+            <i className="ri-calendar-event-line text-xl mb-0.5"></i>
+            <span className="text-xs">행사</span>
+          </button>
+
+          {/* 연습실 버튼 */}
+          <button
+            onClick={() => {
+              setSelectedCategory("practice");
+            }}
+            className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg transition-colors flex-1 ${
+              isCategoryActive("practice")
+                ? "text-blue-500"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            <i className="ri-music-2-line text-xl mb-0.5"></i>
+            <span className="text-xs">연습실</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
