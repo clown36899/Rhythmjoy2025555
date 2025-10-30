@@ -361,10 +361,27 @@ export default function HomePage() {
   };
 
   const handleMonthChange = (month: Date) => {
+    console.log('>>> handleMonthChange 시작 <<<');
+    console.log('받은 month:', month);
+    console.log('month.toISOString():', month.toISOString());
+    console.log('현재 viewMode:', viewMode);
+    console.log('현재 currentMonth:', currentMonth);
+    
     setCurrentMonth(month);
+    console.log('setCurrentMonth 완료');
+    
     // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
     setSelectedDate(null);
-    navigateWithCategory('all');
+    console.log('setSelectedDate(null) 완료');
+    
+    // 년 모드가 아닐 때만 카테고리 변경 (년 모드에서는 뷰 유지)
+    if (viewMode === "month") {
+      console.log('월 모드 - navigateWithCategory 호출');
+      navigateWithCategory('all');
+    } else {
+      console.log('년 모드 - navigateWithCategory 생략');
+    }
+    console.log('>>> handleMonthChange 완료 <<<');
   };
 
   // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
@@ -518,16 +535,24 @@ export default function HomePage() {
   };
 
   const handleViewModeChange = (mode: "month" | "year") => {
+    console.log('@@@ handleViewModeChange 시작 @@@');
+    console.log('이전 모드:', viewMode);
+    console.log('새 모드:', mode);
+    
     if (mode === "year") {
-      // 년 보기로 전환: 현재 월 저장
+      console.log('년 모드로 전환 - 현재 월 저장');
       setSavedMonth(new Date(currentMonth));
     } else if (mode === "month" && savedMonth) {
-      // 월 보기로 복귀: 저장된 월 복원
+      console.log('월 모드로 복귀 - 저장된 월 복원');
       setCurrentMonth(new Date(savedMonth));
     }
+    
     setViewMode(mode);
+    console.log('setViewMode 완료');
+    
     // 뷰 모드 변경 시 이벤트 리스트 표시
     navigateWithCategory('all');
+    console.log('@@@ handleViewModeChange 완료 @@@');
   };
 
   return (
@@ -615,6 +640,7 @@ export default function HomePage() {
               currentMonth={currentMonth}
               onEventsUpdate={handleEventsUpdate}
               viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
               hoveredEventId={hoveredEventId}
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}

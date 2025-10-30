@@ -29,7 +29,7 @@ export default function EventCalendar({
   currentMonth: externalCurrentMonth,
   onEventsUpdate,
   viewMode = "month",
-  onViewModeChange: _onViewModeChange,
+  onViewModeChange,
   hoveredEventId,
   onTouchStart: externalOnTouchStart,
   onTouchMove: externalOnTouchMove,
@@ -592,12 +592,31 @@ export default function EventCalendar({
               <button
                 key={year}
                 onClick={() => {
+                  console.log('=== 년도 선택 클릭 ===');
+                  console.log('선택한 년도:', year);
+                  console.log('현재 viewMode:', viewMode);
+                  console.log('isSelected:', isSelected);
+                  
                   // 선택한 년도의 1월 1일로 설정
                   const newDate = new Date(year, 0, 1);
+                  console.log('새로운 날짜 객체:', newDate);
+                  console.log('새로운 날짜 문자열:', newDate.toISOString());
+                  
                   setInternalCurrentMonth(newDate);
-                  onMonthChange?.(newDate);
+                  console.log('setInternalCurrentMonth 호출 완료');
+                  
+                  if (onMonthChange) {
+                    console.log('onMonthChange 함수 존재 - 호출 시작');
+                    onMonthChange(newDate);
+                    console.log('onMonthChange 호출 완료');
+                  } else {
+                    console.log('⚠️ onMonthChange 함수가 없음!');
+                  }
+                  
                   onDateSelect(null);
-                  // 년 모드 유지 (년도 전체 이벤트 표시)
+                  console.log('onDateSelect(null) 호출 완료');
+                  console.log('=== 년도 선택 처리 완료 ===');
+                  // viewMode는 "year"로 유지되어 해당 년도의 모든 이벤트 표시
                 }}
                 className={`py-2 px-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                   isSelected
