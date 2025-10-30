@@ -1,9 +1,40 @@
 import { Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // 테마 색상 로드 (모든 페이지 공통)
+  useEffect(() => {
+    const loadThemeColors = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("theme_settings")
+          .select("*")
+          .eq("id", 1)
+          .single();
+
+        if (error || !data) {
+          return;
+        }
+
+        // CSS 변수 업데이트
+        document.documentElement.style.setProperty("--bg-color", data.background_color);
+        document.documentElement.style.setProperty("--header-bg-color", data.header_bg_color || "#1f2937");
+        document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color);
+        document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color);
+        document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color);
+        document.documentElement.style.setProperty("--page-bg-color", data.page_bg_color || "#111827");
+      } catch (err) {
+        // 기본 색상 사용
+      }
+    };
+
+    loadThemeColors();
+  }, []);
 
   // 현재 페이지와 카테고리 파악
   const isEventsPage = location.pathname === '/';
