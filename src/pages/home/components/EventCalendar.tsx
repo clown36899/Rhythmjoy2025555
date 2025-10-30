@@ -11,6 +11,7 @@ interface EventCalendarProps {
   currentMonth?: Date;
   onEventsUpdate?: (createdDate?: Date) => void;
   viewMode?: "month" | "year";
+  onViewModeChange?: (mode: "month" | "year") => void;
   hoveredEventId?: number | null;
   // 공통 스와이프 상태
   onTouchStart?: (e: React.TouchEvent) => void;
@@ -28,6 +29,7 @@ export default function EventCalendar({
   currentMonth: externalCurrentMonth,
   onEventsUpdate,
   viewMode = "month",
+  onViewModeChange: _onViewModeChange,
   hoveredEventId,
   onTouchStart: externalOnTouchStart,
   onTouchMove: externalOnTouchMove,
@@ -590,10 +592,12 @@ export default function EventCalendar({
               <button
                 key={year}
                 onClick={() => {
+                  // 선택한 년도의 1월 1일로 설정
                   const newDate = new Date(year, 0, 1);
                   setInternalCurrentMonth(newDate);
                   onMonthChange?.(newDate);
                   onDateSelect(null);
+                  // 년 모드 유지 (년도 전체 이벤트 표시)
                 }}
                 className={`py-2 px-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                   isSelected
