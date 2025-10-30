@@ -1321,9 +1321,9 @@ export default function EventList({
                             );
                           }
                         })()}
-                        {/* 왼쪽 상단 카테고리 배지 - 작게 */}
+                        {/* 왼쪽 상단 카테고리 배지 - 아주 작게 */}
                         <div
-                          className={`absolute top-1 left-1 px-1.5 py-0.5 text-white text-[8px] font-medium rounded ${event.category === "class" ? "bg-purple-600/90" : "bg-blue-600/90"}`}
+                          className={`absolute top-1 left-1 px-1 py-0.5 text-white text-[7px] font-normal rounded ${event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80"}`}
                         >
                           {event.category === "class" ? "강습" : "행사"}
                         </div>
