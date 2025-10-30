@@ -34,6 +34,7 @@ export default function HomePage() {
   } | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -824,13 +825,88 @@ export default function HomePage() {
         billboardUserName={billboardUserName}
       />
 
+      {/* Guide Panel - 사이트 안내 */}
+      <div 
+        className={`fixed left-0 right-0 bg-[#1f1f1f] transition-all duration-300 ease-out overflow-y-auto ${
+          isGuideOpen ? 'bottom-16 top-16' : 'bottom-16 top-full'
+        }`}
+        style={{ 
+          maxWidth: '650px', 
+          margin: '0 auto',
+          zIndex: 25
+        }}
+      >
+        <div className="p-6 text-white">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold mb-4 text-blue-400">광고판 사용 안내</h2>
+            
+            {/* 주 문구 */}
+            <div className="mb-6">
+              <p className="text-yellow-400 mb-4 text-base font-bold animate-pulse">
+                누구나 일정 무료 등록가능 (로그인 x),
+              </p>
+
+              <p className="text-gray-400 text-sm mb-1">
+                사용방법 <br />
+                달력을 두번 클릭하면 일정등록폼이 나옵니다.<br />
+                자율등록하시고 비번설정으로 수정가능
+                <br />공공의 이익에 해가되면 삭제수정될수있습니다.
+              </p>
+
+              <p className="text-orange-400 text-base font-semibold mt-4">
+                연습실 등록은 별도문의(사용불가능한 연습실은 등록불가)
+              </p>
+            </div>
+
+            {/* QR 공유 안내 */}
+            <div className="mt-6">
+              <p className="text-sm text-gray-400 mb-2">
+                친구에게 공유하려면 우측 상단 메뉴에서<br />
+                <span className="text-blue-400 font-semibold">QR 코드 공유</span>를 클릭하세요
+              </p>
+            </div>
+
+            {/* 연락처 */}
+            <div className="mt-8 pt-6 border-t border-gray-700">
+              <p className="text-gray-400 text-sm mb-2">
+                이 사이트는 누구나 자유롭게 입력 및 공유할 수 있습니다.
+              </p>
+              <p className="text-gray-400 text-sm">© since 2025. 제작-joy.</p>
+              <p className="text-gray-500 text-xs mt-2">
+                Contact:{" "}
+                <a
+                  href="tel:010-4801-7180"
+                  onClick={(e) => {
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    if (!isMobile) {
+                      e.preventDefault();
+                      navigator.clipboard.writeText("010-4801-7180").then(() => {
+                        alert("전화번호가 복사되었습니다!");
+                      }).catch(() => {
+                        alert("복사에 실패했습니다. 번호: 010-4801-7180");
+                      });
+                    }
+                  }}
+                  className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                >
+                  010-4801-7180
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Bottom Navigation - 분류 버튼 */}
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#22262a]" style={{ maxWidth: '650px', margin: '0 auto', backgroundColor: "var(--header-bg-color)" }}>
         <div className="flex items-center justify-around px-2 py-2">
           {/* 전체 버튼 */}
           <button
-            onClick={() => handleCategoryChange("all")}
-            className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg transition-colors flex-1 ${
+            onClick={() => {
+              handleCategoryChange("all");
+              setIsGuideOpen(false);
+            }}
+            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
               searchTerm
                 ? "text-gray-400"
                 : isCategoryActive("all")
@@ -850,8 +926,11 @@ export default function HomePage() {
 
           {/* 강습 버튼 */}
           <button
-            onClick={() => handleCategoryChange("class")}
-            className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg transition-colors flex-1 ${
+            onClick={() => {
+              handleCategoryChange("class");
+              setIsGuideOpen(false);
+            }}
+            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
               searchTerm
                 ? isCategoryActive("class")
                   ? "text-purple-400"
@@ -867,8 +946,11 @@ export default function HomePage() {
 
           {/* 행사 버튼 */}
           <button
-            onClick={() => handleCategoryChange("event")}
-            className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg transition-colors flex-1 ${
+            onClick={() => {
+              handleCategoryChange("event");
+              setIsGuideOpen(false);
+            }}
+            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
               searchTerm
                 ? isCategoryActive("event")
                   ? "text-blue-400"
@@ -886,8 +968,9 @@ export default function HomePage() {
           <button
             onClick={() => {
               setSelectedCategory("practice");
+              setIsGuideOpen(false);
             }}
-            className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg transition-colors flex-1 ${
+            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
               isCategoryActive("practice")
                 ? "text-blue-500"
                 : "text-gray-300 hover:text-white"
@@ -895,6 +978,19 @@ export default function HomePage() {
           >
             <i className="ri-music-2-line text-xl mb-0.5"></i>
             <span className="text-xs">연습실</span>
+          </button>
+
+          {/* 안내 버튼 */}
+          <button
+            onClick={() => setIsGuideOpen(!isGuideOpen)}
+            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
+              isGuideOpen
+                ? "text-blue-500"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            <i className={`${isGuideOpen ? 'ri-close-line' : 'ri-information-line'} text-xl mb-0.5`}></i>
+            <span className="text-xs">안내</span>
           </button>
         </div>
       </div>
