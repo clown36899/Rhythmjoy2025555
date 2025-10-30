@@ -1,6 +1,40 @@
 import SimpleHeader from "../../components/SimpleHeader";
 
 export default function GuidePage() {
+  const handleShare = async () => {
+    const shareData = {
+      title: '광고판 - 이벤트 발견 플랫폼',
+      text: '광고판에서 다양한 이벤트와 강습을 확인하세요!',
+      url: window.location.origin
+    };
+
+    // Web Share API 지원 확인
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // 사용자가 공유를 취소한 경우 무시
+        if ((err as Error).name !== 'AbortError') {
+          // 공유 실패 시 URL 복사
+          copyToClipboard();
+        }
+      }
+    } else {
+      // Web Share API 미지원 시 URL 복사
+      copyToClipboard();
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(window.location.origin)
+      .then(() => {
+        alert('링크가 복사되었습니다!\n친구에게 공유해보세요.');
+      })
+      .catch(() => {
+        alert(`링크를 복사해주세요:\n${window.location.origin}`);
+      });
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--page-bg-color)" }}>
       {/* Fixed Header */}
@@ -35,11 +69,17 @@ export default function GuidePage() {
               </p>
             </div>
 
-            {/* QR 공유 안내 */}
+            {/* 공유 버튼 */}
             <div className="mt-6">
-              <p className="text-sm text-gray-400 mb-2">
-                친구에게 공유하려면 우측 상단 메뉴에서<br />
-                <span className="text-blue-400 font-semibold">QR 코드 공유</span>를 클릭하세요
+              <button
+                onClick={handleShare}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 mx-auto shadow-lg"
+              >
+                <i className="ri-share-line text-xl"></i>
+                <span>친구에게 공유하기</span>
+              </button>
+              <p className="text-xs text-gray-500 mt-2">
+                클릭하면 공유할 수 있습니다
               </p>
             </div>
 

@@ -1336,32 +1336,63 @@ export default function EventList({
                       </div>
 
                       <div className="p-1">
-                        <p className="text-xs text-gray-300 text-center">
+                        <p className="text-xs text-gray-300 text-center flex items-center justify-center gap-1">
                           {(() => {
+                            // 선택된 날짜에 해당하는 이벤트인지 확인
+                            let isOnSelectedDate = false;
+                            if (selectedDate) {
+                              const year = selectedDate.getFullYear();
+                              const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+                              const day = String(selectedDate.getDate()).padStart(2, "0");
+                              const selectedDateString = `${year}-${month}-${day}`;
+
+                              if (event.event_dates && event.event_dates.length > 0) {
+                                isOnSelectedDate = event.event_dates.includes(selectedDateString);
+                              } else {
+                                const eventStartDate = event.start_date || event.date;
+                                const eventEndDate = event.end_date || event.date;
+                                isOnSelectedDate = !!(eventStartDate && eventEndDate && selectedDateString >= eventStartDate && selectedDateString <= eventEndDate);
+                              }
+                            }
+
+                            // 날짜 텍스트 생성
+                            let dateText = "";
                             // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
                             if (event.event_dates && event.event_dates.length > 0) {
                               const formatDate = (dateStr: string) => {
                                 const date = new Date(dateStr);
                                 return `${date.getMonth() + 1}/${date.getDate()}`;
                               };
-                              return event.event_dates.map(formatDate).join(', ');
+                              dateText = event.event_dates.map(formatDate).join(', ');
+                            } else {
+                              // 연속 기간 모드
+                              const startDate = event.start_date || event.date;
+                              const endDate = event.end_date || event.date;
+
+                              if (!startDate) {
+                                dateText = "날짜 미정";
+                              } else {
+                                const formatDate = (dateStr: string) => {
+                                  const date = new Date(dateStr);
+                                  return `${date.getMonth() + 1}/${date.getDate()}`;
+                                };
+
+                                if (startDate !== endDate) {
+                                  dateText = `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
+                                } else {
+                                  dateText = formatDate(startDate);
+                                }
+                              }
                             }
-                            
-                            // 연속 기간 모드
-                            const startDate = event.start_date || event.date;
-                            const endDate = event.end_date || event.date;
 
-                            if (!startDate) return "날짜 미정";
-
-                            const formatDate = (dateStr: string) => {
-                              const date = new Date(dateStr);
-                              return `${date.getMonth() + 1}/${date.getDate()}`;
-                            };
-
-                            if (startDate !== endDate) {
-                              return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
-                            }
-                            return formatDate(startDate);
+                            return (
+                              <>
+                                {isOnSelectedDate && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
+                                )}
+                                <span>{dateText}</span>
+                              </>
+                            );
                           })()}
                         </p>
                       </div>
