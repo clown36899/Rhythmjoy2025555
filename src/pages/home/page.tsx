@@ -344,11 +344,11 @@ export default function HomePage() {
     setHighlightEvent(null);
   };
 
-  const handleDateSelect = (date: Date | null) => {
+  const handleDateSelect = (date: Date | null, hasEvents?: boolean) => {
     setSelectedDate(date);
 
-    // 날짜 선택 시 무조건 전체 리스트로 변경 (해당 날짜 이벤트는 상단에 정렬됨)
-    if (date) {
+    // 이벤트가 있는 날짜만 전체 리스트로 변경 (해당 날짜 이벤트는 상단에 정렬됨)
+    if (date && hasEvents) {
       navigateWithCategory('all');
     }
   };

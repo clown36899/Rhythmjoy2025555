@@ -5,7 +5,7 @@ import EventRegistrationModal from "../../../components/EventRegistrationModal";
 
 interface EventCalendarProps {
   selectedDate: Date | null;
-  onDateSelect: (date: Date | null) => void;
+  onDateSelect: (date: Date | null, hasEvents?: boolean) => void;
   onMonthChange?: (month: Date) => void;
   showHeader?: boolean;
   currentMonth?: Date;
@@ -262,44 +262,56 @@ export default function EventCalendar({
   };
 
   const handleDateClick = (date: Date) => {
-    // 클릭한 날짜에 이벤트가 있는지 확인
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateString = `${year}-${month}-${day}`;
+    // 이미 선택된 날짜를 다시 클릭
+    if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+      // 클릭한 날짜에 이벤트가 있는지 확인
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${day}`;
 
-    const hasEvents = events.some((event) => {
-      // event_dates 배열로 정의된 이벤트 체크
-      if (event.event_dates && event.event_dates.length > 0) {
-        return event.event_dates.includes(dateString);
-      }
-      // start_date/end_date 범위로 정의된 이벤트 체크
-      const startDate = event.start_date || event.date;
-      const endDate = event.end_date || event.date;
-      return startDate && endDate && dateString >= startDate && dateString <= endDate;
-    });
+      const hasEvents = events.some((event) => {
+        // event_dates 배열로 정의된 이벤트 체크
+        if (event.event_dates && event.event_dates.length > 0) {
+          return event.event_dates.includes(dateString);
+        }
+        // start_date/end_date 범위로 정의된 이벤트 체크
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+        return startDate && endDate && dateString >= startDate && dateString <= endDate;
+      });
 
-    // 이벤트가 없는 날짜
-    if (!hasEvents) {
-      // 이미 선택된 날짜를 다시 클릭하면 선택 해제 (두 번째 클릭)
-      if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+      if (hasEvents) {
+        // 이벤트가 있으면 등록 모달 열기
+        setClickedDate(date);
+        setShowRegistrationModal(true);
+      } else {
+        // 이벤트가 없으면 선택 해제 (두 번째 클릭)
         onDateSelect(null);
       }
-      // 첫 번째 클릭은 아무것도 안 함
-      return;
-    }
-
-    // 이벤트가 있는 날짜
-    // 이미 선택된 날짜를 다시 클릭하면 이벤트 등록 모달 열기
-    if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
-      setClickedDate(date);
-      setShowRegistrationModal(true);
     } else {
-      // 새로운 날짜 선택
-      onDateSelect(date);
+      // 새로운 날짜 선택 - 이벤트 유무 확인
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${day}`;
 
-      // 모바일에서 스크롤을 최상단으로 이동
-      if (window.innerWidth < 1024) {
+      const hasEvents = events.some((event) => {
+        // event_dates 배열로 정의된 이벤트 체크
+        if (event.event_dates && event.event_dates.length > 0) {
+          return event.event_dates.includes(dateString);
+        }
+        // start_date/end_date 범위로 정의된 이벤트 체크
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+        return startDate && endDate && dateString >= startDate && dateString <= endDate;
+      });
+
+      // 이벤트 유무 정보와 함께 날짜 전달
+      onDateSelect(date, hasEvents);
+
+      // 모바일에서 스크롤을 최상단으로 이동 (이벤트가 있을 때만)
+      if (hasEvents && window.innerWidth < 1024) {
         // 이벤트 리스트 영역으로 스크롤 (헤더와 달력 아래)
         const scrollableArea = document.querySelector(
           ".flex-1.overflow-y-auto",
