@@ -1382,7 +1382,8 @@ export default function EventList({
               className="flex items-start"
               style={{
                 transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
-                transition: externalIsAnimating ? 'transform 0.3s ease-out' : 'none',
+                transition: externalIsAnimating ? 'transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none',
+                willChange: 'transform',
               }}
             >
               {/* 이전 달 - 독립 컨테이너 */}

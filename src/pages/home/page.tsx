@@ -416,8 +416,8 @@ export default function HomePage() {
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
       
-      // 임계값: 최소 10px 이동 후 방향 결정
-      if (absX > 10 || absY > 10) {
+      // 임계값: 최소 3px 이동 후 방향 결정 (즉각 반응)
+      if (absX > 3 || absY > 3) {
         // Y축 이동이 X축보다 1.5배 이상 크면 수직 스크롤
         if (absY > absX * 1.5) {
           setSwipeDirection('vertical');
@@ -432,6 +432,7 @@ export default function HomePage() {
     // 수평 슬라이드로 결정되었을 때만 dragOffset 업데이트
     if (swipeDirection === 'horizontal') {
       setDragOffset(diffX);
+      e.preventDefault(); // 스크롤 방지
     } else if (swipeDirection === 'vertical') {
       // 수직 스크롤은 기본 동작 허용 (dragOffset 업데이트 안 함)
       return;
