@@ -1282,6 +1282,9 @@ export default function EventList({
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         >
             {sortedEvents.length > 0 ? (
             <>
