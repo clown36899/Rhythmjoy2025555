@@ -673,42 +673,40 @@ export default function HomePage() {
       {/* Mobile Layout - Scrollable with Sticky Calendar & Category Panel */}
       <div>
         <div className="pt-16">
-          {/* Calendar Section - Sticky Container */}
-          <div className="sticky top-16 w-full z-[11]">
+          {/* Calendar Section - 일반 스크롤 (sticky 아님) */}
+          <div
+            ref={calendarRef}
+            className="w-full"
+            style={{ backgroundColor: "var(--calendar-bg-color)" }}
+          >
+            {/* Calendar - Collapsible */}
             <div
-              ref={calendarRef}
-              className="w-full"
-              style={{ backgroundColor: "var(--calendar-bg-color)" }}
+              className="transition-all duration-300 ease-in-out overflow-hidden border-b border-[#22262a]"
+              style={{
+                maxHeight: isCalendarCollapsed ? '0px' : '2000px',
+              }}
             >
-              {/* Calendar - Collapsible */}
-              <div
-                className="transition-all duration-300 ease-in-out overflow-hidden border-b border-[#22262a]"
-                style={{
-                  maxHeight: isCalendarCollapsed ? '0px' : '2000px',
-                }}
-              >
-                <EventCalendar
-                  selectedDate={selectedDate}
-                  onDateSelect={handleDateSelect}
-                  onMonthChange={handleMonthChange}
-                  showHeader={false}
-                  currentMonth={currentMonth}
-                  onEventsUpdate={handleEventsUpdate}
-                  viewMode={viewMode}
-                  hoveredEventId={hoveredEventId}
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                  dragOffset={dragOffset}
-                  isAnimating={isAnimating}
-                />
-              </div>
+              <EventCalendar
+                selectedDate={selectedDate}
+                onDateSelect={handleDateSelect}
+                onMonthChange={handleMonthChange}
+                showHeader={false}
+                currentMonth={currentMonth}
+                onEventsUpdate={handleEventsUpdate}
+                viewMode={viewMode}
+                hoveredEventId={hoveredEventId}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                dragOffset={dragOffset}
+                isAnimating={isAnimating}
+              />
             </div>
           </div>
 
-          {/* Tools Panel - 달력 토글 + 정렬 + 검색 (Sticky) */}
+          {/* Tools Panel - 달력 토글 + 정렬 + 검색 (STICKY로 헤더 아래 고정) */}
           <div 
-            className="sticky top-16 w-full z-[10] border-b border-[#22262a]"
+            className="sticky top-16 w-full z-[15] border-b border-[#22262a]"
             style={{ 
               backgroundColor: "var(--calendar-bg-color)"
             }}
