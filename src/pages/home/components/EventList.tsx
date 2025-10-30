@@ -135,6 +135,9 @@ export default function EventList({
   
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
+  // 현재 날짜 추적 (자정 지날 때 캐시 무효화를 위해)
+  const [currentDay, setCurrentDay] = useState(() => new Date().toDateString());
+
   // 슬라이드 높이 동적 조정을 위한 상태 및 ref
   const [slideContainerHeight, setSlideContainerHeight] = useState<number | null>(null);
   const prevMonthRef = useRef<HTMLDivElement>(null);
@@ -146,10 +149,22 @@ export default function EventList({
     [key: string]: Event[]; // key: "YYYY-MM-category-sortBy"
   }>({});
 
-  // 카테고리나 정렬 기준 변경 시 캐시 초기화
+  // 날짜 변경 감지 (1분마다 체크)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newDay = new Date().toDateString();
+      if (newDay !== currentDay) {
+        setCurrentDay(newDay);
+      }
+    }, 60000); // 1분마다 체크
+    
+    return () => clearInterval(interval);
+  }, [currentDay]);
+
+  // 카테고리, 정렬 기준, 이벤트 배열, 날짜 변경 시 캐시 초기화
   useEffect(() => {
     sortedEventsCache.current = {};
-  }, [selectedCategory, sortBy]);
+  }, [selectedCategory, sortBy, events, currentDay]);
 
   // 모달 열림/닫힘 시 body 스크롤 제어
   useEffect(() => {
@@ -191,10 +206,18 @@ export default function EventList({
     }
   }, [currentMonth, searchTerm, selectedDate]);
 
+  // 로컬 날짜를 YYYY-MM-DD 형식으로 반환하는 헬퍼 함수
+  const getLocalDateString = (date: Date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
     const eventsCopy = [...eventsToSort];
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
 
     // 진행 중/종료 이벤트 분류 (종료일 기준)
     const ongoingEvents: Event[] = [];
@@ -1348,7 +1371,7 @@ export default function EventList({
                             // 지난 행사인지 확인
                             const endDate = event.end_date || event.date;
                             if (endDate) {
-                              const today = new Date().toISOString().split('T')[0];
+                              const today = getLocalDateString();
                               const isPast = endDate < today;
                               if (isPast) return "bg-gray-500/80";
                             }
@@ -1358,7 +1381,7 @@ export default function EventList({
                           {(() => {
                             const endDate = event.end_date || event.date;
                             if (endDate) {
-                              const today = new Date().toISOString().split('T')[0];
+                              const today = getLocalDateString();
                               const isPast = endDate < today;
                               if (isPast) return "종료";
                             }
@@ -1537,13 +1560,21 @@ export default function EventList({
                               // 지난 행사인지 확인
                               const endDate = event.end_date || event.date;
                               if (endDate) {
-                                const today = new Date().toISOString().split('T')[0];
+                                const today = getLocalDateString();
                                 const isPast = endDate < today;
                                 if (isPast) return "bg-gray-500/80";
                               }
                               return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
                             })()}`}>
-                              {event.category === "class" ? "강습" : "행사"}
+                              {(() => {
+                                const endDate = event.end_date || event.date;
+                                if (endDate) {
+                                  const today = getLocalDateString();
+                                  const isPast = endDate < today;
+                                  if (isPast) return "종료";
+                                }
+                                return event.category === "class" ? "강습" : "행사";
+                              })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
                               <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
@@ -1672,13 +1703,21 @@ export default function EventList({
                               // 지난 행사인지 확인
                               const endDate = event.end_date || event.date;
                               if (endDate) {
-                                const today = new Date().toISOString().split('T')[0];
+                                const today = getLocalDateString();
                                 const isPast = endDate < today;
                                 if (isPast) return "bg-gray-500/80";
                               }
                               return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
                             })()}`}>
-                              {event.category === "class" ? "강습" : "행사"}
+                              {(() => {
+                                const endDate = event.end_date || event.date;
+                                if (endDate) {
+                                  const today = getLocalDateString();
+                                  const isPast = endDate < today;
+                                  if (isPast) return "종료";
+                                }
+                                return event.category === "class" ? "강습" : "행사";
+                              })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
                               <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
@@ -1797,13 +1836,21 @@ export default function EventList({
                               // 지난 행사인지 확인
                               const endDate = event.end_date || event.date;
                               if (endDate) {
-                                const today = new Date().toISOString().split('T')[0];
+                                const today = getLocalDateString();
                                 const isPast = endDate < today;
                                 if (isPast) return "bg-gray-500/80";
                               }
                               return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
                             })()}`}>
-                              {event.category === "class" ? "강습" : "행사"}
+                              {(() => {
+                                const endDate = event.end_date || event.date;
+                                if (endDate) {
+                                  const today = getLocalDateString();
+                                  const isPast = endDate < today;
+                                  if (isPast) return "종료";
+                                }
+                                return event.category === "class" ? "강습" : "행사";
+                              })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
                               <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
