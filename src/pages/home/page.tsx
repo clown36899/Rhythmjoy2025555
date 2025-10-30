@@ -851,22 +851,32 @@ export default function HomePage() {
 
       {/* Guide Panel - 사이트 안내 (조건부 렌더링) */}
       {isGuideOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          onTouchMove={(e) => {
-            e.preventDefault();
-          }}
-        >
-          {/* Guide Panel - 헤더/하단 네비 고려한 패딩 */}
+        <>
+          {/* Backdrop - 헤더/하단 네비 제외 영역만 덮기 */}
           <div 
-            className="bg-[#1f1f1f] overflow-y-auto w-full h-full"
-            style={{ 
+            className="fixed left-0 right-0 bg-black/50 z-25"
+            style={{
+              top: '64px',
+              bottom: '64px',
               maxWidth: '650px',
-              paddingTop: '64px',
-              paddingBottom: '64px',
+              margin: '0 auto'
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchMove={(e) => {
+              e.preventDefault();
+            }}
+          />
+
+          {/* Guide Panel - 헤더와 하단 네비 사이 영역 */}
+          <div 
+            className="fixed left-0 right-0 bg-[#1f1f1f] overflow-y-auto z-26"
+            style={{ 
+              top: '64px',
+              bottom: '64px',
+              maxWidth: '650px',
+              margin: '0 auto',
               WebkitOverflowScrolling: 'touch'
             }}
             onClick={(e) => {
@@ -936,7 +946,7 @@ export default function HomePage() {
           </div>
         </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Bottom Navigation - 분류 버튼 */}
