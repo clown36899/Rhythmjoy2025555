@@ -699,8 +699,10 @@ export default function EventList({
       };
     }
 
-    // 검색어가 있거나 날짜가 선택된 경우 현재 달만 표시
-    if (searchTerm.trim() || selectedDate) {
+    // 검색어가 있거나 날짜가 선택된 경우 또는 년 모드인 경우 현재 필터링된 전체 표시
+    if (searchTerm.trim() || selectedDate || viewMode === "year") {
+      console.log('📋 년 모드/검색/날짜선택 - 전체 이벤트 표시');
+      console.log('filteredEvents 수:', filteredEvents.length);
       return {
         prevMonthEvents: [],
         currentMonthEvents: filteredEvents,
