@@ -143,17 +143,29 @@ export default function HomePage() {
     setSelectedCategory("all");
   };
 
-  // 안내창 열릴 때 스크롤 막기
+  // 안내창 열릴 때 스크롤 완전히 막기
   useEffect(() => {
     if (isGuideOpen) {
+      // 현재 스크롤 위치 저장
+      const scrollY = window.scrollY;
+      
+      // body를 고정하고 스크롤 위치 유지
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+      
+      return () => {
+        // 원래 상태로 복원
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        
+        // 스크롤 위치 복원
+        window.scrollTo(0, scrollY);
+      };
     }
-    
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [isGuideOpen]);
 
   // 비활동 타이머 초기화 함수
@@ -838,6 +850,19 @@ export default function HomePage() {
         billboardUserName={billboardUserName}
       />
 
+      {/* Guide Panel Backdrop - 터치 이벤트 차단 */}
+      {isGuideOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-24"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchMove={(e) => {
+            e.preventDefault();
+          }}
+        />
+      )}
+
       {/* Guide Panel - 사이트 안내 */}
       <div 
         className={`fixed left-0 right-0 bg-[#1f1f1f] transition-all duration-300 ease-out overflow-y-auto ${
@@ -846,7 +871,8 @@ export default function HomePage() {
         style={{ 
           maxWidth: '650px', 
           margin: '0 auto',
-          zIndex: 25
+          zIndex: 25,
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         <div className="p-6 text-white">
