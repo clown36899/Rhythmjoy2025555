@@ -854,12 +854,13 @@ export default function HomePage() {
         <>
           {/* Backdrop - 헤더/하단 네비 제외 영역만 덮기 */}
           <div 
-            className="fixed left-0 right-0 bg-black/50 z-25"
+            className="fixed left-0 right-0 bg-black/50"
             style={{
               top: '64px',
               bottom: '64px',
               maxWidth: '650px',
-              margin: '0 auto'
+              margin: '0 auto',
+              zIndex: 35
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -871,12 +872,13 @@ export default function HomePage() {
 
           {/* Guide Panel - 헤더와 하단 네비 사이 영역 */}
           <div 
-            className="fixed left-0 right-0 bg-[#1f1f1f] overflow-y-auto z-26"
+            className="fixed left-0 right-0 bg-[#1f1f1f] overflow-y-auto"
             style={{ 
               top: '64px',
               bottom: '64px',
               maxWidth: '650px',
               margin: '0 auto',
+              zIndex: 36,
               WebkitOverflowScrolling: 'touch'
             }}
             onClick={(e) => {
