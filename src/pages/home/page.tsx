@@ -721,11 +721,11 @@ export default function HomePage() {
           maxWidth: '650px',
           margin: '0 auto',
           backgroundColor: "var(--header-bg-color)",
-          padding: '2px 0',
-          lineHeight: '1'
+          padding: '4px 0',
+          minHeight: '20px'
         }}
       >
-        <span className="text-gray-400 text-[10px] font-medium">
+        <span className="text-gray-400 font-medium" style={{ fontSize: '12px', lineHeight: '1.25' }}>
           {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
         </span>
       </div>
