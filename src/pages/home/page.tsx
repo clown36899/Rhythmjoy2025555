@@ -24,6 +24,13 @@ export default function HomePage() {
   }, [navigate]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // MobileShell에 현재 월 정보 전달
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('monthChanged', { 
+      detail: { month: currentMonth.toISOString() } 
+    }));
+  }, [currentMonth]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -668,7 +675,7 @@ export default function HomePage() {
         </div>
 
           {/* Scrollable Content Area - Events and Footer */}
-          <div className="w-full bg-[#1f1f1f] pb-24">
+          <div className="w-full bg-[#1f1f1f] pb-20">
             {qrLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-gray-400">이벤트 로딩 중...</div>
@@ -709,28 +716,6 @@ export default function HomePage() {
               onTouchEnd={onTouchEnd}
             >
               <Footer />
-            </div>
-          </div>
-          
-          {/* Bottom Bar with Month/Year - Fixed above bottom navigation */}
-          <div 
-            className="fixed left-0 right-0 z-20"
-            style={{ 
-              bottom: '64px',
-              maxWidth: '650px',
-              margin: '0 auto'
-            }}
-          >
-            <div 
-              className="border-t border-[#22262a] flex items-center justify-center"
-              style={{ 
-                backgroundColor: "var(--header-bg-color)",
-                height: '20px'
-              }}
-            >
-              <span className="text-gray-400 font-medium" style={{ fontSize: '12px', lineHeight: '1.2' }}>
-                {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
-              </span>
             </div>
           </div>
       </div>
