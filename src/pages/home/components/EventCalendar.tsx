@@ -469,7 +469,29 @@ export default function EventCalendar({
           className="h-5 p-0 relative"
         >
           <div
-            onClick={() => handleDateClick(day)}
+            onPointerDown={(e) => {
+              // 터치/마우스 시작 시 타이머 설정
+              const startTime = Date.now();
+              const startX = e.clientX;
+              const startY = e.clientY;
+              
+              const handlePointerUp = (upEvent: PointerEvent) => {
+                const endTime = Date.now();
+                const endX = upEvent.clientX;
+                const endY = upEvent.clientY;
+                const duration = endTime - startTime;
+                const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+                
+                // 200ms 이내이고 10px 이내 이동만 클릭으로 간주
+                if (duration < 200 && distance < 10) {
+                  handleDateClick(day);
+                }
+                
+                window.removeEventListener('pointerup', handlePointerUp);
+              };
+              
+              window.addEventListener('pointerup', handlePointerUp);
+            }}
             className={`w-full h-full flex flex-col items-center justify-center text-[13px] transition-all duration-300 cursor-pointer relative overflow-visible ${
               selectedDate && day.toDateString() === selectedDate.toDateString()
                 ? "bg-blue-600 text-white transform scale-105 z-10"
