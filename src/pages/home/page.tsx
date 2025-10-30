@@ -624,12 +624,12 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Mobile Layout - Scrollable Calendar & Content */}
+      {/* Mobile Layout - Fixed Calendar & Tools, Scrollable Events */}
       <div className="pt-12">
-        {/* Calendar Section - 일반 스크롤 (sticky 아님) */}
+        {/* Calendar Section - STICKY (헤더 아래 고정) */}
         <div
           ref={calendarRef}
-          className="w-full"
+          className="sticky top-12 w-full z-[15]"
           style={{ backgroundColor: "var(--calendar-bg-color)" }}
         >
           {/* Calendar - Collapsible */}
@@ -656,11 +656,10 @@ export default function HomePage() {
               isAnimating={isAnimating}
             />
           </div>
-        </div>
 
-        {/* Tools Panel - 달력 아래에서 따라 올라가다가 헤더에 STICKY */}
+        {/* Tools Panel - 달력 바로 아래 (같은 sticky 컨테이너 내) */}
         <div 
-          className="sticky top-12 w-full z-[15] border-b border-[#22262a]"
+          className="w-full border-b border-[#22262a]"
           style={{ 
             backgroundColor: "var(--calendar-bg-color)"
           }}
@@ -706,8 +705,9 @@ export default function HomePage() {
             </button>
           </div>
         </div>
+        </div>
 
-          {/* Scrollable Content Area - Events and Footer */}
+        {/* Scrollable Content Area - Events and Footer */}
           <div className="w-full bg-[#1f1f1f] pb-20">
             {qrLoading ? (
               <div className="flex items-center justify-center h-full">
