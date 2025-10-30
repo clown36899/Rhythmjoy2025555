@@ -336,6 +336,7 @@ export default function Header({
                 <button
                   onClick={handleDateModalOpen}
                   className="text-sm font-bold text-white whitespace-nowrap hover:text-blue-400 transition-colors cursor-pointer"
+                  style={{ minWidth: '140px' }}
                 >
                   {viewMode === "year"
                     ? `${currentMonth.getFullYear()}년 전체`

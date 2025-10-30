@@ -11,9 +11,12 @@
   --page-bg-color: #111827;
 }
 
-#root {
+/* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
+html, body, #root {
   max-width: 650px;
   margin: 0 auto;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body, html {

@@ -588,7 +588,7 @@ export default function HomePage() {
     >
       {/* Fixed Header for all screens */}
       <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[650px] z-10 border-b border-[#22262a]"
+        className="fixed top-0 left-0 w-full z-10 border-b border-[#22262a]"
         style={{ backgroundColor: "var(--header-bg-color)" }}
       >
         <Header
@@ -647,7 +647,7 @@ export default function HomePage() {
       <div>
         <div className="pt-16">
           {/* Calendar & Category Section - Sticky Container */}
-          <div className="sticky top-16 w-full max-w-[650px] mx-auto z-[10]">
+          <div className="sticky top-16 w-full z-[10]">
             {/* Calendar Section */}
             <div
               ref={calendarRef}
@@ -798,7 +798,7 @@ export default function HomePage() {
           </div>
 
           {/* Scrollable Content Area - Events/Practice Rooms and Footer */}
-          <div className="w-full max-w-[650px] mx-auto bg-[#1f1f1f] -mt-12 pt-12">
+          <div className="w-full bg-[#1f1f1f] -mt-12 pt-12">
             {selectedCategory === "practice" ? (
                 <PracticeRoomList 
                   adminType={adminType}
