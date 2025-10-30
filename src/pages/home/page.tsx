@@ -668,7 +668,7 @@ export default function HomePage() {
         </div>
 
           {/* Scrollable Content Area - Events and Footer */}
-          <div className="w-full bg-[#1f1f1f] pb-16">
+          <div className="w-full bg-[#1f1f1f] pb-24">
             {qrLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-gray-400">이벤트 로딩 중...</div>
@@ -715,19 +715,19 @@ export default function HomePage() {
 
       {/* Month/Year Indicator - Fixed above bottom navigation */}
       <div 
-        className="fixed left-0 right-0 z-20 border-t border-[#22262a]"
+        className="fixed left-0 right-0 z-20 border-t border-[#22262a] text-center"
         style={{ 
-          bottom: '56px', // 바텀 네비 높이만큼 위
+          bottom: '64px',
           maxWidth: '650px',
           margin: '0 auto',
-          backgroundColor: "var(--header-bg-color)"
+          backgroundColor: "var(--header-bg-color)",
+          padding: '2px 0',
+          lineHeight: '1'
         }}
       >
-        <div className="px-4 py-1 text-center">
-          <span className="text-gray-400 text-xs font-medium">
-            {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
-          </span>
-        </div>
+        <span className="text-gray-400 text-[10px] font-medium">
+          {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+        </span>
       </div>
 
       {/* Fullscreen Billboard */}
