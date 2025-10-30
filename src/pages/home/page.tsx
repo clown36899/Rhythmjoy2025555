@@ -833,31 +833,29 @@ export default function HomePage() {
         billboardUserName={billboardUserName}
       />
 
-      {/* Guide Panel Backdrop - 터치 이벤트 차단 */}
+      {/* Guide Panel - 사이트 안내 (조건부 렌더링) */}
       {isGuideOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-24"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          onTouchMove={(e) => {
-            e.preventDefault();
-          }}
-        />
-      )}
+        <>
+          {/* Backdrop - 터치 이벤트 차단 */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-24"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchMove={(e) => {
+              e.preventDefault();
+            }}
+          />
 
-      {/* Guide Panel - 사이트 안내 */}
-      <div 
-        className={`fixed left-0 right-0 bg-[#1f1f1f] transition-all duration-300 ease-out overflow-y-auto ${
-          isGuideOpen ? 'bottom-16 top-16' : 'bottom-16 top-full'
-        }`}
-        style={{ 
-          maxWidth: '650px', 
-          margin: '0 auto',
-          zIndex: 25,
-          WebkitOverflowScrolling: 'touch'
-        }}
-      >
+          {/* Guide Panel */}
+          <div 
+            className="fixed left-0 right-0 bottom-16 top-16 bg-[#1f1f1f] overflow-y-auto z-25"
+            style={{ 
+              maxWidth: '650px', 
+              margin: '0 auto',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
         <div className="p-6 text-white">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold mb-4 text-blue-400">광고판 사용 안내</h2>
@@ -917,7 +915,9 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Bottom Navigation - 분류 버튼 */}
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#22262a]" style={{ maxWidth: '650px', margin: '0 auto', backgroundColor: "var(--header-bg-color)" }}>
