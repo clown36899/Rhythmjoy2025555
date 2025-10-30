@@ -143,27 +143,15 @@ export default function HomePage() {
     setSelectedCategory("all");
   };
 
-  // 안내창 열릴 때 스크롤 완전히 막기
+  // 안내창 열릴 때 스크롤 막기 (position: fixed 사용 안 함 - sticky 유지)
   useEffect(() => {
     if (isGuideOpen) {
-      // 현재 스크롤 위치 저장
-      const scrollY = window.scrollY;
-      
-      // body를 고정하고 스크롤 위치 유지
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
+      // overflow만 막고 position은 건드리지 않음
       document.body.style.overflow = 'hidden';
       
       return () => {
         // 원래 상태로 복원
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
         document.body.style.overflow = '';
-        
-        // 스크롤 위치 복원
-        window.scrollTo(0, scrollY);
       };
     }
   }, [isGuideOpen]);
