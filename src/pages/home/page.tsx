@@ -392,7 +392,7 @@ export default function HomePage() {
   };
 
   // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
-  const minSwipeDistance = 50;
+  const minSwipeDistance = 30;
 
   // 터치 핸들러 - 좌우 슬라이드와 상하 스크롤 명확히 구분
   const onTouchStart = (e: React.TouchEvent) => {
