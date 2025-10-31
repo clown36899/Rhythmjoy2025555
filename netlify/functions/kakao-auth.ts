@@ -109,18 +109,27 @@ export const handler: Handler = async (event) => {
     // 초대 코드로 신규 가입하는 경우 billboard_users 생성
     if (invitation && !billboardUser) {
       const randomPassword = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
-      const salt = Math.random().toString(36).slice(-8);
-      const crypto = await import('crypto');
-      const hashedPassword = crypto.createHash('sha256').update(salt + randomPassword).digest('hex');
+      
+      // salt + 10,000번 SHA-256 해싱
+      const salt = crypto.randomUUID();
+      const encoder = new TextEncoder();
+      const data = encoder.encode(randomPassword + salt);
+      
+      let hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      for (let i = 0; i < 10000; i++) {
+        hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
+      }
+      
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const passwordHash = `${salt}:${hashHex}`;
 
       const { data: newBillboardUser, error: createBillboardError } = await supabaseAdmin
         .from('billboard_users')
         .insert({
           name,
           email,
-          username: email.split('@')[0],
-          password: hashedPassword,
-          salt,
+          password_hash: passwordHash,
           is_active: true
         })
         .select()
