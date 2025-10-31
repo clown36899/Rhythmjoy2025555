@@ -22,6 +22,28 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
     setShowAddModal(true);
   };
 
+  const handleShare = (place: SocialPlace) => {
+    const url = `${window.location.origin}/social/${place.id}`;
+    
+    if (navigator.share) {
+      // 모바일 네이티브 공유
+      navigator.share({
+        title: place.name,
+        text: `${place.name} - ${place.address}`,
+        url: url,
+      }).catch(() => {
+        // 공유 취소 시 무시
+      });
+    } else {
+      // 데스크탑: URL 복사
+      navigator.clipboard.writeText(url).then(() => {
+        alert('링크가 복사되었습니다!');
+      }).catch(() => {
+        alert('링크 복사 실패');
+      });
+    }
+  };
+
   return (
     <div className="px-4 pb-4">
       {/* 헤더 */}
@@ -93,17 +115,32 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
                   </div>
                 </div>
                 
-                {/* 네이버지도 바로가기 */}
-                <a
-                  href={`https://map.naver.com/v5/search/${encodeURIComponent(place.name + ' ' + place.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-1.5 hover:bg-green-500/20 rounded transition-colors ml-2"
-                  title="네이버지도에서 보기"
-                >
-                  <i className="ri-map-pin-line text-green-500 text-lg"></i>
-                </a>
+                {/* 액션 버튼 */}
+                <div className="flex items-center gap-1 ml-2">
+                  {/* 네이버지도 바로가기 */}
+                  <a
+                    href={`https://map.naver.com/v5/search/${encodeURIComponent(place.name + ' ' + place.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1.5 hover:bg-green-500/20 rounded transition-colors"
+                    title="네이버지도에서 보기"
+                  >
+                    <i className="ri-road-map-line text-green-500 text-lg"></i>
+                  </a>
+                  
+                  {/* 공유 버튼 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShare(place);
+                    }}
+                    className="p-1.5 hover:bg-blue-500/20 rounded transition-colors"
+                    title="공유하기"
+                  >
+                    <i className="ri-share-line text-blue-400 text-lg"></i>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
