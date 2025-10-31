@@ -73,8 +73,8 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    const { data: existingUserData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-    const userExists = existingUserData?.user;
+    const { data: existingUserData } = await supabaseAdmin.auth.admin.listUsers();
+    const userExists = existingUserData?.users.find(u => u.email === email);
 
     let userId: string;
 
