@@ -1449,7 +1449,7 @@ export default function EventList({
                         </div>
                         {/* 하단 그라데이션 오버레이 */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
-                          <h3 className="text-white text-[11px] font-bold leading-tight line-clamp-2">
+                          <h3 className="text-white font-bold leading-tight line-clamp-2" style={{ fontSize: '0.8rem' }}>
                             {event.title}
                           </h3>
                         </div>
@@ -1628,7 +1628,7 @@ export default function EventList({
                               })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
+                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.8rem' }}>
                                 {event.title}
                               </h3>
                             </div>
@@ -1764,7 +1764,7 @@ export default function EventList({
                               })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
+                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.8rem' }}>
                                 {event.title}
                               </h3>
                             </div>
@@ -1889,7 +1889,7 @@ export default function EventList({
                               })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.9rem' }}>
+                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.8rem' }}>
                                 {event.title}
                               </h3>
                             </div>
