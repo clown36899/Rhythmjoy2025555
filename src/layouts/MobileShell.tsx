@@ -12,11 +12,6 @@ export function MobileShell() {
   const { isAdmin } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // 디버깅 로그
-  useEffect(() => {
-    console.log('[MobileShell] isAdmin 상태:', isAdmin);
-  }, [isAdmin]);
-
   // 테마 색상 로드 (모든 페이지 공통)
   useEffect(() => {
     const loadThemeColors = async () => {

@@ -15,11 +15,6 @@ export default function HomePage() {
   const navigate = useNavigate();
   const selectedCategory = searchParams.get('category') || 'all';
   const { isAdmin } = useAuth();
-
-  // 디버깅 로그
-  useEffect(() => {
-    console.log('[HomePage] isAdmin 상태:', isAdmin);
-  }, [isAdmin]);
   
   // 카테고리 변경 헬퍼 함수
   const navigateWithCategory = useCallback((cat?: string) => {

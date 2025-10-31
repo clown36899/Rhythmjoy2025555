@@ -172,7 +172,8 @@ export default function Header({
       setBillboardUserName("");
       onAdminModeToggle?.(false, null, null, "");
       setShowSettingsModal(false);
-      alert("로그아웃되었습니다.");
+      // 페이지 새로고침으로 모든 상태 완전 초기화
+      window.location.reload();
     }
   };
 
