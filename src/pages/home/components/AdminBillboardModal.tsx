@@ -446,6 +446,7 @@ export default function AdminBillboardModal({
                     onChange={(e) =>
                       updateLocalSettings({ date_filter_start: e.target.value || null })
                     }
+                    placeholder="지정안함"
                     className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
                   />
                 </div>
@@ -459,6 +460,7 @@ export default function AdminBillboardModal({
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_end: e.target.value || null })
                         }
+                        placeholder="지정안함"
                         className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
                       />
                       <button
@@ -757,6 +759,7 @@ export default function AdminBillboardModal({
                   type="date"
                   value={settings.dateRangeStart || ''}
                   onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
+                  placeholder="지정안함"
                   className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
                 />
               </div>
@@ -767,6 +770,7 @@ export default function AdminBillboardModal({
                     type="date"
                     value={settings.dateRangeEnd || ''}
                     onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
+                    placeholder="지정안함"
                     className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
                   />
                   {settings.dateRangeEnd && (
