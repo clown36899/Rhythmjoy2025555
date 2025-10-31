@@ -78,16 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const authData = await response.json();
 
-    // 서버에서 받은 Magic Link 토큰으로 자동 세션 생성
-    if (authData.token && authData.tokenType === 'magiclink') {
-      const { error } = await supabase.auth.verifyOtp({
-        email: authData.email,
-        token: authData.token,
-        type: 'magiclink',
+    // 서버에서 받은 세션으로 자동 로그인
+    if (authData.session) {
+      const { error } = await supabase.auth.setSession({
+        access_token: authData.session.access_token,
+        refresh_token: authData.session.refresh_token,
       });
 
       if (error) {
-        console.error('자동 세션 생성 실패:', error);
+        console.error('세션 설정 실패:', error);
         throw new Error('로그인에 실패했습니다');
       }
     }

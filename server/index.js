@@ -272,21 +272,31 @@ app.post('/api/auth/kakao', async (req, res) => {
       }
     }
 
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
+    // 임시 비밀번호 생성
+    const tempPassword = Math.random().toString(36).slice(-32) + Math.random().toString(36).slice(-32);
+    
+    // 사용자의 비밀번호 업데이트 (세션 생성을 위해)
+    await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: tempPassword
     });
 
-    if (linkError || !linkData) {
-      console.error('Magic link generation error:', linkError);
+    // 서버에서 세션 생성 (signInWithPassword)
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseClient = createClient(supabaseUrl, process.env.VITE_PUBLIC_SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password: tempPassword
+    });
+
+    if (sessionError || !sessionData.session) {
+      console.error('Session creation error:', sessionError);
       return res.status(500).json({ error: '세션 생성 실패' });
-    }
-
-    const hashedToken = new URL(linkData.properties.action_link).searchParams.get('token');
-
-    if (!hashedToken) {
-      console.error('토큰 추출 실패');
-      return res.status(500).json({ error: '토큰 생성 실패' });
     }
 
     res.json({
@@ -297,8 +307,7 @@ app.post('/api/auth/kakao', async (req, res) => {
       isBillboardUser: !!billboardUser,
       billboardUserId: billboardUser?.id || null,
       billboardUserName: billboardUser?.name || null,
-      token: hashedToken,
-      tokenType: 'magiclink'
+      session: sessionData.session
     });
 
   } catch (error) {
