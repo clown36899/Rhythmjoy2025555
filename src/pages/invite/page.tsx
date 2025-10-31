@@ -123,14 +123,6 @@ export default function InvitePage() {
       
       setError(errorMessage);
       setShowError(true);
-      
-      // 에러 발생 시 카카오 로그아웃 (다시 시도할 수 있도록)
-      try {
-        const { logoutKakao } = await import('../../utils/kakaoAuth');
-        await logoutKakao();
-      } catch (logoutErr) {
-        console.error('카카오 로그아웃 실패:', logoutErr);
-      }
     } finally {
       setProcessing(false);
     }
