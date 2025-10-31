@@ -80,7 +80,9 @@ export function MobileShell() {
 
   // 카테고리 변경 (이벤트 페이지 전용)
   const handleCategoryChange = (newCategory: string) => {
+    // 전체 버튼 클릭 시 날짜 선택 해제
     if (newCategory === 'all') {
+      window.dispatchEvent(new CustomEvent('clearSelectedDate'));
       navigate('/');
     } else {
       navigate(`/?category=${newCategory}`);

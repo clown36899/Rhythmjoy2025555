@@ -174,6 +174,19 @@ export default function HomePage() {
     };
   }, []);
 
+  // 전체 버튼 클릭 시 날짜 선택 해제
+  useEffect(() => {
+    const handleClearDate = () => {
+      setSelectedDate(null);
+    };
+
+    window.addEventListener('clearSelectedDate', handleClearDate);
+    
+    return () => {
+      window.removeEventListener('clearSelectedDate', handleClearDate);
+    };
+  }, []);
+
   // 검색 시작 시 호출되는 콜백
   const handleSearchStart = () => {
     // 전체 모드로 전환
