@@ -265,7 +265,7 @@ export default function Header({
     }
   };
 
-  // 초기 색상 불러오기
+  // 초기 색상 불러오기 및 이벤트 리스너
   useEffect(() => {
     loadThemeColors();
 
@@ -276,12 +276,43 @@ export default function Header({
       }
     };
 
+    // MobileShell에서 트리거되는 이벤트 리스너
+    const handleOpenBillboardSettings = () => {
+      onBillboardSettingsOpen?.();
+    };
+
+    const handleOpenBillboardUserManagement = () => {
+      setShowBillboardUserManagement(true);
+    };
+
+    const handleOpenDefaultThumbnailSettings = () => {
+      setShowDefaultThumbnailSettings(true);
+    };
+
+    const handleOpenColorSettings = () => {
+      setShowColorPanel(true);
+    };
+
+    const handleOpenSettings = () => {
+      setShowSettingsModal(true);
+    };
+
     window.addEventListener("reopenAdminSettings", handleReopenSettings);
+    window.addEventListener("openBillboardSettings", handleOpenBillboardSettings);
+    window.addEventListener("openBillboardUserManagement", handleOpenBillboardUserManagement);
+    window.addEventListener("openDefaultThumbnailSettings", handleOpenDefaultThumbnailSettings);
+    window.addEventListener("openColorSettings", handleOpenColorSettings);
+    window.addEventListener("openSettings", handleOpenSettings);
 
     return () => {
       window.removeEventListener("reopenAdminSettings", handleReopenSettings);
+      window.removeEventListener("openBillboardSettings", handleOpenBillboardSettings);
+      window.removeEventListener("openBillboardUserManagement", handleOpenBillboardUserManagement);
+      window.removeEventListener("openDefaultThumbnailSettings", handleOpenDefaultThumbnailSettings);
+      window.removeEventListener("openColorSettings", handleOpenColorSettings);
+      window.removeEventListener("openSettings", handleOpenSettings);
     };
-  }, [billboardUserId]);
+  }, [billboardUserId, onBillboardSettingsOpen]);
 
   return (
     <>
@@ -409,10 +440,7 @@ export default function Header({
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">설정</h3>
                 <button
-                  onClick={() => {
-                    setShowSettingsModal(false);
-                    window.location.reload(); // 설정 모달 닫을 때 새로고침
-                  }}
+                  onClick={() => setShowSettingsModal(false)}
                   className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <i className="ri-close-line text-xl"></i>

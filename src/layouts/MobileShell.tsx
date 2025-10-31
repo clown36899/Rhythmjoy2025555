@@ -1,6 +1,7 @@
 import { Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../contexts/AuthContext";
 
 export function MobileShell() {
   const location = useLocation();
@@ -8,6 +9,8 @@ export function MobileShell() {
   const [searchParams] = useSearchParams();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
+  const { isAdmin } = useAuth();
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   // 테마 색상 로드 (모든 페이지 공통)
   useEffect(() => {
@@ -94,7 +97,7 @@ export function MobileShell() {
         {/* Month/Year Indicator - 홈 페이지에서만 표시 */}
         {isEventsPage && (
           <div 
-            className="border-t border-[#22262a] flex items-center justify-center"
+            className="border-t border-[#22262a] flex items-center justify-between px-3"
             style={{ 
               backgroundColor: "var(--header-bg-color)",
               height: '20px'
@@ -113,6 +116,41 @@ export function MobileShell() {
                 </>
               )}
             </span>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdminPanel(!showAdminPanel)}
+                className="text-red-400 hover:text-red-300 transition-colors"
+                style={{ fontSize: '12px', lineHeight: '1.2' }}
+              >
+                <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} text-sm`}></i>
+              </button>
+            )}
+          </div>
+        )}
+        
+        {/* 관리자 상태 표시 - 모든 페이지 공통 */}
+        {!isEventsPage && (
+          <div 
+            className="border-t border-[#22262a] flex items-center justify-between px-3"
+            style={{ 
+              backgroundColor: "var(--header-bg-color)",
+              height: '20px'
+            }}
+          >
+            <span className="text-gray-400 font-medium" style={{ fontSize: '12px', lineHeight: '1.2' }}>
+              {isSocialPage && '소셜 장소'}
+              {isPracticePage && '연습실'}
+              {isGuidePage && '안내'}
+            </span>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdminPanel(!showAdminPanel)}
+                className="text-red-400 hover:text-red-300 transition-colors"
+                style={{ fontSize: '12px', lineHeight: '1.2' }}
+              >
+                <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} text-sm`}></i>
+              </button>
+            )}
           </div>
         )}
         
@@ -195,6 +233,71 @@ export function MobileShell() {
             <span className="text-xs">안내</span>
           </button>
         </div>
+        
+        {/* 관리자 패널 - 빠른 접근 */}
+        {isAdmin && showAdminPanel && (
+          <div 
+            className="border-t border-[#22262a] bg-gray-800 p-3 space-y-2"
+            style={{ maxHeight: '200px', overflowY: 'auto' }}
+          >
+            <div className="text-xs text-gray-400 font-bold mb-2">관리자 패널</div>
+            <button
+              onClick={() => {
+                navigate('/');
+                window.dispatchEvent(new CustomEvent('openBillboardSettings'));
+                setShowAdminPanel(false);
+              }}
+              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+            >
+              <i className="ri-image-2-line"></i>
+              광고판 설정
+            </button>
+            <button
+              onClick={() => {
+                navigate('/');
+                window.dispatchEvent(new CustomEvent('openBillboardUserManagement'));
+                setShowAdminPanel(false);
+              }}
+              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+            >
+              <i className="ri-user-settings-line"></i>
+              빌보드 사용자 관리
+            </button>
+            <button
+              onClick={() => {
+                navigate('/');
+                window.dispatchEvent(new CustomEvent('openDefaultThumbnailSettings'));
+                setShowAdminPanel(false);
+              }}
+              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+            >
+              <i className="ri-image-line"></i>
+              기본 썸네일 설정
+            </button>
+            <button
+              onClick={() => {
+                navigate('/');
+                window.dispatchEvent(new CustomEvent('openColorSettings'));
+                setShowAdminPanel(false);
+              }}
+              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+            >
+              <i className="ri-palette-line"></i>
+              색상 설정
+            </button>
+            <button
+              onClick={() => {
+                navigate('/');
+                window.dispatchEvent(new CustomEvent('openSettings'));
+                setShowAdminPanel(false);
+              }}
+              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+            >
+              <i className="ri-settings-3-line"></i>
+              전체 설정
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
