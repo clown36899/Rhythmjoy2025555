@@ -56,7 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('카카오 액세스 토큰을 가져올 수 없습니다');
     }
 
-    const response = await fetch('/.netlify/functions/kakao-auth', {
+    // 개발 환경에서는 Express 서버, 프로덕션에서는 Netlify Functions
+    const authEndpoint = import.meta.env.DEV 
+      ? 'http://localhost:3001/api/auth/kakao'
+      : '/.netlify/functions/kakao-auth';
+    
+    const response = await fetch(authEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
