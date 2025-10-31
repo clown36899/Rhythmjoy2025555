@@ -442,18 +442,33 @@ export default function AdminBillboardModal({
               <div className="space-y-3">
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">시작 날짜</label>
-                  <input
-                    type="date"
-                    value={userSettings.date_filter_start || ""}
-                    onChange={(e) =>
-                      updateLocalSettings({ date_filter_start: e.target.value || null })
-                    }
-                    placeholder="지정안함"
-                    className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={userSettings.date_filter_start || ""}
+                      onChange={(e) =>
+                        updateLocalSettings({ date_filter_start: e.target.value || null })
+                      }
+                      placeholder="지정안함"
+                      className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
+                    />
+                    <button
+                      onClick={() => updateLocalSettings({ date_filter_start: null })}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                      title="시작 날짜 제한 없음"
+                    >
+                      지정 안 함
+                    </button>
+                  </div>
+                  {!userSettings.date_filter_start && (
+                    <p className="text-xs text-green-400 mt-1">
+                      <i className="ri-check-line mr-1"></i>
+                      시작 날짜 미지정 - 모든 일정 표시
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-sm text-gray-400 block mb-1">종료 날짜 (선택)</label>
+                  <label className="text-sm text-gray-400 block mb-1">종료 날짜</label>
                   <div className="space-y-1">
                     <div className="flex gap-2">
                       <input
@@ -476,7 +491,7 @@ export default function AdminBillboardModal({
                     {!userSettings.date_filter_end && (
                       <p className="text-xs text-green-400">
                         <i className="ri-check-line mr-1"></i>
-                        종료 날짜 제한 없음 - 모든 미래 일정 표시
+                        종료 날짜 미지정 - 모든 미래 일정 표시
                       </p>
                     )}
                   </div>
@@ -754,19 +769,34 @@ export default function AdminBillboardModal({
             <p className="text-sm text-gray-400 mb-4">
               특정 기간의 일정만 광고판에 표시합니다 (미설정 시 전체 표시)
             </p>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="space-y-3 mb-4">
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">시작 날짜</label>
-                <input
-                  type="date"
-                  value={settings.dateRangeStart || ''}
-                  onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
-                  placeholder="지정안함"
-                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={settings.dateRangeStart || ''}
+                    onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
+                    placeholder="지정안함"
+                    className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={() => onUpdateSettings({ dateRangeStart: null })}
+                    className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                    title="시작 날짜 초기화"
+                  >
+                    <i className="ri-close-line text-lg"></i>
+                  </button>
+                </div>
+                {!settings.dateRangeStart && (
+                  <p className="text-xs text-green-400 mt-1">
+                    <i className="ri-check-line mr-1"></i>
+                    시작 날짜 미지정 - 모든 일정 표시
+                  </p>
+                )}
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">종료 날짜 (선택)</label>
+                <label className="text-sm text-gray-400 mb-1 block">종료 날짜</label>
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -775,17 +805,20 @@ export default function AdminBillboardModal({
                     placeholder="지정안함"
                     className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
                   />
-                  {settings.dateRangeEnd && (
-                    <button
-                      onClick={() => onUpdateSettings({ dateRangeEnd: null })}
-                      className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                      title="종료 날짜 초기화"
-                    >
-                      <i className="ri-close-line text-lg"></i>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => onUpdateSettings({ dateRangeEnd: null })}
+                    className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                    title="종료 날짜 초기화"
+                  >
+                    <i className="ri-close-line text-lg"></i>
+                  </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">미설정 시 모든 이벤트 표시</p>
+                {!settings.dateRangeEnd && (
+                  <p className="text-xs text-green-400 mt-1">
+                    <i className="ri-check-line mr-1"></i>
+                    종료 날짜 미지정 - 모든 미래 일정 표시
+                  </p>
+                )}
               </div>
             </div>
             
