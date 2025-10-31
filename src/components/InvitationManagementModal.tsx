@@ -96,6 +96,47 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
+  const deleteInvitation = async (id: string, email: string, used: boolean) => {
+    const confirmMessage = used 
+      ? `'${email}' 사용자의 초대를 삭제하시겠습니까?\n\n⚠️ 이 사용자의 빌보드 계정과 설정도 모두 삭제됩니다.`
+      : `'${email}'에게 보낸 초대를 취소하시겠습니까?`;
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const deleteEndpoint = import.meta.env.DEV 
+        ? `/api/invitations/${id}` 
+        : `/.netlify/functions/invitations-delete`;
+
+      const response = await fetch(deleteEndpoint, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invitationId: id,
+          adminEmail: user?.email
+        })
+      });
+
+      if (response.ok) {
+        alert(used ? '초대 및 사용자 계정이 삭제되었습니다' : '초대가 취소되었습니다');
+        loadInvitations();
+      } else {
+        const error = await response.json();
+        alert(error.error || '삭제에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('Failed to delete invitation:', error);
+      alert('삭제에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -157,7 +198,7 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
                         <span className="text-white font-semibold">{inv.email}</span>
                         {inv.used ? (
                           <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
-                            사용됨
+                            초대 수락
                           </span>
                         ) : new Date(inv.expires_at) < new Date() ? (
                           <span className="px-2 py-1 bg-red-500/20 text-red-300 text-xs rounded-full border border-red-500/30">
@@ -169,15 +210,24 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
                           </span>
                         )}
                       </div>
-                      {!inv.used && new Date(inv.expires_at) >= new Date() && (
+                      <div className="flex items-center gap-2">
+                        {!inv.used && new Date(inv.expires_at) >= new Date() && (
+                          <button
+                            onClick={() => copyInviteUrl(inv.token)}
+                            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                          >
+                            <i className={copiedToken === inv.token ? "ri-check-line" : "ri-file-copy-line"}></i>
+                            {copiedToken === inv.token ? '복사됨!' : '링크 복사'}
+                          </button>
+                        )}
                         <button
-                          onClick={() => copyInviteUrl(inv.token)}
-                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                          onClick={() => deleteInvitation(inv.id, inv.email, inv.used)}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
                         >
-                          <i className={copiedToken === inv.token ? "ri-check-line" : "ri-file-copy-line"}></i>
-                          {copiedToken === inv.token ? '복사됨!' : '링크 복사'}
+                          <i className="ri-delete-bin-line"></i>
+                          삭제
                         </button>
-                      )}
+                      </div>
                     </div>
                     <div className="text-sm text-white/60 space-y-1">
                       <p>생성일: {new Date(inv.created_at).toLocaleString('ko-KR')}</p>

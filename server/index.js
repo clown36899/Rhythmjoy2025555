@@ -130,6 +130,75 @@ app.post('/api/invitations/validate', async (req, res) => {
   }
 });
 
+// 초대 삭제 (슈퍼 관리자만)
+app.delete('/api/invitations/:id', async (req, res) => {
+  try {
+    const { invitationId, adminEmail: requestAdminEmail } = req.body;
+    const id = req.params.id || invitationId;
+
+    if (requestAdminEmail !== adminEmail) {
+      return res.status(403).json({ error: '권한이 없습니다' });
+    }
+
+    if (!id) {
+      return res.status(400).json({ error: '초대 ID가 필요합니다' });
+    }
+
+    // 초대 정보 조회
+    const { data: invitation, error: fetchError } = await supabaseAdmin
+      .from('invitations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !invitation) {
+      return res.status(404).json({ error: '초대를 찾을 수 없습니다' });
+    }
+
+    // 초대가 사용되었으면 관련 사용자 계정도 삭제
+    if (invitation.used) {
+      // 해당 이메일의 billboard_users 조회
+      const { data: billboardUser } = await supabaseAdmin
+        .from('billboard_users')
+        .select('id, email')
+        .eq('email', invitation.email)
+        .single();
+
+      if (billboardUser) {
+        // billboard_user_settings 삭제 (cascade)
+        await supabaseAdmin
+          .from('billboard_user_settings')
+          .delete()
+          .eq('billboard_user_id', billboardUser.id);
+
+        // billboard_users 삭제
+        await supabaseAdmin
+          .from('billboard_users')
+          .delete()
+          .eq('id', billboardUser.id);
+
+        console.log(`Deleted billboard user: ${billboardUser.email}`);
+      }
+    }
+
+    // 초대 삭제
+    const { error: deleteError } = await supabaseAdmin
+      .from('invitations')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Invitation deletion error:', deleteError);
+      return res.status(500).json({ error: '초대 삭제 실패' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete invitation error:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
 app.post('/api/auth/kakao', async (req, res) => {
   try {
     const { kakaoAccessToken, invitationToken } = req.body;
