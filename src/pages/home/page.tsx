@@ -34,6 +34,18 @@ export default function HomePage() {
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const calendarRef = useRef<HTMLDivElement>(null);
   
+  // isAdmin 상태에 따라 adminType 자동 동기화
+  useEffect(() => {
+    if (isAdmin) {
+      setAdminType("super");
+      console.log('[HomePage] 슈퍼 관리자 모드 활성화');
+    } else if (!billboardUserId) {
+      // 빌보드 사용자도 아니고 슈퍼 관리자도 아니면 null
+      setAdminType(null);
+      console.log('[HomePage] 관리자 모드 비활성화');
+    }
+  }, [isAdmin, billboardUserId]);
+  
   // MobileShell에 현재 월 정보 전달
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('monthChanged', { 
