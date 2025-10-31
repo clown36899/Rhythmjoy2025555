@@ -193,28 +193,28 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
                     key={inv.id}
                     className="bg-white/10 rounded-lg p-4 border border-white/20"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-white font-semibold">{inv.email}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-white font-semibold text-sm break-all">{inv.email}</span>
                         {inv.used ? (
-                          <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
+                          <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30 whitespace-nowrap">
                             초대 수락
                           </span>
                         ) : new Date(inv.expires_at) < new Date() ? (
-                          <span className="px-2 py-1 bg-red-500/20 text-red-300 text-xs rounded-full border border-red-500/30">
+                          <span className="px-2 py-1 bg-red-500/20 text-red-300 text-xs rounded-full border border-red-500/30 whitespace-nowrap">
                             만료됨
                           </span>
                         ) : (
-                          <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-500/30">
+                          <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-500/30 whitespace-nowrap">
                             활성
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                         {!inv.used && new Date(inv.expires_at) >= new Date() && (
                           <button
                             onClick={() => copyInviteUrl(inv.token)}
-                            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
                           >
                             <i className={copiedToken === inv.token ? "ri-check-line" : "ri-file-copy-line"}></i>
                             {copiedToken === inv.token ? '복사됨!' : '링크 복사'}
@@ -222,14 +222,14 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
                         )}
                         <button
                           onClick={() => deleteInvitation(inv.id, inv.email, inv.used)}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
                         >
                           <i className="ri-delete-bin-line"></i>
                           삭제
                         </button>
                       </div>
                     </div>
-                    <div className="text-sm text-white/60 space-y-1">
+                    <div className="text-xs text-white/60 space-y-1">
                       <p>생성일: {new Date(inv.created_at).toLocaleString('ko-KR')}</p>
                       <p>만료일: {new Date(inv.expires_at).toLocaleString('ko-KR')}</p>
                     </div>
