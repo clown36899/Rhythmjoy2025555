@@ -12,6 +12,7 @@ export default function InvitePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   const apiEndpoint = import.meta.env.DEV 
     ? '/api/invitations/validate' 
@@ -64,6 +65,7 @@ export default function InvitePage() {
   const handleKakaoLogin = async () => {
     setProcessing(true);
     setError('');
+    setShowError(false);
 
     try {
       await initKakaoSDK();
@@ -120,6 +122,15 @@ export default function InvitePage() {
       }
       
       setError(errorMessage);
+      setShowError(true);
+      
+      // 에러 발생 시 카카오 로그아웃 (다시 시도할 수 있도록)
+      try {
+        const { logoutKakao } = await import('../../utils/kakaoAuth');
+        await logoutKakao();
+      } catch (logoutErr) {
+        console.error('카카오 로그아웃 실패:', logoutErr);
+      }
     } finally {
       setProcessing(false);
     }
@@ -208,9 +219,21 @@ export default function InvitePage() {
             )}
           </button>
 
-          {error && (
-            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-              <p className="text-red-200 text-sm whitespace-pre-line">{error}</p>
+          {error && showError && (
+            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg relative">
+              <button
+                onClick={() => setShowError(false)}
+                className="absolute top-2 right-2 text-red-300 hover:text-red-100 transition-colors"
+              >
+                <i className="ri-close-line text-xl"></i>
+              </button>
+              <p className="text-red-200 text-sm whitespace-pre-line pr-6">{error}</p>
+              <button
+                onClick={() => setShowError(false)}
+                className="mt-3 w-full bg-red-500/30 hover:bg-red-500/40 text-red-100 py-2 px-4 rounded-lg font-semibold transition-colors text-sm"
+              >
+                닫기
+              </button>
             </div>
           )}
         </div>
