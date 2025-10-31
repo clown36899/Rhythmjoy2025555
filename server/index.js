@@ -273,8 +273,9 @@ app.post('/api/auth/kakao', async (req, res) => {
       .eq('email', email)
       .single();
 
-    // 초대 코드로 신규 가입하는 경우 billboard_users 생성
+    // 초대 코드로 가입/재가입하는 경우 billboard_users 생성 또는 재생성
     if (invitation && !billboardUser) {
+      console.log(`[재가입] ${email} - billboard_user 재생성`);
       const crypto = await import('crypto');
       const randomPassword = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
       

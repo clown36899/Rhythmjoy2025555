@@ -23,13 +23,9 @@ export default function InvitePage() {
     : '/.netlify/functions/kakao-auth';
 
   useEffect(() => {
-    if (user) {
-      navigate('/');
-      return;
-    }
-
+    // 초대 코드가 있으면 기존 로그인 세션 무시하고 초대 검증
     validateInvitation();
-  }, [token, user]);
+  }, [token]);
 
   const validateInvitation = async () => {
     if (!token) {
@@ -68,6 +64,12 @@ export default function InvitePage() {
     setShowError(false);
 
     try {
+      // 기존 세션이 있으면 먼저 로그아웃 (재초대 대응)
+      if (user) {
+        const { supabase } = await import('../../lib/supabase');
+        await supabase.auth.signOut();
+      }
+      
       await initKakaoSDK();
       await loginWithKakao();
       
