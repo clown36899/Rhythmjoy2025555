@@ -254,12 +254,15 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // billboard_user가 있으면 그 이름을 우선 사용
+    const displayNameToShow = billboardUser?.name || name;
+
     return {
       statusCode: 200,
       body: JSON.stringify({
         success: true,
         email,
-        name,
+        name: displayNameToShow,
         isAdmin,
         isBillboardUser: !!billboardUser,
         billboardUserId: billboardUser?.id || null,

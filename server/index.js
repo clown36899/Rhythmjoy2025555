@@ -414,10 +414,13 @@ app.post('/api/auth/kakao', async (req, res) => {
       return res.status(500).json({ error: '세션 생성 실패' });
     }
 
+    // billboard_user가 있으면 그 이름을 우선 사용
+    const displayNameToShow = billboardUser?.name || name;
+
     res.json({
       success: true,
       email,
-      name,
+      name: displayNameToShow,
       isAdmin,
       isBillboardUser: !!billboardUser,
       billboardUserId: billboardUser?.id || null,
