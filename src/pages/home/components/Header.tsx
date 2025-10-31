@@ -44,6 +44,7 @@ export default function Header({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loginType, setLoginType] = useState<"super" | "sub">("super");
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
@@ -521,16 +522,25 @@ export default function Header({
                       <label className="block text-gray-300 text-sm font-medium mb-2">
                         비밀번호
                       </label>
-                      <input
-                        type="password"
-                        name="password"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                        className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="비밀번호를 입력하세요"
-                        autoComplete={loginType === "super" ? "current-password" : "off"}
-                        autoFocus={loginType === "sub"}
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          value={adminPassword}
+                          onChange={(e) => setAdminPassword(e.target.value)}
+                          className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="비밀번호를 입력하세요"
+                          autoComplete={loginType === "super" ? "current-password" : "off"}
+                          autoFocus={loginType === "sub"}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                        >
+                          <i className={showPassword ? "ri-eye-off-line text-xl" : "ri-eye-line text-xl"}></i>
+                        </button>
+                      </div>
                     </div>
                     <button
                       type="submit"
