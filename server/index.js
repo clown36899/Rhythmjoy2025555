@@ -160,7 +160,7 @@ app.delete('/api/invitations/:id', async (req, res) => {
       // 해당 이메일의 billboard_users 조회
       const { data: billboardUser } = await supabaseAdmin
         .from('billboard_users')
-        .select('id, email')
+        .select('*')
         .eq('email', invitation.email)
         .single();
 
@@ -269,7 +269,7 @@ app.post('/api/auth/kakao', async (req, res) => {
     
     let { data: billboardUser } = await supabaseAdmin
       .from('billboard_users')
-      .select('id, name, email')
+      .select('*')
       .eq('email', email)
       .single();
 

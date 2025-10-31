@@ -102,7 +102,7 @@ export const handler: Handler = async (event) => {
     
     let { data: billboardUser } = await supabaseAdmin
       .from('billboard_users')
-      .select('id, name, email')
+      .select('*')
       .eq('email', email)
       .single();
 
