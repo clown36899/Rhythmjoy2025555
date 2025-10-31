@@ -9,21 +9,52 @@ interface PlaceModalProps {
 // Nominatim (무료 지오코딩) API로 주소 → 좌표 변환
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+    // 1차 시도: 원본 주소 그대로
+    let response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=kr&limit=1`,
       {
         headers: {
           'User-Agent': 'SocialPlaceApp/1.0',
         },
       }
     );
-    const data = await response.json();
+    let data = await response.json();
+    
     if (data && data.length > 0) {
       return {
         lat: parseFloat(data[0].lat),
         lng: parseFloat(data[0].lon),
       };
     }
+
+    // 2차 시도: 상세 주소 제거 (지하, 층, 호 등)
+    const simplifiedAddress = address
+      .replace(/\s*지하\d+층?/g, '')
+      .replace(/\s*\d+층/g, '')
+      .replace(/\s*\d+호/g, '')
+      .replace(/\s*[가-힣]+\s*$/g, '') // 마지막 건물명 제거
+      .trim();
+
+    if (simplifiedAddress !== address) {
+      console.log('간소화된 주소로 재시도:', simplifiedAddress);
+      response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplifiedAddress)}&countrycodes=kr&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'SocialPlaceApp/1.0',
+          },
+        }
+      );
+      data = await response.json();
+
+      if (data && data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon),
+        };
+      }
+    }
+
     return null;
   } catch (error) {
     console.error('주소 변환 실패:', error);
