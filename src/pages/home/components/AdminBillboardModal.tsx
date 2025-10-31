@@ -408,21 +408,14 @@ export default function AdminBillboardModal({
     return createPortal(
       <div
         className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-        onClick={handleBackdropClick}
       >
         <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               <i className="ri-settings-3-line"></i>
               {billboardUserName} 빌보드 설정
             </h2>
-            <button
-              onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors"
-            >
-              <i className="ri-close-line text-2xl"></i>
-            </button>
           </div>
 
           {/* Content */}
