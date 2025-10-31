@@ -128,7 +128,6 @@ export const handler: Handler = async (event) => {
         .from('billboard_users')
         .insert({
           name,
-          email,
           password_hash: passwordHash,
           is_active: true
         })
@@ -141,6 +140,14 @@ export const handler: Handler = async (event) => {
           statusCode: 500,
           body: JSON.stringify({ error: '빌보드 사용자 생성 실패' })
         };
+      }
+
+      // email 별도 업데이트 (스키마 캐시 문제 회피)
+      if (newBillboardUser) {
+        await supabaseAdmin
+          .from('billboard_users')
+          .update({ email })
+          .eq('id', newBillboardUser.id);
       }
 
       billboardUser = newBillboardUser;

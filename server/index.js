@@ -296,7 +296,6 @@ app.post('/api/auth/kakao', async (req, res) => {
         .from('billboard_users')
         .insert({
           name,
-          email,
           password_hash: passwordHash,
           is_active: true
         })
@@ -306,6 +305,14 @@ app.post('/api/auth/kakao', async (req, res) => {
       if (createBillboardError) {
         console.error('Billboard user creation error:', createBillboardError);
         return res.status(500).json({ error: '빌보드 사용자 생성 실패' });
+      }
+
+      // email 별도 업데이트 (스키마 캐시 문제 회피)
+      if (newBillboardUser) {
+        await supabaseAdmin
+          .from('billboard_users')
+          .update({ email })
+          .eq('id', newBillboardUser.id);
       }
 
       billboardUser = newBillboardUser;
