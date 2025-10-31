@@ -8,11 +8,13 @@ import FullscreenBillboard from "../../components/FullscreenBillboard";
 import AdminBillboardModal from "./components/AdminBillboardModal";
 import { supabase } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function HomePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedCategory = searchParams.get('category') || 'all';
+  const { isAdmin } = useAuth();
   
   // 카테고리 변경 헬퍼 함수
   const navigateWithCategory = useCallback((cat?: string) => {
@@ -27,7 +29,6 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
@@ -504,7 +505,8 @@ export default function HomePage() {
     userId: string | null = null,
     userName: string = ""
   ) => {
-    setIsAdminMode(adminMode);
+    // AuthContext에서 관리하므로 isAdminMode state는 제거
+    // 빌보드 사용자 정보만 저장
     setAdminType(type);
     setBillboardUserId(userId);
     setBillboardUserName(userName);
@@ -722,7 +724,7 @@ export default function HomePage() {
                 selectedCategory={selectedCategory}
                 currentMonth={currentMonth}
                 refreshTrigger={refreshTrigger}
-                isAdminMode={isAdminMode}
+                isAdminMode={isAdmin}
                 adminType={adminType}
                 viewMode={viewMode}
                 onEventHover={setHoveredEventId}
@@ -788,7 +790,7 @@ export default function HomePage() {
         settings={settings}
         onUpdateSettings={updateSettings}
         onResetSettings={resetSettings}
-        adminType={adminType}
+        adminType={isAdmin ? "super" : (billboardUserId ? "sub" : null)}
         billboardUserId={billboardUserId}
         billboardUserName={billboardUserName}
       />
