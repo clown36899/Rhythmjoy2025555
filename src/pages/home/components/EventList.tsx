@@ -449,11 +449,19 @@ export default function EventList({
   }, [fetchEvents, refreshTrigger]);
 
   // 달 변경 시 스크롤 위치 리셋
+  // 슬라이드 시 스크롤을 맨 위로 올림
   useEffect(() => {
+    // 이벤트 리스트 영역 스크롤
     const scrollContainer = document.querySelector(".overflow-y-auto");
     if (scrollContainer) {
       scrollContainer.scrollTop = 0;
     }
+    
+    // 페이지 전체 스크롤 (배너 맨 위가 보이도록)
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   }, [currentMonth]);
 
   // 광고판에서 이벤트 선택 이벤트 리스너
