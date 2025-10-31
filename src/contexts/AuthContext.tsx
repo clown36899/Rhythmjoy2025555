@@ -61,37 +61,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ? '/api/auth/kakao'
       : '/.netlify/functions/kakao-auth';
     
-    const response = await fetch(authEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        kakaoAccessToken: accessToken,
-      }),
-    });
+    // 재시도 로직 (2단계 인증 대응)
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        // 60초 타임아웃 설정
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        
+        const response = await fetch(authEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            kakaoAccessToken: accessToken,
+          }),
+          signal: controller.signal,
+        });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || error.message || '인증에 실패했습니다');
-    }
+        clearTimeout(timeoutId);
 
-    const authData = await response.json();
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || error.message || '인증에 실패했습니다');
+        }
 
-    // 서버에서 받은 세션으로 자동 로그인
-    if (authData.session) {
-      const { error } = await supabase.auth.setSession({
-        access_token: authData.session.access_token,
-        refresh_token: authData.session.refresh_token,
-      });
+        const authData = await response.json();
 
-      if (error) {
-        console.error('세션 설정 실패:', error);
-        throw new Error('로그인에 실패했습니다');
+        // 서버에서 받은 세션으로 자동 로그인
+        if (authData.session) {
+          const { error } = await supabase.auth.setSession({
+            access_token: authData.session.access_token,
+            refresh_token: authData.session.refresh_token,
+          });
+
+          if (error) {
+            console.error('세션 설정 실패:', error);
+            throw new Error('로그인에 실패했습니다');
+          }
+        }
+
+        return authData;
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`카카오 인증 시도 ${attempt}/3 실패:`, error.message);
+        
+        // 마지막 시도가 아니면 1초 대기 후 재시도
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
     }
 
-    return authData;
+    // 3번 모두 실패
+    throw lastError || new Error('인증에 실패했습니다');
   };
 
   const signOut = async () => {
