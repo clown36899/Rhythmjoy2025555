@@ -160,19 +160,19 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
           {/* Create Invitation Form */}
           <div className="bg-white/10 rounded-lg p-6 mb-6">
             <h4 className="text-lg font-semibold text-white mb-4">새 초대 생성</h4>
-            <form onSubmit={createInvitation} className="flex gap-3">
+            <form onSubmit={createInvitation} className="space-y-3">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="초대할 이메일 주소"
-                className="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 disabled={loading}
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '생성 중...' : '초대 생성'}
               </button>
