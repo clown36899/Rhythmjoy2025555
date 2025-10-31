@@ -117,6 +117,8 @@ export default function Header({
       setAdminType("super");
       setBillboardUserId(null);
       setBillboardUserName("");
+      localStorage.setItem('adminPassword', 'true');
+      window.dispatchEvent(new Event('storage'));
       onAdminModeToggle?.(true, "super", null, "");
       setShowSettingsModal(false);
       setAdminPassword("");
@@ -143,6 +145,8 @@ export default function Header({
           setAdminType("sub");
           setBillboardUserId(user.id);
           setBillboardUserName(user.name);
+          localStorage.setItem('adminPassword', 'true');
+          window.dispatchEvent(new Event('storage'));
           onAdminModeToggle?.(true, "sub", user.id, user.name);
           // 서브 관리자는 설정 모달을 닫지 않고 유지
           // setShowSettingsModal(false);
@@ -164,6 +168,8 @@ export default function Header({
     setAdminType(null);
     setBillboardUserId(null);
     setBillboardUserName("");
+    localStorage.removeItem('adminPassword');
+    window.dispatchEvent(new Event('storage'));
     onAdminModeToggle?.(false, null, null, "");
     setShowSettingsModal(false);
     alert("로그아웃되었습니다.");
