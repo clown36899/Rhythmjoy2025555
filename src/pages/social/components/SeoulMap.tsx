@@ -12,7 +12,7 @@ interface SeoulMapProps {
   onPlaceSelect: (place: SocialPlace) => void;
 }
 
-export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
+export default function SeoulMap({ places }: SeoulMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -70,25 +70,8 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
     const kakao = window.kakao;
     const bounds = new kakao.maps.LatLngBounds();
 
-    // 같은 위치 장소 그룹화 (겹침 방지)
-    const positionGroups = new Map<string, SocialPlace[]>();
-    places.forEach((place) => {
-      const key = `${place.latitude},${place.longitude}`;
-      if (!positionGroups.has(key)) {
-        positionGroups.set(key, []);
-      }
-      positionGroups.get(key)!.push(place);
-    });
-
-    // 모든 장소에 대해 마커와 오버레이 생성 (겹침 처리 전)
-    const overlayData: Array<{
-      place: SocialPlace;
-      position: any;
-      marker: any;
-      bottomOffset: number;
-    }> = [];
-
-    places.forEach((place) => {
+    // 모든 장소에 대해 마커와 데이터 준비
+    const allMarkerData = places.map((place) => {
       const position = new kakao.maps.LatLng(place.latitude, place.longitude);
       
       const marker = new kakao.maps.Marker({
@@ -96,38 +79,36 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
         map,
       });
 
-      overlayData.push({
+      bounds.extend(position);
+
+      return {
         place,
         position,
         marker,
+        lat: place.latitude,
+        lng: place.longitude,
         bottomOffset: 35, // 기본 오프셋
-      });
-
-      bounds.extend(position);
+      };
     });
 
     // 겹침 감지 및 오프셋 조정
-    for (let i = 0; i < overlayData.length; i++) {
-      for (let j = i + 1; j < overlayData.length; j++) {
-        const pos1 = overlayData[i].position;
-        const pos2 = overlayData[j].position;
-        
-        // 지도상 거리 계산 (매우 가까운지 확인)
-        const latDiff = Math.abs(pos1.getLat() - pos2.getLat());
-        const lngDiff = Math.abs(pos1.getLng() - pos2.getLng());
+    for (let i = 0; i < allMarkerData.length; i++) {
+      for (let j = i + 1; j < allMarkerData.length; j++) {
+        const latDiff = Math.abs(allMarkerData[i].lat - allMarkerData[j].lat);
+        const lngDiff = Math.abs(allMarkerData[i].lng - allMarkerData[j].lng);
         
         // 0.002도 이내면 겹침으로 간주 (약 200m)
         if (latDiff < 0.002 && lngDiff < 0.002) {
           // j번째 오버레이를 위로 올림
-          overlayData[j].bottomOffset += 20;
+          allMarkerData[j].bottomOffset += 18;
         }
       }
     }
 
-    // 오버레이 생성
-    overlayData.forEach(({ place, position, marker, bottomOffset }) => {
+    // 각 마커에 오버레이와 이벤트 추가
+    allMarkerData.forEach(({ place, position, marker, bottomOffset }) => {
       const overlayContent = `
-        <div style="
+        <div class="map-label" style="
           position: relative;
           bottom: ${bottomOffset}px;
           background: rgba(34, 34, 34, 0.95);
@@ -152,34 +133,41 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
       });
       customOverlay.setMap(map);
 
-      // 확대 함수
-      const zoomToPosition = () => {
-        const currentLevel = map.getLevel();
+      // 확대 함수 - position을 제대로 캡처
+      const handleZoom = () => {
         const targetLevel = 3;
+        const currentLevel = map.getLevel();
         
+        // 부드러운 확대
         if (currentLevel > targetLevel) {
-          let step = 0;
-          const steps = currentLevel - targetLevel;
+          let level = currentLevel;
           const interval = setInterval(() => {
-            if (step >= steps) {
+            level--;
+            if (level <= targetLevel) {
               clearInterval(interval);
-              return;
+              map.setLevel(targetLevel);
+            } else {
+              map.setLevel(level);
             }
-            map.setLevel(currentLevel - step - 1);
-            step++;
           }, 100);
         }
+        
+        // 중심 이동
         map.panTo(position);
       };
 
-      // 마커 클릭
-      kakao.maps.event.addListener(marker, 'click', zoomToPosition);
+      // 마커 클릭 이벤트
+      kakao.maps.event.addListener(marker, 'click', () => {
+        handleZoom();
+      });
 
-      // 오버레이(이름) 클릭
+      // 오버레이 클릭 이벤트
       setTimeout(() => {
-        const overlayElement = customOverlay.getContent();
-        if (overlayElement && overlayElement.addEventListener) {
-          overlayElement.addEventListener('click', zoomToPosition);
+        const element = customOverlay.getContent();
+        if (element) {
+          element.onclick = () => {
+            handleZoom();
+          };
         }
       }, 100);
 
@@ -207,7 +195,7 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
       // 초기 bounds 저장 (원상태 복원용)
       initialBoundsRef.current = bounds;
     }
-  }, [map, places, onPlaceSelect]);
+  }, [map, places]);
 
   const resetMapView = () => {
     if (!map || !initialBoundsRef.current) return;
