@@ -75,17 +75,35 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
           {places.map((place) => (
             <div
               key={place.id}
-              onClick={() => onPlaceSelect(place)}
-              className="bg-gray-800 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-700 transition-colors border border-gray-700"
+              className="bg-gray-800 rounded-lg px-4 py-3 border border-gray-700"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-white font-medium text-sm flex-shrink-0">{place.name}</h3>
-                <div className="flex items-center gap-2 ml-3">
-                  <p className="text-gray-400 text-xs truncate max-w-[200px]">
-                    {place.address.split(' ').slice(0, 3).join(' ')}
-                  </p>
-                  <i className="ri-arrow-right-s-line text-gray-400 text-lg flex-shrink-0"></i>
+                <div 
+                  onClick={() => onPlaceSelect(place)}
+                  className="flex-1 cursor-pointer hover:bg-gray-700 -mx-2 px-2 py-1 rounded transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-white font-medium text-sm flex-shrink-0">{place.name}</h3>
+                    <div className="flex items-center gap-2 ml-3">
+                      <p className="text-gray-400 text-xs truncate max-w-[120px]">
+                        {place.address.split(' ').slice(0, 3).join(' ')}
+                      </p>
+                      <i className="ri-arrow-right-s-line text-gray-400 text-lg flex-shrink-0"></i>
+                    </div>
+                  </div>
                 </div>
+                
+                {/* 네이버지도 바로가기 */}
+                <a
+                  href={`https://map.naver.com/v5/search/${encodeURIComponent(place.name + ' ' + place.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1.5 hover:bg-green-500/20 rounded transition-colors ml-2"
+                  title="네이버지도에서 보기"
+                >
+                  <i className="ri-map-pin-line text-green-500 text-lg"></i>
+                </a>
               </div>
             </div>
           ))}
