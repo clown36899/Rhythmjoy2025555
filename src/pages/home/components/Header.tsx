@@ -136,7 +136,9 @@ export default function Header({
       } else {
         // 권한 없음
         await signOut();
-        alert("관리자 권한이 없습니다. 초대를 요청하세요.");
+        setLoginLoading(false);
+        setShowSettingsModal(false);
+        // 에러 메시지는 표시하지 않고 조용히 닫기
         return;
       }
       
@@ -145,7 +147,9 @@ export default function Header({
       setShowSettingsModal(false);
       setShowLoginSuccessModal(true);
     } catch (error: any) {
-      alert('❌ ' + (error.message || '카카오 로그인에 실패했습니다'));
+      console.log('[카카오 로그인] 취소 또는 실패:', error.message);
+      // 로그인 취소/실패 시 모달 닫기
+      setShowSettingsModal(false);
     } finally {
       setLoginLoading(false);
     }
