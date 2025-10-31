@@ -471,8 +471,9 @@ export default function HomePage() {
 
         setDragOffset(targetOffset);
 
-        // 월 변경 계산
+        // 월 변경 계산 (날짜 오버플로우 방지 - 10월 31일 → 11월 문제 해결)
         const newMonth = new Date(currentMonth);
+        newMonth.setDate(1); // 먼저 1일로 설정하여 오버플로우 방지
         if (direction === "prev") {
           newMonth.setMonth(currentMonth.getMonth() - 1);
         } else {
