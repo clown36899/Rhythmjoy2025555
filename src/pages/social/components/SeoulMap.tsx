@@ -80,184 +80,126 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
       positionGroups.get(key)!.push(place);
     });
 
-    positionGroups.forEach((groupPlaces, posKey) => {
-      const [lat, lng] = posKey.split(',').map(Number);
-      const count = groupPlaces.length;
+    // 모든 장소에 대해 마커와 오버레이 생성 (겹침 처리 전)
+    const overlayData: Array<{
+      place: SocialPlace;
+      position: any;
+      marker: any;
+      bottomOffset: number;
+    }> = [];
+
+    places.forEach((place) => {
+      const position = new kakao.maps.LatLng(place.latitude, place.longitude);
       
-      // 같은 위치에 여러 장소가 있으면 리스트로 표시
-      if (count > 1) {
-        const basePosition = new kakao.maps.LatLng(lat, lng);
+      const marker = new kakao.maps.Marker({
+        position,
+        map,
+      });
+
+      overlayData.push({
+        place,
+        position,
+        marker,
+        bottomOffset: 35, // 기본 오프셋
+      });
+
+      bounds.extend(position);
+    });
+
+    // 겹침 감지 및 오프셋 조정
+    for (let i = 0; i < overlayData.length; i++) {
+      for (let j = i + 1; j < overlayData.length; j++) {
+        const pos1 = overlayData[i].position;
+        const pos2 = overlayData[j].position;
         
-        // 마커 하나만 표시
-        const marker = new kakao.maps.Marker({
-          position: basePosition,
-          map,
-        });
-
-        // 장소 이름들을 리스트로 표시 (오른쪽에 배치)
-        const placeListHtml = groupPlaces.map(p => `
-          <div style="
-            padding: 3px 8px;
-            margin-bottom: 2px;
-            background: rgba(34, 34, 34, 0.95);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-          " 
-          class="place-item"
-          data-place-name="${p.name}">
-            ${p.name}
-          </div>
-        `).join('');
-
-        const overlayContent = `
-          <div style="
-            position: relative;
-            left: 40px;
-            top: -10px;
-            background: rgba(34, 34, 34, 0.95);
-            color: white;
-            padding: 6px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          ">
-            ${placeListHtml}
-          </div>
-        `;
-
-        const customOverlay = new kakao.maps.CustomOverlay({
-          position: basePosition,
-          content: overlayContent,
-          xAnchor: 0,
-          yAnchor: 0.5,
-        });
-        customOverlay.setMap(map);
-
-        // 확대 함수
-        const zoomToPosition = () => {
-          const currentLevel = map.getLevel();
-          const targetLevel = 3;
-          
-          if (currentLevel > targetLevel) {
-            let step = 0;
-            const steps = currentLevel - targetLevel;
-            const interval = setInterval(() => {
-              if (step >= steps) {
-                clearInterval(interval);
-                return;
-              }
-              map.setLevel(currentLevel - step - 1);
-              step++;
-            }, 100);
-          }
-          map.panTo(basePosition);
-        };
-
-        // 마커 클릭
-        kakao.maps.event.addListener(marker, 'click', zoomToPosition);
-
-        // 오버레이 클릭 (이벤트 위임)
-        setTimeout(() => {
-          const overlayElement = customOverlay.getContent();
-          if (overlayElement && overlayElement.addEventListener) {
-            overlayElement.addEventListener('click', zoomToPosition);
-          }
-        }, 100);
-
-        markersRef.current.push({ marker, overlay: customOverlay });
-        bounds.extend(basePosition);
-      } else {
-        // 단일 장소
-        const place = groupPlaces[0];
-        const position = new kakao.maps.LatLng(lat, lng);
+        // 지도상 거리 계산 (매우 가까운지 확인)
+        const latDiff = Math.abs(pos1.getLat() - pos2.getLat());
+        const lngDiff = Math.abs(pos1.getLng() - pos2.getLng());
         
-        const marker = new kakao.maps.Marker({
-          position,
-          map,
-        });
-
-        // 장소 이름 표시 (오른쪽에 배치)
-        const overlayContent = `
-          <div style="
-            position: relative;
-            left: 40px;
-            top: -10px;
-            background: rgba(34, 34, 34, 0.95);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            white-space: nowrap;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            cursor: pointer;
-          ">
-            ${place.name}
-          </div>
-        `;
-
-        const customOverlay = new kakao.maps.CustomOverlay({
-          position,
-          content: overlayContent,
-          xAnchor: 0,
-          yAnchor: 0.5,
-        });
-        customOverlay.setMap(map);
-
-        // 확대 함수
-        const zoomToPosition = () => {
-          const currentLevel = map.getLevel();
-          const targetLevel = 3;
-          
-          if (currentLevel > targetLevel) {
-            let step = 0;
-            const steps = currentLevel - targetLevel;
-            const interval = setInterval(() => {
-              if (step >= steps) {
-                clearInterval(interval);
-                return;
-              }
-              map.setLevel(currentLevel - step - 1);
-              step++;
-            }, 100);
-          }
-          map.panTo(position);
-        };
-
-        // 마커 클릭
-        kakao.maps.event.addListener(marker, 'click', zoomToPosition);
-
-        // 오버레이(이름) 클릭
-        setTimeout(() => {
-          const overlayElement = customOverlay.getContent();
-          if (overlayElement && overlayElement.addEventListener) {
-            overlayElement.addEventListener('click', zoomToPosition);
-          }
-        }, 100);
-
-        // 호버 시 상세 정보
-        const infowindow = new kakao.maps.InfoWindow({
-          content: `<div style="padding:10px;font-size:12px;width:150px;">
-            <div style="font-weight:bold;margin-bottom:5px;">${place.name}</div>
-            <div style="color:#666;font-size:11px;">${place.address}</div>
-          </div>`,
-        });
-
-        kakao.maps.event.addListener(marker, 'mouseover', () => {
-          infowindow.open(map, marker);
-        });
-
-        kakao.maps.event.addListener(marker, 'mouseout', () => {
-          infowindow.close();
-        });
-
-        markersRef.current.push({ marker, overlay: customOverlay });
-        bounds.extend(position);
+        // 0.002도 이내면 겹침으로 간주 (약 200m)
+        if (latDiff < 0.002 && lngDiff < 0.002) {
+          // j번째 오버레이를 위로 올림
+          overlayData[j].bottomOffset += 20;
+        }
       }
+    }
+
+    // 오버레이 생성
+    overlayData.forEach(({ place, position, marker, bottomOffset }) => {
+      const overlayContent = `
+        <div style="
+          position: relative;
+          bottom: ${bottomOffset}px;
+          background: rgba(34, 34, 34, 0.95);
+          color: white;
+          padding: 2px 6px;
+          border-radius: 8px;
+          font-size: 9px;
+          font-weight: bold;
+          white-space: nowrap;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          cursor: pointer;
+        ">
+          ${place.name}
+        </div>
+      `;
+
+      const customOverlay = new kakao.maps.CustomOverlay({
+        position,
+        content: overlayContent,
+        yAnchor: 0,
+      });
+      customOverlay.setMap(map);
+
+      // 확대 함수
+      const zoomToPosition = () => {
+        const currentLevel = map.getLevel();
+        const targetLevel = 3;
+        
+        if (currentLevel > targetLevel) {
+          let step = 0;
+          const steps = currentLevel - targetLevel;
+          const interval = setInterval(() => {
+            if (step >= steps) {
+              clearInterval(interval);
+              return;
+            }
+            map.setLevel(currentLevel - step - 1);
+            step++;
+          }, 100);
+        }
+        map.panTo(position);
+      };
+
+      // 마커 클릭
+      kakao.maps.event.addListener(marker, 'click', zoomToPosition);
+
+      // 오버레이(이름) 클릭
+      setTimeout(() => {
+        const overlayElement = customOverlay.getContent();
+        if (overlayElement && overlayElement.addEventListener) {
+          overlayElement.addEventListener('click', zoomToPosition);
+        }
+      }, 100);
+
+      // 호버 시 상세 정보
+      const infowindow = new kakao.maps.InfoWindow({
+        content: `<div style="padding:8px;font-size:11px;width:140px;">
+          <div style="font-weight:bold;margin-bottom:4px;">${place.name}</div>
+          <div style="color:#666;font-size:10px;">${place.address}</div>
+        </div>`,
+      });
+
+      kakao.maps.event.addListener(marker, 'mouseover', () => {
+        infowindow.open(map, marker);
+      });
+
+      kakao.maps.event.addListener(marker, 'mouseout', () => {
+        infowindow.close();
+      });
+
+      markersRef.current.push({ marker, overlay: customOverlay });
     });
 
     if (places.length > 0) {
