@@ -46,6 +46,7 @@ export default function Header({
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [loginSuccessType, setLoginSuccessType] = useState("");
   
   const { isAdmin, signOut, signInWithKakao } = useAuth();
   const [showQRModal, setShowQRModal] = useState(false);
@@ -122,14 +123,17 @@ export default function Header({
       const result = await signInWithKakao();
       
       // 서버 응답에 따라 자동으로 권한 설정
+      let loginTypeText = '';
       if (result.isAdmin) {
         // 슈퍼 관리자
         onAdminModeToggle?.(true, "super", null, "");
+        loginTypeText = '전체 관리자 모드';
       } else if (result.isBillboardUser && result.billboardUserId && result.billboardUserName) {
         // 서브 관리자 (빌보드 사용자)
         setBillboardUserId(result.billboardUserId);
         setBillboardUserName(result.billboardUserName);
         onAdminModeToggle?.(true, "sub", result.billboardUserId, result.billboardUserName);
+        loginTypeText = '개인빌보드 관리자 모드';
       } else {
         // 권한 없음
         await signOut();
@@ -138,6 +142,7 @@ export default function Header({
       }
       
       setLoginSuccessName(result.name);
+      setLoginSuccessType(loginTypeText);
       setShowSettingsModal(false);
       setShowLoginSuccessModal(true);
     } catch (error: any) {
@@ -849,30 +854,32 @@ export default function Header({
           document.body,
         )}
 
-      {/* 로그인 성공 모달 - 카카오 스타일 */}
+      {/* 로그인 성공 모달 - 미니멀 스타일 */}
       {showLoginSuccessModal &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/70 flex items-center justify-center z-[99999] p-4"
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-[99999] p-4"
             onClick={() => setShowLoginSuccessModal(false)}
           >
             <div
-              className="bg-[#FEE500] rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-[scale-in_0.3s_ease-out]"
+              className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl animate-[scale-in_0.3s_ease-out]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
-                <div className="mb-4 flex justify-center">
-                  <i className="ri-kakao-talk-fill text-8xl text-[#3C1E1E]"></i>
+                <div className="mb-6 flex justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <i className="ri-shield-check-line text-4xl text-white"></i>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-[#3C1E1E] mb-2">
-                  {loginSuccessName}님, 환영해요!
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  {loginSuccessName}님, 환영해요
                 </h3>
-                <p className="text-[#3C1E1E]/70 text-sm mb-6">
-                  관리자 모드로 로그인되었습니다
+                <p className="text-gray-600 text-sm mb-8">
+                  {loginSuccessType}로 로그인되었습니다
                 </p>
                 <button
                   onClick={() => setShowLoginSuccessModal(false)}
-                  className="w-full bg-[#3C1E1E] text-[#FEE500] py-3 px-6 rounded-xl font-bold hover:bg-[#2C1515] transition-colors cursor-pointer text-base shadow-lg"
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all cursor-pointer text-base shadow-lg"
                 >
                   시작하기
                 </button>
