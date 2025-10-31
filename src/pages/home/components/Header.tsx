@@ -161,14 +161,18 @@ export default function Header({
 
   const handleAdminLogout = async () => {
     try {
+      // Supabase 로그아웃 시도 (에러 무시)
       await signOut();
+    } catch (error) {
+      // 세션이 없어도 로컬 상태는 초기화
+      console.log("세션이 이미 만료됨, 로컬 상태만 초기화");
+    } finally {
+      // 항상 로컬 상태 초기화
       setBillboardUserId(null);
       setBillboardUserName("");
       onAdminModeToggle?.(false, null, null, "");
       setShowSettingsModal(false);
       alert("로그아웃되었습니다.");
-    } catch (error) {
-      console.error("로그아웃 오류:", error);
     }
   };
 
