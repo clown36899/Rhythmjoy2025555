@@ -82,11 +82,20 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
 
     positionGroups.forEach((groupPlaces, posKey) => {
       const [lat, lng] = posKey.split(',').map(Number);
+      const count = groupPlaces.length;
       
       groupPlaces.forEach((place, index) => {
-        // 같은 위치에 여러 장소가 있으면 약간씩 offset
-        const offsetLat = lat + (index * 0.0003);
-        const offsetLng = lng + (index * 0.0003);
+        // 같은 위치에 여러 장소가 있으면 원형으로 배치
+        let offsetLat = lat;
+        let offsetLng = lng;
+        
+        if (count > 1) {
+          const angle = (index / count) * 2 * Math.PI;
+          const radius = 0.001; // 약 111m
+          offsetLat = lat + (radius * Math.cos(angle));
+          offsetLng = lng + (radius * Math.sin(angle));
+        }
+        
         const position = new kakao.maps.LatLng(offsetLat, offsetLng);
         
         const marker = new kakao.maps.Marker({
