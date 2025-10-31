@@ -4,6 +4,13 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 
+// 환경변수 디버깅 (외부 브라우저 확인용)
+console.log('[Supabase] 환경변수 확인:', {
+  url: supabaseUrl,
+  hasAnonKey: !!supabaseAnonKey && supabaseAnonKey !== 'placeholder-anon-key',
+  adminEmail: import.meta.env.VITE_ADMIN_EMAIL || '없음'
+});
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   realtime: {
     params: {
