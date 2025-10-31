@@ -1308,9 +1308,9 @@ export default function EventList({
       {/* 검색 키워드 배너 (Compact Style) */}
       {searchTerm && (
         <div
-          className="p-4"
+          className="p-[0.4rem]"
           style={{
-            margin: "14px 0",
+            margin: "2px 0",
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
@@ -1343,9 +1343,9 @@ export default function EventList({
       {searchTerm.trim() || selectedDate ? (
         // 검색 또는 날짜 선택 시: 단일 뷰
         <div
-          className="p-4"
+          className="p-[0.4rem]"
           style={{
-            margin: "14px 0",
+            margin: "2px 0",
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
@@ -1557,9 +1557,9 @@ export default function EventList({
               {/* 이전 달 - 독립 컨테이너 */}
               <div ref={prevMonthRef} className="flex-shrink-0 w-full self-start">
               <div
-                className="p-4"
+                className="p-[0.4rem]"
                 style={{
-                  margin: "14px 0",
+                  margin: "2px 0",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
@@ -1676,9 +1676,9 @@ export default function EventList({
               {/* 현재 달 - 독립 컨테이너 */}
               <div ref={currentMonthRef} className="flex-shrink-0 w-full self-start">
               <div
-                className="p-4"
+                className="p-[0.4rem]"
                 style={{
-                  margin: "14px 0",
+                  margin: "2px 0",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
@@ -1818,9 +1818,9 @@ export default function EventList({
               {/* 다음 달 - 독립 컨테이너 */}
               <div ref={nextMonthRef} className="flex-shrink-0 w-full self-start">
               <div
-                className="p-4"
+                className="p-[0.4rem]"
                 style={{
-                  margin: "14px 0",
+                  margin: "2px 0",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
