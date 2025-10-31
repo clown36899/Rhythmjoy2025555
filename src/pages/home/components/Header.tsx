@@ -17,11 +17,9 @@ interface HeaderProps {
     userId?: string | null,
     userName?: string,
   ) => void;
-  onBillboardOpen?: () => void;
   onBillboardSettingsOpen?: () => void;
   viewMode?: "month" | "year";
   onViewModeChange?: (mode: "month" | "year") => void;
-  billboardEnabled?: boolean;
 }
 
 export default function Header({
@@ -424,15 +422,6 @@ export default function Header({
                 <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
                   관리자
                 </span>
-              )}
-              {billboardEnabled && onBillboardOpen && (
-                <button
-                  onClick={onBillboardOpen}
-                  className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
-                  title="광고판 보기"
-                >
-                  <i className="ri-image-line text-sm"></i>
-                </button>
               )}
               <button
                 onClick={handleSettingsClick}

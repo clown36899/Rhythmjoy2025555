@@ -390,37 +390,52 @@ export default function EventList({
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('[EventList] 데이터 로딩 시작');
+      
+      // 10초 timeout 설정
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('데이터 로딩 시간 초과 (10초)')), 10000)
+      );
       
       let data: Event[] | null = null;
       let error: any = null;
 
-      if (isAdminMode) {
-        const result = await supabase
-          .from("events")
-          .select("*")
-          .order("start_date", { ascending: true, nullsFirst: false })
-          .order("date", { ascending: true, nullsFirst: false });
-        data = result.data;
-        error = result.error;
-      } else {
-        const result = await supabase
-          .from("events")
-          .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
-          .order("start_date", { ascending: true, nullsFirst: false })
-          .order("date", { ascending: true, nullsFirst: false });
-        data = result.data;
-        error = result.error;
-      }
+      const fetchPromise = (async () => {
+        if (isAdminMode) {
+          const result = await supabase
+            .from("events")
+            .select("*")
+            .order("start_date", { ascending: true, nullsFirst: false })
+            .order("date", { ascending: true, nullsFirst: false });
+          data = result.data;
+          error = result.error;
+        } else {
+          const result = await supabase
+            .from("events")
+            .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
+            .order("start_date", { ascending: true, nullsFirst: false })
+            .order("date", { ascending: true, nullsFirst: false });
+          data = result.data;
+          error = result.error;
+        }
+      })();
+
+      await Promise.race([fetchPromise, timeoutPromise]);
 
       if (error) {
-        console.error("Error fetching events:", error);
+        console.error("[EventList] Supabase 에러:", error);
+        setEvents([]);
       } else {
+        console.log('[EventList] 데이터 로딩 완료:', data?.length || 0, '개');
         setEvents(data || []);
       }
-    } catch (error) {
-      console.error("Error:", error);
+    } catch (error: any) {
+      console.error("[EventList] 데이터 로딩 실패:", error.message);
+      // 타임아웃이나 에러 발생 시 빈 배열로 설정 (무한 로딩 방지)
+      setEvents([]);
     } finally {
       setLoading(false);
+      console.log('[EventList] 로딩 상태 해제');
     }
   }, [isAdminMode]);
 
