@@ -489,6 +489,8 @@ export default function Header({
                           onChange={(e) => setAdminEmail(e.target.value)}
                           className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="admin@example.com"
+                          autoComplete="email"
+                          autoFocus={loginType === "super"}
                         />
                       </div>
                     )}
@@ -507,6 +509,8 @@ export default function Header({
                         }}
                         className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="비밀번호를 입력하세요"
+                        autoComplete={loginType === "super" ? "current-password" : "off"}
+                        autoFocus={loginType === "sub"}
                       />
                     </div>
                     <button
