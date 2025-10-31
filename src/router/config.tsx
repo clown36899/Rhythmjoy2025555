@@ -25,7 +25,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "social",
-        element: <Navigate to="/social/clubs" replace />,
+        element: <Navigate to="/social/calendar" replace />,
       },
       {
         path: "social/clubs",
