@@ -142,15 +142,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // 서버에서 받은 세션으로 자동 로그인
         if (authData.session) {
-          const { error } = await supabase.auth.setSession({
+          console.log('[카카오 로그인] Supabase 세션 설정 시작');
+          const { data, error } = await supabase.auth.setSession({
             access_token: authData.session.access_token,
             refresh_token: authData.session.refresh_token,
           });
 
           if (error) {
-            console.error('세션 설정 실패:', error);
+            console.error('[카카오 로그인] 세션 설정 실패:', error);
             throw new Error('로그인에 실패했습니다');
           }
+          
+          console.log('[카카오 로그인] Supabase 세션 설정 완료:', {
+            hasSession: !!data.session,
+            userEmail: data.session?.user?.email
+          });
+        } else {
+          console.error('[카카오 로그인] 서버에서 세션 데이터를 받지 못함');
         }
 
         return authData;
