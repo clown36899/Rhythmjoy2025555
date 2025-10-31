@@ -243,9 +243,11 @@ export function MobileShell() {
             <div className="text-xs text-gray-400 font-bold mb-2">관리자 패널</div>
             <button
               onClick={() => {
-                navigate('/');
-                window.dispatchEvent(new CustomEvent('openBillboardSettings'));
                 setShowAdminPanel(false);
+                navigate('/');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('openBillboardSettings'));
+                }, 100);
               }}
               className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
             >
@@ -254,9 +256,11 @@ export function MobileShell() {
             </button>
             <button
               onClick={() => {
-                navigate('/');
-                window.dispatchEvent(new CustomEvent('openBillboardUserManagement'));
                 setShowAdminPanel(false);
+                navigate('/');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('openBillboardUserManagement'));
+                }, 100);
               }}
               className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
             >
@@ -265,9 +269,11 @@ export function MobileShell() {
             </button>
             <button
               onClick={() => {
-                navigate('/');
-                window.dispatchEvent(new CustomEvent('openDefaultThumbnailSettings'));
                 setShowAdminPanel(false);
+                navigate('/');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('openDefaultThumbnailSettings'));
+                }, 100);
               }}
               className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
             >
@@ -276,9 +282,11 @@ export function MobileShell() {
             </button>
             <button
               onClick={() => {
-                navigate('/');
-                window.dispatchEvent(new CustomEvent('openColorSettings'));
                 setShowAdminPanel(false);
+                navigate('/');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('openColorSettings'));
+                }, 100);
               }}
               className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
             >
@@ -287,9 +295,11 @@ export function MobileShell() {
             </button>
             <button
               onClick={() => {
-                navigate('/');
-                window.dispatchEvent(new CustomEvent('openSettings'));
                 setShowAdminPanel(false);
+                navigate('/');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('openSettings'));
+                }, 100);
               }}
               className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
             >
