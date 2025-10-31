@@ -110,15 +110,15 @@ export default function InvitePage() {
         navigate('/', { replace: true });
       }
     } catch (err: any) {
-      // 에러 메시지 개선
+      // 에러 메시지 개선 - 짧고 명확하게
       let errorMessage = err.message || '가입 중 오류가 발생했습니다';
       
       if (errorMessage.includes('초대된 이메일') || errorMessage.includes('일치하지 않습니다')) {
-        errorMessage = `❌ 이메일 불일치\n\n초대된 이메일: ${invitationEmail}\n\n카카오톡에 ${invitationEmail} 이메일로 로그인하세요.\n현재 다른 이메일로 로그인하셨습니다.`;
+        errorMessage = '카카오톡에 등록된 이메일이 아닙니다';
       } else if (errorMessage.includes('초대받지 않은')) {
-        errorMessage = '❌ 초대받지 않은 사용자입니다.\n\n관리자에게 초대를 요청하세요.';
+        errorMessage = '초대받지 않은 사용자입니다';
       } else if (errorMessage.includes('카카오 계정에서 이메일')) {
-        errorMessage = '❌ 카카오톡 이메일 없음\n\n카카오톡에 등록된 이메일이 없습니다.\n카카오톡 설정에서 이메일을 등록해주세요.';
+        errorMessage = '카카오톡에 이메일이 등록되지 않았습니다';
       }
       
       setError(errorMessage);
