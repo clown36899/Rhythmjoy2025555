@@ -13,6 +13,7 @@ interface EventCalendarProps {
   viewMode?: "month" | "year";
   onViewModeChange?: (mode: "month" | "year") => void;
   hoveredEventId?: number | null;
+  isAdminMode?: boolean;
   // 공통 스와이프 상태
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
