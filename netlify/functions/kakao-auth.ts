@@ -21,7 +21,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { kakaoAccessToken } = JSON.parse(event.body || '{}');
+    const { kakaoAccessToken, invitationToken } = JSON.parse(event.body || '{}');
 
     if (!kakaoAccessToken) {
       return {
@@ -57,11 +57,93 @@ export const handler: Handler = async (event) => {
 
     const isAdmin = email === adminEmail;
     
-    const { data: billboardUser } = await supabaseAdmin
+    // 초대 코드가 있으면 검증 및 처리
+    let invitation: any = null;
+    if (invitationToken && !isAdmin) {
+      const { data: inv, error: invError } = await supabaseAdmin
+        .from('invitations')
+        .select('*')
+        .eq('token', invitationToken)
+        .single();
+
+      if (invError || !inv) {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ error: '유효하지 않은 초대 코드입니다' })
+        };
+      }
+
+      if (inv.used) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: '이미 사용된 초대 코드입니다' })
+        };
+      }
+
+      if (new Date(inv.expires_at) < new Date()) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: '만료된 초대 코드입니다' })
+        };
+      }
+
+      if (inv.email !== email) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ 
+            error: '초대된 이메일과 카카오 이메일이 일치하지 않습니다',
+            message: `이 초대는 ${inv.email}을 위한 것입니다`
+          })
+        };
+      }
+
+      invitation = inv;
+    }
+    
+    let { data: billboardUser } = await supabaseAdmin
       .from('billboard_users')
       .select('id, name, email')
       .eq('email', email)
       .single();
+
+    // 초대 코드로 신규 가입하는 경우 billboard_users 생성
+    if (invitation && !billboardUser) {
+      const randomPassword = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
+      const salt = Math.random().toString(36).slice(-8);
+      const crypto = await import('crypto');
+      const hashedPassword = crypto.createHash('sha256').update(salt + randomPassword).digest('hex');
+
+      const { data: newBillboardUser, error: createBillboardError } = await supabaseAdmin
+        .from('billboard_users')
+        .insert({
+          name,
+          email,
+          username: email.split('@')[0],
+          password: hashedPassword,
+          salt,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (createBillboardError) {
+        console.error('Billboard user creation error:', createBillboardError);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: '빌보드 사용자 생성 실패' })
+        };
+      }
+
+      billboardUser = newBillboardUser;
+
+      // 초대 코드 사용 처리
+      if (invitation) {
+        await supabaseAdmin
+          .from('invitations')
+          .update({ used: true })
+          .eq('id', invitation.id);
+      }
+    }
 
     if (!isAdmin && !billboardUser) {
       return {
@@ -111,18 +193,26 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    const { data: otpData, error: otpError } = await supabaseAdmin.auth.signInWithOtp({
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
       email,
-      options: {
-        shouldCreateUser: false,
-      }
     });
 
-    if (otpError || !otpData) {
-      console.error('OTP generation error:', otpError);
+    if (linkError || !linkData) {
+      console.error('Magic link generation error:', linkError);
       return {
         statusCode: 500,
         body: JSON.stringify({ error: '세션 생성 실패' })
+      };
+    }
+
+    const hashedToken = new URL(linkData.properties.action_link).searchParams.get('token');
+
+    if (!hashedToken) {
+      console.error('토큰 추출 실패');
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: '토큰 생성 실패' })
       };
     }
 
@@ -136,7 +226,8 @@ export const handler: Handler = async (event) => {
         isBillboardUser: !!billboardUser,
         billboardUserId: billboardUser?.id || null,
         billboardUserName: billboardUser?.name || null,
-        needsOtpVerification: true
+        token: hashedToken,
+        tokenType: 'magiclink'
       })
     };
 

@@ -20,9 +20,119 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   }
 });
 
+// 초대 코드 생성 (슈퍼 관리자만)
+app.post('/api/invitations', async (req, res) => {
+  try {
+    const { email, adminEmail: requestAdminEmail } = req.body;
+
+    if (requestAdminEmail !== adminEmail) {
+      return res.status(403).json({ error: '권한이 없습니다' });
+    }
+
+    if (!email) {
+      return res.status(400).json({ error: '이메일이 필요합니다' });
+    }
+
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7일 후 만료
+
+    const { data, error } = await supabaseAdmin
+      .from('invitations')
+      .insert({
+        email,
+        invited_by: requestAdminEmail,
+        token,
+        expires_at: expiresAt.toISOString(),
+        used: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Invitation creation error:', error);
+      return res.status(500).json({ error: '초대 생성 실패' });
+    }
+
+    const inviteUrl = `${req.headers.origin || 'http://localhost:5000'}/invite/${token}`;
+
+    res.json({
+      success: true,
+      invitation: data,
+      inviteUrl
+    });
+  } catch (error) {
+    console.error('Create invitation error:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 초대 목록 조회 (슈퍼 관리자만)
+app.get('/api/invitations', async (req, res) => {
+  try {
+    const requestAdminEmail = req.headers['x-admin-email'];
+
+    if (requestAdminEmail !== adminEmail) {
+      return res.status(403).json({ error: '권한이 없습니다' });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('invitations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Invitations fetch error:', error);
+      return res.status(500).json({ error: '초대 목록 조회 실패' });
+    }
+
+    res.json({ invitations: data });
+  } catch (error) {
+    console.error('Get invitations error:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 초대 코드 검증
+app.post('/api/invitations/validate', async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: '초대 코드가 필요합니다' });
+    }
+
+    const { data: invitation, error } = await supabaseAdmin
+      .from('invitations')
+      .select('*')
+      .eq('token', token)
+      .single();
+
+    if (error || !invitation) {
+      return res.status(404).json({ error: '유효하지 않은 초대 코드입니다' });
+    }
+
+    if (invitation.used) {
+      return res.status(400).json({ error: '이미 사용된 초대 코드입니다' });
+    }
+
+    if (new Date(invitation.expires_at) < new Date()) {
+      return res.status(400).json({ error: '만료된 초대 코드입니다' });
+    }
+
+    res.json({
+      valid: true,
+      email: invitation.email
+    });
+  } catch (error) {
+    console.error('Validate invitation error:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
 app.post('/api/auth/kakao', async (req, res) => {
   try {
-    const { kakaoAccessToken } = req.body;
+    const { kakaoAccessToken, invitationToken } = req.body;
 
     if (!kakaoAccessToken) {
       return res.status(400).json({ error: '카카오 액세스 토큰이 필요합니다' });
@@ -49,11 +159,76 @@ app.post('/api/auth/kakao', async (req, res) => {
 
     const isAdmin = email === adminEmail;
     
-    const { data: billboardUser } = await supabaseAdmin
+    // 초대 코드가 있으면 검증 및 처리
+    let invitation = null;
+    if (invitationToken && !isAdmin) {
+      const { data: inv, error: invError } = await supabaseAdmin
+        .from('invitations')
+        .select('*')
+        .eq('token', invitationToken)
+        .single();
+
+      if (invError || !inv) {
+        return res.status(404).json({ error: '유효하지 않은 초대 코드입니다' });
+      }
+
+      if (inv.used) {
+        return res.status(400).json({ error: '이미 사용된 초대 코드입니다' });
+      }
+
+      if (new Date(inv.expires_at) < new Date()) {
+        return res.status(400).json({ error: '만료된 초대 코드입니다' });
+      }
+
+      if (inv.email !== email) {
+        return res.status(400).json({ 
+          error: '초대된 이메일과 카카오 이메일이 일치하지 않습니다',
+          message: `이 초대는 ${inv.email}을 위한 것입니다`
+        });
+      }
+
+      invitation = inv;
+    }
+    
+    let { data: billboardUser } = await supabaseAdmin
       .from('billboard_users')
       .select('id, name, email')
       .eq('email', email)
       .single();
+
+    // 초대 코드로 신규 가입하는 경우 billboard_users 생성
+    if (invitation && !billboardUser) {
+      const randomPassword = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
+      const salt = Math.random().toString(36).slice(-8);
+      const crypto = await import('crypto');
+      const hashedPassword = crypto.createHash('sha256').update(salt + randomPassword).digest('hex');
+
+      const { data: newBillboardUser, error: createBillboardError } = await supabaseAdmin
+        .from('billboard_users')
+        .insert({
+          name,
+          email,
+          username: email.split('@')[0],
+          password: hashedPassword,
+          salt,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (createBillboardError) {
+        console.error('Billboard user creation error:', createBillboardError);
+        return res.status(500).json({ error: '빌보드 사용자 생성 실패' });
+      }
+
+      billboardUser = newBillboardUser;
+
+      // 초대 코드 사용 처리
+      await supabaseAdmin
+        .from('invitations')
+        .update({ used: true })
+        .eq('id', invitation.id);
+    }
 
     if (!isAdmin && !billboardUser) {
       return res.status(403).json({ 
@@ -97,16 +272,21 @@ app.post('/api/auth/kakao', async (req, res) => {
       }
     }
 
-    const { data: otpData, error: otpError } = await supabaseAdmin.auth.signInWithOtp({
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
       email,
-      options: {
-        shouldCreateUser: false,
-      }
     });
 
-    if (otpError || !otpData) {
-      console.error('OTP generation error:', otpError);
+    if (linkError || !linkData) {
+      console.error('Magic link generation error:', linkError);
       return res.status(500).json({ error: '세션 생성 실패' });
+    }
+
+    const hashedToken = new URL(linkData.properties.action_link).searchParams.get('token');
+
+    if (!hashedToken) {
+      console.error('토큰 추출 실패');
+      return res.status(500).json({ error: '토큰 생성 실패' });
     }
 
     res.json({
@@ -117,7 +297,8 @@ app.post('/api/auth/kakao', async (req, res) => {
       isBillboardUser: !!billboardUser,
       billboardUserId: billboardUser?.id || null,
       billboardUserName: billboardUser?.name || null,
-      needsOtpVerification: true
+      token: hashedToken,
+      tokenType: 'magiclink'
     });
 
   } catch (error) {

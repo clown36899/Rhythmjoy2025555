@@ -78,23 +78,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const authData = await response.json();
 
-    if (authData.needsOtpVerification) {
-      const otp = window.prompt(
-        `${authData.email}로 인증 코드를 발송했습니다.\n` +
-        '이메일에서 6자리 코드를 확인하여 입력하세요:'
-      );
-
-      if (!otp) {
-        throw new Error('인증 코드 입력이 취소되었습니다');
-      }
-
+    // 서버에서 받은 Magic Link 토큰으로 자동 세션 생성
+    if (authData.token && authData.tokenType === 'magiclink') {
       const { error } = await supabase.auth.verifyOtp({
         email: authData.email,
-        token: otp,
+        token: authData.token,
         type: 'magiclink',
       });
 
-      if (error) throw new Error('인증 코드가 올바르지 않습니다');
+      if (error) {
+        console.error('자동 세션 생성 실패:', error);
+        throw new Error('로그인에 실패했습니다');
+      }
     }
 
     return authData;

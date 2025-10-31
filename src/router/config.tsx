@@ -8,12 +8,17 @@ import GuidePage from "../pages/guide/page";
 import ClubsPage from "../pages/social/clubs/page";
 import SwingBarsPage from "../pages/social/swing-bars/page";
 import SocialCalendarPage from "../pages/social/calendar/page";
+import InvitePage from "../pages/invite/page";
 import { MobileShell } from "../layouts/MobileShell";
 
 const routes: RouteObject[] = [
   {
     path: "/billboard/:userId",
     element: <BillboardPage />,
+  },
+  {
+    path: "/invite/:token",
+    element: <InvitePage />,
   },
   {
     path: "/",

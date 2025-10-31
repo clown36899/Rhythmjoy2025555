@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import QRCodeModal from "../../../components/QRCodeModal";
 import BillboardUserManagementModal from "../../../components/BillboardUserManagementModal";
 import DefaultThumbnailSettingsModal from "../../../components/DefaultThumbnailSettingsModal";
+import InvitationManagementModal from "../../../components/InvitationManagementModal";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -55,6 +56,8 @@ export default function Header({
   const [showBillboardUserManagement, setShowBillboardUserManagement] =
     useState(false);
   const [showDefaultThumbnailSettings, setShowDefaultThumbnailSettings] =
+    useState(false);
+  const [showInvitationManagement, setShowInvitationManagement] =
     useState(false);
   const [themeColors, setThemeColors] = useState({
     background_color: "#000000",
@@ -623,6 +626,16 @@ export default function Header({
                         </button>
                         <button
                           onClick={() => {
+                            setShowInvitationManagement(true);
+                            setShowSettingsModal(false);
+                          }}
+                          className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                        >
+                          <i className="ri-mail-send-line"></i>
+                          초대 관리
+                        </button>
+                        <button
+                          onClick={() => {
                             setShowDefaultThumbnailSettings(true);
                           }}
                           className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
@@ -849,6 +862,12 @@ export default function Header({
       <DefaultThumbnailSettingsModal
         isOpen={showDefaultThumbnailSettings}
         onClose={() => setShowDefaultThumbnailSettings(false)}
+      />
+
+      {/* Invitation Management Modal */}
+      <InvitationManagementModal
+        isOpen={showInvitationManagement}
+        onClose={() => setShowInvitationManagement(false)}
       />
 
       {/* QR Code Modal */}
