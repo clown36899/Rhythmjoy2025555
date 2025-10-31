@@ -40,6 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         clearTimeout(timeoutId);
+        console.log('[AuthContext] 초기 세션:', {
+          hasSession: !!session,
+          userEmail: session?.user?.email,
+          adminEmail: import.meta.env.VITE_ADMIN_EMAIL,
+          isProduction: import.meta.env.PROD
+        });
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -166,13 +172,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || false;
 
-  // 디버깅 로그
+  // 디버깅 로그 (상세)
   useEffect(() => {
-    console.log('[AuthContext] 상태:', {
-      user: user?.email,
+    console.log('[AuthContext] 상태 업데이트:', {
+      userEmail: user?.email,
       isAdmin,
       loading,
-      session: !!session
+      hasSession: !!session,
+      adminEmail: import.meta.env.VITE_ADMIN_EMAIL,
+      comparison: user?.email === import.meta.env.VITE_ADMIN_EMAIL
     });
   }, [user, isAdmin, loading, session]);
 
