@@ -154,6 +154,9 @@ export default function Header({
   const handleAdminLogout = async () => {
     console.log('[로그아웃] 시작');
     
+    // 모달 먼저 닫기
+    setShowSettingsModal(false);
+    
     // 로컬 상태 먼저 초기화
     setBillboardUserId(null);
     setBillboardUserName("");
