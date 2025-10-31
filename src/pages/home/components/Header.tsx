@@ -416,13 +416,8 @@ export default function Header({
               </div>
             )}
 
-            {/* Right: Billboard & Settings Button */}
+            {/* Right: Settings Button */}
             <div className="flex items-center space-x-2">
-              {(isAdmin || billboardUserId !== null) && (
-                <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                  관리자
-                </span>
-              )}
               <button
                 onClick={handleSettingsClick}
                 className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
