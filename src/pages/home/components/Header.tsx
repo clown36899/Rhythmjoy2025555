@@ -416,15 +416,17 @@ export default function Header({
               </div>
             )}
 
-            {/* Right: Settings Button */}
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={handleSettingsClick}
-                className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
-              >
-                <i className="ri-settings-3-line text-sm"></i>
-              </button>
-            </div>
+            {/* Right: Settings Button (관리자 로그인 상태일 때만 표시) */}
+            {(isAdmin || billboardUserId !== null) && (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleSettingsClick}
+                  className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
+                >
+                  <i className="ri-settings-3-line text-sm"></i>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
