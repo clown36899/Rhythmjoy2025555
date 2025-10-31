@@ -139,7 +139,7 @@ export default function EventList({
   const [currentDay, setCurrentDay] = useState(() => new Date().toDateString());
 
   // 슬라이드 높이 동적 조정을 위한 상태 및 ref
-  const [slideContainerHeight, setSlideContainerHeight] = useState<number | null>(null);
+  // const [slideContainerHeight, setSlideContainerHeight] = useState<number | null>(null);
   const prevMonthRef = useRef<HTMLDivElement>(null);
   const currentMonthRef = useRef<HTMLDivElement>(null);
   const nextMonthRef = useRef<HTMLDivElement>(null);
@@ -183,28 +183,29 @@ export default function EventList({
   }, [selectedEvent, showEditModal]);
 
   // 슬라이드 높이 측정 및 업데이트 (애니메이션과 동시에)
-  useEffect(() => {
-    // 검색/날짜 선택 모드에서는 슬라이드가 아니므로 높이 조정 불필요
-    if (searchTerm.trim() || selectedDate) {
-      setSlideContainerHeight(null);
-      return;
-    }
+  // ⚠️ 높이 자동 조정 기능 비활성화 - 푸터가 올라오는 문제 해결
+  // useEffect(() => {
+  //   // 검색/날짜 선택 모드에서는 슬라이드가 아니므로 높이 조정 불필요
+  //   if (searchTerm.trim() || selectedDate) {
+  //     setSlideContainerHeight(null);
+  //     return;
+  //   }
 
-    // currentMonth가 변경되면 즉시 새 높이 측정 시작 (애니메이션 전에)
-    if (currentMonthRef.current) {
-      const measureHeight = () => {
-        requestAnimationFrame(() => {
-          if (currentMonthRef.current) {
-            const height = currentMonthRef.current.offsetHeight;
-            setSlideContainerHeight(height);
-          }
-        });
-      };
+  //   // currentMonth가 변경되면 즉시 새 높이 측정 시작 (애니메이션 전에)
+  //   if (currentMonthRef.current) {
+  //     const measureHeight = () => {
+  //       requestAnimationFrame(() => {
+  //         if (currentMonthRef.current) {
+  //           const height = currentMonthRef.current.offsetHeight;
+  //           setSlideContainerHeight(height);
+  //         }
+  //       });
+  //     };
 
-      // 애니메이션과 동시에 높이 조정
-      measureHeight();
-    }
-  }, [currentMonth, searchTerm, selectedDate]);
+  //     // 애니메이션과 동시에 높이 조정
+  //     measureHeight();
+  //   }
+  // }, [currentMonth, searchTerm, selectedDate]);
 
   // 로컬 날짜를 YYYY-MM-DD 형식으로 반환하는 헬퍼 함수
   const getLocalDateString = (date: Date = new Date()) => {
@@ -1530,8 +1531,8 @@ export default function EventList({
           <div 
             className="overflow-hidden"
             style={{
-              height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
-              transition: 'height 0.3s ease-out'
+              // height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
+              // transition: 'height 0.3s ease-out'
             }}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
