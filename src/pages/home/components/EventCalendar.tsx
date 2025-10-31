@@ -617,7 +617,7 @@ export default function EventCalendar({
     <>
       <div
         data-calendar
-        className="rounded-none p-0 h-full flex flex-col"
+        className="rounded-none p-0 h-full flex flex-col no-select"
         style={{ backgroundColor: "var(--calendar-bg-color)" }}
       >
         {/* Desktop Header */}

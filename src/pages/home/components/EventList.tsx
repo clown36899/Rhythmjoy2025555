@@ -1239,7 +1239,7 @@ export default function EventList({
   }
 
   return (
-    <>
+    <div className="no-select">
       {/* 검색 키워드 배너 (Compact Style) */}
       {searchTerm && (
         <div
@@ -3253,6 +3253,6 @@ export default function EventList({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

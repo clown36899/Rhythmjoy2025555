@@ -154,7 +154,7 @@ export function MobileShell() {
           </div>
         )}
         
-        <div className="flex items-center justify-around px-2 py-2 border-t border-[#22262a]" style={{ backgroundColor: "var(--header-bg-color)" }}>
+        <div className="flex items-center justify-around px-2 py-2 border-t border-[#22262a] no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
           {/* 전체 버튼 */}
           <button
             onClick={() => handleCategoryChange('all')}
