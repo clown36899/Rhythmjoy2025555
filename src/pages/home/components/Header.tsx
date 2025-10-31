@@ -477,7 +477,10 @@ export default function Header({
                     </button>
                   </div>
 
-                  <div className="space-y-4">
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAdminLogin();
+                  }} className="space-y-4">
                     {loginType === "super" && (
                       <div>
                         <label className="block text-gray-300 text-sm font-medium mb-2">
@@ -485,6 +488,7 @@ export default function Header({
                         </label>
                         <input
                           type="email"
+                          name="email"
                           value={adminEmail}
                           onChange={(e) => setAdminEmail(e.target.value)}
                           className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -500,13 +504,9 @@ export default function Header({
                       </label>
                       <input
                         type="password"
+                        name="password"
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleAdminLogin();
-                          }
-                        }}
                         className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="비밀번호를 입력하세요"
                         autoComplete={loginType === "super" ? "current-password" : "off"}
@@ -514,12 +514,12 @@ export default function Header({
                       />
                     </div>
                     <button
-                      onClick={handleAdminLogin}
+                      type="submit"
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
                     >
                       로그인
                     </button>
-                  </div>
+                  </form>
                 </div>
               ) : (
                 <div>
