@@ -103,13 +103,12 @@ waitForPort = 5000
 name = "Auth Server"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run server"
-waitForPort = 3001
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [deployment]
 deploymentTarget = "autoscale"
