@@ -47,7 +47,7 @@ export default function Header({
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState(false);
   
-  const { isAdmin, signIn, signOut, signInWithKakao } = useAuth();
+  const { isAdmin, signOut, signInWithKakao } = useAuth();
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] =
@@ -116,68 +116,32 @@ export default function Header({
     setShowSettingsModal(true);
   };
 
-  const handleAdminLogin = async () => {
+  const handleKakaoLogin = async () => {
     setLoginLoading(true);
     try {
-      if (loginType === "super") {
-        // 슈퍼 관리자: Supabase Auth 이메일/비밀번호 로그인
-        try {
-          await signIn(adminEmail, adminPassword);
-          
-          // 슈퍼 관리자 이메일 검증
-          const allowedAdminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-          if (adminEmail !== allowedAdminEmail) {
-            await signOut();
-            alert("슈퍼 관리자 권한이 없습니다. 서브 관리자는 '빌보드 관리자' 탭을 사용하세요.");
-            return;
-          }
-          
-          onAdminModeToggle?.(true, "super", null, "");
-          setShowSettingsModal(false);
-          setAdminEmail("");
-          setAdminPassword("");
-          alert("슈퍼 관리자 로그인 성공!");
-        } catch (error: any) {
-          console.error("로그인 오류:", error);
-          alert(error.message || "이메일 또는 비밀번호가 올바르지 않습니다.");
-        }
+      const result = await signInWithKakao();
+      
+      // 서버 응답에 따라 자동으로 권한 설정
+      if (result.isAdmin) {
+        // 슈퍼 관리자
+        onAdminModeToggle?.(true, "super", null, "");
+      } else if (result.isBillboardUser && result.billboardUserId && result.billboardUserName) {
+        // 서브 관리자 (빌보드 사용자)
+        setBillboardUserId(result.billboardUserId);
+        setBillboardUserName(result.billboardUserName);
+        onAdminModeToggle?.(true, "sub", result.billboardUserId, result.billboardUserName);
       } else {
-        // 서브 관리자(빌보드 사용자): 기존 방식 유지
-        try {
-          const { data: users, error } = await supabase
-            .from("billboard_users")
-            .select("*")
-            .eq("is_active", true);
-
-          if (error) throw error;
-
-          const allowedAdminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-          
-          for (const user of users || []) {
-            // 슈퍼 관리자 이메일은 서브 탭에서 로그인 불가
-            if (user.email === allowedAdminEmail) {
-              continue;
-            }
-            
-            const { verifyPassword } = await import("../../../utils/passwordHash");
-            const isValid = await verifyPassword(adminPassword, user.password_hash);
-
-            if (isValid) {
-              setBillboardUserId(user.id);
-              setBillboardUserName(user.name);
-              onAdminModeToggle?.(true, "sub", user.id, user.name);
-              setAdminPassword("");
-              alert(`${user.name} 빌보드 관리자 로그인 성공!`);
-              return;
-            }
-          }
-
-          alert("비밀번호가 올바르지 않습니다.");
-        } catch (error) {
-          console.error("로그인 오류:", error);
-          alert("로그인 중 오류가 발생했습니다.");
-        }
+        // 권한 없음
+        await signOut();
+        alert("관리자 권한이 없습니다. 초대를 요청하세요.");
+        return;
       }
+      
+      setLoginSuccessName(result.name);
+      setShowSettingsModal(false);
+      setShowLoginSuccessModal(true);
+    } catch (error: any) {
+      alert('❌ ' + (error.message || '카카오 로그인에 실패했습니다'));
     } finally {
       setLoginLoading(false);
     }
@@ -491,168 +455,31 @@ export default function Header({
               </div>
 
               {!isAdmin && billboardUserId === null ? (
-                <div>
-                  <h4 className="text-lg font-semibold text-white mb-4">
+                <div className="text-center">
+                  <h4 className="text-lg font-semibold text-white mb-2">
                     관리자 로그인
                   </h4>
+                  <p className="text-gray-400 text-sm mb-6">
+                    카카오톡 계정으로 로그인하세요
+                  </p>
                   
-                  {/* 로그인 타입 선택 탭 */}
-                  <div className="flex border-b border-gray-700 mb-4">
-                    <button
-                      onClick={() => setLoginType("super")}
-                      disabled={loginLoading}
-                      className={`flex-1 py-2 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                        loginType === "super"
-                          ? "text-blue-400 border-b-2 border-blue-400"
-                          : "text-gray-400 hover:text-gray-300"
-                      }`}
-                    >
-                      슈퍼 관리자
-                    </button>
-                    <button
-                      onClick={() => setLoginType("sub")}
-                      disabled={loginLoading}
-                      className={`flex-1 py-2 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                        loginType === "sub"
-                          ? "text-blue-400 border-b-2 border-blue-400"
-                          : "text-gray-400 hover:text-gray-300"
-                      }`}
-                    >
-                      빌보드 관리자
-                    </button>
-                  </div>
-
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    handleAdminLogin();
-                  }} className="space-y-4">
-                    {loginType === "super" && (
-                      <div>
-                        <label className="block text-gray-300 text-sm font-medium mb-2">
-                          이메일
-                        </label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={adminEmail}
-                          onChange={(e) => setAdminEmail(e.target.value)}
-                          disabled={loginLoading}
-                          className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                          placeholder="admin@example.com"
-                          autoComplete="email"
-                          autoFocus={loginType === "super"}
-                        />
-                      </div>
+                  <button
+                    onClick={handleKakaoLogin}
+                    disabled={loginLoading}
+                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-3 px-4 rounded-lg text-base font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loginLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-900 border-t-transparent"></div>
+                        로그인 중...
+                      </>
+                    ) : (
+                      <>
+                        <i className="ri-kakao-talk-fill text-xl"></i>
+                        카카오로 로그인
+                      </>
                     )}
-                    <div>
-                      <label className="block text-gray-300 text-sm font-medium mb-2">
-                        비밀번호
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          value={adminPassword}
-                          onChange={(e) => setAdminPassword(e.target.value)}
-                          disabled={loginLoading}
-                          className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                          placeholder="비밀번호를 입력하세요"
-                          autoComplete={loginType === "super" ? "current-password" : "off"}
-                          autoFocus={loginType === "sub"}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={loginLoading}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <i className={showPassword ? "ri-eye-off-line text-xl" : "ri-eye-line text-xl"}></i>
-                        </button>
-                      </div>
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={loginLoading}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {loginLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                          로그인 중...
-                        </>
-                      ) : (
-                        "로그인"
-                      )}
-                    </button>
-                  </form>
-                  
-                  <div className="mt-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-600"></div>
-                      </div>
-                      <div className="relative flex justify-center text-xs">
-                        <span className="px-2 bg-gray-800 text-gray-400">또는</span>
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={async () => {
-                        setLoginLoading(true);
-                        try {
-                          const result = await signInWithKakao();
-                          
-                          // 로그인 타입별 검증
-                          if (loginType === "super") {
-                            // 슈퍼 관리자 탭: 슈퍼 관리자만 허용
-                            if (!result.isAdmin) {
-                              await signOut();
-                              alert("슈퍼 관리자 권한이 없습니다. 서브 관리자는 '빌보드 관리자' 탭을 사용하세요.");
-                              return;
-                            }
-                            onAdminModeToggle?.(true, "super", null, "");
-                          } else {
-                            // 빌보드 관리자 탭: 서브 관리자만 허용
-                            if (result.isAdmin) {
-                              await signOut();
-                              alert("슈퍼 관리자는 '슈퍼 관리자' 탭을 사용하세요.");
-                              return;
-                            }
-                            if (!result.isBillboardUser || !result.billboardUserId || !result.billboardUserName) {
-                              await signOut();
-                              alert("초대받지 않은 사용자입니다. 관리자에게 초대를 요청하세요.");
-                              return;
-                            }
-                            setBillboardUserId(result.billboardUserId);
-                            setBillboardUserName(result.billboardUserName);
-                            onAdminModeToggle?.(true, "sub", result.billboardUserId, result.billboardUserName);
-                          }
-                          
-                          setLoginSuccessName(result.name);
-                          setShowSettingsModal(false);
-                          setShowLoginSuccessModal(true);
-                        } catch (error: any) {
-                          alert('❌ ' + (error.message || '카카오 로그인에 실패했습니다'));
-                        } finally {
-                          setLoginLoading(false);
-                        }
-                      }}
-                      disabled={loginLoading}
-                      className="mt-3 w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loginLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-900 border-t-transparent"></div>
-                          로그인 중...
-                        </>
-                      ) : (
-                        <>
-                          <i className="ri-kakao-talk-fill"></i>
-                          카카오로 로그인
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  </button>
                 </div>
               ) : (
                 <div>
