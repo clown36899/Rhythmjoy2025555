@@ -140,19 +140,37 @@ export default function InvitePage() {
   }
 
   if (error || !invitationValid) {
+    // 에러 메시지 개선
+    let displayError = error || '유효하지 않은 초대입니다';
+    let errorDetails = '';
+    
+    if (displayError.includes('유효하지 않은 초대')) {
+      displayError = '카카오에 등록되지 않은 이메일입니다';
+      errorDetails = '초대 링크의 이메일이 카카오톡에 등록되어 있지 않습니다.';
+    } else if (displayError.includes('이미 사용된')) {
+      errorDetails = '이 초대는 이미 사용되었습니다.';
+    } else if (displayError.includes('만료')) {
+      errorDetails = '초대 링크의 유효 기간이 만료되었습니다.';
+    } else if (displayError.includes('초대 코드가 없습니다')) {
+      displayError = '잘못된 접근입니다';
+      errorDetails = '초대 링크가 올바르지 않습니다.';
+    }
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
         <div className="bg-white/10 rounded-2xl p-8 backdrop-blur-lg border border-white/20 max-w-md w-full">
           <div className="text-center">
             <i className="ri-error-warning-line text-6xl text-red-400 mb-4"></i>
             <h2 className="text-2xl font-bold text-white mb-4">초대 오류</h2>
-            <p className="text-white/80 mb-6">{error || '유효하지 않은 초대입니다'}</p>
-            <button
-              onClick={() => navigate('/')}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
-            >
-              홈으로 돌아가기
-            </button>
+            <p className="text-red-200 text-lg font-semibold mb-2">{displayError}</p>
+            {errorDetails && (
+              <p className="text-white/70 text-sm mb-6">{errorDetails}</p>
+            )}
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 mt-6">
+              <p className="text-white/60 text-xs">
+                문제가 지속되면 관리자에게 문의하세요
+              </p>
+            </div>
           </div>
         </div>
       </div>
