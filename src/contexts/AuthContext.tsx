@@ -52,6 +52,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || false;
 
+  // 디버깅 로그
+  useEffect(() => {
+    console.log('[AuthContext] 상태 변경:', {
+      user: user?.email,
+      isAdmin,
+      adminEmail: import.meta.env.VITE_ADMIN_EMAIL,
+      loading
+    });
+  }, [user, isAdmin, loading]);
+
   return (
     <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signOut }}>
       {children}
