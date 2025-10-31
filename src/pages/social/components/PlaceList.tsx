@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { SocialPlace } from '../page';
 import PlaceModal from './PlaceModal';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface PlaceListProps {
   places: SocialPlace[];
@@ -10,22 +11,10 @@ interface PlaceListProps {
 
 export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: PlaceListProps) {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false);
-
-  // 관리자 모드 체크 (localStorage에서)
-  useEffect(() => {
-    const checkAdminMode = () => {
-      const adminPassword = localStorage.getItem('adminPassword');
-      setIsAdminMode(!!adminPassword);
-    };
-
-    checkAdminMode();
-    window.addEventListener('storage', checkAdminMode);
-    return () => window.removeEventListener('storage', checkAdminMode);
-  }, []);
+  const { isAdmin } = useAuth();
 
   const handleAddClick = () => {
-    if (!isAdminMode) {
+    if (!isAdmin) {
       alert('관리자에게 문의하세요\n전화: 010-4801-7180');
       return;
     }

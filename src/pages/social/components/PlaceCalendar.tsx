@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { SocialPlace } from '../page';
 import ScheduleModal from './ScheduleModal';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface Schedule {
   id: number;
@@ -24,17 +25,11 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     loadSchedules();
-    checkAdminMode();
   }, [place.id, currentDate]);
-
-  const checkAdminMode = () => {
-    const adminPassword = localStorage.getItem('adminPassword');
-    setIsAdminMode(!!adminPassword);
-  };
 
   const loadSchedules = async () => {
     try {
@@ -66,7 +61,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
   };
 
   const handleDateClick = (date: Date) => {
-    if (isAdminMode) {
+    if (isAdmin) {
       setSelectedDate(date);
       setShowScheduleModal(true);
     }
@@ -104,7 +99,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
           key={day}
           onClick={() => handleDateClick(date)}
           className={`aspect-square border border-gray-700 p-1 ${
-            isAdminMode ? 'cursor-pointer hover:bg-gray-700' : ''
+            isAdmin ? 'cursor-pointer hover:bg-gray-700' : ''
           } ${isToday ? 'bg-blue-900/30' : 'bg-gray-800'}`}
         >
           <div className={`text-xs mb-1 ${isToday ? 'text-blue-400 font-bold' : 'text-gray-300'}`}>
@@ -200,7 +195,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
         </div>
 
         {/* 안내 문구 */}
-        {isAdminMode && (
+        {isAdmin && (
           <div className="mt-4 text-center text-sm text-gray-400">
             날짜를 클릭하여 일정을 추가하세요
           </div>

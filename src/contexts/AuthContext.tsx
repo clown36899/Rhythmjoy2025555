@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const isAdmin = !!user;
+  const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || false;
 
   return (
     <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signOut }}>

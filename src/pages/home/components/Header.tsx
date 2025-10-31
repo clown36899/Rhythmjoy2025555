@@ -4,6 +4,7 @@ import QRCodeModal from "../../../components/QRCodeModal";
 import BillboardUserManagementModal from "../../../components/BillboardUserManagementModal";
 import DefaultThumbnailSettingsModal from "../../../components/DefaultThumbnailSettingsModal";
 import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../../contexts/AuthContext";
 
 interface HeaderProps {
   currentMonth?: Date;
@@ -41,11 +42,13 @@ export default function Header({
     currentMonth?.getMonth() || new Date().getMonth(),
   );
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
+  const [loginType, setLoginType] = useState<"super" | "sub">("super");
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
+  
+  const { isAdmin, signIn, signOut } = useAuth();
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] =
@@ -111,68 +114,62 @@ export default function Header({
   };
 
   const handleAdminLogin = async () => {
-    // 메인 관리자 비밀번호: admin123
-    if (adminPassword === "admin123") {
-      setIsAdminMode(true);
-      setAdminType("super");
-      setBillboardUserId(null);
-      setBillboardUserName("");
-      localStorage.setItem('adminPassword', 'true');
-      window.dispatchEvent(new Event('storage'));
-      onAdminModeToggle?.(true, "super", null, "");
-      setShowSettingsModal(false);
-      setAdminPassword("");
-      alert("메인 관리자 모드로 전환되었습니다.");
-      return;
-    }
-
-    // 서브 관리자 로그인 시도
-    try {
-      const { data: users, error } = await supabase
-        .from("billboard_users")
-        .select("*")
-        .eq("is_active", true);
-
-      if (error) throw error;
-
-      // 비밀번호 검증
-      for (const user of users || []) {
-        const { verifyPassword } = await import("../../../utils/passwordHash");
-        const isValid = await verifyPassword(adminPassword, user.password_hash);
-
-        if (isValid) {
-          setIsAdminMode(true);
-          setAdminType("sub");
-          setBillboardUserId(user.id);
-          setBillboardUserName(user.name);
-          localStorage.setItem('adminPassword', 'true');
-          window.dispatchEvent(new Event('storage'));
-          onAdminModeToggle?.(true, "sub", user.id, user.name);
-          // 서브 관리자는 설정 모달을 닫지 않고 유지
-          // setShowSettingsModal(false);
-          setAdminPassword("");
-          alert(`${user.name} 빌보드 관리자 모드로 전환되었습니다.`);
-          return;
-        }
+    if (loginType === "super") {
+      // 슈퍼 관리자: Supabase Auth 이메일/비밀번호 로그인
+      try {
+        await signIn(adminEmail, adminPassword);
+        onAdminModeToggle?.(true, "super", null, "");
+        setShowSettingsModal(false);
+        setAdminEmail("");
+        setAdminPassword("");
+        alert("슈퍼 관리자 로그인 성공!");
+      } catch (error: any) {
+        console.error("로그인 오류:", error);
+        alert(error.message || "이메일 또는 비밀번호가 올바르지 않습니다.");
       }
+    } else {
+      // 서브 관리자(빌보드 사용자): 기존 방식 유지
+      try {
+        const { data: users, error } = await supabase
+          .from("billboard_users")
+          .select("*")
+          .eq("is_active", true);
 
-      alert("비밀번호가 올바르지 않습니다.");
-    } catch (error) {
-      console.error("로그인 오류:", error);
-      alert("로그인 중 오류가 발생했습니다.");
+        if (error) throw error;
+
+        for (const user of users || []) {
+          const { verifyPassword } = await import("../../../utils/passwordHash");
+          const isValid = await verifyPassword(adminPassword, user.password_hash);
+
+          if (isValid) {
+            setBillboardUserId(user.id);
+            setBillboardUserName(user.name);
+            onAdminModeToggle?.(true, "sub", user.id, user.name);
+            setAdminPassword("");
+            alert(`${user.name} 빌보드 관리자 로그인 성공!`);
+            return;
+          }
+        }
+
+        alert("비밀번호가 올바르지 않습니다.");
+      } catch (error) {
+        console.error("로그인 오류:", error);
+        alert("로그인 중 오류가 발생했습니다.");
+      }
     }
   };
 
-  const handleAdminLogout = () => {
-    setIsAdminMode(false);
-    setAdminType(null);
-    setBillboardUserId(null);
-    setBillboardUserName("");
-    localStorage.removeItem('adminPassword');
-    window.dispatchEvent(new Event('storage'));
-    onAdminModeToggle?.(false, null, null, "");
-    setShowSettingsModal(false);
-    alert("로그아웃되었습니다.");
+  const handleAdminLogout = async () => {
+    try {
+      await signOut();
+      setBillboardUserId(null);
+      setBillboardUserName("");
+      onAdminModeToggle?.(false, null, null, "");
+      setShowSettingsModal(false);
+      alert("로그아웃되었습니다.");
+    } catch (error) {
+      console.error("로그아웃 오류:", error);
+    }
   };
 
   // 색상 설정 불러오기
@@ -274,7 +271,7 @@ export default function Header({
 
     // 서브 관리자가 빌보드 설정 창을 닫으면 설정 모달 다시 열기
     const handleReopenSettings = () => {
-      if (adminType === "sub") {
+      if (billboardUserId !== null) {
         setShowSettingsModal(true);
       }
     };
@@ -284,7 +281,7 @@ export default function Header({
     return () => {
       window.removeEventListener("reopenAdminSettings", handleReopenSettings);
     };
-  }, [adminType]);
+  }, [billboardUserId]);
 
   return (
     <>
@@ -379,7 +376,7 @@ export default function Header({
 
             {/* Right: Billboard & Settings Button */}
             <div className="flex items-center space-x-2">
-              {isAdminMode && (
+              {(isAdmin || billboardUserId !== null) && (
                 <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
                   관리자
                 </span>
@@ -422,18 +419,54 @@ export default function Header({
                 </button>
               </div>
 
-              {!isAdminMode ? (
+              {!isAdmin && billboardUserId === null ? (
                 <div>
                   <h4 className="text-lg font-semibold text-white mb-4">
-                    관리자 모드
+                    관리자 로그인
                   </h4>
-                  <p className="text-gray-300 text-sm mb-4">
-                    관리자 모드에서는 모든 이벤트를 수정하고 삭제할 수 있습니다.
-                  </p>
+                  
+                  {/* 로그인 타입 선택 탭 */}
+                  <div className="flex border-b border-gray-700 mb-4">
+                    <button
+                      onClick={() => setLoginType("super")}
+                      className={`flex-1 py-2 text-center transition-colors ${
+                        loginType === "super"
+                          ? "text-blue-400 border-b-2 border-blue-400"
+                          : "text-gray-400 hover:text-gray-300"
+                      }`}
+                    >
+                      슈퍼 관리자
+                    </button>
+                    <button
+                      onClick={() => setLoginType("sub")}
+                      className={`flex-1 py-2 text-center transition-colors ${
+                        loginType === "sub"
+                          ? "text-blue-400 border-b-2 border-blue-400"
+                          : "text-gray-400 hover:text-gray-300"
+                      }`}
+                    >
+                      빌보드 관리자
+                    </button>
+                  </div>
+
                   <div className="space-y-4">
+                    {loginType === "super" && (
+                      <div>
+                        <label className="block text-gray-300 text-sm font-medium mb-2">
+                          이메일
+                        </label>
+                        <input
+                          type="email"
+                          value={adminEmail}
+                          onChange={(e) => setAdminEmail(e.target.value)}
+                          className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="admin@example.com"
+                        />
+                      </div>
+                    )}
                     <div>
                       <label className="block text-gray-300 text-sm font-medium mb-2">
-                        관리자 비밀번호
+                        비밀번호
                       </label>
                       <input
                         type="password"
@@ -452,21 +485,21 @@ export default function Header({
                       onClick={handleAdminLogin}
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      관리자 모드 활성화
+                      로그인
                     </button>
                   </div>
                 </div>
               ) : (
                 <div>
                   <h4 className="text-lg font-semibold text-white mb-4">
-                    {adminType === "super"
-                      ? "메인 관리자 모드 활성화됨"
-                      : `${billboardUserName} 서브 관리자 모드`}
+                    {isAdmin && billboardUserId === null
+                      ? "슈퍼 관리자 모드"
+                      : `${billboardUserName} 빌보드 관리자`}
                   </h4>
                   <p className="text-gray-300 text-sm mb-4">
-                    {adminType === "super"
-                      ? "메인 관리자 모드입니다. 모든 기능을 사용할 수 있습니다."
-                      : "빌보드 관리자 모드입니다. 자신의 빌보드 설정을 관리할 수 있습니다."}
+                    {isAdmin && billboardUserId === null
+                      ? "모든 콘텐츠를 관리할 수 있습니다."
+                      : "자신의 빌보드 설정을 관리할 수 있습니다."}
                   </p>
                   <div className="space-y-3">
                     <button
@@ -478,7 +511,7 @@ export default function Header({
                       <i className="ri-image-2-line"></i>
                       광고판 설정
                     </button>
-                    {adminType === "sub" && billboardUserId && (
+                    {billboardUserId !== null && (
                       <button
                         onClick={() => {
                           const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
@@ -491,7 +524,7 @@ export default function Header({
                         빌보드 주소 복사
                       </button>
                     )}
-                    {adminType === "super" && (
+                    {isAdmin && billboardUserId === null && (
                       <>
                         <button
                           onClick={() => {
@@ -534,10 +567,10 @@ export default function Header({
           document.body,
         )}
 
-      {/* 색상 설정 패널 (메인 관리자 전용) */}
+      {/* 색상 설정 패널 (슈퍼 관리자 전용) */}
       {showColorPanel &&
-        isAdminMode &&
-        adminType === "super" &&
+        isAdmin &&
+        billboardUserId === null &&
         createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
             <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
