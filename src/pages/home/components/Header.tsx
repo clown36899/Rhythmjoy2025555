@@ -878,7 +878,15 @@ export default function Header({
                   {loginSuccessType}로 로그인되었습니다
                 </p>
                 <button
-                  onClick={() => setShowLoginSuccessModal(false)}
+                  onClick={() => {
+                    setShowLoginSuccessModal(false);
+                    // 빌보드 관리자는 바로 관리 패널 열기
+                    if (billboardUserId !== null) {
+                      setTimeout(() => {
+                        onBillboardSettingsOpen?.();
+                      }, 100);
+                    }
+                  }}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
                 >
                   시작하기
