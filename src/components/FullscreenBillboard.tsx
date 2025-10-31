@@ -252,6 +252,7 @@ export default function FullscreenBillboard({
               }`}
               style={{
                 transitionDuration: `${transitionDuration}ms`,
+                transitionDelay: isTransitioning ? '0ms' : '0ms',
                 textShadow: "0 4px 20px rgba(0,0,0,0.8)",
                 whiteSpace: "pre-line",
                 maxWidth: "90%",
@@ -315,6 +316,7 @@ export default function FullscreenBillboard({
                 onClick={handleImageClick}
                 style={{
                   transitionDuration: `${transitionDuration}ms`,
+                  transitionDelay: isTransitioning ? '0ms' : '300ms',
                 }}
                 className={`bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium text-base inline-flex items-center gap-2 transition-all hover:scale-105 ${
                   isTransitioning ? "opacity-0" : "opacity-100"
@@ -329,7 +331,10 @@ export default function FullscreenBillboard({
                 className={`bg-white p-2 rounded-lg transition-opacity ${
                   isTransitioning ? "opacity-0" : "opacity-100"
                 }`}
-                style={{ transitionDuration: `${transitionDuration}ms` }}
+                style={{ 
+                  transitionDuration: `${transitionDuration}ms`,
+                  transitionDelay: isTransitioning ? '0ms' : '0ms'
+                }}
                 title="QR 스캔으로 바로 보기"
               >
                 <QRCodeSVG
@@ -344,7 +349,12 @@ export default function FullscreenBillboard({
         )}
 
         {/* 좌측 상단 영역 - 원형 진행 표시 + 날짜 범위 */}
-        <div className="absolute top-8 left-8 pointer-events-none">
+        <div className="absolute top-8 left-8 pointer-events-none transition-opacity" 
+             style={{
+               opacity: isTransitioning ? 0 : 1,
+               transitionDuration: `${transitionDuration}ms`,
+               transitionDelay: isTransitioning ? '0ms' : '300ms'
+             }}>
           {/* 원형 진행 표시 - 우로보로스 형태 */}
           {sortedImages.length > 1 && (
             <div className="relative w-24 h-24 mb-3">
