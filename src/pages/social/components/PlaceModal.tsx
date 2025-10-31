@@ -6,27 +6,25 @@ interface PlaceModalProps {
   onSuccess: () => void;
 }
 
-// Nominatim (무료 지오코딩) API로 주소 → 좌표 변환
+// 카카오 로컬 API로 주소 → 좌표 변환 (한국 주소에 최적화)
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    // 상세 주소 제거 (지하, 층, 호, 건물명 등)
-    const cleanAddress = address
-      .replace(/\s*지하\d+층?/g, '')
-      .replace(/\s*\d+층/g, '')
-      .replace(/\s*\d+호/g, '')
-      .replace(/\s+[가-힣]{2,}\s*$/g, '') // 마지막 2글자 이상 한글 (건물명) 제거
-      .trim();
+    const apiKey = import.meta.env.VITE_KAKAO_REST_API_KEY;
+    
+    if (!apiKey) {
+      console.error('카카오 API 키가 설정되지 않았습니다.');
+      return null;
+    }
 
-    console.log('원본 주소:', address);
-    console.log('정리된 주소:', cleanAddress);
+    console.log('주소 검색:', address);
 
-    // Nominatim API 호출
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanAddress)}&countrycodes=kr&limit=3&addressdetails=1`;
+    // 카카오 로컬 API - 주소 검색
+    const url = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`;
     console.log('API URL:', url);
 
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'SocialPlaceApp/1.0',
+        'Authorization': `KakaoAK ${apiKey}`,
       },
     });
 
@@ -38,11 +36,11 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
     const data = await response.json();
     console.log('API 응답:', data);
 
-    if (data && data.length > 0) {
-      // 가장 정확한 결과 선택 (첫 번째 결과 사용)
+    if (data.documents && data.documents.length > 0) {
+      const result = data.documents[0];
       return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
+        lat: parseFloat(result.y),
+        lng: parseFloat(result.x),
       };
     }
 
