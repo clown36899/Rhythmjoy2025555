@@ -112,9 +112,11 @@ export default function InvitePage() {
       let errorMessage = err.message || '가입 중 오류가 발생했습니다';
       
       if (errorMessage.includes('초대된 이메일') || errorMessage.includes('일치하지 않습니다')) {
-        errorMessage = `❌ 이메일 불일치\n\n초대된 이메일: ${invitationEmail}\n\n카카오톡에서 반드시 ${invitationEmail} 계정으로 로그인하세요.`;
+        errorMessage = `❌ 카카오 계정 불일치\n\n초대된 이메일: ${invitationEmail}\n\n위 이메일로 가입된 카카오 계정으로 로그인하세요.\n현재 다른 이메일 계정으로 로그인하셨습니다.`;
       } else if (errorMessage.includes('초대받지 않은')) {
-        errorMessage = '❌ 초대받지 않은 사용자입니다.\n관리자에게 초대를 요청하세요.';
+        errorMessage = '❌ 초대받지 않은 사용자입니다.\n\n관리자에게 초대를 요청하세요.';
+      } else if (errorMessage.includes('카카오 계정에서 이메일')) {
+        errorMessage = '❌ 카카오 계정 이메일 없음\n\n카카오 계정에서 이메일 정보를 가져올 수 없습니다.\n카카오 계정 설정에서 이메일을 등록해주세요.';
       }
       
       setError(errorMessage);
@@ -172,13 +174,20 @@ export default function InvitePage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                <span>카카오톡에서 <strong>{invitationEmail}</strong> 계정으로 로그인하세요</span>
+                <span><strong className="text-yellow-300">{invitationEmail}</strong> 카카오 계정으로 로그인하세요</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
                 <span>자동으로 가입 및 로그인이 완료됩니다!</span>
               </li>
             </ol>
+          </div>
+
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
+            <p className="text-yellow-200 text-sm flex items-start gap-2">
+              <i className="ri-information-line text-lg flex-shrink-0 mt-0.5"></i>
+              <span><strong>{invitationEmail}</strong> 주소로 가입한 카카오 계정이 필요합니다. 다른 이메일로 가입된 카카오 계정은 사용할 수 없습니다.</span>
+            </p>
           </div>
 
           <button
@@ -200,14 +209,10 @@ export default function InvitePage() {
           </button>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-              <p className="text-red-300 text-sm">{error}</p>
+            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+              <p className="text-red-200 text-sm whitespace-pre-line">{error}</p>
             </div>
           )}
-
-          <p className="text-white/60 text-xs mt-6">
-            초대받은 이메일과 카카오 이메일이 일치해야 합니다
-          </p>
         </div>
       </div>
     </div>
