@@ -47,6 +47,7 @@ export default function Header({
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccessType, setLoginSuccessType] = useState("");
+  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
   
   const { isAdmin, signOut, signInWithKakao } = useAuth();
   const [showQRModal, setShowQRModal] = useState(false);
@@ -513,7 +514,8 @@ export default function Header({
                         onClick={() => {
                           const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
                           navigator.clipboard.writeText(billboardUrl);
-                          alert("빌보드 주소가 복사되었습니다!");
+                          setShowCopySuccessModal(true);
+                          setTimeout(() => setShowCopySuccessModal(false), 1500);
                         }}
                         className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                       >
@@ -896,6 +898,25 @@ export default function Header({
           </div>,
           document.body,
         )}
+
+      {/* 빌보드 주소 복사 성공 모달 */}
+      {showCopySuccessModal && createPortal(
+        <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                  <i className="ri-check-line text-3xl text-white"></i>
+                </div>
+              </div>
+              <p className="text-white text-lg font-semibold">
+                빌보드 주소가 복사되었습니다!
+              </p>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

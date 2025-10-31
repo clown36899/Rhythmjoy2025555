@@ -46,6 +46,8 @@ export default function AdminBillboardModal({
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<SimpleEvent[]>([]);
   const [mainBillboardEvents, setMainBillboardEvents] = useState<SimpleEvent[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // 서브 관리자의 설정 불러오기
   useEffect(() => {
@@ -277,11 +279,19 @@ export default function AdminBillboardModal({
 
       if (error) throw error;
       
-      alert("설정이 저장되었습니다.");
-      onClose(); // 저장 후 모달 닫기
+      setSuccessMessage("설정이 저장되었습니다.");
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        onClose();
+      }, 1500);
     } catch (error) {
       console.error("설정 저장 오류:", error);
-      alert("설정 저장 중 오류가 발생했습니다.");
+      setSuccessMessage("설정 저장 중 오류가 발생했습니다.");
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 2000);
     }
   };
 
@@ -349,7 +359,7 @@ export default function AdminBillboardModal({
       >
         <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
+          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 z-10">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               <i className="ri-settings-3-line"></i>
               {billboardUserName} 빌보드 설정
@@ -573,6 +583,24 @@ export default function AdminBillboardModal({
             </div>
           </div>
         </div>
+
+        {/* 성공 알림 모달 */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
+              <div className="text-center">
+                <div className="mb-4 flex justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                    <i className="ri-check-line text-3xl text-white"></i>
+                  </div>
+                </div>
+                <p className="text-white text-lg font-semibold">
+                  {successMessage}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>,
       document.body
     );
@@ -586,7 +614,7 @@ export default function AdminBillboardModal({
     >
       <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <i className="ri-image-2-line"></i>
             메인 광고판 설정
@@ -1057,7 +1085,26 @@ export default function AdminBillboardModal({
           transform: scale(1.1);
         }
       `}</style>
-    </div>,
-    document.body
-  );
+    </div>
+
+    {/* 성공 알림 모달 */}
+    {showSuccessModal && (
+      <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4">
+        <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
+          <div className="text-center">
+            <div className="mb-4 flex justify-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                <i className="ri-check-line text-3xl text-white"></i>
+              </div>
+            </div>
+            <p className="text-white text-lg font-semibold">
+              {successMessage}
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+  </>,
+  document.body
+);
 }
