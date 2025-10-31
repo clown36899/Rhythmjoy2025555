@@ -854,32 +854,32 @@ export default function Header({
           document.body,
         )}
 
-      {/* 로그인 성공 모달 - 미니멀 스타일 */}
+      {/* 로그인 성공 모달 */}
       {showLoginSuccessModal &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/80 flex items-center justify-center z-[99999] p-4"
+            className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[99999] p-4"
             onClick={() => setShowLoginSuccessModal(false)}
           >
             <div
-              className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl animate-[scale-in_0.3s_ease-out]"
+              className="bg-gray-800 rounded-lg p-6 max-w-sm w-full animate-[scale-in_0.3s_ease-out]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
-                <div className="mb-6 flex justify-center">
+                <div className="mb-4 flex justify-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <i className="ri-shield-check-line text-4xl text-white"></i>
+                    <i className="ri-shield-check-line text-3xl text-white"></i>
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                <h3 className="text-xl font-bold text-white mb-2">
                   {loginSuccessName}님, 환영해요
                 </h3>
-                <p className="text-gray-600 text-sm mb-8">
+                <p className="text-gray-400 text-sm mb-6">
                   {loginSuccessType}로 로그인되었습니다
                 </p>
                 <button
                   onClick={() => setShowLoginSuccessModal(false)}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all cursor-pointer text-base shadow-lg"
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
                 >
                   시작하기
                 </button>
