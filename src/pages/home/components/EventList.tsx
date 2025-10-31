@@ -79,6 +79,7 @@ export default function EventList({
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
   const [eventPassword, setEventPassword] = useState("");
@@ -390,6 +391,7 @@ export default function EventList({
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       console.log('[EventList] 데이터 로딩 시작');
       
       // 10초 timeout 설정
@@ -424,6 +426,7 @@ export default function EventList({
 
       if (error) {
         console.error("[EventList] Supabase 에러:", error);
+        setLoadError(`DB 에러: ${error.message || '알 수 없는 오류'}`);
         setEvents([]);
       } else {
         console.log('[EventList] 데이터 로딩 완료:', data?.length || 0, '개');
@@ -431,6 +434,7 @@ export default function EventList({
       }
     } catch (error: any) {
       console.error("[EventList] 데이터 로딩 실패:", error.message);
+      setLoadError(`로딩 실패: ${error.message || '알 수 없는 오류'}`);
       // 타임아웃이나 에러 발생 시 빈 배열로 설정 (무한 로딩 방지)
       setEvents([]);
     } finally {
@@ -1248,6 +1252,44 @@ export default function EventList({
         <div className="text-center py-8">
           <i className="ri-loader-4-line text-4xl text-gray-500 mb-4 animate-spin"></i>
           <p className="text-gray-400">이벤트를 불러오는 중...</p>
+          {loadError && (
+            <div className="mt-4 p-3 bg-red-900/30 border border-red-500 rounded-lg">
+              <p className="text-red-300 text-sm">{loadError}</p>
+              <button
+                onClick={() => {
+                  setLoadError(null);
+                  fetchEvents();
+                }}
+                className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 로딩 완료 후 에러가 있으면 표시
+  if (loadError && events.length === 0) {
+    return (
+      <div className="bg-gray-800 rounded-none p-4">
+        <div className="text-center py-8">
+          <i className="ri-error-warning-line text-4xl text-red-500 mb-4"></i>
+          <p className="text-gray-400 mb-2">데이터를 불러올 수 없습니다</p>
+          <div className="mt-4 p-3 bg-red-900/30 border border-red-500 rounded-lg">
+            <p className="text-red-300 text-sm">{loadError}</p>
+            <button
+              onClick={() => {
+                setLoadError(null);
+                fetchEvents();
+              }}
+              className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+            >
+              다시 시도
+            </button>
+          </div>
         </div>
       </div>
     );
