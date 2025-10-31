@@ -466,7 +466,11 @@ export default function AdminBillboardModal({
                     )}
                     <button
                       onClick={() => updateLocalSettings({ date_filter_start: null })}
-                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                        !userSettings.date_filter_start
+                          ? 'bg-orange-700 text-white'
+                          : 'bg-orange-600 hover:bg-orange-700 text-white'
+                      }`}
                       title="시작 날짜 제한 없음"
                     >
                       지정 안 함
@@ -499,7 +503,11 @@ export default function AdminBillboardModal({
                     )}
                     <button
                       onClick={() => updateLocalSettings({ date_filter_end: null })}
-                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                        !userSettings.date_filter_end
+                          ? 'bg-orange-700 text-white'
+                          : 'bg-orange-600 hover:bg-orange-700 text-white'
+                      }`}
                       title="종료 날짜 제한 없음"
                     >
                       지정 안 함
@@ -804,7 +812,11 @@ export default function AdminBillboardModal({
                   )}
                   <button
                     onClick={() => onUpdateSettings({ dateRangeStart: null })}
-                    className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                    className={`px-3 py-2 rounded-lg transition-colors ${
+                      !settings.dateRangeStart
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-orange-500 hover:bg-orange-600 text-white'
+                    }`}
                     title="시작 날짜 초기화"
                   >
                     <i className="ri-close-line text-lg"></i>
@@ -835,7 +847,11 @@ export default function AdminBillboardModal({
                   )}
                   <button
                     onClick={() => onUpdateSettings({ dateRangeEnd: null })}
-                    className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                    className={`px-3 py-2 rounded-lg transition-colors ${
+                      !settings.dateRangeEnd
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-orange-500 hover:bg-orange-600 text-white'
+                    }`}
                     title="종료 날짜 초기화"
                   >
                     <i className="ri-close-line text-lg"></i>
