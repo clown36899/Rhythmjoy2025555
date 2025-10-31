@@ -170,7 +170,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || false;
+  // 보안: user와 adminEmail이 모두 존재하고 일치할 때만 관리자
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  const isAdmin = !!(user?.email && adminEmail && user.email === adminEmail);
 
   // 디버깅 로그 (상세)
   useEffect(() => {
