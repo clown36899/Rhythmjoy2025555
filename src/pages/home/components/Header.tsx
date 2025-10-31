@@ -157,11 +157,6 @@ export default function Header({
     // 모달 먼저 닫기
     setShowSettingsModal(false);
     
-    // 로컬 상태 먼저 초기화
-    setBillboardUserId(null);
-    setBillboardUserName("");
-    onAdminModeToggle?.(false, null, null, "");
-    
     try {
       // Supabase 로그아웃 - 모든 세션 제거
       console.log('[로그아웃] Supabase signOut 호출');
@@ -175,15 +170,20 @@ export default function Header({
     console.log('[로그아웃] localStorage 정리');
     const keys = Object.keys(localStorage);
     keys.forEach(key => {
-      if (key.includes('supabase') || key.includes('auth')) {
+      if (key.includes('supabase') || key.includes('auth') || key.includes('kakao')) {
         localStorage.removeItem(key);
         console.log('[로그아웃] 제거:', key);
       }
     });
     
-    // 페이지 새로고침
-    console.log('[로그아웃] 페이지 새로고침');
-    window.location.reload();
+    // 로컬 상태 초기화
+    setBillboardUserId(null);
+    setBillboardUserName("");
+    onAdminModeToggle?.(false, null, null, "");
+    
+    // 강제 리다이렉트 (새로고침 포함)
+    console.log('[로그아웃] 홈으로 강제 리다이렉트');
+    window.location.href = '/';
   };
 
   // 색상 설정 불러오기

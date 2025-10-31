@@ -52,9 +52,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[AuthContext] Auth state changed:', event);
+      
+      if (event === 'SIGNED_OUT') {
+        // 로그아웃 시 명확히 상태 초기화
+        setSession(null);
+        setUser(null);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSession(session);
+        setUser(session?.user ?? null);
+      } else {
+        // 기타 이벤트
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
     });
 
     return () => {
