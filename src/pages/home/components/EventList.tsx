@@ -1371,7 +1371,7 @@ export default function EventList({
                         if (viewMode === "month" && onEventHover)
                           onEventHover(null);
                       }}
-                      className={`overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#000000]"
+                      className={`overflow-hidden transition-all cursor-pointer relative border ${isHighlighted ? "" : "border-[#000000]"
                         }`}
                       style={{
                         backgroundColor: "var(--event-list-bg-color)",
@@ -1563,7 +1563,7 @@ export default function EventList({
                           key={event.id}
                           data-event-id={event.id}
                           onClick={() => handleEventClick(event)}
-                          className="overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
+                          className="overflow-hidden transition-all cursor-pointer relative border border-[#000000]"
                           style={{ backgroundColor: "var(--event-list-bg-color)", borderRadius: '0.3rem' }}
                         >
                           <div className="relative">
@@ -1695,7 +1695,7 @@ export default function EventList({
                             e.currentTarget.style.borderColor = "#000000";
                             if (viewMode === "month" && onEventHover) onEventHover(null);
                           }}
-                          className={`overflow-hidden transition-all cursor-pointer relative border-2 ${isHighlighted ? "" : "border-[#000000]"}`}
+                          className={`overflow-hidden transition-all cursor-pointer relative border ${isHighlighted ? "" : "border-[#000000]"}`}
                           style={{
                             backgroundColor: "var(--event-list-bg-color)",
                             borderColor: isHighlighted ? highlightBorderColor : undefined,
@@ -1824,7 +1824,7 @@ export default function EventList({
                           key={event.id}
                           data-event-id={event.id}
                           onClick={() => handleEventClick(event)}
-                          className="overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
+                          className="overflow-hidden transition-all cursor-pointer relative border border-[#000000]"
                           style={{ backgroundColor: "var(--event-list-bg-color)", borderRadius: '0.3rem' }}
                         >
                           <div className="relative">
