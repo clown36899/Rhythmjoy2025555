@@ -1356,7 +1356,7 @@ export default function EventList({
             {sortedEvents.length > 0 ? (
             <>
               {/* Grid layout with 3 columns - poster ratio */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                 {sortedEvents.map((event) => {
                   const isHighlighted = highlightEvent?.id === event.id;
                   const highlightBorderColor =
@@ -1565,7 +1565,7 @@ export default function EventList({
                 }}
               >
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedPrevEvents.map((event) => {
                       return (
                         <div
@@ -1684,7 +1684,7 @@ export default function EventList({
                 }}
               >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedCurrentEvents.map((event) => {
                       const isHighlighted = highlightEvent?.id === event.id;
                       const highlightBorderColor =
@@ -1826,7 +1826,7 @@ export default function EventList({
                 }}
               >
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedNextEvents.map((event) => {
                       return (
                         <div
