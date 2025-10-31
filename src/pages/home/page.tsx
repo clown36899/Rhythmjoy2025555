@@ -598,7 +598,9 @@ export default function HomePage() {
             const targetOffset = direction === "prev" ? screenWidth : -screenWidth;
             setDragOffset(targetOffset);
 
+            // 날짜 오버플로우 방지 (10월 31일 → 11월 문제 해결)
             const newMonth = new Date(currentMonth);
+            newMonth.setDate(1); // 먼저 1일로 설정하여 오버플로우 방지
             if (viewMode === "year") {
               // 연간 보기: 년 단위로 이동
               if (direction === "prev") {

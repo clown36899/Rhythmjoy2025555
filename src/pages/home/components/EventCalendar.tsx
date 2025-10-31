@@ -238,7 +238,8 @@ export default function EventCalendar({
         newMonth.setFullYear(currentMonth.getFullYear() + 1);
       }
     } else {
-      // 월간 보기: 월 단위로 이동
+      // 월간 보기: 월 단위로 이동 (날짜 오버플로우 방지)
+      newMonth.setDate(1); // 먼저 1일로 설정하여 오버플로우 방지
       if (direction === "prev") {
         newMonth.setMonth(currentMonth.getMonth() - 1);
       } else {
@@ -253,6 +254,7 @@ export default function EventCalendar({
 
   const navigateToMonth = (monthIndex: number) => {
     const newMonth = new Date(currentMonth);
+    newMonth.setDate(1); // 날짜 오버플로우 방지
     newMonth.setMonth(monthIndex);
 
     setInternalCurrentMonth(newMonth);
