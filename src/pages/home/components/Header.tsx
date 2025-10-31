@@ -585,6 +585,33 @@ export default function Header({
                       onClick={async () => {
                         try {
                           const result = await signInWithKakao();
+                          
+                          // 로그인 타입별 검증
+                          if (loginType === "super") {
+                            // 슈퍼 관리자 탭: 슈퍼 관리자만 허용
+                            if (!result.isAdmin) {
+                              await signOut();
+                              alert("슈퍼 관리자 권한이 없습니다. 서브 관리자는 '빌보드 관리자' 탭을 사용하세요.");
+                              return;
+                            }
+                            onAdminModeToggle?.(true, "super", null, "");
+                          } else {
+                            // 빌보드 관리자 탭: 서브 관리자만 허용
+                            if (result.isAdmin) {
+                              await signOut();
+                              alert("슈퍼 관리자는 '슈퍼 관리자' 탭을 사용하세요.");
+                              return;
+                            }
+                            if (!result.isBillboardUser || !result.billboardUserId || !result.billboardUserName) {
+                              await signOut();
+                              alert("초대받지 않은 사용자입니다. 관리자에게 초대를 요청하세요.");
+                              return;
+                            }
+                            setBillboardUserId(result.billboardUserId);
+                            setBillboardUserName(result.billboardUserName);
+                            onAdminModeToggle?.(true, "sub", result.billboardUserId, result.billboardUserName);
+                          }
+                          
                           setLoginSuccessName(result.name);
                           setShowSettingsModal(false);
                           setShowLoginSuccessModal(true);

@@ -4,13 +4,22 @@ import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import { initKakaoSDK, loginWithKakao, logoutKakao, getKakaoAccessToken } from '../utils/kakaoAuth';
 
+interface KakaoAuthResult {
+  email: string;
+  name: string;
+  isAdmin: boolean;
+  isBillboardUser: boolean;
+  billboardUserId: string | null;
+  billboardUserName: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithKakao: () => Promise<{ email: string; name: string }>;
+  signInWithKakao: () => Promise<KakaoAuthResult>;
   signOut: () => Promise<void>;
 }
 
