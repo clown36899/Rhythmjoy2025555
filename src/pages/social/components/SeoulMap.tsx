@@ -70,11 +70,8 @@ export default function SeoulMap({ places }: SeoulMapProps) {
     const kakao = window.kakao;
     const bounds = new kakao.maps.LatLngBounds();
 
-    // 모든 장소를 위도 순으로 정렬 (겹침 감지용)
-    const sortedPlaces = [...places].sort((a, b) => b.latitude - a.latitude);
-
     // 모든 장소에 대해 마커와 데이터 준비
-    const allMarkerData = sortedPlaces.map((place, index) => {
+    const allMarkerData = places.map((place) => {
       const position = new kakao.maps.LatLng(place.latitude, place.longitude);
       
       const marker = new kakao.maps.Marker({
@@ -88,31 +85,41 @@ export default function SeoulMap({ places }: SeoulMapProps) {
         place,
         position,
         marker,
-        lat: place.latitude,
-        lng: place.longitude,
         bottomOffset: 35, // 기본 오프셋
-        index,
       };
     });
 
-    // 겹침 감지 및 오프셋 조정 (더 넓은 범위로)
-    for (let i = 0; i < allMarkerData.length; i++) {
+    // 화면 픽셀 좌표로 변환하여 겹침 감지
+    const projection = map.getProjection();
+    const screenPositions = allMarkerData.map((data) => {
+      const point = projection.pointFromCoords(data.position);
+      return {
+        data,
+        x: point.x,
+        y: point.y,
+        labelWidth: data.place.name.length * 6 + 12, // 대략적인 라벨 너비
+        labelHeight: 15, // 라벨 높이
+      };
+    });
+
+    // 화면 좌표 기준으로 겹침 감지 및 오프셋 조정
+    for (let i = 0; i < screenPositions.length; i++) {
       let overlaps = 0;
-      for (let j = 0; j < allMarkerData.length; j++) {
+      for (let j = 0; j < screenPositions.length; j++) {
         if (i === j) continue;
         
-        const latDiff = Math.abs(allMarkerData[i].lat - allMarkerData[j].lat);
-        const lngDiff = Math.abs(allMarkerData[i].lng - allMarkerData[j].lng);
+        const xDiff = Math.abs(screenPositions[i].x - screenPositions[j].x);
+        const yDiff = Math.abs(screenPositions[i].y - screenPositions[j].y);
         
-        // 0.01도 이내면 겹칠 수 있음 (약 1km - 전체 뷰에서 겹치는 범위)
-        if (latDiff < 0.01 && lngDiff < 0.01) {
+        // 화면상에서 라벨이 겹치는지 확인 (x축 60px, y축 20px 이내)
+        if (xDiff < 60 && yDiff < 20) {
           if (j < i) {
             overlaps++;
           }
         }
       }
-      // 겹치는 개수만큼 위로 올림
-      allMarkerData[i].bottomOffset += (overlaps * 16);
+      // 겹치는 개수만큼 위로 올림 (15px씩)
+      screenPositions[i].data.bottomOffset += (overlaps * 15);
     }
 
     // 각 마커에 오버레이와 이벤트 추가
