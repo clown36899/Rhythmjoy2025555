@@ -119,6 +119,13 @@ export default defineConfig({
       host: process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : undefined,
       clientPort: 443,
     } : true,
+    // API 프록시 설정 (Express 서버로 전달)
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
     // allowedHosts 설정은 그대로 유지하여 Blocked Request 방지
     allowedHosts: [".replit.dev", ".repl.co", "localhost", "127.0.0.1"],
     headers: {
