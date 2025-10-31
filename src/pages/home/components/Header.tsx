@@ -160,21 +160,35 @@ export default function Header({
   };
 
   const handleAdminLogout = async () => {
+    console.log('[로그아웃] 시작');
+    
+    // 로컬 상태 먼저 초기화
+    setBillboardUserId(null);
+    setBillboardUserName("");
+    onAdminModeToggle?.(false, null, null, "");
+    
     try {
-      // Supabase 로그아웃 시도 (에러 무시)
+      // Supabase 로그아웃 - 모든 세션 제거
+      console.log('[로그아웃] Supabase signOut 호출');
       await signOut();
+      console.log('[로그아웃] Supabase signOut 완료');
     } catch (error) {
-      // 세션이 없어도 로컬 상태는 초기화
-      console.log("세션이 이미 만료됨, 로컬 상태만 초기화");
-    } finally {
-      // 항상 로컬 상태 초기화
-      setBillboardUserId(null);
-      setBillboardUserName("");
-      onAdminModeToggle?.(false, null, null, "");
-      setShowSettingsModal(false);
-      // 페이지 새로고침으로 모든 상태 완전 초기화
-      window.location.reload();
+      console.error('[로그아웃] signOut 에러:', error);
     }
+    
+    // localStorage 강제 정리
+    console.log('[로그아웃] localStorage 정리');
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.includes('supabase') || key.includes('auth')) {
+        localStorage.removeItem(key);
+        console.log('[로그아웃] 제거:', key);
+      }
+    });
+    
+    // 페이지 새로고침
+    console.log('[로그아웃] 페이지 새로고침');
+    window.location.reload();
   };
 
   // 색상 설정 불러오기
