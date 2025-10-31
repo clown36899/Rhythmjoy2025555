@@ -479,6 +479,7 @@ export default function AdminBillboardModal({
                       <input
                         type="date"
                         value={userSettings.date_filter_end || ""}
+                        min={userSettings.date_filter_start || undefined}
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_end: e.target.value || null })
                         }
@@ -815,6 +816,7 @@ export default function AdminBillboardModal({
                     <input
                       type="date"
                       value={settings.dateRangeEnd || ''}
+                      min={settings.dateRangeStart || undefined}
                       onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
                       className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
                       style={!settings.dateRangeEnd ? { color: 'transparent' } : {}}
