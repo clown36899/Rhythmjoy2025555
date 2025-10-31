@@ -11,11 +11,12 @@ interface PlaceListProps {
 
 export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: PlaceListProps) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAuthWarning, setShowAuthWarning] = useState(false);
   const { isAdmin } = useAuth();
 
   const handleAddClick = () => {
     if (!isAdmin) {
-      alert('관리자에게 문의하세요\n전화: 010-4801-7180');
+      setShowAuthWarning(true);
       return;
     }
     setShowAddModal(true);
@@ -24,8 +25,8 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
   return (
     <div className="px-4 pb-4">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-white">장소 목록</h2>
+      <div className="flex items-center justify-between mb-4 relative">
+        <h2 className="text-lg font-bold text-white">목록</h2>
         <button
           onClick={handleAddClick}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -33,42 +34,57 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
           <i className="ri-add-line mr-1"></i>
           장소 등록
         </button>
+
+        {/* 관리자 아닐 때 안내 모달 */}
+        {showAuthWarning && (
+          <div 
+            className="fixed inset-0 flex items-center justify-center z-50"
+            onClick={() => setShowAuthWarning(false)}
+            style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+          >
+            <div 
+              className="bg-gray-800 rounded-lg p-6 mx-4 max-w-sm border border-gray-700"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <i className="ri-lock-line text-4xl text-yellow-500 mb-3"></i>
+                <h3 className="text-white text-lg font-bold mb-2">관리자 권한 필요</h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  장소 등록은 관리자만 가능합니다.<br/>
+                  문의: <span className="text-blue-400">010-4801-7180</span>
+                </p>
+                <button
+                  onClick={() => setShowAuthWarning(false)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors w-full"
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 장소 리스트 */}
+      {/* 장소 리스트 - 한 줄로 압축 */}
       {places.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           등록된 장소가 없습니다.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-2">
           {places.map((place) => (
             <div
               key={place.id}
               onClick={() => onPlaceSelect(place)}
-              className="bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors border border-gray-700"
+              className="bg-gray-800 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-700 transition-colors border border-gray-700"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-white font-medium mb-1">{place.name}</h3>
-                  <p className="text-gray-400 text-sm mb-2">
-                    <i className="ri-map-pin-line mr-1"></i>
-                    {place.address}
+              <div className="flex items-center justify-between">
+                <h3 className="text-white font-medium text-sm flex-shrink-0">{place.name}</h3>
+                <div className="flex items-center gap-2 ml-3">
+                  <p className="text-gray-400 text-xs truncate max-w-[200px]">
+                    {place.address.split(' ').slice(0, 3).join(' ')}
                   </p>
-                  {place.description && (
-                    <p className="text-gray-500 text-xs line-clamp-2">
-                      {place.description}
-                    </p>
-                  )}
-                  {place.contact && (
-                    <p className="text-blue-400 text-xs mt-2">
-                      <i className="ri-phone-line mr-1"></i>
-                      {place.contact}
-                    </p>
-                  )}
-                </div>
-                <div className="ml-4 text-gray-400">
-                  <i className="ri-arrow-right-s-line text-xl"></i>
+                  <i className="ri-arrow-right-s-line text-gray-400 text-lg flex-shrink-0"></i>
                 </div>
               </div>
             </div>
