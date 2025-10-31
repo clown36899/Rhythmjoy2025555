@@ -12,34 +12,7 @@ export function MobileShell() {
   const { isAdmin } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // 테마 색상 로드 (모든 페이지 공통)
-  useEffect(() => {
-    const loadThemeColors = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("theme_settings")
-          .select("*")
-          .eq("id", 1)
-          .single();
-
-        if (error || !data) {
-          return;
-        }
-
-        // CSS 변수 업데이트
-        document.documentElement.style.setProperty("--bg-color", data.background_color);
-        document.documentElement.style.setProperty("--header-bg-color", data.header_bg_color || "#1f2937");
-        document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color);
-        document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color);
-        document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color);
-        document.documentElement.style.setProperty("--page-bg-color", data.page_bg_color || "#111827");
-      } catch (err) {
-        // 기본 색상 사용
-      }
-    };
-
-    loadThemeColors();
-  }, []);
+  // 테마 색상은 src/index.css의 :root 변수로 하드코딩됨 (동적 로딩 제거)
 
   // HomePage에서 전달되는 현재 월 정보 수신
   useEffect(() => {
