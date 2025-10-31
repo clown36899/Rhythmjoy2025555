@@ -43,10 +43,6 @@ export default function Header({
     currentMonth?.getMonth() || new Date().getMonth(),
   );
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginType, setLoginType] = useState<"super" | "sub">("super");
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState(false);
