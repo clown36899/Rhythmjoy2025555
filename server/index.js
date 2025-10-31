@@ -201,7 +201,7 @@ app.delete('/api/invitations/:id', async (req, res) => {
 
 app.post('/api/auth/kakao', async (req, res) => {
   try {
-    const { kakaoAccessToken, invitationToken } = req.body;
+    const { kakaoAccessToken, invitationToken, displayName } = req.body;
 
     if (!kakaoAccessToken) {
       return res.status(400).json({ error: '카카오 액세스 토큰이 필요합니다' });
@@ -220,7 +220,8 @@ app.post('/api/auth/kakao', async (req, res) => {
 
     const kakaoUser = await kakaoUserResponse.json();
     const email = kakaoUser.kakao_account?.email;
-    const name = kakaoUser.kakao_account?.profile?.nickname || kakaoUser.kakao_account?.name || '카카오 사용자';
+    const kakaoNickname = kakaoUser.kakao_account?.profile?.nickname || kakaoUser.kakao_account?.name || '카카오 사용자';
+    const name = displayName || kakaoNickname;
 
     if (!email) {
       return res.status(400).json({ error: '카카오 계정에서 이메일을 가져올 수 없습니다' });

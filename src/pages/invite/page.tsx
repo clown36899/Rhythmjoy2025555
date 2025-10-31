@@ -13,6 +13,7 @@ export default function InvitePage() {
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [displayName, setDisplayName] = useState('');
 
   const apiEndpoint = import.meta.env.DEV 
     ? '/api/invitations/validate' 
@@ -85,7 +86,8 @@ export default function InvitePage() {
         },
         body: JSON.stringify({
           kakaoAccessToken: accessToken,
-          invitationToken: token
+          invitationToken: token,
+          displayName: displayName.trim() || undefined
         }),
       });
 
@@ -195,11 +197,26 @@ export default function InvitePage() {
             </ol>
           </div>
 
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
             <p className="text-yellow-200 text-sm flex items-start gap-2">
               <i className="ri-information-line text-lg flex-shrink-0 mt-0.5"></i>
               <span>카카오톡에 <strong className="text-yellow-100">{invitationEmail}</strong> 이메일이 등록되어 있어야 합니다. 다른 이메일로는 가입할 수 없습니다.</span>
             </p>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-white text-sm font-semibold mb-2">
+              표시 이름 (선택)
+            </label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="카카오 닉네임 사용 (비워두면 자동)"
+              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              maxLength={20}
+            />
+            <p className="text-white/60 text-xs mt-1">관리자 화면에 표시될 이름입니다</p>
           </div>
 
           <button

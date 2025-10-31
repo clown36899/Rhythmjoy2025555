@@ -157,27 +157,6 @@ export default function BillboardUserManagementModal({
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`'${userName}' 빌보드 사용자를 삭제하시겠습니까?`)) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('billboard_users')
-        .delete()
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      alert('빌보드 사용자가 삭제되었습니다.');
-      loadBillboardUsers();
-    } catch (error) {
-      console.error('사용자 삭제 실패:', error);
-      alert('사용자 삭제에 실패했습니다.');
-    }
-  };
-
   const handleEditUser = async (user: BillboardUser) => {
     console.log('[빌보드 편집] 시작:', user.name);
     setSelectedUser(user);
@@ -404,12 +383,6 @@ export default function BillboardUserManagementModal({
                     className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition-colors"
                   >
                     설정
-                  </button>
-                  <button
-                    onClick={() => handleDeleteUser(user.id, user.name)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm transition-colors"
-                  >
-                    삭제
                   </button>
                 </div>
               </div>

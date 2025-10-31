@@ -849,7 +849,7 @@ export default function Header({
           document.body,
         )}
 
-      {/* 로그인 성공 모달 */}
+      {/* 로그인 성공 모달 - 카카오 스타일 */}
       {showLoginSuccessModal &&
         createPortal(
           <div
@@ -857,26 +857,24 @@ export default function Header({
             onClick={() => setShowLoginSuccessModal(false)}
           >
             <div
-              className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-8 max-w-sm w-full shadow-2xl animate-[scale-in_0.3s_ease-out]"
+              className="bg-[#FEE500] rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-[scale-in_0.3s_ease-out]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
-                <div className="mb-6 flex justify-center">
-                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <i className="ri-checkbox-circle-fill text-6xl text-white"></i>
-                  </div>
+                <div className="mb-4 flex justify-center">
+                  <i className="ri-kakao-talk-fill text-8xl text-[#3C1E1E]"></i>
                 </div>
-                <h3 className="text-3xl font-bold text-white mb-3">
-                  로그인 성공!
+                <h3 className="text-2xl font-bold text-[#3C1E1E] mb-2">
+                  {loginSuccessName}님, 환영해요!
                 </h3>
-                <p className="text-white/90 text-lg mb-8">
-                  환영합니다, <span className="font-semibold">{loginSuccessName}</span>님
+                <p className="text-[#3C1E1E]/70 text-sm mb-6">
+                  관리자 모드로 로그인되었습니다
                 </p>
                 <button
                   onClick={() => setShowLoginSuccessModal(false)}
-                  className="w-full bg-white text-green-600 py-3 px-6 rounded-xl font-semibold hover:bg-gray-100 transition-colors cursor-pointer text-lg shadow-lg"
+                  className="w-full bg-[#3C1E1E] text-[#FEE500] py-3 px-6 rounded-xl font-bold hover:bg-[#2C1515] transition-colors cursor-pointer text-base shadow-lg"
                 >
-                  확인
+                  시작하기
                 </button>
               </div>
             </div>

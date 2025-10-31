@@ -21,7 +21,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { kakaoAccessToken, invitationToken } = JSON.parse(event.body || '{}');
+    const { kakaoAccessToken, invitationToken, displayName } = JSON.parse(event.body || '{}');
 
     if (!kakaoAccessToken) {
       return {
@@ -46,7 +46,8 @@ export const handler: Handler = async (event) => {
 
     const kakaoUser = await kakaoUserResponse.json();
     const email = kakaoUser.kakao_account?.email;
-    const name = kakaoUser.kakao_account?.profile?.nickname || kakaoUser.kakao_account?.name || '카카오 사용자';
+    const kakaoNickname = kakaoUser.kakao_account?.profile?.nickname || kakaoUser.kakao_account?.name || '카카오 사용자';
+    const name = displayName || kakaoNickname;
 
     if (!email) {
       return {
