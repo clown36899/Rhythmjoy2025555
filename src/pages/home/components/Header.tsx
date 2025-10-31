@@ -460,10 +460,10 @@ export default function Header({
       {/* Settings Modal */}
       {showSettingsModal &&
         createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-white">설정</h3>
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-2 pt-12 overflow-y-auto">
+            <div className="bg-gray-800 rounded-lg p-4 w-full max-w-sm">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-white">설정</h3>
                 <button
                   onClick={() => setShowSettingsModal(false)}
                   className="text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -549,18 +549,18 @@ export default function Header({
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                     >
                       로그인
                     </button>
                   </form>
                   
-                  <div className="mt-6">
+                  <div className="mt-4">
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-gray-600"></div>
                       </div>
-                      <div className="relative flex justify-center text-sm">
+                      <div className="relative flex justify-center text-xs">
                         <span className="px-2 bg-gray-800 text-gray-400">또는</span>
                       </div>
                     </div>
@@ -576,9 +576,9 @@ export default function Header({
                           alert('❌ ' + (error.message || '카카오 로그인에 실패했습니다'));
                         }
                       }}
-                      className="mt-4 w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                      className="mt-3 w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2"
                     >
-                      <i className="ri-kakao-talk-fill text-xl"></i>
+                      <i className="ri-kakao-talk-fill"></i>
                       카카오로 로그인
                     </button>
                   </div>
@@ -595,14 +595,14 @@ export default function Header({
                       ? "모든 콘텐츠를 관리할 수 있습니다."
                       : "자신의 빌보드 설정을 관리할 수 있습니다."}
                   </p>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <button
                       onClick={() => {
                         onBillboardSettingsOpen?.();
                       }}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      <i className="ri-image-2-line"></i>
+                      <i className="ri-image-2-line text-base"></i>
                       광고판 설정
                     </button>
                     {billboardUserId !== null && (
@@ -612,9 +612,9 @@ export default function Header({
                           navigator.clipboard.writeText(billboardUrl);
                           alert("빌보드 주소가 복사되었습니다!");
                         }}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                       >
-                        <i className="ri-link"></i>
+                        <i className="ri-link text-base"></i>
                         빌보드 주소 복사
                       </button>
                     )}
@@ -624,9 +624,9 @@ export default function Header({
                           onClick={() => {
                             setShowBillboardUserManagement(true);
                           }}
-                          className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                          className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                         >
-                          <i className="ri-user-settings-line"></i>
+                          <i className="ri-user-settings-line text-base"></i>
                           빌보드 사용자 관리
                         </button>
                         <button
@@ -634,32 +634,32 @@ export default function Header({
                             setShowInvitationManagement(true);
                             setShowSettingsModal(false);
                           }}
-                          className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                          className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                         >
-                          <i className="ri-mail-send-line"></i>
+                          <i className="ri-mail-send-line text-base"></i>
                           초대 관리
                         </button>
                         <button
                           onClick={() => {
                             setShowDefaultThumbnailSettings(true);
                           }}
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                         >
-                          <i className="ri-image-2-line"></i>
+                          <i className="ri-image-2-line text-base"></i>
                           기본 썸네일 설정
                         </button>
                         <button
                           onClick={() => setShowColorPanel(!showColorPanel)}
-                          className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                         >
-                          <i className="ri-palette-line"></i>
+                          <i className="ri-palette-line text-base"></i>
                           색상 설정
                         </button>
                       </>
                     )}
                     <button
                       onClick={handleAdminLogout}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                     >
                       로그아웃
                     </button>
