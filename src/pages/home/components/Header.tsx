@@ -124,6 +124,15 @@ export default function Header({
       // 슈퍼 관리자: Supabase Auth 이메일/비밀번호 로그인
       try {
         await signIn(adminEmail, adminPassword);
+        
+        // 슈퍼 관리자 이메일 검증
+        const allowedAdminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+        if (adminEmail !== allowedAdminEmail) {
+          await signOut();
+          alert("슈퍼 관리자 권한이 없습니다. 서브 관리자는 '빌보드 관리자' 탭을 사용하세요.");
+          return;
+        }
+        
         onAdminModeToggle?.(true, "super", null, "");
         setShowSettingsModal(false);
         setAdminEmail("");
@@ -143,7 +152,14 @@ export default function Header({
 
         if (error) throw error;
 
+        const allowedAdminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+        
         for (const user of users || []) {
+          // 슈퍼 관리자 이메일은 서브 탭에서 로그인 불가
+          if (user.email === allowedAdminEmail) {
+            continue;
+          }
+          
           const { verifyPassword } = await import("../../../utils/passwordHash");
           const isValid = await verifyPassword(adminPassword, user.password_hash);
 
