@@ -159,9 +159,9 @@ app.post('/api/auth/kakao', async (req, res) => {
 
     const isAdmin = email === adminEmail;
     
-    // 초대 코드가 있으면 검증 및 처리
+    // 초대 코드가 있으면 반드시 검증 (관리자도 예외 없음)
     let invitation = null;
-    if (invitationToken && !isAdmin) {
+    if (invitationToken) {
       const { data: inv, error: invError } = await supabaseAdmin
         .from('invitations')
         .select('*')
@@ -183,7 +183,15 @@ app.post('/api/auth/kakao', async (req, res) => {
       if (inv.email !== email) {
         return res.status(400).json({ 
           error: '초대된 이메일과 카카오 이메일이 일치하지 않습니다',
-          message: `이 초대는 ${inv.email}을 위한 것입니다`
+          message: `이 초대는 ${inv.email}을 위한 것입니다. 카카오 계정 이메일: ${email}`
+        });
+      }
+
+      // 관리자 이메일로 초대하는 것은 허용하지 않음
+      if (isAdmin) {
+        return res.status(400).json({ 
+          error: '관리자는 초대 링크를 사용할 수 없습니다',
+          message: '관리자는 일반 로그인을 사용하세요'
         });
       }
 
