@@ -448,8 +448,8 @@ export default function EventList({
     fetchEvents();
   }, [fetchEvents, refreshTrigger]);
 
-  // 달 변경 시 스크롤 위치 리셋
-  // 슬라이드 시 스크롤을 맨 위로 올림
+  // 달 변경 및 카테고리 변경 시 스크롤 위치 리셋
+  // 슬라이드 또는 강습/행사 버튼 클릭 시 스크롤을 맨 위로 올림
   useEffect(() => {
     // 이벤트 리스트 영역 스크롤
     const scrollContainer = document.querySelector(".overflow-y-auto");
@@ -462,7 +462,7 @@ export default function EventList({
       top: 0,
       behavior: 'smooth'
     });
-  }, [currentMonth]);
+  }, [currentMonth, selectedCategory]);
 
   // 광고판에서 이벤트 선택 이벤트 리스너
   useEffect(() => {
