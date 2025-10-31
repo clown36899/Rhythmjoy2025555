@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
-import { getEventColor } from "../../../utils/eventColors";
 import { createResizedImages } from "../../../utils/imageResize";
 import { parseVideoUrl } from "../../../utils/videoEmbed";
 import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from "../../../utils/videoThumbnail";
@@ -1350,13 +1349,6 @@ export default function EventList({
               {/* Grid layout with 3 columns - poster ratio */}
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                 {sortedEvents.map((event) => {
-                  const startDate = event.start_date || event.date || "";
-                  const endDate = event.end_date || event.date || "";
-                  const isMultiDay = startDate !== endDate;
-                  const eventColor = isMultiDay
-                    ? getEventColor(event.id)
-                    : { bg: "bg-gray-500" };
-
                   const isHighlighted = highlightEvent?.id === event.id;
                   const highlightBorderColor =
                     event.category === "class" ? "#9333ea" : "#2563eb"; // purple-600 : blue-600
@@ -1389,11 +1381,6 @@ export default function EventList({
                         borderRadius: '0.3rem',
                       }}
                     >
-                      {/* 색상 배너 - 연속 일정은 고유 색상, 단일 일fu�은 회색 */}
-                      <div
-                        className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}
-                      ></div>
-
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {(() => {
@@ -1571,13 +1558,6 @@ export default function EventList({
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedPrevEvents.map((event) => {
-                      const startDate = event.start_date || event.date || "";
-                      const endDate = event.end_date || event.date || "";
-                      const isMultiDay = startDate !== endDate;
-                      const eventColor = isMultiDay
-                        ? getEventColor(event.id)
-                        : { bg: "bg-gray-500" };
-
                       return (
                         <div
                           key={event.id}
@@ -1586,7 +1566,6 @@ export default function EventList({
                           className="overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
                           style={{ backgroundColor: "var(--event-list-bg-color)", borderRadius: '0.3rem' }}
                         >
-                          <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
@@ -1698,13 +1677,6 @@ export default function EventList({
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedCurrentEvents.map((event) => {
-                      const startDate = event.start_date || event.date || "";
-                      const endDate = event.end_date || event.date || "";
-                      const isMultiDay = startDate !== endDate;
-                      const eventColor = isMultiDay
-                        ? getEventColor(event.id)
-                        : { bg: "bg-gray-500" };
-
                       const isHighlighted = highlightEvent?.id === event.id;
                       const highlightBorderColor =
                         event.category === "class" ? "#9333ea" : "#2563eb";
@@ -1730,7 +1702,6 @@ export default function EventList({
                             borderRadius: '0.3rem',
                           }}
                         >
-                          <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
@@ -1848,13 +1819,6 @@ export default function EventList({
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {sortedNextEvents.map((event) => {
-                      const startDate = event.start_date || event.date || "";
-                      const endDate = event.end_date || event.date || "";
-                      const isMultiDay = startDate !== endDate;
-                      const eventColor = isMultiDay
-                        ? getEventColor(event.id)
-                        : { bg: "bg-gray-500" };
-
                       return (
                         <div
                           key={event.id}
@@ -1863,7 +1827,6 @@ export default function EventList({
                           className="overflow-hidden transition-all cursor-pointer relative border-2 border-[#000000]"
                           style={{ backgroundColor: "var(--event-list-bg-color)", borderRadius: '0.3rem' }}
                         >
-                          <div className={`absolute top-0 left-0 right-0 h-1 ${eventColor.bg}`}></div>
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
