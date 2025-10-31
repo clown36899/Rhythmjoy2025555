@@ -657,6 +657,7 @@ export default function HomePage() {
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
               onMonthChange={handleMonthChange}
+              isAdminMode={isAdmin}
               showHeader={false}
               currentMonth={currentMonth}
               onEventsUpdate={handleEventsUpdate}

@@ -267,31 +267,10 @@ export default function EventCalendar({
   const handleDateClick = (date: Date) => {
     // 이미 선택된 날짜를 다시 클릭
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
-      // 클릭한 날짜에 이벤트가 있는지 확인
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const dateString = `${year}-${month}-${day}`;
-
-      const hasEvents = events.some((event) => {
-        // event_dates 배열로 정의된 이벤트 체크
-        if (event.event_dates && event.event_dates.length > 0) {
-          return event.event_dates.includes(dateString);
-        }
-        // start_date/end_date 범위로 정의된 이벤트 체크
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
-        return startDate && endDate && dateString >= startDate && dateString <= endDate;
-      });
-
-      if (hasEvents) {
-        // 이벤트가 있으면 등록 모달 열기
-        setClickedDate(date);
-        setShowRegistrationModal(true);
-      } else {
-        // 이벤트가 없으면 선택 해제 (두 번째 클릭)
-        onDateSelect(null);
-      }
+      // 두 번째 클릭: 항상 등록 모달 열기 (누구나 등록 가능)
+      console.log('[달력] 두 번째 클릭 - 등록 모달 열기');
+      setClickedDate(date);
+      setShowRegistrationModal(true);
     } else {
       // 새로운 날짜 선택 - 이벤트 유무 확인
       const year = date.getFullYear();
