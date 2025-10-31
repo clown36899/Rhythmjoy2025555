@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
+import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +10,7 @@ interface AuthContextType {
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithKakao: () => Promise<{ email: string; name: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -45,7 +47,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  const signInWithKakao = async () => {
+    // 카카오 SDK 초기화
+    await initKakaoSDK();
+
+    // 카카오 로그인
+    const kakaoUser = await loginWithKakao();
+    
+    const email = kakaoUser.kakao_account.email;
+    const name = kakaoUser.kakao_account.profile?.nickname || kakaoUser.kakao_account.name || '카카오 사용자';
+
+    if (!email) {
+      throw new Error('카카오 계정에서 이메일을 가져올 수 없습니다. 카카오 계정 설정을 확인해주세요.');
+    }
+
+    // 카카오 정보 반환 (회원가입 또는 로그인 프로세스로 연결)
+    return { email, name };
+  };
+
   const signOut = async () => {
+    // 카카오 로그아웃
+    await logoutKakao();
+    
+    // Supabase 로그아웃
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
@@ -63,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, isAdmin, loading, session]);
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signInWithKakao, signOut }}>
       {children}
     </AuthContext.Provider>
   );
