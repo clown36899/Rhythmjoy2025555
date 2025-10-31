@@ -16,22 +16,43 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
   const [mapType, setMapType] = useState<'ROADMAP' | 'SKYVIEW'>('ROADMAP');
+  const [loading, setLoading] = useState(true);
   const markersRef = useRef<any[]>([]);
 
   useEffect(() => {
-    if (!mapRef.current || !window.kakao) return;
+    if (!mapRef.current) return;
 
-    const kakao = window.kakao;
-    kakao.maps.load(() => {
-      const center = new kakao.maps.LatLng(37.5665, 126.9780);
-      const options = {
-        center,
-        level: 8,
-      };
+    const initMap = () => {
+      if (!window.kakao || !window.kakao.maps) {
+        console.error('카카오맵 SDK가 로드되지 않았습니다.');
+        setLoading(false);
+        return;
+      }
 
-      const newMap = new kakao.maps.Map(mapRef.current, options);
-      setMap(newMap);
-    });
+      const kakao = window.kakao;
+      try {
+        const center = new kakao.maps.LatLng(37.5665, 126.9780);
+        const options = {
+          center,
+          level: 8,
+        };
+
+        const newMap = new kakao.maps.Map(mapRef.current, options);
+        setMap(newMap);
+        setLoading(false);
+        console.log('카카오맵 초기화 성공');
+      } catch (error) {
+        console.error('카카오맵 초기화 실패:', error);
+        setLoading(false);
+      }
+    };
+
+    if (window.kakao && window.kakao.maps) {
+      initMap();
+    } else {
+      const timer = setTimeout(initMap, 500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   useEffect(() => {
@@ -90,16 +111,24 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
   };
 
   return (
-    <div className="w-full h-64 relative">
+    <div className="w-full h-64 relative bg-gray-800 rounded-lg overflow-hidden">
       <div ref={mapRef} className="w-full h-full" />
       
-      <button
-        onClick={toggleMapType}
-        className="absolute top-2 right-2 z-10 bg-white hover:bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium shadow-md border border-gray-200 transition-colors"
-      >
-        <i className={`ri-${mapType === 'ROADMAP' ? 'earth' : 'map-2'}-line mr-1`}></i>
-        {mapType === 'ROADMAP' ? '스카이뷰' : '지도'}
-      </button>
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+          <div className="text-gray-400">지도 로딩 중...</div>
+        </div>
+      )}
+      
+      {map && (
+        <button
+          onClick={toggleMapType}
+          className="absolute top-2 right-2 z-10 bg-white hover:bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium shadow-md border border-gray-200 transition-colors"
+        >
+          <i className={`ri-${mapType === 'ROADMAP' ? 'earth' : 'map-2'}-line mr-1`}></i>
+          {mapType === 'ROADMAP' ? '스카이뷰' : '지도'}
+        </button>
+      )}
     </div>
   );
 }
