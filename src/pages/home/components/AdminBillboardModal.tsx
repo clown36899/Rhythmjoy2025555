@@ -418,7 +418,8 @@ export default function AdminBillboardModal({
                       : "bg-gray-600 text-gray-300 hover:bg-gray-500"
                   }`}
                 >
-                  순차 재생
+                  <div className="text-sm font-semibold">순차 재생</div>
+                  <div className="text-xs text-gray-300 mt-1">등록 순서대로</div>
                 </button>
                 <button
                   onClick={() => updateLocalSettings({ play_order: 'random' })}
@@ -428,7 +429,8 @@ export default function AdminBillboardModal({
                       : "bg-gray-600 text-gray-300 hover:bg-gray-500"
                   }`}
                 >
-                  랜덤 재생
+                  <div className="text-sm font-semibold">30분 랜덤</div>
+                  <div className="text-xs text-gray-300 mt-1">30분마다 재배열</div>
                 </button>
               </div>
             </div>
@@ -725,7 +727,7 @@ export default function AdminBillboardModal({
               >
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <i className="ri-sort-asc text-xl"></i>
-                  <span className="font-medium">순차</span>
+                  <span className="font-medium">순차 재생</span>
                 </div>
                 <p className="text-xs text-gray-400">등록 순서대로</p>
               </button>
@@ -739,9 +741,9 @@ export default function AdminBillboardModal({
               >
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <i className="ri-shuffle-line text-xl"></i>
-                  <span className="font-medium">랜덤</span>
+                  <span className="font-medium">30분 랜덤</span>
                 </div>
-                <p className="text-xs text-gray-400">무작위 순서</p>
+                <p className="text-xs text-gray-400">30분마다 재배열</p>
               </button>
             </div>
           </div>
