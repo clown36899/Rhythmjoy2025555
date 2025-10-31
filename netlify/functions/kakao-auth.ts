@@ -136,6 +136,25 @@ export const handler: Handler = async (event) => {
 
       billboardUser = newBillboardUser;
 
+      // 빌보드 사용자 설정 기본값 생성
+      const { error: settingsError } = await supabaseAdmin
+        .from('billboard_user_settings')
+        .insert({
+          billboard_user_id: billboardUser.id,
+          excluded_weekdays: [],
+          excluded_event_ids: [],
+          auto_slide_interval: 5000,
+          transition_duration: 1000,
+          play_order: 'sequential',
+          date_filter_start: null,
+          date_filter_end: null,
+          video_play_duration: 10000
+        });
+
+      if (settingsError) {
+        console.error('Billboard settings creation error:', settingsError);
+      }
+
       // 초대 코드 사용 처리
       if (invitation) {
         await supabaseAdmin
