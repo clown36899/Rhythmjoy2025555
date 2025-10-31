@@ -3,7 +3,8 @@ import { supabase } from '../../../lib/supabase';
 
 interface PlaceModalProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSaved: () => void;
+  category?: string;
 }
 
 // 카카오 로컬 API로 주소 → 좌표 변환 (한국 주소에 최적화)
@@ -51,7 +52,7 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
   }
 }
 
-export default function PlaceModal({ onClose, onSuccess }: PlaceModalProps) {
+export default function PlaceModal({ onClose, onSaved, category }: PlaceModalProps) {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [contact, setContact] = useState('');
@@ -84,11 +85,12 @@ export default function PlaceModal({ onClose, onSuccess }: PlaceModalProps) {
           longitude: coords.lng,
           contact: contact || null,
           description: description || null,
+          category: category || null,
         });
 
       if (insertError) throw insertError;
 
-      onSuccess();
+      onSaved();
     } catch (err: any) {
       console.error('장소 등록 에러:', err);
       setError(err.message || '장소 등록에 실패했습니다.');

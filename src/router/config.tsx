@@ -1,10 +1,13 @@
 import type { RouteObject } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import Home from "../pages/home/page";
 import BillboardPage from "../pages/billboard/page";
 import PracticeRoomsPage from "../pages/practice/page";
 import GuidePage from "../pages/guide/page";
-import SocialPage from "../pages/social/page";
+import ClubsPage from "../pages/social/clubs/page";
+import SwingBarsPage from "../pages/social/swing-bars/page";
+import SocialCalendarPage from "../pages/social/calendar/page";
 import { MobileShell } from "../layouts/MobileShell";
 
 const routes: RouteObject[] = [
@@ -22,11 +25,19 @@ const routes: RouteObject[] = [
       },
       {
         path: "social",
-        element: <SocialPage />,
+        element: <Navigate to="/social/clubs" replace />,
       },
       {
-        path: "social/:placeId",
-        element: <SocialPage />,
+        path: "social/clubs",
+        element: <ClubsPage />,
+      },
+      {
+        path: "social/swing-bars",
+        element: <SwingBarsPage />,
+      },
+      {
+        path: "social/calendar",
+        element: <SocialCalendarPage />,
       },
       {
         path: "practice",
