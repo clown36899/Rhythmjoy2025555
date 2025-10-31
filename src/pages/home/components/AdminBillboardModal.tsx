@@ -44,9 +44,6 @@ export default function AdminBillboardModal({
 }: AdminBillboardModalProps) {
   const [userSettings, setUserSettings] = useState<BillboardUserSettings | null>(null);
   const [loading, setLoading] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [events, setEvents] = useState<SimpleEvent[]>([]);
   const [mainBillboardEvents, setMainBillboardEvents] = useState<SimpleEvent[]>([]);
 
@@ -294,65 +291,6 @@ export default function AdminBillboardModal({
     onClose();
   };
 
-  const handleChangePassword = async () => {
-    if (!billboardUserId) return;
-
-    if (!currentPassword.trim()) {
-      alert('현재 비밀번호를 입력하세요.');
-      return;
-    }
-
-    if (!newPassword.trim()) {
-      alert('새 비밀번호를 입력하세요.');
-      return;
-    }
-
-    if (newPassword.length < 4) {
-      alert('비밀번호는 최소 4자 이상이어야 합니다.');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      alert('비밀번호 확인이 일치하지 않습니다.');
-      return;
-    }
-
-    try {
-      // 현재 비밀번호 확인
-      const { data: user, error: fetchError } = await supabase
-        .from('billboard_users')
-        .select('password_hash')
-        .eq('id', billboardUserId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const { verifyPassword, hashPassword } = await import('../../../utils/passwordHash');
-      const isValid = await verifyPassword(currentPassword, user.password_hash);
-
-      if (!isValid) {
-        alert('현재 비밀번호가 올바르지 않습니다.');
-        return;
-      }
-
-      // 새 비밀번호로 업데이트
-      const newPasswordHash = await hashPassword(newPassword);
-      const { error: updateError } = await supabase
-        .from('billboard_users')
-        .update({ password_hash: newPasswordHash })
-        .eq('id', billboardUserId);
-
-      if (updateError) throw updateError;
-
-      alert('비밀번호가 변경되었습니다.');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (error) {
-      console.error('비밀번호 변경 오류:', error);
-      alert('비밀번호 변경 중 오류가 발생했습니다.');
-    }
-  };
   // 재생 순서 변경 핸들러
   const handlePlayOrderChange = (newOrder: 'sequential' | 'random') => {
     onUpdateSettings({ playOrder: newOrder });
@@ -587,46 +525,6 @@ export default function AdminBillboardModal({
                     );
                   })
                 )}
-              </div>
-            </div>
-
-            {/* 비밀번호 변경 */}
-            <div className="p-4 bg-gray-700/50 rounded-lg border-t border-gray-600 pt-6 mt-6">
-              <label className="text-white font-medium block mb-3">비밀번호 변경</label>
-              <p className="text-sm text-gray-400 mb-3">현재 비밀번호를 알고 있어야 변경 가능합니다</p>
-              <p className="text-xs text-orange-400 mb-3">
-                <i className="ri-alert-line mr-1"></i>
-                비밀번호를 잃어버렸을 경우 메인 관리자에게 문의하세요<br />
-                <span className="ml-4">010-4801-7180 여인태(조이)</span>
-              </p>
-              <div className="space-y-3">
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="현재 비밀번호"
-                  className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
-                />
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="새 비밀번호 (최소 4자)"
-                  className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
-                />
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="비밀번호 확인"
-                  className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
-                />
-                <button
-                  onClick={handleChangePassword}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                >
-                  비밀번호 변경
-                </button>
               </div>
             </div>
 
