@@ -566,9 +566,11 @@ export default function Header({
                     <button
                       onClick={async () => {
                         try {
-                          await signInWithKakao();
+                          const result = await signInWithKakao();
+                          alert(`✅ 로그인 되셨습니다!\n\n환영합니다, ${result.name}님`);
+                          setShowSettings(false);
                         } catch (error: any) {
-                          alert(error.message || '카카오 로그인에 실패했습니다');
+                          alert('❌ ' + (error.message || '카카오 로그인에 실패했습니다'));
                         }
                       }}
                       className="mt-4 w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
