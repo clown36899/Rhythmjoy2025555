@@ -257,6 +257,20 @@ export const handler: Handler = async (event) => {
     // billboard_user가 있으면 그 이름을 우선 사용
     const displayNameToShow = billboardUser?.name || name;
 
+    // 토큰을 사용하여 세션 생성
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
+      token_hash: hashedToken,
+      type: 'magiclink'
+    });
+
+    if (sessionError || !sessionData.session) {
+      console.error('Session creation error:', sessionError);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: '세션 생성 실패' })
+      };
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -267,8 +281,7 @@ export const handler: Handler = async (event) => {
         isBillboardUser: !!billboardUser,
         billboardUserId: billboardUser?.id || null,
         billboardUserName: billboardUser?.name || null,
-        token: hashedToken,
-        tokenType: 'magiclink'
+        session: sessionData.session
       })
     };
 
