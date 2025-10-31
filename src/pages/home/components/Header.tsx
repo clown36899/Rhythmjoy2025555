@@ -390,8 +390,8 @@ export default function Header({
                   className="text-sm font-bold text-white whitespace-nowrap hover:text-blue-400 transition-colors cursor-pointer"
                 >
                   {viewMode === "year"
-                    ? `${currentMonth.getFullYear()}년 전체`
-                    : `${currentMonth.getFullYear()}년 ${monthNames[currentMonth.getMonth()]}`}
+                    ? `${currentMonth.getFullYear().toString().slice(-2)}년 전체`
+                    : `${currentMonth.getFullYear().toString().slice(-2)}년 ${monthNames[currentMonth.getMonth()]}`}
                 </button>
                 <button
                   onClick={handleTodayClick}
