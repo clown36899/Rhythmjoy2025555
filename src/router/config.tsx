@@ -4,6 +4,7 @@ import Home from "../pages/home/page";
 import BillboardPage from "../pages/billboard/page";
 import PracticeRoomsPage from "../pages/practice/page";
 import GuidePage from "../pages/guide/page";
+import SocialPage from "../pages/social/page";
 import { MobileShell } from "../layouts/MobileShell";
 
 const routes: RouteObject[] = [
@@ -18,6 +19,14 @@ const routes: RouteObject[] = [
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: "social",
+        element: <SocialPage />,
+      },
+      {
+        path: "social/:placeId",
+        element: <SocialPage />,
       },
       {
         path: "practice",

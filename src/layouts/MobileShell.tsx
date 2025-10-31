@@ -70,6 +70,7 @@ export function MobileShell() {
 
   // 현재 페이지와 카테고리 파악
   const isEventsPage = location.pathname === '/';
+  const isSocialPage = location.pathname.startsWith('/social');
   const isPracticePage = location.pathname === '/practice';
   const isGuidePage = location.pathname === '/guide';
   const category = searchParams.get('category') || 'all';
@@ -153,6 +154,19 @@ export function MobileShell() {
           >
             <i className="ri-calendar-event-line text-xl mb-0.5"></i>
             <span className="text-xs">행사</span>
+          </button>
+
+          {/* 소셜 버튼 */}
+          <button
+            onClick={() => navigate('/social')}
+            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
+              isSocialPage
+                ? "text-green-500"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            <i className="ri-map-pin-line text-xl mb-0.5"></i>
+            <span className="text-xs">소셜</span>
           </button>
 
           {/* 연습실 버튼 */}
