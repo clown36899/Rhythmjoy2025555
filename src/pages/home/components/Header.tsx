@@ -59,6 +59,8 @@ export default function Header({
     useState(false);
   const [showInvitationManagement, setShowInvitationManagement] =
     useState(false);
+  const [showLoginSuccessModal, setShowLoginSuccessModal] = useState(false);
+  const [loginSuccessName, setLoginSuccessName] = useState("");
   const [themeColors, setThemeColors] = useState({
     background_color: "#000000",
     header_bg_color: "#1f2937",
@@ -567,8 +569,9 @@ export default function Header({
                       onClick={async () => {
                         try {
                           const result = await signInWithKakao();
-                          alert(`✅ 로그인 되셨습니다!\n\n환영합니다, ${result.name}님`);
-                          setShowSettings(false);
+                          setLoginSuccessName(result.name);
+                          setShowSettingsModal(false);
+                          setShowLoginSuccessModal(true);
                         } catch (error: any) {
                           alert('❌ ' + (error.message || '카카오 로그인에 실패했습니다'));
                         }
@@ -939,6 +942,41 @@ export default function Header({
                 <button
                   onClick={handleDateConfirm}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* 로그인 성공 모달 */}
+      {showLoginSuccessModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-[99999] p-4"
+            onClick={() => setShowLoginSuccessModal(false)}
+          >
+            <div
+              className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-8 max-w-sm w-full shadow-2xl animate-[scale-in_0.3s_ease-out]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="mb-6 flex justify-center">
+                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <i className="ri-checkbox-circle-fill text-6xl text-white"></i>
+                  </div>
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-3">
+                  로그인 성공!
+                </h3>
+                <p className="text-white/90 text-lg mb-8">
+                  환영합니다, <span className="font-semibold">{loginSuccessName}</span>님
+                </p>
+                <button
+                  onClick={() => setShowLoginSuccessModal(false)}
+                  className="w-full bg-white text-green-600 py-3 px-6 rounded-xl font-semibold hover:bg-gray-100 transition-colors cursor-pointer text-lg shadow-lg"
                 >
                   확인
                 </button>
