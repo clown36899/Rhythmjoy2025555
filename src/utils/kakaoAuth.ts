@@ -67,6 +67,7 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
 
     // 모바일에서는 throughTalk 옵션 추가
     const loginOptions: any = {
+      scope: 'account_email', // 이메일 권한 요청
       success: () => {
         // 사용자 정보 요청
         window.Kakao.API.request({
