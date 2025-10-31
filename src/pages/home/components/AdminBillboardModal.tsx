@@ -443,27 +443,22 @@ export default function AdminBillboardModal({
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">시작 날짜</label>
                   <div className="flex gap-2">
-                    {userSettings.date_filter_start ? (
+                    <div className="flex-1 relative">
                       <input
                         type="date"
-                        value={userSettings.date_filter_start}
+                        value={userSettings.date_filter_start || ""}
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_start: e.target.value || null })
                         }
-                        className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
+                        className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
+                        style={!userSettings.date_filter_start ? { color: 'transparent' } : {}}
                       />
-                    ) : (
-                      <input
-                        type="text"
-                        value="지정안함"
-                        readOnly
-                        onClick={() => {
-                          const today = new Date().toISOString().split('T')[0];
-                          updateLocalSettings({ date_filter_start: today });
-                        }}
-                        className="flex-1 bg-gray-600 text-gray-400 rounded-lg px-3 py-2 cursor-pointer"
-                      />
-                    )}
+                      {!userSettings.date_filter_start && (
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                          지정안함
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => updateLocalSettings({ date_filter_start: null })}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
@@ -480,27 +475,22 @@ export default function AdminBillboardModal({
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">종료 날짜</label>
                   <div className="flex gap-2">
-                    {userSettings.date_filter_end ? (
+                    <div className="flex-1 relative">
                       <input
                         type="date"
-                        value={userSettings.date_filter_end}
+                        value={userSettings.date_filter_end || ""}
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_end: e.target.value || null })
                         }
-                        className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
+                        className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
+                        style={!userSettings.date_filter_end ? { color: 'transparent' } : {}}
                       />
-                    ) : (
-                      <input
-                        type="text"
-                        value="지정안함"
-                        readOnly
-                        onClick={() => {
-                          const today = new Date().toISOString().split('T')[0];
-                          updateLocalSettings({ date_filter_end: today });
-                        }}
-                        className="flex-1 bg-gray-600 text-gray-400 rounded-lg px-3 py-2 cursor-pointer"
-                      />
-                    )}
+                      {!userSettings.date_filter_end && (
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                          지정안함
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => updateLocalSettings({ date_filter_end: null })}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
@@ -791,25 +781,20 @@ export default function AdminBillboardModal({
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">시작 날짜</label>
                 <div className="flex gap-2">
-                  {settings.dateRangeStart ? (
+                  <div className="flex-1 relative">
                     <input
                       type="date"
-                      value={settings.dateRangeStart}
+                      value={settings.dateRangeStart || ''}
                       onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
-                      className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                      style={!settings.dateRangeStart ? { color: 'transparent' } : {}}
                     />
-                  ) : (
-                    <input
-                      type="text"
-                      value="지정안함"
-                      readOnly
-                      onClick={() => {
-                        const today = new Date().toISOString().split('T')[0];
-                        onUpdateSettings({ dateRangeStart: today });
-                      }}
-                      className="flex-1 px-3 py-2 bg-gray-600 text-gray-400 rounded-lg border border-gray-500 cursor-pointer"
-                    />
-                  )}
+                    {!settings.dateRangeStart && (
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        지정안함
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => onUpdateSettings({ dateRangeStart: null })}
                     className={`px-3 py-2 rounded-lg transition-colors ${
@@ -826,25 +811,20 @@ export default function AdminBillboardModal({
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">종료 날짜</label>
                 <div className="flex gap-2">
-                  {settings.dateRangeEnd ? (
+                  <div className="flex-1 relative">
                     <input
                       type="date"
-                      value={settings.dateRangeEnd}
+                      value={settings.dateRangeEnd || ''}
                       onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
-                      className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                      style={!settings.dateRangeEnd ? { color: 'transparent' } : {}}
                     />
-                  ) : (
-                    <input
-                      type="text"
-                      value="지정안함"
-                      readOnly
-                      onClick={() => {
-                        const today = new Date().toISOString().split('T')[0];
-                        onUpdateSettings({ dateRangeEnd: today });
-                      }}
-                      className="flex-1 px-3 py-2 bg-gray-600 text-gray-400 rounded-lg border border-gray-500 cursor-pointer"
-                    />
-                  )}
+                    {!settings.dateRangeEnd && (
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        지정안함
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => onUpdateSettings({ dateRangeEnd: null })}
                     className={`px-3 py-2 rounded-lg transition-colors ${
