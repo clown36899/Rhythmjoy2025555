@@ -9,50 +9,41 @@ interface PlaceModalProps {
 // Nominatim (무료 지오코딩) API로 주소 → 좌표 변환
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    // 1차 시도: 원본 주소 그대로
-    let response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=kr&limit=1`,
-      {
-        headers: {
-          'User-Agent': 'SocialPlaceApp/1.0',
-        },
-      }
-    );
-    let data = await response.json();
-    
+    // 상세 주소 제거 (지하, 층, 호, 건물명 등)
+    const cleanAddress = address
+      .replace(/\s*지하\d+층?/g, '')
+      .replace(/\s*\d+층/g, '')
+      .replace(/\s*\d+호/g, '')
+      .replace(/\s+[가-힣]{2,}\s*$/g, '') // 마지막 2글자 이상 한글 (건물명) 제거
+      .trim();
+
+    console.log('원본 주소:', address);
+    console.log('정리된 주소:', cleanAddress);
+
+    // Nominatim API 호출
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanAddress)}&countrycodes=kr&limit=3&addressdetails=1`;
+    console.log('API URL:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'SocialPlaceApp/1.0',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('API 응답 에러:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('API 응답:', data);
+
     if (data && data.length > 0) {
+      // 가장 정확한 결과 선택 (첫 번째 결과 사용)
       return {
         lat: parseFloat(data[0].lat),
         lng: parseFloat(data[0].lon),
       };
-    }
-
-    // 2차 시도: 상세 주소 제거 (지하, 층, 호 등)
-    const simplifiedAddress = address
-      .replace(/\s*지하\d+층?/g, '')
-      .replace(/\s*\d+층/g, '')
-      .replace(/\s*\d+호/g, '')
-      .replace(/\s*[가-힣]+\s*$/g, '') // 마지막 건물명 제거
-      .trim();
-
-    if (simplifiedAddress !== address) {
-      console.log('간소화된 주소로 재시도:', simplifiedAddress);
-      response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplifiedAddress)}&countrycodes=kr&limit=1`,
-        {
-          headers: {
-            'User-Agent': 'SocialPlaceApp/1.0',
-          },
-        }
-      );
-      data = await response.json();
-
-      if (data && data.length > 0) {
-        return {
-          lat: parseFloat(data[0].lat),
-          lng: parseFloat(data[0].lon),
-        };
-      }
     }
 
     return null;
@@ -76,10 +67,13 @@ export default function PlaceModal({ onClose, onSuccess }: PlaceModalProps) {
     setLoading(true);
 
     try {
-      // 주소 → 좌표 변환
+      // 주소 → 좌표 자동 변환
+      console.log('주소 검색 시작:', address);
       const coords = await geocodeAddress(address);
+      console.log('검색 결과:', coords);
+      
       if (!coords) {
-        throw new Error('주소를 찾을 수 없습니다. 정확한 주소를 입력해주세요.');
+        throw new Error('주소를 찾을 수 없습니다. 도로명 주소나 간단한 주소(예: 서울특별시 서초구 남부순환로 2457)를 입력해주세요.');
       }
 
       // 장소 저장
@@ -98,6 +92,7 @@ export default function PlaceModal({ onClose, onSuccess }: PlaceModalProps) {
 
       onSuccess();
     } catch (err: any) {
+      console.error('장소 등록 에러:', err);
       setError(err.message || '장소 등록에 실패했습니다.');
     } finally {
       setLoading(false);
