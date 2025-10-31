@@ -15,9 +15,9 @@ interface SeoulMapProps {
 export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
-  const [mapType, setMapType] = useState<'ROADMAP' | 'SKYVIEW'>('ROADMAP');
   const [loading, setLoading] = useState(true);
   const markersRef = useRef<any[]>([]);
+  const initialBoundsRef = useRef<any>(null);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -138,9 +138,26 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
         });
 
         kakao.maps.event.addListener(marker, 'click', () => {
-          // 마커 클릭 시 해당 위치로 확대
-          map.setLevel(3); // 줌 레벨 3 (더 확대)
-          map.panTo(position); // 부드럽게 이동
+          // 마커 클릭 시 해당 위치로 부드럽게 확대
+          const currentLevel = map.getLevel();
+          const targetLevel = 3;
+          
+          // 줌 레벨을 단계적으로 변경 (부드러운 효과)
+          if (currentLevel > targetLevel) {
+            let step = 0;
+            const steps = currentLevel - targetLevel;
+            const interval = setInterval(() => {
+              if (step >= steps) {
+                clearInterval(interval);
+                return;
+              }
+              map.setLevel(currentLevel - step - 1);
+              step++;
+            }, 100);
+          }
+          
+          // 부드럽게 이동
+          map.panTo(position);
         });
 
         kakao.maps.event.addListener(marker, 'mouseover', () => {
@@ -158,17 +175,16 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
 
     if (places.length > 0) {
       map.setBounds(bounds);
+      // 초기 bounds 저장 (원상태 복원용)
+      initialBoundsRef.current = bounds;
     }
   }, [map, places, onPlaceSelect]);
 
-  const toggleMapType = () => {
-    if (!map || !window.kakao) return;
-
-    const kakao = window.kakao;
-    const newType = mapType === 'ROADMAP' ? 'SKYVIEW' : 'ROADMAP';
+  const resetMapView = () => {
+    if (!map || !initialBoundsRef.current) return;
     
-    map.setMapTypeId(kakao.maps.MapTypeId[newType]);
-    setMapType(newType);
+    // 부드럽게 원상태로 복원
+    map.setBounds(initialBoundsRef.current);
   };
 
   return (
@@ -181,13 +197,13 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
         </div>
       )}
       
-      {map && (
+      {map && initialBoundsRef.current && (
         <button
-          onClick={toggleMapType}
-          className="absolute top-2 right-2 z-10 bg-white hover:bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium shadow-md border border-gray-200 transition-colors"
+          onClick={resetMapView}
+          className="absolute bottom-2 left-2 z-10 bg-white hover:bg-gray-100 text-gray-700 p-2.5 rounded-lg shadow-md border border-gray-200 transition-colors"
+          title="전체 보기"
         >
-          <i className={`ri-${mapType === 'ROADMAP' ? 'earth' : 'map-2'}-line mr-1`}></i>
-          {mapType === 'ROADMAP' ? '스카이뷰' : '지도'}
+          <i className="ri-fullscreen-line text-lg"></i>
         </button>
       )}
     </div>
