@@ -452,12 +452,6 @@ export default function Header({
             <div className="bg-gray-800 rounded-lg p-4 w-full max-w-sm">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-white">설정</h3>
-                <button
-                  onClick={() => setShowSettingsModal(false)}
-                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
-                >
-                  <i className="ri-close-line text-xl"></i>
-                </button>
               </div>
 
               {!isAdmin && billboardUserId === null ? (
@@ -568,6 +562,14 @@ export default function Header({
                     >
                       로그아웃
                     </button>
+                    {isAdmin && billboardUserId === null && (
+                      <button
+                        onClick={() => setShowSettingsModal(false)}
+                        className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                      >
+                        모달 닫기
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

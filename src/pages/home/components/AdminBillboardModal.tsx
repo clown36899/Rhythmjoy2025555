@@ -608,11 +608,12 @@ export default function AdminBillboardModal({
 
   // 메인 관리자용 UI (기존 코드)
   return createPortal(
-    <div
-      className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <>
+      <div
+        className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={handleBackdropClick}
+      >
+        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -1055,56 +1056,56 @@ export default function AdminBillboardModal({
             완료
           </button>
         </div>
-      </div>
 
-      <style>{`
-        .slider-purple::-webkit-slider-thumb {
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          background: #a855f7;
-          border-radius: 50%;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .slider-purple::-webkit-slider-thumb:hover {
-          background: #9333ea;
-          transform: scale(1.1);
-        }
-        .slider-purple::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          background: #a855f7;
-          border-radius: 50%;
-          cursor: pointer;
-          border: none;
-          transition: all 0.2s;
-        }
-        .slider-purple::-moz-range-thumb:hover {
-          background: #9333ea;
-          transform: scale(1.1);
-        }
-      `}</style>
+        <style>{`
+          .slider-purple::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #a855f7;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .slider-purple::-webkit-slider-thumb:hover {
+            background: #9333ea;
+            transform: scale(1.1);
+          }
+          .slider-purple::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #a855f7;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+          }
+          .slider-purple::-moz-range-thumb:hover {
+            background: #9333ea;
+            transform: scale(1.1);
+          }
+        `}</style>
+      </div>
     </div>
 
-    {/* 성공 알림 모달 */}
-    {showSuccessModal && (
-      <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
-          <div className="text-center">
-            <div className="mb-4 flex justify-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                <i className="ri-check-line text-3xl text-white"></i>
+      {/* 성공 알림 모달 */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                  <i className="ri-check-line text-3xl text-white"></i>
+                </div>
               </div>
+              <p className="text-white text-lg font-semibold">
+                {successMessage}
+              </p>
             </div>
-            <p className="text-white text-lg font-semibold">
-              {successMessage}
-            </p>
           </div>
         </div>
-      </div>
-    )}
-  </>,
-  document.body
-);
+      )}
+    </>,
+    document.body
+  );
 }
