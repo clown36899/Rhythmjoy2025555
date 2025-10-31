@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { SocialPlace } from '../page';
 import PlaceModal from './PlaceModal';
 
@@ -13,16 +13,16 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
   const [isAdminMode, setIsAdminMode] = useState(false);
 
   // 관리자 모드 체크 (localStorage에서)
-  const checkAdminMode = () => {
-    const adminPassword = localStorage.getItem('adminPassword');
-    setIsAdminMode(!!adminPassword);
-  };
+  useEffect(() => {
+    const checkAdminMode = () => {
+      const adminPassword = localStorage.getItem('adminPassword');
+      setIsAdminMode(!!adminPassword);
+    };
 
-  useState(() => {
     checkAdminMode();
     window.addEventListener('storage', checkAdminMode);
     return () => window.removeEventListener('storage', checkAdminMode);
-  });
+  }, []);
 
   return (
     <div className="px-4 pb-4">

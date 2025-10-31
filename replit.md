@@ -2,7 +2,7 @@
 
 ## Overview
 
-광고판 is a Korean event discovery and management platform focused on classes (강습) and events (행사). It provides a calendar-based interface for event browsing, creation, and management, including practice room listings. The platform aims to be a modern, easy-to-use single-page application with full Korean language support and free event posting to foster community engagement. Its business vision is to become the leading platform for local event discovery in Korea, offering a streamlined experience for both organizers and participants.
+광고판 is a Korean event discovery and management platform focused on classes (강습), events (행사), and social venues (소셜 장소). It provides a calendar-based interface for event browsing, creation, and management, including practice room listings and venue schedule management. The platform aims to be a modern, easy-to-use application with full Korean language support and free event posting to foster community engagement. Its business vision is to become the leading platform for local event discovery in Korea, offering a streamlined experience for both organizers and participants.
 
 ## User Preferences
 
@@ -73,6 +73,33 @@ A hierarchical management system allows super admins to create and manage multip
 - `billboard_user_settings` table: per-user filtering and display preferences
 - Row-level security policies ensure public read access for active billboards
 
+### Social Venues System
+A separate venue management system (`/social`) allows users to discover and manage schedules for specific locations. This system is completely independent from the main events calendar:
+
+**Architecture**:
+- Dedicated route (`/social`, `/social/:placeId`) with its own page and components
+- Leaflet.js + OpenStreetMap for free, API-key-free mapping
+- Nominatim geocoding service converts addresses to map coordinates automatically
+- Bottom navigation integration with green highlight color
+
+**Features**:
+- **Map View**: Seoul-centered map displaying all registered venues as markers
+- **Venue List**: Scrollable list of venues with addresses and descriptions
+- **Venue Calendar**: Full-screen monthly calendar for each venue showing daily schedules
+- **Admin CRUD**: Password-protected venue and schedule creation/editing/deletion
+
+**Data Model**:
+- `social_places` table: venue information (name, address, lat/lng, contact, description)
+- `social_schedules` table: venue-specific schedules (title, date, time range, description)
+- Foreign key relationship: `social_schedules.place_id` → `social_places.id`
+- RLS policies: public read access, all users can write (admin check in app layer)
+
+**User Experience**:
+- Click venue on map or list → view monthly calendar
+- Admin mode: click dates to add/edit schedules, manage venues
+- Automatic address geocoding when creating venues
+- Deep-linkable URLs for sharing specific venue calendars
+
 ## External Dependencies
 
 ### Backend Services
@@ -85,5 +112,11 @@ A hierarchical management system allows super admins to create and manage multip
 ### Analytics & Visualization
 - **Recharts (v3.2.0)**: Included for data visualization, likely planned for admin dashboards or event statistics.
 
+### Mapping & Geolocation
+- **Leaflet.js (v1.9+)**: Free, open-source mapping library for interactive maps
+- **React-Leaflet**: React wrapper for Leaflet integration
+- **OpenStreetMap**: Free map tiles (no API key required)
+- **Nominatim**: Free geocoding service for address → coordinates conversion
+
 ### External Resources
-- **CDN Assets**: Font Awesome 6.4.0, Remix Icon 4.5.0, and Google Fonts API (Pacifico font).
+- **CDN Assets**: Font Awesome 6.4.0, Remix Icon 4.5.0, Google Fonts API (Pacifico font), and Leaflet CSS from CDN.
