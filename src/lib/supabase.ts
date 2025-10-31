@@ -12,6 +12,13 @@ console.log('[Supabase] 환경변수 확인:', {
 });
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce', // 프로덕션 환경에서 세션 유지를 위해 필수
+  },
   realtime: {
     params: {
       eventsPerSecond: 10,
