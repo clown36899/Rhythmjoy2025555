@@ -138,7 +138,9 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
         });
 
         kakao.maps.event.addListener(marker, 'click', () => {
-          onPlaceSelect(place);
+          // 마커 클릭 시 해당 위치로 확대
+          map.setLevel(3); // 줌 레벨 3 (더 확대)
+          map.panTo(position); // 부드럽게 이동
         });
 
         kakao.maps.event.addListener(marker, 'mouseover', () => {
