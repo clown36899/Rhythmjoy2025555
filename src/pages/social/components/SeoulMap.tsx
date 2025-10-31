@@ -22,10 +22,18 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
   useEffect(() => {
     if (!mapRef.current) return;
 
+    let attempts = 0;
+    const maxAttempts = 20;
+
     const initMap = () => {
       if (!window.kakao || !window.kakao.maps) {
-        console.error('카카오맵 SDK가 로드되지 않았습니다.');
-        setLoading(false);
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(initMap, 200);
+        } else {
+          console.error('카카오맵 SDK가 로드되지 않았습니다.');
+          setLoading(false);
+        }
         return;
       }
 
@@ -47,12 +55,7 @@ export default function SeoulMap({ places, onPlaceSelect }: SeoulMapProps) {
       }
     };
 
-    if (window.kakao && window.kakao.maps) {
-      initMap();
-    } else {
-      const timer = setTimeout(initMap, 500);
-      return () => clearTimeout(timer);
-    }
+    initMap();
   }, []);
 
   useEffect(() => {

@@ -24,20 +24,26 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
     return () => window.removeEventListener('storage', checkAdminMode);
   }, []);
 
+  const handleAddClick = () => {
+    if (!isAdminMode) {
+      alert('관리자에게 문의하세요\n전화: 010-4801-7180');
+      return;
+    }
+    setShowAddModal(true);
+  };
+
   return (
     <div className="px-4 pb-4">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-white">장소 목록</h2>
-        {isAdminMode && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <i className="ri-add-line mr-1"></i>
-            장소 등록
-          </button>
-        )}
+        <button
+          onClick={handleAddClick}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          <i className="ri-add-line mr-1"></i>
+          장소 등록
+        </button>
       </div>
 
       {/* 장소 리스트 */}
