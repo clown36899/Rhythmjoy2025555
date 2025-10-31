@@ -443,15 +443,27 @@ export default function AdminBillboardModal({
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">시작 날짜</label>
                   <div className="flex gap-2">
-                    <input
-                      type="date"
-                      value={userSettings.date_filter_start || ""}
-                      onChange={(e) =>
-                        updateLocalSettings({ date_filter_start: e.target.value || null })
-                      }
-                      placeholder="지정안함"
-                      className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
-                    />
+                    {userSettings.date_filter_start ? (
+                      <input
+                        type="date"
+                        value={userSettings.date_filter_start}
+                        onChange={(e) =>
+                          updateLocalSettings({ date_filter_start: e.target.value || null })
+                        }
+                        className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value="지정안함"
+                        readOnly
+                        onClick={() => {
+                          const today = new Date().toISOString().split('T')[0];
+                          updateLocalSettings({ date_filter_start: today });
+                        }}
+                        className="flex-1 bg-gray-600 text-gray-400 rounded-lg px-3 py-2 cursor-pointer"
+                      />
+                    )}
                     <button
                       onClick={() => updateLocalSettings({ date_filter_start: null })}
                       className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
@@ -460,40 +472,38 @@ export default function AdminBillboardModal({
                       지정 안 함
                     </button>
                   </div>
-                  {!userSettings.date_filter_start && (
-                    <p className="text-xs text-green-400 mt-1">
-                      <i className="ri-check-line mr-1"></i>
-                      시작 날짜 미지정 - 모든 일정 표시
-                    </p>
-                  )}
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">종료 날짜</label>
-                  <div className="space-y-1">
-                    <div className="flex gap-2">
+                  <div className="flex gap-2">
+                    {userSettings.date_filter_end ? (
                       <input
                         type="date"
-                        value={userSettings.date_filter_end || ""}
+                        value={userSettings.date_filter_end}
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_end: e.target.value || null })
                         }
-                        placeholder="지정안함"
                         className="flex-1 bg-gray-600 text-white rounded-lg px-3 py-2"
                       />
-                      <button
-                        onClick={() => updateLocalSettings({ date_filter_end: null })}
-                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                        title="종료 날짜 제한 없음"
-                      >
-                        지정 안 함
-                      </button>
-                    </div>
-                    {!userSettings.date_filter_end && (
-                      <p className="text-xs text-green-400">
-                        <i className="ri-check-line mr-1"></i>
-                        종료 날짜 미지정 - 모든 미래 일정 표시
-                      </p>
+                    ) : (
+                      <input
+                        type="text"
+                        value="지정안함"
+                        readOnly
+                        onClick={() => {
+                          const today = new Date().toISOString().split('T')[0];
+                          updateLocalSettings({ date_filter_end: today });
+                        }}
+                        className="flex-1 bg-gray-600 text-gray-400 rounded-lg px-3 py-2 cursor-pointer"
+                      />
                     )}
+                    <button
+                      onClick={() => updateLocalSettings({ date_filter_end: null })}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                      title="종료 날짜 제한 없음"
+                    >
+                      지정 안 함
+                    </button>
                   </div>
                 </div>
               </div>
@@ -773,13 +783,25 @@ export default function AdminBillboardModal({
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">시작 날짜</label>
                 <div className="flex gap-2">
-                  <input
-                    type="date"
-                    value={settings.dateRangeStart || ''}
-                    onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
-                    placeholder="지정안함"
-                    className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
-                  />
+                  {settings.dateRangeStart ? (
+                    <input
+                      type="date"
+                      value={settings.dateRangeStart}
+                      onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
+                      className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value="지정안함"
+                      readOnly
+                      onClick={() => {
+                        const today = new Date().toISOString().split('T')[0];
+                        onUpdateSettings({ dateRangeStart: today });
+                      }}
+                      className="flex-1 px-3 py-2 bg-gray-600 text-gray-400 rounded-lg border border-gray-500 cursor-pointer"
+                    />
+                  )}
                   <button
                     onClick={() => onUpdateSettings({ dateRangeStart: null })}
                     className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
@@ -788,23 +810,29 @@ export default function AdminBillboardModal({
                     <i className="ri-close-line text-lg"></i>
                   </button>
                 </div>
-                {!settings.dateRangeStart && (
-                  <p className="text-xs text-green-400 mt-1">
-                    <i className="ri-check-line mr-1"></i>
-                    시작 날짜 미지정 - 모든 일정 표시
-                  </p>
-                )}
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">종료 날짜</label>
                 <div className="flex gap-2">
-                  <input
-                    type="date"
-                    value={settings.dateRangeEnd || ''}
-                    onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
-                    placeholder="지정안함"
-                    className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
-                  />
+                  {settings.dateRangeEnd ? (
+                    <input
+                      type="date"
+                      value={settings.dateRangeEnd}
+                      onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
+                      className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value="지정안함"
+                      readOnly
+                      onClick={() => {
+                        const today = new Date().toISOString().split('T')[0];
+                        onUpdateSettings({ dateRangeEnd: today });
+                      }}
+                      className="flex-1 px-3 py-2 bg-gray-600 text-gray-400 rounded-lg border border-gray-500 cursor-pointer"
+                    />
+                  )}
                   <button
                     onClick={() => onUpdateSettings({ dateRangeEnd: null })}
                     className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
@@ -813,12 +841,6 @@ export default function AdminBillboardModal({
                     <i className="ri-close-line text-lg"></i>
                   </button>
                 </div>
-                {!settings.dateRangeEnd && (
-                  <p className="text-xs text-green-400 mt-1">
-                    <i className="ri-check-line mr-1"></i>
-                    종료 날짜 미지정 - 모든 미래 일정 표시
-                  </p>
-                )}
               </div>
             </div>
             
