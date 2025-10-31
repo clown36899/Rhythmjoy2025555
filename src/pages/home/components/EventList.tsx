@@ -1256,7 +1256,7 @@ export default function EventList({
 
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-none p-4">
+      <div className="bg-[#1f1f1f] rounded-none p-4">
         <div className="text-center py-8">
           <i className="ri-loader-4-line text-4xl text-gray-500 mb-4 animate-spin"></i>
           <p className="text-gray-400">이벤트를 불러오는 중...</p>
@@ -1282,7 +1282,7 @@ export default function EventList({
   // 로딩 완료 후 에러가 있으면 표시
   if (loadError && events.length === 0) {
     return (
-      <div className="bg-gray-800 rounded-none p-4">
+      <div className="bg-[#1f1f1f] rounded-none p-4">
         <div className="text-center py-8">
           <i className="ri-error-warning-line text-4xl text-red-500 mb-4"></i>
           <p className="text-gray-400 mb-2">데이터를 불러올 수 없습니다</p>
