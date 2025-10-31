@@ -52,6 +52,11 @@ export const initKakaoSDK = () => {
   });
 };
 
+// 모바일 기기 감지
+const isMobile = (): boolean => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 // 카카오 로그인
 export const loginWithKakao = (): Promise<KakaoUserInfo> => {
   return new Promise((resolve, reject) => {
@@ -60,7 +65,8 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
       return;
     }
 
-    window.Kakao.Auth.login({
+    // 모바일에서는 throughTalk 옵션 추가
+    const loginOptions: any = {
       success: () => {
         // 사용자 정보 요청
         window.Kakao.API.request({
@@ -76,7 +82,14 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
       fail: (error: any) => {
         reject(new Error('카카오 로그인 실패: ' + error.error_description));
       },
-    });
+    };
+
+    // 모바일에서는 카카오톡 앱으로 전환하도록 시도
+    if (isMobile()) {
+      loginOptions.throughTalk = true;
+    }
+
+    window.Kakao.Auth.login(loginOptions);
   });
 };
 
