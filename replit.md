@@ -14,7 +14,20 @@ Preferred communication style: Simple, everyday language.
 The application is built with React 19.1.0 and TypeScript, using Vite 7.0.3 for fast development and bundling. React Router DOM v7 handles client-side routing. Styling is managed with Tailwind CSS 3.4, ensuring a responsive, mobile-first design without reliance on third-party UI frameworks. The architecture uses React hooks for local state management and custom window events for inter-component communication, avoiding global state libraries. Internationalization is implemented using i18next and react-i18next, with Korean as the primary language.
 
 ### Component Architecture
-Key components include the `EventCalendar` for date-based discovery, `EventList` for filtered event display, and a `Hero` section. `EventRegistrationModal` allows event creation with image upload and multi-link support, while `PracticeRoomModal` handles CRUD operations for practice rooms (admin-only). Modals utilize React Portals for overlay UI. An admin mode provides content management capabilities, including password-protected event editing and deletion. The home page integrates these components, offering a comprehensive event discovery experience.
+Key components include the `EventCalendar` for date-based discovery, `EventList` for filtered event display, and a `Hero` section. `EventRegistrationModal` allows event creation with image upload and multi-link support, while `PracticeRoomModal` handles CRUD operations for practice rooms (admin-only). Modals utilize React Portals for overlay UI. The home page integrates these components, offering a comprehensive event discovery experience.
+
+### Authentication & Authorization System
+**Unified Super Admin Authentication** (October 2025):
+- **Supabase Auth Integration**: Email/password authentication via Supabase Auth
+- **Environment-Based Access Control**: Super admin role determined by `VITE_ADMIN_EMAIL` environment variable
+- **Two-Tier Admin System**:
+  - **Super Admin**: Full CRUD access to all content (events, social venues, practice rooms, billboard settings). Authenticated via Supabase Auth with email matching `VITE_ADMIN_EMAIL`.
+  - **Billboard Sub-Admins**: Limited access to manage only their own billboard displays. Uses legacy salt+SHA-256 password hashing (separate from Supabase Auth).
+- **Security Architecture**:
+  - **Frontend Layer**: `AuthContext` provides `useAuth()` hook with `isAdmin` flag. UI elements conditionally rendered based on admin status.
+  - **Database Layer**: Supabase Row-Level Security (RLS) policies enforce super admin email restrictions on INSERT/UPDATE/DELETE operations via `auth.jwt()->>'email'` checks.
+  - **Public Read Access**: All users can read events, social venues, and schedules. Only authenticated super admin can mutate data.
+- **Login UI**: Settings modal offers tabbed login (Super Admin / Billboard Admin) with appropriate form fields (email+password for super, password-only for billboard users).
 
 ### Data Layer
 Events support multi-day occurrences with `start_date` and `end_date` fields, alongside a legacy `date` field for backward compatibility. Events are categorized as 'class' (purple) or 'event' (blue). Practice rooms include details like name, address, description, images, and links. Image handling involves file upload previews and storage via Supabase.
@@ -78,9 +91,10 @@ A separate venue management system (`/social`) allows users to discover and mana
 
 **Architecture**:
 - Dedicated route (`/social`, `/social/:placeId`) with its own page and components
-- Leaflet.js + OpenStreetMap for free, API-key-free mapping
-- Nominatim geocoding service converts addresses to map coordinates automatically
+- **Kakao Maps SDK**: Korean-optimized mapping with road/satellite view toggle
+- **Kakao Local API**: Accurate Korean address search and geocoding
 - Bottom navigation integration with green highlight color
+- API Keys: Uses `VITE_KAKAO_JAVASCRIPT_KEY` and `VITE_KAKAO_REST_API_KEY` environment variables
 
 **Features**:
 - **Map View**: Seoul-centered map displaying all registered venues as markers
@@ -92,7 +106,7 @@ A separate venue management system (`/social`) allows users to discover and mana
 - `social_places` table: venue information (name, address, lat/lng, contact, description)
 - `social_schedules` table: venue-specific schedules (title, date, time range, description)
 - Foreign key relationship: `social_schedules.place_id` → `social_places.id`
-- RLS policies: public read access, all users can write (admin check in app layer)
+- **RLS Policies**: Public read access, super admin-only writes (enforced by `auth.jwt()->>'email'` matching `VITE_ADMIN_EMAIL`)
 
 **User Experience**:
 - Click venue on map or list → view monthly calendar
@@ -103,8 +117,8 @@ A separate venue management system (`/social`) allows users to discover and mana
 ## External Dependencies
 
 ### Backend Services
-- **Supabase**: Primary backend for PostgreSQL database (event/practice room data), Supabase Storage (image uploads), and configured (but not fully implemented) Supabase Auth.
-- **Firebase**: Included (v12.0.0) but not actively used, likely for future features like authentication or analytics.
+- **Supabase**: Primary backend for PostgreSQL database (event/practice room/social venue data), Supabase Storage (image uploads), and **Supabase Auth** (super admin authentication with email/password).
+- **Firebase**: Included (v12.0.0) but not actively used, likely for future features like analytics.
 
 ### Payment Integration
 - **Stripe**: `@stripe/react-stripe-js` (v4.0.2) is integrated, suggesting future support for paid events or premium features.
@@ -113,10 +127,9 @@ A separate venue management system (`/social`) allows users to discover and mana
 - **Recharts (v3.2.0)**: Included for data visualization, likely planned for admin dashboards or event statistics.
 
 ### Mapping & Geolocation
-- **Leaflet.js (v1.9+)**: Free, open-source mapping library for interactive maps
-- **React-Leaflet**: React wrapper for Leaflet integration
-- **OpenStreetMap**: Free map tiles (no API key required)
-- **Nominatim**: Free geocoding service for address → coordinates conversion
+- **Kakao Maps SDK**: Korean-optimized interactive maps with road/satellite views
+- **Kakao Local API**: Korean address search and geocoding service
+- Platform registration required at https://developers.kakao.com/
 
 ### External Resources
 - **CDN Assets**: Font Awesome 6.4.0, Remix Icon 4.5.0, Google Fonts API (Pacifico font), and Leaflet CSS from CDN.
