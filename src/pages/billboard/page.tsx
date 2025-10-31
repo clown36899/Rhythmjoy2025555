@@ -818,7 +818,7 @@ export default function BillboardPage() {
                         className="text-blue-400 font-semibold" 
                         style={{ 
                           fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
-                          animation: `slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards`,
+                          animation: `slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards`,
                           opacity: 0,
                           transform: `translateX(-${150 * scale}px) rotate(-8deg)`
                         }}
@@ -836,7 +836,7 @@ export default function BillboardPage() {
                           className="text-gray-300" 
                           style={{ 
                             fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
-                            animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards`,
+                            animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards`,
                             opacity: 0,
                             transform: `translateX(${150 * scale}px) rotate(8deg)`
                           }}
@@ -863,7 +863,7 @@ export default function BillboardPage() {
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
                       width: '100%',
-                      animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 2.4s forwards`,
+                      animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
                       opacity: 0,
                       transform: `scale(0.2) translateY(${100 * scale}px) rotate(-15deg)`
                     }}
@@ -878,7 +878,7 @@ export default function BillboardPage() {
                   style={{ 
                     padding: `${12 * scale}px`,
                     marginLeft: `${24 * scale}px`,
-                    animation: `rotateInFade 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) 4s forwards`,
+                    animation: `rotateInFade 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
                     opacity: 0,
                     transform: `rotate(540deg) scale(0.1)`
                   }}
