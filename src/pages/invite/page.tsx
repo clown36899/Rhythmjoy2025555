@@ -92,22 +92,32 @@ export default function InvitePage() {
 
       const authData = await response.json();
 
-      if (authData.token && authData.tokenType === 'magiclink') {
+      // 서버에서 받은 세션으로 자동 로그인
+      if (authData.session) {
         const { supabase } = await import('../../lib/supabase');
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          email: authData.email,
-          token: authData.token,
-          type: 'magiclink',
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token,
         });
 
-        if (verifyError) {
+        if (sessionError) {
           throw new Error('로그인에 실패했습니다');
         }
 
-        navigate('/');
+        // 성공 페이지로 이동
+        navigate('/', { replace: true });
       }
     } catch (err: any) {
-      setError(err.message || '가입 중 오류가 발생했습니다');
+      // 에러 메시지 개선
+      let errorMessage = err.message || '가입 중 오류가 발생했습니다';
+      
+      if (errorMessage.includes('초대된 이메일') || errorMessage.includes('일치하지 않습니다')) {
+        errorMessage = `❌ 이메일 불일치\n\n초대된 이메일: ${invitationEmail}\n\n카카오톡에서 반드시 ${invitationEmail} 계정으로 로그인하세요.`;
+      } else if (errorMessage.includes('초대받지 않은')) {
+        errorMessage = '❌ 초대받지 않은 사용자입니다.\n관리자에게 초대를 요청하세요.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setProcessing(false);
     }
