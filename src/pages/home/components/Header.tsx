@@ -190,9 +190,8 @@ export default function Header({
     window.location.href = '/';
   };
 
-  // 색상 설정 불러오기 (동적 로딩 제거 - index.css 하드코딩 사용)
+  // 색상 설정 불러오기 (DB 최우선)
   const loadThemeColors = async () => {
-    // DB 조회만 해서 UI 업데이트 (CSS 변수는 index.css 값 사용)
     try {
       const { data, error } = await supabase
         .from("theme_settings")
@@ -204,7 +203,7 @@ export default function Header({
         return;
       }
 
-      // 로컬 상태만 업데이트 (CSS 변수 업데이트 제거)
+      // 로컬 상태 업데이트
       setThemeColors({
         background_color: data.background_color,
         header_bg_color: data.header_bg_color || "#1f2937",
@@ -213,8 +212,16 @@ export default function Header({
         event_list_outer_bg_color: data.event_list_outer_bg_color,
         page_bg_color: data.page_bg_color || "#111827",
       });
+
+      // CSS 변수 업데이트 (DB 색상이 최우선)
+      document.documentElement.style.setProperty("--bg-color", data.background_color);
+      document.documentElement.style.setProperty("--header-bg-color", data.header_bg_color || "#1f2937");
+      document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color);
+      document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color);
+      document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color);
+      document.documentElement.style.setProperty("--page-bg-color", data.page_bg_color || "#111827");
     } catch (err) {
-      // 기본 색상 사용
+      // 기본 색상 사용 (index.css 폴백)
     }
   };
 
