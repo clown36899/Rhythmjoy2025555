@@ -366,7 +366,13 @@ export default function BillboardUserManagementModal({
               >
                 <div className="flex-1">
                   <h4 className="text-white font-semibold">{user.name}</h4>
-                  <p className="text-gray-400 text-sm mt-1">
+                  {user.email && (
+                    <p className="text-gray-300 text-sm mt-0.5">
+                      <i className="ri-mail-line mr-1"></i>
+                      {user.email}
+                    </p>
+                  )}
+                  <p className="text-gray-400 text-xs mt-1">
                     URL: /billboard/{user.id.substring(0, 8)}...
                   </p>
                 </div>
