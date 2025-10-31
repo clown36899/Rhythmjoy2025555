@@ -49,7 +49,7 @@ export default function Header({
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   
-  const { isAdmin, signIn, signOut } = useAuth();
+  const { isAdmin, signIn, signOut, signInWithKakao } = useAuth();
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] =
@@ -549,6 +549,31 @@ export default function Header({
                       로그인
                     </button>
                   </form>
+                  
+                  <div className="mt-6">
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-600"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-gray-800 text-gray-400">또는</span>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={async () => {
+                        try {
+                          await signInWithKakao();
+                        } catch (error: any) {
+                          alert(error.message || '카카오 로그인에 실패했습니다');
+                        }
+                      }}
+                      className="mt-4 w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                    >
+                      <i className="ri-kakao-talk-fill text-xl"></i>
+                      카카오로 로그인
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div>

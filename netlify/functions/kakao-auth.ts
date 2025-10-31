@@ -73,8 +73,8 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUser?.users.find(u => u.email === email);
+    const { data: existingUserData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+    const userExists = existingUserData?.user;
 
     let userId: string;
 
@@ -111,16 +111,15 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
+    const { data: otpData, error: otpError } = await supabaseAdmin.auth.signInWithOtp({
       email,
       options: {
-        redirectTo: `${event.headers.origin || 'http://localhost:5000'}/`
+        shouldCreateUser: false,
       }
     });
 
-    if (sessionError || !sessionData) {
-      console.error('Session generation error:', sessionError);
+    if (otpError || !otpData) {
+      console.error('OTP generation error:', otpError);
       return {
         statusCode: 500,
         body: JSON.stringify({ error: '세션 생성 실패' })
@@ -137,7 +136,7 @@ export const handler: Handler = async (event) => {
         isBillboardUser: !!billboardUser,
         billboardUserId: billboardUser?.id || null,
         billboardUserName: billboardUser?.name || null,
-        magicLink: sessionData.properties.hashed_token
+        needsOtpVerification: true
       })
     };
 

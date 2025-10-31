@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
-import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
+import { initKakaoSDK, loginWithKakao, logoutKakao, getKakaoAccessToken } from '../utils/kakaoAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -48,21 +48,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithKakao = async () => {
-    // 카카오 SDK 초기화
     await initKakaoSDK();
-
-    // 카카오 로그인
-    const kakaoUser = await loginWithKakao();
+    await loginWithKakao();
     
-    const email = kakaoUser.kakao_account.email;
-    const name = kakaoUser.kakao_account.profile?.nickname || kakaoUser.kakao_account.name || '카카오 사용자';
-
-    if (!email) {
-      throw new Error('카카오 계정에서 이메일을 가져올 수 없습니다. 카카오 계정 설정을 확인해주세요.');
+    const accessToken = getKakaoAccessToken();
+    if (!accessToken) {
+      throw new Error('카카오 액세스 토큰을 가져올 수 없습니다');
     }
 
-    // 카카오 정보 반환 (회원가입 또는 로그인 프로세스로 연결)
-    return { email, name };
+    const response = await fetch('/.netlify/functions/kakao-auth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        kakaoAccessToken: accessToken,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || error.message || '인증에 실패했습니다');
+    }
+
+    const authData = await response.json();
+
+    if (authData.needsOtpVerification) {
+      const otp = window.prompt(
+        `${authData.email}로 인증 코드를 발송했습니다.\n` +
+        '이메일에서 6자리 코드를 확인하여 입력하세요:'
+      );
+
+      if (!otp) {
+        throw new Error('인증 코드 입력이 취소되었습니다');
+      }
+
+      const { error } = await supabase.auth.verifyOtp({
+        email: authData.email,
+        token: otp,
+        type: 'magiclink',
+      });
+
+      if (error) throw new Error('인증 코드가 올바르지 않습니다');
+    }
+
+    return authData;
   };
 
   const signOut = async () => {

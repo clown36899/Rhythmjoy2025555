@@ -58,6 +58,8 @@ export interface BillboardUser {
   id: string;
   name: string;
   password_hash: string;
+  auth_user_id?: string;
+  email?: string;
   created_at: string;
   is_active: boolean;
 }
@@ -91,6 +93,18 @@ export interface BillboardSettings {
   excluded_weekdays: number[];
   excluded_event_ids: number[];
   default_thumbnail_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  invited_by: string;
+  role: string;
+  token: string;
+  expires_at: string;
+  used: boolean;
   created_at: string;
   updated_at: string;
 }

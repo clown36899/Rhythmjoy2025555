@@ -61,7 +61,7 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
     }
 
     window.Kakao.Auth.login({
-      success: (authObj: any) => {
+      success: () => {
         // 사용자 정보 요청
         window.Kakao.API.request({
           url: '/v2/user/me',
@@ -78,6 +78,14 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
       },
     });
   });
+};
+
+// 카카오 액세스 토큰 가져오기
+export const getKakaoAccessToken = (): string | null => {
+  if (!window.Kakao || !window.Kakao.Auth) {
+    return null;
+  }
+  return window.Kakao.Auth.getAccessToken();
 };
 
 // 카카오 로그아웃
