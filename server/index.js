@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import fetch from 'node-fetch';
+import { hashPassword } from './utils/passwordHash.js';
 
 const app = express();
 const PORT = 3001;
@@ -277,22 +278,8 @@ app.post('/api/auth/kakao', async (req, res) => {
     // 초대 코드로 가입/재가입하는 경우 billboard_users 생성 또는 재생성
     if (invitation && !billboardUser) {
       console.log(`[재가입] ${email} - billboard_user 재생성`);
-      const crypto = await import('crypto');
       const randomPassword = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
-      
-      // salt + 10,000번 SHA-256 해싱 (passwordHash.ts와 동일한 로직)
-      const salt = crypto.randomUUID();
-      const encoder = new TextEncoder();
-      const data = encoder.encode(randomPassword + salt);
-      
-      let hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      for (let i = 0; i < 10000; i++) {
-        hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
-      }
-      
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      const passwordHash = `${salt}:${hashHex}`;
+      const passwordHash = await hashPassword(randomPassword);
 
       const { data: newBillboardUser, error: createBillboardError } = await supabaseAdmin
         .from('billboard_users')
