@@ -1586,7 +1586,7 @@ export default function EventList({
                                     <img
                                       src={finalThumbnailUrl}
                                       alt={event.title}
-                                      className="w-full aspect-[3/4] object-contain bg-gray-900"
+                                      className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1722,7 +1722,7 @@ export default function EventList({
                                     <img
                                       src={finalThumbnailUrl}
                                       alt={event.title}
-                                      className="w-full aspect-[3/4] object-contain bg-gray-900"
+                                      className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1847,7 +1847,7 @@ export default function EventList({
                                     <img
                                       src={finalThumbnailUrl}
                                       alt={event.title}
-                                      className="w-full aspect-[3/4] object-contain bg-gray-900"
+                                      className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
