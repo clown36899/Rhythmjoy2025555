@@ -133,7 +133,7 @@ export default function EventCalendar({
       if (event.event_dates && event.event_dates.length > 0) {
         return event.event_dates.includes(dateString);
       }
-      
+
       // 연속 기간 모드: 기존 로직
       const startDate = event.start_date || event.date || "";
       const endDate = event.end_date || event.date || "";
@@ -160,7 +160,7 @@ export default function EventCalendar({
       if (event.event_dates && event.event_dates.length > 0) {
         return false;
       }
-      
+
       // 연속 기간 모드: start_date와 end_date가 다르면 멀티데이
       const startDate = event.start_date || event.date || "";
       const endDate = event.end_date || event.date || "";
@@ -270,7 +270,7 @@ export default function EventCalendar({
     // 이미 선택된 날짜를 다시 클릭
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
       // 두 번째 클릭: 항상 등록 모달 열기 (누구나 등록 가능)
-      console.log('[달력] 두 번째 클릭 - 등록 모달 열기');
+      console.log("[달력] 두 번째 클릭 - 등록 모달 열기");
       setClickedDate(date);
       setShowRegistrationModal(true);
     } else {
@@ -288,7 +288,12 @@ export default function EventCalendar({
         // start_date/end_date 범위로 정의된 이벤트 체크
         const startDate = event.start_date || event.date;
         const endDate = event.end_date || event.date;
-        return startDate && endDate && dateString >= startDate && dateString <= endDate;
+        return (
+          startDate &&
+          endDate &&
+          dateString >= startDate &&
+          dateString <= endDate
+        );
       });
 
       // 이벤트 유무 정보와 함께 날짜 전달
@@ -372,7 +377,7 @@ export default function EventCalendar({
         if (event.event_dates && event.event_dates.length > 0) {
           return false;
         }
-        
+
         const startDate = event.start_date || event.date || "";
         const endDate = event.end_date || event.date || "";
         return startDate !== endDate;
@@ -383,7 +388,7 @@ export default function EventCalendar({
         if (event.event_dates && event.event_dates.length > 0) {
           return true;
         }
-        
+
         const startDate = event.start_date || event.date || "";
         const endDate = event.end_date || event.date || "";
         return startDate === endDate;
@@ -398,7 +403,7 @@ export default function EventCalendar({
                 if (event.event_dates && event.event_dates.length > 0) {
                   return false;
                 }
-                
+
                 const startDate = event.start_date || event.date || "";
                 const endDate = event.end_date || event.date || "";
                 return startDate !== endDate;
@@ -458,23 +463,25 @@ export default function EventCalendar({
               const startTime = Date.now();
               const startX = e.clientX;
               const startY = e.clientY;
-              
+
               const handlePointerUp = (upEvent: PointerEvent) => {
                 const endTime = Date.now();
                 const endX = upEvent.clientX;
                 const endY = upEvent.clientY;
                 const duration = endTime - startTime;
-                const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-                
+                const distance = Math.sqrt(
+                  Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2),
+                );
+
                 // 200ms 이내이고 10px 이내 이동만 클릭으로 간주
                 if (duration < 200 && distance < 10) {
                   handleDateClick(day);
                 }
-                
-                window.removeEventListener('pointerup', handlePointerUp);
+
+                window.removeEventListener("pointerup", handlePointerUp);
               };
-              
-              window.addEventListener('pointerup', handlePointerUp);
+
+              window.addEventListener("pointerup", handlePointerUp);
             }}
             className={`w-full h-full flex flex-col items-center justify-center text-[13px] transition-all duration-300 cursor-pointer relative overflow-visible ${
               selectedDate && day.toDateString() === selectedDate.toDateString()
@@ -484,7 +491,7 @@ export default function EventCalendar({
           >
             {/* 날짜 숫자 - 중앙 정렬 유지 */}
             <span className="font-bold relative z-30">{day.getDate()}</span>
-            
+
             {/* 단일 이벤트 개수 표시 - 우상단 절대 위치 */}
             {singleDayEvents.length > 0 &&
               (() => {
@@ -574,30 +581,30 @@ export default function EventCalendar({
               <button
                 key={year}
                 onClick={() => {
-                  console.log('=== 년도 선택 클릭 ===');
-                  console.log('선택한 년도:', year);
-                  console.log('현재 viewMode:', viewMode);
-                  console.log('isSelected:', isSelected);
-                  
+                  console.log("=== 년도 선택 클릭 ===");
+                  console.log("선택한 년도:", year);
+                  console.log("현재 viewMode:", viewMode);
+                  console.log("isSelected:", isSelected);
+
                   // 선택한 년도의 1월 1일로 설정
                   const newDate = new Date(year, 0, 1);
-                  console.log('새로운 날짜 객체:', newDate);
-                  console.log('새로운 날짜 문자열:', newDate.toISOString());
-                  
+                  console.log("새로운 날짜 객체:", newDate);
+                  console.log("새로운 날짜 문자열:", newDate.toISOString());
+
                   setInternalCurrentMonth(newDate);
-                  console.log('setInternalCurrentMonth 호출 완료');
-                  
+                  console.log("setInternalCurrentMonth 호출 완료");
+
                   if (onMonthChange) {
-                    console.log('onMonthChange 함수 존재 - 호출 시작');
+                    console.log("onMonthChange 함수 존재 - 호출 시작");
                     onMonthChange(newDate);
-                    console.log('onMonthChange 호출 완료');
+                    console.log("onMonthChange 호출 완료");
                   } else {
-                    console.log('⚠️ onMonthChange 함수가 없음!');
+                    console.log("⚠️ onMonthChange 함수가 없음!");
                   }
-                  
+
                   onDateSelect(null);
-                  console.log('onDateSelect(null) 호출 완료');
-                  console.log('=== 년도 선택 처리 완료 ===');
+                  console.log("onDateSelect(null) 호출 완료");
+                  console.log("=== 년도 선택 처리 완료 ===");
                   // viewMode는 "year"로 유지되어 해당 년도의 모든 이벤트 표시
                 }}
                 className={`py-2 px-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
