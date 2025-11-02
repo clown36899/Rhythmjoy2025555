@@ -56,6 +56,7 @@ body, html {
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* 이미지 드래그 방지 */
@@ -66,4 +67,18 @@ body, html {
   -moz-user-drag: none;
   -o-user-drag: none;
   user-drag: none;
+}
+
+/* 달력 날짜 칸 모바일 터치 타겟 크기 증가 */
+.calendar-day-cell {
+  min-height: 32px;
+  padding: 4px 2px;
+}
+
+/* 태블릿 이상에서는 원래 크기 유지 */
+@media (min-width: 650px) {
+  .calendar-day-cell {
+    min-height: 20px;
+    padding: 0;
+  }
 }
