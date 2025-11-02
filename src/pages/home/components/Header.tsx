@@ -180,14 +180,43 @@ export default function Header({
       }
     });
     
+    // sessionStorage 정리 (PWA 대응)
+    console.log('[로그아웃] sessionStorage 정리');
+    try {
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn('[로그아웃] sessionStorage 정리 실패:', e);
+    }
+    
+    // PWA 캐시 정리
+    console.log('[로그아웃] PWA 캐시 정리');
+    if ('caches' in window) {
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => {
+            console.log('[로그아웃] 캐시 삭제:', cacheName);
+            return caches.delete(cacheName);
+          })
+        );
+      } catch (e) {
+        console.warn('[로그아웃] 캐시 정리 실패:', e);
+      }
+    }
+    
     // 로컬 상태 초기화
     setBillboardUserId(null);
     setBillboardUserName("");
     onAdminModeToggle?.(false, null, null, "");
     
-    // 강제 리다이렉트 (새로고침 포함)
-    console.log('[로그아웃] 홈으로 강제 리다이렉트');
-    window.location.href = '/';
+    // 강제 새로고침 (PWA 캐시 무시)
+    console.log('[로그아웃] 강제 새로고침');
+    window.location.replace('/');
+    
+    // 추가 안전장치: 0.5초 후 강제 리로드
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   // 색상 설정 불러오기 (DB 최우선)
