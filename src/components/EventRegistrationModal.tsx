@@ -708,14 +708,16 @@ export default function EventRegistrationModal({
                 </div>
               </div>
 
-              {/* 포스터 이미지 업로드 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  포스터 이미지 (선택사항)
+              {/* 썸네일 이미지 & 영상 섹션 */}
+              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
+                <label className="block text-gray-300 text-sm font-medium">
+                  썸네일 이미지 & 영상 (선택사항)
                 </label>
-                <p className="text-xs text-yellow-400 mb-2">
+                <p className="text-xs text-yellow-400">
                   ⚠️ 이미지 또는 영상이 없으면 광고판에 나오지 않습니다
                 </p>
+
+                {/* 썸네일 이미지 업로드 */}
                 <div className="space-y-2">
                   {imagePreview && (
                     <div className="relative">
@@ -798,16 +800,11 @@ export default function EventRegistrationModal({
 
                   <p className="text-xs text-gray-400">
                     <i className="ri-information-line mr-1"></i>
-                    포스터 이미지는 이벤트 배너와 상세보기에 표시됩니다.
+                    썸네일 이미지는 이벤트 배너와 상세보기에 표시됩니다.
                   </p>
                 </div>
-              </div>
 
-              {/* 영상 URL 입력 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
-                  영상 URL (선택사항)
-                </label>
+                {/* 영상 URL 입력 */}
                 <div className="space-y-2">
                   {/* 영상 프리뷰 또는 입력 */}
                   {videoPreview.provider && videoPreview.embedUrl ? (
