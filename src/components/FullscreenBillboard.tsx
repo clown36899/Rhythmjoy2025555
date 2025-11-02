@@ -65,6 +65,21 @@ export default function FullscreenBillboard({
     }
   }, [images, events, playOrder]); // 새로고침 시에만 재계산
 
+  // 컴포넌트 언마운트 시 최종 cleanup (메모리 누수 방지)
+  useEffect(() => {
+    return () => {
+      // 컴포넌트가 완전히 제거될 때 모든 타이머 확실히 정리
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, []); // 빈 배열: 마운트/언마운트 시에만 실행
+
   useEffect(() => {
     if (!isOpen || sortedImages.length === 0) {
       // 광고판이 닫히거나 이미지가 없으면 타이머 정리 및 인덱스 초기화
@@ -82,12 +97,14 @@ export default function FullscreenBillboard({
       return;
     }
 
-    // 기존 타이머가 있으면 정리
-    if (intervalRef.current) {
+    // 기존 타이머가 있으면 정리 (명시적 null 체크)
+    if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-    if (progressIntervalRef.current) {
+    if (progressIntervalRef.current !== null) {
       clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
     }
 
     // 인덱스 초기화
@@ -116,11 +133,12 @@ export default function FullscreenBillboard({
     }, autoSlideInterval);
 
     return () => {
-      if (intervalRef.current) {
+      // 설정 변경 시 타이머 정리
+      if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      if (progressIntervalRef.current) {
+      if (progressIntervalRef.current !== null) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
