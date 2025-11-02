@@ -222,7 +222,7 @@ export default function FullscreenBillboard({
             return (
               <img
                 src={sortedImages[currentIndex]}
-                alt="Event Billboard"
+                alt={sortedEvents[currentIndex]?.title || "Event Billboard"}
                 className={`max-w-full max-h-screen object-contain transition-opacity cursor-pointer ${
                   isTransitioning ? "opacity-0" : "opacity-100"
                 }`}

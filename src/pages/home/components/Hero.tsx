@@ -3,6 +3,8 @@ export default function Hero() {
   return (
     <section 
       className="relative h-96 bg-cover bg-center bg-gray-800"
+      role="img"
+      aria-label="모던한 이벤트 행사장, 무대 조명과 관객 실루엣"
       style={{
         backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://readdy.ai/api/search-image?query=modern%20event%20venue%20with%20stage%20lighting%20and%20audience%20silhouettes%2C%20dark%20atmospheric%20concert%20hall%20with%20purple%20and%20blue%20lighting%2C%20professional%20event%20photography%20style%2C%20high%20contrast%20dramatic%20lighting&width=1200&height=400&seq=hero1&orientation=landscape')`
       }}
