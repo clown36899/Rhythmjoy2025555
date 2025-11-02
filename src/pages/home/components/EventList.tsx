@@ -2876,7 +2876,7 @@ export default function EventList({
                 }}
               >
                 {/* 닫기/수정 버튼 - 이미지 영역 우측 상단 */}
-                <div className="absolute top-3 right-3 z-10 flex space-x-2">
+                <div className="absolute top-[0.2rem] right-[0.2rem] z-10 flex space-x-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
