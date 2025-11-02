@@ -593,6 +593,7 @@ export default function BillboardPage() {
                 <img
                   src={imageUrl}
                   alt={event.title}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                   style={{ backgroundColor: '#000' }}
                 />
