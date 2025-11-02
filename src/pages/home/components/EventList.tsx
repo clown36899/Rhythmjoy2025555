@@ -2882,7 +2882,7 @@ export default function EventList({
                       e.stopPropagation();
                       handleEditClick(selectedEvent, e);
                     }}
-                    className="bg-black/60 hover:bg-black/80 text-yellow-400 hover:text-yellow-300 p-2.5 rounded-lg transition-all cursor-pointer backdrop-blur-sm shadow-lg"
+                    className="bg-black/60 hover:bg-black/80 text-yellow-400 hover:text-yellow-300 px-2.5 py-[0.2rem] rounded-lg transition-all cursor-pointer backdrop-blur-sm shadow-lg"
                     title="이벤트 수정"
                   >
                     <i className="ri-edit-line text-2xl"></i>
@@ -2892,7 +2892,7 @@ export default function EventList({
                       e.stopPropagation();
                       closeModal();
                     }}
-                    className="bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-lg transition-all cursor-pointer backdrop-blur-sm shadow-lg"
+                    className="bg-black/60 hover:bg-black/80 text-white px-2.5 py-[0.2rem] rounded-lg transition-all cursor-pointer backdrop-blur-sm shadow-lg"
                     title="닫기"
                   >
                     <i className="ri-close-line text-2xl"></i>
