@@ -161,9 +161,6 @@ export default function EventList({
     [key: string]: Event[]; // key: "YYYY-MM-category-sortBy"
   }>({});
 
-  // 모달 열릴 때 스크롤 위치 저장용
-  const scrollPositionRef = useRef(0);
-
   // 날짜 변경 감지 (1분마다 체크)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -180,30 +177,6 @@ export default function EventList({
   useEffect(() => {
     sortedEventsCache.current = {};
   }, [selectedCategory, sortBy, events, currentDay]);
-
-  // 모달 열림/닫힘 시 body 스크롤 제어
-  useEffect(() => {
-    if (selectedEvent || showEditModal) {
-      // 현재 스크롤 위치 저장
-      scrollPositionRef.current = window.scrollY;
-      
-      // 모달이 열리면 body 스크롤 완전 차단
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollPositionRef.current}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-      
-      return () => {
-        // 모달이 닫히면 body 스크롤 복원
-        const scrollY = scrollPositionRef.current;
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [selectedEvent, showEditModal]);
 
   // 슬라이드 높이 측정 및 업데이트 (애니메이션과 동시에)
   // ⚠️ 높이 자동 조정 기능 비활성화 - 푸터가 올라오는 문제 해결
@@ -479,17 +452,11 @@ export default function EventList({
   // 달 변경 및 카테고리 변경 시 스크롤 위치 리셋
   // 슬라이드 또는 강습/행사 버튼 클릭 시 스크롤을 맨 위로 올림
   useEffect(() => {
-    // 이벤트 리스트 영역 스크롤
+    // 이벤트 리스트 컨테이너 스크롤 (이제 body가 아니라 컨테이너만 스크롤)
     const scrollContainer = document.querySelector(".overflow-y-auto");
     if (scrollContainer) {
       scrollContainer.scrollTop = 0;
     }
-
-    // 페이지 전체 스크롤 (배너 맨 위가 보이도록)
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
   }, [currentMonth, selectedCategory]);
 
   // 광고판에서 이벤트 선택 이벤트 리스너
@@ -927,6 +894,7 @@ export default function EventList({
 
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    
     if (adminType === "super") {
       // 슈퍼 관리자는 비밀번호 없이 바로 수정 모달 열기
       setEventToEdit(event);

@@ -154,10 +154,13 @@ export default function HomePage() {
     }
   }, [searchTerm, navigateWithCategory]);
 
-  // 날짜 선택 시 스크롤 최상단으로 이동
+  // 날짜 선택 시 이벤트 리스트 스크롤 최상단으로 이동
   useEffect(() => {
     if (selectedDate && !qrLoading) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const scrollContainer = document.querySelector(".overflow-y-auto");
+      if (scrollContainer) {
+        scrollContainer.scrollTop = 0;
+      }
     }
   }, [selectedDate]);
 
@@ -592,12 +595,12 @@ export default function HomePage() {
 
   return (
     <div
-      className="min-h-screen"
+      className="h-screen flex flex-col overflow-hidden"
       style={{ backgroundColor: "var(--page-bg-color)" }}
     >
       {/* Fixed Header for all screens */}
       <div
-        className="fixed top-0 left-0 w-full z-30 border-b border-[#22262a]"
+        className="flex-shrink-0 w-full z-30 border-b border-[#22262a]"
         style={{ backgroundColor: "var(--header-bg-color)" }}
       >
         <Header
@@ -654,11 +657,11 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Mobile Layout - Fixed Calendar & Tools, Scrollable Events */}
-      <div className="pt-12">
+      {/* Mobile Layout - Sticky Calendar, Scrollable Events */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* 빌보드 관리자는 달력/이벤트 숨기기 */}
         {adminType === 'sub' ? (
-          <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3rem)] px-4 text-center">
+          <div className="flex flex-col items-center justify-center flex-1 px-4 text-center overflow-y-auto">
             <div className="bg-gray-800 rounded-lg p-8 max-w-md">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="ri-settings-3-line text-3xl text-white"></i>
@@ -676,10 +679,10 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-        {/* Calendar Section - STICKY (헤더 아래 고정) */}
+        {/* Calendar Section - Fixed (헤더 아래 고정) */}
         <div
           ref={calendarRef}
-          className="sticky top-12 w-full z-[15]"
+          className="flex-shrink-0 w-full z-[15]"
           style={{ backgroundColor: "var(--calendar-bg-color)" }}
         >
           {/* Calendar - Collapsible */}
@@ -761,8 +764,8 @@ export default function HomePage() {
         </div>
         </div>
 
-        {/* Scrollable Content Area - Events and Footer */}
-          <div className="w-full bg-[#1f1f1f] pb-20">
+        {/* Scrollable Content Area - Events and Footer (독립 스크롤) */}
+          <div className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20">
             {/* 이벤트 등록 안내 */}
             <div className="p-0 bg-[#222] rounded-none">
               <p className="text-gray-300 text-[13px] text-center">
