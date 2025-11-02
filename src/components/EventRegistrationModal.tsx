@@ -681,12 +681,12 @@ export default function EventRegistrationModal({
                 />
               </div>
 
-              {/* 바로가기 링크 1개만 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
+              {/* 바로가기 링크 섹션 */}
+              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
+                <label className="block text-gray-300 text-sm font-medium">
                   바로가기 링크 (선택사항)
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <input
                     type="url"
                     name="link1"
