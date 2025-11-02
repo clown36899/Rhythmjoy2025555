@@ -4,6 +4,15 @@ export interface ResizedImages {
   full: File;
 }
 
+// WebP 지원 여부 확인
+function supportsWebP(): boolean {
+  const canvas = document.createElement('canvas');
+  if (!canvas.getContext || !canvas.getContext('2d')) {
+    return false;
+  }
+  return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+}
+
 export async function resizeImage(
   file: File,
   maxWidth: number,
@@ -35,11 +44,19 @@ export async function resizeImage(
         canvas.width = width;
         canvas.height = height;
 
-        // PNG 투명 배경을 JPEG로 변환할 때 흰색 배경 추가
+        // PNG 투명 배경을 변환할 때 흰색 배경 추가
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, width, height);
         
         ctx.drawImage(img, 0, 0, width, height);
+
+        // WebP 지원 여부에 따라 형식 결정
+        const useWebP = supportsWebP();
+        const mimeType = useWebP ? 'image/webp' : 'image/jpeg';
+        const extension = useWebP ? '.webp' : '.jpg';
+        
+        // 파일명에서 확장자 제거 후 새 확장자 추가
+        const fileName = file.name.replace(/\.[^.]+$/, extension);
 
         canvas.toBlob(
           (blob) => {
@@ -48,14 +65,14 @@ export async function resizeImage(
               return;
             }
 
-            const resizedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
+            const resizedFile = new File([blob], fileName, {
+              type: mimeType,
               lastModified: Date.now(),
             });
 
             resolve(resizedFile);
           },
-          'image/jpeg',
+          mimeType,
           quality
         );
       };
@@ -71,9 +88,9 @@ export async function resizeImage(
 
 export async function createResizedImages(file: File): Promise<ResizedImages> {
   const [thumbnail, medium, full] = await Promise.all([
-    resizeImage(file, 320, 0.85),
-    resizeImage(file, 1080, 0.9),
-    resizeImage(file, 1920, 0.95),
+    resizeImage(file, 400, 0.82),  // 썸네일: 320px→400px, Retina 대응
+    resizeImage(file, 1080, 0.9),  // 미디엄: 유지 (상세보기용)
+    resizeImage(file, 1080, 0.92), // 풀사이즈: 1920px→1080px (빌보드용, 세로 모니터 1080p)
   ]);
 
   return { thumbnail, medium, full };
