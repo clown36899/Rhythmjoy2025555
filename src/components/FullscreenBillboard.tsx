@@ -121,8 +121,8 @@ export default function FullscreenBillboard({
     setCurrentIndex(0);
     setProgress(0);
 
-    // 진행 바 업데이트 (50ms마다)
-    const progressStep = (50 / autoSlideInterval) * 100;
+    // 진행 바 업데이트 (200ms마다 - CPU 사용량 75% 감소)
+    const progressStep = (200 / autoSlideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
@@ -130,7 +130,7 @@ export default function FullscreenBillboard({
         }
         return prev + progressStep;
       });
-    }, 50);
+    }, 200);
 
     // 새로운 자동 재생 시작
     intervalRef.current = setInterval(() => {
