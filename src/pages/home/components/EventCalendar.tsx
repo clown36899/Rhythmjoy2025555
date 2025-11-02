@@ -490,7 +490,13 @@ export default function EventCalendar({
             }`}
           >
             {/* 날짜 숫자 - 중앙 정렬 유지 */}
-            <span className="font-bold relative z-30">{day.getDate()}</span>
+            <span className={`font-bold relative z-30 ${
+              todayFlag 
+                ? "w-6 h-6 flex items-center justify-center rounded-full bg-blue-500 text-white" 
+                : ""
+            }`}>
+              {day.getDate()}
+            </span>
 
             {/* 단일 이벤트 개수 표시 - 우상단 절대 위치 */}
             {singleDayEvents.length > 0 &&
@@ -513,15 +519,6 @@ export default function EventCalendar({
                   </span>
                 );
               })()}
-
-            {/* 오늘 표시 */}
-            {todayFlag && (
-              <div className="relative z-30 flex items-center justify-center mt-0.5">
-                <div className="text-blue-400 text-[8px] font-black leading-none">
-                  오늘
-                </div>
-              </div>
-            )}
           </div>
 
           {/* 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 */}
@@ -693,7 +690,7 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* 이벤트 등록 안내 - 모바일과 데스크톱 모두 표시 */}
-            <div className="p-1 bg-[#2f2f2f] rounded-none">
+            <div className="p-0 bg-[#222] rounded-none">
               <p className="text-gray-300 text-[10px] text-center">
                 <i className="ri-information-line mr-1"></i>
                 날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
