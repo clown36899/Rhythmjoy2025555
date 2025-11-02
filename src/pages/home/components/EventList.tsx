@@ -1642,10 +1642,17 @@ export default function EventList({
                                     const date = new Date(dateStr);
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
-                                  return event.event_dates.map(formatDate).join(', ');
+                                  
+                                  // 처음 1개만 표시하고 나머지는 +N개로 요약
+                                  if (event.event_dates.length === 1) {
+                                    return formatDate(event.event_dates[0]);
+                                  } else {
+                                    const remaining = event.event_dates.length - 1;
+                                    return `${formatDate(event.event_dates[0])} +${remaining}개`;
+                                  }
                                 }
                                 
-                                // 연속 기간 모드
+                                // 연속 기간 모드 (그대로 유지)
                                 const startDate = event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
@@ -1778,10 +1785,17 @@ export default function EventList({
                                     const date = new Date(dateStr);
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
-                                  return event.event_dates.map(formatDate).join(', ');
+                                  
+                                  // 처음 1개만 표시하고 나머지는 +N개로 요약
+                                  if (event.event_dates.length === 1) {
+                                    return formatDate(event.event_dates[0]);
+                                  } else {
+                                    const remaining = event.event_dates.length - 1;
+                                    return `${formatDate(event.event_dates[0])} +${remaining}개`;
+                                  }
                                 }
                                 
-                                // 연속 기간 모드
+                                // 연속 기간 모드 (그대로 유지)
                                 const startDate = event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
@@ -1903,10 +1917,17 @@ export default function EventList({
                                     const date = new Date(dateStr);
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
-                                  return event.event_dates.map(formatDate).join(', ');
+                                  
+                                  // 처음 1개만 표시하고 나머지는 +N개로 요약
+                                  if (event.event_dates.length === 1) {
+                                    return formatDate(event.event_dates[0]);
+                                  } else {
+                                    const remaining = event.event_dates.length - 1;
+                                    return `${formatDate(event.event_dates[0])} +${remaining}개`;
+                                  }
                                 }
                                 
-                                // 연속 기간 모드
+                                // 연속 기간 모드 (그대로 유지)
                                 const startDate = event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
