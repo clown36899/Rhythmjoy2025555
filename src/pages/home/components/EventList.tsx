@@ -3,12 +3,18 @@ import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
 import { parseVideoUrl } from "../../../utils/videoEmbed";
-import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from "../../../utils/videoThumbnail";
+import {
+  getVideoThumbnailOptions,
+  downloadThumbnailAsBlob,
+  type VideoThumbnailOption,
+} from "../../../utils/videoThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
-import { parseMultipleContacts, copyToClipboard } from "../../../utils/contactLink";
+import {
+  parseMultipleContacts,
+  copyToClipboard,
+} from "../../../utils/contactLink";
 import { QRCodeSVG } from "qrcode.react";
-
 
 const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
@@ -128,12 +134,18 @@ export default function EventList({
   });
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
-  const [editVideoPreview, setEditVideoPreview] = useState<{ provider: string | null; embedUrl: string | null }>({ provider: null, embedUrl: null });
+  const [editVideoPreview, setEditVideoPreview] = useState<{
+    provider: string | null;
+    embedUrl: string | null;
+  }>({ provider: null, embedUrl: null });
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
-  const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
-  const [tempDateInput, setTempDateInput] = useState<string>(''); // 편집 모달에서 특정 날짜 추가용
-  
-  const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
+  const [thumbnailOptions, setThumbnailOptions] = useState<
+    VideoThumbnailOption[]
+  >([]);
+  const [tempDateInput, setTempDateInput] = useState<string>(""); // 편집 모달에서 특정 날짜 추가용
+
+  const { defaultThumbnailClass, defaultThumbnailEvent } =
+    useDefaultThumbnail();
 
   // 현재 날짜 추적 (자정 지날 때 캐시 무효화를 위해)
   const [currentDay, setCurrentDay] = useState(() => new Date().toDateString());
@@ -157,7 +169,7 @@ export default function EventList({
         setCurrentDay(newDay);
       }
     }, 60000); // 1분마다 체크
-    
+
     return () => clearInterval(interval);
   }, [currentDay]);
 
@@ -170,15 +182,15 @@ export default function EventList({
   useEffect(() => {
     if (selectedEvent || showEditModal) {
       // 모달이 열리면 body 스크롤 차단
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
       // 모달이 닫히면 body 스크롤 복원
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
 
     // 컴포넌트 언마운트 시 스크롤 복원
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [selectedEvent, showEditModal]);
 
@@ -210,8 +222,8 @@ export default function EventList({
   // 로컬 날짜를 YYYY-MM-DD 형식으로 반환하는 헬퍼 함수
   const getLocalDateString = (date: Date = new Date()) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
@@ -392,13 +404,16 @@ export default function EventList({
     try {
       setLoading(true);
       setLoadError(null);
-      console.log('[EventList] 데이터 로딩 시작');
-      
+      console.log("[EventList] 데이터 로딩 시작");
+
       // 10초 timeout 설정
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('데이터 로딩 시간 초과 (10초)')), 10000)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("데이터 로딩 시간 초과 (10초)")),
+          10000,
+        ),
       );
-      
+
       let data: Event[] | null = null;
       let error: any = null;
 
@@ -414,7 +429,9 @@ export default function EventList({
         } else {
           const result = await supabase
             .from("events")
-            .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at")
+            .select(
+              "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at",
+            )
             .order("start_date", { ascending: true, nullsFirst: false })
             .order("date", { ascending: true, nullsFirst: false });
           data = result.data;
@@ -426,20 +443,20 @@ export default function EventList({
 
       if (error) {
         console.error("[EventList] Supabase 에러:", error);
-        setLoadError(`DB 에러: ${error.message || '알 수 없는 오류'}`);
+        setLoadError(`DB 에러: ${error.message || "알 수 없는 오류"}`);
         setEvents([]);
       } else {
-        console.log('[EventList] 데이터 로딩 완료:', data?.length || 0, '개');
+        console.log("[EventList] 데이터 로딩 완료:", data?.length || 0, "개");
         setEvents(data || []);
       }
     } catch (error: any) {
       console.error("[EventList] 데이터 로딩 실패:", error.message);
-      setLoadError(`로딩 실패: ${error.message || '알 수 없는 오류'}`);
+      setLoadError(`로딩 실패: ${error.message || "알 수 없는 오류"}`);
       // 타임아웃이나 에러 발생 시 빈 배열로 설정 (무한 로딩 방지)
       setEvents([]);
     } finally {
       setLoading(false);
-      console.log('[EventList] 로딩 상태 해제');
+      console.log("[EventList] 로딩 상태 해제");
     }
   }, [isAdminMode]);
 
@@ -456,11 +473,11 @@ export default function EventList({
     if (scrollContainer) {
       scrollContainer.scrollTop = 0;
     }
-    
+
     // 페이지 전체 스크롤 (배너 맨 위가 보이도록)
     window.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: "smooth",
     });
   }, [currentMonth, selectedCategory]);
 
@@ -613,7 +630,7 @@ export default function EventList({
         "touchmove",
       ];
       eventTypes.forEach((event) => {
-        window.removeEventListener(event, () => { });
+        window.removeEventListener(event, () => {});
       });
     };
   }, [highlightEvent?.id, highlightEvent?.nonce]);
@@ -654,17 +671,19 @@ export default function EventList({
         if (event.event_dates && event.event_dates.length > 0) {
           const currentYear = currentMonth.getFullYear();
           const currentMonthNum = currentMonth.getMonth() + 1; // 1~12
-          
+
           if (viewMode === "year") {
             // 연간 보기: event_dates 중 하나라도 해당 년도에 속하면 표시
-            matchesDate = event.event_dates.some(dateStr => {
-              const year = parseInt(dateStr.split('-')[0]);
+            matchesDate = event.event_dates.some((dateStr) => {
+              const year = parseInt(dateStr.split("-")[0]);
               return year === currentYear;
             });
           } else {
             // 월간 보기: event_dates 중 하나라도 현재 월에 속하면 표시
-            const monthPrefix = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}`;
-            matchesDate = event.event_dates.some(dateStr => dateStr.startsWith(monthPrefix));
+            const monthPrefix = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`;
+            matchesDate = event.event_dates.some((dateStr) =>
+              dateStr.startsWith(monthPrefix),
+            );
           }
         } else {
           // 연속 기간 모드: 기존 로직
@@ -688,10 +707,10 @@ export default function EventList({
               // 월간 보기: 시간대 문제 해결을 위해 날짜 문자열로 비교
               const currentYear = currentMonth.getFullYear();
               const currentMonthNum = currentMonth.getMonth() + 1; // 1~12
-              
+
               // 월의 첫날과 마지막 날을 문자열로 생성
-              const monthStartStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}-01`;
-              const monthEndStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}-${new Date(currentYear, currentMonthNum, 0).getDate()}`;
+              const monthStartStr = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-01`;
+              const monthEndStr = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-${new Date(currentYear, currentMonthNum, 0).getDate()}`;
 
               // 이벤트가 현재 월과 겹치는지 확인 (문자열 비교)
               // 이벤트 시작일 <= 월 마지막 날 AND 이벤트 종료일 >= 월 첫 날
@@ -714,36 +733,43 @@ export default function EventList({
   ]);
 
   // 3개월치 이벤트 데이터 계산 (이전/현재/다음 달)
-  const { prevMonthEvents, currentMonthEvents, nextMonthEvents, prevMonthKey, currentMonthKey, nextMonthKey } = useMemo(() => {
+  const {
+    prevMonthEvents,
+    currentMonthEvents,
+    nextMonthEvents,
+    prevMonthKey,
+    currentMonthKey,
+    nextMonthKey,
+  } = useMemo(() => {
     if (!currentMonth) {
       return {
         prevMonthEvents: [],
         currentMonthEvents: filteredEvents,
         nextMonthEvents: [],
-        prevMonthKey: '',
-        currentMonthKey: '',
-        nextMonthKey: '',
+        prevMonthKey: "",
+        currentMonthKey: "",
+        nextMonthKey: "",
       };
     }
 
     // 검색어가 있거나 날짜가 선택된 경우 또는 년 모드인 경우 현재 필터링된 전체 표시
     if (searchTerm.trim() || selectedDate || viewMode === "year") {
-      console.log('📋 년 모드/검색/날짜선택 - 전체 이벤트 표시');
-      console.log('filteredEvents 수:', filteredEvents.length);
+      console.log("📋 년 모드/검색/날짜선택 - 전체 이벤트 표시");
+      console.log("filteredEvents 수:", filteredEvents.length);
       return {
         prevMonthEvents: [],
         currentMonthEvents: filteredEvents,
         nextMonthEvents: [],
-        prevMonthKey: '',
-        currentMonthKey: '',
-        nextMonthKey: '',
+        prevMonthKey: "",
+        currentMonthKey: "",
+        nextMonthKey: "",
       };
     }
 
     // 이전 달
     const prevMonth = new Date(currentMonth);
     prevMonth.setMonth(prevMonth.getMonth() - 1);
-    
+
     // 다음 달
     const nextMonth = new Date(currentMonth);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -766,10 +792,11 @@ export default function EventList({
 
         const targetYear = targetMonth.getFullYear();
         const targetMonthNum = targetMonth.getMonth() + 1;
-        const monthStartStr = `${targetYear}-${String(targetMonthNum).padStart(2, '0')}-01`;
-        const monthEndStr = `${targetYear}-${String(targetMonthNum).padStart(2, '0')}-${new Date(targetYear, targetMonthNum, 0).getDate()}`;
+        const monthStartStr = `${targetYear}-${String(targetMonthNum).padStart(2, "0")}-01`;
+        const monthEndStr = `${targetYear}-${String(targetMonthNum).padStart(2, "0")}-${new Date(targetYear, targetMonthNum, 0).getDate()}`;
 
-        const matchesDate = startDate <= monthEndStr && endDate >= monthStartStr;
+        const matchesDate =
+          startDate <= monthEndStr && endDate >= monthStartStr;
         return matchesCategory && matchesDate;
       });
     };
@@ -782,7 +809,14 @@ export default function EventList({
       currentMonthKey: currKey,
       nextMonthKey: nextKey,
     };
-  }, [events, currentMonth, selectedCategory, searchTerm, selectedDate, filteredEvents]);
+  }, [
+    events,
+    currentMonth,
+    selectedCategory,
+    searchTerm,
+    selectedDate,
+    filteredEvents,
+  ]);
 
   // 필터링된 이벤트를 정렬 (캐싱으로 슬라이드 시 재정렬 방지 및 랜덤 순서 유지)
   const sortedPrevEvents = useMemo(() => {
@@ -848,12 +882,17 @@ export default function EventList({
       // 1. event_dates 배열로 정의된 이벤트 체크 (특정 날짜 모드)
       if (event.event_dates && event.event_dates.length > 0) {
         isOnSelectedDate = event.event_dates.includes(selectedDateString);
-      } 
+      }
       // 2. start_date/end_date 범위로 정의된 이벤트 체크 (연속 기간 모드)
       else {
         const startDate = event.start_date || event.date;
         const endDate = event.end_date || event.date;
-        isOnSelectedDate = !!(startDate && endDate && selectedDateString >= startDate && selectedDateString <= endDate);
+        isOnSelectedDate = !!(
+          startDate &&
+          endDate &&
+          selectedDateString >= startDate &&
+          selectedDateString <= endDate
+        );
       }
 
       if (isOnSelectedDate) {
@@ -882,7 +921,7 @@ export default function EventList({
       setEventToEdit(event);
       // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
       const hasEventDates = event.event_dates && event.event_dates.length > 0;
-      
+
       setEditFormData({
         title: event.title,
         description: event.description || "",
@@ -907,14 +946,17 @@ export default function EventList({
         dateMode: hasEventDates ? "specific" : "range",
         videoUrl: event?.video_url || "",
       });
-      
+
       // 영상 URL과 이미지를 모두 로드 (추출 썸네일 지원)
       setEditImagePreview(event?.image || "");
       setEditImageFile(null);
-      
+
       if (event?.video_url) {
         const videoInfo = parseVideoUrl(event.video_url);
-        setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
+        setEditVideoPreview({
+          provider: videoInfo.provider,
+          embedUrl: videoInfo.embedUrl,
+        });
       } else {
         setEditVideoPreview({ provider: null, embedUrl: null });
       }
@@ -994,8 +1036,9 @@ export default function EventList({
 
         if (fullEvent) {
           // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
-          const hasEventDates = fullEvent.event_dates && fullEvent.event_dates.length > 0;
-          
+          const hasEventDates =
+            fullEvent.event_dates && fullEvent.event_dates.length > 0;
+
           setEditFormData({
             title: fullEvent.title,
             description: fullEvent.description || "",
@@ -1024,7 +1067,10 @@ export default function EventList({
           setEditImageFile(null);
           if (fullEvent.video_url) {
             const videoInfo = parseVideoUrl(fullEvent.video_url);
-            setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
+            setEditVideoPreview({
+              provider: videoInfo.provider,
+              embedUrl: videoInfo.embedUrl,
+            });
           } else {
             setEditVideoPreview({ provider: null, embedUrl: null });
           }
@@ -1071,16 +1117,20 @@ export default function EventList({
     // 영상 URL 유효성 검증
     if (editFormData.videoUrl) {
       const videoInfo = parseVideoUrl(editFormData.videoUrl);
-      
+
       // 유튜브만 허용
-      if (!videoInfo.provider || videoInfo.provider !== 'youtube') {
-        alert('YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수 없습니다.');
+      if (!videoInfo.provider || videoInfo.provider !== "youtube") {
+        alert(
+          "YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수 없습니다.",
+        );
         return;
       }
-      
+
       // YouTube URL이 있고 썸네일이 없으면 추출 필수
       if (!editImageFile && !editImagePreview) {
-        alert('YouTube 영상은 썸네일 이미지가 필요합니다. 이미지를 업로드하거나 썸네일 추출 기능을 사용해주세요.');
+        alert(
+          "YouTube 영상은 썸네일 이미지가 필요합니다. 이미지를 업로드하거나 썸네일 추출 기능을 사용해주세요.",
+        );
         return;
       }
     }
@@ -1116,14 +1166,17 @@ export default function EventList({
       let eventDatesArray: string[] | null = null;
       let startDate = editFormData.start_date || null;
       let endDate = editFormData.end_date || null;
-      
-      if (editFormData.dateMode === 'specific' && editFormData.event_dates.length > 0) {
+
+      if (
+        editFormData.dateMode === "specific" &&
+        editFormData.event_dates.length > 0
+      ) {
         // 특정 날짜 모드: event_dates 배열 사용
         eventDatesArray = [...editFormData.event_dates].sort();
         startDate = eventDatesArray[0];
         endDate = eventDatesArray[eventDatesArray.length - 1];
       }
-      
+
       let updateData: any = {
         title: editFormData.title,
         time: editFormData.time,
@@ -1150,7 +1203,7 @@ export default function EventList({
 
       // 이미지가 삭제되었으면 (editImagePreview가 비어있고 editImageFile도 없음)
       if (!editImagePreview && !editImageFile) {
-        updateData.image = '';
+        updateData.image = "";
         updateData.image_thumbnail = null;
         updateData.image_medium = null;
         updateData.image_full = null;
@@ -1161,28 +1214,28 @@ export default function EventList({
       if (editImageFile) {
         const resizedImages = await createResizedImages(editImageFile);
         const timestamp = Date.now();
-        
+
         // 파일명 정규화 (전각 문자 및 특수문자 제거)
         const sanitizeFileName = (fileName: string): string => {
-          const nameWithoutExt = fileName.split('.')[0];
-          
+          const nameWithoutExt = fileName.split(".")[0];
+
           // 전각 문자를 반각으로 변환
-          let normalized = nameWithoutExt.replace(/[\uFF01-\uFF5E]/g, (ch) => 
-            String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)
+          let normalized = nameWithoutExt.replace(/[\uFF01-\uFF5E]/g, (ch) =>
+            String.fromCharCode(ch.charCodeAt(0) - 0xfee0),
           );
-          
+
           // 영문, 숫자, 하이픈, 언더스코어만 남기고 나머지는 제거
-          normalized = normalized.replace(/[^a-zA-Z0-9\-_]/g, '');
-          
+          normalized = normalized.replace(/[^a-zA-Z0-9\-_]/g, "");
+
           // 연속된 특수문자 제거
-          normalized = normalized.replace(/[\-_]+/g, '_');
-          
+          normalized = normalized.replace(/[\-_]+/g, "_");
+
           // 앞뒤 특수문자 제거
-          normalized = normalized.replace(/^[\-_]+|[\-_]+$/g, '');
-          
-          return normalized || 'image';
+          normalized = normalized.replace(/^[\-_]+|[\-_]+$/g, "");
+
+          return normalized || "image";
         };
-        
+
         const baseFileName = sanitizeFileName(editImageFile.name);
 
         const uploadPromises = [
@@ -1208,7 +1261,7 @@ export default function EventList({
             const { error } = await supabase.storage
               .from("images")
               .upload(path, file, {
-                cacheControl: '31536000'
+                cacheControl: "31536000",
               });
 
             if (error) {
@@ -1243,7 +1296,7 @@ export default function EventList({
         alert("이벤트 수정 중 오류가 발생했습니다.");
       } else {
         alert("이벤트가 수정되었습니다.");
-        
+
         // 이미지/영상 캐시 문제 해결을 위해 페이지 새로고침 + 수정한 이벤트로 스크롤
         const eventId = eventToEdit.id;
         window.location.href = `${window.location.pathname}?from=edit&event=${eventId}`;
@@ -1353,7 +1406,7 @@ export default function EventList({
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-            {sortedEvents.length > 0 ? (
+          {sortedEvents.length > 0 ? (
             <>
               {/* Grid layout with 3 columns - poster ratio */}
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
@@ -1380,22 +1433,27 @@ export default function EventList({
                         if (viewMode === "month" && onEventHover)
                           onEventHover(null);
                       }}
-                      className={`overflow-hidden transition-all cursor-pointer relative border ${isHighlighted ? "" : "border-[#000000]"
-                        }`}
+                      className={`overflow-hidden transition-all cursor-pointer relative border ${
+                        isHighlighted ? "" : "border-[#000000]"
+                      }`}
                       style={{
                         backgroundColor: "var(--event-list-bg-color)",
                         borderColor: isHighlighted
                           ? highlightBorderColor
                           : undefined,
-                        borderRadius: '0.3rem',
+                        borderRadius: "0.3rem",
                       }}
                     >
                       {/* 이미지와 제목 오버레이 */}
                       <div className="relative">
                         {(() => {
                           // getEventThumbnail 유틸리티 함수로 최종 썸네일 URL 결정
-                          const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-                          
+                          const finalThumbnailUrl = getEventThumbnail(
+                            event,
+                            defaultThumbnailClass,
+                            defaultThumbnailEvent,
+                          );
+
                           if (finalThumbnailUrl) {
                             // 최종 썸네일 (이벤트 이미지 또는 기본 이미지)
                             return (
@@ -1434,7 +1492,9 @@ export default function EventList({
                               const isPast = endDate < today;
                               if (isPast) return "bg-gray-500/80";
                             }
-                            return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
+                            return event.category === "class"
+                              ? "bg-purple-600/80"
+                              : "bg-blue-600/80";
                           })()}`}
                         >
                           {(() => {
@@ -1449,7 +1509,10 @@ export default function EventList({
                         </div>
                         {/* 하단 그라데이션 오버레이 */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
-                          <h3 className="text-white font-bold leading-tight line-clamp-2" style={{ fontSize: '0.8rem' }}>
+                          <h3
+                            className="text-white font-bold leading-tight line-clamp-2"
+                            style={{ fontSize: "0.8rem" }}
+                          >
                             {event.title}
                           </h3>
                         </div>
@@ -1462,28 +1525,50 @@ export default function EventList({
                             let isOnSelectedDate = false;
                             if (selectedDate) {
                               const year = selectedDate.getFullYear();
-                              const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-                              const day = String(selectedDate.getDate()).padStart(2, "0");
+                              const month = String(
+                                selectedDate.getMonth() + 1,
+                              ).padStart(2, "0");
+                              const day = String(
+                                selectedDate.getDate(),
+                              ).padStart(2, "0");
                               const selectedDateString = `${year}-${month}-${day}`;
 
-                              if (event.event_dates && event.event_dates.length > 0) {
-                                isOnSelectedDate = event.event_dates.includes(selectedDateString);
+                              if (
+                                event.event_dates &&
+                                event.event_dates.length > 0
+                              ) {
+                                isOnSelectedDate =
+                                  event.event_dates.includes(
+                                    selectedDateString,
+                                  );
                               } else {
-                                const eventStartDate = event.start_date || event.date;
-                                const eventEndDate = event.end_date || event.date;
-                                isOnSelectedDate = !!(eventStartDate && eventEndDate && selectedDateString >= eventStartDate && selectedDateString <= eventEndDate);
+                                const eventStartDate =
+                                  event.start_date || event.date;
+                                const eventEndDate =
+                                  event.end_date || event.date;
+                                isOnSelectedDate = !!(
+                                  eventStartDate &&
+                                  eventEndDate &&
+                                  selectedDateString >= eventStartDate &&
+                                  selectedDateString <= eventEndDate
+                                );
                               }
                             }
 
                             // 날짜 텍스트 생성
                             let dateText = "";
                             // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                            if (event.event_dates && event.event_dates.length > 0) {
+                            if (
+                              event.event_dates &&
+                              event.event_dates.length > 0
+                            ) {
                               const formatDate = (dateStr: string) => {
                                 const date = new Date(dateStr);
                                 return `${date.getMonth() + 1}/${date.getDate()}`;
                               };
-                              dateText = event.event_dates.map(formatDate).join(', ');
+                              dateText = event.event_dates
+                                .map(formatDate)
+                                .join(", ");
                             } else {
                               // 연속 기간 모드
                               const startDate = event.start_date || event.date;
@@ -1533,29 +1618,33 @@ export default function EventList({
               </p>
             </div>
           )}
-          </div>
-        ) : (
-          // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
-          <div 
-            className="overflow-hidden"
-            style={{
+        </div>
+      ) : (
+        // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
+        <div
+          className="overflow-hidden"
+          style={
+            {
               // height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
               // transition: 'height 0.3s ease-out'
+            }
+          }
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          <div
+            className="flex items-start"
+            style={{
+              transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
+              transition: externalIsAnimating
+                ? "transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1)"
+                : "none",
+              willChange: "transform",
             }}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
           >
-            <div 
-              className="flex items-start"
-              style={{
-                transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
-                transition: externalIsAnimating ? 'transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none',
-                willChange: 'transform',
-              }}
-            >
-              {/* 이전 달 - 독립 컨테이너 */}
-              <div ref={prevMonthRef} className="flex-shrink-0 w-full self-start">
+            {/* 이전 달 - 독립 컨테이너 */}
+            <div ref={prevMonthRef} className="flex-shrink-0 w-full self-start">
               <div
                 className="p-[0.4rem]"
                 style={{
@@ -1573,13 +1662,23 @@ export default function EventList({
                           data-event-id={event.id}
                           onClick={() => handleEventClick(event)}
                           className="overflow-hidden transition-all cursor-pointer relative border border-[#000000]"
-                          style={{ backgroundColor: "var(--event-list-bg-color)", borderRadius: '0.3rem' }}
+                          style={{
+                            backgroundColor: "var(--event-list-bg-color)",
+                            borderRadius: "0.3rem",
+                          }}
                         >
                           <div className="relative">
                             {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-                              const isDefaultThumbnail = !event?.image && !event?.image_thumbnail && finalThumbnailUrl;
-                              
+                              const finalThumbnailUrl = getEventThumbnail(
+                                event,
+                                defaultThumbnailClass,
+                                defaultThumbnailEvent,
+                              );
+                              const isDefaultThumbnail =
+                                !event?.image &&
+                                !event?.image_thumbnail &&
+                                finalThumbnailUrl;
+
                               if (finalThumbnailUrl) {
                                 return (
                                   <>
@@ -1591,7 +1690,9 @@ export default function EventList({
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                         <span className="text-white/50 text-4xl font-bold">
-                                          {event.category === "class" ? "강습" : "행사"}
+                                          {event.category === "class"
+                                            ? "강습"
+                                            : "행사"}
                                         </span>
                                       </div>
                                     )}
@@ -1601,22 +1702,28 @@ export default function EventList({
                                 return (
                                   <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
-                                      {event.category === "class" ? "강습" : "행사"}
+                                      {event.category === "class"
+                                        ? "강습"
+                                        : "행사"}
                                     </span>
                                   </div>
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
-                              // 지난 행사인지 확인
-                              const endDate = event.end_date || event.date;
-                              if (endDate) {
-                                const today = getLocalDateString();
-                                const isPast = endDate < today;
-                                if (isPast) return "bg-gray-500/80";
-                              }
-                              return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
-                            })()}`}>
+                            <div
+                              className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                                // 지난 행사인지 확인
+                                const endDate = event.end_date || event.date;
+                                if (endDate) {
+                                  const today = getLocalDateString();
+                                  const isPast = endDate < today;
+                                  if (isPast) return "bg-gray-500/80";
+                                }
+                                return event.category === "class"
+                                  ? "bg-purple-600/80"
+                                  : "bg-blue-600/80";
+                              })()}`}
+                            >
                               {(() => {
                                 const endDate = event.end_date || event.date;
                                 if (endDate) {
@@ -1624,11 +1731,16 @@ export default function EventList({
                                   const isPast = endDate < today;
                                   if (isPast) return "종료";
                                 }
-                                return event.category === "class" ? "강습" : "행사";
+                                return event.category === "class"
+                                  ? "강습"
+                                  : "행사";
                               })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.8rem' }}>
+                              <h3
+                                className="text-white font-bold leading-tight line-clamp-4"
+                                style={{ fontSize: "0.8rem" }}
+                              >
                                 {event.title}
                               </h3>
                             </div>
@@ -1637,12 +1749,15 @@ export default function EventList({
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
                                 // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                                if (event.event_dates && event.event_dates.length > 0) {
+                                if (
+                                  event.event_dates &&
+                                  event.event_dates.length > 0
+                                ) {
                                   const formatDate = (dateStr: string) => {
                                     const date = new Date(dateStr);
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
-                                  
+
                                   // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
                                   if (event.event_dates.length === 1) {
                                     return formatDate(event.event_dates[0]);
@@ -1650,9 +1765,10 @@ export default function EventList({
                                     return `${formatDate(event.event_dates[0])} ~ 시작`;
                                   }
                                 }
-                                
+
                                 // 연속 기간 모드 (그대로 유지)
-                                const startDate = event.start_date || event.date;
+                                const startDate =
+                                  event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
                                 const formatDate = (dateStr: string) => {
@@ -1677,10 +1793,13 @@ export default function EventList({
                   </div>
                 )}
               </div>
-              </div>
+            </div>
 
-              {/* 현재 달 - 독립 컨테이너 */}
-              <div ref={currentMonthRef} className="flex-shrink-0 w-full self-start">
+            {/* 현재 달 - 독립 컨테이너 */}
+            <div
+              ref={currentMonthRef}
+              className="flex-shrink-0 w-full self-start"
+            >
               <div
                 className="p-[0.4rem]"
                 style={{
@@ -1702,26 +1821,39 @@ export default function EventList({
                           data-event-id={event.id}
                           onClick={() => handleEventClick(event)}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = highlightBorderColor;
-                            if (viewMode === "month" && onEventHover) onEventHover(event.id);
+                            e.currentTarget.style.borderColor =
+                              highlightBorderColor;
+                            if (viewMode === "month" && onEventHover)
+                              onEventHover(event.id);
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "var(--event-list-bg-color)";
+                            e.currentTarget.style.backgroundColor =
+                              "var(--event-list-bg-color)";
                             e.currentTarget.style.borderColor = "#000000";
-                            if (viewMode === "month" && onEventHover) onEventHover(null);
+                            if (viewMode === "month" && onEventHover)
+                              onEventHover(null);
                           }}
                           className={`overflow-hidden transition-all cursor-pointer relative border ${isHighlighted ? "" : "border-[#000000]"}`}
                           style={{
                             backgroundColor: "var(--event-list-bg-color)",
-                            borderColor: isHighlighted ? highlightBorderColor : undefined,
-                            borderRadius: '0.3rem',
+                            borderColor: isHighlighted
+                              ? highlightBorderColor
+                              : undefined,
+                            borderRadius: "0.3rem",
                           }}
                         >
                           <div className="relative">
                             {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-                              const isDefaultThumbnail = !event?.image && !event?.image_thumbnail && finalThumbnailUrl;
-                              
+                              const finalThumbnailUrl = getEventThumbnail(
+                                event,
+                                defaultThumbnailClass,
+                                defaultThumbnailEvent,
+                              );
+                              const isDefaultThumbnail =
+                                !event?.image &&
+                                !event?.image_thumbnail &&
+                                finalThumbnailUrl;
+
                               if (finalThumbnailUrl) {
                                 return (
                                   <>
@@ -1733,7 +1865,9 @@ export default function EventList({
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                         <span className="text-white/50 text-4xl font-bold">
-                                          {event.category === "class" ? "강습" : "행사"}
+                                          {event.category === "class"
+                                            ? "강습"
+                                            : "행사"}
                                         </span>
                                       </div>
                                     )}
@@ -1743,22 +1877,28 @@ export default function EventList({
                                 return (
                                   <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
-                                      {event.category === "class" ? "강습" : "행사"}
+                                      {event.category === "class"
+                                        ? "강습"
+                                        : "행사"}
                                     </span>
                                   </div>
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
-                              // 지난 행사인지 확인
-                              const endDate = event.end_date || event.date;
-                              if (endDate) {
-                                const today = getLocalDateString();
-                                const isPast = endDate < today;
-                                if (isPast) return "bg-gray-500/80";
-                              }
-                              return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
-                            })()}`}>
+                            <div
+                              className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                                // 지난 행사인지 확인
+                                const endDate = event.end_date || event.date;
+                                if (endDate) {
+                                  const today = getLocalDateString();
+                                  const isPast = endDate < today;
+                                  if (isPast) return "bg-gray-500/80";
+                                }
+                                return event.category === "class"
+                                  ? "bg-purple-600/80"
+                                  : "bg-blue-600/80";
+                              })()}`}
+                            >
                               {(() => {
                                 const endDate = event.end_date || event.date;
                                 if (endDate) {
@@ -1766,11 +1906,16 @@ export default function EventList({
                                   const isPast = endDate < today;
                                   if (isPast) return "종료";
                                 }
-                                return event.category === "class" ? "강습" : "행사";
+                                return event.category === "class"
+                                  ? "강습"
+                                  : "행사";
                               })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.8rem' }}>
+                              <h3
+                                className="text-white font-bold leading-tight line-clamp-4"
+                                style={{ fontSize: "0.8rem" }}
+                              >
                                 {event.title}
                               </h3>
                             </div>
@@ -1779,12 +1924,15 @@ export default function EventList({
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
                                 // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                                if (event.event_dates && event.event_dates.length > 0) {
+                                if (
+                                  event.event_dates &&
+                                  event.event_dates.length > 0
+                                ) {
                                   const formatDate = (dateStr: string) => {
                                     const date = new Date(dateStr);
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
-                                  
+
                                   // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
                                   if (event.event_dates.length === 1) {
                                     return formatDate(event.event_dates[0]);
@@ -1792,9 +1940,10 @@ export default function EventList({
                                     return `${formatDate(event.event_dates[0])} ~ 시작`;
                                   }
                                 }
-                                
+
                                 // 연속 기간 모드 (그대로 유지)
-                                const startDate = event.start_date || event.date;
+                                const startDate =
+                                  event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
                                 const formatDate = (dateStr: string) => {
@@ -1825,10 +1974,10 @@ export default function EventList({
                   </div>
                 )}
               </div>
-              </div>
+            </div>
 
-              {/* 다음 달 - 독립 컨테이너 */}
-              <div ref={nextMonthRef} className="flex-shrink-0 w-full self-start">
+            {/* 다음 달 - 독립 컨테이너 */}
+            <div ref={nextMonthRef} className="flex-shrink-0 w-full self-start">
               <div
                 className="p-[0.4rem]"
                 style={{
@@ -1846,13 +1995,23 @@ export default function EventList({
                           data-event-id={event.id}
                           onClick={() => handleEventClick(event)}
                           className="overflow-hidden transition-all cursor-pointer relative border border-[#000000]"
-                          style={{ backgroundColor: "var(--event-list-bg-color)", borderRadius: '0.3rem' }}
+                          style={{
+                            backgroundColor: "var(--event-list-bg-color)",
+                            borderRadius: "0.3rem",
+                          }}
                         >
                           <div className="relative">
                             {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-                              const isDefaultThumbnail = !event?.image && !event?.image_thumbnail && finalThumbnailUrl;
-                              
+                              const finalThumbnailUrl = getEventThumbnail(
+                                event,
+                                defaultThumbnailClass,
+                                defaultThumbnailEvent,
+                              );
+                              const isDefaultThumbnail =
+                                !event?.image &&
+                                !event?.image_thumbnail &&
+                                finalThumbnailUrl;
+
                               if (finalThumbnailUrl) {
                                 return (
                                   <>
@@ -1864,7 +2023,9 @@ export default function EventList({
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                         <span className="text-white/50 text-4xl font-bold">
-                                          {event.category === "class" ? "강습" : "행사"}
+                                          {event.category === "class"
+                                            ? "강습"
+                                            : "행사"}
                                         </span>
                                       </div>
                                     )}
@@ -1874,22 +2035,28 @@ export default function EventList({
                                 return (
                                   <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
-                                      {event.category === "class" ? "강습" : "행사"}
+                                      {event.category === "class"
+                                        ? "강습"
+                                        : "행사"}
                                     </span>
                                   </div>
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
-                              // 지난 행사인지 확인
-                              const endDate = event.end_date || event.date;
-                              if (endDate) {
-                                const today = getLocalDateString();
-                                const isPast = endDate < today;
-                                if (isPast) return "bg-gray-500/80";
-                              }
-                              return event.category === "class" ? "bg-purple-600/80" : "bg-blue-600/80";
-                            })()}`}>
+                            <div
+                              className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                                // 지난 행사인지 확인
+                                const endDate = event.end_date || event.date;
+                                if (endDate) {
+                                  const today = getLocalDateString();
+                                  const isPast = endDate < today;
+                                  if (isPast) return "bg-gray-500/80";
+                                }
+                                return event.category === "class"
+                                  ? "bg-purple-600/80"
+                                  : "bg-blue-600/80";
+                              })()}`}
+                            >
                               {(() => {
                                 const endDate = event.end_date || event.date;
                                 if (endDate) {
@@ -1897,11 +2064,16 @@ export default function EventList({
                                   const isPast = endDate < today;
                                   if (isPast) return "종료";
                                 }
-                                return event.category === "class" ? "강습" : "행사";
+                                return event.category === "class"
+                                  ? "강습"
+                                  : "행사";
                               })()}
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3 className="text-white font-bold leading-tight line-clamp-4" style={{ fontSize: '0.8rem' }}>
+                              <h3
+                                className="text-white font-bold leading-tight line-clamp-4"
+                                style={{ fontSize: "0.8rem" }}
+                              >
                                 {event.title}
                               </h3>
                             </div>
@@ -1910,12 +2082,15 @@ export default function EventList({
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
                                 // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                                if (event.event_dates && event.event_dates.length > 0) {
+                                if (
+                                  event.event_dates &&
+                                  event.event_dates.length > 0
+                                ) {
                                   const formatDate = (dateStr: string) => {
                                     const date = new Date(dateStr);
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
-                                  
+
                                   // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
                                   if (event.event_dates.length === 1) {
                                     return formatDate(event.event_dates[0]);
@@ -1923,9 +2098,10 @@ export default function EventList({
                                     return `${formatDate(event.event_dates[0])} ~ 시작`;
                                   }
                                 }
-                                
+
                                 // 연속 기간 모드 (그대로 유지)
-                                const startDate = event.start_date || event.date;
+                                const startDate =
+                                  event.start_date || event.date;
                                 const endDate = event.end_date || event.date;
                                 if (!startDate) return "날짜 미정";
                                 const formatDate = (dateStr: string) => {
@@ -1950,10 +2126,10 @@ export default function EventList({
                   </div>
                 )}
               </div>
-              </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* 정렬 모달 */}
       {showSortModal && (
@@ -1979,10 +2155,11 @@ export default function EventList({
                         option.id as "random" | "time" | "title" | "newest",
                       )
                     }
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${sortBy === option.id
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
+                      sortBy === option.id
                         ? "bg-blue-600 text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      }`}
+                    }`}
                   >
                     <i className={`${option.icon} text-lg`}></i>
                     <span className="font-medium">{option.name}</span>
@@ -2087,7 +2264,8 @@ export default function EventList({
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold text-white mb-4">이벤트 수정</h3>
             <p className="text-gray-300 mb-4">
-              &quot;{eventToEdit.title}&quot; 이벤트를 수정하려면 비밀번호를 입력하세요.
+              &quot;{eventToEdit.title}&quot; 이벤트를 수정하려면 비밀번호를
+              입력하세요.
             </p>
             <input
               type="password"
@@ -2228,9 +2406,13 @@ export default function EventList({
                         type="radio"
                         name="edit-dateMode"
                         value="range"
-                        checked={editFormData.dateMode === 'range'}
+                        checked={editFormData.dateMode === "range"}
                         onChange={() => {
-                          setEditFormData(prev => ({ ...prev, dateMode: 'range', event_dates: [] }));
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            dateMode: "range",
+                            event_dates: [],
+                          }));
                         }}
                         className="mr-2"
                       />
@@ -2241,151 +2423,167 @@ export default function EventList({
                         type="radio"
                         name="edit-dateMode"
                         value="specific"
-                        checked={editFormData.dateMode === 'specific'}
+                        checked={editFormData.dateMode === "specific"}
                         onChange={() => {
-                          setEditFormData(prev => ({ ...prev, dateMode: 'specific' }));
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            dateMode: "specific",
+                          }));
                         }}
                         className="mr-2"
                       />
-                      <span className="text-gray-300 text-sm">특정 날짜 선택</span>
+                      <span className="text-gray-300 text-sm">
+                        특정 날짜 선택
+                      </span>
                     </label>
                   </div>
 
-                {editFormData.dateMode === 'range' ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-gray-300 text-xs font-medium mb-1">
-                        시작일
-                      </label>
-                      <div
-                        onClick={() => {
-                          setDatePickerMonth(
-                            editFormData.start_date
-                              ? new Date(editFormData.start_date)
-                              : new Date(),
-                          );
-                          setShowDatePickerModal("start");
-                        }}
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
-                      >
-                        <span>
-                          {editFormData.start_date
-                            ? new Date(
-                              editFormData.start_date,
-                            ).toLocaleDateString("ko-KR", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
-                            : "날짜 선택"}
-                        </span>
-                        <i className="ri-calendar-line"></i>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-gray-300 text-xs font-medium mb-1">
-                        종료일
-                      </label>
-                      <div
-                        onClick={() => {
-                          setDatePickerMonth(
-                            editFormData.end_date
-                              ? new Date(editFormData.end_date)
-                              : editFormData.start_date
+                  {editFormData.dateMode === "range" ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-gray-300 text-xs font-medium mb-1">
+                          시작일
+                        </label>
+                        <div
+                          onClick={() => {
+                            setDatePickerMonth(
+                              editFormData.start_date
                                 ? new Date(editFormData.start_date)
                                 : new Date(),
-                          );
-                          setShowDatePickerModal("end");
-                        }}
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
-                      >
-                        <span>
-                          {editFormData.end_date
-                            ? new Date(editFormData.end_date).toLocaleDateString(
-                              "ko-KR",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              },
-                            )
-                            : "날짜 선택"}
-                        </span>
-                        <i className="ri-calendar-line"></i>
+                            );
+                            setShowDatePickerModal("start");
+                          }}
+                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
+                        >
+                          <span>
+                            {editFormData.start_date
+                              ? new Date(
+                                  editFormData.start_date,
+                                ).toLocaleDateString("ko-KR", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })
+                              : "날짜 선택"}
+                          </span>
+                          <i className="ri-calendar-line"></i>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-xs font-medium mb-1">
+                          종료일
+                        </label>
+                        <div
+                          onClick={() => {
+                            setDatePickerMonth(
+                              editFormData.end_date
+                                ? new Date(editFormData.end_date)
+                                : editFormData.start_date
+                                  ? new Date(editFormData.start_date)
+                                  : new Date(),
+                            );
+                            setShowDatePickerModal("end");
+                          }}
+                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
+                        >
+                          <span>
+                            {editFormData.end_date
+                              ? new Date(
+                                  editFormData.end_date,
+                                ).toLocaleDateString("ko-KR", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })
+                              : "날짜 선택"}
+                          </span>
+                          <i className="ri-calendar-line"></i>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
-                      선택된 날짜 ({editFormData.event_dates.length}개)
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {editFormData.event_dates.sort((a, b) => a.localeCompare(b)).map((dateStr, index) => {
-                        const date = new Date(dateStr);
-                        return (
-                          <div
-                            key={index}
-                            className="inline-flex items-center bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
-                          >
-                            <span>{date.getMonth() + 1}/{date.getDate()}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (editFormData.event_dates.length > 1) {
-                                  setEditFormData(prev => ({
-                                    ...prev,
-                                    event_dates: prev.event_dates.filter((_, i) => i !== index)
-                                  }));
-                                }
-                              }}
-                              className="ml-2 hover:text-red-300"
-                            >
-                              <i className="ri-close-line"></i>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        type="date"
-                        value={tempDateInput}
-                        className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
-                            e.preventDefault();
-                          }
-                        }}
-                        onChange={(e) => {
-                          setTempDateInput(e.target.value);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (tempDateInput) {
-                            const newDate = tempDateInput;
-                            const isDuplicate = editFormData.event_dates.includes(newDate);
-                            if (!isDuplicate) {
-                              setEditFormData(prev => ({
-                                ...prev,
-                                event_dates: [...prev.event_dates, newDate]
-                              }));
+                  ) : (
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-2">
+                        선택된 날짜 ({editFormData.event_dates.length}개)
+                      </label>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {editFormData.event_dates
+                          .sort((a, b) => a.localeCompare(b))
+                          .map((dateStr, index) => {
+                            const date = new Date(dateStr);
+                            return (
+                              <div
+                                key={index}
+                                className="inline-flex items-center bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
+                              >
+                                <span>
+                                  {date.getMonth() + 1}/{date.getDate()}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (editFormData.event_dates.length > 1) {
+                                      setEditFormData((prev) => ({
+                                        ...prev,
+                                        event_dates: prev.event_dates.filter(
+                                          (_, i) => i !== index,
+                                        ),
+                                      }));
+                                    }
+                                  }}
+                                  className="ml-2 hover:text-red-300"
+                                >
+                                  <i className="ri-close-line"></i>
+                                </button>
+                              </div>
+                            );
+                          })}
+                      </div>
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="date"
+                          value={tempDateInput}
+                          className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onKeyDown={(e) => {
+                            if (
+                              e.key !== "Tab" &&
+                              e.key !== "ArrowLeft" &&
+                              e.key !== "ArrowRight"
+                            ) {
+                              e.preventDefault();
                             }
-                            setTempDateInput('');
-                          }
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                      >
-                        추가
-                      </button>
+                          }}
+                          onChange={(e) => {
+                            setTempDateInput(e.target.value);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (tempDateInput) {
+                              const newDate = tempDateInput;
+                              const isDuplicate =
+                                editFormData.event_dates.includes(newDate);
+                              if (!isDuplicate) {
+                                setEditFormData((prev) => ({
+                                  ...prev,
+                                  event_dates: [...prev.event_dates, newDate],
+                                }));
+                              }
+                              setTempDateInput("");
+                            }
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          추가
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수
+                        있습니다
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-400">
-                      예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
-                    </p>
-                  </div>
-                )}
+                  )}
                 </div>
 
                 {/* 문의 정보 (공개) */}
@@ -2496,31 +2694,38 @@ export default function EventList({
                       onChange={handleEditImageChange}
                       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
                     />
-                    
+
                     {/* 썸네일 추출 버튼 (영상 URL이 있을 때만) */}
                     {editFormData.videoUrl && editVideoPreview.provider && (
                       <>
-                        {(editVideoPreview.provider === 'youtube' || editVideoPreview.provider === 'vimeo') ? (
+                        {editVideoPreview.provider === "youtube" ||
+                        editVideoPreview.provider === "vimeo" ? (
                           <button
                             type="button"
                             onClick={async () => {
                               try {
-                                const options = await getVideoThumbnailOptions(editFormData.videoUrl);
+                                const options = await getVideoThumbnailOptions(
+                                  editFormData.videoUrl,
+                                );
                                 if (options.length > 0) {
                                   setThumbnailOptions(options);
                                   setShowThumbnailSelector(true);
                                 } else {
-                                  alert('이 영상에서 썸네일을 추출할 수 없습니다.');
+                                  alert(
+                                    "이 영상에서 썸네일을 추출할 수 없습니다.",
+                                  );
                                 }
                               } catch (error) {
-                                console.error('썸네일 추출 오류:', error);
-                                alert('썸네일 추출 중 오류가 발생했습니다.');
+                                console.error("썸네일 추출 오류:", error);
+                                alert("썸네일 추출 중 오류가 발생했습니다.");
                               }
                             }}
                             className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                           >
                             <i className="ri-image-add-line mr-1"></i>
-                            썸네일 추출하기 {editVideoPreview.provider === 'youtube' && '(여러 장면 선택 가능)'}
+                            썸네일 추출하기{" "}
+                            {editVideoPreview.provider === "youtube" &&
+                              "(여러 장면 선택 가능)"}
                           </button>
                         ) : (
                           <div className="mt-2">
@@ -2534,13 +2739,14 @@ export default function EventList({
                             </button>
                             <p className="text-xs text-orange-400 mt-2">
                               <i className="ri-alert-line mr-1"></i>
-                              Instagram/Facebook은 썸네일 자동 추출이 지원되지 않습니다. 위 이미지로 썸네일을 직접 등록해주세요.
+                              Instagram/Facebook은 썸네일 자동 추출이 지원되지
+                              않습니다. 위 이미지로 썸네일을 직접 등록해주세요.
                             </p>
                           </div>
                         )}
                       </>
                     )}
-                    
+
                     <p className="text-xs text-gray-400">
                       <i className="ri-information-line mr-1"></i>
                       포스터 이미지는 이벤트 배너와 상세보기에 표시됩니다.
@@ -2560,7 +2766,10 @@ export default function EventList({
                           <i className="ri-check-line"></i>
                           <span>영상 인식됨 - 빌보드에서 재생됩니다</span>
                         </div>
-                        <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                        <div
+                          className="relative w-full"
+                          style={{ paddingTop: "56.25%" }}
+                        >
                           <iframe
                             src={editVideoPreview.embedUrl}
                             className="absolute top-0 left-0 w-full h-full rounded-lg"
@@ -2572,13 +2781,16 @@ export default function EventList({
                         <button
                           type="button"
                           onClick={() => {
-                            setEditVideoPreview({ provider: null, embedUrl: null });
+                            setEditVideoPreview({
+                              provider: null,
+                              embedUrl: null,
+                            });
                             setEditFormData((prev) => ({
                               ...prev,
-                              videoUrl: '',
+                              videoUrl: "",
                             }));
                             setEditImageFile(null);
-                            setEditImagePreview('');
+                            setEditImagePreview("");
                           }}
                           className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
                         >
@@ -2595,19 +2807,28 @@ export default function EventList({
                             ...prev,
                             videoUrl: value,
                           }));
-                          
-                          if (value.trim() === '') {
-                            setEditVideoPreview({ provider: null, embedUrl: null });
+
+                          if (value.trim() === "") {
+                            setEditVideoPreview({
+                              provider: null,
+                              embedUrl: null,
+                            });
                           } else {
                             const videoInfo = parseVideoUrl(value);
-                            
+
                             // 유튜브만 허용
-                            if (videoInfo.provider && videoInfo.provider !== 'youtube') {
-                              setEditVideoPreview({ provider: null, embedUrl: null });
+                            if (
+                              videoInfo.provider &&
+                              videoInfo.provider !== "youtube"
+                            ) {
+                              setEditVideoPreview({
+                                provider: null,
+                                embedUrl: null,
+                              });
                             } else {
-                              setEditVideoPreview({ 
-                                provider: videoInfo.provider, 
-                                embedUrl: videoInfo.embedUrl 
+                              setEditVideoPreview({
+                                provider: videoInfo.provider,
+                                embedUrl: videoInfo.embedUrl,
                               });
                             }
                           }
@@ -2623,7 +2844,8 @@ export default function EventList({
                       </p>
                       <p className="text-xs text-green-400">
                         <i className="ri-check-line mr-1"></i>
-                        <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상 재생 가능
+                        <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상
+                        재생 가능
                       </p>
                       <p className="text-xs text-red-400">
                         <i className="ri-close-line mr-1"></i>
@@ -2633,7 +2855,8 @@ export default function EventList({
                     {editFormData.videoUrl && !editVideoPreview.provider && (
                       <p className="text-xs text-red-400 mt-1">
                         <i className="ri-alert-line mr-1"></i>
-                        YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수 없습니다.
+                        YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수
+                        없습니다.
                       </p>
                     )}
                   </div>
@@ -2643,7 +2866,9 @@ export default function EventList({
                 <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <i className="ri-lock-line text-orange-400 text-sm"></i>
-                    <h3 className="text-orange-400 text-xs font-bold">등록자 정보 (비공개 - 관리자만 확인 가능)</h3>
+                    <h3 className="text-orange-400 text-xs font-bold">
+                      등록자 정보 (비공개 - 관리자만 확인 가능)
+                    </h3>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -2666,7 +2891,8 @@ export default function EventList({
                     </div>
                     <div>
                       <label className="block text-orange-300 text-xs font-medium mb-1">
-                        등록자 전화번호 <span className="text-red-400">*필수</span>
+                        등록자 전화번호{" "}
+                        <span className="text-red-400">*필수</span>
                       </label>
                       <input
                         type="tel"
@@ -2836,12 +3062,13 @@ export default function EventList({
                           }
                         }}
                         disabled={isDisabled}
-                        className={`p-2 rounded-lg text-sm transition-colors cursor-pointer ${isSelected
+                        className={`p-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                          isSelected
                             ? "bg-blue-600 text-white"
                             : isDisabled
                               ? "text-gray-600 cursor-not-allowed"
                               : "text-gray-300 hover:bg-gray-700"
-                          }`}
+                        }`}
                       >
                         {day}
                       </button>,
@@ -2869,8 +3096,16 @@ export default function EventList({
               <div
                 className={`relative w-full ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
                 style={{
-                  height: '256px',
-                  ...(!(selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent))
+                  height: "256px",
+                  ...(!(
+                    selectedEvent.image_medium ||
+                    selectedEvent.image ||
+                    getEventThumbnail(
+                      selectedEvent,
+                      defaultThumbnailClass,
+                      defaultThumbnailEvent,
+                    )
+                  )
                     ? { backgroundImage: "url(/grunge.png)" }
                     : {}),
                 }}
@@ -2898,48 +3133,60 @@ export default function EventList({
                     <i className="ri-close-line text-2xl"></i>
                   </button>
                 </div>
-              {(() => {
-                const detailImageUrl = selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent);
-                const isDefaultThumbnail = !selectedEvent.image_medium && !selectedEvent.image && detailImageUrl;
-                
-                if (detailImageUrl) {
+                {(() => {
+                  const detailImageUrl =
+                    selectedEvent.image_medium ||
+                    selectedEvent.image ||
+                    getEventThumbnail(
+                      selectedEvent,
+                      defaultThumbnailClass,
+                      defaultThumbnailEvent,
+                    );
+                  const isDefaultThumbnail =
+                    !selectedEvent.image_medium &&
+                    !selectedEvent.image &&
+                    detailImageUrl;
+
+                  if (detailImageUrl) {
+                    return (
+                      <>
+                        <img
+                          src={detailImageUrl}
+                          alt={selectedEvent.title}
+                          className="w-full h-full object-cover"
+                        />
+                        {isDefaultThumbnail && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className="text-white/50 text-6xl font-bold">
+                              {selectedEvent.category === "class"
+                                ? "강습"
+                                : "행사"}
+                            </span>
+                          </div>
+                        )}
+                        {/* 크게보기 버튼 */}
+                        <button
+                          onClick={() => setShowFullscreenImage(true)}
+                          className="absolute top-4 left-4 bg-black/50 hover:bg-black/70 text-white px-3 py-2 rounded-lg text-xs backdrop-blur-sm transition-colors cursor-pointer"
+                        >
+                          <i className="ri-zoom-in-line mr-1"></i>
+                          크게 보기
+                        </button>
+                      </>
+                    );
+                  }
+
                   return (
                     <>
-                      <img
-                        src={detailImageUrl}
-                        alt={selectedEvent.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {isDefaultThumbnail && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="text-white/50 text-6xl font-bold">
-                            {selectedEvent.category === "class" ? "강습" : "행사"}
-                          </span>
-                        </div>
-                      )}
-                      {/* 크게보기 버튼 */}
-                      <button
-                        onClick={() => setShowFullscreenImage(true)}
-                        className="absolute top-4 left-4 bg-black/50 hover:bg-black/70 text-white px-3 py-2 rounded-lg text-xs backdrop-blur-sm transition-colors cursor-pointer"
-                      >
-                        <i className="ri-zoom-in-line mr-1"></i>
-                        크게 보기
-                      </button>
+                      <div
+                        className={`absolute inset-0 ${selectedEvent.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
+                      ></div>
+                      <span className="absolute inset-0 flex items-center justify-center text-white/10 text-6xl font-bold">
+                        {selectedEvent.category === "class" ? "강습" : "행사"}
+                      </span>
                     </>
                   );
-                }
-                
-                return (
-                <>
-                  <div
-                    className={`absolute inset-0 ${selectedEvent.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
-                  ></div>
-                  <span className="absolute inset-0 flex items-center justify-center text-white/10 text-6xl font-bold">
-                    {selectedEvent.category === "class" ? "강습" : "행사"}
-                  </span>
-                </>
-                );
-              })()}
+                })()}
 
                 {/* 카테고리 배지 - 좌측 하단 */}
                 <div
@@ -2950,10 +3197,10 @@ export default function EventList({
               </div>
 
               {/* 제목 - Sticky Header */}
-              <div 
+              <div
                 className="sticky top-0 z-40 bg-gray-800 border-b border-gray-700"
                 style={{
-                  padding: '16px',
+                  padding: "16px",
                 }}
               >
                 <h2 className="text-xl font-bold text-white leading-tight break-words">
@@ -2968,28 +3215,41 @@ export default function EventList({
                   <span>
                     {(() => {
                       // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                      if (selectedEvent.event_dates && selectedEvent.event_dates.length > 0) {
-                        const dates = selectedEvent.event_dates.map(dateStr => new Date(dateStr));
+                      if (
+                        selectedEvent.event_dates &&
+                        selectedEvent.event_dates.length > 0
+                      ) {
+                        const dates = selectedEvent.event_dates.map(
+                          (dateStr) => new Date(dateStr),
+                        );
                         const firstDate = dates[0];
                         const year = firstDate.getFullYear();
-                        const month = firstDate.toLocaleDateString("ko-KR", { month: "long" });
-                        
+                        const month = firstDate.toLocaleDateString("ko-KR", {
+                          month: "long",
+                        });
+
                         // 같은 년월인지 확인
-                        const sameYearMonth = dates.every(d => 
-                          d.getFullYear() === year && 
-                          d.toLocaleDateString("ko-KR", { month: "long" }) === month
+                        const sameYearMonth = dates.every(
+                          (d) =>
+                            d.getFullYear() === year &&
+                            d.toLocaleDateString("ko-KR", { month: "long" }) ===
+                              month,
                         );
-                        
+
                         if (sameYearMonth) {
                           // 같은 년월: "2025년 10월 11일, 25일, 31일"
-                          const days = dates.map(d => d.getDate()).join('일, ');
+                          const days = dates
+                            .map((d) => d.getDate())
+                            .join("일, ");
                           return `${year}년 ${month} ${days}일`;
                         } else {
                           // 다른 년월: "10/11, 11/25, 12/31"
-                          return dates.map(d => `${d.getMonth() + 1}/${d.getDate()}`).join(', ');
+                          return dates
+                            .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
+                            .join(", ");
                         }
                       }
-                      
+
                       // 연속 기간 모드
                       const startDate =
                         selectedEvent.start_date || selectedEvent.date;
@@ -3058,95 +3318,110 @@ export default function EventList({
                     <div className="flex items-start space-x-3 text-gray-300">
                       <i className="ri-file-text-line text-blue-400 text-xl flex-shrink-0 mt-0.5"></i>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-400 mb-1 font-medium">내용</p>
+                        {/* <p className="text-sm text-gray-400 mb-1 font-medium">내용</p> */}
                         <p className="whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">
-                          {selectedEvent.description.split(/(\bhttps?:\/\/[^\s]+)/g).map((part, idx) => {
-                            if (part.match(/^https?:\/\//)) {
-                              return (
-                                <a
-                                  key={idx}
-                                  href={part}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 hover:text-blue-300 underline cursor-pointer break-all"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {part}
-                                </a>
-                              );
-                            }
-                            return <span key={idx}>{part}</span>;
-                          })}
+                          {selectedEvent.description
+                            .split(/(\bhttps?:\/\/[^\s]+)/g)
+                            .map((part, idx) => {
+                              if (part.match(/^https?:\/\//)) {
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={part}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 underline cursor-pointer break-all"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {part}
+                                  </a>
+                                );
+                              }
+                              return <span key={idx}>{part}</span>;
+                            })}
                         </p>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {selectedEvent.contact && (() => {
-                  const contactInfos = parseMultipleContacts(selectedEvent.contact);
-                  
-                  return (
-                    <div className="space-y-2">
-                      <span className="text-sm text-gray-400 block">문의</span>
-                      <div className="flex flex-wrap gap-2">
-                        {contactInfos.map((contactInfo, index) => {
-                          const handleContactClick = async () => {
-                            if (contactInfo.link) {
-                              window.open(contactInfo.link, '_blank');
-                            } else {
-                              try {
-                                await copyToClipboard(contactInfo.value);
-                                alert(`복사되었습니다: ${contactInfo.value}`);
-                              } catch (err) {
-                                console.error('복사 실패:', err);
-                                alert('복사에 실패했습니다.');
-                              }
-                            }
-                          };
+                {selectedEvent.contact &&
+                  (() => {
+                    const contactInfos = parseMultipleContacts(
+                      selectedEvent.contact,
+                    );
 
-                          return (
-                            <button
-                              key={index}
-                              onClick={handleContactClick}
-                              className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/40 border border-green-600/50 text-gray-200 px-3 py-2 rounded-lg transition-colors group"
-                            >
-                              <i className={`${contactInfo.icon} text-green-400 text-lg`}></i>
-                              <div className="text-left">
-                                <div className="text-sm font-medium">{contactInfo.displayText}</div>
-                                <div className="text-xs text-gray-400">
-                                  {contactInfo.link ? '탭하여 열기' : '탭하여 복사'}
+                    return (
+                      <div className="space-y-2">
+                        <span className="text-sm text-gray-400 block">
+                          문의
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {contactInfos.map((contactInfo, index) => {
+                            const handleContactClick = async () => {
+                              if (contactInfo.link) {
+                                window.open(contactInfo.link, "_blank");
+                              } else {
+                                try {
+                                  await copyToClipboard(contactInfo.value);
+                                  alert(`복사되었습니다: ${contactInfo.value}`);
+                                } catch (err) {
+                                  console.error("복사 실패:", err);
+                                  alert("복사에 실패했습니다.");
+                                }
+                              }
+                            };
+
+                            return (
+                              <button
+                                key={index}
+                                onClick={handleContactClick}
+                                className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/40 border border-green-600/50 text-gray-200 px-3 py-2 rounded-lg transition-colors group"
+                              >
+                                <i
+                                  className={`${contactInfo.icon} text-green-400 text-lg`}
+                                ></i>
+                                <div className="text-left">
+                                  <div className="text-sm font-medium">
+                                    {contactInfo.displayText}
+                                  </div>
+                                  <div className="text-xs text-gray-400">
+                                    {contactInfo.link
+                                      ? "탭하여 열기"
+                                      : "탭하여 복사"}
+                                  </div>
                                 </div>
-                              </div>
-                            </button>
-                          );
-                        })}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
 
                 {/* 관리자 전용: 등록자 정보 */}
-                {isAdminMode && (selectedEvent.organizer_name || selectedEvent.organizer_phone) && (
-                  <div className="pt-3 border-t border-gray-700 space-y-2">
-                    <div className="flex items-center gap-2 text-red-400 font-semibold text-sm">
-                      <i className="ri-admin-line"></i>
-                      <span>등록자 정보 (관리자 전용)</span>
+                {isAdminMode &&
+                  (selectedEvent.organizer_name ||
+                    selectedEvent.organizer_phone) && (
+                    <div className="pt-3 border-t border-gray-700 space-y-2">
+                      <div className="flex items-center gap-2 text-red-400 font-semibold text-sm">
+                        <i className="ri-admin-line"></i>
+                        <span>등록자 정보 (관리자 전용)</span>
+                      </div>
+                      {selectedEvent.organizer_name && (
+                        <div className="flex items-center space-x-3 text-gray-300">
+                          <i className="ri-user-star-line text-red-400 text-xl"></i>
+                          <span>{selectedEvent.organizer_name}</span>
+                        </div>
+                      )}
+                      {selectedEvent.organizer_phone && (
+                        <div className="flex items-center space-x-3 text-gray-300">
+                          <i className="ri-phone-line text-red-400 text-xl"></i>
+                          <span>{selectedEvent.organizer_phone}</span>
+                        </div>
+                      )}
                     </div>
-                    {selectedEvent.organizer_name && (
-                      <div className="flex items-center space-x-3 text-gray-300">
-                        <i className="ri-user-star-line text-red-400 text-xl"></i>
-                        <span>{selectedEvent.organizer_name}</span>
-                      </div>
-                    )}
-                    {selectedEvent.organizer_phone && (
-                      <div className="flex items-center space-x-3 text-gray-300">
-                        <i className="ri-phone-line text-red-400 text-xl"></i>
-                        <span>{selectedEvent.organizer_phone}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
                 {/* 추가 링크 */}
                 {selectedEvent.link1 && (
@@ -3159,7 +3434,9 @@ export default function EventList({
                         className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors cursor-pointer"
                       >
                         <i className="ri-external-link-line text-lg"></i>
-                        <span className="font-medium">{selectedEvent.link_name1 || "바로가기"}</span>
+                        <span className="font-medium">
+                          {selectedEvent.link_name1 || "바로가기"}
+                        </span>
                       </a>
                       <a
                         href={selectedEvent.link1}
@@ -3178,7 +3455,6 @@ export default function EventList({
                     </div>
                   </div>
                 )}
-
 
                 {/* 등록 날짜 (관리자만) */}
                 {isAdminMode && selectedEvent.created_at && (
@@ -3205,8 +3481,15 @@ export default function EventList({
       )}
 
       {/* 풀스크린 이미지 모달 */}
-      {showFullscreenImage && selectedEvent &&
-        (selectedEvent.image_full || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent)) && (
+      {showFullscreenImage &&
+        selectedEvent &&
+        (selectedEvent.image_full ||
+          selectedEvent.image ||
+          getEventThumbnail(
+            selectedEvent,
+            defaultThumbnailClass,
+            defaultThumbnailEvent,
+          )) && (
           <div
             className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
             onClick={() => setShowFullscreenImage(false)}
@@ -3218,7 +3501,15 @@ export default function EventList({
               <i className="ri-close-line text-2xl"></i>
             </button>
             <img
-              src={selectedEvent.image_full || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent)}
+              src={
+                selectedEvent.image_full ||
+                selectedEvent.image ||
+                getEventThumbnail(
+                  selectedEvent,
+                  defaultThumbnailClass,
+                  defaultThumbnailEvent,
+                )
+              }
               alt={selectedEvent.title}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
@@ -3228,7 +3519,10 @@ export default function EventList({
 
       {/* 썸네일 선택 모달 */}
       {showThumbnailSelector && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.9)" }}>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.9)" }}
+        >
           <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex justify-between items-center z-10">
               <h2 className="text-xl font-bold text-white">썸네일 선택</h2>
@@ -3242,12 +3536,12 @@ export default function EventList({
                 <i className="ri-close-line text-2xl"></i>
               </button>
             </div>
-            
+
             <div className="p-6">
               <p className="text-gray-400 text-sm mb-4">
                 원하는 썸네일을 선택하세요. YouTube 쇼츠도 지원됩니다.
               </p>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 {thumbnailOptions.map((option, index) => (
                   <div
@@ -3256,24 +3550,28 @@ export default function EventList({
                       try {
                         const blob = await downloadThumbnailAsBlob(option.url);
                         if (blob) {
-                          const file = new File([blob], 'video-thumbnail.jpg', { type: 'image/jpeg' });
+                          const file = new File([blob], "video-thumbnail.jpg", {
+                            type: "image/jpeg",
+                          });
                           setEditImageFile(file);
                           setEditImagePreview(URL.createObjectURL(blob));
-                          
+
                           // 영상 URL은 유지 (빌보드에서 영상 재생, 리스트에서는 썸네일 표시)
                           // 영상 URL 삭제하지 않음!
-                          
+
                           // 모달 닫기
                           setShowThumbnailSelector(false);
                           setThumbnailOptions([]);
-                          
-                          alert('썸네일이 추출되었습니다! 리스트에서는 썸네일이, 빌보드에서는 영상이 표시됩니다.');
+
+                          alert(
+                            "썸네일이 추출되었습니다! 리스트에서는 썸네일이, 빌보드에서는 영상이 표시됩니다.",
+                          );
                         } else {
-                          alert('썸네일 다운로드에 실패했습니다.');
+                          alert("썸네일 다운로드에 실패했습니다.");
                         }
                       } catch (error) {
-                        console.error('썸네일 다운로드 오류:', error);
-                        alert('썸네일 다운로드 중 오류가 발생했습니다.');
+                        console.error("썸네일 다운로드 오류:", error);
+                        alert("썸네일 다운로드 중 오류가 발생했습니다.");
                       }
                     }}
                     className="cursor-pointer group"
@@ -3288,9 +3586,13 @@ export default function EventList({
                         <i className="ri-checkbox-circle-fill text-4xl text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                       </div>
                     </div>
-                    <p className="text-center text-sm text-gray-300 mt-2">{option.label}</p>
-                    {option.quality === 'high' && (
-                      <span className="block text-center text-xs text-green-400 mt-1">고화질</span>
+                    <p className="text-center text-sm text-gray-300 mt-2">
+                      {option.label}
+                    </p>
+                    {option.quality === "high" && (
+                      <span className="block text-center text-xs text-green-400 mt-1">
+                        고화질
+                      </span>
                     )}
                   </div>
                 ))}
