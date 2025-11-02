@@ -43,12 +43,10 @@ export default function FullscreenBillboard({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [shuffleKey, setShuffleKey] = useState(0); // 30분마다 재셔플을 위한 키
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const reshuffleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 이미지와 이벤트를 재생 순서에 따라 정렬 (필터링은 이미 완료됨)
+  // 이미지와 이벤트를 재생 순서에 따라 정렬 (새로고침 시에만 셔플)
   const { sortedImages, sortedEvents } = useMemo(() => {
     if (playOrder === "random") {
       // 랜덤 순서로 셔플 (이미지와 이벤트를 함께 셔플)
@@ -65,32 +63,7 @@ export default function FullscreenBillboard({
         sortedEvents: events,
       };
     }
-  }, [images, events, playOrder, isOpen, shuffleKey]); // shuffleKey 변경 시 재셔플
-
-  // 30분마다 랜덤 재배열 타이머 (랜덤 모드일 때만)
-  useEffect(() => {
-    if (!isOpen || playOrder !== "random") {
-      if (reshuffleTimerRef.current) {
-        clearInterval(reshuffleTimerRef.current);
-        reshuffleTimerRef.current = null;
-      }
-      return;
-    }
-
-    // 30분(1800000ms)마다 재셔플
-    reshuffleTimerRef.current = setInterval(() => {
-      setShuffleKey(prev => prev + 1);
-      setCurrentIndex(0); // 재셔플 시 처음부터 시작
-      setProgress(0);
-    }, 1800000); // 30분
-
-    return () => {
-      if (reshuffleTimerRef.current) {
-        clearInterval(reshuffleTimerRef.current);
-        reshuffleTimerRef.current = null;
-      }
-    };
-  }, [isOpen, playOrder])
+  }, [images, events, playOrder]); // 새로고침 시에만 재계산
 
   useEffect(() => {
     if (!isOpen || sortedImages.length === 0) {
