@@ -161,6 +161,9 @@ export default function EventList({
     [key: string]: Event[]; // key: "YYYY-MM-category-sortBy"
   }>({});
 
+  // 모달 열릴 때 스크롤 위치 저장용
+  const scrollPositionRef = useRef(0);
+
   // 날짜 변경 감지 (1분마다 체크)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -181,17 +184,25 @@ export default function EventList({
   // 모달 열림/닫힘 시 body 스크롤 제어
   useEffect(() => {
     if (selectedEvent || showEditModal) {
-      // 모달이 열리면 body 스크롤 차단
-      document.body.style.overflow = "hidden";
-    } else {
-      // 모달이 닫히면 body 스크롤 복원
-      document.body.style.overflow = "";
+      // 현재 스크롤 위치 저장
+      scrollPositionRef.current = window.scrollY;
+      
+      // 모달이 열리면 body 스크롤 완전 차단
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollPositionRef.current}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // 모달이 닫히면 body 스크롤 복원
+        const scrollY = scrollPositionRef.current;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
     }
-
-    // 컴포넌트 언마운트 시 스크롤 복원
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [selectedEvent, showEditModal]);
 
   // 슬라이드 높이 측정 및 업데이트 (애니메이션과 동시에)
@@ -2314,7 +2325,11 @@ export default function EventList({
 
       {/* Edit Modal */}
       {showEditModal && eventToEdit && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-10 overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-10 overflow-y-auto"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4">
               <div className="flex justify-between items-center mb-3">
@@ -3095,7 +3110,14 @@ export default function EventList({
 
       {/* Event Detail Modal - Sticky Header */}
       {selectedEvent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           <div
             className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden border-2 relative"
             style={{ borderColor: "rgb(255 191 19)" }}
