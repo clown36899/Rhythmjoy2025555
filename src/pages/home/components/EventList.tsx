@@ -1643,12 +1643,11 @@ export default function EventList({
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
                                   
-                                  // 처음 1개만 표시하고 나머지는 +N개로 요약
+                                  // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
                                   if (event.event_dates.length === 1) {
                                     return formatDate(event.event_dates[0]);
                                   } else {
-                                    const remaining = event.event_dates.length - 1;
-                                    return `${formatDate(event.event_dates[0])} +${remaining}개`;
+                                    return `${formatDate(event.event_dates[0])} ~ 시작`;
                                   }
                                 }
                                 
@@ -1786,12 +1785,11 @@ export default function EventList({
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
                                   
-                                  // 처음 1개만 표시하고 나머지는 +N개로 요약
+                                  // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
                                   if (event.event_dates.length === 1) {
                                     return formatDate(event.event_dates[0]);
                                   } else {
-                                    const remaining = event.event_dates.length - 1;
-                                    return `${formatDate(event.event_dates[0])} +${remaining}개`;
+                                    return `${formatDate(event.event_dates[0])} ~ 시작`;
                                   }
                                 }
                                 
@@ -1918,12 +1916,11 @@ export default function EventList({
                                     return `${date.getMonth() + 1}/${date.getDate()}`;
                                   };
                                   
-                                  // 처음 1개만 표시하고 나머지는 +N개로 요약
+                                  // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
                                   if (event.event_dates.length === 1) {
                                     return formatDate(event.event_dates[0]);
                                   } else {
-                                    const remaining = event.event_dates.length - 1;
-                                    return `${formatDate(event.event_dates[0])} +${remaining}개`;
+                                    return `${formatDate(event.event_dates[0])} ~ 시작`;
                                   }
                                 }
                                 
