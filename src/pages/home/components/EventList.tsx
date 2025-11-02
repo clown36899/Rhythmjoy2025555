@@ -446,7 +446,7 @@ export default function EventList({
         setLoadError(`DB 에러: ${error.message || "알 수 없는 오류"}`);
         setEvents([]);
       } else {
-        console.log("[EventList] 데이터 로딩 완료:", data?.length || 0, "개");
+        console.log("[EventList] 데이터 로딩 완료:", (data ?? []).length, "개");
         setEvents(data || []);
       }
     } catch (error: any) {
