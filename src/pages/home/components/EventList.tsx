@@ -1607,7 +1607,7 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 left-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                            <div className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
                               // 지난 행사인지 확인
                               const endDate = event.end_date || event.date;
                               if (endDate) {
@@ -1749,7 +1749,7 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 left-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                            <div className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
                               // 지난 행사인지 확인
                               const endDate = event.end_date || event.date;
                               if (endDate) {
@@ -1880,7 +1880,7 @@ export default function EventList({
                                 );
                               }
                             })()}
-                            <div className={`absolute top-0.5 left-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
+                            <div className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
                               // 지난 행사인지 확인
                               const endDate = event.end_date || event.date;
                               if (endDate) {
