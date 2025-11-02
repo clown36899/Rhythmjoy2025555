@@ -266,10 +266,32 @@ export default function BillboardUserManagementModal({
     });
   };
 
-  const copyBillboardUrl = (userId: string) => {
+  const copyBillboardUrl = async (userId: string) => {
     const url = `${window.location.origin}/billboard/${userId}`;
-    navigator.clipboard.writeText(url);
-    alert('빌보드 URL이 복사되었습니다.');
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      alert(`빌보드 URL이 복사되었습니다.\n\n${url}`);
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error);
+      
+      // Fallback: 수동 복사
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      
+      try {
+        document.execCommand('copy');
+        alert(`빌보드 URL이 복사되었습니다.\n\n${url}`);
+      } catch (fallbackError) {
+        alert(`복사 실패. URL을 직접 복사하세요:\n\n${url}`);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
   };
 
   const resetCreateForm = () => {
