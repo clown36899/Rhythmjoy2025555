@@ -2956,13 +2956,13 @@ export default function EventList({
                   padding: '16px',
                 }}
               >
-                <h2 className="text-xl font-bold text-white leading-tight">
+                <h2 className="text-xl font-bold text-white leading-tight break-words">
                   {selectedEvent.title}
                 </h2>
               </div>
 
               {/* 세부 정보 */}
-              <div className="p-4 space-y-3 bg-gray-800">
+              <div className="p-4 space-y-3 bg-gray-800 overflow-x-hidden">
                 <div className="flex items-center space-x-3 text-gray-300">
                   <i className="ri-calendar-line text-blue-400 text-xl"></i>
                   <span>
@@ -3057,9 +3057,9 @@ export default function EventList({
                   <div className="pt-3 border-t border-gray-700">
                     <div className="flex items-start space-x-3 text-gray-300">
                       <i className="ri-file-text-line text-blue-400 text-xl flex-shrink-0 mt-0.5"></i>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-400 mb-1 font-medium">내용</p>
-                        <p className="whitespace-pre-wrap leading-relaxed">
+                        <p className="whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">
                           {selectedEvent.description.split(/(\bhttps?:\/\/[^\s]+)/g).map((part, idx) => {
                             if (part.match(/^https?:\/\//)) {
                               return (
@@ -3068,7 +3068,7 @@ export default function EventList({
                                   href={part}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                                  className="text-blue-400 hover:text-blue-300 underline cursor-pointer break-all"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   {part}
