@@ -1460,6 +1460,7 @@ export default function EventList({
                               <img
                                 src={finalThumbnailUrl}
                                 alt={event.title}
+                                loading="lazy"
                                 className="w-full aspect-[3/4] object-contain bg-gray-900"
                               />
                             );
@@ -1685,6 +1686,7 @@ export default function EventList({
                                     <img
                                       src={finalThumbnailUrl}
                                       alt={event.title}
+                                      loading="lazy"
                                       className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
@@ -1860,6 +1862,7 @@ export default function EventList({
                                     <img
                                       src={finalThumbnailUrl}
                                       alt={event.title}
+                                      loading="lazy"
                                       className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
@@ -2018,6 +2021,7 @@ export default function EventList({
                                     <img
                                       src={finalThumbnailUrl}
                                       alt={event.title}
+                                      loading="lazy"
                                       className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
