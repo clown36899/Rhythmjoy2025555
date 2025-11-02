@@ -260,8 +260,8 @@ export default function BillboardPage() {
 
     const filtered = allEvents.filter((event) => {
       // 이미지/영상 없는 이벤트 제외
-      if (!event.image_full && !event.image && !event.video_url) {
-        console.log('[필터] 미디어 없음:', event.id, event.title);
+      if (!event?.image_full && !event?.image && !event?.video_url) {
+        console.log('[필터] 미디어 없음:', event?.id, event?.title);
         return false;
       }
 
@@ -519,8 +519,8 @@ export default function BillboardPage() {
     slideIndex: number,
     preload: boolean = false,
   ) => {
-    const imageUrl = event.image_full || event.image;
-    const videoUrl = event.video_url;
+    const imageUrl = event?.image_full || event?.image;
+    const videoUrl = event?.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
     const isLoaded = videoLoaded[event.id] || false;
 

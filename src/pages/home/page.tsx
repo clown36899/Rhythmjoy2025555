@@ -277,7 +277,7 @@ export default function HomePage() {
         if (events && events.length > 0) {
           const filteredEvents = events.filter((event) => {
             // 이미지 또는 영상이 있는지 확인
-            if (!event.image_full && !event.image && !event.video_url) {
+            if (!event?.image_full && !event?.image && !event?.video_url) {
               return false;
             }
 
@@ -318,7 +318,7 @@ export default function HomePage() {
 
           // 이미지 또는 영상 URL 추출 (인덱스 일치 보장)
           const imagesOrVideos = filteredEvents.map((event) => 
-            event.video_url || event.image_full || event.image
+            event?.video_url || event?.image_full || event?.image
           );
           
           setBillboardImages(imagesOrVideos);

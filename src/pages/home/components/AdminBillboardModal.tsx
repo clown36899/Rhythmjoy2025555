@@ -529,10 +529,10 @@ export default function AdminBillboardModal({
                   <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
                 ) : (
                   events.map((event) => {
-                    const eventDate = new Date(event.start_date);
+                    const eventDate = new Date(event?.start_date);
                     const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
                     const weekday = weekdayNames[eventDate.getDay()];
-                    const hasMedia = !!(event.image_full || event.image || event.video_url);
+                    const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
                     
                     return (
                       <label
@@ -942,10 +942,10 @@ export default function AdminBillboardModal({
                 <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
               ) : (
                 mainBillboardEvents.map((event) => {
-                  const eventDate = new Date(event.start_date);
+                  const eventDate = new Date(event?.start_date);
                   const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
                   const weekday = weekdayNames[eventDate.getDay()];
-                  const hasMedia = !!(event.image_full || event.image || event.video_url);
+                  const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
                   
                   return (
                     <label

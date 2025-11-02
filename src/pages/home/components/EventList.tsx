@@ -900,19 +900,19 @@ export default function EventList({
         linkName1: event.link_name1 || "",
         linkName2: event.link_name2 || "",
         linkName3: event.link_name3 || "",
-        image: event.image || "",
+        image: event?.image || "",
         start_date: event.start_date || event.date || "",
         end_date: event.end_date || event.date || "",
         event_dates: event.event_dates || [],
         dateMode: hasEventDates ? "specific" : "range",
-        videoUrl: event.video_url || "",
+        videoUrl: event?.video_url || "",
       });
       
       // 영상 URL과 이미지를 모두 로드 (추출 썸네일 지원)
-      setEditImagePreview(event.image || "");
+      setEditImagePreview(event?.image || "");
       setEditImageFile(null);
       
-      if (event.video_url) {
+      if (event?.video_url) {
         const videoInfo = parseVideoUrl(event.video_url);
         setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
       } else {
@@ -1578,7 +1578,7 @@ export default function EventList({
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-                              const isDefaultThumbnail = !event.image && !event.image_thumbnail && finalThumbnailUrl;
+                              const isDefaultThumbnail = !event?.image && !event?.image_thumbnail && finalThumbnailUrl;
                               
                               if (finalThumbnailUrl) {
                                 return (
@@ -1714,7 +1714,7 @@ export default function EventList({
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-                              const isDefaultThumbnail = !event.image && !event.image_thumbnail && finalThumbnailUrl;
+                              const isDefaultThumbnail = !event?.image && !event?.image_thumbnail && finalThumbnailUrl;
                               
                               if (finalThumbnailUrl) {
                                 return (
@@ -1839,7 +1839,7 @@ export default function EventList({
                           <div className="relative">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-                              const isDefaultThumbnail = !event.image && !event.image_thumbnail && finalThumbnailUrl;
+                              const isDefaultThumbnail = !event?.image && !event?.image_thumbnail && finalThumbnailUrl;
                               
                               if (finalThumbnailUrl) {
                                 return (
