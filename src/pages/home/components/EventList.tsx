@@ -2860,33 +2860,9 @@ export default function EventList({
       {selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div
-            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden border-2"
+            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden border-2 relative"
             style={{ borderColor: "rgb(255 191 19)" }}
           >
-            {/* 닫기/수정 버튼 - 최상단 고정 */}
-            <div className="absolute top-4 right-4 z-50 flex space-x-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEditClick(selectedEvent, e);
-                }}
-                className="bg-yellow-600/90 hover:bg-yellow-700 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
-                title="이벤트 수정"
-              >
-                <i className="ri-edit-line text-xl"></i>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeModal();
-                }}
-                className="bg-gray-700/90 hover:bg-gray-600 text-white p-2 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
-                title="닫기"
-              >
-                <i className="ri-close-line text-xl"></i>
-              </button>
-            </div>
-
             {/* 스크롤 가능한 전체 영역 */}
             <div className="overflow-y-auto max-h-[90vh]">
               {/* 이미지 영역 (스크롤과 함께 사라짐) */}
@@ -2899,6 +2875,29 @@ export default function EventList({
                     : {}),
                 }}
               >
+                {/* 닫기/수정 버튼 - 이미지 영역 우측 상단 */}
+                <div className="absolute top-3 right-3 z-10 flex space-x-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditClick(selectedEvent, e);
+                    }}
+                    className="bg-black/60 hover:bg-black/80 text-yellow-400 hover:text-yellow-300 p-2.5 rounded-lg transition-all cursor-pointer backdrop-blur-sm shadow-lg"
+                    title="이벤트 수정"
+                  >
+                    <i className="ri-edit-line text-2xl"></i>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeModal();
+                    }}
+                    className="bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-lg transition-all cursor-pointer backdrop-blur-sm shadow-lg"
+                    title="닫기"
+                  >
+                    <i className="ri-close-line text-2xl"></i>
+                  </button>
+                </div>
               {(() => {
                 const detailImageUrl = selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent);
                 const isDefaultThumbnail = !selectedEvent.image_medium && !selectedEvent.image && detailImageUrl;
