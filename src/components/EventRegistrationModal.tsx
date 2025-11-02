@@ -452,7 +452,7 @@ export default function EventRegistrationModal({
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
                     required
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
                     placeholder="비밀번호"
                   />
                 </div>
@@ -475,7 +475,7 @@ export default function EventRegistrationModal({
               </div>
 
               {/* 날짜 선택 섹션 (날짜 선택 방식 + 시작일/종료일) */}
-              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
+              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
                 <label className="block text-gray-300 text-sm font-medium">
                   날짜 선택 방식
                 </label>
@@ -615,7 +615,7 @@ export default function EventRegistrationModal({
               </div>
 
               {/* 장소 입력 섹션 */}
-              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
+              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3 border border-[#555]">
                 <label className="block text-gray-300 text-sm font-medium">
                   장소 입력
                 </label>
@@ -656,7 +656,7 @@ export default function EventRegistrationModal({
                   value={formData.contact}
                   onChange={handleInputChange}
                   onFocus={handleInputFocus}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
                   placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
                 />
                 <p className="text-xs text-gray-400 mt-1">
@@ -676,13 +676,13 @@ export default function EventRegistrationModal({
                   onChange={handleInputChange}
                   onFocus={handleInputFocus}
                   rows={4}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y border border-[#555]"
                   placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
                 />
               </div>
 
               {/* 바로가기 링크 섹션 */}
-              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
+              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
                 <label className="block text-gray-300 text-sm font-medium">
                   바로가기 링크 (선택사항)
                 </label>
@@ -709,7 +709,7 @@ export default function EventRegistrationModal({
               </div>
 
               {/* 썸네일 이미지 & 영상 섹션 */}
-              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
+              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
                 <label className="block text-gray-300 text-sm font-medium">
                   썸네일 이미지 & 영상 (선택사항)
                 </label>
