@@ -169,21 +169,27 @@ export default function EventRegistrationModal({
       const resizedImages = await createResizedImages(file);
       const timestamp = Date.now();
       const baseFileName = sanitizeFileName(file.name);
+      
+      // 리사이즈된 이미지의 실제 확장자 추출 (WebP 또는 JPEG)
+      const getExtension = (fileName: string) => {
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        return ext || 'jpg';
+      };
 
       const uploadPromises = [
         {
           file: resizedImages.thumbnail,
-          path: `event-posters/thumbnail/${baseFileName}_${timestamp}_thumb.jpg`,
+          path: `event-posters/thumbnail/${baseFileName}_${timestamp}_thumb.${getExtension(resizedImages.thumbnail.name)}`,
           key: "thumbnail" as const,
         },
         {
           file: resizedImages.medium,
-          path: `event-posters/medium/${baseFileName}_${timestamp}_medium.jpg`,
+          path: `event-posters/medium/${baseFileName}_${timestamp}_medium.${getExtension(resizedImages.medium.name)}`,
           key: "medium" as const,
         },
         {
           file: resizedImages.full,
-          path: `event-posters/full/${baseFileName}_${timestamp}_full.jpg`,
+          path: `event-posters/full/${baseFileName}_${timestamp}_full.${getExtension(resizedImages.full.name)}`,
           key: "full" as const,
         },
       ];
