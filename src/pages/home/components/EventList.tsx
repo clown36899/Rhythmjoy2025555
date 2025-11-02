@@ -3157,6 +3157,7 @@ export default function EventList({
                         <img
                           src={detailImageUrl}
                           alt={selectedEvent.title}
+                          loading="lazy"
                           className="w-full h-full object-cover"
                         />
                         {isDefaultThumbnail && (
