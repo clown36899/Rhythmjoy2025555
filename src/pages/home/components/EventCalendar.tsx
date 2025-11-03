@@ -704,10 +704,11 @@ export default function EventCalendar({
             {/* Days of week header */}
             <div className="no-select">
               <div className="grid grid-cols-7 gap-0 h-4 calendar-grid-container">
-                {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
                   <div
                     key={day}
-                    className="calendar-day-header text-center text-gray-400 font-semibold py-0 text-[9px] flex items-center justify-center no-select"
+                    className="calendar-day-header text-center font-semibold py-0 text-[9px] flex items-center justify-center no-select"
+                    style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
                   >
                     {day}
                   </div>
