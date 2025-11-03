@@ -512,7 +512,7 @@ export default function EventCalendar({
                   ? "w-6 h-6 flex items-center justify-center rounded-full bg-blue-500 text-white" 
                   : ""
               }`}
-              style={isOtherMonth ? { opacity: 0.3 } : undefined}
+              style={isOtherMonth ? { opacity: 0.15 } : undefined}
             >
               {day.getDate()}
             </span>
