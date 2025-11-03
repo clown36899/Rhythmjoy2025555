@@ -358,7 +358,7 @@ export default function EventCalendar({
         return (
           <div
             key={`${monthDate.getMonth()}-${index}`}
-            className="h-5 p-0"
+            className="calendar-day-cell h-5 p-0"
           ></div>
         );
       }
