@@ -41,7 +41,6 @@ export default function BillboardPage() {
   
   // 비디오 iframe 로딩 상태
   const [videoLoaded, setVideoLoaded] = useState<Record<string, boolean>>({});
-  const [videoPreloaded, setVideoPreloaded] = useState<Record<string, boolean>>({});
   const [loadTimes, setLoadTimes] = useState<number[]>([]);
   const loadStartTimeRef = useRef<number>(0);
   const videoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -482,30 +481,13 @@ export default function BillboardPage() {
     }, playDuration);
   };
 
-  // 슬라이드 변경 시 로딩 시작 시간 기록
+  // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
   useEffect(() => {
     const currentEvent = events[currentIndex];
     console.log('[빌보드] 슬라이드 변경:', currentIndex, '/', events.length - 1, '→', currentEvent?.title || '없음');
+    setVideoLoaded({});
     loadStartTimeRef.current = Date.now();
-  }, [currentIndex, events]);
-  
-  // 프리로드된 비디오가 visible이 될 때 타이머 시작
-  useEffect(() => {
-    const currentEvent = events[currentIndex];
-    if (!currentEvent) return;
-    
-    const hasVideo = currentEvent.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
-    
-    // 프리로드 완료된 비디오가 visible이 되면 즉시 타이머 시작
-    if (hasVideo && videoPreloaded[currentEvent.id]) {
-      console.log('[빌보드] 프리로드 완료된 비디오 → 즉시 재생', currentEvent.title);
-      setVideoLoaded(prev => ({ ...prev, [currentEvent.id]: true }));
-      
-      setTimeout(() => {
-        startVideoTimerRef.current?.();
-      }, 100);
-    }
-  }, [currentIndex, videoPreloaded, events]);
+  }, [currentIndex]);
 
   if (isLoading) {
     return (
@@ -591,9 +573,9 @@ export default function BillboardPage() {
       >
         {videoInfo?.embedUrl ? (
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {/* 비디오 iframe - 프리로드 모드에서도 실제 URL 로드 */}
+            {/* 비디오 iframe - URL 변경 시 remount */}
             <iframe
-              key={`video-${event.id}`}
+              key={`video-${event.id}-${videoInfo.embedUrl}`}
               src={videoInfo.embedUrl}
               className="w-full h-full"
               frameBorder="0"
@@ -614,14 +596,6 @@ export default function BillboardPage() {
                   ? Math.min(5000, Math.max(1000, loadTimes.reduce((a, b) => a + b, 0) / loadTimes.length))
                   : 3000;
                 
-                // 프리로드 슬라이드는 상태만 저장, 타이머 시작 안 함
-                if (!isVisible) {
-                  console.log('[빌보드] 프리로드 완료:', event.title);
-                  setVideoPreloaded(prev => ({ ...prev, [event.id]: true }));
-                  return;
-                }
-                
-                // Visible 슬라이드는 타이머 시작
                 setTimeout(() => {
                   setVideoLoaded(prev => ({ ...prev, [event.id]: true }));
                   startVideoTimerRef.current?.();
@@ -1202,18 +1176,8 @@ export default function BillboardPage() {
         className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
         style={{ minHeight: "calc(100vh + 1px)" }}
       >
-        {/* 현재 슬라이드 렌더링 */}
+        {/* 현재 슬라이드만 렌더링 (메모리 최적화) */}
         {renderSlide(currentEvent, true, currentIndex)}
-        
-        {/* 다음 슬라이드 프리로딩 (숨김 상태) - 미디어 전환 부하 감소 */}
-        {events.length > 1 && (() => {
-          const nextIndex = settings?.play_order === "random" 
-            ? shuffledPlaylist[(playlistIndexRef.current + 1) % shuffledPlaylist.length]
-            : (currentIndex + 1) % events.length;
-          const nextEvent = events[nextIndex];
-          
-          return nextEvent && renderSlide(nextEvent, false, nextIndex, true);
-        })()}
 
         <style>{`
           .portrait-container {
