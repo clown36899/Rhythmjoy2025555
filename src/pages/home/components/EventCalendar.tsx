@@ -690,7 +690,7 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-0.5 mb-0 px-1 h-4 pt-2 no-select">
+            <div className="grid grid-cols-7 gap-0 mb-0 px-1 h-4 pt-2 no-select">
               {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
                 <div
                   key={day}
@@ -717,7 +717,7 @@ export default function EventCalendar({
               >
                 {/* 이전 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0.5 px-1 pb-0 flex-shrink-0"
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
                   {renderCalendarGrid(prevDays, prevMonth)}
@@ -725,7 +725,7 @@ export default function EventCalendar({
 
                 {/* 현재 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0.5 px-1 pb-0 flex-shrink-0"
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
                   {renderCalendarGrid(currentDays, currentMonth)}
@@ -733,7 +733,7 @@ export default function EventCalendar({
 
                 {/* 다음 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0.5 px-1 pb-0 flex-shrink-0"
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
                   {renderCalendarGrid(nextDays, nextMonth)}
