@@ -42,19 +42,21 @@ export default function SwingBarsPage() {
         return;
       }
 
-      const kakao = window.kakao;
-      const container = document.getElementById('swing-bars-map');
-      if (!container) return;
+      // Kakao Maps SDK가 완전히 로드된 후 실행
+      window.kakao.maps.load(() => {
+        const container = document.getElementById('swing-bars-map');
+        if (!container) return;
 
-      const center = new kakao.maps.LatLng(37.5665, 126.978);
-      const options = {
-        center,
-        level: 8,
-      };
+        const center = new window.kakao.maps.LatLng(37.5665, 126.978);
+        const options = {
+          center,
+          level: 8,
+        };
 
-      const newMap = new kakao.maps.Map(container, options);
-      setMap(newMap);
-      setLoading(false);
+        const newMap = new window.kakao.maps.Map(container, options);
+        setMap(newMap);
+        setLoading(false);
+      });
     };
 
     checkKakao();
