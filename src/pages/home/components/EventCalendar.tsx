@@ -690,11 +690,11 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-0 mb-0 px-1 h-4 pt-2 no-select">
+            <div className="grid grid-cols-7 gap-0 mb-0 px-1 h-4 pt-2 no-select border-l border-t" style={{ borderColor: '#484848' }}>
               {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
                 <div
                   key={day}
-                  className="text-center text-gray-400 font-semibold py-0 text-[9px] flex items-center justify-center no-select"
+                  className="calendar-day-header text-center text-gray-400 font-semibold py-0 text-[9px] flex items-center justify-center no-select"
                 >
                   {day}
                 </div>
@@ -717,24 +717,24 @@ export default function EventCalendar({
               >
                 {/* 이전 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
-                  style={{ width: "100%" }}
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0 border-l"
+                  style={{ width: "100%", borderColor: '#484848' }}
                 >
                   {renderCalendarGrid(prevDays, prevMonth)}
                 </div>
 
                 {/* 현재 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
-                  style={{ width: "100%" }}
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0 border-l"
+                  style={{ width: "100%", borderColor: '#484848' }}
                 >
                   {renderCalendarGrid(currentDays, currentMonth)}
                 </div>
 
                 {/* 다음 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0"
-                  style={{ width: "100%" }}
+                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0 border-l"
+                  style={{ width: "100%", borderColor: '#484848' }}
                 >
                   {renderCalendarGrid(nextDays, nextMonth)}
                 </div>

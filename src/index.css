@@ -73,7 +73,8 @@ body, html {
 .calendar-day-cell {
   min-height: 32px;
   padding: 4px 2px;
-  border: 1px solid #484848;
+  border-right: 1px solid #484848;
+  border-bottom: 1px solid #484848;
 }
 
 /* 태블릿 이상에서는 원래 크기 유지 */
@@ -81,6 +82,13 @@ body, html {
   .calendar-day-cell {
     min-height: 20px;
     padding: 0;
-    border: 1px solid #484848;
+    border-right: 1px solid #484848;
+    border-bottom: 1px solid #484848;
   }
+}
+
+/* 요일 헤더 셀 - 날짜와 동일한 border 스타일 */
+.calendar-day-header {
+  border-right: 1px solid #484848;
+  border-bottom: 1px solid #484848;
 }
