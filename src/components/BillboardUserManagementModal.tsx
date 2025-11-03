@@ -599,7 +599,7 @@ export default function BillboardUserManagementModal({
                   </p>
                 </div>
 
-                <div>
+                <div className="hidden">
                   <label className="block text-gray-300 text-sm font-medium mb-2">
                     🔀 재생 순서
                   </label>
