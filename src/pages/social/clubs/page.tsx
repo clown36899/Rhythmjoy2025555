@@ -123,12 +123,10 @@ export default function ClubsPage() {
       const level = map.getLevel();
       const fontSize = level > 6 ? '9px' : level > 4 ? '11px' : '13px';
       const padding = level > 6 ? '3px 8px' : level > 4 ? '4px 10px' : '5px 12px';
-      const marginBottom = level <= 3 ? '40px' : level <= 5 ? '30px' : '20px';
       
       const labelData = overlayData.map((data, index) => {
         data.element.style.fontSize = fontSize;
         data.element.style.padding = padding;
-        data.element.style.marginBottom = marginBottom;
         
         const point = projection.pointFromCoords(data.position);
         const rect = data.element.getBoundingClientRect();
@@ -193,7 +191,7 @@ export default function ClubsPage() {
           
           firstElement.style.position = 'relative';
           firstElement.style.top = '0px';
-          firstElement.style.zIndex = '1001';
+          firstElement.style.zIndex = '10000';
           firstElement.style.display = 'flex';
           firstElement.style.flexDirection = 'column';
           firstElement.style.gap = '2px';
