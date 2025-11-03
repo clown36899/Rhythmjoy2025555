@@ -7,7 +7,7 @@ export default function Footer() {
   return (
     // ⭐️ 1. 전체를 Fragment (<>)로 감싸서 두 요소를 반환
     <>
-      <footer className="bg-[#1f1f1f] text-white py-12 relative z-[1]">
+      <footer className="bg-[#1f1f1f] text-white py-12 relative z-[1] no-select">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 gap-8">
             {/* Company Info */}

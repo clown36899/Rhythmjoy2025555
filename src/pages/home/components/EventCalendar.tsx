@@ -455,7 +455,7 @@ export default function EventCalendar({
       return (
         <div
           key={`${monthDate.getMonth()}-${index}`}
-          className="calendar-day-cell relative"
+          className="calendar-day-cell relative no-select"
         >
           <div
             onPointerDown={(e) => {
@@ -483,14 +483,14 @@ export default function EventCalendar({
 
               window.addEventListener("pointerup", handlePointerUp);
             }}
-            className={`w-full h-full flex flex-col items-center justify-center text-[13px] transition-all duration-300 cursor-pointer relative overflow-visible ${
+            className={`w-full h-full flex flex-col items-center justify-center text-[13px] transition-all duration-300 cursor-pointer relative overflow-visible no-select ${
               selectedDate && day.toDateString() === selectedDate.toDateString()
                 ? "bg-blue-600 text-white transform scale-105 z-10"
                 : "text-gray-300 hover:bg-gray-700"
             }`}
           >
             {/* 날짜 숫자 - 중앙 정렬 유지 */}
-            <span className={`font-bold relative z-30 ${
+            <span className={`font-bold relative z-30 no-select ${
               todayFlag 
                 ? "w-6 h-6 flex items-center justify-center rounded-full bg-blue-500 text-white" 
                 : ""
@@ -509,7 +509,7 @@ export default function EventCalendar({
 
                 return (
                   <span
-                    className={`absolute top-0.5 right-0.5 text-[8px] rounded-full min-w-[14px] h-3.5 px-1 flex items-center justify-center font-medium transition-all duration-200 z-30 ${
+                    className={`absolute top-0.5 right-0.5 text-[8px] rounded-full min-w-[14px] h-3.5 px-1 flex items-center justify-center font-medium transition-all duration-200 z-30 no-select ${
                       isHoveredSingle
                         ? "bg-blue-500 text-white transform scale-110"
                         : "bg-gray-600 text-gray-300"
@@ -690,11 +690,11 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-0.5 mb-0 px-1 h-4 pt-2">
+            <div className="grid grid-cols-7 gap-0.5 mb-0 px-1 h-4 pt-2 no-select">
               {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
                 <div
                   key={day}
-                  className="text-center text-gray-400 font-semibold py-0 text-[9px] flex items-center justify-center"
+                  className="text-center text-gray-400 font-semibold py-0 text-[9px] flex items-center justify-center no-select"
                 >
                   {day}
                 </div>
