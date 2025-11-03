@@ -36,27 +36,41 @@ export default function ClubsPage() {
   };
 
   const initMap = () => {
+    if (!document.getElementById('clubs-map')) return;
+
+    let attempts = 0;
+    const maxAttempts = 20;
+
     const checkKakao = () => {
       if (!window.kakao || !window.kakao.maps) {
-        setTimeout(checkKakao, 200);
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(checkKakao, 200);
+        } else {
+          console.error('카카오맵 SDK가 로드되지 않았습니다.');
+          setLoading(false);
+        }
         return;
       }
 
-      // Kakao Maps SDK가 완전히 로드된 후 실행
-      window.kakao.maps.load(() => {
+      const kakao = window.kakao;
+      try {
         const container = document.getElementById('clubs-map');
         if (!container) return;
 
-        const center = new window.kakao.maps.LatLng(37.5665, 126.978);
+        const center = new kakao.maps.LatLng(37.5665, 126.978);
         const options = {
           center,
           level: 8,
         };
 
-        const newMap = new window.kakao.maps.Map(container, options);
+        const newMap = new kakao.maps.Map(container, options);
         setMap(newMap);
         setLoading(false);
-      });
+      } catch (error) {
+        console.error('카카오맵 초기화 실패:', error);
+        setLoading(false);
+      }
     };
 
     checkKakao();
