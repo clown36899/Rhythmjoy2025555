@@ -888,10 +888,7 @@ export default function BillboardPage() {
                   className="bg-white rounded-lg flex-shrink-0" 
                   style={{ 
                     padding: `${12 * scale}px`,
-                    marginLeft: `${24 * scale}px`,
-                    animation: `rotateInFade 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
-                    opacity: 0,
-                    transform: `rotate(540deg) scale(0.1)`
+                    marginLeft: `${24 * scale}px`
                   }}
                 >
                   <QRCodeCanvas
