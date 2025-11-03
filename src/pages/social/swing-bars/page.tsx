@@ -99,7 +99,7 @@ export default function SwingBarsPage() {
       const customOverlay = new kakao.maps.CustomOverlay({
         position,
         content: labelDiv,
-        yAnchor: 2.5,
+        yAnchor: 1.3,
       });
       customOverlay.setMap(map);
 
