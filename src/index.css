@@ -74,8 +74,8 @@ body, html {
   height: 32px;
   min-height: 32px;
   padding: 4px 2px;
-  border-right: 1px solid #484848;
-  border-bottom: 1px solid #484848;
+  border-right: 1px solid #15151575;
+  border-bottom: 1px solid #15151575;
 }
 
 /* 태블릿 이상에서는 원래 크기 유지 */
@@ -84,19 +84,19 @@ body, html {
     height: 20px;
     min-height: 20px;
     padding: 0;
-    border-right: 1px solid #484848;
-    border-bottom: 1px solid #484848;
+    border-right: 1px solid #15151575;
+    border-bottom: 1px solid #15151575;
   }
 }
 
 /* 요일 헤더 셀 - 날짜와 동일한 border 스타일 */
 .calendar-day-header {
-  border-right: 1px solid #484848;
-  border-bottom: 1px solid #484848;
+  border-right: 1px solid #15151575;
+  border-bottom: 1px solid #15151575;
 }
 
 /* 달력 그리드 컨테이너 - 왼쪽과 위쪽 border */
 .calendar-grid-container {
-  border-left: 1px solid #484848;
-  border-top: 1px solid #484848;
+  border-left: 1px solid #15151575;
+  border-top: 1px solid #15151575;
 }
