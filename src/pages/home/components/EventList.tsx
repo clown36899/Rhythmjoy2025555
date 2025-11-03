@@ -641,14 +641,15 @@ export default function EventList({
         return matchesCategory && matchesSearch && matchesYearRange;
       }
 
-      // 날짜가 선택된 경우: 현재 월의 모든 이벤트 표시 (정렬에서 선택 날짜를 상단 배치)
-      // 날짜가 선택되지 않은 경우도 동일하게 월 필터 적용
+      // 날짜가 선택된 경우: 선택된 날짜의 월 기준으로 필터링
+      // 날짜가 선택되지 않은 경우: 현재 달력 월 기준으로 필터링
       let matchesDate = true;
-      if (currentMonth) {
+      const filterMonth = selectedDate || currentMonth;
+      if (filterMonth) {
         // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
         if (event.event_dates && event.event_dates.length > 0) {
-          const currentYear = currentMonth.getFullYear();
-          const currentMonthNum = currentMonth.getMonth() + 1; // 1~12
+          const currentYear = filterMonth.getFullYear();
+          const currentMonthNum = filterMonth.getMonth() + 1; // 1~12
 
           if (viewMode === "year") {
             // 연간 보기: event_dates 중 하나라도 해당 년도에 속하면 표시
@@ -677,14 +678,14 @@ export default function EventList({
 
             if (viewMode === "year") {
               // 연간 보기: 해당 년도의 모든 이벤트
-              const yearStart = new Date(currentMonth.getFullYear(), 0, 1);
-              const yearEnd = new Date(currentMonth.getFullYear(), 11, 31);
+              const yearStart = new Date(filterMonth.getFullYear(), 0, 1);
+              const yearEnd = new Date(filterMonth.getFullYear(), 11, 31);
               matchesDate =
                 eventStartDate <= yearEnd && eventEndDate >= yearStart;
             } else {
               // 월간 보기: 시간대 문제 해결을 위해 날짜 문자열로 비교
-              const currentYear = currentMonth.getFullYear();
-              const currentMonthNum = currentMonth.getMonth() + 1; // 1~12
+              const currentYear = filterMonth.getFullYear();
+              const currentMonthNum = filterMonth.getMonth() + 1; // 1~12
 
               // 월의 첫날과 마지막 날을 문자열로 생성
               const monthStartStr = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-01`;
