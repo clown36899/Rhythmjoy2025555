@@ -404,7 +404,12 @@ export default function Header({
                 </button>
                 <button
                   onClick={handleTodayClick}
-                  className="text-xs bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap"
+                  className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${
+                    currentMonth.getFullYear() === new Date().getFullYear() &&
+                    currentMonth.getMonth() === new Date().getMonth()
+                      ? "bg-blue-500 hover:bg-blue-600 text-white"
+                      : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
+                  }`}
                 >
                   오늘
                 </button>
