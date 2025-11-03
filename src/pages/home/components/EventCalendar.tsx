@@ -497,7 +497,7 @@ export default function EventCalendar({
             }}
             className={`w-full h-full flex flex-col items-center justify-center text-[13px] transition-all duration-300 cursor-pointer relative overflow-visible no-select ${
               selectedDate && day.toDateString() === selectedDate.toDateString()
-                ? "bg-blue-600 text-white transform scale-105 z-10"
+                ? "bg-blue-600 text-white z-10"
                 : "text-gray-300 hover:bg-gray-700"
             }`}
           >
