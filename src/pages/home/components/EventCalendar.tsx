@@ -453,10 +453,14 @@ export default function EventCalendar({
         return bar || null;
       });
 
+      // 현재 달이 아닌 날짜인지 확인
+      const isOtherMonth = day.getMonth() !== monthDate.getMonth();
+
       return (
         <div
           key={`${monthDate.getMonth()}-${index}`}
           className="calendar-day-cell relative no-select"
+          style={isOtherMonth ? { backgroundColor: '#252525' } : undefined}
         >
           <div
             onPointerDown={(e) => {
