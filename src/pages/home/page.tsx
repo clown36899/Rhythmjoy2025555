@@ -687,7 +687,7 @@ export default function HomePage() {
         >
           {/* Calendar - Collapsible */}
           <div
-            className="transition-all duration-300 ease-in-out overflow-hidden border-b border-[#22262a]"
+            className="transition-all duration-300 ease-in-out overflow-hidden"
             style={{
               maxHeight: isCalendarCollapsed ? '0px' : '2000px',
             }}

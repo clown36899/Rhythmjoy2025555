@@ -93,6 +93,7 @@ body, html {
 .calendar-day-header {
   border-right: 1px solid #15151575;
   border-bottom: 1px solid #15151575;
+  background-color: #252525;
 }
 
 /* 달력 그리드 컨테이너 - 왼쪽과 위쪽 border */
