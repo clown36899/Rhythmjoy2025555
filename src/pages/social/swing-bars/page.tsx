@@ -24,7 +24,6 @@ export default function SwingBarsPage() {
       const { data, error } = await supabase
         .from('social_places')
         .select('*')
-        .eq('category', 'swing-bars')
         .order('name');
 
       if (error) throw error;

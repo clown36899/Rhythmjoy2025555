@@ -24,7 +24,6 @@ export default function ClubsPage() {
       const { data, error } = await supabase
         .from('social_places')
         .select('*')
-        .or('category.eq.clubs,category.is.null')
         .order('name');
 
       if (error) throw error;
