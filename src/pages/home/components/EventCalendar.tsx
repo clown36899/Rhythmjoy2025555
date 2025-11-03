@@ -119,6 +119,13 @@ export default function EventCalendar({
       days.push(new Date(year, month, day));
     }
 
+    // Add empty cells for days after the last day of the month to fill 6 rows (42 cells)
+    const totalCells = 42; // 6 rows x 7 days
+    const remainingCells = totalCells - days.length;
+    for (let i = 0; i < remainingCells; i++) {
+      days.push(null);
+    }
+
     return days;
   };
 
