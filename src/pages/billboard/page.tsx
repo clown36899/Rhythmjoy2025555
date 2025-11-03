@@ -31,6 +31,7 @@ export default function BillboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressAnimationRef = useRef<number | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
@@ -40,6 +41,7 @@ export default function BillboardPage() {
   
   // 비디오 iframe 로딩 상태
   const [videoLoaded, setVideoLoaded] = useState<Record<string, boolean>>({});
+  const [videoPreloaded, setVideoPreloaded] = useState<Record<string, boolean>>({});
   const [loadTimes, setLoadTimes] = useState<number[]>([]);
   const loadStartTimeRef = useRef<number>(0);
   const videoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -337,8 +339,12 @@ export default function BillboardPage() {
     const currentEvent = events[currentIndex];
     const hasVideo = currentEvent?.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
 
+    // 기존 타이머 정리
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
+    }
+    if (progressAnimationRef.current) {
+      cancelAnimationFrame(progressAnimationRef.current);
     }
     if (videoPlayTimeoutRef.current) {
       clearTimeout(videoPlayTimeoutRef.current);
@@ -346,15 +352,22 @@ export default function BillboardPage() {
 
     setProgress(0);
 
-    const progressStep = (50 / settings.auto_slide_interval) * 100;
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          return 0;
-        }
-        return prev + progressStep;
-      });
-    }, 50);
+    // requestAnimationFrame 기반 progress 업데이트 (GPU 최적화)
+    let startTime = Date.now();
+    const duration = settings.auto_slide_interval;
+    
+    const updateProgress = () => {
+      const elapsed = Date.now() - startTime;
+      const newProgress = Math.min((elapsed / duration) * 100, 100);
+      
+      setProgress(newProgress);
+      
+      if (newProgress < 100) {
+        progressAnimationRef.current = requestAnimationFrame(updateProgress);
+      }
+    };
+    
+    progressAnimationRef.current = requestAnimationFrame(updateProgress);
 
     // 영상이 아닌 경우만 일반 타이머 사용
     let interval: NodeJS.Timeout | null = null;
@@ -386,6 +399,9 @@ export default function BillboardPage() {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
+      if (progressAnimationRef.current) {
+        cancelAnimationFrame(progressAnimationRef.current);
+      }
       if (videoPlayTimeoutRef.current) {
         clearTimeout(videoPlayTimeoutRef.current);
       }
@@ -406,22 +422,30 @@ export default function BillboardPage() {
     const playDuration = settings.video_play_duration || 10000;
     console.log('[빌보드] 영상 로딩 완료! 타이머 시작:', playDuration / 1000, '초');
     
-    // 기존 progress interval 정리
+    // 기존 progress animation 정리
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
+    if (progressAnimationRef.current) {
+      cancelAnimationFrame(progressAnimationRef.current);
+    }
 
-    // Progress bar 리셋 후 설정된 시간 기준으로 재시작
+    // requestAnimationFrame 기반 progress 업데이트 (GPU 최적화)
     setProgress(0);
-    const videoProgressStep = (50 / playDuration) * 100;
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          return 0;
-        }
-        return prev + videoProgressStep;
-      });
-    }, 50);
+    let startTime = Date.now();
+    
+    const updateVideoProgress = () => {
+      const elapsed = Date.now() - startTime;
+      const newProgress = Math.min((elapsed / playDuration) * 100, 100);
+      
+      setProgress(newProgress);
+      
+      if (newProgress < 100) {
+        progressAnimationRef.current = requestAnimationFrame(updateVideoProgress);
+      }
+    };
+    
+    progressAnimationRef.current = requestAnimationFrame(updateVideoProgress);
 
     // 영상 로딩 완료 시점부터 정확히 설정된 시간 후 다음 슬라이드
     videoPlayTimeoutRef.current = setTimeout(() => {
@@ -458,12 +482,31 @@ export default function BillboardPage() {
     }, playDuration);
   };
 
-  // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
+  // 슬라이드 변경 시 비디오 로딩 상태 처리 & 로딩 시작 시간 기록
   useEffect(() => {
     const currentEvent = events[currentIndex];
     console.log('[빌보드] 슬라이드 변경:', currentIndex, '/', events.length - 1, '→', currentEvent?.title || '없음');
-    setVideoLoaded({});
-    loadStartTimeRef.current = Date.now();
+    
+    const hasVideo = currentEvent?.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
+    
+    // 비디오 슬라이드이고 이미 프리로드된 경우 → 즉시 타이머 시작
+    if (hasVideo && videoPreloaded[currentEvent.id]) {
+      console.log('[빌보드] 프리로드 완료된 비디오 → 즉시 재생', currentEvent.title);
+      setVideoLoaded(prev => ({ ...prev, [currentEvent.id]: true }));
+      
+      // 타이머 시작
+      setTimeout(() => {
+        startVideoTimerRef.current?.();
+      }, 100);
+    } else {
+      // 프리로드 안 된 경우 → 현재 슬라이드만 로딩 상태 초기화
+      setVideoLoaded(prev => {
+        const updated = { ...prev };
+        delete updated[currentEvent.id];
+        return updated;
+      });
+      loadStartTimeRef.current = Date.now();
+    }
   }, [currentIndex, events]);
 
   if (isLoading) {
@@ -550,10 +593,10 @@ export default function BillboardPage() {
       >
         {videoInfo?.embedUrl ? (
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {/* 비디오 iframe */}
+            {/* 비디오 iframe - 프리로드 모드에서도 실제 URL 로드 */}
             <iframe
               key={`video-${event.id}`}
-              src={isVisible ? videoInfo.embedUrl : 'about:blank'}
+              src={videoInfo.embedUrl}
               className="w-full h-full"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -573,6 +616,14 @@ export default function BillboardPage() {
                   ? Math.min(5000, Math.max(1000, loadTimes.reduce((a, b) => a + b, 0) / loadTimes.length))
                   : 3000;
                 
+                // 프리로드 슬라이드는 상태만 저장, 타이머 시작 안 함
+                if (!isVisible) {
+                  console.log('[빌보드] 프리로드 완료:', event.title);
+                  setVideoPreloaded(prev => ({ ...prev, [event.id]: true }));
+                  return;
+                }
+                
+                // Visible 슬라이드는 타이머 시작
                 setTimeout(() => {
                   setVideoLoaded(prev => ({ ...prev, [event.id]: true }));
                   startVideoTimerRef.current?.();
@@ -638,10 +689,22 @@ export default function BillboardPage() {
               }}
             >
               {events.length > 1 && (
-                <div className="relative" style={{ width: `${96 * scale}px`, height: `${96 * scale}px` }}>
+                <div 
+                  className="relative" 
+                  style={{ 
+                    width: `${96 * scale}px`, 
+                    height: `${96 * scale}px`,
+                    willChange: 'transform',
+                    transform: 'translateZ(0)'
+                  }}
+                >
                   <svg 
                     className="transform -rotate-90" 
-                    style={{ width: `${96 * scale}px`, height: `${96 * scale}px` }}
+                    style={{ 
+                      width: `${96 * scale}px`, 
+                      height: `${96 * scale}px`,
+                      willChange: 'transform'
+                    }}
                   >
                     <circle
                       cx={48 * scale}
@@ -660,11 +723,17 @@ export default function BillboardPage() {
                       fill="none"
                       strokeDasharray={264 * scale}
                       strokeDashoffset={(264 * scale) - ((264 * scale) * progress) / 100}
-                      style={{ transition: "stroke-dashoffset 0.05s linear" }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white font-bold" style={{ fontSize: `${20 * scale}px` }}>
+                    <span 
+                      className="text-white font-bold" 
+                      style={{ 
+                        fontSize: `${20 * scale}px`,
+                        willChange: 'transform',
+                        transform: 'translateZ(0)'
+                      }}
+                    >
                       {currentIndex + 1}/{events.length}
                     </span>
                   </div>
@@ -876,7 +945,8 @@ export default function BillboardPage() {
                       width: '100%',
                       animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
                       opacity: 0,
-                      transform: `scale(0.2) translateY(${100 * scale}px) rotate(-15deg)`
+                      transform: `scale(0.2) translateY(${100 * scale}px) rotate(-15deg)`,
+                      willChange: 'transform, opacity'
                     }}
                   >
                     {event.title}
@@ -888,7 +958,9 @@ export default function BillboardPage() {
                   className="bg-white rounded-lg flex-shrink-0" 
                   style={{ 
                     padding: `${12 * scale}px`,
-                    marginLeft: `${24 * scale}px`
+                    marginLeft: `${24 * scale}px`,
+                    willChange: 'transform',
+                    transform: 'translateZ(0)'
                   }}
                 >
                   <QRCodeCanvas
@@ -1132,8 +1204,18 @@ export default function BillboardPage() {
         className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
         style={{ minHeight: "calc(100vh + 1px)" }}
       >
-        {/* 현재 슬라이드만 렌더링 */}
+        {/* 현재 슬라이드 렌더링 */}
         {renderSlide(currentEvent, true, currentIndex)}
+        
+        {/* 다음 슬라이드 프리로딩 (숨김 상태) - 미디어 전환 부하 감소 */}
+        {events.length > 1 && (() => {
+          const nextIndex = settings?.play_order === "random" 
+            ? shuffledPlaylist[(playlistIndexRef.current + 1) % shuffledPlaylist.length]
+            : (currentIndex + 1) % events.length;
+          const nextEvent = events[nextIndex];
+          
+          return nextEvent && renderSlide(nextEvent, false, nextIndex, true);
+        })()}
 
         <style>{`
           .portrait-container {
