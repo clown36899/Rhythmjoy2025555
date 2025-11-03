@@ -287,6 +287,22 @@ export const handler: Handler = async (event) => {
 
   } catch (error: any) {
     console.error('Kakao auth error:', error);
+    
+    try {
+      const { invitationToken } = JSON.parse(event.body || '{}');
+      await supabaseAdmin.from('invitation_logs').insert({
+        invitation_token: invitationToken || null,
+        email: null,
+        action: 'kakao_auth',
+        status: 'error',
+        error_message: error.message || '서버 오류가 발생했습니다',
+        user_agent: event.headers['user-agent'] || 'unknown',
+        ip_address: event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown'
+      });
+    } catch (e) {
+      console.error('Log error:', e);
+    }
+    
     return {
       statusCode: 500,
       body: JSON.stringify({ error: '서버 오류가 발생했습니다', details: error.message })
