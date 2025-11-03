@@ -417,7 +417,7 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 재생 순서 */}
-            <div className="p-4 bg-gray-700/50 rounded-lg">
+            <div className="hidden p-4 bg-gray-700/50 rounded-lg">
               <label className="text-white font-medium block mb-3">재생 순서</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
