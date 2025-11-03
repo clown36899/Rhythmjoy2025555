@@ -1447,7 +1447,7 @@ export default function EventList({
                                 src={finalThumbnailUrl}
                                 alt={event.title}
                                 loading="lazy"
-                                className="w-full aspect-[3/4] object-contain bg-gray-900"
+                                className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
                               />
                             );
                           } else {
