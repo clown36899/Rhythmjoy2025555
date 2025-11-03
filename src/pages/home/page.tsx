@@ -767,8 +767,8 @@ export default function HomePage() {
         {/* Scrollable Content Area - Events and Footer (독립 스크롤) */}
           <div className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20">
             {/* 이벤트 등록 안내 */}
-            <div className="p-0 bg-[#222] rounded-none">
-              <p className="text-gray-300 text-[13px] text-center">
+            <div className="p-0 bg-[#222] rounded-none no-select">
+              <p className="text-gray-300 text-[13px] text-center no-select">
                 <i className="ri-information-line mr-1"></i>
                 날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
               </p>
