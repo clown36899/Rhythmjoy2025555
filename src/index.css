@@ -71,6 +71,7 @@ body, html {
 
 /* 달력 날짜 칸 모바일 터치 타겟 크기 증가 */
 .calendar-day-cell {
+  height: 32px;
   min-height: 32px;
   padding: 4px 2px;
   border-right: 1px solid #484848;
@@ -80,6 +81,7 @@ body, html {
 /* 태블릿 이상에서는 원래 크기 유지 */
 @media (min-width: 650px) {
   .calendar-day-cell {
+    height: 20px;
     min-height: 20px;
     padding: 0;
     border-right: 1px solid #484848;
@@ -91,4 +93,10 @@ body, html {
 .calendar-day-header {
   border-right: 1px solid #484848;
   border-bottom: 1px solid #484848;
+}
+
+/* 달력 그리드 컨테이너 - 왼쪽과 위쪽 border */
+.calendar-grid-container {
+  border-left: 1px solid #484848;
+  border-top: 1px solid #484848;
 }

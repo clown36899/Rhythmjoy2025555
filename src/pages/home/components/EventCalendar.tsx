@@ -358,7 +358,7 @@ export default function EventCalendar({
         return (
           <div
             key={`${monthDate.getMonth()}-${index}`}
-            className="calendar-day-cell h-5 p-0"
+            className="calendar-day-cell"
           ></div>
         );
       }
@@ -690,15 +690,17 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-0 mb-0 px-1 h-4 pt-2 no-select border-l border-t" style={{ borderColor: '#484848' }}>
-              {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
-                <div
-                  key={day}
-                  className="calendar-day-header text-center text-gray-400 font-semibold py-0 text-[9px] flex items-center justify-center no-select"
-                >
-                  {day}
-                </div>
-              ))}
+            <div className="px-1 pt-2 no-select">
+              <div className="grid grid-cols-7 gap-0 mb-0 h-4 calendar-grid-container">
+                {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                  <div
+                    key={day}
+                    className="calendar-day-header text-center text-gray-400 font-semibold py-0 text-[9px] flex items-center justify-center no-select"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Calendar grid - 3개 달력 캐러셀 */}
@@ -717,26 +719,32 @@ export default function EventCalendar({
               >
                 {/* 이전 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0 border-l"
-                  style={{ width: "100%", borderColor: '#484848' }}
+                  className="px-1 pb-0 flex-shrink-0"
+                  style={{ width: "100%" }}
                 >
-                  {renderCalendarGrid(prevDays, prevMonth)}
+                  <div className="grid grid-cols-7 gap-0 calendar-grid-container">
+                    {renderCalendarGrid(prevDays, prevMonth)}
+                  </div>
                 </div>
 
                 {/* 현재 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0 border-l"
-                  style={{ width: "100%", borderColor: '#484848' }}
+                  className="px-1 pb-0 flex-shrink-0"
+                  style={{ width: "100%" }}
                 >
-                  {renderCalendarGrid(currentDays, currentMonth)}
+                  <div className="grid grid-cols-7 gap-0 calendar-grid-container">
+                    {renderCalendarGrid(currentDays, currentMonth)}
+                  </div>
                 </div>
 
                 {/* 다음 달 */}
                 <div
-                  className="grid grid-cols-7 gap-0 px-1 pb-0 flex-shrink-0 border-l"
-                  style={{ width: "100%", borderColor: '#484848' }}
+                  className="px-1 pb-0 flex-shrink-0"
+                  style={{ width: "100%" }}
                 >
-                  {renderCalendarGrid(nextDays, nextMonth)}
+                  <div className="grid grid-cols-7 gap-0 calendar-grid-container">
+                    {renderCalendarGrid(nextDays, nextMonth)}
+                  </div>
                 </div>
               </div>
             </div>
