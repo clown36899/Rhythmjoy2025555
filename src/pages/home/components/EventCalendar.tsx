@@ -690,8 +690,8 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* Days of week header */}
-            <div className="px-1 pt-2 no-select">
-              <div className="grid grid-cols-7 gap-0 mb-0 h-4 calendar-grid-container">
+            <div className="px-1 no-select">
+              <div className="grid grid-cols-7 gap-0 h-4 calendar-grid-container">
                 {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
                   <div
                     key={day}
