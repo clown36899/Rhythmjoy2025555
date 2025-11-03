@@ -106,6 +106,11 @@ export default function SwingBarsPage() {
       overlayData.push({ overlay: customOverlay, element: labelDiv, position, place });
 
       const handleClick = () => {
+        const currentLevel = map.getLevel();
+        if (currentLevel > 4) {
+          map.setLevel(4);
+        }
+        map.panTo(position);
         setSelectedPlace(place);
       };
 
