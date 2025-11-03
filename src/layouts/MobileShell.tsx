@@ -199,7 +199,7 @@ export function MobileShell() {
           {/* 소셜 버튼 */}
           <button
             onClick={() => navigate('/social')}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
+            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 relative ${
               isSocialPage
                 ? "text-green-500"
                 : "text-gray-300 hover:text-white"
@@ -207,6 +207,9 @@ export function MobileShell() {
           >
             <i className="ri-map-pin-line text-xl mb-0.5"></i>
             <span className="text-xs">소셜</span>
+            <span className="absolute top-0 right-1 text-[9px] text-orange-400 font-semibold no-select">
+              공사중
+            </span>
           </button>
 
           {/* 연습실 버튼 */}
