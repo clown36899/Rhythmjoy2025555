@@ -84,6 +84,16 @@ export default function BillboardPage() {
   }, []);
 
   useEffect(() => {
+    if (billboardUser?.name) {
+      document.title = `댄싱조이 - ${billboardUser.name} 빌보드`;
+    }
+    
+    return () => {
+      document.title = "광고판 - Event Discovery Platform";
+    };
+  }, [billboardUser]);
+
+  useEffect(() => {
     if (!userId) {
       setError("빌보드 사용자 ID가 없습니다.");
       setIsLoading(false);
