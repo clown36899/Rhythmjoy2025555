@@ -667,7 +667,7 @@ export default function BillboardUserManagementModal({
                 </div>
 
                 {/* 비밀번호 변경 섹션 */}
-                <div className="border-t border-gray-700 pt-4">
+                <div className="hidden border-t border-gray-700 pt-4">
                   <label className="block text-gray-300 text-sm font-medium mb-2">
                     🔑 비밀번호 변경
                   </label>
