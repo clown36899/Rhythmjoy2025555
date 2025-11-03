@@ -122,11 +122,10 @@ export default function EventCalendar({
       days.push(new Date(year, month, day));
     }
 
-    // Calculate needed weeks (5 or 6) based on actual days
-    const neededCells = Math.ceil(days.length / 7) * 7;
-    const remainingCells = neededCells - days.length;
+    // Always show 6 rows (42 cells)
+    const remainingCells = 42 - days.length;
     
-    // Add days from next month only as needed
+    // Add days from next month
     for (let i = 1; i <= remainingCells; i++) {
       days.push(new Date(year, month + 1, i));
     }
