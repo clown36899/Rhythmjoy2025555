@@ -482,32 +482,30 @@ export default function BillboardPage() {
     }, playDuration);
   };
 
-  // 슬라이드 변경 시 비디오 로딩 상태 처리 & 로딩 시작 시간 기록
+  // 슬라이드 변경 시 로딩 시작 시간 기록
   useEffect(() => {
     const currentEvent = events[currentIndex];
     console.log('[빌보드] 슬라이드 변경:', currentIndex, '/', events.length - 1, '→', currentEvent?.title || '없음');
+    loadStartTimeRef.current = Date.now();
+  }, [currentIndex, events]);
+  
+  // 프리로드된 비디오가 visible이 될 때 타이머 시작
+  useEffect(() => {
+    const currentEvent = events[currentIndex];
+    if (!currentEvent) return;
     
-    const hasVideo = currentEvent?.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
+    const hasVideo = currentEvent.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
     
-    // 비디오 슬라이드이고 이미 프리로드된 경우 → 즉시 타이머 시작
+    // 프리로드 완료된 비디오가 visible이 되면 즉시 타이머 시작
     if (hasVideo && videoPreloaded[currentEvent.id]) {
       console.log('[빌보드] 프리로드 완료된 비디오 → 즉시 재생', currentEvent.title);
       setVideoLoaded(prev => ({ ...prev, [currentEvent.id]: true }));
       
-      // 타이머 시작
       setTimeout(() => {
         startVideoTimerRef.current?.();
       }, 100);
-    } else {
-      // 프리로드 안 된 경우 → 현재 슬라이드만 로딩 상태 초기화
-      setVideoLoaded(prev => {
-        const updated = { ...prev };
-        delete updated[currentEvent.id];
-        return updated;
-      });
-      loadStartTimeRef.current = Date.now();
     }
-  }, [currentIndex, events]);
+  }, [currentIndex, videoPreloaded, events]);
 
   if (isLoading) {
     return (
