@@ -99,13 +99,13 @@ export function MobileShell() {
         {/* Month/Year Indicator - 홈 페이지에서만 표시 */}
         {isEventsPage && (
           <div 
-            className="border-t border-[#22262a] flex items-center justify-between px-3"
+            className="border-t border-[#22262a] flex items-center justify-between px-3 no-select"
             style={{ 
               backgroundColor: "var(--header-bg-color)",
               height: '20px'
             }}
           >
-            <span className="text-gray-400 font-medium" style={{ fontSize: '12px', lineHeight: '1.2' }}>
+            <span className="text-gray-400 font-medium no-select" style={{ fontSize: '12px', lineHeight: '1.2' }}>
               {viewMode === "year" ? (
                 <>
                   {currentMonth.getFullYear()}년{' '}
@@ -133,13 +133,13 @@ export function MobileShell() {
         {/* 관리자 상태 표시 - 모든 페이지 공통 */}
         {!isEventsPage && (
           <div 
-            className="border-t border-[#22262a] flex items-center justify-between px-3"
+            className="border-t border-[#22262a] flex items-center justify-between px-3 no-select"
             style={{ 
               backgroundColor: "var(--header-bg-color)",
               height: '20px'
             }}
           >
-            <span className="text-gray-400 font-medium" style={{ fontSize: '12px', lineHeight: '1.2' }}>
+            <span className="text-gray-400 font-medium no-select" style={{ fontSize: '12px', lineHeight: '1.2' }}>
               {isSocialPage && '소셜 장소'}
               {isPracticePage && '연습실'}
               {isGuidePage && '안내'}
