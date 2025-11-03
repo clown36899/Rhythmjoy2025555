@@ -740,6 +740,7 @@ export default function EventCalendar({
               >
                 {/* 이전 달 */}
                 <div
+                  key={`${prevMonth.getFullYear()}-${prevMonth.getMonth()}`}
                   className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
@@ -750,6 +751,7 @@ export default function EventCalendar({
 
                 {/* 현재 달 */}
                 <div
+                  key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
                   className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
@@ -760,6 +762,7 @@ export default function EventCalendar({
 
                 {/* 다음 달 */}
                 <div
+                  key={`${nextMonth.getFullYear()}-${nextMonth.getMonth()}`}
                   className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
