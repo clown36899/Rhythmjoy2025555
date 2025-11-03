@@ -90,8 +90,11 @@ export default function SwingBarsPage() {
         font-weight: bold;
         white-space: nowrap;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
       `;
-      labelDiv.textContent = place.name;
+      labelDiv.innerHTML = `${place.name} <i class="ri-arrow-right-s-line" style="font-size: 12px;"></i>`;
 
       const customOverlay = new kakao.maps.CustomOverlay({
         position,
@@ -187,7 +190,7 @@ export default function SwingBarsPage() {
           )}
 
           {selectedPlace && (
-            <div className="absolute bottom-4 left-4 right-4 z-10 bg-gray-900 rounded-lg p-4 shadow-lg">
+            <div className="absolute bottom-4 left-4 right-4 z-50 bg-gray-900 rounded-lg p-4 shadow-lg">
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="text-white font-bold text-lg">{selectedPlace.name}</h3>
