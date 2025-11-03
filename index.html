@@ -80,7 +80,7 @@
       if (window.location.pathname.startsWith('/social')) {
         const script = document.createElement('script');
         script.type = 'text/javascript';
-        script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=4f36c4e35ab80c9bff7850e63341daa6&autoload=false';
+        script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=4f36c4e35ab80c9bff7850e63341daa6&libraries=clusterer&autoload=false';
         script.async = false; // 동기 로드로 지도 초기화 보장
         document.head.appendChild(script);
       }

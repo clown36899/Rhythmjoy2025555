@@ -12,6 +12,7 @@ export default function SwingBarsPage() {
   const [showPlaceModal, setShowPlaceModal] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<SocialPlace | null>(null);
   const [map, setMap] = useState<any>(null);
+  const [clusterer, setClusterer] = useState<any>(null);
 
   useEffect(() => {
     loadPlaces();
@@ -55,6 +56,13 @@ export default function SwingBarsPage() {
         const newMap = new window.kakao.maps.Map(container, options);
         setMap(newMap);
         setLoading(false);
+
+        const newClusterer = new window.kakao.maps.MarkerClusterer({
+          map: newMap,
+          averageCenter: true,
+          minLevel: 7,
+        });
+        setClusterer(newClusterer);
       } catch (error) {
         console.error('카카오맵 초기화 실패:', error);
         setLoading(false);
@@ -63,117 +71,41 @@ export default function SwingBarsPage() {
   };
 
   useEffect(() => {
-    if (!map || !window.kakao || places.length === 0) return;
+    if (!map || !clusterer || !window.kakao || places.length === 0) return;
 
     const kakao = window.kakao;
+    const markers: any[] = [];
     const bounds = new kakao.maps.LatLngBounds();
-    const overlayData: Array<{ overlay: any; element: HTMLElement; position: any; place: any }> = [];
+
+    clusterer.clear();
 
     places.forEach((place) => {
       const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+      bounds.extend(position);
       
       const marker = new kakao.maps.Marker({
         position,
-        map,
       });
 
-      bounds.extend(position);
-
-      const labelDiv = document.createElement('div');
-      labelDiv.style.cssText = `
-        position: relative;
-        background: rgba(34, 34, 34, 0.9);
-        color: white;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 10px;
-        font-weight: bold;
-        white-space: nowrap;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        transition: bottom 0.2s ease;
-      `;
-      labelDiv.innerHTML = `${place.name} <i class="ri-arrow-right-s-line" style="font-size: 12px;"></i>`;
-
-      const customOverlay = new kakao.maps.CustomOverlay({
-        position,
-        content: labelDiv,
-        yAnchor: 1.3,
-      });
-      customOverlay.setMap(map);
-
-      overlayData.push({ overlay: customOverlay, element: labelDiv, position, place });
-
-      const handleClick = () => {
+      kakao.maps.event.addListener(marker, 'click', () => {
         setSelectedPlace(place);
-      };
+      });
 
-      kakao.maps.event.addListener(marker, 'click', handleClick);
-      labelDiv.onclick = handleClick;
+      markers.push(marker);
     });
 
-    const adjustOverlaps = () => {
-      const projection = map.getProjection();
-      const labelPositions: Array<{ x: number; y: number; width: number; height: number; index: number }> = [];
+    clusterer.addMarkers(markers);
+    map.setBounds(bounds);
 
-      overlayData.forEach((data, index) => {
-        const point = projection.pointFromCoords(data.position);
-        const rect = data.element.getBoundingClientRect();
-        labelPositions.push({
-          x: point.x,
-          y: point.y,
-          width: rect.width,
-          height: rect.height,
-          index,
-        });
-      });
-
-      const verticalOffsets = new Array(overlayData.length).fill(0);
-
-      for (let i = 0; i < labelPositions.length; i++) {
-        for (let j = i + 1; j < labelPositions.length; j++) {
-          const pos1 = labelPositions[i];
-          const pos2 = labelPositions[j];
-
-          const dx = Math.abs(pos1.x - pos2.x);
-          const dy = Math.abs(pos1.y - pos2.y + verticalOffsets[i] * 25 - verticalOffsets[j] * 25);
-
-          if (dx < (pos1.width + pos2.width) / 2 + 10 && dy < 25) {
-            verticalOffsets[j] = verticalOffsets[i] + 1;
-          }
-        }
-      }
-
-      overlayData.forEach((data, index) => {
-        const offset = verticalOffsets[index];
-        data.element.style.bottom = `${35 + offset * 25}px`;
-      });
-    };
-
-    const debouncedAdjust = (() => {
-      let timeout: any;
-      return () => {
-        clearTimeout(timeout);
-        timeout = setTimeout(adjustOverlaps, 100);
-      };
-    })();
-
-    kakao.maps.event.addListener(map, 'zoom_changed', debouncedAdjust);
-    kakao.maps.event.addListener(map, 'center_changed', debouncedAdjust);
-
-    setTimeout(adjustOverlaps, 300);
-
-    if (places.length > 0) {
-      map.setBounds(bounds);
-    }
+    kakao.maps.event.addListener(clusterer, 'clusterclick', function(cluster: any) {
+      const level = map.getLevel() - 1;
+      map.setLevel(level, { anchor: cluster.getCenter() });
+    });
 
     return () => {
-      kakao.maps.event.removeListener(map, 'zoom_changed', debouncedAdjust);
-      kakao.maps.event.removeListener(map, 'center_changed', debouncedAdjust);
+      clusterer.clear();
     };
-  }, [map, places]);
+  }, [map, places, clusterer]);
 
   const handleClosePlaceInfo = () => {
     setSelectedPlace(null);
