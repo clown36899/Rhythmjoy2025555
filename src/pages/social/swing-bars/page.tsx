@@ -67,7 +67,7 @@ export default function SwingBarsPage() {
 
     const kakao = window.kakao;
     const bounds = new kakao.maps.LatLngBounds();
-    const overlayData: Array<{ overlay: any; element: HTMLElement; position: any; place: any }> = [];
+    const overlayData: Array<{ overlay: any; element: HTMLElement; position: any; place: any; marker: any }> = [];
 
     places.forEach((place) => {
       const position = new kakao.maps.LatLng(place.latitude, place.longitude);
@@ -103,7 +103,7 @@ export default function SwingBarsPage() {
       });
       customOverlay.setMap(map);
 
-      overlayData.push({ overlay: customOverlay, element: labelDiv, position, place });
+      overlayData.push({ overlay: customOverlay, element: labelDiv, position, place, marker });
 
       const handleClick = () => {
         const currentLevel = map.getLevel();
@@ -167,15 +167,27 @@ export default function SwingBarsPage() {
 
       groups.forEach(group => {
         if (group.length === 1) {
+          const data = labelData[group[0]].data;
           const element = labelData[group[0]].element;
           element.style.position = 'relative';
           element.style.top = '0px';
           element.style.zIndex = '1000';
           element.style.display = 'flex';
           element.style.flexDirection = 'row';
+          data.marker.setMap(map);
+          element.innerHTML = `${data.place.name} <i class="ri-arrow-right-s-line" style="font-size: 12px;"></i>`;
+          element.onclick = () => {
+            const currentLevel = map.getLevel();
+            if (currentLevel > 4) {
+              map.setLevel(4);
+            }
+            map.panTo(data.position);
+            setSelectedPlace(data.place);
+          };
         } else {
           const firstIndex = group[0];
           const firstElement = labelData[firstIndex].element;
+          const firstData = labelData[firstIndex].data;
           
           firstElement.style.position = 'relative';
           firstElement.style.top = '0px';
@@ -185,6 +197,8 @@ export default function SwingBarsPage() {
           firstElement.style.gap = '2px';
           firstElement.style.padding = '6px 10px';
           firstElement.innerHTML = '';
+          
+          firstData.marker.setMap(map);
           
           group.forEach(index => {
             const placeData = labelData[index].data;
@@ -198,7 +212,14 @@ export default function SwingBarsPage() {
               transition: opacity 0.2s;
             `;
             itemDiv.innerHTML = `${placeData.place.name} <i class="ri-arrow-right-s-line" style="font-size: 12px;"></i>`;
-            itemDiv.onclick = () => setSelectedPlace(placeData.place);
+            itemDiv.onclick = () => {
+              const currentLevel = map.getLevel();
+              if (currentLevel > 4) {
+                map.setLevel(4);
+              }
+              map.panTo(placeData.position);
+              setSelectedPlace(placeData.place);
+            };
             itemDiv.onmouseenter = () => itemDiv.style.opacity = '0.7';
             itemDiv.onmouseleave = () => itemDiv.style.opacity = '1';
             firstElement.appendChild(itemDiv);
@@ -206,7 +227,9 @@ export default function SwingBarsPage() {
 
           group.slice(1).forEach(index => {
             const element = labelData[index].element;
+            const data = labelData[index].data;
             element.style.display = 'none';
+            data.marker.setMap(null);
           });
         }
       });
