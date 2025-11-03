@@ -125,6 +125,7 @@ export default function SwingBarsPage() {
           width: rect.width,
           height: rect.height,
           element: data.element,
+          data: data,
         };
       });
 
@@ -153,12 +154,49 @@ export default function SwingBarsPage() {
       });
 
       groups.forEach(group => {
-        group.forEach((index, offset) => {
-          const element = labelData[index].element;
+        if (group.length === 1) {
+          const element = labelData[group[0]].element;
           element.style.position = 'relative';
-          element.style.top = `${-offset * 28}px`;
-          element.style.zIndex = `${1000 + offset}`;
-        });
+          element.style.top = '0px';
+          element.style.zIndex = '1000';
+          element.style.display = 'flex';
+          element.style.flexDirection = 'row';
+        } else {
+          const firstIndex = group[0];
+          const firstElement = labelData[firstIndex].element;
+          
+          firstElement.style.position = 'relative';
+          firstElement.style.top = '0px';
+          firstElement.style.zIndex = '1001';
+          firstElement.style.display = 'flex';
+          firstElement.style.flexDirection = 'column';
+          firstElement.style.gap = '2px';
+          firstElement.style.padding = '6px 10px';
+          firstElement.innerHTML = '';
+          
+          group.forEach(index => {
+            const placeData = labelData[index].data;
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = `
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              cursor: pointer;
+              padding: 2px 0;
+              transition: opacity 0.2s;
+            `;
+            itemDiv.innerHTML = `${placeData.place.name} <i class="ri-arrow-right-s-line" style="font-size: 12px;"></i>`;
+            itemDiv.onclick = () => setSelectedPlace(placeData.place);
+            itemDiv.onmouseenter = () => itemDiv.style.opacity = '0.7';
+            itemDiv.onmouseleave = () => itemDiv.style.opacity = '1';
+            firstElement.appendChild(itemDiv);
+          });
+
+          group.slice(1).forEach(index => {
+            const element = labelData[index].element;
+            element.style.display = 'none';
+          });
+        }
       });
     };
 
