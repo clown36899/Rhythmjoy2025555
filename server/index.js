@@ -44,27 +44,26 @@ app.get('/api/billboard-manifest', async (req, res) => {
       return res.status(404).json({ error: '빌보드 사용자를 찾을 수 없습니다' });
     }
 
-    // 동적 manifest 생성
-    const baseUrl = req.headers.origin || `http://localhost:${PORT}`;
+    // 동적 manifest 생성 (상대 경로 사용)
     const manifest = {
       name: `${user.name} 빌보드`,
       short_name: user.name,
       description: `${user.name} 이벤트 빌보드 디스플레이`,
-      start_url: `${baseUrl}/billboard/${userId}`,
+      start_url: `/billboard/${userId}`,
       display: 'fullscreen',
       background_color: '#000000',
       theme_color: '#000000',
       orientation: 'portrait',
-      scope: `${baseUrl}/`,
+      scope: '/',
       icons: [
         {
-          src: `${baseUrl}/icon-192.png`,
+          src: '/icon-192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: `${baseUrl}/icon-512.png`,
+          src: '/icon-512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any maskable'

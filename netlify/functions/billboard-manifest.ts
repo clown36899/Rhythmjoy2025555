@@ -50,27 +50,26 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 동적 manifest 생성
-    const baseUrl = event.headers.origin || event.headers.host || 'https://댄싱조이.com';
+    // 동적 manifest 생성 (상대 경로 사용)
     const manifest = {
       name: `${user.name} 빌보드`,
       short_name: user.name,
       description: `${user.name} 이벤트 빌보드 디스플레이`,
-      start_url: `${baseUrl}/billboard/${userId}`,
+      start_url: `/billboard/${userId}`,
       display: 'fullscreen',
       background_color: '#000000',
       theme_color: '#000000',
       orientation: 'portrait',
-      scope: `${baseUrl}/`,
+      scope: '/',
       icons: [
         {
-          src: `${baseUrl}/icon-192.png`,
+          src: '/icon-192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any'
         },
         {
-          src: `${baseUrl}/icon-512.png`,
+          src: '/icon-512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any maskable'
