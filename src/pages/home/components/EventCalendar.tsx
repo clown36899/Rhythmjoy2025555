@@ -109,9 +109,12 @@ export default function EventCalendar({
 
     const days = [];
 
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
+    // Add days from previous month
+    if (startingDayOfWeek > 0) {
+      const prevMonthLastDay = new Date(year, month, 0).getDate();
+      for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+        days.push(new Date(year, month - 1, prevMonthLastDay - i));
+      }
     }
 
     // Add days of the month
@@ -119,11 +122,11 @@ export default function EventCalendar({
       days.push(new Date(year, month, day));
     }
 
-    // Add empty cells for days after the last day of the month to fill 6 rows (42 cells)
+    // Add days from next month to fill 6 rows (42 cells)
     const totalCells = 42; // 6 rows x 7 days
     const remainingCells = totalCells - days.length;
-    for (let i = 0; i < remainingCells; i++) {
-      days.push(null);
+    for (let i = 1; i <= remainingCells; i++) {
+      days.push(new Date(year, month + 1, i));
     }
 
     return days;
@@ -359,17 +362,8 @@ export default function EventCalendar({
   ];
 
   // 달력 렌더링 함수
-  const renderCalendarGrid = (days: (Date | null)[], monthDate: Date) => {
+  const renderCalendarGrid = (days: Date[], monthDate: Date) => {
     return days.map((day, index) => {
-      if (!day) {
-        return (
-          <div
-            key={`${monthDate.getMonth()}-${index}`}
-            className="calendar-day-cell"
-            style={{ backgroundColor: '#252525' }}
-          ></div>
-        );
-      }
 
       const dayEvents = getEventsForDate(day);
       const todayFlag = isToday(day);
@@ -511,11 +505,14 @@ export default function EventCalendar({
             }`}
           >
             {/* 날짜 숫자 - 중앙 정렬 유지 */}
-            <span className={`font-bold relative z-30 no-select ${
-              todayFlag 
-                ? "w-6 h-6 flex items-center justify-center rounded-full bg-blue-500 text-white" 
-                : ""
-            }`}>
+            <span 
+              className={`font-bold relative z-30 no-select ${
+                todayFlag 
+                  ? "w-6 h-6 flex items-center justify-center rounded-full bg-blue-500 text-white" 
+                  : ""
+              }`}
+              style={isOtherMonth ? { opacity: 0.3 } : undefined}
+            >
               {day.getDate()}
             </span>
 
