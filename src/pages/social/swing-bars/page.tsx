@@ -37,48 +37,29 @@ export default function SwingBarsPage() {
 
   const initMap = () => {
     const container = document.getElementById('swing-bars-map');
-    if (!container) return;
+    if (!container || !window.kakao || !window.kakao.maps) {
+      console.error('카카오맵 SDK가 로드되지 않았습니다.');
+      setLoading(false);
+      return;
+    }
 
-    let attempts = 0;
-    const maxAttempts = 20;
-
-    const checkKakao = () => {
-      if (!window.kakao || !window.kakao.maps) {
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(checkKakao, 200);
-        } else {
-          console.error('카카오맵 SDK가 로드되지 않았습니다.');
-          setLoading(false);
-        }
-        return;
-      }
-
-      // kakao.maps.load()를 사용하여 SDK가 완전히 로드된 후 실행
+    // SDK가 로드되었다면, load()를 사용하여 내부 클래스 등록을 보장
+    window.kakao.maps.load(() => {
       try {
-        window.kakao.maps.load(() => {
-          try {
-            const center = new window.kakao.maps.LatLng(37.5665, 126.978);
-            const options = {
-              center,
-              level: 8,
-            };
+        const center = new window.kakao.maps.LatLng(37.5665, 126.978);
+        const options = {
+          center,
+          level: 8,
+        };
 
-            const newMap = new window.kakao.maps.Map(container, options);
-            setMap(newMap);
-            setLoading(false);
-          } catch (error) {
-            console.error('카카오맵 초기화 실패:', error);
-            setLoading(false);
-          }
-        });
+        const newMap = new window.kakao.maps.Map(container, options);
+        setMap(newMap);
+        setLoading(false);
       } catch (error) {
-        console.error('kakao.maps.load 실패:', error);
+        console.error('카카오맵 초기화 실패:', error);
         setLoading(false);
       }
-    };
-
-    checkKakao();
+    });
   };
 
   useEffect(() => {
