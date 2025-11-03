@@ -36,7 +36,8 @@ export default function SwingBarsPage() {
   };
 
   const initMap = () => {
-    if (!document.getElementById('swing-bars-map')) return;
+    const container = document.getElementById('swing-bars-map');
+    if (!container) return;
 
     let attempts = 0;
     const maxAttempts = 20;
@@ -53,22 +54,26 @@ export default function SwingBarsPage() {
         return;
       }
 
-      const kakao = window.kakao;
+      // kakao.maps.load()를 사용하여 SDK가 완전히 로드된 후 실행
       try {
-        const container = document.getElementById('swing-bars-map');
-        if (!container) return;
+        window.kakao.maps.load(() => {
+          try {
+            const center = new window.kakao.maps.LatLng(37.5665, 126.978);
+            const options = {
+              center,
+              level: 8,
+            };
 
-        const center = new kakao.maps.LatLng(37.5665, 126.978);
-        const options = {
-          center,
-          level: 8,
-        };
-
-        const newMap = new kakao.maps.Map(container, options);
-        setMap(newMap);
-        setLoading(false);
+            const newMap = new window.kakao.maps.Map(container, options);
+            setMap(newMap);
+            setLoading(false);
+          } catch (error) {
+            console.error('카카오맵 초기화 실패:', error);
+            setLoading(false);
+          }
+        });
       } catch (error) {
-        console.error('카카오맵 초기화 실패:', error);
+        console.error('kakao.maps.load 실패:', error);
         setLoading(false);
       }
     };
