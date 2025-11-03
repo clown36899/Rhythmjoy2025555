@@ -67,6 +67,7 @@ export default function ClubsPage() {
 
     const kakao = window.kakao;
     const bounds = new kakao.maps.LatLngBounds();
+    const overlays: any[] = [];
 
     places.forEach((place) => {
       const position = new kakao.maps.LatLng(place.latitude, place.longitude);
@@ -101,7 +102,8 @@ export default function ClubsPage() {
         content: labelDiv,
         yAnchor: 0,
       });
-      customOverlay.setMap(map);
+
+      overlays.push(customOverlay);
 
       const handleClick = () => {
         setSelectedPlace(place);
@@ -111,9 +113,27 @@ export default function ClubsPage() {
       labelDiv.onclick = handleClick;
     });
 
+    const updateOverlays = () => {
+      const level = map.getLevel();
+      overlays.forEach((overlay) => {
+        if (level <= 5) {
+          overlay.setMap(map);
+        } else {
+          overlay.setMap(null);
+        }
+      });
+    };
+
+    updateOverlays();
+    kakao.maps.event.addListener(map, 'zoom_changed', updateOverlays);
+
     if (places.length > 0) {
       map.setBounds(bounds);
     }
+
+    return () => {
+      kakao.maps.event.removeListener(map, 'zoom_changed', updateOverlays);
+    };
   }, [map, places]);
 
   const handleClosePlaceInfo = () => {
