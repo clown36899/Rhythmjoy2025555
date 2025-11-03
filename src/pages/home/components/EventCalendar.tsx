@@ -359,6 +359,7 @@ export default function EventCalendar({
           <div
             key={`${monthDate.getMonth()}-${index}`}
             className="calendar-day-cell"
+            style={{ backgroundColor: '#252525' }}
           ></div>
         );
       }
