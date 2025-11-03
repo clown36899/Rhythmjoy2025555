@@ -67,7 +67,7 @@ export default function ClubsPage() {
 
     const kakao = window.kakao;
     const bounds = new kakao.maps.LatLngBounds();
-    const overlays: any[] = [];
+    const overlayData: Array<{ overlay: any; element: HTMLElement; position: any; place: any }> = [];
 
     places.forEach((place) => {
       const position = new kakao.maps.LatLng(place.latitude, place.longitude);
@@ -82,7 +82,6 @@ export default function ClubsPage() {
       const labelDiv = document.createElement('div');
       labelDiv.style.cssText = `
         position: relative;
-        bottom: 35px;
         background: rgba(34, 34, 34, 0.9);
         color: white;
         padding: 3px 8px;
@@ -94,16 +93,18 @@ export default function ClubsPage() {
         display: flex;
         align-items: center;
         gap: 4px;
+        transition: bottom 0.2s ease;
       `;
       labelDiv.innerHTML = `${place.name} <i class="ri-arrow-right-s-line" style="font-size: 12px;"></i>`;
 
       const customOverlay = new kakao.maps.CustomOverlay({
         position,
         content: labelDiv,
-        yAnchor: 0,
+        yAnchor: 1.3,
       });
+      customOverlay.setMap(map);
 
-      overlays.push(customOverlay);
+      overlayData.push({ overlay: customOverlay, element: labelDiv, position, place });
 
       const handleClick = () => {
         setSelectedPlace(place);
@@ -113,26 +114,64 @@ export default function ClubsPage() {
       labelDiv.onclick = handleClick;
     });
 
-    const updateOverlays = () => {
-      const level = map.getLevel();
-      overlays.forEach((overlay) => {
-        if (level <= 5) {
-          overlay.setMap(map);
-        } else {
-          overlay.setMap(null);
+    const adjustOverlaps = () => {
+      const projection = map.getProjection();
+      const labelPositions: Array<{ x: number; y: number; width: number; height: number; index: number }> = [];
+
+      overlayData.forEach((data, index) => {
+        const point = projection.pointFromCoords(data.position);
+        const rect = data.element.getBoundingClientRect();
+        labelPositions.push({
+          x: point.x,
+          y: point.y,
+          width: rect.width,
+          height: rect.height,
+          index,
+        });
+      });
+
+      const verticalOffsets = new Array(overlayData.length).fill(0);
+
+      for (let i = 0; i < labelPositions.length; i++) {
+        for (let j = i + 1; j < labelPositions.length; j++) {
+          const pos1 = labelPositions[i];
+          const pos2 = labelPositions[j];
+
+          const dx = Math.abs(pos1.x - pos2.x);
+          const dy = Math.abs(pos1.y - pos2.y + verticalOffsets[i] * 25 - verticalOffsets[j] * 25);
+
+          if (dx < (pos1.width + pos2.width) / 2 + 10 && dy < 25) {
+            verticalOffsets[j] = verticalOffsets[i] + 1;
+          }
         }
+      }
+
+      overlayData.forEach((data, index) => {
+        const offset = verticalOffsets[index];
+        data.element.style.bottom = `${35 + offset * 25}px`;
       });
     };
 
-    updateOverlays();
-    kakao.maps.event.addListener(map, 'zoom_changed', updateOverlays);
+    const debouncedAdjust = (() => {
+      let timeout: any;
+      return () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(adjustOverlaps, 100);
+      };
+    })();
+
+    kakao.maps.event.addListener(map, 'zoom_changed', debouncedAdjust);
+    kakao.maps.event.addListener(map, 'center_changed', debouncedAdjust);
+
+    setTimeout(adjustOverlaps, 300);
 
     if (places.length > 0) {
       map.setBounds(bounds);
     }
 
     return () => {
-      kakao.maps.event.removeListener(map, 'zoom_changed', updateOverlays);
+      kakao.maps.event.removeListener(map, 'zoom_changed', debouncedAdjust);
+      kakao.maps.event.removeListener(map, 'center_changed', debouncedAdjust);
     };
   }, [map, places]);
 
