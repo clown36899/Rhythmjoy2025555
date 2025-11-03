@@ -23,15 +23,30 @@
       (function() {
         const currentPath = window.location.pathname;
         const baseUrl = window.location.origin;
+        
+        // 빌보드 페이지면 서버에서 동적 manifest 가져오기
+        if (currentPath.includes('/billboard/')) {
+          const userId = currentPath.split('/billboard/')[1];
+          if (userId) {
+            // 프로덕션: Netlify Functions, 개발: Auth Server
+            const manifestUrl = window.location.hostname === 'localhost'
+              ? 'http://localhost:3001/api/billboard-manifest?userId=' + userId
+              : baseUrl + '/.netlify/functions/billboard-manifest?userId=' + userId;
+            document.getElementById('manifest-placeholder').setAttribute('href', manifestUrl);
+            return;
+          }
+        }
+        
+        // 기본 manifest (빌보드가 아닌 경우)
         const manifestData = {
-          name: currentPath.includes('/billboard/') ? '광고판 빌보드' : '광고판',
-          short_name: currentPath.includes('/billboard/') ? '빌보드' : '광고판',
+          name: '광고판',
+          short_name: '광고판',
           description: '이벤트 빌보드 디스플레이',
           start_url: baseUrl + currentPath,
           display: 'fullscreen',
           background_color: '#000000',
           theme_color: '#000000',
-          orientation: currentPath.includes('/billboard/') ? 'portrait' : 'any',
+          orientation: 'any',
           scope: baseUrl + '/',
           icons: [
             {
@@ -97,31 +112,22 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- PWA Service Worker 등록 - 캐시 문제로 일시 비활성화 -->
+    <!-- PWA Service Worker 등록 -->
     <script>
-      // Service Worker 제거 (기존 캐시 삭제)
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-            console.log('Service Worker 제거됨');
-          }
-        });
-        
-        // 캐시 전체 삭제
-        if ('caches' in window) {
-          caches.keys().then(function(cacheNames) {
-            return Promise.all(
-              cacheNames.map(function(cacheName) {
-                console.log('캐시 삭제:', cacheName);
-                return caches.delete(cacheName);
+        // 빌보드 페이지에서만 서비스 워커 등록
+        if (window.location.pathname.includes('/billboard/')) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/service-worker.js')
+              .then(function(registration) {
+                console.log('Service Worker 등록 성공:', registration.scope);
               })
-            );
+              .catch(function(error) {
+                console.log('Service Worker 등록 실패:', error);
+              });
           });
         }
       }
-      
-      // ✅ Supabase Realtime으로만 배포 감지 (효율적)
     </script>
   </body>
 </html>

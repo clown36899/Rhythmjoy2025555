@@ -24,6 +24,61 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   }
 });
 
+// 빌보드 동적 manifest 생성
+app.get('/api/billboard-manifest', async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId가 필요합니다' });
+    }
+
+    // 빌보드 사용자 정보 조회
+    const { data: user, error } = await supabaseAdmin
+      .from('billboard_users')
+      .select('name')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({ error: '빌보드 사용자를 찾을 수 없습니다' });
+    }
+
+    // 동적 manifest 생성
+    const baseUrl = req.headers.origin || `http://localhost:${PORT}`;
+    const manifest = {
+      name: `${user.name} 빌보드`,
+      short_name: user.name,
+      description: `${user.name} 이벤트 빌보드 디스플레이`,
+      start_url: `${baseUrl}/billboard/${userId}`,
+      display: 'fullscreen',
+      background_color: '#000000',
+      theme_color: '#000000',
+      orientation: 'portrait',
+      scope: `${baseUrl}/`,
+      icons: [
+        {
+          src: `${baseUrl}/icon-192.png`,
+          sizes: '192x192',
+          type: 'image/png',
+          purpose: 'any'
+        },
+        {
+          src: `${baseUrl}/icon-512.png`,
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any maskable'
+        }
+      ]
+    };
+
+    res.json(manifest);
+  } catch (error) {
+    console.error('Manifest 생성 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
 // 초대 코드 생성 (슈퍼 관리자만)
 app.post('/api/invitations', async (req, res) => {
   try {
