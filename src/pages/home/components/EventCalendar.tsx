@@ -462,12 +462,23 @@ export default function EventCalendar({
 
       // 현재 달이 아닌 날짜인지 확인
       const isOtherMonth = day.getMonth() !== monthDate.getMonth();
+      const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
+
+      // 배경색 결정
+      let bgColor = undefined;
+      if (isOtherMonth) {
+        bgColor = '#252525';
+      } else if (isSelected) {
+        bgColor = '#2563eb'; // blue-600
+      }
 
       return (
         <div
           key={`${monthDate.getMonth()}-${index}`}
-          className="calendar-day-cell relative no-select"
-          style={isOtherMonth ? { backgroundColor: '#252525' } : undefined}
+          className={`calendar-day-cell relative no-select transition-all duration-300 ${
+            !isOtherMonth && !isSelected ? 'hover:bg-gray-700' : ''
+          }`}
+          style={{ backgroundColor: bgColor }}
         >
           <div
             onPointerDown={(e) => {
@@ -495,10 +506,8 @@ export default function EventCalendar({
 
               window.addEventListener("pointerup", handlePointerUp);
             }}
-            className={`w-full h-full flex flex-col items-center justify-center text-[13px] transition-all duration-300 cursor-pointer relative overflow-visible no-select ${
-              selectedDate && day.toDateString() === selectedDate.toDateString()
-                ? "bg-blue-600 text-white z-10"
-                : "text-gray-300 hover:bg-gray-700"
+            className={`w-full h-full flex flex-col items-center justify-center text-[13px] cursor-pointer relative overflow-visible no-select ${
+              isSelected ? "text-white z-10" : "text-gray-300"
             }`}
           >
             {/* 날짜 숫자 - 중앙 정렬 유지 */}
