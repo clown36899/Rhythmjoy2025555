@@ -7,7 +7,10 @@ import { hashPassword } from './utils/passwordHash.js';
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 
 const supabaseUrl = process.env.VITE_PUBLIC_SUPABASE_URL;
@@ -421,6 +424,6 @@ app.post('/api/auth/kakao', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Auth server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Auth server running on http://0.0.0.0:${PORT}`);
 });

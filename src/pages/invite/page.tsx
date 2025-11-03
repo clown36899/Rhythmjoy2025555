@@ -15,12 +15,23 @@ export default function InvitePage() {
   const [showError, setShowError] = useState(false);
   const [displayName, setDisplayName] = useState('');
 
+  const getApiUrl = () => {
+    if (import.meta.env.DEV) {
+      const currentHost = window.location.hostname;
+      const port = currentHost.includes('repl.co') || currentHost.includes('replit.dev') 
+        ? '' 
+        : ':3001';
+      return `${window.location.protocol}//${currentHost}${port}`;
+    }
+    return '';
+  };
+
   const apiEndpoint = import.meta.env.DEV 
-    ? '/api/invitations/validate' 
+    ? `${getApiUrl()}/api/invitations/validate`
     : '/.netlify/functions/invitations-validate';
 
   const authEndpoint = import.meta.env.DEV 
-    ? '/api/auth/kakao'
+    ? `${getApiUrl()}/api/auth/kakao`
     : '/.netlify/functions/kakao-auth';
 
   useEffect(() => {
@@ -53,6 +64,7 @@ export default function InvitePage() {
         setError(errorData.error || '유효하지 않은 초대입니다');
       }
     } catch (err) {
+      console.error('[초대 검증 오류]', err);
       setError('초대 확인 중 오류가 발생했습니다');
     } finally {
       setLoading(false);
