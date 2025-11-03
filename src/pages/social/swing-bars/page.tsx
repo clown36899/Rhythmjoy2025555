@@ -155,7 +155,7 @@ export default function SwingBarsPage() {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+    <div className="h-screen overflow-hidden" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       <div
         className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3"
         style={{
@@ -169,8 +169,8 @@ export default function SwingBarsPage() {
 
       <SocialSubMenu />
 
-      <div className="pt-28">
-        <div className="relative w-full" style={{ height: 'calc(100vh - 160px)' }}>
+      <div className="pt-28 h-full">
+        <div className="relative w-full h-full" style={{ maxHeight: 'calc(100vh - 192px)' }}>
           <div id="swing-bars-map" className="w-full h-full" />
           
           {loading && (
