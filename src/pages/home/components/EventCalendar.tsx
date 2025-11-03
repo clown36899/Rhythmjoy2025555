@@ -690,7 +690,7 @@ export default function EventCalendar({
           // 월간 보기
           <>
             {/* Days of week header */}
-            <div className="px-1 no-select">
+            <div className="no-select">
               <div className="grid grid-cols-7 gap-0 h-4 calendar-grid-container">
                 {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
                   <div
@@ -719,7 +719,7 @@ export default function EventCalendar({
               >
                 {/* 이전 달 */}
                 <div
-                  className="px-1 pb-0 flex-shrink-0"
+                  className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
                   <div className="grid grid-cols-7 gap-0 calendar-grid-container">
@@ -729,7 +729,7 @@ export default function EventCalendar({
 
                 {/* 현재 달 */}
                 <div
-                  className="px-1 pb-0 flex-shrink-0"
+                  className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
                   <div className="grid grid-cols-7 gap-0 calendar-grid-container">
@@ -739,7 +739,7 @@ export default function EventCalendar({
 
                 {/* 다음 달 */}
                 <div
-                  className="px-1 pb-0 flex-shrink-0"
+                  className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
                   <div className="grid grid-cols-7 gap-0 calendar-grid-container">
