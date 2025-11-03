@@ -19,7 +19,8 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
       const isShorts = isYouTubeShorts(trimmedUrl);
       return {
         provider: 'youtube',
-        embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`,
+        // Android TV 호환성: vq=hd720으로 VP9 대신 H.264 코덱 강제
+        embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&vq=hd720`,
         thumbnailUrl: isShorts ? null : `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
         videoId,
       };
