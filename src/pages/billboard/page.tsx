@@ -9,6 +9,14 @@ import type {
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
 
+// YouTube IFrame Player API 타입 선언
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
 // 배열 셔플 함수
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
@@ -36,32 +44,29 @@ export default function BillboardPage() {
   const pendingReloadTimeRef = useRef<number>(0);
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
+  const playerRefs = useRef<Record<number, any>>({}); // YouTube Player 인스턴스 저장
+  const [apiReady, setApiReady] = useState(false);
 
-  // YouTube IFrame Player API: 재생 상태 감지
+  // YouTube IFrame API 로드
   useEffect(() => {
-    const handleYouTubeMessage = (event: MessageEvent) => {
-      // YouTube iframe에서 오는 메시지만 처리
-      if (event.origin !== "https://www.youtube.com") return;
-      
-      try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        
-        // 재생 상태 변경 감지
-        if (data.event === "onStateChange") {
-          // info: 1 = PLAYING (재생 중)
-          if (data.info === 1) {
-            console.log('[YouTube API] 재생 시작:', currentIndex);
-            setVideoLoadedMap(prev => ({ ...prev, [currentIndex]: true }));
-          }
-        }
-      } catch (e) {
-        // JSON 파싱 실패 시 무시
-      }
+    // 이미 로드되어 있으면 스킵
+    if (window.YT && window.YT.Player) {
+      setApiReady(true);
+      return;
+    }
+
+    // API 준비 콜백
+    window.onYouTubeIframeAPIReady = () => {
+      console.log('[YouTube API] API 준비 완료');
+      setApiReady(true);
     };
 
-    window.addEventListener("message", handleYouTubeMessage);
-    return () => window.removeEventListener("message", handleYouTubeMessage);
-  }, [currentIndex]);
+    // YouTube API 스크립트 로드
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+  }, []);
 
   // 모바일 주소창 숨기기
   useEffect(() => {
@@ -318,6 +323,66 @@ export default function BillboardPage() {
     return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
   };
 
+  // YouTube 플레이어 컴포넌트
+  const YouTubePlayer = ({ videoId, slideIndex, onPlaying }: { videoId: string; slideIndex: number; onPlaying: () => void }) => {
+    useEffect(() => {
+      if (!apiReady || !videoId || playerRefs.current[slideIndex]) return;
+
+      const playerId = `youtube-player-${slideIndex}`;
+      
+      // DOM 준비 대기
+      const initPlayer = () => {
+        const playerElement = document.getElementById(playerId);
+        if (!playerElement || !window.YT) return;
+
+        try {
+          playerRefs.current[slideIndex] = new window.YT.Player(playerId, {
+            videoId: videoId,
+            playerVars: {
+              autoplay: 1,
+              mute: 1,
+              loop: 1,
+              playlist: videoId,
+              controls: 0,
+              modestbranding: 1,
+              playsinline: 1,
+              rel: 0,
+              iv_load_policy: 3,
+            },
+            events: {
+              onStateChange: (event: any) => {
+                // 재생 시작 감지 (YT.PlayerState.PLAYING = 1)
+                if (event.data === 1) {
+                  console.log('[YouTube API] 재생 시작:', slideIndex);
+                  onPlaying();
+                }
+              },
+            },
+          });
+        } catch (err) {
+          console.error('[YouTube API] Player 생성 실패:', err);
+        }
+      };
+
+      // 약간의 지연 후 초기화
+      const timer = setTimeout(initPlayer, 100);
+
+      return () => {
+        clearTimeout(timer);
+        if (playerRefs.current[slideIndex]) {
+          try {
+            playerRefs.current[slideIndex].destroy();
+            delete playerRefs.current[slideIndex];
+          } catch (e) {
+            // 무시
+          }
+        }
+      };
+    }, [apiReady, videoId, slideIndex, onPlaying]);
+
+    return <div id={`youtube-player-${slideIndex}`} className="w-full h-full" />;
+  };
+
   // 슬라이드 렌더링
   const renderSlide = (event: any, isVisible: boolean, slideIndex: number) => {
     const imageUrl = event?.image_full || event?.image;
@@ -342,7 +407,7 @@ export default function BillboardPage() {
         }}
       >
         {/* === 유튜브 영상 + 썸네일 === */}
-        {videoInfo?.embedUrl ? (
+        {videoInfo?.videoId ? (
           <>
             {/* 썸네일 (로딩 중에만 표시) */}
             {!videoLoaded && videoInfo.thumbnailUrl && (
@@ -359,15 +424,10 @@ export default function BillboardPage() {
                 }}
               />
             )}
-            {/* YouTube iframe */}
-            <iframe
-              src={`${videoInfo.embedUrl}?autoplay=1&mute=1&loop=1&playlist=${videoInfo.videoId}&controls=0&modestbranding=1&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3&origin=${window.location.origin}`}
-              allow="autoplay; encrypted-media"
-              allowFullScreen
+            {/* YouTube Player */}
+            <div
               className="w-full h-full"
               style={{
-                border: 0,
-                background: "#000",
                 position: "absolute",
                 top: 0,
                 left: 0,
@@ -375,8 +435,13 @@ export default function BillboardPage() {
                 opacity: videoLoaded ? 1 : 0,
                 transition: "opacity 0.8s ease-in-out",
               }}
-              sandbox="allow-scripts allow-same-origin allow-presentation"
-            />
+            >
+              <YouTubePlayer
+                videoId={videoInfo.videoId}
+                slideIndex={slideIndex}
+                onPlaying={() => setVideoLoadedMap(prev => ({ ...prev, [slideIndex]: true }))}
+              />
+            </div>
           </>
         ) : (
           /* === 일반 이미지 === */
