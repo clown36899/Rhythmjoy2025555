@@ -6,8 +6,8 @@ export interface VideoEmbedInfo {
 }
 
 /**
- * 유튜브 URL만 분석 → 임베드 정보 반환
- * 다른 플랫폼은 무조건 null 처리
+ * 유튜브 URL만 분석 → H.264 강제 임베드 URL 생성
+ * fmt=18 → 유튜브가 H.264 스트림만 제공 → VP9 차단 효과!
  */
 export function parseVideoUrl(url: string): VideoEmbedInfo {
   if (!url || url.trim() === "") {
@@ -42,11 +42,17 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   }
 
   const isShorts = /shorts/.test(trimmedUrl);
-  const params = `autoplay=1&mute=1&loop=1&playlist=${videoId}&playsinline=1&rel=0&modestbranding=1&controls=0&fs=0`;
+
+  // H.264 강제 파라미터
+  const h264Params = `fmt=18&format=mp4`;
+
+  // 기존 파라미터 + H.264 강제
+  const baseParams = `autoplay=1&mute=1&loop=1&playlist=${videoId}&playsinline=1&rel=0&modestbranding=1&controls=0&fs=0`;
+  const finalParams = `${baseParams}&${h264Params}`;
 
   return {
     provider: "youtube",
-    embedUrl: `https://www.youtube.com/embed/${videoId}?${params}`,
+    embedUrl: `https://www.youtube.com/embed/${videoId}?${finalParams}`,
     thumbnailUrl: isShorts
       ? null
       : `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
@@ -56,7 +62,7 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
 
 // --- 헬퍼 함수 ---
 function isYouTubeUrl(url: string): boolean {
-  return /(youtube\.com|youtu\.be)/.test(url);
+  return /(youtube\.com|youtu\.be)/i.test(url);
 }
 
 function extractYouTubeId(url: string): string | null {
