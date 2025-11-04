@@ -34,6 +34,8 @@ export default function BillboardPage() {
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
+  const [pendingReload, setPendingReload] = useState(false);
+  const pendingReloadTimeRef = useRef<number>(0);
   
   // 해상도 기반 스케일 계산 (기준: 1080px = 1.0배)
   const [scale, setScale] = useState(1);
@@ -135,7 +137,7 @@ export default function BillboardPage() {
         setRealtimeStatus(`설정: ${status}`);
       });
 
-    // 🚀 배포 감지 (Realtime) - 새 배포 시 즉시 새로고침!
+    // 🚀 배포 감지 (Realtime) - 안전한 타이밍에 새로고침
     const deployChannel = supabase
       .channel("deploy-updates")
       .on(
@@ -143,21 +145,10 @@ export default function BillboardPage() {
         { event: "*", schema: "public", table: "deployments" },
         (payload) => {
           console.log('🚀 새 배포 감지!', payload);
-          let countdown = 5;
-          setRealtimeStatus(`🚀 새 배포! ${countdown}초 후 새로고침...`);
-          
-          const countdownInterval = setInterval(() => {
-            countdown--;
-            if (countdown > 0) {
-              setRealtimeStatus(`🚀 새 배포! ${countdown}초 후 새로고침...`);
-            } else {
-              clearInterval(countdownInterval);
-            }
-          }, 1000);
-          
-          setTimeout(() => {
-            window.location.reload();
-          }, 5000);
+          console.log('[안전 새로고침] 현재 슬라이드 완료 후 reload 예약');
+          setPendingReload(true);
+          pendingReloadTimeRef.current = Date.now();
+          setRealtimeStatus('🚀 새 배포! 슬라이드 완료 후 새로고침...');
         },
       )
       .subscribe((status) => {
@@ -362,6 +353,16 @@ export default function BillboardPage() {
     if (!hasVideo) {
       interval = setInterval(() => {
         setProgress(0);
+        
+        // 🔄 배포 대기 중이면 안전하게 새로고침
+        if (pendingReload) {
+          console.log('[안전 새로고침] 슬라이드 완료, 500ms 후 reload');
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+          return;
+        }
+        
         // GPU 안정화를 위한 500ms 딜레이 후 전환
         setTimeout(() => {
           if (settings.play_order === "random") {
@@ -434,6 +435,16 @@ export default function BillboardPage() {
       videoPlayTimeoutRef.current = null;
       
       setProgress(0);
+      
+      // 🔄 배포 대기 중이면 안전하게 새로고침
+      if (pendingReload) {
+        console.log('[안전 새로고침] 비디오 슬라이드 완료, 500ms 후 reload');
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+        return;
+      }
+      
       // GPU Context Loss 방지를 위한 500ms 딜레이 후 전환
       setTimeout(() => {
         if (settings.play_order === "random") {
