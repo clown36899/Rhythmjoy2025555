@@ -52,14 +52,34 @@ function YouTubePlayer({
 
   // Player 생성
   useEffect(() => {
-    if (!apiReady || !videoId || playerRef.current) return;
+    console.log('[YouTube] useEffect 실행:', { apiReady, videoId, slideIndex, hasPlayer: !!playerRef.current });
+    
+    if (!apiReady) {
+      console.log('[YouTube] API 아직 준비 안됨');
+      return;
+    }
+    
+    if (!videoId) {
+      console.log('[YouTube] videoId 없음');
+      return;
+    }
+    
+    if (playerRef.current) {
+      console.log('[YouTube] Player 이미 존재함');
+      return;
+    }
 
     const playerId = `yt-player-${slideIndex}`;
+    console.log('[YouTube] Player 생성 시작:', playerId);
     
     const timer = setTimeout(() => {
       const element = document.getElementById(playerId);
-      if (!element) return;
+      if (!element) {
+        console.error('[YouTube] DOM 요소를 찾을 수 없음:', playerId);
+        return;
+      }
 
+      console.log('[YouTube] Player 객체 생성 중...');
       try {
         playerRef.current = new window.YT.Player(playerId, {
           videoId,
@@ -75,21 +95,31 @@ function YouTubePlayer({
             iv_load_policy: 3,
           },
           events: {
+            onReady: (event: any) => {
+              console.log('[YouTube] Player 준비 완료, 재생 시작:', slideIndex);
+              event.target.playVideo();
+            },
             onStateChange: (event: any) => {
+              console.log('[YouTube] 상태 변경:', event.data, 'slideIndex:', slideIndex);
               if (event.data === 1) {
                 // 재생 중
-                console.log('[YouTube] 재생 시작:', slideIndex);
+                console.log('[YouTube] 재생 시작 감지:', slideIndex);
                 onPlaying();
               }
             },
+            onError: (event: any) => {
+              console.error('[YouTube] Player 에러:', event.data);
+            },
           },
         });
+        console.log('[YouTube] Player 객체 생성 완료');
       } catch (err) {
         console.error('[YouTube] Player 생성 실패:', err);
       }
-    }, 200);
+    }, 300);
 
     return () => {
+      console.log('[YouTube] cleanup:', slideIndex);
       clearTimeout(timer);
       if (playerRef.current?.destroy) {
         try {
