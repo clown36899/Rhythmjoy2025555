@@ -37,6 +37,28 @@ export default function BillboardPage() {
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
 
+  // YouTube IFrame API: 비디오 재생 감지
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // YouTube iframe 메시지만 처리
+      if (event.origin !== "https://www.youtube.com") return;
+      
+      try {
+        const data = JSON.parse(event.data);
+        // 재생 시작 감지 (event: "onStateChange", info: 1 = PLAYING)
+        if (data.event === "onStateChange" && data.info === 1) {
+          // 현재 재생 중인 슬라이드의 비디오를 로드 완료로 표시
+          setVideoLoadedMap(prev => ({ ...prev, [currentIndex]: true }));
+        }
+      } catch (e) {
+        // JSON 파싱 실패 무시
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [currentIndex]);
+
   // 모바일 주소창 숨기기
   useEffect(() => {
     const hideAddressBar = () => {
@@ -350,12 +372,6 @@ export default function BillboardPage() {
                 transition: "opacity 0.5s ease-in-out",
               }}
               sandbox="allow-scripts allow-same-origin allow-presentation"
-              onLoad={() => {
-                // iframe 로드 후 0.5초 뒤 썸네일 제거
-                setTimeout(() => {
-                  setVideoLoadedMap(prev => ({ ...prev, [slideIndex]: true }));
-                }, 500);
-              }}
             />
           </>
         ) : (
