@@ -36,75 +36,57 @@ export default function BillboardPage() {
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
   const [pendingReload, setPendingReload] = useState(false);
   const pendingReloadTimeRef = useRef<number>(0);
-  
-  // 해상도 기반 스케일 계산 (기준: 1080px = 1.0배)
   const [scale, setScale] = useState(1);
-  
-  // 비디오 iframe 로딩 상태
-  const [videoLoaded, setVideoLoaded] = useState<Record<string, boolean>>({});
-  const [loadTimes, setLoadTimes] = useState<number[]>([]);
-  const loadStartTimeRef = useRef<number>(0);
-  const videoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 화면 해상도에 따른 스케일 조정
   useEffect(() => {
     const updateScale = () => {
       const height = window.innerHeight;
-      // 720px = 0.8배, 1080px = 1.2배, 1440px = 1.6배, 2160px = 2.4배
       const calculatedScale = Math.max(0.6, Math.min(3.0, height / 900));
       setScale(calculatedScale);
     };
-
     updateScale();
-    window.addEventListener('resize', updateScale);
-    window.addEventListener('orientationchange', updateScale);
-
+    window.addEventListener("resize", updateScale);
+    window.addEventListener("orientationchange", updateScale);
     return () => {
-      window.removeEventListener('resize', updateScale);
-      window.removeEventListener('orientationchange', updateScale);
+      window.removeEventListener("resize", updateScale);
+      window.removeEventListener("orientationchange", updateScale);
     };
   }, []);
 
   // 모바일 주소창 숨기기
   useEffect(() => {
-    // 스크롤 트릭으로 주소창 숨기기
     const hideAddressBar = () => {
       window.scrollTo(0, 1);
     };
-
-    // 페이지 로드 후 실행
     setTimeout(hideAddressBar, 100);
     setTimeout(hideAddressBar, 500);
     setTimeout(hideAddressBar, 1000);
-
-    // 화면 회전 시에도 실행
     window.addEventListener("orientationchange", hideAddressBar);
-
     return () => {
       window.removeEventListener("orientationchange", hideAddressBar);
     };
   }, []);
 
+  // 문서 제목 설정
   useEffect(() => {
     if (billboardUser?.name) {
       document.title = `댄싱조이 - ${billboardUser.name} 빌보드`;
     }
-    
     return () => {
       document.title = "광고판 - Event Discovery Platform";
     };
   }, [billboardUser]);
 
+  // 데이터 로드 및 Realtime 구독
   useEffect(() => {
     if (!userId) {
       setError("빌보드 사용자 ID가 없습니다.");
       setIsLoading(false);
       return;
     }
-
     loadBillboardData();
 
-    // Realtime 구독 설정
     const eventsChannel = supabase
       .channel("billboard-events-changes")
       .on(
@@ -116,9 +98,7 @@ export default function BillboardPage() {
           setTimeout(() => setRealtimeStatus("연결됨"), 3000);
         },
       )
-      .subscribe((status) => {
-        setRealtimeStatus(`데이터: ${status}`);
-      });
+      .subscribe((status) => setRealtimeStatus(`데이터: ${status}`));
 
     const settingsChannel = supabase
       .channel("billboard-settings-changes")
@@ -133,29 +113,22 @@ export default function BillboardPage() {
           }
         },
       )
-      .subscribe((status) => {
-        setRealtimeStatus(`설정: ${status}`);
-      });
+      .subscribe((status) => setRealtimeStatus(`설정: ${status}`));
 
-    // 🚀 배포 감지 (Realtime) - 안전한 타이밍에 새로고침
     const deployChannel = supabase
       .channel("deploy-updates")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "deployments" },
         (payload) => {
-          console.log('🚀 새 배포 감지!', payload);
-          console.log('[안전 새로고침] 현재 슬라이드 완료 후 reload 예약');
+          console.log("새 배포 감지!", payload);
           setPendingReload(true);
           pendingReloadTimeRef.current = Date.now();
-          setRealtimeStatus('🚀 새 배포! 슬라이드 완료 후 새로고침...');
+          setRealtimeStatus("새 배포! 슬라이드 완료 후 새로고침...");
         },
       )
-      .subscribe((status) => {
-        setRealtimeStatus(`배포: ${status}`);
-      });
+      .subscribe((status) => setRealtimeStatus(`배포: ${status}`));
 
-    // 클린업
     return () => {
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(settingsChannel);
@@ -165,12 +138,7 @@ export default function BillboardPage() {
 
   const loadBillboardData = async () => {
     try {
-      // 🔧 데이터 리로드 전 모든 타이머 정리 (메모리 누수 방지)
-      console.log('[빌보드] 데이터 리로드: 기존 타이머 정리 중...');
-      if (videoPlayTimeoutRef.current) {
-        clearTimeout(videoPlayTimeoutRef.current);
-        videoPlayTimeoutRef.current = null;
-      }
+      console.log("[빌보드] 데이터 리로드: 기존 타이머 정리 중...");
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
@@ -182,7 +150,6 @@ export default function BillboardPage() {
         .eq("id", userId)
         .eq("is_active", true)
         .single();
-
       if (userError) throw new Error("빌보드 사용자를 찾을 수 없습니다.");
       setBillboardUser(user);
 
@@ -191,7 +158,6 @@ export default function BillboardPage() {
         .select("*")
         .eq("billboard_user_id", userId)
         .single();
-
       if (settingsError) throw new Error("빌보드 설정을 불러올 수 없습니다.");
       setSettings(userSettings);
 
@@ -199,29 +165,20 @@ export default function BillboardPage() {
         .from("events")
         .select("*")
         .order("start_date", { ascending: true });
-
       if (eventsError) throw eventsError;
 
       const filteredEvents = filterEvents(allEvents || [], userSettings);
-      
-      console.log('[빌보드] 필터링 완료:', filteredEvents.length, '개');
-      filteredEvents.forEach((e, i) => {
-        console.log(`  [${i}] ID:${e.id} ${e.title}`);
-      });
+      console.log("[빌보드] 필터링 완료:", filteredEvents.length, "개");
 
-      // 🔧 이벤트 수 변경 시 안전하게 인덱스 조정
       if (filteredEvents.length === 0) {
-        console.log('[빌보드] ⚠️ 표시할 이벤트가 없습니다');
         setEvents([]);
         setCurrentIndex(0);
         setShuffledPlaylist([]);
       } else {
         setEvents(filteredEvents);
-        
-        // 현재 인덱스가 범위를 벗어나면 0으로 리셋
-        const safeIndex = currentIndex >= filteredEvents.length ? 0 : currentIndex;
-        
-        // 랜덤 모드면 초기 재생목록 생성 (인덱스 배열을 섞음)
+        const safeIndex =
+          currentIndex >= filteredEvents.length ? 0 : currentIndex;
+
         if (userSettings.play_order === "random") {
           const indices = Array.from(
             { length: filteredEvents.length },
@@ -235,7 +192,6 @@ export default function BillboardPage() {
           setCurrentIndex(safeIndex);
         }
       }
-
       setIsLoading(false);
     } catch (err: any) {
       console.error("빌보드 데이터 로드 실패:", err);
@@ -248,241 +204,87 @@ export default function BillboardPage() {
     allEvents: Event[],
     settings: BillboardUserSettings,
   ): Event[] => {
-    console.log('[빌보드 필터링] 시작:', {
-      excluded_event_ids: settings.excluded_event_ids,
-      excluded_weekdays: settings.excluded_weekdays,
-      date_filter_start: settings.date_filter_start,
-      date_filter_end: settings.date_filter_end,
-      total_events: allEvents.length
-    });
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const filtered = allEvents.filter((event) => {
-      // 이미지/영상 없는 이벤트 제외
-      if (!event?.image_full && !event?.image && !event?.video_url) {
-        console.log('[필터] 미디어 없음:', event?.id, event?.title);
+    return allEvents.filter((event) => {
+      if (!event?.image_full && !event?.image && !event?.video_url)
         return false;
-      }
+      if (settings.excluded_event_ids.includes(event.id)) return false;
 
-      // ID 필터
-      if (settings.excluded_event_ids.includes(event.id)) {
-        console.log('[필터] ID 제외:', event.id, event.title);
-        return false;
-      }
-
-      // 요일 필터
       const eventDate = new Date(event.start_date || event.date || "");
       const weekday = eventDate.getDay();
-      const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
-      if (settings.excluded_weekdays.includes(weekday)) {
-        console.log('[필터] 요일 제외:', event.id, event.title, `${weekdayNames[weekday]}요일(${weekday})`);
+      if (settings.excluded_weekdays.includes(weekday)) return false;
+
+      if (
+        settings.date_filter_start &&
+        eventDate < new Date(settings.date_filter_start)
+      )
         return false;
-      }
+      if (
+        settings.date_filter_end &&
+        eventDate > new Date(settings.date_filter_end)
+      )
+        return false;
 
-      // 날짜 범위 필터
-      if (settings.date_filter_start) {
-        const startDate = new Date(settings.date_filter_start);
-        if (eventDate < startDate) {
-          console.log('[필터] 시작일 이전:', event.id, event.title, eventDate.toISOString().split('T')[0], '<', settings.date_filter_start);
-          return false;
-        }
-      }
-
-      if (settings.date_filter_end) {
-        const endDate = new Date(settings.date_filter_end);
-        if (eventDate > endDate) {
-          console.log('[필터] 종료일 이후:', event.id, event.title, eventDate.toISOString().split('T')[0], '>', settings.date_filter_end);
-          return false;
-        }
-      }
-
-      // 과거 이벤트 제외 (단, 날짜 범위 필터가 설정되지 않은 경우에만)
-      // 관리자가 날짜 범위를 명시적으로 설정했다면 과거 이벤트도 허용
       if (!settings.date_filter_start && !settings.date_filter_end) {
         const eventEndDate = new Date(
           event.end_date || event.start_date || event.date || "",
         );
-        if (eventEndDate < today) {
-          console.log('[필터] 과거 이벤트:', event.id, event.title, eventEndDate.toISOString().split('T')[0], '<', today.toISOString().split('T')[0]);
-          return false;
-        }
+        if (eventEndDate < today) return false;
       }
-
       return true;
     });
-
-    console.log('[빌보드 필터링] 완료:', {
-      원본: allEvents.length,
-      필터링후: filtered.length,
-      제외됨: allEvents.length - filtered.length
-    });
-
-    return filtered;
   };
 
+  // 슬라이드 전환 타이머 (모든 슬라이드 동일한 간격)
   useEffect(() => {
     if (!settings || events.length === 0) return;
 
-    const currentEvent = events[currentIndex];
-    const hasVideo = currentEvent?.video_url && parseVideoUrl(currentEvent.video_url)?.embedUrl;
-
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-    if (videoPlayTimeoutRef.current) {
-      clearTimeout(videoPlayTimeoutRef.current);
-    }
-
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     setProgress(0);
 
-    const progressStep = (50 / settings.auto_slide_interval) * 100;
+    const step = (50 / settings.auto_slide_interval) * 100;
     progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          return 0;
-        }
-        return prev + progressStep;
-      });
+      setProgress((p) => (p >= 100 ? 0 : p + step));
     }, 50);
 
-    // 영상이 아닌 경우만 일반 타이머 사용
-    let interval: NodeJS.Timeout | null = null;
-    
-    if (!hasVideo) {
-      interval = setInterval(() => {
-        setProgress(0);
-        
-        // 🔄 배포 대기 중이면 안전하게 새로고침
-        if (pendingReload) {
-          console.log('[안전 새로고침] 슬라이드 완료, 500ms 후 reload');
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-          return;
-        }
-        
-        // GPU 안정화를 위한 500ms 딜레이 후 전환
-        setTimeout(() => {
-          if (settings.play_order === "random") {
-            const nextPlaylistIdx = playlistIndexRef.current + 1;
+    const interval = setInterval(() => {
+      setProgress(0);
 
-            if (nextPlaylistIdx >= shuffledPlaylist.length) {
-              const newIndices = Array.from({ length: events.length }, (_, i) => i);
-              const newPlaylist = shuffleArray(newIndices);
-              setShuffledPlaylist(newPlaylist);
-              playlistIndexRef.current = 0;
-              setCurrentIndex(newPlaylist[0] || 0);
-            } else {
-              playlistIndexRef.current = nextPlaylistIdx;
-              setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
-            }
+      if (pendingReload) {
+        setTimeout(() => window.location.reload(), 500);
+        return;
+      }
+
+      setTimeout(() => {
+        if (settings.play_order === "random") {
+          const next = playlistIndexRef.current + 1;
+          if (next >= shuffledPlaylist.length) {
+            const newList = shuffleArray(
+              Array.from({ length: events.length }, (_, i) => i),
+            );
+            setShuffledPlaylist(newList);
+            playlistIndexRef.current = 0;
+            setCurrentIndex(newList[0] ?? 0);
           } else {
-            setCurrentIndex((prev) => (prev + 1) % events.length);
+            playlistIndexRef.current = next;
+            setCurrentIndex(shuffledPlaylist[next] ?? 0);
           }
-        }, 500);
-      }, settings.auto_slide_interval);
-    }
+        } else {
+          setCurrentIndex((prev) => (prev + 1) % events.length);
+        }
+      }, 500);
+    }, settings.auto_slide_interval);
 
     return () => {
-      if (interval) clearInterval(interval);
-      if (progressIntervalRef.current) {
+      clearInterval(interval);
+      if (progressIntervalRef.current)
         clearInterval(progressIntervalRef.current);
-      }
-      if (videoPlayTimeoutRef.current) {
-        clearTimeout(videoPlayTimeoutRef.current);
-      }
     };
   }, [events, settings, shuffledPlaylist, currentIndex]);
 
-  // 영상 타이머 시작 함수 (중복 실행 방지)
-  const startVideoTimerRef = useRef<(() => void) | undefined>(undefined);
-  startVideoTimerRef.current = () => {
-    if (!settings) return;
-    
-    // 이미 타이머가 실행 중이면 중복 실행 방지
-    if (videoPlayTimeoutRef.current) {
-      console.log('[빌보드] 타이머 이미 실행 중, 스킵');
-      return;
-    }
-
-    const playDuration = settings.video_play_duration || 10000;
-    console.log('[빌보드] 영상 로딩 완료! 타이머 시작:', playDuration / 1000, '초');
-    
-    // 기존 progress interval 정리
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
-    // Progress bar 리셋 후 설정된 시간 기준으로 재시작
-    setProgress(0);
-    const videoProgressStep = (50 / playDuration) * 100;
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          return 0;
-        }
-        return prev + videoProgressStep;
-      });
-    }, 50);
-
-    // 영상 로딩 완료 시점부터 정확히 설정된 시간 후 다음 슬라이드
-    videoPlayTimeoutRef.current = setTimeout(() => {
-      console.log('[빌보드] 영상 재생 완료! 다음 슬라이드로 전환');
-      
-      // 타이머 완료 후 ref 초기화 (중요!)
-      videoPlayTimeoutRef.current = null;
-      
-      setProgress(0);
-      
-      // 🔄 배포 대기 중이면 안전하게 새로고침
-      if (pendingReload) {
-        console.log('[안전 새로고침] 비디오 슬라이드 완료, 500ms 후 reload');
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-        return;
-      }
-      
-      // GPU Context Loss 방지를 위한 500ms 딜레이 후 전환
-      setTimeout(() => {
-        if (settings.play_order === "random") {
-          const nextPlaylistIdx = playlistIndexRef.current + 1;
-
-          if (nextPlaylistIdx >= shuffledPlaylist.length) {
-            const newIndices = Array.from({ length: events.length }, (_, i) => i);
-            const newPlaylist = shuffleArray(newIndices);
-            setShuffledPlaylist(newPlaylist);
-            playlistIndexRef.current = 0;
-            const newIndex = newPlaylist[0] || 0;
-            console.log('[빌보드] 재생목록 리셋, 새 인덱스:', newIndex);
-            setCurrentIndex(newIndex);
-          } else {
-            playlistIndexRef.current = nextPlaylistIdx;
-            const newIndex = shuffledPlaylist[nextPlaylistIdx] || 0;
-            console.log('[빌보드] 랜덤 다음:', nextPlaylistIdx, '→ 인덱스:', newIndex);
-            setCurrentIndex(newIndex);
-          }
-        } else {
-          setCurrentIndex((prev) => {
-            const next = (prev + 1) % events.length;
-            console.log('[빌보드] 순차 전환:', prev, '→', next);
-            return next;
-          });
-        }
-      }, 500);
-    }, playDuration);
-  };
-
-  // 슬라이드 변경 시 비디오 로딩 상태 리셋 & 로딩 시작 시간 기록
-  useEffect(() => {
-    const currentEvent = events[currentIndex];
-    console.log('[빌보드] 슬라이드 변경:', currentIndex, '/', events.length - 1, '→', currentEvent?.title || '없음');
-    setVideoLoaded({});
-    loadStartTimeRef.current = Date.now();
-  }, [currentIndex, events]);
-
+  // 로딩/에러/빈 화면
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -490,7 +292,6 @@ export default function BillboardPage() {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -498,7 +299,6 @@ export default function BillboardPage() {
       </div>
     );
   }
-
   if (events.length === 0) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -510,12 +310,9 @@ export default function BillboardPage() {
     );
   }
 
-  // 날짜 포맷 함수
+  // 날짜 포맷
   const formatDateRange = (startDate: string, endDate?: string | null) => {
-    if (!endDate || startDate === endDate) {
-      return startDate;
-    }
-
+    if (!endDate || startDate === endDate) return startDate;
     const start = new Date(startDate);
     const end = new Date(endDate);
     const startYear = start.getFullYear();
@@ -525,31 +322,20 @@ export default function BillboardPage() {
     const startDay = String(start.getDate()).padStart(2, "0");
     const endDay = String(end.getDate()).padStart(2, "0");
 
-    // 같은 년도
     if (startYear === endYear) {
-      // 같은 월
       if (startMonth === endMonth) {
         return `${startYear}-${startMonth}-${startDay}~${endDay}`;
       }
-      // 다른 월
       return `${startYear}-${startMonth}-${startDay}~${endMonth}-${endDay}`;
     }
-
-    // 다른 년도
     return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
   };
 
-  // 슬라이드 렌더링 함수
-  const renderSlide = (
-    event: any,
-    isVisible: boolean,
-    slideIndex: number,
-    preload: boolean = false,
-  ) => {
+  // 슬라이드 렌더링
+  const renderSlide = (event: any, isVisible: boolean, slideIndex: number) => {
     const imageUrl = event?.image_full || event?.image;
     const videoUrl = event?.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
-    const isLoaded = videoLoaded[event.id] || false;
 
     return (
       <div
@@ -561,104 +347,83 @@ export default function BillboardPage() {
           transform: `translate(-50%, -50%) rotate(90deg)`,
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? "auto" : "none",
-          transition: `opacity ${settings?.transition_duration || 500}ms ease-in-out`,
+          transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
           zIndex: isVisible ? 2 : 1,
         }}
       >
-        {videoInfo?.embedUrl ? (
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {/* 비디오 iframe */}
-            <iframe
-              key={`video-${event.id}`}
-              src={isVisible ? videoInfo.embedUrl : 'about:blank'}
-              className="w-full h-full"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title={event.title}
-              onLoad={() => {
-                const loadTime = Date.now() - loadStartTimeRef.current;
-                
-                // 로딩 시간 기록 (최근 5개 평균 사용)
-                setLoadTimes(prev => {
-                  const updated = [...prev, loadTime];
-                  return updated.slice(-5);
-                });
-                
-                // 평균 로딩 시간 계산 (최소 1초, 최대 5초)
-                const avgLoadTime = loadTimes.length > 0
-                  ? Math.min(5000, Math.max(1000, loadTimes.reduce((a, b) => a + b, 0) / loadTimes.length))
-                  : 3000;
-                
-                setTimeout(() => {
-                  setVideoLoaded(prev => ({ ...prev, [event.id]: true }));
-                  startVideoTimerRef.current?.();
-                }, avgLoadTime);
-              }}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-              }}
+        {/* 이미지 또는 유튜브 썸네일 (클릭 시 네이티브 재생) */}
+        {videoInfo?.nativeUrl ? (
+          <div
+            className="relative w-full h-full cursor-pointer"
+            onClick={() => {
+              if (window.AndroidKiosk && videoInfo.nativeUrl) {
+                console.log(
+                  "[빌보드] 네이티브 재생 요청 →",
+                  videoInfo.nativeUrl,
+                );
+                window.AndroidKiosk.playNativeVideo(videoInfo.nativeUrl);
+              }
+            }}
+          >
+            <img
+              src={imageUrl || videoInfo.thumbnailUrl || ""}
+              alt={event.title}
+              className="w-full h-full object-cover"
+              style={{ backgroundColor: "#000" }}
             />
-            
-            {/* 썸네일 오버레이 (로딩 중) - 사용자가 등록한 이미지 사용 */}
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                opacity: isLoaded ? 0 : 1,
-                transition: 'opacity 1s ease-in-out',
-                pointerEvents: isLoaded ? 'none' : 'auto',
-                zIndex: 2,
-              }}
-            >
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt={event.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover"
-                  style={{ backgroundColor: '#000' }}
-                />
-              )}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-white/90 rounded-full p-8 shadow-2xl animate-pulse">
+                <svg
+                  className="w-16 h-16 text-black"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7L8 5z" />
+                </svg>
+              </div>
             </div>
-            
           </div>
         ) : (
           <img
             src={imageUrl}
             alt={event.title}
             className="w-full h-full object-contain"
-            loading={preload ? "eager" : "lazy"}
+            loading="lazy"
           />
         )}
 
+        {/* 정보 레이어 */}
         {isVisible && (
           <>
-            <div 
-              className="absolute" 
-              style={{ 
-                width: '100%',
-                padding: '0 42px',
-                top: '20.0267px',
+            <div
+              className="absolute"
+              style={{
+                width: "100%",
+                padding: "0 42px",
+                top: "20.0267px",
                 zIndex: 10,
-                display: 'flex',
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                alignContent: 'space-between',
-                alignItems: 'center',
-                justifyContent: 'space-between'
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignContent: "space-between",
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
               {events.length > 1 && (
-                <div className="relative" style={{ width: `${96 * scale}px`, height: `${96 * scale}px` }}>
-                  <svg 
-                    className="transform -rotate-90" 
-                    style={{ width: `${96 * scale}px`, height: `${96 * scale}px` }}
+                <div
+                  className="relative"
+                  style={{
+                    width: `${96 * scale}px`,
+                    height: `${96 * scale}px`,
+                  }}
+                >
+                  <svg
+                    className="transform -rotate-90"
+                    style={{
+                      width: `${96 * scale}px`,
+                      height: `${96 * scale}px`,
+                    }}
                   >
                     <circle
                       cx={48 * scale}
@@ -676,236 +441,235 @@ export default function BillboardPage() {
                       strokeWidth={6 * scale}
                       fill="none"
                       strokeDasharray={264 * scale}
-                      strokeDashoffset={(264 * scale) - ((264 * scale) * progress) / 100}
+                      strokeDashoffset={
+                        264 * scale - (264 * scale * progress) / 100
+                      }
                       style={{ transition: "stroke-dashoffset 0.05s linear" }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white font-bold" style={{ fontSize: `${20 * scale}px` }}>
+                    <span
+                      className="text-white font-bold"
+                      style={{ fontSize: `${20 * scale}px` }}
+                    >
                       {currentIndex + 1}/{events.length}
                     </span>
                   </div>
                 </div>
               )}
-              
-              {/* Realtime 상태 표시 */}
-              <div 
+              <div
                 className="bg-black/70 text-white px-3 py-1 rounded text-xs"
-                style={{ 
-                  position: 'relative',
-                  width: 'max-content'
-                }}
+                style={{ position: "relative", width: "max-content" }}
               >
                 {realtimeStatus}
               </div>
             </div>
 
-            <div 
+            <div
               key={`info-${event.id}-${slideIndex}`}
               className="absolute bottom-0 left-0 right-0"
-              style={{ 
-                paddingLeft: `${32 * scale}px`, 
+              style={{
+                paddingLeft: `${32 * scale}px`,
                 paddingRight: `${32 * scale}px`,
                 paddingTop: `${40 * scale}px`,
                 paddingBottom: `${40 * scale}px`,
                 zIndex: 10,
-                background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 50%, transparent 100%)'
+                background:
+                  "linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 50%, transparent 100%)",
               }}
             >
-              {/* 장식 원 1 - 왼쪽 상단 */}
+              {/* 장식 요소들 (기존 그대로) */}
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: `${-80 * scale}px`,
                   left: `${20 * scale}px`,
                   width: `${60 * scale}px`,
                   height: `${60 * scale}px`,
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0))',
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0))",
                   animation: `float1 2.5s ease-in-out 0s forwards`,
                   opacity: 0,
-                  transform: `scale(0) translateY(-${50 * scale}px)`
+                  transform: `scale(0) translateY(-${50 * scale}px)`,
                 }}
               />
-
-              {/* 장식 원 2 - 오른쪽 상단 */}
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: `${-60 * scale}px`,
                   right: `${40 * scale}px`,
                   width: `${80 * scale}px`,
                   height: `${80 * scale}px`,
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0))',
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0))",
                   animation: `float2 2.6s ease-in-out 0.3s forwards`,
                   opacity: 0,
-                  transform: `scale(0) translateY(-${80 * scale}px)`
+                  transform: `scale(0) translateY(-${80 * scale}px)`,
                 }}
               />
-
-              {/* 장식 다이아몬드 1 */}
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: `${-90 * scale}px`,
                   left: `${120 * scale}px`,
                   width: `${40 * scale}px`,
                   height: `${40 * scale}px`,
-                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                  transform: 'rotate(45deg)',
+                  backgroundColor: "rgba(255, 255, 255, 0.7)",
+                  transform: "rotate(45deg)",
                   animation: `diamond 2.8s ease-in-out 0.6s forwards`,
-                  opacity: 0
+                  opacity: 0,
                 }}
               />
-
-              {/* 장식 다이아몬드 2 */}
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: `${-70 * scale}px`,
                   right: `${150 * scale}px`,
                   width: `${50 * scale}px`,
                   height: `${50 * scale}px`,
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                  transform: 'rotate(45deg)',
+                  backgroundColor: "rgba(255, 255, 255, 0.6)",
+                  transform: "rotate(45deg)",
                   animation: `diamond2 2.7s ease-in-out 0.9s forwards`,
-                  opacity: 0
+                  opacity: 0,
                 }}
               />
-
-              {/* 빛나는 파티클 1 */}
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: `${10 * scale}px`,
                   left: `${-30 * scale}px`,
                   width: `${12 * scale}px`,
                   height: `${12 * scale}px`,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
                   boxShadow: `0 0 ${20 * scale}px rgba(255, 255, 255, 0.6)`,
                   animation: `particle1 3s ease-in-out 1.2s forwards`,
-                  opacity: 0
+                  opacity: 0,
                 }}
               />
-
-              {/* 빛나는 파티클 2 */}
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: `${40 * scale}px`,
                   right: `${-20 * scale}px`,
                   width: `${14 * scale}px`,
                   height: `${14 * scale}px`,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255, 255, 255, 0.85)",
                   boxShadow: `0 0 ${25 * scale}px rgba(255, 255, 255, 0.5)`,
                   animation: `particle2 2.9s ease-in-out 1.5s forwards`,
-                  opacity: 0
+                  opacity: 0,
                 }}
               />
-
-              {/* 빛나는 파티클 3 */}
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: `${-50 * scale}px`,
                   left: `${250 * scale}px`,
                   width: `${10 * scale}px`,
                   height: `${10 * scale}px`,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255, 255, 255, 0.8)",
                   boxShadow: `0 0 ${18 * scale}px rgba(255, 255, 255, 0.5)`,
                   animation: `particle3 2.8s ease-in-out 1.8s forwards`,
-                  opacity: 0
+                  opacity: 0,
                 }}
               />
-
-              {/* 경계선 - 그어지는 애니메이션 */}
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: 0,
                   left: `${48 * scale}px`,
                   right: `${48 * scale}px`,
                   height: `${2 * scale}px`,
-                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                  transformOrigin: 'left',
+                  backgroundColor: "rgba(255, 255, 255, 0.3)",
+                  transformOrigin: "left",
                   animation: `drawLine 1.2s ease-out 4.2s forwards`,
-                  transform: 'scaleX(0)'
+                  transform: "scaleX(0)",
                 }}
               />
 
               <div className="flex items-end justify-between">
-                <div className="flex-1" style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}>
-                  <div style={{ marginBottom: `${8 * scale}px`, display: 'flex', flexDirection: 'column', gap: `${4 * scale}px` }}>
-                    {/* 날짜 */}
+                <div
+                  className="flex-1"
+                  style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}
+                >
+                  <div
+                    style={{
+                      marginBottom: `${8 * scale}px`,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: `${4 * scale}px`,
+                    }}
+                  >
                     {event.start_date && (
-                      <div 
-                        className="text-blue-400 font-semibold" 
-                        style={{ 
+                      <div
+                        className="text-blue-400 font-semibold"
+                        style={{
                           fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
                           animation: `slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards`,
                           opacity: 0,
-                          transform: `translateX(-${150 * scale}px) rotate(-8deg)`
+                          transform: `translateX(-${150 * scale}px) rotate(-8deg)`,
                         }}
                       >
-                        <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                        <i
+                          className="ri-calendar-line"
+                          style={{ marginRight: `${8 * scale}px` }}
+                        ></i>
                         {formatDateRange(event.start_date, event.end_date)}
                       </div>
                     )}
-
-                    {/* 장소 */}
                     {event.location &&
                       event.location.trim() &&
                       event.location !== "미정" && (
-                        <div 
-                          className="text-gray-300" 
-                          style={{ 
+                        <div
+                          className="text-gray-300"
+                          style={{
                             fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
                             animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards`,
                             opacity: 0,
-                            transform: `translateX(${150 * scale}px) rotate(8deg)`
+                            transform: `translateX(${150 * scale}px) rotate(8deg)`,
                           }}
                         >
-                          <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                          <i
+                            className="ri-map-pin-line"
+                            style={{ marginRight: `${8 * scale}px` }}
+                          ></i>
                           {event.location}
                         </div>
                       )}
                   </div>
-
-                  {/* 제목 */}
-                  <h3 
-                    className="text-white font-bold" 
-                    style={{ 
-                      fontSize: event.title.length > 30 
-                        ? event.title.length > 50
-                          ? `${Math.max(32, Math.min(40 * scale, 140))}px`
-                          : `${Math.max(40, Math.min(50 * scale, 175))}px`
-                        : `${Math.max(48, Math.min(62 * scale, 216))}px`,
+                  <h3
+                    className="text-white font-bold"
+                    style={{
+                      fontSize:
+                        event.title.length > 30
+                          ? event.title.length > 50
+                            ? `${Math.max(32, Math.min(40 * scale, 140))}px`
+                            : `${Math.max(40, Math.min(50 * scale, 175))}px`
+                          : `${Math.max(48, Math.min(62 * scale, 216))}px`,
                       lineHeight: 1.2,
-                      wordBreak: 'keep-all',
-                      overflow: 'hidden',
-                      display: '-webkit-box',
+                      wordBreak: "keep-all",
+                      overflow: "hidden",
+                      display: "-webkit-box",
                       WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      width: '100%',
+                      WebkitBoxOrient: "vertical",
+                      width: "100%",
                       animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
                       opacity: 0,
-                      transform: `scale(0.2) translateY(${100 * scale}px) rotate(-15deg)`
+                      transform: `scale(0.2) translateY(${100 * scale}px) rotate(-15deg)`,
                     }}
                   >
                     {event.title}
                   </h3>
                 </div>
-
-                {/* QR 코드 */}
-                <div 
-                  className="bg-white rounded-lg flex-shrink-0" 
-                  style={{ 
+                <div
+                  className="bg-white rounded-lg flex-shrink-0"
+                  style={{
                     padding: `${12 * scale}px`,
-                    marginLeft: `${24 * scale}px`
+                    marginLeft: `${24 * scale}px`,
                   }}
                 >
                   <QRCodeCanvas
@@ -927,242 +691,33 @@ export default function BillboardPage() {
 
   return (
     <>
-      {/* YouTube DNS prefetch 및 preconnect로 로딩 속도 개선 */}
       <link rel="dns-prefetch" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
-      
-      {/* 제목/날짜/장소 등장 애니메이션 */}
+
       <style>{`
-        @keyframes float1 {
-          0% {
-            opacity: 0;
-            transform: scale(0) translateY(-50px);
-          }
-          30% {
-            opacity: 0.8;
-            transform: scale(1.3) translateY(5px);
-          }
-          60% {
-            opacity: 0.6;
-            transform: scale(1) translateY(0);
-          }
-          100% {
-            opacity: 0;
-            transform: scale(0.8) translateY(10px);
-          }
-        }
-        
-        @keyframes float2 {
-          0% {
-            opacity: 0;
-            transform: scale(0) translateY(-80px);
-          }
-          30% {
-            opacity: 0.7;
-            transform: scale(1.4) translateY(8px);
-          }
-          60% {
-            opacity: 0.5;
-            transform: scale(1) translateY(0);
-          }
-          100% {
-            opacity: 0;
-            transform: scale(0.7) translateY(15px);
-          }
-        }
-        
-        @keyframes diamond {
-          0% {
-            opacity: 0;
-            transform: rotate(45deg) scale(0);
-          }
-          30% {
-            opacity: 0.7;
-            transform: rotate(225deg) scale(1.3);
-          }
-          60% {
-            opacity: 0.5;
-            transform: rotate(405deg) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: rotate(495deg) scale(0.6);
-          }
-        }
-        
-        @keyframes diamond2 {
-          0% {
-            opacity: 0;
-            transform: rotate(45deg) scale(0);
-          }
-          30% {
-            opacity: 0.6;
-            transform: rotate(-135deg) scale(1.4);
-          }
-          60% {
-            opacity: 0.4;
-            transform: rotate(-315deg) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: rotate(-405deg) scale(0.5);
-          }
-        }
-        
-        @keyframes particle1 {
-          0% {
-            opacity: 0;
-            transform: translateX(-100px) translateY(-50px) scale(0);
-          }
-          30% {
-            opacity: 0.9;
-            transform: translateX(50px) translateY(25px) scale(1.5);
-          }
-          60% {
-            opacity: 0.6;
-            transform: translateX(0) translateY(0) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translateX(30px) translateY(-20px) scale(0.5);
-          }
-        }
-        
-        @keyframes particle2 {
-          0% {
-            opacity: 0;
-            transform: translateX(100px) translateY(-50px) scale(0);
-          }
-          30% {
-            opacity: 0.85;
-            transform: translateX(-50px) translateY(25px) scale(1.6);
-          }
-          60% {
-            opacity: 0.5;
-            transform: translateX(0) translateY(0) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translateX(-30px) translateY(-20px) scale(0.4);
-          }
-        }
-        
-        @keyframes particle3 {
-          0% {
-            opacity: 0;
-            transform: translateY(-80px) scale(0);
-          }
-          30% {
-            opacity: 0.8;
-            transform: translateY(20px) scale(1.4);
-          }
-          60% {
-            opacity: 0.5;
-            transform: translateY(0) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(-15px) scale(0.6);
-          }
-        }
-        
-        @keyframes drawLine {
-          0% {
-            transform: scaleX(0);
-          }
-          100% {
-            transform: scaleX(1);
-          }
-        }
-        
-        @keyframes slideInLeft {
-          0% {
-            opacity: 0;
-            transform: translateX(-150px) rotate(-8deg);
-          }
-          60% {
-            transform: translateX(20px) rotate(4deg);
-          }
-          80% {
-            transform: translateX(-8px) rotate(-2deg);
-          }
-          100% {
-            opacity: 1;
-            transform: translateX(0) rotate(0deg);
-          }
-        }
-        
-        @keyframes slideInRight {
-          0% {
-            opacity: 0;
-            transform: translateX(150px) rotate(8deg);
-          }
-          60% {
-            transform: translateX(-20px) rotate(-4deg);
-          }
-          80% {
-            transform: translateX(8px) rotate(2deg);
-          }
-          100% {
-            opacity: 1;
-            transform: translateX(0) rotate(0deg);
-          }
-        }
-        
-        @keyframes zoomInUp {
-          0% {
-            opacity: 0;
-            transform: scale(0.2) translateY(100px) rotate(-15deg);
-          }
-          40% {
-            transform: scale(1.2) translateY(-15px) rotate(5deg);
-          }
-          70% {
-            transform: scale(0.9) translateY(5px) rotate(-3deg);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1) translateY(0) rotate(0deg);
-          }
-        }
-        
-        @keyframes rotateInFade {
-          0% {
-            opacity: 0;
-            transform: rotate(540deg) scale(0.1);
-          }
-          40% {
-            transform: rotate(270deg) scale(1.3);
-          }
-          70% {
-            transform: rotate(-20deg) scale(0.85);
-          }
-          100% {
-            opacity: 1;
-            transform: rotate(0deg) scale(1);
-          }
-        }
+        /* 모든 애니메이션 유지 (기존 그대로) */
+        @keyframes float1 { 0% { opacity: 0; transform: scale(0) translateY(-50px); } 30% { opacity: 0.8; transform: scale(1.3) translateY(5px); } 60% { opacity: 0.6; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.8) translateY(10px); } }
+        @keyframes float2 { 0% { opacity: 0; transform: scale(0) translateY(-80px); } 30% { opacity: 0.7; transform: scale(1.4) translateY(8px); } 60% { opacity: 0.5; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.7) translateY(15px); } }
+        @keyframes diamond { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 30% { opacity: 0.7; transform: rotate(225deg) scale(1.3); } 60% { opacity: 0.5; transform: rotate(405deg) scale(1); } 100% { opacity: 0; transform: rotate(495deg) scale(0.6); } }
+        @keyframes diamond2 { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 30% { opacity: 0.6; transform: rotate(-135deg) scale(1.4); } 60% { opacity: 0.4; transform: rotate(-315deg) scale(1); } 100% { opacity: 0; transform: rotate(-405deg) scale(0.5); } }
+        @keyframes particle1 { 0% { opacity: 0; transform: translateX(-100px) translateY(-50px) scale(0); } 30% { opacity: 0.9; transform: translateX(50px) translateY(25px) scale(1.5); } 60% { opacity: 0.6; transform: translateX(0) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(30px) translateY(-20px) scale(0.5); } }
+        @keyframes particle2 { 0% { opacity: 0; transform: translateX(100px) translateY(-50px) scale(0); } 30% { opacity: 0.85; transform: translateX(-50px) translateY(25px) scale(1.6); } 60% { opacity: 0.5; transform: translateX(0) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(-30px) translateY(-20px) scale(0.4); } }
+        @keyframes particle3 { 0% { opacity: 0; transform: translateY(-80px) scale(0); } 30% { opacity: 0.8; transform: translateY(20px) scale(1.4); } 60% { opacity: 0.5; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-15px) scale(0.6); } }
+        @keyframes drawLine { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+        @keyframes slideInLeft { 0% { opacity: 0; transform: translateX(-150px) rotate(-8deg); } 60% { transform: translateX(20px) rotate(4deg); } 80% { transform: translateX(-8px) rotate(-2deg); } 100% { opacity: 1; transform: translateX(0) rotate(0deg); } }
+        @keyframes slideInRight { 0% { opacity: 0; transform: translateX(150px) rotate(8deg); } 60% { transform: translateX(-20px) rotate(-4deg); } 80% { transform: translateX(8px) rotate(2deg); } 100% { opacity: 1; transform: translateX(0) rotate(0deg); } }
+        @keyframes zoomInUp { 0% { opacity: 0; transform: scale(0.2) translateY(100px) rotate(-15deg); } 40% { transform: scale(1.2) translateY(-15px) rotate(5deg); } 70% { transform: scale(0.9) translateY(5px) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); } }
       `}</style>
 
       <div
         className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
         style={{ minHeight: "calc(100vh + 1px)" }}
       >
-        {/* 현재 슬라이드만 렌더링 */}
         {renderSlide(currentEvent, true, currentIndex)}
-
         <style>{`
-          .portrait-container {
-            position: relative;
-            width: 100vh;
-            height: 100vw;
-          }
-          
-          /* 모바일 주소창 숨기기를 위한 추가 높이 */
-          body {
-            min-height: calc(100vh + 1px);
-          }
+          .portrait-container { position: relative; width: 100vh; height: 100vw; }
+          body { min-height: calc(100vh + 1px); }
         `}</style>
       </div>
     </>
