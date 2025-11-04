@@ -566,13 +566,12 @@ export default function BillboardPage() {
         }}
       >
         {videoInfo?.embedUrl ? (
-          <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-            {/* 비디오 iframe - 작은 크기로 렌더링 후 CSS로 확대 (GPU 부하 감소) */}
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {/* 비디오 iframe */}
             <iframe
               key={`video-${event.id}`}
               src={isVisible ? videoInfo.embedUrl : 'about:blank'}
-              width="854"
-              height="480"
+              className="w-full h-full"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -598,10 +597,8 @@ export default function BillboardPage() {
               }}
               style={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%) scale(2.25)',
-                transformOrigin: 'center center',
+                top: 0,
+                left: 0,
               }}
             />
             
