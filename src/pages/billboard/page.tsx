@@ -34,23 +34,7 @@ export default function BillboardPage() {
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
   const [pendingReload, setPendingReload] = useState(false);
   const pendingReloadTimeRef = useRef<number>(0);
-  const [scale, setScale] = useState(1);
-
-  // 화면 해상도에 따른 스케일 조정
-  useEffect(() => {
-    const updateScale = () => {
-      const height = window.innerHeight;
-      const calculatedScale = Math.max(0.6, Math.min(3.0, height / 900));
-      setScale(calculatedScale);
-    };
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    window.addEventListener("orientationchange", updateScale);
-    return () => {
-      window.removeEventListener("resize", updateScale);
-      window.removeEventListener("orientationchange", updateScale);
-    };
-  }, []);
+  const scale = 1; // 고정 스케일 (원래 크기 유지)
 
   // 모바일 주소창 숨기기
   useEffect(() => {
