@@ -81,6 +81,14 @@ A hierarchical management system allows super admins to create and manage multip
 - User name and slide count indicator
 - Filtering applied in real-time based on user settings
 
+**Video Codec Optimization (November 2025)**:
+- **H.264 Enforcement**: JavaScript override in `index.html` blocks VP9/VP8 codecs via `MediaSource.isTypeSupported()` intercept
+- **Android TV Hardware Acceleration**: Forces YouTube iframes to use H.264/AVC codec instead of VP9 for better hardware decoder support
+- **Implementation**: Page-load script modifies browser codec reporting before YouTube player initialization
+- **Trade-off**: Limited to 1080p resolution (YouTube doesn't encode 4K in H.264), but ensures smooth playback on devices with weak VP9 software decoders
+- **Deployment Safety**: Billboard deployment updates wait for current slide completion before reloading to prevent GPU Context Loss during video playback
+- **GPU Stability**: 500ms transition delay between slides allows GPU resource cleanup
+
 **Data Model**:
 - `billboard_users` table: user credentials and metadata
 - `billboard_user_settings` table: per-user filtering and display preferences

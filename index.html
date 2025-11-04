@@ -78,6 +78,24 @@
         }
         originalError.apply(console, args);
       };
+      
+      // 🎬 VP9 코덱 차단 → H.264 강제 (Android TV 하드웨어 가속 최적화)
+      (function() {
+        if (typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported) {
+          const originalIsTypeSupported = MediaSource.isTypeSupported.bind(MediaSource);
+          
+          MediaSource.isTypeSupported = function(type) {
+            // VP9 코덱 차단 → YouTube가 H.264로 폴백
+            if (type && (type.includes('vp9') || type.includes('vp09') || type.includes('vp8'))) {
+              console.log('[코덱 최적화] VP9/VP8 차단 → H.264 선택:', type);
+              return false;
+            }
+            return originalIsTypeSupported(type);
+          };
+          
+          console.log('[코덱 최적화] H.264 강제 모드 활성화 (Android TV 최적화)');
+        }
+      })();
     </script>
     
     <title>광고판 - Discover Amazing Events</title>
