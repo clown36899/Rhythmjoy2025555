@@ -1,13 +1,22 @@
 export interface VideoEmbedInfo {
-  provider: 'youtube' | 'instagram' | 'facebook' | 'vimeo' | null;
+  provider: "youtube" | "instagram" | "facebook" | "vimeo" | null;
   embedUrl: string | null;
   thumbnailUrl: string | null;
   videoId: string | null;
 }
 
-export function parseVideoUrl(url: string): VideoEmbedInfo {
-  if (!url || url.trim() === '') {
-    return { provider: null, embedUrl: null, thumbnailUrl: null, videoId: null };
+// [핵심 수정] preferredQuality 인수를 추가합니다.
+export function parseVideoUrl(
+  url: string,
+  preferredQuality?: "low" | "high",
+): VideoEmbedInfo {
+  if (!url || url.trim() === "") {
+    return {
+      provider: null,
+      embedUrl: null,
+      thumbnailUrl: null,
+      videoId: null,
+    };
   }
 
   const trimmedUrl = url.trim();
@@ -17,10 +26,21 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
     if (videoId) {
       // 쇼츠는 썸네일 사용 안 함 (가로 이미지로 나오기 때문)
       const isShorts = isYouTubeShorts(trimmedUrl);
+
+      // 1. [추가] 저화질 선호(GPU 부하 감소 목적) 매개변수
+      const qualityParam = preferredQuality === "low" ? "&vq=small" : "";
+
+      // 2. [수정] 임베드 URL에 안정화 매개변수 추가
+      // &playsinline=1 (인라인 재생 보장)
+      // &rel=0 (재생 후 관련 동영상 로드 방지)
+      const commonParams = `autoplay=1&mute=1&loop=1&playlist=${videoId}${qualityParam}&playsinline=1&rel=0`;
+
       return {
-        provider: 'youtube',
-        embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`,
-        thumbnailUrl: isShorts ? null : `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        provider: "youtube",
+        embedUrl: `https://www.youtube.com/embed/${videoId}?${commonParams}`,
+        thumbnailUrl: isShorts
+          ? null
+          : `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
         videoId,
       };
     }
@@ -30,10 +50,10 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
     const match = trimmedUrl.match(/\/(p|reel|tv)\/([^/?]+)/);
     if (match) {
       const resourceId = match[2];
-      const baseUrl = trimmedUrl.split('?')[0].replace(/\/$/, '');
+      const baseUrl = trimmedUrl.split("?")[0].replace(/\/$/, "");
       const embedUrl = `${baseUrl}/embed/`;
       return {
-        provider: 'instagram',
+        provider: "instagram",
         embedUrl,
         thumbnailUrl: null,
         videoId: resourceId,
@@ -50,7 +70,7 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   if (isFacebookUrl(trimmedUrl)) {
     const encodedUrl = encodeURIComponent(trimmedUrl);
     return {
-      provider: 'facebook',
+      provider: "facebook",
       embedUrl: `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&autoplay=true&muted=true`,
       thumbnailUrl: null,
       videoId: null,
@@ -61,7 +81,7 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
     const videoId = extractVimeoId(trimmedUrl);
     if (videoId) {
       return {
-        provider: 'vimeo',
+        provider: "vimeo",
         embedUrl: `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&loop=1`,
         thumbnailUrl: null,
         videoId,
@@ -117,20 +137,22 @@ function extractVimeoId(url: string): string | null {
 }
 
 export function isValidVideoUrl(url: string): boolean {
-  if (!url || url.trim() === '') return true;
+  if (!url || url.trim() === "") return true;
+  // [수정] parseVideoUrl 호출 시 인수가 필요 없음
   const info = parseVideoUrl(url);
   return info.provider !== null && info.embedUrl !== null;
 }
 
 export function getVideoProviderName(url: string): string | null {
+  // [수정] parseVideoUrl 호출 시 인수가 필요 없음
   const info = parseVideoUrl(url);
   if (!info.provider) return null;
 
   const names: Record<string, string> = {
-    youtube: 'YouTube',
-    instagram: 'Instagram',
-    facebook: 'Facebook',
-    vimeo: 'Vimeo',
+    youtube: "YouTube",
+    instagram: "Instagram",
+    facebook: "Facebook",
+    vimeo: "Vimeo",
   };
 
   return names[info.provider] || null;
