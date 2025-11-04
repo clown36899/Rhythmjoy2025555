@@ -9,6 +9,102 @@ import type {
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
 
+// YouTube IFrame Player API 타입
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+// YouTube Player 컴포넌트 (컴포넌트 외부에 정의)
+function YouTubePlayer({
+  videoId,
+  slideIndex,
+  onPlaying,
+}: {
+  videoId: string;
+  slideIndex: number;
+  onPlaying: () => void;
+}) {
+  const playerRef = useRef<any>(null);
+  const [apiReady, setApiReady] = useState(false);
+
+  // YouTube API 로드
+  useEffect(() => {
+    if (window.YT && window.YT.Player) {
+      setApiReady(true);
+      return;
+    }
+
+    window.onYouTubeIframeAPIReady = () => {
+      console.log('[YouTube API] 준비 완료');
+      setApiReady(true);
+    };
+
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScript = document.getElementsByTagName('script')[0];
+      firstScript.parentNode?.insertBefore(tag, firstScript);
+    }
+  }, []);
+
+  // Player 생성
+  useEffect(() => {
+    if (!apiReady || !videoId || playerRef.current) return;
+
+    const playerId = `yt-player-${slideIndex}`;
+    
+    const timer = setTimeout(() => {
+      const element = document.getElementById(playerId);
+      if (!element) return;
+
+      try {
+        playerRef.current = new window.YT.Player(playerId, {
+          videoId,
+          playerVars: {
+            autoplay: 1,
+            mute: 1,
+            loop: 1,
+            playlist: videoId,
+            controls: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+            iv_load_policy: 3,
+          },
+          events: {
+            onStateChange: (event: any) => {
+              if (event.data === 1) {
+                // 재생 중
+                console.log('[YouTube] 재생 시작:', slideIndex);
+                onPlaying();
+              }
+            },
+          },
+        });
+      } catch (err) {
+        console.error('[YouTube] Player 생성 실패:', err);
+      }
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      if (playerRef.current?.destroy) {
+        try {
+          playerRef.current.destroy();
+        } catch (e) {
+          // 무시
+        }
+      }
+      playerRef.current = null;
+    };
+  }, [apiReady, videoId, slideIndex, onPlaying]);
+
+  return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
+}
+
 // 배열 셔플 함수
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
@@ -333,7 +429,7 @@ export default function BillboardPage() {
                 }}
               />
             )}
-            {/* YouTube Player */}
+            {/* YouTube Player (재생 감지만 사용, 썸네일 위에 투명하게 배치) */}
             <div
               className="w-full h-full"
               style={{
@@ -348,7 +444,10 @@ export default function BillboardPage() {
               <YouTubePlayer
                 videoId={videoInfo.videoId}
                 slideIndex={slideIndex}
-                onPlaying={() => setVideoLoadedMap(prev => ({ ...prev, [slideIndex]: true }))}
+                onPlaying={() => {
+                  console.log('[빌보드] 영상 재생 감지:', slideIndex);
+                  setVideoLoadedMap(prev => ({ ...prev, [slideIndex]: true }));
+                }}
               />
             </div>
           </>
