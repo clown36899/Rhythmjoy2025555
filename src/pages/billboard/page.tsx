@@ -536,7 +536,7 @@ export default function BillboardPage() {
               <div className="flex items-end justify-between">
                 <div
                   className="flex-1"
-                  style={{ minWidth: 0, paddingRight: `${16 * scale}px` }}
+                  style={{ minWidth: 0, paddingRight: `${8 * scale}px` }}
                 >
                   <div
                     style={{
@@ -584,12 +584,8 @@ export default function BillboardPage() {
                             ? `${Math.max(32, Math.min(40 * scale, 140))}px`
                             : `${Math.max(40, Math.min(50 * scale, 175))}px`
                           : `${Math.max(48, Math.min(62 * scale, 216))}px`,
-                      lineHeight: 1.2,
+                      lineHeight: 1.3,
                       wordBreak: "keep-all",
-                      overflow: "hidden",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
                       width: "100%",
                       animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
                       opacity: 0,
@@ -603,7 +599,7 @@ export default function BillboardPage() {
                   className="bg-white rounded-lg flex-shrink-0"
                   style={{
                     padding: `${12 * scale}px`,
-                    marginLeft: `${24 * scale}px`,
+                    marginLeft: `${12 * scale}px`,
                   }}
                 >
                   <QRCodeCanvas
