@@ -579,14 +579,20 @@ export default function BillboardPage() {
                     className="text-white font-bold"
                     style={{
                       fontSize:
-                        event.title.length > 30
-                          ? event.title.length > 50
-                            ? `${Math.max(32, Math.min(40 * scale, 140))}px`
-                            : `${Math.max(40, Math.min(50 * scale, 175))}px`
-                          : `${Math.max(48, Math.min(62 * scale, 216))}px`,
-                      lineHeight: 1.3,
+                        event.title.length > 60
+                          ? `${Math.max(28, Math.min(36 * scale, 125))}px`
+                          : event.title.length > 40
+                          ? `${Math.max(32, Math.min(42 * scale, 145))}px`
+                          : event.title.length > 25
+                          ? `${Math.max(38, Math.min(48 * scale, 170))}px`
+                          : `${Math.max(44, Math.min(56 * scale, 195))}px`,
+                      lineHeight: 1.25,
                       wordBreak: "keep-all",
                       width: "100%",
+                      overflow: "hidden",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
                       animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
                       opacity: 0,
                       transform: `scale(0.2) translateY(${100 * scale}px) rotate(-15deg)`,
