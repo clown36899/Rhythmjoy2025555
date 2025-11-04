@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
@@ -21,14 +21,15 @@ declare global {
 function YouTubePlayer({
   videoId,
   slideIndex,
-  onPlaying,
+  onPlayingCallback,
 }: {
   videoId: string;
   slideIndex: number;
-  onPlaying: () => void;
+  onPlayingCallback: (index: number) => void;
 }) {
   const playerRef = useRef<any>(null);
   const [apiReady, setApiReady] = useState(false);
+  const hasCalledOnPlaying = useRef(false);
 
   // YouTube API 로드
   useEffect(() => {
@@ -52,22 +53,7 @@ function YouTubePlayer({
 
   // Player 생성
   useEffect(() => {
-    console.log('[YouTube] useEffect 실행:', { apiReady, videoId, slideIndex, hasPlayer: !!playerRef.current });
-    
-    if (!apiReady) {
-      console.log('[YouTube] API 아직 준비 안됨');
-      return;
-    }
-    
-    if (!videoId) {
-      console.log('[YouTube] videoId 없음');
-      return;
-    }
-    
-    if (playerRef.current) {
-      console.log('[YouTube] Player 이미 존재함');
-      return;
-    }
+    if (!apiReady || !videoId || playerRef.current) return;
 
     const playerId = `yt-player-${slideIndex}`;
     console.log('[YouTube] Player 생성 시작:', playerId);
@@ -79,7 +65,6 @@ function YouTubePlayer({
         return;
       }
 
-      console.log('[YouTube] Player 객체 생성 중...');
       try {
         playerRef.current = new window.YT.Player(playerId, {
           videoId,
@@ -100,11 +85,11 @@ function YouTubePlayer({
               event.target.playVideo();
             },
             onStateChange: (event: any) => {
-              console.log('[YouTube] 상태 변경:', event.data, 'slideIndex:', slideIndex);
-              if (event.data === 1) {
-                // 재생 중
+              if (event.data === 1 && !hasCalledOnPlaying.current) {
+                // 재생 중 - 한 번만 호출
                 console.log('[YouTube] 재생 시작 감지:', slideIndex);
-                onPlaying();
+                hasCalledOnPlaying.current = true;
+                onPlayingCallback(slideIndex);
               }
             },
             onError: (event: any) => {
@@ -119,7 +104,6 @@ function YouTubePlayer({
     }, 300);
 
     return () => {
-      console.log('[YouTube] cleanup:', slideIndex);
       clearTimeout(timer);
       if (playerRef.current?.destroy) {
         try {
@@ -129,8 +113,9 @@ function YouTubePlayer({
         }
       }
       playerRef.current = null;
+      hasCalledOnPlaying.current = false;
     };
-  }, [apiReady, videoId, slideIndex, onPlaying]);
+  }, [apiReady, videoId, slideIndex, onPlayingCallback]);
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
 }
@@ -162,6 +147,12 @@ export default function BillboardPage() {
   const pendingReloadTimeRef = useRef<number>(0);
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
+
+  // YouTube 재생 콜백 (useCallback으로 안정화)
+  const handleVideoPlaying = useCallback((index: number) => {
+    console.log('[빌보드] 영상 재생 감지:', index);
+    setVideoLoadedMap(prev => ({ ...prev, [index]: true }));
+  }, []);
 
   // 모바일 주소창 숨기기
   useEffect(() => {
@@ -459,7 +450,7 @@ export default function BillboardPage() {
                 }}
               />
             )}
-            {/* YouTube Player (재생 감지만 사용, 썸네일 위에 투명하게 배치) */}
+            {/* YouTube Player */}
             <div
               className="w-full h-full"
               style={{
@@ -474,10 +465,7 @@ export default function BillboardPage() {
               <YouTubePlayer
                 videoId={videoInfo.videoId}
                 slideIndex={slideIndex}
-                onPlaying={() => {
-                  console.log('[빌보드] 영상 재생 감지:', slideIndex);
-                  setVideoLoadedMap(prev => ({ ...prev, [slideIndex]: true }));
-                }}
+                onPlayingCallback={handleVideoPlaying}
               />
             </div>
           </>
