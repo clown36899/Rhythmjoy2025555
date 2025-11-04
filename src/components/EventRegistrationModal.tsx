@@ -56,6 +56,8 @@ export default function EventRegistrationModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [videoThumbnailFile, setVideoThumbnailFile] = useState<File | null>(null); // 커스텀 비디오 썸네일
+  const [videoThumbnailPreview, setVideoThumbnailPreview] = useState<string>(""); // 커스텀 비디오 썸네일 미리보기
   const [videoPreview, setVideoPreview] = useState<{
     provider: string | null;
     embedUrl: string | null;
@@ -132,6 +134,18 @@ export default function EventRegistrationModal({
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleVideoThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVideoThumbnailFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setVideoThumbnailPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -308,6 +322,13 @@ export default function EventRegistrationModal({
         imageUrls = await uploadImages(imageFile);
       }
 
+      // 커스텀 비디오 썸네일 업로드
+      let videoThumbnailUrl = "";
+      if (videoThumbnailFile) {
+        const uploadedUrls = await uploadImages(videoThumbnailFile);
+        videoThumbnailUrl = uploadedUrls.full; // full 사이즈 사용
+      }
+
       // 날짜 데이터 준비
       let localDateString: string;
       let endDateString: string;
@@ -350,6 +371,7 @@ export default function EventRegistrationModal({
         image_medium: imageUrls.medium || null,
         image_full: imageUrls.full || null,
         video_url: formData.videoUrl || null,
+        video_thumbnail: videoThumbnailUrl || null, // 커스텀 비디오 썸네일
         description: formData.description || "",
         organizer: formData.organizer,
         organizer_name: formData.organizerName,
@@ -844,11 +866,54 @@ export default function EventRegistrationModal({
                           }));
                           setImageFile(null);
                           setImagePreview("");
+                          setVideoThumbnailFile(null);
+                          setVideoThumbnailPreview("");
                         }}
                         className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
                       >
                         영상 삭제
                       </button>
+
+                      {/* 커스텀 비디오 썸네일 업로드 (YouTube인 경우) */}
+                      {videoPreview.provider === "youtube" && (
+                        <div className="mt-4 border-t border-gray-600 pt-4">
+                          <label className="block text-gray-300 text-sm font-medium mb-2">
+                            <i className="ri-image-2-line mr-1"></i>
+                            커스텀 비디오 썸네일 (선택사항)
+                          </label>
+                          <p className="text-xs text-gray-400 mb-2">
+                            빌보드에서 영상이 로딩되기 전에 보여줄 썸네일 이미지를 설정할 수 있습니다. 
+                            설정하지 않으면 YouTube 기본 썸네일이 표시됩니다.
+                          </p>
+                          
+                          {videoThumbnailPreview && (
+                            <div className="relative mb-2">
+                              <img
+                                src={videoThumbnailPreview}
+                                alt="커스텀 썸네일 미리보기"
+                                className="w-full h-32 object-cover rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVideoThumbnailPreview("");
+                                  setVideoThumbnailFile(null);
+                                }}
+                                className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          )}
+                          
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleVideoThumbnailChange}
+                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 file:cursor-pointer"
+                          />
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <input

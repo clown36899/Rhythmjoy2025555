@@ -43,6 +43,7 @@ export interface Event {
   image_medium?: string;
   image_full?: string;
   video_url?: string;
+  video_thumbnail?: string; // 커스텀 비디오 썸네일 (없으면 YouTube 기본 사용)
   description: string;
   organizer: string;
   organizer_name?: string;
