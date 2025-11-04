@@ -362,22 +362,25 @@ export default function BillboardPage() {
     if (!hasVideo) {
       interval = setInterval(() => {
         setProgress(0);
-        if (settings.play_order === "random") {
-          const nextPlaylistIdx = playlistIndexRef.current + 1;
+        // GPU 안정화를 위한 500ms 딜레이 후 전환
+        setTimeout(() => {
+          if (settings.play_order === "random") {
+            const nextPlaylistIdx = playlistIndexRef.current + 1;
 
-          if (nextPlaylistIdx >= shuffledPlaylist.length) {
-            const newIndices = Array.from({ length: events.length }, (_, i) => i);
-            const newPlaylist = shuffleArray(newIndices);
-            setShuffledPlaylist(newPlaylist);
-            playlistIndexRef.current = 0;
-            setCurrentIndex(newPlaylist[0] || 0);
+            if (nextPlaylistIdx >= shuffledPlaylist.length) {
+              const newIndices = Array.from({ length: events.length }, (_, i) => i);
+              const newPlaylist = shuffleArray(newIndices);
+              setShuffledPlaylist(newPlaylist);
+              playlistIndexRef.current = 0;
+              setCurrentIndex(newPlaylist[0] || 0);
+            } else {
+              playlistIndexRef.current = nextPlaylistIdx;
+              setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+            }
           } else {
-            playlistIndexRef.current = nextPlaylistIdx;
-            setCurrentIndex(shuffledPlaylist[nextPlaylistIdx] || 0);
+            setCurrentIndex((prev) => (prev + 1) % events.length);
           }
-        } else {
-          setCurrentIndex((prev) => (prev + 1) % events.length);
-        }
+        }, 500);
       }, settings.auto_slide_interval);
     }
 
@@ -431,30 +434,33 @@ export default function BillboardPage() {
       videoPlayTimeoutRef.current = null;
       
       setProgress(0);
-      if (settings.play_order === "random") {
-        const nextPlaylistIdx = playlistIndexRef.current + 1;
+      // GPU Context Loss 방지를 위한 500ms 딜레이 후 전환
+      setTimeout(() => {
+        if (settings.play_order === "random") {
+          const nextPlaylistIdx = playlistIndexRef.current + 1;
 
-        if (nextPlaylistIdx >= shuffledPlaylist.length) {
-          const newIndices = Array.from({ length: events.length }, (_, i) => i);
-          const newPlaylist = shuffleArray(newIndices);
-          setShuffledPlaylist(newPlaylist);
-          playlistIndexRef.current = 0;
-          const newIndex = newPlaylist[0] || 0;
-          console.log('[빌보드] 재생목록 리셋, 새 인덱스:', newIndex);
-          setCurrentIndex(newIndex);
+          if (nextPlaylistIdx >= shuffledPlaylist.length) {
+            const newIndices = Array.from({ length: events.length }, (_, i) => i);
+            const newPlaylist = shuffleArray(newIndices);
+            setShuffledPlaylist(newPlaylist);
+            playlistIndexRef.current = 0;
+            const newIndex = newPlaylist[0] || 0;
+            console.log('[빌보드] 재생목록 리셋, 새 인덱스:', newIndex);
+            setCurrentIndex(newIndex);
+          } else {
+            playlistIndexRef.current = nextPlaylistIdx;
+            const newIndex = shuffledPlaylist[nextPlaylistIdx] || 0;
+            console.log('[빌보드] 랜덤 다음:', nextPlaylistIdx, '→ 인덱스:', newIndex);
+            setCurrentIndex(newIndex);
+          }
         } else {
-          playlistIndexRef.current = nextPlaylistIdx;
-          const newIndex = shuffledPlaylist[nextPlaylistIdx] || 0;
-          console.log('[빌보드] 랜덤 다음:', nextPlaylistIdx, '→ 인덱스:', newIndex);
-          setCurrentIndex(newIndex);
+          setCurrentIndex((prev) => {
+            const next = (prev + 1) % events.length;
+            console.log('[빌보드] 순차 전환:', prev, '→', next);
+            return next;
+          });
         }
-      } else {
-        setCurrentIndex((prev) => {
-          const next = (prev + 1) % events.length;
-          console.log('[빌보드] 순차 전환:', prev, '→', next);
-          return next;
-        });
-      }
+      }, 500);
     }, playDuration);
   };
 
@@ -549,12 +555,13 @@ export default function BillboardPage() {
         }}
       >
         {videoInfo?.embedUrl ? (
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {/* 비디오 iframe */}
+          <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+            {/* 비디오 iframe - 작은 크기로 렌더링 후 CSS로 확대 (GPU 부하 감소) */}
             <iframe
               key={`video-${event.id}`}
               src={isVisible ? videoInfo.embedUrl : 'about:blank'}
-              className="w-full h-full"
+              width="854"
+              height="480"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -580,8 +587,10 @@ export default function BillboardPage() {
               }}
               style={{
                 position: 'absolute',
-                top: 0,
-                left: 0,
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%) scale(2.25)',
+                transformOrigin: 'center center',
               }}
             />
             
