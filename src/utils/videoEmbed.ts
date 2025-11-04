@@ -64,3 +64,15 @@ function extractYouTubeId(url: string): string | null {
   }
   return null;
 }
+
+export function isValidVideoUrl(url: string): boolean {
+  if (!url?.trim()) return false;
+  const parsed = parseVideoUrl(url);
+  return parsed.provider === "youtube" && !!parsed.videoId;
+}
+
+export function getVideoProviderName(url: string): string {
+  if (!url?.trim()) return "";
+  const parsed = parseVideoUrl(url);
+  return parsed.provider === "youtube" ? "YouTube" : "";
+}

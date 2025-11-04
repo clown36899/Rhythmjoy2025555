@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import type { Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import AutoImport from "unplugin-auto-import/vite";
 
 //const base = process.env.BASE_PATH || "/";//
@@ -34,6 +34,12 @@ function buildVersionPlugin(): Plugin {
         buildTime: BUILD_TIME,
         date: new Date().toISOString()
       };
+      
+      // dist 폴더가 없으면 생성 (Netlify 빌드 안정성)
+      if (!existsSync('dist')) {
+        mkdirSync('dist', { recursive: true });
+      }
+      
       writeFileSync('dist/version.json', JSON.stringify(version));
       console.log('✅ version.json 생성됨:', version.date);
     }
