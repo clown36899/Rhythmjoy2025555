@@ -1,10 +1,10 @@
 // utils/videoEmbed.ts
 export interface VideoEmbedInfo {
   provider: "youtube" | null;
-  embedUrl: null;
+  embedUrl: string | null; // ← 추가됨
   thumbnailUrl: string | null;
   videoId: string | null;
-  nativeUrl: string | null;
+  nativeUrl: string | null; // ← 기존 유지 (AndroidKiosk.playNativeVideo용)
 }
 
 export function parseVideoUrl(url: string): VideoEmbedInfo {
@@ -19,7 +19,6 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   }
 
   const trimmed = url.trim();
-
   if (!/(youtube\.com|youtu\.be)/i.test(trimmed)) {
     return {
       provider: null,
@@ -43,10 +42,10 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
 
   return {
     provider: "youtube",
-    embedUrl: null,
+    embedUrl: `https://www.youtube.com/embed/${videoId}`, // ← 자동 재생용
     thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
     videoId,
-    nativeUrl: trimmed,
+    nativeUrl: trimmed, // ← 클릭 시 네이티브 재생용 (옵션)
   };
 }
 
@@ -63,16 +62,4 @@ function extractYouTubeId(url: string): string | null {
     if (m?.[1] && m[1].length === 11) return m[1];
   }
   return null;
-}
-
-export function isValidVideoUrl(url: string): boolean {
-  if (!url?.trim()) return false;
-  const parsed = parseVideoUrl(url);
-  return parsed.provider === "youtube" && !!parsed.videoId;
-}
-
-export function getVideoProviderName(url: string): string {
-  if (!url?.trim()) return "";
-  const parsed = parseVideoUrl(url);
-  return parsed.provider === "youtube" ? "YouTube" : "";
 }

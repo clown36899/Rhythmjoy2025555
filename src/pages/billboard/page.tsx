@@ -21,9 +21,7 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export default function BillboardPage() {
   const { userId } = useParams<{ userId: string }>();
-  const [billboardUser, setBillboardUser] = useState<BillboardUser | null>(
-    null,
-  );
+  const [billboardUser, setBillboardUser] = useState<BillboardUser | null>(null);
   const [settings, setSettings] = useState<BillboardUserSettings | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -176,14 +174,9 @@ export default function BillboardPage() {
         setShuffledPlaylist([]);
       } else {
         setEvents(filteredEvents);
-        const safeIndex =
-          currentIndex >= filteredEvents.length ? 0 : currentIndex;
-
+        const safeIndex = currentIndex >= filteredEvents.length ? 0 : currentIndex;
         if (userSettings.play_order === "random") {
-          const indices = Array.from(
-            { length: filteredEvents.length },
-            (_, i) => i,
-          );
+          const indices = Array.from({ length: filteredEvents.length }, (_, i) => i);
           const shuffled = shuffleArray(indices);
           setShuffledPlaylist(shuffled);
           playlistIndexRef.current = 0;
@@ -206,27 +199,16 @@ export default function BillboardPage() {
   ): Event[] => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     return allEvents.filter((event) => {
-      if (!event?.image_full && !event?.image && !event?.video_url)
-        return false;
+      if (!event?.image_full && !event?.image && !event?.video_url) return false;
       if (settings.excluded_event_ids.includes(event.id)) return false;
-
       const eventDate = new Date(event.start_date || event.date || "");
       const weekday = eventDate.getDay();
       if (settings.excluded_weekdays.includes(weekday)) return false;
-
-      if (
-        settings.date_filter_start &&
-        eventDate < new Date(settings.date_filter_start)
-      )
+      if (settings.date_filter_start && eventDate < new Date(settings.date_filter_start))
         return false;
-      if (
-        settings.date_filter_end &&
-        eventDate > new Date(settings.date_filter_end)
-      )
+      if (settings.date_filter_end && eventDate > new Date(settings.date_filter_end))
         return false;
-
       if (!settings.date_filter_start && !settings.date_filter_end) {
         const eventEndDate = new Date(
           event.end_date || event.start_date || event.date || "",
@@ -237,13 +219,11 @@ export default function BillboardPage() {
     });
   };
 
-  // 슬라이드 전환 타이머 (모든 슬라이드 동일한 간격)
+  // 슬라이드 전환 타이머
   useEffect(() => {
     if (!settings || events.length === 0) return;
-
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     setProgress(0);
-
     const step = (50 / settings.auto_slide_interval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((p) => (p >= 100 ? 0 : p + step));
@@ -251,12 +231,10 @@ export default function BillboardPage() {
 
     const interval = setInterval(() => {
       setProgress(0);
-
       if (pendingReload) {
         setTimeout(() => window.location.reload(), 500);
         return;
       }
-
       setTimeout(() => {
         if (settings.play_order === "random") {
           const next = playlistIndexRef.current + 1;
@@ -279,8 +257,7 @@ export default function BillboardPage() {
 
     return () => {
       clearInterval(interval);
-      if (progressIntervalRef.current)
-        clearInterval(progressIntervalRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
   }, [events, settings, shuffledPlaylist, currentIndex]);
 
@@ -321,7 +298,6 @@ export default function BillboardPage() {
     const endMonth = String(end.getMonth() + 1).padStart(2, "0");
     const startDay = String(start.getDate()).padStart(2, "0");
     const endDay = String(end.getDate()).padStart(2, "0");
-
     if (startYear === endYear) {
       if (startMonth === endMonth) {
         return `${startYear}-${startMonth}-${startDay}~${endDay}`;
@@ -351,39 +327,18 @@ export default function BillboardPage() {
           zIndex: isVisible ? 2 : 1,
         }}
       >
-        {/* 이미지 또는 유튜브 썸네일 (클릭 시 네이티브 재생) */}
-        {videoInfo?.nativeUrl ? (
-          <div
-            className="relative w-full h-full cursor-pointer"
-            onClick={() => {
-              if (window.AndroidKiosk && videoInfo.nativeUrl) {
-                console.log(
-                  "[빌보드] 네이티브 재생 요청 →",
-                  videoInfo.nativeUrl,
-                );
-                window.AndroidKiosk.playNativeVideo(videoInfo.nativeUrl);
-              }
-            }}
-          >
-            <img
-              src={imageUrl || videoInfo.thumbnailUrl || ""}
-              alt={event.title}
-              className="w-full h-full object-cover"
-              style={{ backgroundColor: "#000" }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-white/90 rounded-full p-8 shadow-2xl animate-pulse">
-                <svg
-                  className="w-16 h-16 text-black"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7L8 5z" />
-                </svg>
-              </div>
-            </div>
-          </div>
+        {/* === 자동 재생: YouTube iframe === */}
+        {videoInfo?.embedUrl ? (
+          <iframe
+            src={`${videoInfo.embedUrl}?autoplay=1&mute=1&loop=1&playlist=${videoInfo.videoId}&controls=0&modestbranding=1&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3`}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            className="w-full h-full"
+            style={{ border: 0, background: "#000" }}
+            sandbox="allow-scripts allow-same-origin allow-presentation"
+          />
         ) : (
+          /* === 일반 이미지 === */
           <img
             src={imageUrl}
             alt={event.title}
@@ -392,7 +347,7 @@ export default function BillboardPage() {
           />
         )}
 
-        {/* 정보 레이어 */}
+        {/* === 정보 레이어 === */}
         {isVisible && (
           <>
             <div
@@ -441,9 +396,7 @@ export default function BillboardPage() {
                       strokeWidth={6 * scale}
                       fill="none"
                       strokeDasharray={264 * scale}
-                      strokeDashoffset={
-                        264 * scale - (264 * scale * progress) / 100
-                      }
+                      strokeDashoffset={264 * scale - (264 * scale * progress) / 100}
                       style={{ transition: "stroke-dashoffset 0.05s linear" }}
                     />
                   </svg>
@@ -465,6 +418,7 @@ export default function BillboardPage() {
               </div>
             </div>
 
+            {/* 하단 정보 레이어 */}
             <div
               key={`info-${event.id}-${slideIndex}`}
               className="absolute bottom-0 left-0 right-0"
@@ -478,7 +432,7 @@ export default function BillboardPage() {
                   "linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 50%, transparent 100%)",
               }}
             >
-              {/* 장식 요소들 (기존 그대로) */}
+              {/* 장식 요소들 */}
               <div
                 style={{
                   position: "absolute",
@@ -591,6 +545,7 @@ export default function BillboardPage() {
                 }}
               />
 
+              {/* 제목 + QR */}
               <div className="flex items-end justify-between">
                 <div
                   className="flex-1"
@@ -614,32 +569,24 @@ export default function BillboardPage() {
                           transform: `translateX(-${150 * scale}px) rotate(-8deg)`,
                         }}
                       >
-                        <i
-                          className="ri-calendar-line"
-                          style={{ marginRight: `${8 * scale}px` }}
-                        ></i>
+                        <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
                         {formatDateRange(event.start_date, event.end_date)}
                       </div>
                     )}
-                    {event.location &&
-                      event.location.trim() &&
-                      event.location !== "미정" && (
-                        <div
-                          className="text-gray-300"
-                          style={{
-                            fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
-                            animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards`,
-                            opacity: 0,
-                            transform: `translateX(${150 * scale}px) rotate(8deg)`,
-                          }}
-                        >
-                          <i
-                            className="ri-map-pin-line"
-                            style={{ marginRight: `${8 * scale}px` }}
-                          ></i>
-                          {event.location}
-                        </div>
-                      )}
+                    {event.location && event.location.trim() && event.location !== "미정" && (
+                      <div
+                        className="text-gray-300"
+                        style={{
+                          fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                          animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards`,
+                          opacity: 0,
+                          transform: `translateX(${150 * scale}px) rotate(8deg)`,
+                        }}
+                      >
+                        <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                        {event.location}
+                      </div>
+                    )}
                   </div>
                   <h3
                     className="text-white font-bold"
@@ -694,32 +641,9 @@ export default function BillboardPage() {
       <link rel="dns-prefetch" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
-
       <style>{`
-        /* 모든 애니메이션 유지 (기존 그대로) */
         @keyframes float1 { 0% { opacity: 0; transform: scale(0) translateY(-50px); } 30% { opacity: 0.8; transform: scale(1.3) translateY(5px); } 60% { opacity: 0.6; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.8) translateY(10px); } }
         @keyframes float2 { 0% { opacity: 0; transform: scale(0) translateY(-80px); } 30% { opacity: 0.7; transform: scale(1.4) translateY(8px); } 60% { opacity: 0.5; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.7) translateY(15px); } }
         @keyframes diamond { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 30% { opacity: 0.7; transform: rotate(225deg) scale(1.3); } 60% { opacity: 0.5; transform: rotate(405deg) scale(1); } 100% { opacity: 0; transform: rotate(495deg) scale(0.6); } }
         @keyframes diamond2 { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 30% { opacity: 0.6; transform: rotate(-135deg) scale(1.4); } 60% { opacity: 0.4; transform: rotate(-315deg) scale(1); } 100% { opacity: 0; transform: rotate(-405deg) scale(0.5); } }
-        @keyframes particle1 { 0% { opacity: 0; transform: translateX(-100px) translateY(-50px) scale(0); } 30% { opacity: 0.9; transform: translateX(50px) translateY(25px) scale(1.5); } 60% { opacity: 0.6; transform: translateX(0) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(30px) translateY(-20px) scale(0.5); } }
-        @keyframes particle2 { 0% { opacity: 0; transform: translateX(100px) translateY(-50px) scale(0); } 30% { opacity: 0.85; transform: translateX(-50px) translateY(25px) scale(1.6); } 60% { opacity: 0.5; transform: translateX(0) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(-30px) translateY(-20px) scale(0.4); } }
-        @keyframes particle3 { 0% { opacity: 0; transform: translateY(-80px) scale(0); } 30% { opacity: 0.8; transform: translateY(20px) scale(1.4); } 60% { opacity: 0.5; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-15px) scale(0.6); } }
-        @keyframes drawLine { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
-        @keyframes slideInLeft { 0% { opacity: 0; transform: translateX(-150px) rotate(-8deg); } 60% { transform: translateX(20px) rotate(4deg); } 80% { transform: translateX(-8px) rotate(-2deg); } 100% { opacity: 1; transform: translateX(0) rotate(0deg); } }
-        @keyframes slideInRight { 0% { opacity: 0; transform: translateX(150px) rotate(8deg); } 60% { transform: translateX(-20px) rotate(-4deg); } 80% { transform: translateX(8px) rotate(2deg); } 100% { opacity: 1; transform: translateX(0) rotate(0deg); } }
-        @keyframes zoomInUp { 0% { opacity: 0; transform: scale(0.2) translateY(100px) rotate(-15deg); } 40% { transform: scale(1.2) translateY(-15px) rotate(5deg); } 70% { transform: scale(0.9) translateY(5px) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); } }
-      `}</style>
-
-      <div
-        className="fixed inset-0 bg-black overflow-auto flex items-center justify-center"
-        style={{ minHeight: "calc(100vh + 1px)" }}
-      >
-        {renderSlide(currentEvent, true, currentIndex)}
-        <style>{`
-          .portrait-container { position: relative; width: 100vh; height: 100vw; }
-          body { min-height: calc(100vh + 1px); }
-        `}</style>
-      </div>
-    </>
-  );
-}
+        @keyframes particle1 { 0% { opacity: 0; transform: translateX(-100px) translateY(-50px) scale(0); } 30% { opacity: 0.9; transform: translateX(50px
