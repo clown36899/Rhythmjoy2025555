@@ -35,6 +35,7 @@ export default function BillboardPage() {
   const [pendingReload, setPendingReload] = useState(false);
   const pendingReloadTimeRef = useRef<number>(0);
   const scale = 1; // 고정 스케일 (원래 크기 유지)
+  const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
 
   // 모바일 주소창 숨기기
   useEffect(() => {
@@ -296,7 +297,7 @@ export default function BillboardPage() {
     const imageUrl = event?.image_full || event?.image;
     const videoUrl = event?.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
-    const [videoLoaded, setVideoLoaded] = useState(false);
+    const videoLoaded = videoLoadedMap[slideIndex] || false;
 
     return (
       <div
@@ -351,7 +352,9 @@ export default function BillboardPage() {
               sandbox="allow-scripts allow-same-origin allow-presentation"
               onLoad={() => {
                 // iframe 로드 후 0.5초 뒤 썸네일 제거
-                setTimeout(() => setVideoLoaded(true), 500);
+                setTimeout(() => {
+                  setVideoLoadedMap(prev => ({ ...prev, [slideIndex]: true }));
+                }, 500);
               }}
             />
           </>
