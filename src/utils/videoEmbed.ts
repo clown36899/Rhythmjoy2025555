@@ -1,11 +1,17 @@
 export interface VideoEmbedInfo {
-  provider: "youtube" | "instagram" | "facebook" | "vimeo" | null;
+  // 사용하지 않는 Vimeo 제거
+  provider: "youtube" | "instagram" | "facebook" | null;
   embedUrl: string | null;
   thumbnailUrl: string | null;
   videoId: string | null;
 }
 
+/**
+ * 주어진 URL을 분석하여 빌보드에서 사용할 임베드 정보를 반환합니다.
+ * @param url 분석할 비디오 URL
+ */
 export function parseVideoUrl(url: string): VideoEmbedInfo {
+  // 1. 초기 null/빈 문자열 체크
   if (!url || url.trim() === "") {
     return {
       provider: null,
@@ -17,21 +23,20 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
 
   const trimmedUrl = url.trim();
 
+  // 2. YouTube 처리 (가장 중요)
   if (isYouTubeUrl(trimmedUrl)) {
     const videoId = extractYouTubeId(trimmedUrl);
     if (videoId) {
-      // 쇼츠는 썸네일 사용 안 함 (가로 이미지로 나오기 때문)
       const isShorts = isYouTubeShorts(trimmedUrl);
 
-      // [수정] 임베드 URL에 안정화 매개변수 추가
-      // &playsinline=1 (인라인 재생 보장)
-      // &rel=0 (재생 후 관련 동영상 로드 방지)
-      // YouTube 자동 화질 선택 (네트워크 속도/기기 성능 기반)
-      const commonParams = `autoplay=1&mute=1&loop=1&playlist=${videoId}&playsinline=1&rel=0`;
+      // 💡 [YouTube 최적화] Kiosk 모드에 필수적인 최소 오버헤드 파라미터.
+      // loop=1과 playlist=${videoId}는 영상 종료 시 끊김 없이 루프 재생을 보장합니다.
+      const commonParams = `autoplay=1&mute=1&loop=1&playlist=${videoId}&playsinline=1&rel=0&modestbranding=1`;
 
       return {
         provider: "youtube",
         embedUrl: `https://www.youtube.com/embed/${videoId}?${commonParams}`,
+        // Shorts 영상은 가로 비율 썸네일이 적절하지 않아 null 처리 유지
         thumbnailUrl: isShorts
           ? null
           : `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
@@ -40,6 +45,7 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
     }
   }
 
+  // 3. Instagram 처리
   if (isInstagramUrl(trimmedUrl)) {
     const match = trimmedUrl.match(/\/(p|reel|tv)\/([^/?]+)/);
     if (match) {
@@ -53,6 +59,7 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
         videoId: resourceId,
       };
     }
+    // URL 형식은 인스타그램이지만 ID 추출 실패 시 null 반환
     return {
       provider: null,
       embedUrl: null,
@@ -61,6 +68,7 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
     };
   }
 
+  // 4. Facebook 처리
   if (isFacebookUrl(trimmedUrl)) {
     const encodedUrl = encodeURIComponent(trimmedUrl);
     return {
@@ -71,20 +79,13 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
     };
   }
 
-  if (isVimeoUrl(trimmedUrl)) {
-    const videoId = extractVimeoId(trimmedUrl);
-    if (videoId) {
-      return {
-        provider: "vimeo",
-        embedUrl: `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&loop=1`,
-        thumbnailUrl: null,
-        videoId,
-      };
-    }
-  }
+  // 5. Vimeo 로직 제거 완료
 
+  // 6. 지원하지 않는 URL의 경우
   return { provider: null, embedUrl: null, thumbnailUrl: null, videoId: null };
 }
+
+// --- 헬퍼 함수 ---
 
 function isYouTubeUrl(url: string): boolean {
   return /(?:youtube\.com|youtu\.be)/.test(url);
@@ -101,12 +102,15 @@ function extractYouTubeId(url: string): string | null {
     /(?:youtube\.com\/v\/)([^?]+)/,
     /(?:youtu\.be\/)([^?]+)/,
     /(?:youtube\.com\/shorts\/)([^?]+)/,
+    // [개선] youtube.com/watch?v=XXXXX&list=... 와 같은 경우를 위해,
+    // &나 ? 이전의 문자열만 추출하는 패턴을 명확히 합니다.
+    /v=([a-zA-Z0-9_-]{11})/,
   ];
 
   for (const pattern of patterns) {
     const match = url.match(pattern);
     if (match && match[1]) {
-      return match[1];
+      return match[1]; // 유효한 Video ID 반환
     }
   }
 
@@ -121,32 +125,23 @@ function isFacebookUrl(url: string): boolean {
   return /facebook\.com|fb\.watch/.test(url);
 }
 
-function isVimeoUrl(url: string): boolean {
-  return /vimeo\.com/.test(url);
-}
-
-function extractVimeoId(url: string): string | null {
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  return match ? match[1] : null;
-}
+// Vimeo 관련 헬퍼 함수 제거 완료
 
 export function isValidVideoUrl(url: string): boolean {
   if (!url || url.trim() === "") return true;
-  // [수정] parseVideoUrl 호출 시 인수가 필요 없음
   const info = parseVideoUrl(url);
   return info.provider !== null && info.embedUrl !== null;
 }
 
 export function getVideoProviderName(url: string): string | null {
-  // [수정] parseVideoUrl 호출 시 인수가 필요 없음/
   const info = parseVideoUrl(url);
   if (!info.provider) return null;
 
-  const names: Record<string, string> = {
+  const names: Record<Exclude<VideoEmbedInfo["provider"], null>, string> = {
     youtube: "YouTube",
     instagram: "Instagram",
     facebook: "Facebook",
-    vimeo: "Vimeo",
+    // vimeo 제거
   };
 
   return names[info.provider] || null;
