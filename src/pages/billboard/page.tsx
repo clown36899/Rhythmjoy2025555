@@ -324,9 +324,21 @@ export default function BillboardPage() {
   // 슬라이드 전환 타이머
   useEffect(() => {
     if (!settings || events.length === 0) return;
+    
+    // 현재 이벤트 가져오기
+    const currentEvent = events[currentIndex];
+    const hasVideo = !!currentEvent?.video_url;
+    
+    // 영상이 있으면 video_play_duration, 없으면 auto_slide_interval 사용
+    const slideInterval = hasVideo 
+      ? (settings.video_play_duration || 10000) 
+      : settings.auto_slide_interval;
+    
+    console.log(`[빌보드] 슬라이드 ${currentIndex} - 영상: ${hasVideo ? 'O' : 'X'}, 간격: ${slideInterval}ms`);
+    
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     setProgress(0);
-    const step = (50 / settings.auto_slide_interval) * 100;
+    const step = (50 / slideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((p) => (p >= 100 ? 0 : p + step));
     }, 50);
@@ -337,6 +349,14 @@ export default function BillboardPage() {
         setTimeout(() => window.location.reload(), 500);
         return;
       }
+      
+      // 현재 슬라이드의 비디오 로딩 상태 초기화 (다음 번에 다시 보이면 썸네일부터 시작)
+      setVideoLoadedMap(prev => {
+        const newMap = { ...prev };
+        delete newMap[currentIndex];
+        return newMap;
+      });
+      
       setTimeout(() => {
         if (settings.play_order === "random") {
           const next = playlistIndexRef.current + 1;
@@ -355,7 +375,7 @@ export default function BillboardPage() {
           setCurrentIndex((prev) => (prev + 1) % events.length);
         }
       }, 500);
-    }, settings.auto_slide_interval);
+    }, slideInterval);
 
     return () => {
       clearInterval(interval);
