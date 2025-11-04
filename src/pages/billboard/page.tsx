@@ -296,6 +296,7 @@ export default function BillboardPage() {
     const imageUrl = event?.image_full || event?.image;
     const videoUrl = event?.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
+    const [videoLoaded, setVideoLoaded] = useState(false);
 
     return (
       <div
@@ -313,16 +314,47 @@ export default function BillboardPage() {
           zIndex: isVisible ? 2 : 1,
         }}
       >
-        {/* === 자동 재생: YouTube iframe === */}
+        {/* === 유튜브 영상 + 썸네일 === */}
         {videoInfo?.embedUrl ? (
-          <iframe
-            src={`${videoInfo.embedUrl}?autoplay=1&mute=1&loop=1&playlist=${videoInfo.videoId}&controls=0&modestbranding=1&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3`}
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-            className="w-full h-full"
-            style={{ border: 0, background: "#000" }}
-            sandbox="allow-scripts allow-same-origin allow-presentation"
-          />
+          <>
+            {/* 썸네일 (로딩 중에만 표시) */}
+            {!videoLoaded && videoInfo.thumbnailUrl && (
+              <img
+                src={videoInfo.thumbnailUrl}
+                alt={event.title}
+                className="w-full h-full object-contain"
+                style={{
+                  backgroundColor: "#000",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  zIndex: 1,
+                }}
+              />
+            )}
+            {/* YouTube iframe */}
+            <iframe
+              src={`${videoInfo.embedUrl}?autoplay=1&mute=1&loop=1&playlist=${videoInfo.videoId}&controls=0&modestbranding=1&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3`}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+              className="w-full h-full"
+              style={{
+                border: 0,
+                background: "#000",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                zIndex: videoLoaded ? 2 : 0,
+                opacity: videoLoaded ? 1 : 0,
+                transition: "opacity 0.5s ease-in-out",
+              }}
+              sandbox="allow-scripts allow-same-origin allow-presentation"
+              onLoad={() => {
+                // iframe 로드 후 0.5초 뒤 썸네일 제거
+                setTimeout(() => setVideoLoaded(true), 500);
+              }}
+            />
+          </>
         ) : (
           /* === 일반 이미지 === */
           <img
