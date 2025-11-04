@@ -144,7 +144,7 @@ export function isValidVideoUrl(url: string): boolean {
 }
 
 export function getVideoProviderName(url: string): string | null {
-  // [수정] parseVideoUrl 호출 시 인수가 필요 없음
+  // [수정] parseVideoUrl 호출 시 인수가 필요 없음/
   const info = parseVideoUrl(url);
   if (!info.provider) return null;
 
