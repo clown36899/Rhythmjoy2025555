@@ -459,7 +459,7 @@ export default function BillboardPage() {
         {videoInfo?.videoId ? (
           <>
             {/* 썸네일 (로딩 중에만 표시) - 커스텀 이미지 우선, 없으면 YouTube 기본 */}
-            {!videoLoaded && thumbnailUrl && (
+            {thumbnailUrl && (
               <img
                 src={thumbnailUrl}
                 alt={event.title}
@@ -470,6 +470,8 @@ export default function BillboardPage() {
                   top: 0,
                   left: 0,
                   zIndex: 1,
+                  opacity: videoLoaded ? 0 : 1,
+                  transition: "opacity 0.8s ease-in-out",
                 }}
               />
             )}
@@ -480,7 +482,7 @@ export default function BillboardPage() {
                 position: "absolute",
                 top: 0,
                 left: 0,
-                zIndex: videoLoaded ? 2 : 0,
+                zIndex: 2,
                 opacity: videoLoaded ? 1 : 0,
                 transition: "opacity 0.8s ease-in-out",
               }}
