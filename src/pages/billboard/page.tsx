@@ -415,6 +415,9 @@ export default function BillboardPage() {
     const videoUrl = event?.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
     const videoLoaded = videoLoadedMap[slideIndex] || false;
+    
+    // 썸네일: 사용자 업로드 이미지 우선, 없으면 YouTube 기본 썸네일
+    const thumbnailUrl = imageUrl || videoInfo?.thumbnailUrl;
 
     return (
       <div
@@ -435,10 +438,10 @@ export default function BillboardPage() {
         {/* === 유튜브 영상 + 썸네일 === */}
         {videoInfo?.videoId ? (
           <>
-            {/* 썸네일 (로딩 중에만 표시) */}
-            {!videoLoaded && videoInfo.thumbnailUrl && (
+            {/* 썸네일 (로딩 중에만 표시) - 커스텀 이미지 우선, 없으면 YouTube 기본 */}
+            {!videoLoaded && thumbnailUrl && (
               <img
-                src={videoInfo.thumbnailUrl}
+                src={thumbnailUrl}
                 alt={event.title}
                 className="w-full h-full object-contain"
                 style={{
