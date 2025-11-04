@@ -5,11 +5,7 @@ export interface VideoEmbedInfo {
   videoId: string | null;
 }
 
-// [핵심 수정] preferredQuality 인수를 추가합니다.
-export function parseVideoUrl(
-  url: string,
-  preferredQuality?: "low" | "high",
-): VideoEmbedInfo {
+export function parseVideoUrl(url: string): VideoEmbedInfo {
   if (!url || url.trim() === "") {
     return {
       provider: null,
@@ -27,13 +23,11 @@ export function parseVideoUrl(
       // 쇼츠는 썸네일 사용 안 함 (가로 이미지로 나오기 때문)
       const isShorts = isYouTubeShorts(trimmedUrl);
 
-      // 1. [추가] 저화질 선호(GPU 부하 감소 목적) 매개변수
-      const qualityParam = preferredQuality === "low" ? "&vq=small" : "";
-
-      // 2. [수정] 임베드 URL에 안정화 매개변수 추가
+      // [수정] 임베드 URL에 안정화 매개변수 추가
       // &playsinline=1 (인라인 재생 보장)
       // &rel=0 (재생 후 관련 동영상 로드 방지)
-      const commonParams = `autoplay=1&mute=1&loop=1&playlist=${videoId}${qualityParam}&playsinline=1&rel=0`;
+      // YouTube 자동 화질 선택 (네트워크 속도/기기 성능 기반)
+      const commonParams = `autoplay=1&mute=1&loop=1&playlist=${videoId}&playsinline=1&rel=0`;
 
       return {
         provider: "youtube",
