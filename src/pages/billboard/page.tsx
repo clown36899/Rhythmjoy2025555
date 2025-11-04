@@ -304,6 +304,8 @@ export default function BillboardPage() {
           position: "absolute",
           top: "50%",
           left: "50%",
+          width: "100vh",
+          height: "100vw",
           transform: `translate(-50%, -50%) rotate(90deg)`,
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? "auto" : "none",
