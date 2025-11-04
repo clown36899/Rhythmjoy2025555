@@ -350,14 +350,9 @@ export default function BillboardPage() {
         return;
       }
       
-      // 현재 슬라이드의 비디오 로딩 상태 초기화 (다음 번에 다시 보이면 썸네일부터 시작)
-      setVideoLoadedMap(prev => {
-        const newMap = { ...prev };
-        delete newMap[currentIndex];
-        return newMap;
-      });
-      
       setTimeout(() => {
+        const previousIndex = currentIndex;
+        
         if (settings.play_order === "random") {
           const next = playlistIndexRef.current + 1;
           if (next >= shuffledPlaylist.length) {
@@ -374,6 +369,15 @@ export default function BillboardPage() {
         } else {
           setCurrentIndex((prev) => (prev + 1) % events.length);
         }
+        
+        // 슬라이드 전환 후 이전 슬라이드의 비디오 로딩 상태 초기화
+        setTimeout(() => {
+          setVideoLoadedMap(prev => {
+            const newMap = { ...prev };
+            delete newMap[previousIndex];
+            return newMap;
+          });
+        }, 100);
       }, 500);
     }, slideInterval);
 
