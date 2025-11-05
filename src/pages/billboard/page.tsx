@@ -298,173 +298,17 @@ export default function BillboardPage() {
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
         
-        // 🎯 지연 업데이트: 대기 중인 변경사항 적용
+        // 🎯 변경사항 감지 시 새로고침 (React.memo가 캐시 관리)
         if (pendingChangesRef.current.length > 0) {
-          console.log(`[지연 업데이트] ${pendingChangesRef.current.length}건 적용 시작`);
+          const changeCount = pendingChangesRef.current.length;
+          console.log(`[변경사항 감지] ${changeCount}건 → 전체 새로고침 예약`);
           
-          let needsPlaylistRebuild = false; // 플레이리스트 재구성 필요 여부
-          let deletedEventIndex: number | null = null; // 삭제된 이벤트의 원래 인덱스
-          
-          setEvents(prevEvents => {
-            let updatedEvents = [...prevEvents];
-            
-            pendingChangesRef.current.forEach((change, index) => {
-              const eventType = change.eventType;
-              const newEvent = change.new;
-              const oldEvent = change.old;
-              
-              console.log(`[간소화 업데이트] ${index + 1}/${pendingChangesRef.current.length} - ${eventType}:`, newEvent?.id || oldEvent?.id);
-              
-              if (eventType === 'INSERT' && newEvent) {
-                // 새 이벤트 추가 (필터링 적용)
-                const filtered = latestSettings ? filterEvents([newEvent], latestSettings) : [];
-                if (filtered.length > 0) {
-                  updatedEvents.push(filtered[0]);
-                  needsPlaylistRebuild = true;
-                  console.log(`[간소화 업데이트] INSERT: 이벤트 ${newEvent.id} 추가 (끝에 추가, 나중에 정렬)`);
-                }
-              } 
-              else if (eventType === 'UPDATE') {
-                // UPDATE는 전체 새로고침으로 처리 (React.memo가 캐시 관리)
-                console.log(`[간소화 업데이트] UPDATE 감지 → 전체 새로고침 예약`);
-                pendingReloadRef.current = true;
-              }
-              else if (eventType === 'DELETE' && oldEvent) {
-                // 이벤트 삭제
-                const existingIndex = updatedEvents.findIndex(e => e.id === oldEvent.id);
-                if (existingIndex >= 0) {
-                  // 삭제된 이벤트가 현재 재생 중인지 확인
-                  if (currentEventId && oldEvent.id === currentEventId) {
-                    deletedEventIndex = existingIndex;
-                  }
-                  updatedEvents.splice(existingIndex, 1);
-                  needsPlaylistRebuild = true;
-                  console.log(`[간소화 업데이트] DELETE: 이벤트 ${oldEvent.id} 삭제됨 (인덱스 ${existingIndex})`);
-                }
-              }
-            });
-            
-            // INSERT로 추가된 이벤트들 정렬 (한 번만)
-            if (needsPlaylistRebuild && !pendingReloadRef.current) {
-              updatedEvents.sort((a, b) => {
-                const aDate = new Date(a.start_date || a.date || "");
-                const bDate = new Date(b.start_date || b.date || "");
-                return aDate.getTime() - bDate.getTime();
-              });
-              console.log(`[간소화 업데이트] 전체 이벤트 날짜순 정렬 완료`);
-            }
-            
-            return updatedEvents;
-          });
-          
-          // 플레이리스트 재구성 (INSERT/DELETE 발생 시)
-          if (needsPlaylistRebuild) {
-            // 기존 타이머 즉시 정리 (stale closure 방지)
-            if (slideTimerRef.current) {
-              clearInterval(slideTimerRef.current);
-              slideTimerRef.current = null;
-            }
-            if (progressIntervalRef.current) {
-              clearInterval(progressIntervalRef.current);
-              progressIntervalRef.current = null;
-            }
-            console.log("[타이머 정리] 플레이리스트 재구성으로 인한 타이머 중단");
-            
-            setTimeout(() => {
-              // Ref에서 현재 이벤트 ID 가져오기 (stale closure 방지)
-              const currentEventId = currentEventIdRef.current;
-              const deletedIndex = deletedEventIndex; // 클로저 캡처
-              
-              setEvents(currentEvents => {
-                // 동기화: Ref 업데이트
-                eventsRef.current = currentEvents;
-                
-                // 최신 settings 가져오기 (stale closure 방지)
-                const latestSettings = settingsRef.current;
-                
-                const currentEvent = currentEvents.find(e => e.id === currentEventId);
-                const hasVideo = !!currentEvent?.video_url;
-                const slideInterval = hasVideo ? 
-                  (latestSettings?.auto_slide_interval_video || latestSettings?.auto_slide_interval || 10000) : 
-                  (latestSettings?.auto_slide_interval || 10000);
-                
-                if (latestSettings?.play_order === "random") {
-                  // Random 모드: 현재 이벤트 보존하며 플레이리스트 재구성
-                  const newCurrentIndex = currentEventId ? currentEvents.findIndex(e => e.id === currentEventId) : -1;
-                  
-                  const indices = Array.from({ length: currentEvents.length }, (_, i) => i);
-                  const shuffled = shuffleArray(indices);
-                  setShuffledPlaylist(shuffled);
-                  shuffledPlaylistRef.current = shuffled; // Ref 동기화
-                  
-                  if (newCurrentIndex >= 0) {
-                    // 현재 이벤트 존재 → 유지하고 타이머 재시작
-                    const newPlaylistIndex = shuffled.indexOf(newCurrentIndex);
-                    playlistIndexRef.current = newPlaylistIndex >= 0 ? newPlaylistIndex : 0;
-                    setCurrentIndex(newCurrentIndex);
-                    currentEventIdRef.current = currentEvents[newCurrentIndex].id; // ID 업데이트
-                    console.log(`[플레이리스트 재구성] Random - 현재 슬라이드 유지 (playlist[${newPlaylistIndex}] = slide ${newCurrentIndex})`);
-                    
-                    // 타이머 재시작 (현재 슬라이드, 새 플레이리스트)
-                    setTimeout(() => startSlideTimer(slideInterval), 200);
-                  } else {
-                    // 현재 이벤트 삭제됨 → 다음 슬라이드로
-                    playlistIndexRef.current = 0;
-                    const nextIndex = shuffled[0] ?? 0;
-                    setCurrentIndex(nextIndex);
-                    currentEventIdRef.current = currentEvents[nextIndex]?.id || null; // ID 업데이트
-                    console.log(`[플레이리스트 재구성] Random - 현재 슬라이드 삭제됨, 다음으로 이동 (slide ${nextIndex})`);
-                    
-                    // 다음 슬라이드 타이머 시작 (영상인 경우 playVideo에서 시작, 이미지인 경우 즉시)
-                    const nextEvent = currentEvents[nextIndex];
-                    if (!nextEvent?.video_url) {
-                      setTimeout(() => startSlideTimer(slideInterval), 200);
-                    }
-                  }
-                } else {
-                  // Sequential 모드: 이벤트 ID로 추적하여 위치 재계산
-                  const newCurrentIndex = currentEventId ? currentEvents.findIndex(e => e.id === currentEventId) : -1;
-                  
-                  if (newCurrentIndex >= 0) {
-                    // 현재 이벤트 존재 → 새 인덱스로 업데이트하고 타이머 재시작
-                    setCurrentIndex(newCurrentIndex);
-                    currentEventIdRef.current = currentEvents[newCurrentIndex].id; // ID 유지
-                    console.log(`[플레이리스트 재구성] Sequential - 현재 슬라이드 유지 (→ ${newCurrentIndex})`);
-                    
-                    // 타이머 재시작 (현재 슬라이드)
-                    setTimeout(() => startSlideTimer(slideInterval), 200);
-                  } else {
-                    // 현재 이벤트 삭제됨 → 다음 슬라이드로 (삭제된 위치 기준)
-                    const nextIndex = deletedIndex !== null && deletedIndex < currentEvents.length 
-                      ? deletedIndex  // 삭제된 위치에 있는 다음 슬라이드
-                      : Math.max(0, currentEvents.length - 1); // 또는 마지막 슬라이드
-                    setCurrentIndex(nextIndex);
-                    currentEventIdRef.current = currentEvents[nextIndex]?.id || null; // ID 업데이트
-                    console.log(`[플레이리스트 재구성] Sequential - 현재 슬라이드 삭제됨 (인덱스 ${deletedIndex}), 다음으로 (${nextIndex})`);
-                    
-                    // 다음 슬라이드 타이머 시작 (영상인 경우 playVideo에서 시작, 이미지인 경우 즉시)
-                    const nextEvent = currentEvents[nextIndex];
-                    if (!nextEvent?.video_url) {
-                      setTimeout(() => startSlideTimer(slideInterval), 200);
-                    }
-                  }
-                }
-                return currentEvents;
-              });
-            }, 100);
-            
-            // 대기열 초기화
-            pendingChangesRef.current = [];
-            setRealtimeStatus("변경사항 적용 완료!");
-            setTimeout(() => setRealtimeStatus("연결됨"), 2000);
-            
-            // 플레이리스트 재구성 중 → 다음 슬라이드 전환 skip (재구성 완료 후 타이머가 자동 재시작)
-            return;
-          }
+          // 모든 변경사항 → 새로고침으로 단순화
+          pendingReloadRef.current = true;
           
           // 대기열 초기화
           pendingChangesRef.current = [];
-          setRealtimeStatus("변경사항 적용 완료!");
+          setRealtimeStatus(`변경 ${changeCount}건 감지, 새로고침 예정`);
           setTimeout(() => setRealtimeStatus("연결됨"), 2000);
         }
         
@@ -649,7 +493,15 @@ export default function BillboardPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "events" },
         (payload) => {
-          console.log("[증분 업데이트] 이벤트 변경 감지:", payload.eventType, payload);
+          console.log("[변경사항 감지] 이벤트 변경:", payload.eventType, payload);
+          
+          // 이벤트가 0개일 때는 즉시 새로고침 (타이머가 안 돌아가므로)
+          if (eventsRef.current.length === 0) {
+            console.log("[변경사항 감지] 빈 화면 → 즉시 새로고침");
+            setRealtimeStatus("새 이벤트 감지! 즉시 새로고침...");
+            setTimeout(() => window.location.reload(), 500);
+            return;
+          }
           
           // 대기열에 추가 (지연 업데이트, ref 사용)
           pendingChangesRef.current = [...pendingChangesRef.current, payload];
