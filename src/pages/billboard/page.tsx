@@ -847,7 +847,14 @@ export default function BillboardPage() {
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="text-white text-2xl">로딩 중...</div>
+        <div className="flex flex-col items-center gap-6">
+          {/* 부드러운 스피너 애니메이션 */}
+          <div className="relative w-20 h-20">
+            <div className="absolute inset-0 border-4 border-gray-700 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-white border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          </div>
+          <div className="text-white text-xl font-light animate-pulse">이벤트 불러오는 중</div>
+        </div>
       </div>
     );
   }
