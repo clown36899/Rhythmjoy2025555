@@ -46,8 +46,12 @@ export default function Header({
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccessType, setLoginSuccessType] = useState("");
   const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
+  const [isDevAdmin, setIsDevAdmin] = useState(false); // 개발자 프리패스 상태
   
   const { isAdmin, signOut, signInWithKakao, signInAsDevAdmin } = useAuth();
+  
+  // 실제 관리자 또는 개발자 프리패스
+  const isEffectiveAdmin = isAdmin || isDevAdmin;
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] =
@@ -207,6 +211,7 @@ export default function Header({
     // 로컬 상태 초기화
     setBillboardUserId(null);
     setBillboardUserName("");
+    setIsDevAdmin(false); // 개발자 프리패스 상태 초기화
     onAdminModeToggle?.(false, null, null, "");
     
     // 강제 새로고침 (PWA 캐시 무시)
@@ -458,7 +463,7 @@ export default function Header({
                 <h3 className="text-lg font-bold text-white">설정</h3>
               </div>
 
-              {!isAdmin && billboardUserId === null ? (
+              {!isEffectiveAdmin && billboardUserId === null ? (
                 <div className="text-center">
                   <h4 className="text-lg font-semibold text-white mb-2">
                     관리자 로그인
@@ -491,6 +496,7 @@ export default function Header({
                         onClick={() => {
                           // 개발 환경 전용 - Supabase 우회하고 바로 관리자 모드 활성화
                           console.log('[개발 프리패스] 우회 로그인 시작');
+                          setIsDevAdmin(true); // 개발자 관리자 상태 활성화
                           onAdminModeToggle?.(true, "super", null, "");
                           setLoginSuccessName("개발자 (프리패스)");
                           setLoginSuccessType("개발자 프리패스 - 전체 관리자");
@@ -508,12 +514,12 @@ export default function Header({
               ) : (
                 <div>
                   <h4 className="text-lg font-semibold text-white mb-4">
-                    {isAdmin && billboardUserId === null
-                      ? "슈퍼 관리자 모드"
+                    {isEffectiveAdmin && billboardUserId === null
+                      ? (isDevAdmin ? "슈퍼 관리자 모드 (개발)" : "슈퍼 관리자 모드")
                       : `${billboardUserName} 빌보드 관리자`}
                   </h4>
                   <p className="text-gray-300 text-sm mb-4">
-                    {isAdmin && billboardUserId === null
+                    {isEffectiveAdmin && billboardUserId === null
                       ? "모든 콘텐츠를 관리할 수 있습니다."
                       : "자신의 빌보드 설정을 관리할 수 있습니다."}
                   </p>
@@ -541,7 +547,7 @@ export default function Header({
                         빌보드 주소 복사
                       </button>
                     )}
-                    {isAdmin && billboardUserId === null && (
+                    {isEffectiveAdmin && billboardUserId === null && (
                       <>
                         <button
                           onClick={() => {
@@ -586,7 +592,7 @@ export default function Header({
                     >
                       로그아웃
                     </button>
-                    {isAdmin && billboardUserId === null && (
+                    {isEffectiveAdmin && billboardUserId === null && (
                       <button
                         onClick={() => setShowSettingsModal(false)}
                         className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
