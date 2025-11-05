@@ -139,22 +139,33 @@ export default function AdminBillboardModal({
       const startDate = userSettings.date_filter_start || todayStr;
       const endDate = userSettings.date_filter_end;
 
-      let query = supabase
+      // end_date도 함께 가져오기 (종료일 기준 필터링을 위해)
+      const { data, error } = await supabase
         .from('events')
-        .select('id, title, start_date, date, image_full, image, video_url')
-        .gte('start_date', startDate);
-
-      if (endDate) {
-        query = query.lte('start_date', endDate);
-      }
-
-      const { data, error } = await query.order('start_date', { ascending: true });
+        .select('id, title, start_date, end_date, date, image_full, image, video_url')
+        .order('start_date', { ascending: true });
 
       if (error) throw error;
 
+      // 날짜 필터 적용 (종료일 기준)
+      let filteredByDate = data || [];
+      if (startDate) {
+        filteredByDate = filteredByDate.filter(event => {
+          // 종료일이 있으면 종료일 기준, 없으면 시작일 기준
+          const endDateStr = event.end_date || event.start_date;
+          return endDateStr >= startDate;
+        });
+      }
+      if (endDate) {
+        filteredByDate = filteredByDate.filter(event => {
+          // 시작일이 종료 날짜 이전이어야 함
+          return event.start_date <= endDate;
+        });
+      }
+
       // 제외 요일 필터 적용
       const excludedWeekdays = userSettings.excluded_weekdays || [];
-      const filteredEvents = (data || []).filter(event => {
+      const filteredEvents = filteredByDate.filter(event => {
         const eventDate = new Date(event.start_date);
         const dayOfWeek = eventDate.getDay();
         return !excludedWeekdays.includes(dayOfWeek);
