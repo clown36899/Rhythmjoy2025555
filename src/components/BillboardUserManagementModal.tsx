@@ -9,6 +9,9 @@ interface SimpleEvent {
   title: string;
   start_date: string | null;
   date: string | null;
+  image_full?: string | null;
+  image?: string | null;
+  video_url?: string | null;
 }
 
 interface BillboardUserManagementModalProps {
@@ -174,16 +177,6 @@ export default function BillboardUserManagementModal({
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
-
-      // 마지막 이벤트 날짜 조회
-      const { data: lastEvent } = await supabase
-        .from('events')
-        .select('start_date')
-        .order('start_date', { ascending: false })
-        .limit(1)
-        .single();
-
-      // defaultEndDate 계산 (현재 사용하지 않음)
 
       setSelectedSettings(data);
       setExcludedWeekdays(data.excluded_weekdays || []);
