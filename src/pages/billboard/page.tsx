@@ -102,10 +102,14 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
           },
           events: {
             onReady: (event: any) => {
-              console.log('[YouTube] Player 준비 완료, 재생 시작:', slideIndex);
-              event.target.playVideo();
-              // 재생 시작 콜백 (onStateChange 대신 onReady에서 호출)
-              if (!hasCalledOnPlaying.current) {
+              console.log('[YouTube] Player 준비 완료:', slideIndex);
+              // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
+              // 부모 컴포넌트에서 명시적으로 playVideo 호출할 예정
+            },
+            onStateChange: (event: any) => {
+              // 재생 시작 감지 (YT.PlayerState.PLAYING = 1)
+              if (event.data === 1 && !hasCalledOnPlaying.current) {
+                console.log('[YouTube] 재생 시작 감지:', slideIndex);
                 hasCalledOnPlaying.current = true;
                 onPlayingCallback(slideIndex);
               }
@@ -125,6 +129,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
       clearTimeout(timer);
       // destroy() 제거 - Player 객체 유지하여 캐시 활용
       console.log('[YouTube] Player cleanup (destroy 안함):', slideIndex);
+      // hasCalledOnPlaying 리셋하여 재진입 시 다시 재생 가능
+      hasCalledOnPlaying.current = false;
     };
   }, [apiReady, videoId, slideIndex, onPlayingCallback]);
 
@@ -289,7 +295,7 @@ export default function BillboardPage() {
   // 메모리 모니터링
   const checkMemory = useCallback(() => {
     if ((performance as any).memory) {
-      const { usedJSHeapSize, totalJSHeapSize, jsHeapSizeLimit } = (performance as any).memory;
+      const { usedJSHeapSize, jsHeapSizeLimit } = (performance as any).memory;
       const usedMB = (usedJSHeapSize / 1048576).toFixed(2);
       const limitMB = (jsHeapSizeLimit / 1048576).toFixed(2);
       const percentage = ((usedJSHeapSize / jsHeapSizeLimit) * 100).toFixed(1);
@@ -297,18 +303,32 @@ export default function BillboardPage() {
     }
   }, [events.length]);
 
-  // currentIndex 변경 시 이전 슬라이드 pause
+  // currentIndex 변경 시 슬라이드 전환 (pause 이전, play 현재)
   useEffect(() => {
     const prevIndex = prevIndexRef.current;
+    const currentEvent = events[currentIndex];
+    const hasVideo = !!currentEvent?.video_url;
+    
+    // 이전 슬라이드 pause
     if (prevIndex !== currentIndex && playerRefsRef.current[prevIndex]) {
       console.log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 슬라이드 일시정지`);
       playerRefsRef.current[prevIndex]?.pauseVideo();
     }
+    
+    // 현재 슬라이드가 영상이면 재생 시작
+    if (hasVideo && playerRefsRef.current[currentIndex]) {
+      console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 시작`);
+      // 약간의 지연 후 재생 (Player 준비 대기)
+      setTimeout(() => {
+        playerRefsRef.current[currentIndex]?.playVideo();
+      }, 200);
+    }
+    
     prevIndexRef.current = currentIndex;
     
     // 메모리 모니터링
     checkMemory();
-  }, [currentIndex, checkMemory]);
+  }, [currentIndex, checkMemory, events]);
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((index: number) => {
