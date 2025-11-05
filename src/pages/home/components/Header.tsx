@@ -531,6 +531,13 @@ export default function Header({
                         개발자 프리패스 🔓
                       </button>
                     )}
+                    
+                    <button
+                      onClick={() => setShowSettingsModal(false)}
+                      className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer mt-4"
+                    >
+                      닫기
+                    </button>
                   </div>
                 </div>
               ) : (
