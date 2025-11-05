@@ -597,18 +597,28 @@ export default function Header({
                           <button
                             onClick={async () => {
                               // 서브 관리자 목록 가져오기
+                              console.log('[개발 모드] 서브 관리자 목록 조회 시작');
                               const { data, error } = await supabase
                                 .from('billboard_users')
-                                .select('id, user_name')
+                                .select('id, user_name, is_active')
                                 .eq('is_active', true)
                                 .order('created_at', { ascending: true });
                               
-                              if (!error && data) {
-                                setBillboardUsers(data);
-                                setShowSubAdminSelector(true);
-                              } else {
-                                alert('서브 관리자 목록을 불러올 수 없습니다.');
+                              console.log('[개발 모드] 조회 결과:', { data, error });
+                              
+                              if (error) {
+                                console.error('[개발 모드] 조회 에러:', error);
+                                alert(`서브 관리자 목록을 불러올 수 없습니다.\n에러: ${error.message}`);
+                                return;
                               }
+                              
+                              if (!data || data.length === 0) {
+                                alert('등록된 서브 관리자가 없습니다.');
+                                return;
+                              }
+                              
+                              setBillboardUsers(data);
+                              setShowSubAdminSelector(true);
                             }}
                             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                           >
