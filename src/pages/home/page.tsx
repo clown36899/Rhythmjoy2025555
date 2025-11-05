@@ -835,7 +835,7 @@ export default function HomePage() {
         settings={settings}
         onUpdateSettings={updateSettings}
         onResetSettings={resetSettings}
-        adminType={isAdmin ? "super" : (billboardUserId ? "sub" : null)}
+        adminType={billboardUserId ? "sub" : (isAdmin ? "super" : null)}
         billboardUserId={billboardUserId}
         billboardUserName={billboardUserName}
       />
