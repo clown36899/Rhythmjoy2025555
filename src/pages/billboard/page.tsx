@@ -153,6 +153,8 @@ export default function BillboardPage() {
   const [titleFontSize, setTitleFontSize] = useState(56); // 제목 폰트 크기
   const [dateLocationHeight, setDateLocationHeight] = useState(0); // 날짜+장소 영역 높이 (화면의 8%)
   const [dateLocationFontSize, setDateLocationFontSize] = useState(31); // 날짜+장소 폰트 크기
+  const slideTimerRef = useRef<NodeJS.Timeout | null>(null); // 슬라이드 전환 타이머
+  const slideStartTimeRef = useRef<number>(0); // 슬라이드 시작 시간
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -202,11 +204,84 @@ export default function BillboardPage() {
     };
   }, []);
 
+  // 슬라이드 타이머 시작 함수
+  const startSlideTimer = useCallback((slideInterval: number) => {
+    // 기존 타이머 정리
+    if (slideTimerRef.current) {
+      clearInterval(slideTimerRef.current);
+      slideTimerRef.current = null;
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    
+    const startTime = Date.now();
+    slideStartTimeRef.current = startTime;
+    console.log(`[타이머 시작] 슬라이드 ${currentIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
+    
+    // 진행바 업데이트
+    setProgress(0);
+    const step = (50 / slideInterval) * 100;
+    progressIntervalRef.current = setInterval(() => {
+      setProgress((p) => (p >= 100 ? 0 : p + step));
+    }, 50);
+
+    // 슬라이드 전환 타이머
+    slideTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      console.log(`[타이머 종료] 슬라이드 ${currentIndex} - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
+      
+      setProgress(0);
+      if (pendingReload) {
+        setTimeout(() => window.location.reload(), 500);
+        return;
+      }
+      
+      setTimeout(() => {
+        const previousIndex = currentIndex;
+        
+        if (settings?.play_order === "random") {
+          const next = playlistIndexRef.current + 1;
+          if (next >= shuffledPlaylist.length) {
+            const newList = shuffleArray(
+              Array.from({ length: events.length }, (_, i) => i),
+            );
+            setShuffledPlaylist(newList);
+            playlistIndexRef.current = 0;
+            setCurrentIndex(newList[0] ?? 0);
+          } else {
+            playlistIndexRef.current = next;
+            setCurrentIndex(shuffledPlaylist[next] ?? 0);
+          }
+        } else {
+          setCurrentIndex((prev) => (prev + 1) % events.length);
+        }
+        
+        // 슬라이드 전환 후 이전 슬라이드의 비디오 로딩 상태 초기화
+        setTimeout(() => {
+          setVideoLoadedMap(prev => {
+            const newMap = { ...prev };
+            delete newMap[previousIndex];
+            return newMap;
+          });
+        }, 100);
+      }, 500);
+    }, slideInterval);
+  }, [currentIndex, events, settings, shuffledPlaylist, pendingReload]);
+
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((index: number) => {
     console.log('[빌보드] 영상 재생 감지:', index);
     setVideoLoadedMap(prev => ({ ...prev, [index]: true }));
-  }, []);
+    
+    // 영상 재생 시작되면 이제 타이머 시작
+    if (index === currentIndex && settings) {
+      const slideInterval = settings.video_play_duration || 10000;
+      console.log(`[타이머 시작] 영상 재생 감지로 타이머 시작: ${slideInterval}ms`);
+      startSlideTimer(slideInterval);
+    }
+  }, [currentIndex, settings, startSlideTimer]);
 
   // 모바일 주소창 숨기기
   useEffect(() => {
@@ -380,7 +455,7 @@ export default function BillboardPage() {
     });
   };
 
-  // 슬라이드 전환 타이머
+  // 슬라이드 전환 시 타이머 설정
   useEffect(() => {
     if (!settings || events.length === 0) return;
     
@@ -388,71 +463,39 @@ export default function BillboardPage() {
     const currentEvent = events[currentIndex];
     const hasVideo = !!currentEvent?.video_url;
     
-    // 영상이 있으면 video_play_duration, 없으면 auto_slide_interval 사용
-    const slideInterval = hasVideo 
-      ? (settings.video_play_duration || 10000) 
-      : settings.auto_slide_interval;
-    
-    const startTime = Date.now();
-    console.log(`[타이머 시작] 슬라이드 ${currentIndex} - 영상: ${hasVideo ? 'O' : 'X'}, 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
-    
+    // 기존 타이머 정리
+    if (slideTimerRef.current) {
+      clearInterval(slideTimerRef.current);
+      slideTimerRef.current = null;
+    }
     if (progressIntervalRef.current) {
-      console.log('[타이머] 기존 progress 타이머 정리');
       clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
     }
     setProgress(0);
-    const step = (50 / slideInterval) * 100;
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((p) => (p >= 100 ? 0 : p + step));
-    }, 50);
-
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      console.log(`[타이머 종료] 슬라이드 ${currentIndex} - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
-      
-      setProgress(0);
-      if (pendingReload) {
-        setTimeout(() => window.location.reload(), 500);
-        return;
-      }
-      
-      setTimeout(() => {
-        const previousIndex = currentIndex;
-        
-        if (settings.play_order === "random") {
-          const next = playlistIndexRef.current + 1;
-          if (next >= shuffledPlaylist.length) {
-            const newList = shuffleArray(
-              Array.from({ length: events.length }, (_, i) => i),
-            );
-            setShuffledPlaylist(newList);
-            playlistIndexRef.current = 0;
-            setCurrentIndex(newList[0] ?? 0);
-          } else {
-            playlistIndexRef.current = next;
-            setCurrentIndex(shuffledPlaylist[next] ?? 0);
-          }
-        } else {
-          setCurrentIndex((prev) => (prev + 1) % events.length);
-        }
-        
-        // 슬라이드 전환 후 이전 슬라이드의 비디오 로딩 상태 초기화
-        setTimeout(() => {
-          setVideoLoadedMap(prev => {
-            const newMap = { ...prev };
-            delete newMap[previousIndex];
-            return newMap;
-          });
-        }, 100);
-      }, 500);
-    }, slideInterval);
+    
+    if (hasVideo) {
+      // 영상 슬라이드: 타이머 시작 안함 (썸네일만 표시, 진행바도 정지)
+      console.log(`[슬라이드 ${currentIndex}] 영상 감지 - 재생 시작 대기 중 (타이머 정지)`);
+    } else {
+      // 이미지 슬라이드: 즉시 타이머 시작
+      const slideInterval = settings.auto_slide_interval;
+      console.log(`[슬라이드 ${currentIndex}] 이미지 감지 - 즉시 타이머 시작: ${slideInterval}ms`);
+      startSlideTimer(slideInterval);
+    }
 
     return () => {
       console.log(`[타이머 cleanup] 슬라이드 ${currentIndex} 타이머 정리`);
-      clearInterval(interval);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      if (slideTimerRef.current) {
+        clearInterval(slideTimerRef.current);
+        slideTimerRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
     };
-  }, [events, settings, shuffledPlaylist, currentIndex]);
+  }, [events, settings, currentIndex, startSlideTimer]);
 
   // 로딩/에러/빈 화면
   if (isLoading) {
