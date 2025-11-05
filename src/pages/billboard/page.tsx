@@ -148,22 +148,47 @@ export default function BillboardPage() {
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
   const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
+  const [bottomInfoHeight, setBottomInfoHeight] = useState(0); // 하단 정보 영역 높이 (화면의 10%)
+  const [qrSize, setQrSize] = useState(144); // QR 코드 크기
+  const [titleFontSize, setTitleFontSize] = useState(56); // 제목 폰트 크기
 
-  // 화면 비율 감지 - 가로가 세로보다 크면 회전 필요
+  // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
-    const checkOrientation = () => {
+    let debounceTimer: NodeJS.Timeout;
+    
+    const calculateSizes = () => {
       const isLandscape = window.innerWidth > window.innerHeight;
       setNeedsRotation(isLandscape);
-      console.log(`[빌보드] 화면 방향 감지: ${isLandscape ? '가로 (회전 적용)' : '세로 (회전 없음)'} - ${window.innerWidth}×${window.innerHeight}`);
+      
+      // 화면 높이의 10% 계산 (회전 여부에 따라)
+      const effectiveHeight = isLandscape ? window.innerWidth : window.innerHeight;
+      const maxHeight = effectiveHeight * 0.1;
+      setBottomInfoHeight(maxHeight);
+      
+      // QR 코드 크기: 최대 높이의 80% 정도, 최소 60px, 최대 150px
+      const calculatedQrSize = Math.min(150, Math.max(60, maxHeight * 0.8));
+      setQrSize(calculatedQrSize);
+      
+      // 제목 폰트 크기: QR 크기에 비례, 최소 20px, 최대 60px
+      const calculatedFontSize = Math.min(60, Math.max(20, calculatedQrSize * 0.4));
+      setTitleFontSize(calculatedFontSize);
+      
+      console.log(`[빌보드] 크기 계산: ${isLandscape ? '가로' : '세로'}, 최대높이: ${Math.round(maxHeight)}px, QR: ${Math.round(calculatedQrSize)}px, 폰트: ${Math.round(calculatedFontSize)}px`);
     };
 
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(calculateSizes, 100);
+    };
+
+    calculateSizes();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
 
     return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
+      clearTimeout(debounceTimer);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
     };
   }, []);
 
@@ -732,13 +757,18 @@ export default function BillboardPage() {
               <div 
                 className="flex items-end justify-between"
                 style={{
-                  maxHeight: needsRotation ? "10vw" : "10vh",
+                  height: `${bottomInfoHeight}px`,
                   overflow: "hidden",
                 }}
               >
                 <div
                   className="flex-1"
-                  style={{ minWidth: 0, paddingRight: `${8 * scale}px` }}
+                  style={{ 
+                    minWidth: 0, 
+                    paddingRight: `${qrSize * 0.1}px`,
+                    display: "flex",
+                    alignItems: "flex-end",
+                  }}
                 >
                   <div
                     style={{
@@ -780,15 +810,8 @@ export default function BillboardPage() {
                   <h3
                     className="text-white font-bold"
                     style={{
-                      fontSize:
-                        event.title.length > 60
-                          ? `${Math.max(28, Math.min(36 * scale, 125))}px`
-                          : event.title.length > 40
-                          ? `${Math.max(32, Math.min(42 * scale, 145))}px`
-                          : event.title.length > 25
-                          ? `${Math.max(38, Math.min(48 * scale, 170))}px`
-                          : `${Math.max(44, Math.min(56 * scale, 195))}px`,
-                      lineHeight: 1.25,
+                      fontSize: `${titleFontSize}px`,
+                      lineHeight: 1.2,
                       wordBreak: "keep-all",
                       width: "100%",
                       overflow: "hidden",
@@ -797,7 +820,7 @@ export default function BillboardPage() {
                       WebkitBoxOrient: "vertical",
                       animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
                       opacity: 0,
-                      transform: `scale(0.2) translateY(${100 * scale}px) rotate(-15deg)`,
+                      transform: `scale(0.2) translateY(${titleFontSize * 2}px) rotate(-15deg)`,
                     }}
                   >
                     {event.title}
@@ -806,13 +829,13 @@ export default function BillboardPage() {
                 <div
                   className="bg-white rounded-lg flex-shrink-0"
                   style={{
-                    padding: `${12 * scale}px`,
-                    marginLeft: `${12 * scale}px`,
+                    padding: `${qrSize * 0.08}px`,
+                    marginLeft: `${qrSize * 0.1}px`,
                   }}
                 >
                   <QRCodeCanvas
                     value={`${window.location.origin}/?event=${event.id}&from=qr`}
-                    size={Math.round(144 * scale)}
+                    size={Math.round(qrSize)}
                     level="M"
                     includeMargin={false}
                   />
