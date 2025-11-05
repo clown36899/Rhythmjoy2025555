@@ -357,17 +357,17 @@ export default function AdminBillboardModal({
       <div
         className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
       >
-        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 z-10">
+        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          {/* Header - 상단 고정 */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex-shrink-0">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               <i className="ri-settings-3-line"></i>
               {billboardUserName} 빌보드 설정
             </h2>
           </div>
 
-          {/* Content */}
-          <div className="p-6 space-y-6">
+          {/* Content - 스크롤 가능 */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* 제외 요일 */}
             <div className="p-4 bg-gray-700/50 rounded-lg">
               <label className="text-white font-medium block mb-3">제외 요일</label>
@@ -615,22 +615,22 @@ export default function AdminBillboardModal({
                 )}
               </div>
             </div>
+          </div>
 
-            {/* 저장 및 닫기 버튼 */}
-            <div className="flex gap-3 pt-4">
-              <button
-                onClick={handleClose}
-                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
-              >
-                닫기
-              </button>
-              <button
-                onClick={saveUserSettings}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
-              >
-                저장
-              </button>
-            </div>
+          {/* 저장 및 닫기 버튼 - 하단 고정 */}
+          <div className="flex gap-3 p-6 pt-4 bg-gray-800 border-t border-gray-700 flex-shrink-0">
+            <button
+              onClick={handleClose}
+              className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+            >
+              닫기
+            </button>
+            <button
+              onClick={saveUserSettings}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+            >
+              저장
+            </button>
           </div>
         </div>
 
