@@ -87,12 +87,16 @@ A hierarchical management system allows super admins to create and manage multip
 - Filtering applied in real-time based on user settings
 
 **Video Codec Optimization (November 2025)**:
-- **H.264 Enforcement**: JavaScript override in `index.html` blocks VP9/VP8 codecs via `MediaSource.isTypeSupported()` intercept
-- **Android TV Hardware Acceleration**: Forces YouTube iframes to use H.264/AVC codec instead of VP9 for better hardware decoder support
-- **Implementation**: Page-load script modifies browser codec reporting before YouTube player initialization
-- **Trade-off**: Limited to 1080p resolution (YouTube doesn't encode 4K in H.264), but ensures smooth playback on devices with weak VP9 software decoders
-- **Deployment Safety**: Billboard deployment updates wait for current slide completion before reloading to prevent GPU Context Loss during video playback
-- **GPU Stability**: 500ms transition delay between slides allows GPU resource cleanup
+- **H.264 Enforcement Attempt**: JavaScript override in `index.html` blocks VP9/VP8 codecs via `MediaSource.isTypeSupported()` intercept
+- **Known Limitation (Cross-Origin)**: YouTube iframes operate in isolated cross-origin context, preventing parent page JavaScript from controlling codec selection. The codec override code cannot affect YouTube's internal player decisions.
+- **Actual Behavior**: Android TV devices continue to use VP9 software decoder (`c2.amlogic.vp9.decoder`) for YouTube videos, as logged in device logs
+- **VP9 Stability Issue**: Long-duration billboard playback (10+ slides) occasionally triggers MediaCodec errors due to VP9 software decoder memory pressure on Android TV. GPU resources are released/recreated every ~10 seconds per slide.
+- **Mitigation Measures**: 
+  - Billboard deployment updates wait for current slide completion before reloading to prevent GPU Context Loss during video playback
+  - 500ms transition delay between slides allows GPU resource cleanup
+  - Errors are infrequent and non-critical (playback continues on next slide)
+- **No Practical Solution**: APK-packaged PWA cannot install browser extensions (h264ify). YouTube iframe API provides no codec selection parameters. Browser flags inaccessible in WebView context.
+- **Accepted Trade-off**: Occasional VP9 decoder errors during extended playback, monitored but not actively fixed due to technical constraints
 
 **Data Model**:
 - `billboard_users` table: user credentials and metadata
