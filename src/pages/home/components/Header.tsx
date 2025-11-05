@@ -600,7 +600,7 @@ export default function Header({
                               console.log('[개발 모드] 서브 관리자 목록 조회 시작');
                               const { data, error } = await supabase
                                 .from('billboard_users')
-                                .select('id, user_name, is_active')
+                                .select('id, name, is_active')
                                 .eq('is_active', true)
                                 .order('created_at', { ascending: true });
                               
@@ -1009,24 +1009,24 @@ export default function Header({
                     key={user.id}
                     onClick={() => {
                       // 서브 관리자로 로그인 상태 전환
-                      console.log('[개발 모드] 서브 관리자로 전환:', user.user_name);
+                      console.log('[개발 모드] 서브 관리자로 전환:', user.name);
                       setBillboardUserId(user.id);
-                      setBillboardUserName(user.user_name);
-                      onAdminModeToggle?.(true, "sub", user.id, user.user_name);
+                      setBillboardUserName(user.name);
+                      onAdminModeToggle?.(true, "sub", user.id, user.name);
                       setShowSubAdminSelector(false);
                       setShowSettingsModal(false);
                       
                       // 로그인 성공 표시
-                      setLoginSuccessName(`${user.user_name} (테스트)`);
-                      setLoginSuccessType(`${user.user_name} 빌보드 관리자 (개발 테스트)`);
+                      setLoginSuccessName(`${user.name} (테스트)`);
+                      setLoginSuccessType(`${user.name} 빌보드 관리자 (개발 테스트)`);
                       setShowLoginSuccessModal(true);
                     }}
                     className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg text-left transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       <i className="ri-user-line text-blue-400"></i>
-                      <span className="font-medium">{user.user_name}</span>
-                      <span className="text-xs text-gray-400 ml-auto">ID: {user.id}</span>
+                      <span className="font-medium">{user.name}</span>
+                      <span className="text-xs text-gray-400 ml-auto">ID: {user.id.substring(0, 8)}...</span>
                     </div>
                   </button>
                 ))
