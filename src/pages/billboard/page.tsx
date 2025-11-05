@@ -329,27 +329,23 @@ export default function BillboardPage() {
     
     // 현재 슬라이드가 영상이면 재생 시작
     if (hasVideo) {
-      console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 준비`);
+      const targetIndex = currentIndex;  // 현재 타겟 캡처 (클로저 보존)
+      console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 준비`);
       // Player가 준비될 때까지 대기 후 재생
       let attemptCount = 0;
       const maxAttempts = 50;  // 최대 5초 대기 (50 * 100ms)
       const attemptPlay = () => {
-        const player = playerRefsRef.current[currentIndex];
-        // currentIndex가 변경되면 재시도 중단
-        if (currentIndex !== prevIndexRef.current && prevIndexRef.current !== -1) {
-          console.log(`[슬라이드 전환] currentIndex 변경 감지, 재시도 중단`);
-          return;
-        }
+        const player = playerRefsRef.current[targetIndex];
         // Player가 준비되었는지 확인
         if (player && player.isReady && player.isReady()) {
-          console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 시작`);
+          console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 시작`);
           player.playVideo();
         } else if (attemptCount < maxAttempts) {
           // Player가 아직 준비 안되면 100ms 후 재시도
           attemptCount++;
           setTimeout(attemptPlay, 100);
         } else {
-          console.error(`[슬라이드 전환] Player ${currentIndex} 준비 시간 초과 (5초)`);
+          console.error(`[슬라이드 전환] Player ${targetIndex} 준비 시간 초과 (5초)`);
         }
       };
       attemptPlay();
