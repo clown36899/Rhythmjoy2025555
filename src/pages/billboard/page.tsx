@@ -376,7 +376,7 @@ export default function BillboardPage() {
     
     // 메모리 모니터링
     checkMemory();
-  }, [currentIndex, checkMemory, events]);
+  }, [currentIndex, checkMemory, events, settings, startSlideTimer]);
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((index: number) => {
