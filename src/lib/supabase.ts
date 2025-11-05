@@ -82,6 +82,9 @@ export interface BillboardUserSettings {
   date_filter_start: string | null;
   date_filter_end: string | null;
   video_play_duration: number;
+  effect_type?: string;
+  effect_speed?: number;
+  auto_slide_interval_video?: number;
   created_at: string;
   updated_at: string;
 }

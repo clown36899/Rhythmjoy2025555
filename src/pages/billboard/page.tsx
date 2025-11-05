@@ -313,6 +313,11 @@ export default function BillboardPage() {
         .eq("billboard_user_id", userId)
         .single();
       if (settingsError) throw new Error("빌보드 설정을 불러올 수 없습니다.");
+      console.log("[빌보드] 설정 로드:", {
+        auto_slide_interval: userSettings.auto_slide_interval,
+        video_play_duration: userSettings.video_play_duration,
+        auto_slide_interval_video: userSettings.auto_slide_interval_video,
+      });
       setSettings(userSettings);
 
       const { data: allEvents, error: eventsError } = await supabase
