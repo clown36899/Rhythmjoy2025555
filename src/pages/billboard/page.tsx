@@ -100,6 +100,17 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                   onPlayingCallback(slideIndex);
                 }
               }
+              // 종료 감지 (YT.PlayerState.ENDED = 0) → 0초로 돌아가서 루프 재생
+              else if (event.data === 0) {
+                console.log('[YouTube] 재생 종료 감지 → 0초로 돌아가서 다시 재생:', slideIndex);
+                if (playerRef.current?.seekTo && playerRef.current?.playVideo) {
+                  playerRef.current.seekTo(0, true); // 0초로 이동
+                  setTimeout(() => {
+                    playerRef.current?.playVideo(); // 다시 재생
+                  }, 100);
+                }
+                hasCalledOnPlaying.current = false; // 플래그 리셋
+              }
               // 일시정지 감지 (YT.PlayerState.PAUSED = 2)
               else if (event.data === 2) {
                 console.log('[YouTube] 일시정지 감지:', slideIndex);
