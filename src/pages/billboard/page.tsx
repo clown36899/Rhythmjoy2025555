@@ -183,6 +183,7 @@ export default function BillboardPage() {
   const prevIndexRef = useRef<number>(0); // 이전 슬라이드 인덱스
   const currentActiveIndexRef = useRef<number>(0); // 현재 활성 슬라이드 인덱스 (attemptPlay 취소용)
   const [youtubeApiReady, setYoutubeApiReady] = useState(false); // YouTube API 준비 상태
+  const loadBillboardDataRef = useRef<(() => Promise<void>) | null>(null); // loadBillboardData 함수 ref
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -298,17 +299,18 @@ export default function BillboardPage() {
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
         
-        // 🎯 변경사항 감지 시 새로고침 (React.memo가 캐시 관리)
+        // 🎯 변경사항 감지 시 데이터만 새로고침 (React.memo가 Player 캐시 보존)
         if (pendingChangesRef.current.length > 0) {
           const changeCount = pendingChangesRef.current.length;
-          console.log(`[변경사항 감지] ${changeCount}건 → 전체 새로고침 예약`);
-          
-          // 모든 변경사항 → 새로고침으로 단순화
-          pendingReloadRef.current = true;
+          console.log(`[변경사항 감지] ${changeCount}건 → 데이터만 새로고침`);
           
           // 대기열 초기화
           pendingChangesRef.current = [];
-          setRealtimeStatus(`변경 ${changeCount}건 감지, 새로고침 예정`);
+          setRealtimeStatus(`변경 ${changeCount}건 감지, 데이터 새로고침 중...`);
+          
+          // 데이터만 새로고침 (페이지 reload 안함 → React.memo가 Player 보존)
+          loadBillboardDataRef.current?.();
+          
           setTimeout(() => setRealtimeStatus("연결됨"), 2000);
         }
         
@@ -495,11 +497,13 @@ export default function BillboardPage() {
         (payload) => {
           console.log("[변경사항 감지] 이벤트 변경:", payload.eventType, payload);
           
-          // 이벤트가 0개일 때는 즉시 새로고침 (타이머가 안 돌아가므로)
+          // 이벤트가 0개일 때는 즉시 데이터만 새로고침 (타이머가 안 돌아가므로)
           if (eventsRef.current.length === 0) {
-            console.log("[변경사항 감지] 빈 화면 → 즉시 새로고침");
+            console.log("[변경사항 감지] 빈 화면 → 즉시 데이터 새로고침");
             setRealtimeStatus("새 이벤트 감지! 즉시 새로고침...");
-            setTimeout(() => window.location.reload(), 500);
+            setTimeout(() => {
+              loadBillboardDataRef.current?.();
+            }, 500);
             return;
           }
           
@@ -549,7 +553,35 @@ export default function BillboardPage() {
     };
   }, [userId]);
 
-  const loadBillboardData = async () => {
+  const filterEvents = useCallback((
+    allEvents: Event[],
+    settings: BillboardUserSettings,
+  ): Event[] => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return allEvents.filter((event) => {
+      if (!event?.image_full && !event?.image && !event?.video_url) return false;
+      if (settings.excluded_event_ids.includes(event.id)) return false;
+      const eventDate = new Date(event.start_date || event.date || "");
+      const weekday = eventDate.getDay();
+      if (settings.excluded_weekdays.includes(weekday)) return false;
+      
+      // 종료날짜 기준으로 필터링
+      const eventEndDate = new Date(
+        event.end_date || event.start_date || event.date || "",
+      );
+      if (settings.date_filter_start && eventEndDate < new Date(settings.date_filter_start))
+        return false;
+      if (settings.date_filter_end && eventEndDate > new Date(settings.date_filter_end))
+        return false;
+      if (!settings.date_filter_start && !settings.date_filter_end) {
+        if (eventEndDate < today) return false;
+      }
+      return true;
+    });
+  }, []);
+
+  const loadBillboardData = useCallback(async () => {
     try {
       console.log("[빌보드] 데이터 리로드: 기존 타이머 정리 중...");
       if (progressIntervalRef.current) {
@@ -611,35 +643,12 @@ export default function BillboardPage() {
       setError(err.message || "데이터를 불러오는데 실패했습니다.");
       setIsLoading(false);
     }
-  };
-
-  const filterEvents = useCallback((
-    allEvents: Event[],
-    settings: BillboardUserSettings,
-  ): Event[] => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return allEvents.filter((event) => {
-      if (!event?.image_full && !event?.image && !event?.video_url) return false;
-      if (settings.excluded_event_ids.includes(event.id)) return false;
-      const eventDate = new Date(event.start_date || event.date || "");
-      const weekday = eventDate.getDay();
-      if (settings.excluded_weekdays.includes(weekday)) return false;
-      
-      // 종료날짜 기준으로 필터링
-      const eventEndDate = new Date(
-        event.end_date || event.start_date || event.date || "",
-      );
-      if (settings.date_filter_start && eventEndDate < new Date(settings.date_filter_start))
-        return false;
-      if (settings.date_filter_end && eventEndDate > new Date(settings.date_filter_end))
-        return false;
-      if (!settings.date_filter_start && !settings.date_filter_end) {
-        if (eventEndDate < today) return false;
-      }
-      return true;
-    });
-  }, []);
+  }, [userId, filterEvents, currentIndex]);
+  
+  // loadBillboardData 함수를 ref에 동기화
+  useEffect(() => {
+    loadBillboardDataRef.current = loadBillboardData;
+  }, [loadBillboardData]);
 
   // 슬라이드 전환 시 이미지 타이머 설정 (영상은 playVideo()에서 타이머 시작)
   useEffect(() => {
