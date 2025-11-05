@@ -443,8 +443,28 @@ export default function Header({
               </div>
             )}
 
-            {/* Right: Settings Button */}
+            {/* Right: Login Status & Settings Button */}
             <div className="flex items-center space-x-2">
+              {/* 로그인 상태 표시 */}
+              {(isEffectiveAdmin || billboardUserId !== null) && (
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/30">
+                  <i className={`text-xs ${
+                    isDevAdmin 
+                      ? 'ri-code-s-slash-line text-orange-400' 
+                      : billboardUserId !== null
+                        ? 'ri-user-line text-blue-400'
+                        : 'ri-kakao-talk-fill text-yellow-400'
+                  }`}></i>
+                  <span className="text-xs text-white font-medium">
+                    {isDevAdmin 
+                      ? '개발자' 
+                      : billboardUserId !== null
+                        ? billboardUserName
+                        : '관리자'
+                    }
+                  </span>
+                </div>
+              )}
               <button
                 onClick={handleSettingsClick}
                 className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
