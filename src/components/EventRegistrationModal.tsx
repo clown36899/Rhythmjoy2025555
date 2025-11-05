@@ -427,8 +427,8 @@ export default function EventRegistrationModal({
 
   const modalContent = (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-10 z-[999999] overflow-y-auto">
-        <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] mb-10 relative z-[999999] flex flex-col overflow-hidden">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
+        <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] relative z-[999999] flex flex-col overflow-hidden">
           {/* Header - 상단 고정 */}
           <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
             <h2 className="text-xl font-bold text-white">
