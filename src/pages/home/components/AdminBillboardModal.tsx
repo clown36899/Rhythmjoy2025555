@@ -525,9 +525,31 @@ export default function AdminBillboardModal({
 
             {/* 특정 이벤트 제외 */}
             <div className="p-4 bg-gray-700/50 rounded-lg">
-              <label className="text-white font-medium block mb-3">
-                🚫 제외할 이벤트
-              </label>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-white font-medium">
+                  🚫 제외할 이벤트
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const mediaEvents = events.filter(e => !!(e?.image_full || e?.image || e?.video_url));
+                      const allIds = mediaEvents.map(e => e.id);
+                      updateLocalSettings({ excluded_event_ids: allIds });
+                    }}
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    전체 제외
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateLocalSettings({ excluded_event_ids: [] })}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    전체 해제
+                  </button>
+                </div>
+              </div>
               <p className="text-sm text-gray-400 mb-3">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
               <div className="max-h-60 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
                 {events.length === 0 ? (
@@ -538,26 +560,49 @@ export default function AdminBillboardModal({
                     const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
                     const weekday = weekdayNames[eventDate.getDay()];
                     const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
+                    const isExcluded = (userSettings.excluded_event_ids || []).includes(event.id);
                     
                     return (
                       <label
                         key={event.id}
-                        className={`flex items-center gap-2 p-2 rounded ${
-                          hasMedia ? 'cursor-pointer hover:bg-gray-600' : 'cursor-not-allowed opacity-60'
+                        className={`flex items-center gap-2 p-2 rounded transition-colors ${
+                          hasMedia 
+                            ? (isExcluded 
+                              ? 'bg-red-900/30 border border-red-500/50 cursor-pointer hover:bg-red-900/50' 
+                              : 'cursor-pointer hover:bg-gray-600')
+                            : 'cursor-not-allowed opacity-60'
                         }`}
                       >
+                        <div className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center border-2 ${
+                          isExcluded 
+                            ? 'bg-red-600 border-red-500' 
+                            : 'bg-gray-600 border-gray-500'
+                        }`}>
+                          {isExcluded && (
+                            <i className="ri-close-line text-white text-sm font-bold"></i>
+                          )}
+                        </div>
                         <input
                           type="checkbox"
-                          checked={(userSettings.excluded_event_ids || []).includes(event.id)}
+                          checked={isExcluded}
                           onChange={() => toggleEventExclusion(event.id)}
                           disabled={!hasMedia}
-                          className="w-4 h-4"
+                          className="hidden"
                         />
-                        <span className={`text-sm flex-1 ${hasMedia ? 'text-white' : 'text-gray-500'}`}>
+                        <span className={`text-sm flex-1 ${
+                          hasMedia 
+                            ? (isExcluded ? 'text-red-300 line-through' : 'text-white')
+                            : 'text-gray-500'
+                        }`}>
                           {event.title}
                           <span className="text-gray-400 text-xs ml-2">
                             ({event.start_date} {weekday})
                           </span>
+                          {isExcluded && hasMedia && (
+                            <span className="text-red-400 text-xs ml-2 font-bold">
+                              [제외됨]
+                            </span>
+                          )}
                           {!hasMedia && (
                             <span className="text-red-400 text-xs ml-2">
                               [이미지 없음 - 광고판 미노출]
