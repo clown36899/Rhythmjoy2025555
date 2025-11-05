@@ -706,20 +706,20 @@ export default function Header({
                       </>
                     )}
                     
-                    <button
-                      onClick={handleAdminLogout}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                    >
-                      로그아웃
-                    </button>
-                    {isEffectiveAdmin && billboardUserId === null && (
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => setShowSettingsModal(false)}
-                        className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                        className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                       >
-                        모달 닫기
+                        닫기
                       </button>
-                    )}
+                      <button
+                        onClick={handleAdminLogout}
+                        className="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                      >
+                        로그아웃
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
