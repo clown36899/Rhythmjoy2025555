@@ -129,6 +129,8 @@ export default function Header({
       
       // 서버 응답에 따라 자동으로 권한 설정
       let loginTypeText = '';
+      let isBillboardAdmin = false;
+      
       if (result.isAdmin) {
         // 슈퍼 관리자
         onAdminModeToggle?.(true, "super", null, "");
@@ -139,6 +141,7 @@ export default function Header({
         setBillboardUserName(result.billboardUserName);
         onAdminModeToggle?.(true, "sub", result.billboardUserId, result.billboardUserName);
         loginTypeText = '개인빌보드 관리자 모드';
+        isBillboardAdmin = true;
       } else {
         // 권한 없음
         await signOut();
@@ -150,8 +153,19 @@ export default function Header({
       
       setLoginSuccessName(result.name);
       setLoginSuccessType(loginTypeText);
-      setShowSettingsModal(false);
-      setShowLoginSuccessModal(true);
+      
+      if (isBillboardAdmin) {
+        // 서브 관리자는 성공 모달 없이 바로 관리 패널 유지
+        // 설정 모달이 닫혔다가 다시 열리면서 관리 패널이 표시됨
+        setShowSettingsModal(false);
+        setTimeout(() => {
+          setShowSettingsModal(true);
+        }, 100);
+      } else {
+        // 슈퍼 관리자는 성공 모달 표시
+        setShowSettingsModal(false);
+        setShowLoginSuccessModal(true);
+      }
     } catch (error: any) {
       console.log('[카카오 로그인] 취소 또는 실패:', error.message);
       // 로그인 취소/실패 시 모달 닫기
@@ -1102,13 +1116,10 @@ export default function Header({
                       setShowSubAdminSelector(false);
                       setShowSettingsModal(false);
                       
-                      console.log('[개발 모드] 로그인 성공 모달 표시:', {
-                        name: user.name,
-                        type: '개인빌보드 관리자 모드'
-                      });
-                      setLoginSuccessName(user.name);
-                      setLoginSuccessType('개인빌보드 관리자 모드');
-                      setShowLoginSuccessModal(true);
+                      // 서브 관리자는 성공 모달 없이 바로 관리 패널 표시
+                      setTimeout(() => {
+                        setShowSettingsModal(true);
+                      }, 100);
                       
                       console.log('[개발 모드] ========== 서브 관리자 전환 완료 ==========');
                     }}
