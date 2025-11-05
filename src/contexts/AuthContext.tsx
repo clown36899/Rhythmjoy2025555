@@ -41,11 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    // 5초 timeout 설정 (모바일 네트워크 느릴 때 대응)
+    // 로그아웃 직후라면 세션 체크 스킵 (캐시/세션 꼬임 방지)
+    const isLoggingOut = localStorage.getItem('isLoggingOut');
+    if (isLoggingOut) {
+      console.log('[AuthContext] 로그아웃 진행 중 - 세션 체크 스킵');
+      localStorage.removeItem('isLoggingOut');
+      setLoading(false);
+      return;
+    }
+
+    // 2초 timeout 설정 (빠른 실패로 UX 개선)
     const timeoutId = setTimeout(() => {
       console.warn('[AuthContext] getSession timeout - loading false로 설정');
       setLoading(false);
-    }, 5000);
+    }, 2000);
 
     supabase.auth.getSession()
       .then(({ data: { session } }) => {

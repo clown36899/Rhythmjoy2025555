@@ -187,6 +187,9 @@ export default function Header({
   const handleAdminLogout = async () => {
     console.log('[로그아웃] 시작');
     
+    // 로그아웃 플래그 설정 (AuthContext 세션 체크 스킵용)
+    localStorage.setItem('isLoggingOut', 'true');
+    
     // 모달 먼저 닫기
     setShowSettingsModal(false);
     
