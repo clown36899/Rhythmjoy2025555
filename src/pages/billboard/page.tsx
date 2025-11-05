@@ -316,9 +316,10 @@ export default function BillboardPage() {
       const usedMB = (usedJSHeapSize / 1048576).toFixed(2);
       const limitMB = (jsHeapSizeLimit / 1048576).toFixed(2);
       const percentage = ((usedJSHeapSize / jsHeapSizeLimit) * 100).toFixed(1);
-      console.log(`[메모리] 사용: ${usedMB}MB / ${limitMB}MB (${percentage}%), 로드된 Player: ${events.length}개`);
+      const videoCount = events.filter(e => !!e.video_url).length;
+      console.log(`[메모리] 사용: ${usedMB}MB / ${limitMB}MB (${percentage}%), 전체: ${events.length}개 (영상: ${videoCount}개)`);
     }
-  }, [events.length]);
+  }, [events]);
 
   // currentIndex 변경 시 슬라이드 전환 (pause 이전, play 현재)
   useEffect(() => {
