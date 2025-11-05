@@ -417,23 +417,15 @@ export default function EventRegistrationModal({
         <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] mb-10 relative z-[999999] flex flex-col overflow-hidden">
           {/* Header - 상단 고정 */}
           <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">
-                {selectedDate.toLocaleDateString("ko-KR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  weekday: "long",
-                })}{" "}
-                이벤트 등록
-              </h2>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <i className="ri-close-line text-2xl"></i>
-              </button>
-            </div>
+            <h2 className="text-xl font-bold text-white">
+              {selectedDate.toLocaleDateString("ko-KR", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              })}{" "}
+              이벤트 등록
+            </h2>
           </div>
 
           {/* Content - 스크롤 가능 */}
