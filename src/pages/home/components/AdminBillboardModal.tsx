@@ -397,23 +397,28 @@ export default function AdminBillboardModal({
 
             {/* 자동 슬라이드 시간 */}
             <div className="p-4 bg-gray-700/50 rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-white font-medium">자동 슬라이드 시간</label>
-                <span className="text-blue-400 font-bold">
+              <label className="text-white font-medium block mb-3">자동 슬라이드 시간</label>
+              <div className="flex items-center gap-3 bg-gray-600 rounded-lg px-4 py-3">
+                <span className="text-white text-2xl font-bold flex-1 text-center">
                   {formatTime(userSettings.auto_slide_interval)}
                 </span>
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => updateLocalSettings({ auto_slide_interval: Math.min(30000, userSettings.auto_slide_interval + 500) })}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateLocalSettings({ auto_slide_interval: Math.max(1000, userSettings.auto_slide_interval - 500) })}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
+                  >
+                    ▼
+                  </button>
+                </div>
               </div>
-              <input
-                type="range"
-                min="1000"
-                max="30000"
-                step="500"
-                value={userSettings.auto_slide_interval}
-                onChange={(e) =>
-                  updateLocalSettings({ auto_slide_interval: parseInt(e.target.value) })
-                }
-                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
             </div>
 
             {/* 재생 순서 */}

@@ -565,28 +565,54 @@ export default function BillboardUserManagementModal({
                   <label className="block text-gray-300 text-sm font-medium mb-2">
                     ⚙️ 슬라이드 간격 (초) - 일반 이벤트
                   </label>
-                  <input
-                    type="number"
-                    value={autoSlideInterval / 1000}
-                    onChange={(e) => setAutoSlideInterval(Number(e.target.value) * 1000)}
-                    min="1"
-                    max="60"
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="flex items-center gap-3 bg-gray-700 rounded-lg px-4 py-3">
+                    <span className="text-white text-2xl font-bold flex-1 text-center">
+                      {autoSlideInterval / 1000}초
+                    </span>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setAutoSlideInterval(Math.min(60000, autoSlideInterval + 1000))}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAutoSlideInterval(Math.max(1000, autoSlideInterval - 1000))}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-gray-300 text-sm font-medium mb-2">
                     🎬 영상 재생 시간 (초) - 영상 이벤트
                   </label>
-                  <input
-                    type="number"
-                    value={videoPlayDuration / 1000}
-                    onChange={(e) => setVideoPlayDuration(Number(e.target.value) * 1000)}
-                    min="5"
-                    max="60"
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="flex items-center gap-3 bg-gray-700 rounded-lg px-4 py-3">
+                    <span className="text-white text-2xl font-bold flex-1 text-center">
+                      {videoPlayDuration / 1000}초
+                    </span>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setVideoPlayDuration(Math.min(60000, videoPlayDuration + 1000))}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoPlayDuration(Math.max(5000, videoPlayDuration - 1000))}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
                   <p className="text-gray-400 text-xs mt-1">
                     영상 로딩 완료 후 재생되는 시간입니다.
                   </p>
