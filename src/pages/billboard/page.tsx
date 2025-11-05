@@ -21,6 +21,7 @@ declare global {
 export interface YouTubePlayerHandle {
   pauseVideo: () => void;
   playVideo: () => void;
+  isReady: () => boolean;
 }
 
 // YouTube Player 컴포넌트 (forwardRef로 변경)
@@ -36,6 +37,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
   const playerRef = useRef<any>(null);
   const [apiReady, setApiReady] = useState(false);
   const hasCalledOnPlaying = useRef(false);
+  const playerReady = useRef(false);  // YouTube Player 준비 상태
 
   // 외부에서 제어 가능하도록 함수 노출
   useImperativeHandle(ref, () => ({
@@ -51,6 +53,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
         console.log('[YouTube] 재생:', slideIndex);
       }
     },
+    isReady: () => playerReady.current,  // 준비 상태 확인 메서드
   }));
 
   // YouTube API 로드
@@ -103,6 +106,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
           events: {
             onReady: (event: any) => {
               console.log('[YouTube] Player 준비 완료:', slideIndex);
+              playerReady.current = true;  // 준비 상태 플래그 설정
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
               // 부모 컴포넌트에서 명시적으로 playVideo 호출할 예정
             },
@@ -327,13 +331,25 @@ export default function BillboardPage() {
     if (hasVideo) {
       console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 준비`);
       // Player가 준비될 때까지 대기 후 재생
+      let attemptCount = 0;
+      const maxAttempts = 50;  // 최대 5초 대기 (50 * 100ms)
       const attemptPlay = () => {
-        if (playerRefsRef.current[currentIndex]) {
+        const player = playerRefsRef.current[currentIndex];
+        // currentIndex가 변경되면 재시도 중단
+        if (currentIndex !== prevIndexRef.current && prevIndexRef.current !== -1) {
+          console.log(`[슬라이드 전환] currentIndex 변경 감지, 재시도 중단`);
+          return;
+        }
+        // Player가 준비되었는지 확인
+        if (player && player.isReady && player.isReady()) {
           console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 시작`);
-          playerRefsRef.current[currentIndex]?.playVideo();
-        } else {
+          player.playVideo();
+        } else if (attemptCount < maxAttempts) {
           // Player가 아직 준비 안되면 100ms 후 재시도
+          attemptCount++;
           setTimeout(attemptPlay, 100);
+        } else {
+          console.error(`[슬라이드 전환] Player ${currentIndex} 준비 시간 초과 (5초)`);
         }
       };
       attemptPlay();
