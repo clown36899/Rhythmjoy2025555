@@ -2299,7 +2299,7 @@ export default function EventList({
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
         >
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-y-auto">
             <div className="p-4">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-bold text-white">이벤트 수정</h2>
@@ -3114,11 +3114,11 @@ export default function EventList({
           onTouchMove={(e) => e.stopPropagation()}
         >
           <div
-            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden border-2 relative"
+            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border-2 relative"
             style={{ borderColor: "rgb(255 191 19)" }}
           >
             {/* 스크롤 가능한 전체 영역 */}
-            <div className="overflow-y-auto max-h-[90vh]">
+            <div className="overflow-y-auto max-h-[90svh]">
               {/* 이미지 영역 (스크롤과 함께 사라짐) */}
               <div
                 className={`relative w-full ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
@@ -3551,7 +3551,7 @@ export default function EventList({
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.9)" }}
         >
-          <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90svh] overflow-y-auto">
             <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex justify-between items-center z-10">
               <h2 className="text-xl font-bold text-white">썸네일 선택</h2>
               <button

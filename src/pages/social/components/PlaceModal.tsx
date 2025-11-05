@@ -101,7 +101,7 @@ export default function PlaceModal({ onClose, onSaved, category }: PlaceModalPro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90svh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-bold text-white mb-4">장소 등록</h2>
 

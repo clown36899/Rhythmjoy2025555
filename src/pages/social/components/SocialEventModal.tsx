@@ -78,7 +78,7 @@ export default function SocialEventModal({ date, onClose, onSaved }: SocialEvent
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90svh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-bold text-white mb-4">
             일정 등록 - {date.getMonth() + 1}월 {date.getDate()}일

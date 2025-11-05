@@ -357,7 +357,7 @@ export default function AdminBillboardModal({
       <div
         className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
       >
-        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90svh] flex flex-col overflow-hidden">
           {/* Header - 상단 고정 */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex-shrink-0">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -663,7 +663,7 @@ export default function AdminBillboardModal({
         className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
         onClick={handleBackdropClick}
       >
-        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90svh] flex flex-col overflow-hidden">
         {/* Header - 상단 고정 */}
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">

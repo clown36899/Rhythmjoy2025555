@@ -141,7 +141,7 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
-      <div className="bg-gradient-to-br from-purple-900/95 to-blue-900/95 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-purple-500/30">
+      <div className="bg-gradient-to-br from-purple-900/95 to-blue-900/95 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90svh] overflow-hidden border border-purple-500/30">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 flex items-center justify-between">
           <h3 className="text-2xl font-bold text-white flex items-center gap-2">
