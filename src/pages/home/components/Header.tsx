@@ -62,6 +62,8 @@ export default function Header({
     useState(false);
   const [showLoginSuccessModal, setShowLoginSuccessModal] = useState(false);
   const [loginSuccessName, setLoginSuccessName] = useState("");
+  const [showSubAdminSelector, setShowSubAdminSelector] = useState(false);
+  const [billboardUsers, setBillboardUsers] = useState<any[]>([]);
   const [themeColors, setThemeColors] = useState({
     background_color: "#000000",
     header_bg_color: "#1f2937",
@@ -586,6 +588,37 @@ export default function Header({
                         </button>
                       </>
                     )}
+                    
+                    {/* 개발자 모드 섹션 */}
+                    {isDevAdmin && (
+                      <>
+                        <div className="border-t border-red-500/30 pt-3 mt-3">
+                          <p className="text-red-400 text-xs font-bold mb-2">🔧 개발자 모드</p>
+                          <button
+                            onClick={async () => {
+                              // 서브 관리자 목록 가져오기
+                              const { data, error } = await supabase
+                                .from('billboard_users')
+                                .select('id, user_name')
+                                .eq('is_active', true)
+                                .order('created_at', { ascending: true });
+                              
+                              if (!error && data) {
+                                setBillboardUsers(data);
+                                setShowSubAdminSelector(true);
+                              } else {
+                                alert('서브 관리자 목록을 불러올 수 없습니다.');
+                              }
+                            }}
+                            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <i className="ri-user-settings-line text-base"></i>
+                            서브관리자로그인테스트
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    
                     <button
                       onClick={handleAdminLogout}
                       className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
@@ -943,6 +976,63 @@ export default function Header({
           </div>,
           document.body,
         )}
+
+      {/* 서브 관리자 선택 모달 (개발자 모드) */}
+      {showSubAdminSelector && isDevAdmin && createPortal(
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[99999] p-4"
+          onClick={() => setShowSubAdminSelector(false)}
+        >
+          <div 
+            className="bg-gray-800 rounded-lg p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-white mb-4">서브 관리자 선택</h3>
+            <p className="text-gray-400 text-sm mb-4">테스트할 서브 관리자를 선택하세요</p>
+            
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {billboardUsers.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">등록된 서브 관리자가 없습니다.</p>
+              ) : (
+                billboardUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={() => {
+                      // 서브 관리자로 로그인 상태 전환
+                      console.log('[개발 모드] 서브 관리자로 전환:', user.user_name);
+                      setBillboardUserId(user.id);
+                      setBillboardUserName(user.user_name);
+                      onAdminModeToggle?.(true, "sub", user.id, user.user_name);
+                      setShowSubAdminSelector(false);
+                      setShowSettingsModal(false);
+                      
+                      // 로그인 성공 표시
+                      setLoginSuccessName(`${user.user_name} (테스트)`);
+                      setLoginSuccessType(`${user.user_name} 빌보드 관리자 (개발 테스트)`);
+                      setShowLoginSuccessModal(true);
+                    }}
+                    className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg text-left transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <i className="ri-user-line text-blue-400"></i>
+                      <span className="font-medium">{user.user_name}</span>
+                      <span className="text-xs text-gray-400 ml-auto">ID: {user.id}</span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+            
+            <button
+              onClick={() => setShowSubAdminSelector(false)}
+              className="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors cursor-pointer"
+            >
+              취소
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* 빌보드 주소 복사 성공 모달 */}
       {showCopySuccessModal && createPortal(
