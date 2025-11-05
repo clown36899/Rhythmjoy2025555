@@ -78,6 +78,20 @@ export default function EventRegistrationModal({
     setSpecificDates([selectedDate]);
   }, [selectedDate]);
 
+  // 모달이 열릴 때 배경 스크롤 금지
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    // 컴포넌트 언마운트 시 원상복구
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   const categories = [
     { id: "class", name: "강습" },
     { id: "event", name: "행사" },
