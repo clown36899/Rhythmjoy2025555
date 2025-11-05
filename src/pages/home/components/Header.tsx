@@ -563,18 +563,54 @@ export default function Header({
                       광고판 설정
                     </button>
                     {billboardUserId !== null && (
-                      <button
-                        onClick={() => {
-                          const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
-                          navigator.clipboard.writeText(billboardUrl);
-                          setShowCopySuccessModal(true);
-                          setTimeout(() => setShowCopySuccessModal(false), 1500);
-                        }}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <i className="ri-link text-base"></i>
-                        빌보드 주소 복사
-                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
+                            navigator.clipboard.writeText(billboardUrl);
+                            setShowCopySuccessModal(true);
+                            setTimeout(() => setShowCopySuccessModal(false), 1500);
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <i className="ri-link text-base"></i>
+                          빌보드 주소 복사
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
+                            
+                            // Web Share API 지원 확인
+                            if (navigator.share) {
+                              try {
+                                await navigator.share({
+                                  title: `${billboardUserName} 빌보드`,
+                                  text: `${billboardUserName}의 빌보드를 확인하세요!`,
+                                  url: billboardUrl,
+                                });
+                              } catch (err) {
+                                // 사용자가 공유를 취소한 경우 무시
+                                if ((err as Error).name !== 'AbortError') {
+                                  console.error('공유 실패:', err);
+                                  // 공유 실패 시 복사로 대체
+                                  navigator.clipboard.writeText(billboardUrl);
+                                  setShowCopySuccessModal(true);
+                                  setTimeout(() => setShowCopySuccessModal(false), 1500);
+                                }
+                              }
+                            } else {
+                              // Web Share API 미지원 시 복사로 대체
+                              navigator.clipboard.writeText(billboardUrl);
+                              setShowCopySuccessModal(true);
+                              setTimeout(() => setShowCopySuccessModal(false), 1500);
+                            }
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <i className="ri-share-line text-base"></i>
+                          공유
+                        </button>
+                      </div>
                     )}
                     {isEffectiveAdmin && billboardUserId === null && (
                       <>
