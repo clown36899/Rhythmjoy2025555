@@ -356,10 +356,13 @@ export default function BillboardPage() {
           player.playVideo();
           
           // 영상 재생 시작 시 즉시 타이머 시작
+          console.log(`[디버그] settings 존재: ${!!settings}, video_play_duration: ${settings?.video_play_duration}`);
           if (settings) {
             const slideInterval = settings.video_play_duration || 10000;
             console.log(`[타이머 시작] 영상 재생 시작, 타이머: ${slideInterval}ms`);
             startSlideTimer(slideInterval);
+          } else {
+            console.error('[타이머 시작 실패] settings가 null입니다!');
           }
         } else if (attemptCount < maxAttempts) {
           // Player가 아직 준비 안되면 100ms 후 재시도
