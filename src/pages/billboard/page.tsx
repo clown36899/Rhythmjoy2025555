@@ -71,8 +71,6 @@ function YouTubePlayer({
           playerVars: {
             autoplay: 1,
             mute: 1,
-            loop: 1,
-            playlist: videoId,
             controls: 0,
             modestbranding: 1,
             playsinline: 1,
@@ -83,11 +81,8 @@ function YouTubePlayer({
             onReady: (event: any) => {
               console.log('[YouTube] Player 준비 완료, 재생 시작:', slideIndex);
               event.target.playVideo();
-            },
-            onStateChange: (event: any) => {
-              if (event.data === 1 && !hasCalledOnPlaying.current) {
-                // 재생 중 - 한 번만 호출
-                console.log('[YouTube] 재생 시작 감지:', slideIndex);
+              // 재생 시작 콜백 (onStateChange 대신 onReady에서 호출)
+              if (!hasCalledOnPlaying.current) {
                 hasCalledOnPlaying.current = true;
                 onPlayingCallback(slideIndex);
               }
@@ -101,15 +96,16 @@ function YouTubePlayer({
       } catch (err) {
         console.error('[YouTube] Player 생성 실패:', err);
       }
-    }, 300);
+    }, 100);
 
     return () => {
       clearTimeout(timer);
       if (playerRef.current?.destroy) {
         try {
           playerRef.current.destroy();
+          console.log('[YouTube] Player 정리 완료:', slideIndex);
         } catch (e) {
-          // 무시
+          console.log('[YouTube] Player 정리 중 에러 (무시):', e);
         }
       }
       playerRef.current = null;
@@ -220,12 +216,12 @@ export default function BillboardPage() {
     slideStartTimeRef.current = startTime;
     console.log(`[타이머 시작] 슬라이드 ${currentIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
     
-    // 진행바 업데이트
+    // 진행바 업데이트 (150ms 간격으로 부드러운 애니메이션 + 성능 개선)
     setProgress(0);
-    const step = (50 / slideInterval) * 100;
+    const step = (150 / slideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((p) => (p >= 100 ? 0 : p + step));
-    }, 50);
+    }, 150);
 
     // 슬라이드 전환 타이머
     slideTimerRef.current = setInterval(() => {
