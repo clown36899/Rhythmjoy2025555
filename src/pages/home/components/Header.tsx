@@ -990,7 +990,7 @@ export default function Header({
       {/* 서브 관리자 선택 모달 (개발자 모드) */}
       {showSubAdminSelector && isDevAdmin && createPortal(
         <div 
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[99999] p-4"
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[9999999999] p-4"
           onClick={() => setShowSubAdminSelector(false)}
         >
           <div 
