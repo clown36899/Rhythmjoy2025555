@@ -489,10 +489,14 @@ export default function BillboardUserManagementModal({
 
         {showEditModal && selectedUser && createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999999] p-4 pt-10 overflow-y-auto">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h4 className="text-xl font-bold text-white mb-4">{selectedUser.name} 설정</h4>
+            <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+              {/* Header - 상단 고정 */}
+              <div className="px-6 py-4 border-b border-gray-700 flex-shrink-0">
+                <h4 className="text-xl font-bold text-white">{selectedUser.name} 설정</h4>
+              </div>
               
-              <div className="space-y-6">
+              {/* Content - 스크롤 가능 */}
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
                 <div>
                   <label className="block text-gray-300 text-sm font-medium mb-2">
                     📅 제외할 요일
@@ -713,24 +717,25 @@ export default function BillboardUserManagementModal({
                     </button>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowEditModal(false);
-                      resetEditForm();
-                    }}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-colors"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleSaveSettings}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors"
-                  >
-                    저장
-                  </button>
-                </div>
+              {/* Footer - 하단 고정 */}
+              <div className="px-6 py-4 border-t border-gray-700 flex gap-3 flex-shrink-0">
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    resetEditForm();
+                  }}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveSettings}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors"
+                >
+                  저장
+                </button>
               </div>
             </div>
           </div>,
