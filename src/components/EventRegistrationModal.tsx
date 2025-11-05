@@ -414,9 +414,10 @@ export default function EventRegistrationModal({
   const modalContent = (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-10 z-[999999] overflow-y-auto">
-        <div className="bg-gray-800 rounded-lg max-w-2xl w-full mb-10 relative z-[999999]">
-          <div className="p-4">
-            <div className="flex justify-between items-center mb-4">
+        <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] mb-10 relative z-[999999] flex flex-col overflow-hidden">
+          {/* Header - 상단 고정 */}
+          <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
+            <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-white">
                 {selectedDate.toLocaleDateString("ko-KR", {
                   year: "numeric",
@@ -433,8 +434,10 @@ export default function EventRegistrationModal({
                 <i className="ri-close-line text-2xl"></i>
               </button>
             </div>
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Content - 스크롤 가능 */}
+          <form id="event-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {/* 이벤트 제목 */}
               <div>
                 <input
@@ -961,24 +964,25 @@ export default function EventRegistrationModal({
                 </p>
               </div>
 
-              {/* 버튼 - 축소 */}
-              <div className="flex space-x-3 pt-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-semibold transition-colors cursor-pointer"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  {isSubmitting ? "등록 중..." : "이벤트 등록"}
-                </button>
-              </div>
             </form>
+
+          {/* Footer - 하단 고정 */}
+          <div className="px-4 py-4 border-t border-gray-700 flex gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              form="event-form"
+              disabled={isSubmitting}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {isSubmitting ? "등록 중..." : "이벤트 등록"}
+            </button>
           </div>
         </div>
       </div>
