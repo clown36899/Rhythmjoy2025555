@@ -1009,18 +1009,45 @@ export default function Header({
                     key={user.id}
                     onClick={() => {
                       // 서브 관리자로 로그인 상태 전환
-                      console.log('[개발 모드] 서브 관리자로 전환:', user.name);
+                      console.log('[개발 모드] ========== 서브 관리자 전환 시작 ==========');
+                      console.log('[개발 모드] 선택한 사용자:', user);
+                      console.log('[개발 모드] 현재 상태:', {
+                        isAdmin,
+                        isDevAdmin,
+                        billboardUserId,
+                        billboardUserName
+                      });
+                      
+                      console.log('[개발 모드] setBillboardUserId:', user.id);
                       setBillboardUserId(user.id);
+                      
+                      console.log('[개발 모드] setBillboardUserName:', user.name);
                       setBillboardUserName(user.name);
-                      setIsDevAdmin(false); // 서브 관리자 모드로 전환 (슈퍼 관리자 해제)
+                      
+                      console.log('[개발 모드] setIsDevAdmin(false) - 슈퍼 관리자 해제');
+                      setIsDevAdmin(false);
+                      
+                      console.log('[개발 모드] onAdminModeToggle 호출:', {
+                        isAdminMode: true,
+                        type: "sub",
+                        userId: user.id,
+                        userName: user.name
+                      });
                       onAdminModeToggle?.(true, "sub", user.id, user.name);
+                      
+                      console.log('[개발 모드] 모달 닫기');
                       setShowSubAdminSelector(false);
                       setShowSettingsModal(false);
                       
-                      // 로그인 성공 표시 (일반 서브 관리자와 동일)
+                      console.log('[개발 모드] 로그인 성공 모달 표시:', {
+                        name: user.name,
+                        type: '개인빌보드 관리자 모드'
+                      });
                       setLoginSuccessName(user.name);
                       setLoginSuccessType('개인빌보드 관리자 모드');
                       setShowLoginSuccessModal(true);
+                      
+                      console.log('[개발 모드] ========== 서브 관리자 전환 완료 ==========');
                     }}
                     className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg text-left transition-colors cursor-pointer"
                   >
