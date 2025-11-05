@@ -189,6 +189,7 @@ export default function BillboardPage() {
   const slideStartTimeRef = useRef<number>(0); // 슬라이드 시작 시간
   const playerRefsRef = useRef<(YouTubePlayerHandle | null)[]>([]); // 모든 Player 참조
   const prevIndexRef = useRef<number>(0); // 이전 슬라이드 인덱스
+  const currentActiveIndexRef = useRef<number>(0); // 현재 활성 슬라이드 인덱스 (attemptPlay 취소용)
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -321,6 +322,9 @@ export default function BillboardPage() {
     const currentEvent = events[currentIndex];
     const hasVideo = !!currentEvent?.video_url;
     
+    // 현재 활성 슬라이드 업데이트
+    currentActiveIndexRef.current = currentIndex;
+    
     // 이전 슬라이드 pause
     if (prevIndex !== currentIndex && playerRefsRef.current[prevIndex]) {
       console.log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 슬라이드 일시정지`);
@@ -335,6 +339,12 @@ export default function BillboardPage() {
       let attemptCount = 0;
       const maxAttempts = 50;  // 최대 5초 대기 (50 * 100ms)
       const attemptPlay = () => {
+        // 슬라이드가 변경되었으면 재시도 중단
+        if (currentActiveIndexRef.current !== targetIndex) {
+          console.log(`[슬라이드 전환] 슬라이드 ${targetIndex} 재시도 중단 (현재: ${currentActiveIndexRef.current})`);
+          return;
+        }
+        
         const player = playerRefsRef.current[targetIndex];
         // Player가 준비되었는지 확인
         if (player && player.isReady && player.isReady()) {
