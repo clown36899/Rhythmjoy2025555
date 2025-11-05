@@ -69,6 +69,7 @@ function YouTubePlayer({
         playerRef.current = new window.YT.Player(playerId, {
           videoId,
           playerVars: {
+            origin: window.location.origin,
             autoplay: 1,
             mute: 1,
             controls: 0,
