@@ -354,6 +354,13 @@ export default function BillboardPage() {
         if (player && player.isReady && player.isReady()) {
           console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 시작`);
           player.playVideo();
+          
+          // 영상 재생 시작 시 즉시 타이머 시작
+          if (settings) {
+            const slideInterval = settings.video_play_duration || 10000;
+            console.log(`[타이머 시작] 영상 재생 시작, 타이머: ${slideInterval}ms`);
+            startSlideTimer(slideInterval);
+          }
         } else if (attemptCount < maxAttempts) {
           // Player가 아직 준비 안되면 100ms 후 재시도
           attemptCount++;
@@ -373,16 +380,10 @@ export default function BillboardPage() {
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((index: number) => {
-    console.log('[빌보드] 영상 재생 감지:', index);
+    console.log('[빌보드] 영상 재생 감지 (onStateChange):', index);
     setVideoLoadedMap(prev => ({ ...prev, [index]: true }));
-    
-    // 영상 재생 시작되면 이제 타이머 시작
-    if (index === currentIndex && settings) {
-      const slideInterval = settings.video_play_duration || 10000;
-      console.log(`[타이머 시작] 영상 재생 감지로 타이머 시작: ${slideInterval}ms`);
-      startSlideTimer(slideInterval);
-    }
-  }, [currentIndex, settings, startSlideTimer]);
+    // 타이머는 playVideo() 호출 시 이미 시작됨 (중복 방지)
+  }, []);
 
   // 모바일 주소창 숨기기
   useEffect(() => {
