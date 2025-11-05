@@ -393,9 +393,13 @@ export default function BillboardPage() {
       ? (settings.video_play_duration || 10000) 
       : settings.auto_slide_interval;
     
-    console.log(`[빌보드] 슬라이드 ${currentIndex} - 영상: ${hasVideo ? 'O' : 'X'}, 간격: ${slideInterval}ms`);
+    const startTime = Date.now();
+    console.log(`[타이머 시작] 슬라이드 ${currentIndex} - 영상: ${hasVideo ? 'O' : 'X'}, 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
     
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    if (progressIntervalRef.current) {
+      console.log('[타이머] 기존 progress 타이머 정리');
+      clearInterval(progressIntervalRef.current);
+    }
     setProgress(0);
     const step = (50 / slideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
@@ -403,6 +407,9 @@ export default function BillboardPage() {
     }, 50);
 
     const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      console.log(`[타이머 종료] 슬라이드 ${currentIndex} - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
+      
       setProgress(0);
       if (pendingReload) {
         setTimeout(() => window.location.reload(), 500);
@@ -441,6 +448,7 @@ export default function BillboardPage() {
     }, slideInterval);
 
     return () => {
+      console.log(`[타이머 cleanup] 슬라이드 ${currentIndex} 타이머 정리`);
       clearInterval(interval);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
