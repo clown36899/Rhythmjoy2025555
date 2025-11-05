@@ -766,13 +766,12 @@ export default function BillboardPage() {
               {/* 날짜 + 장소 (8% 제한) */}
               <div
                 style={{
-                  height: `${dateLocationHeight}px`,
+                  minHeight: `${dateLocationHeight}px`,
                   marginBottom: `${dateLocationHeight * 0.1}px`,
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "center",
                   gap: `${dateLocationHeight * 0.05}px`,
-                  overflow: "hidden",
                 }}
               >
                 {event.start_date && (
@@ -811,8 +810,7 @@ export default function BillboardPage() {
               <div 
                 className="flex items-center justify-between"
                 style={{
-                  height: `${bottomInfoHeight}px`,
-                  overflow: "hidden",
+                  minHeight: `${bottomInfoHeight}px`,
                 }}
               >
                 <h3
