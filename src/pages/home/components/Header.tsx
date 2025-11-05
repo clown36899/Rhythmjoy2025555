@@ -1012,13 +1012,14 @@ export default function Header({
                       console.log('[개발 모드] 서브 관리자로 전환:', user.name);
                       setBillboardUserId(user.id);
                       setBillboardUserName(user.name);
+                      setIsDevAdmin(false); // 서브 관리자 모드로 전환 (슈퍼 관리자 해제)
                       onAdminModeToggle?.(true, "sub", user.id, user.name);
                       setShowSubAdminSelector(false);
                       setShowSettingsModal(false);
                       
-                      // 로그인 성공 표시
-                      setLoginSuccessName(`${user.name} (테스트)`);
-                      setLoginSuccessType(`${user.name} 빌보드 관리자 (개발 테스트)`);
+                      // 로그인 성공 표시 (일반 서브 관리자와 동일)
+                      setLoginSuccessName(user.name);
+                      setLoginSuccessType('개인빌보드 관리자 모드');
                       setShowLoginSuccessModal(true);
                     }}
                     className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg text-left transition-colors cursor-pointer"
