@@ -334,7 +334,7 @@ export default function BillboardPage() {
                 const existingIndex = updatedEvents.findIndex(e => e.id === oldEvent.id);
                 if (existingIndex >= 0) {
                   // 삭제된 이벤트가 현재 재생 중인지 확인
-                  if (oldEvent.id === currentEventId) {
+                  if (currentEventId && oldEvent.id === currentEventId) {
                     deletedEventIndex = existingIndex;
                   }
                   updatedEvents.splice(existingIndex, 1);
