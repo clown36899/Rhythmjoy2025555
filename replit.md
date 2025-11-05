@@ -8,6 +8,11 @@
 
 Preferred communication style: Simple, everyday language.
 
+### Secret Management
+- **중요**: Replit 사용자는 Secrets 패널을 직접 열 수 없음
+- Agent가 `ask_secrets` 도구를 사용하여 시크릿 입력 UI를 열어줘야 함
+- 사용자는 값을 입력할 수 있지만, UI 자체는 Agent가 열어야 함
+
 ## System Architecture
 
 ### Frontend Architecture
