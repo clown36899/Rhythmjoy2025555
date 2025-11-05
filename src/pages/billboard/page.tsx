@@ -29,13 +29,14 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
   videoId: string;
   slideIndex: number;
   onPlayingCallback: (index: number) => void;
+  apiReady: boolean;  // 부모로부터 API 준비 상태 받기
 }>(({
   videoId,
   slideIndex,
   onPlayingCallback,
+  apiReady,  // props로 받기
 }, ref) => {
   const playerRef = useRef<any>(null);
-  const [apiReady, setApiReady] = useState(false);
   const hasCalledOnPlaying = useRef(false);
   const playerReady = useRef(false);  // YouTube Player 준비 상태
 
@@ -55,26 +56,6 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
     },
     isReady: () => playerReady.current,  // 준비 상태 확인 메서드
   }));
-
-  // YouTube API 로드
-  useEffect(() => {
-    if (window.YT && window.YT.Player) {
-      setApiReady(true);
-      return;
-    }
-
-    window.onYouTubeIframeAPIReady = () => {
-      console.log('[YouTube API] 준비 완료');
-      setApiReady(true);
-    };
-
-    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScript = document.getElementsByTagName('script')[0];
-      firstScript.parentNode?.insertBefore(tag, firstScript);
-    }
-  }, []);
 
   // Player 생성
   useEffect(() => {
@@ -190,6 +171,7 @@ export default function BillboardPage() {
   const playerRefsRef = useRef<(YouTubePlayerHandle | null)[]>([]); // 모든 Player 참조
   const prevIndexRef = useRef<number>(0); // 이전 슬라이드 인덱스
   const currentActiveIndexRef = useRef<number>(0); // 현재 활성 슬라이드 인덱스 (attemptPlay 취소용)
+  const [youtubeApiReady, setYoutubeApiReady] = useState(false); // YouTube API 준비 상태
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -237,6 +219,28 @@ export default function BillboardPage() {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
     };
+  }, []);
+
+  // YouTube API 로드 (부모에서 한 번만)
+  useEffect(() => {
+    if (window.YT && window.YT.Player) {
+      console.log('[YouTube API] 이미 로드됨');
+      setYoutubeApiReady(true);
+      return;
+    }
+
+    window.onYouTubeIframeAPIReady = () => {
+      console.log('[YouTube API] 준비 완료');
+      setYoutubeApiReady(true);
+    };
+
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      console.log('[YouTube API] 스크립트 로드 시작');
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScript = document.getElementsByTagName('script')[0];
+      firstScript.parentNode?.insertBefore(tag, firstScript);
+    }
   }, []);
 
   // 슬라이드 타이머 시작 함수
@@ -706,6 +710,7 @@ export default function BillboardPage() {
                 }}
                 videoId={videoInfo.videoId}
                 slideIndex={slideIndex}
+                apiReady={youtubeApiReady}
                 onPlayingCallback={handleVideoPlaying}
               />
             </div>
