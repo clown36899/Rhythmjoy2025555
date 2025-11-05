@@ -39,11 +39,10 @@ The billboard system provides a fullscreen slideshow with random/sequential play
 Allows Super Admins to create and manage multiple billboard users, each with a customizable, dedicated billboard display accessible via unique URLs (`/billboard/:userId`). These sub-admins can configure event filtering (weekdays, specific events, date ranges), auto-slide intervals, and play order for their specific billboard. The system includes secure password authentication for billboard users and is optimized for portrait displays, supporting CSS rotation for monitors.
 
 **Performance Optimizations (Updated: 2025-11-05)**:
-- **Incremental + Deferred Updates**: Supabase Realtime changes (INSERT/UPDATE/DELETE) are queued in `pendingChangesRef` and applied after slide transitions to prevent video player recreation
-- **React.memo Caching**: `YouTubePlayer` components are memoized and only re-render when props change, preserving playback state during data updates
-- **Ref-Based Architecture**: All timer callbacks use refs (`eventsRef`, `settingsRef`, `currentEventIdRef`, etc.) instead of state closures to prevent stale values
-- **Playback Continuity**: Sequential mode preserves current slide position by ID during updates; Random mode maintains current event; deletions advance naturally to the next slide using `deletedEventIndex` tracking
-- **Real-time Sync**: Settings changes (interval, filters) are immediately reflected via `settingsRef.current` without timer restarts
+- **Simplified Realtime Updates**: All Supabase Realtime changes (INSERT/UPDATE/DELETE) trigger a full page reload for maximum stability. When the event list is empty, reloads trigger immediately; otherwise, they queue until the next slide transition.
+- **React.memo Caching**: `YouTubePlayer` components are memoized by `videoId`, preserving media players across reloads even when event data refreshes, ensuring smooth video playback without interruption.
+- **Ref-Based Architecture**: All timer callbacks use refs (`eventsRef`, `settingsRef`, `currentEventIdRef`, `pendingReloadRef`) instead of state closures to prevent stale values and ensure real-time changes are observed.
+- **Concurrent Updates**: Multiple simultaneous changes (e.g., 3 users editing) queue together and trigger a single reload, preventing excessive refreshes.
 
 ### Social Venues System
 An independent system (`/social`) for discovering and managing schedules for specific social venues. It integrates **Kakao Maps SDK** and **Kakao Local API** for mapping and address search. Features include a map view with venue markers, a scrollable venue list, and a dedicated monthly calendar for each venue's schedules. Admin CRUD operations for venues and schedules are password-protected, with RLS policies ensuring super admin-only writes and public read access.
