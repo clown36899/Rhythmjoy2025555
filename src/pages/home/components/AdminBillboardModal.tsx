@@ -663,9 +663,9 @@ export default function AdminBillboardModal({
         className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
         onClick={handleBackdropClick}
       >
-        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between z-10">
+        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header - 상단 고정 */}
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <i className="ri-image-2-line"></i>
             메인 광고판 설정
@@ -678,8 +678,8 @@ export default function AdminBillboardModal({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
+        {/* Content - 스크롤 가능 */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* 광고판 활성화/비활성화 */}
           <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
             <div className="flex-1">
@@ -1090,8 +1090,8 @@ export default function AdminBillboardModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-800 border-t border-gray-700 px-6 py-4 flex items-center justify-between gap-4">
+        {/* Footer - 하단 고정 */}
+        <div className="bg-gray-800 border-t border-gray-700 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
           <button
             onClick={onResetSettings}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
