@@ -151,6 +151,8 @@ export default function BillboardPage() {
   const [bottomInfoHeight, setBottomInfoHeight] = useState(0); // 하단 정보 영역 높이 (화면의 10%)
   const [qrSize, setQrSize] = useState(144); // QR 코드 크기
   const [titleFontSize, setTitleFontSize] = useState(56); // 제목 폰트 크기
+  const [dateLocationHeight, setDateLocationHeight] = useState(0); // 날짜+장소 영역 높이 (화면의 8%)
+  const [dateLocationFontSize, setDateLocationFontSize] = useState(31); // 날짜+장소 폰트 크기
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -160,7 +162,7 @@ export default function BillboardPage() {
       const isLandscape = window.innerWidth > window.innerHeight;
       setNeedsRotation(isLandscape);
       
-      // 화면 높이의 10% 계산 (회전 여부에 따라)
+      // 화면 높이의 10% 계산 (회전 여부에 따라) - 제목+QR 영역
       const effectiveHeight = isLandscape ? window.innerWidth : window.innerHeight;
       const maxHeight = effectiveHeight * 0.1;
       setBottomInfoHeight(maxHeight);
@@ -173,7 +175,15 @@ export default function BillboardPage() {
       const calculatedFontSize = Math.min(60, Math.max(20, calculatedQrSize * 0.4));
       setTitleFontSize(calculatedFontSize);
       
-      console.log(`[빌보드] 크기 계산: ${isLandscape ? '가로' : '세로'}, 최대높이: ${Math.round(maxHeight)}px, QR: ${Math.round(calculatedQrSize)}px, 폰트: ${Math.round(calculatedFontSize)}px`);
+      // 날짜+장소 영역: 화면 높이의 8%
+      const dateLocationMax = effectiveHeight * 0.08;
+      setDateLocationHeight(dateLocationMax);
+      
+      // 날짜+장소 폰트 크기: 영역의 30% 정도, 최소 18px, 최대 36px
+      const dateLocationFont = Math.min(36, Math.max(18, dateLocationMax * 0.3));
+      setDateLocationFontSize(dateLocationFont);
+      
+      console.log(`[빌보드] 크기 계산: ${isLandscape ? '가로' : '세로'}, 제목영역: ${Math.round(maxHeight)}px (QR:${Math.round(calculatedQrSize)}px, 폰트:${Math.round(calculatedFontSize)}px), 날짜영역: ${Math.round(dateLocationMax)}px (폰트:${Math.round(dateLocationFont)}px)`);
     };
 
     const handleResize = () => {
@@ -753,26 +763,30 @@ export default function BillboardPage() {
                 }}
               />
 
-              {/* 날짜 + 장소 (10% 제한 밖) */}
+              {/* 날짜 + 장소 (8% 제한) */}
               <div
                 style={{
-                  marginBottom: `${8 * scale}px`,
+                  height: `${dateLocationHeight}px`,
+                  marginBottom: `${dateLocationHeight * 0.1}px`,
                   display: "flex",
                   flexDirection: "column",
-                  gap: `${4 * scale}px`,
+                  justifyContent: "center",
+                  gap: `${dateLocationHeight * 0.05}px`,
+                  overflow: "hidden",
                 }}
               >
                 {event.start_date && (
                   <div
                     className="text-blue-400 font-semibold"
                     style={{
-                      fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                      fontSize: `${dateLocationFontSize}px`,
+                      lineHeight: 1.2,
                       animation: `slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards`,
                       opacity: 0,
-                      transform: `translateX(-${150 * scale}px) rotate(-8deg)`,
+                      transform: `translateX(-${dateLocationFontSize * 5}px) rotate(-8deg)`,
                     }}
                   >
-                    <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                    <i className="ri-calendar-line" style={{ marginRight: `${dateLocationFontSize * 0.3}px` }}></i>
                     {formatDateRange(event.start_date, event.end_date)}
                   </div>
                 )}
@@ -780,13 +794,14 @@ export default function BillboardPage() {
                   <div
                     className="text-gray-300"
                     style={{
-                      fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                      fontSize: `${dateLocationFontSize}px`,
+                      lineHeight: 1.2,
                       animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards`,
                       opacity: 0,
-                      transform: `translateX(${150 * scale}px) rotate(8deg)`,
+                      transform: `translateX(${dateLocationFontSize * 5}px) rotate(8deg)`,
                     }}
                   >
-                    <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                    <i className="ri-map-pin-line" style={{ marginRight: `${dateLocationFontSize * 0.3}px` }}></i>
                     {event.location}
                   </div>
                 )}
