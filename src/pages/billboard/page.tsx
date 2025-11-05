@@ -560,7 +560,7 @@ export default function BillboardPage() {
     });
   };
 
-  // 슬라이드 전환 시 타이머 설정
+  // 슬라이드 전환 시 이미지 타이머 설정 (영상은 playVideo()에서 타이머 시작)
   useEffect(() => {
     if (!settings || events.length === 0) return;
     
@@ -568,25 +568,13 @@ export default function BillboardPage() {
     const currentEvent = events[currentIndex];
     const hasVideo = !!currentEvent?.video_url;
     
-    // 기존 타이머 정리
-    if (slideTimerRef.current) {
-      clearInterval(slideTimerRef.current);
-      slideTimerRef.current = null;
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
-    setProgress(0);
-    
-    if (hasVideo) {
-      // 영상 슬라이드: 타이머 시작 안함 (썸네일만 표시, 진행바도 정지)
-      console.log(`[슬라이드 ${currentIndex}] 영상 감지 - 재생 시작 대기 중 (타이머 정지)`);
-    } else {
-      // 이미지 슬라이드: 즉시 타이머 시작
+    // 이미지 슬라이드만 여기서 타이머 시작
+    if (!hasVideo) {
       const slideInterval = settings.auto_slide_interval;
       console.log(`[슬라이드 ${currentIndex}] 이미지 감지 - 즉시 타이머 시작: ${slideInterval}ms`);
       startSlideTimer(slideInterval);
+    } else {
+      console.log(`[슬라이드 ${currentIndex}] 영상 감지 - playVideo()에서 타이머 시작 예정`);
     }
 
     return () => {
@@ -599,6 +587,7 @@ export default function BillboardPage() {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
+      setProgress(0);
     };
   }, [events, settings, currentIndex, startSlideTimer]);
 
