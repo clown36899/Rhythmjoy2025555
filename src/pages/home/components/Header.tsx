@@ -44,9 +44,21 @@ export default function Header({
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccessType, setLoginSuccessType] = useState("");
   const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
-  const [isDevAdmin, setIsDevAdmin] = useState(false); // 개발자 프리패스 상태
+  const [isDevAdmin, setIsDevAdmin] = useState(() => {
+    // localStorage에서 개발자 프리패스 상태 복원
+    return localStorage.getItem('isDevAdmin') === 'true';
+  });
   
   const { isAdmin, billboardUserId, billboardUserName, setBillboardUser, signOut, signInWithKakao, signInAsDevAdmin } = useAuth();
+  
+  // isDevAdmin 상태 변경 시 localStorage 동기화
+  useEffect(() => {
+    if (isDevAdmin) {
+      localStorage.setItem('isDevAdmin', 'true');
+    } else {
+      localStorage.removeItem('isDevAdmin');
+    }
+  }, [isDevAdmin]);
   
   // 실제 관리자 또는 개발자 프리패스
   const isEffectiveAdmin = isAdmin || isDevAdmin;
@@ -222,7 +234,7 @@ export default function Header({
     }
     
     // 로컬 상태 초기화
-    setIsDevAdmin(false); // 개발자 프리패스 상태 초기화
+    setIsDevAdmin(false); // 개발자 프리패스 상태 초기화 (localStorage도 자동 삭제)
     onAdminModeToggle?.(false, null, null, "");
     // Billboard 사용자 정보는 AuthContext의 signOut에서 초기화됨
     
