@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import React, { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle, memo } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
@@ -24,8 +24,8 @@ export interface YouTubePlayerHandle {
   isReady: () => boolean;
 }
 
-// YouTube Player 컴포넌트 (forwardRef로 변경)
-const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
+// YouTube Player 컴포넌트 (forwardRef + memo로 최적화)
+const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   videoId: string;
   slideIndex: number;
   onPlayingCallback: (index: number) => void;
@@ -128,6 +128,11 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
   }, [apiReady, videoId, slideIndex, onPlayingCallback]);
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
+}), (prevProps, nextProps) => {
+  // videoId와 slideIndex가 같으면 리렌더링 방지 (Player 재사용)
+  return prevProps.videoId === nextProps.videoId &&
+         prevProps.slideIndex === nextProps.slideIndex &&
+         prevProps.apiReady === nextProps.apiReady;
 });
 
 // displayName 설정 (forwardRef 사용 시 필요)
@@ -147,17 +152,23 @@ export default function BillboardPage() {
   const { userId } = useParams<{ userId: string }>();
   const [billboardUser, setBillboardUser] = useState<BillboardUser | null>(null);
   const [settings, setSettings] = useState<BillboardUserSettings | null>(null);
+  const settingsRef = useRef<BillboardUserSettings | null>(null); // Ref 동기화 (stale closure 방지)
   const [events, setEvents] = useState<Event[]>([]);
+  const eventsRef = useRef<Event[]>([]); // Ref 동기화 (stale closure 방지)
   const [currentIndex, setCurrentIndex] = useState(0);
+  const currentEventIdRef = useRef<string | null>(null); // 현재 이벤트 ID 추적
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
+  const shuffledPlaylistRef = useRef<number[]>([]); // Ref 동기화 (stale closure 방지)
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
   const [pendingReload, setPendingReload] = useState(false);
+  const pendingReloadRef = useRef(false); // Ref 동기화 (stale closure 방지)
   const pendingReloadTimeRef = useRef<number>(0);
+  const pendingChangesRef = useRef<any[]>([]); // 지연 업데이트용 대기열 (ref로 stale closure 방지)
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
   const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
@@ -269,32 +280,242 @@ export default function BillboardPage() {
     // 슬라이드 전환 타이머
     slideTimerRef.current = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      console.log(`[타이머 종료] 슬라이드 ${currentIndex} - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
+      // Ref 사용 (stale closure 방지)
+      const latestEvents = eventsRef.current;
+      const latestShuffledPlaylist = shuffledPlaylistRef.current;
+      const latestSettings = settingsRef.current;
+      const latestPendingReload = pendingReloadRef.current;
+      console.log(`[타이머 종료] - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
       
       setProgress(0);
-      if (pendingReload) {
+      if (latestPendingReload) {
         setTimeout(() => window.location.reload(), 500);
         return;
       }
       
       setTimeout(() => {
-        const previousIndex = currentIndex;
+        // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
+        const currentEventId = currentEventIdRef.current;
+        const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
         
-        if (settings?.play_order === "random") {
+        // 🎯 지연 업데이트: 대기 중인 변경사항 적용
+        if (pendingChangesRef.current.length > 0) {
+          console.log(`[지연 업데이트] ${pendingChangesRef.current.length}건 적용 시작`);
+          
+          let needsPlaylistRebuild = false; // 플레이리스트 재구성 필요 여부
+          let deletedEventIndex: number | null = null; // 삭제된 이벤트의 원래 인덱스
+          
+          setEvents(prevEvents => {
+            let updatedEvents = [...prevEvents];
+            
+            pendingChangesRef.current.forEach((change, index) => {
+              const eventType = change.eventType;
+              const newEvent = change.new;
+              const oldEvent = change.old;
+              
+              console.log(`[증분 업데이트] ${index + 1}/${pendingChangesRef.current.length} - ${eventType}:`, newEvent?.id || oldEvent?.id);
+              
+              if (eventType === 'INSERT' && newEvent) {
+                // 새 이벤트 추가 (필터링 후, 날짜 순 정렬 유지)
+                const filtered = latestSettings ? filterEvents([newEvent], latestSettings) : [];
+                if (filtered.length > 0) {
+                  const newEventData = filtered[0];
+                  // 날짜 순으로 삽입할 위치 찾기
+                  const insertIndex = updatedEvents.findIndex(e => {
+                    const eDate = new Date(e.start_date || e.date || "");
+                    const newDate = new Date(newEventData.start_date || newEventData.date || "");
+                    return newDate < eDate;
+                  });
+                  
+                  if (insertIndex === -1) {
+                    updatedEvents.push(newEventData); // 가장 늦은 날짜 → 끝에 추가
+                  } else {
+                    updatedEvents.splice(insertIndex, 0, newEventData); // 중간 삽입
+                  }
+                  
+                  needsPlaylistRebuild = true; // 새 슬라이드 추가 → 플레이리스트 재구성
+                  console.log(`[증분 업데이트] INSERT: 이벤트 ${newEvent.id} 추가됨 (인덱스 ${insertIndex === -1 ? updatedEvents.length - 1 : insertIndex})`);
+                }
+              } 
+              else if (eventType === 'UPDATE' && newEvent) {
+                // 이벤트 업데이트 (필터 재검증 후 반영)
+                const filtered = latestSettings ? filterEvents([newEvent], latestSettings) : [];
+                const existingIndex = updatedEvents.findIndex(e => e.id === newEvent.id);
+                
+                if (filtered.length > 0) {
+                  // 필터 통과 → 업데이트
+                  if (existingIndex >= 0) {
+                    updatedEvents[existingIndex] = filtered[0];
+                    console.log(`[증분 업데이트] UPDATE: 이벤트 ${newEvent.id} 업데이트됨`);
+                  } else {
+                    // 기존에 없었지만 이제 필터 통과 → 추가
+                    updatedEvents.push(filtered[0]);
+                    needsPlaylistRebuild = true;
+                    console.log(`[증분 업데이트] UPDATE→INSERT: 이벤트 ${newEvent.id} 추가됨 (필터 통과)`);
+                  }
+                } else {
+                  // 필터 실패 → 제거 (기존에 있었다면)
+                  if (existingIndex >= 0) {
+                    updatedEvents.splice(existingIndex, 1);
+                    needsPlaylistRebuild = true;
+                    console.log(`[증분 업데이트] UPDATE→DELETE: 이벤트 ${newEvent.id} 제거됨 (필터 실패)`);
+                  }
+                }
+              }
+              else if (eventType === 'DELETE' && oldEvent) {
+                // 이벤트 삭제
+                const existingIndex = updatedEvents.findIndex(e => e.id === oldEvent.id);
+                if (existingIndex >= 0) {
+                  // 삭제된 이벤트가 현재 재생 중인지 확인
+                  if (oldEvent.id === currentEventId) {
+                    deletedEventIndex = existingIndex;
+                  }
+                  updatedEvents.splice(existingIndex, 1);
+                  needsPlaylistRebuild = true;
+                  console.log(`[증분 업데이트] DELETE: 이벤트 ${oldEvent.id} 삭제됨 (인덱스 ${existingIndex})`);
+                }
+              }
+            });
+            
+            return updatedEvents;
+          });
+          
+          // 플레이리스트 재구성 (INSERT/DELETE 발생 시)
+          if (needsPlaylistRebuild) {
+            // 기존 타이머 즉시 정리 (stale closure 방지)
+            if (slideTimerRef.current) {
+              clearInterval(slideTimerRef.current);
+              slideTimerRef.current = null;
+            }
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
+            }
+            console.log("[타이머 정리] 플레이리스트 재구성으로 인한 타이머 중단");
+            
+            setTimeout(() => {
+              // Ref에서 현재 이벤트 ID 가져오기 (stale closure 방지)
+              const currentEventId = currentEventIdRef.current;
+              const deletedIndex = deletedEventIndex; // 클로저 캡처
+              
+              setEvents(currentEvents => {
+                // 동기화: Ref 업데이트
+                eventsRef.current = currentEvents;
+                
+                // 최신 settings 가져오기 (stale closure 방지)
+                const latestSettings = settingsRef.current;
+                
+                const currentEvent = currentEvents.find(e => e.id === currentEventId);
+                const hasVideo = !!currentEvent?.video_url;
+                const slideInterval = hasVideo ? 
+                  (latestSettings?.auto_slide_interval_video || latestSettings?.auto_slide_interval || 10000) : 
+                  (latestSettings?.auto_slide_interval || 10000);
+                
+                if (latestSettings?.play_order === "random") {
+                  // Random 모드: 현재 이벤트 보존하며 플레이리스트 재구성
+                  const newCurrentIndex = currentEventId ? currentEvents.findIndex(e => e.id === currentEventId) : -1;
+                  
+                  const indices = Array.from({ length: currentEvents.length }, (_, i) => i);
+                  const shuffled = shuffleArray(indices);
+                  setShuffledPlaylist(shuffled);
+                  shuffledPlaylistRef.current = shuffled; // Ref 동기화
+                  
+                  if (newCurrentIndex >= 0) {
+                    // 현재 이벤트 존재 → 유지하고 타이머 재시작
+                    const newPlaylistIndex = shuffled.indexOf(newCurrentIndex);
+                    playlistIndexRef.current = newPlaylistIndex >= 0 ? newPlaylistIndex : 0;
+                    setCurrentIndex(newCurrentIndex);
+                    currentEventIdRef.current = currentEvents[newCurrentIndex].id; // ID 업데이트
+                    console.log(`[플레이리스트 재구성] Random - 현재 슬라이드 유지 (playlist[${newPlaylistIndex}] = slide ${newCurrentIndex})`);
+                    
+                    // 타이머 재시작 (현재 슬라이드, 새 플레이리스트)
+                    setTimeout(() => startSlideTimer(slideInterval), 200);
+                  } else {
+                    // 현재 이벤트 삭제됨 → 다음 슬라이드로
+                    playlistIndexRef.current = 0;
+                    const nextIndex = shuffled[0] ?? 0;
+                    setCurrentIndex(nextIndex);
+                    currentEventIdRef.current = currentEvents[nextIndex]?.id || null; // ID 업데이트
+                    console.log(`[플레이리스트 재구성] Random - 현재 슬라이드 삭제됨, 다음으로 이동 (slide ${nextIndex})`);
+                    
+                    // 다음 슬라이드 타이머 시작 (영상인 경우 playVideo에서 시작, 이미지인 경우 즉시)
+                    const nextEvent = currentEvents[nextIndex];
+                    if (!nextEvent?.video_url) {
+                      setTimeout(() => startSlideTimer(slideInterval), 200);
+                    }
+                  }
+                } else {
+                  // Sequential 모드: 이벤트 ID로 추적하여 위치 재계산
+                  const newCurrentIndex = currentEventId ? currentEvents.findIndex(e => e.id === currentEventId) : -1;
+                  
+                  if (newCurrentIndex >= 0) {
+                    // 현재 이벤트 존재 → 새 인덱스로 업데이트하고 타이머 재시작
+                    setCurrentIndex(newCurrentIndex);
+                    currentEventIdRef.current = currentEvents[newCurrentIndex].id; // ID 유지
+                    console.log(`[플레이리스트 재구성] Sequential - 현재 슬라이드 유지 (→ ${newCurrentIndex})`);
+                    
+                    // 타이머 재시작 (현재 슬라이드)
+                    setTimeout(() => startSlideTimer(slideInterval), 200);
+                  } else {
+                    // 현재 이벤트 삭제됨 → 다음 슬라이드로 (삭제된 위치 기준)
+                    const nextIndex = deletedIndex !== null && deletedIndex < currentEvents.length 
+                      ? deletedIndex  // 삭제된 위치에 있는 다음 슬라이드
+                      : Math.max(0, currentEvents.length - 1); // 또는 마지막 슬라이드
+                    setCurrentIndex(nextIndex);
+                    currentEventIdRef.current = currentEvents[nextIndex]?.id || null; // ID 업데이트
+                    console.log(`[플레이리스트 재구성] Sequential - 현재 슬라이드 삭제됨 (인덱스 ${deletedIndex}), 다음으로 (${nextIndex})`);
+                    
+                    // 다음 슬라이드 타이머 시작 (영상인 경우 playVideo에서 시작, 이미지인 경우 즉시)
+                    const nextEvent = currentEvents[nextIndex];
+                    if (!nextEvent?.video_url) {
+                      setTimeout(() => startSlideTimer(slideInterval), 200);
+                    }
+                  }
+                }
+                return currentEvents;
+              });
+            }, 100);
+            
+            // 대기열 초기화
+            pendingChangesRef.current = [];
+            setRealtimeStatus("변경사항 적용 완료!");
+            setTimeout(() => setRealtimeStatus("연결됨"), 2000);
+            
+            // 플레이리스트 재구성 중 → 다음 슬라이드 전환 skip (재구성 완료 후 타이머가 자동 재시작)
+            return;
+          }
+          
+          // 대기열 초기화
+          pendingChangesRef.current = [];
+          setRealtimeStatus("변경사항 적용 완료!");
+          setTimeout(() => setRealtimeStatus("연결됨"), 2000);
+        }
+        
+        // 정상 슬라이드 전환 (플레이리스트 재구성 없을 때만)
+        if (latestSettings?.play_order === "random") {
           const next = playlistIndexRef.current + 1;
-          if (next >= shuffledPlaylist.length) {
+          if (next >= latestShuffledPlaylist.length) {
             const newList = shuffleArray(
-              Array.from({ length: events.length }, (_, i) => i),
+              Array.from({ length: latestEvents.length }, (_, i) => i),
             );
             setShuffledPlaylist(newList);
+            shuffledPlaylistRef.current = newList; // Ref 동기화
             playlistIndexRef.current = 0;
-            setCurrentIndex(newList[0] ?? 0);
+            const nextIndex = newList[0] ?? 0;
+            setCurrentIndex(nextIndex);
+            currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
           } else {
             playlistIndexRef.current = next;
-            setCurrentIndex(shuffledPlaylist[next] ?? 0);
+            const nextIndex = latestShuffledPlaylist[next] ?? 0;
+            setCurrentIndex(nextIndex);
+            currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
           }
         } else {
-          setCurrentIndex((prev) => (prev + 1) % events.length);
+          setCurrentIndex((prev) => {
+            const nextIndex = (prev + 1) % latestEvents.length;
+            currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
+            return nextIndex;
+          });
         }
         
         // 슬라이드 전환 후 이전 슬라이드의 비디오 로딩 상태 초기화
@@ -307,7 +528,7 @@ export default function BillboardPage() {
         }, 100);
       }, 500);
     }, slideInterval);
-  }, [currentIndex, events, settings, shuffledPlaylist, pendingReload]);
+  }, []); // 모든 state ref로 변경, dependency array 비움 (stale closure 완전 제거)
 
   // 메모리 모니터링
   const checkMemory = useCallback(() => {
@@ -320,6 +541,29 @@ export default function BillboardPage() {
       console.log(`[메모리] 사용: ${usedMB}MB / ${limitMB}MB (${percentage}%), 전체: ${events.length}개 (영상: ${videoCount}개)`);
     }
   }, [events]);
+
+  // State-Ref 동기화 (stale closure 방지)
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
+
+  useEffect(() => {
+    shuffledPlaylistRef.current = shuffledPlaylist;
+  }, [shuffledPlaylist]);
+
+  useEffect(() => {
+    if (events[currentIndex]) {
+      currentEventIdRef.current = events[currentIndex].id;
+    }
+  }, [currentIndex, events]);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    pendingReloadRef.current = pendingReload;
+  }, [pendingReload]);
 
   // currentIndex 변경 시 슬라이드 전환 (pause 이전, play 현재)
   useEffect(() => {
@@ -427,10 +671,15 @@ export default function BillboardPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "events" },
-        () => {
-          setRealtimeStatus("이벤트 변경 감지!");
-          loadBillboardData();
-          setTimeout(() => setRealtimeStatus("연결됨"), 3000);
+        (payload) => {
+          console.log("[증분 업데이트] 이벤트 변경 감지:", payload.eventType, payload);
+          
+          // 대기열에 추가 (지연 업데이트, ref 사용)
+          pendingChangesRef.current = [...pendingChangesRef.current, payload];
+          
+          // UI 피드백
+          const count = pendingChangesRef.current.length;
+          setRealtimeStatus(`새 변경 ${count}건 대기중 (슬라이드 완료 후 적용)`);
         },
       )
       .subscribe((status) => setRealtimeStatus(`데이터: ${status}`));
@@ -535,7 +784,7 @@ export default function BillboardPage() {
     }
   };
 
-  const filterEvents = (
+  const filterEvents = useCallback((
     allEvents: Event[],
     settings: BillboardUserSettings,
   ): Event[] => {
@@ -561,7 +810,7 @@ export default function BillboardPage() {
       }
       return true;
     });
-  };
+  }, []);
 
   // 슬라이드 전환 시 이미지 타이머 설정 (영상은 playVideo()에서 타이머 시작)
   useEffect(() => {
