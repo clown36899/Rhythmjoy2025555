@@ -729,7 +729,13 @@ export default function BillboardPage() {
               />
 
               {/* 제목 + QR */}
-              <div className="flex items-end justify-between">
+              <div 
+                className="flex items-end justify-between"
+                style={{
+                  maxHeight: needsRotation ? "10vw" : "10vh",
+                  overflow: "hidden",
+                }}
+              >
                 <div
                   className="flex-1"
                   style={{ minWidth: 0, paddingRight: `${8 * scale}px` }}
