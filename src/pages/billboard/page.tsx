@@ -92,7 +92,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
           videoId,
           playerVars: {
             origin: window.location.origin,
-            autoplay: 1,
+            autoplay: 0,  // 자동재생 비활성화 (부모가 명시적으로 playVideo 호출)
             mute: 1,
             controls: 0,
             modestbranding: 1,
@@ -108,10 +108,18 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
             },
             onStateChange: (event: any) => {
               // 재생 시작 감지 (YT.PlayerState.PLAYING = 1)
-              if (event.data === 1 && !hasCalledOnPlaying.current) {
-                console.log('[YouTube] 재생 시작 감지:', slideIndex);
-                hasCalledOnPlaying.current = true;
-                onPlayingCallback(slideIndex);
+              if (event.data === 1) {
+                if (!hasCalledOnPlaying.current) {
+                  console.log('[YouTube] 재생 시작 감지 (첫 재생):', slideIndex);
+                  hasCalledOnPlaying.current = true;
+                  onPlayingCallback(slideIndex);
+                }
+              }
+              // 일시정지 감지 (YT.PlayerState.PAUSED = 2)
+              else if (event.data === 2) {
+                console.log('[YouTube] 일시정지 감지:', slideIndex);
+                // 다음 재생을 위해 플래그 리셋
+                hasCalledOnPlaying.current = false;
               }
             },
             onError: (event: any) => {
@@ -316,12 +324,19 @@ export default function BillboardPage() {
     }
     
     // 현재 슬라이드가 영상이면 재생 시작
-    if (hasVideo && playerRefsRef.current[currentIndex]) {
-      console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 시작`);
-      // 약간의 지연 후 재생 (Player 준비 대기)
-      setTimeout(() => {
-        playerRefsRef.current[currentIndex]?.playVideo();
-      }, 200);
+    if (hasVideo) {
+      console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 준비`);
+      // Player가 준비될 때까지 대기 후 재생
+      const attemptPlay = () => {
+        if (playerRefsRef.current[currentIndex]) {
+          console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 시작`);
+          playerRefsRef.current[currentIndex]?.playVideo();
+        } else {
+          // Player가 아직 준비 안되면 100ms 후 재시도
+          setTimeout(attemptPlay, 100);
+        }
+      };
+      attemptPlay();
     }
     
     prevIndexRef.current = currentIndex;
