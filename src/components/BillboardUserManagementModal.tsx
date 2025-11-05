@@ -8,6 +8,7 @@ interface SimpleEvent {
   id: number;
   title: string;
   start_date: string | null;
+  end_date?: string | null;
   date: string | null;
   image_full?: string | null;
   image?: string | null;
@@ -78,28 +79,30 @@ export default function BillboardUserManagementModal({
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
 
-      // 날짜 필터 적용
+      // 날짜 필터 적용 (종료날짜 기준)
       const startDate = dateFilterStart || todayStr;
       const endDate = dateFilterEnd;
 
       let query = supabase
         .from('events')
-        .select('id, title, start_date, date, image_full, image, video_url')
-        .gte('start_date', startDate);
-
-      if (endDate) {
-        query = query.lte('start_date', endDate);
-      }
+        .select('id, title, start_date, end_date, date, image_full, image, video_url');
 
       const { data, error } = await query.order('start_date', { ascending: true });
 
       if (error) throw error;
 
-      // 제외 요일 필터 적용
+      // 종료날짜 기준 필터 적용 + 제외 요일 필터 적용
       const filteredEvents = (data || []).filter(event => {
-        const eventDate = new Date(event.start_date);
+        const eventDate = new Date(event.start_date || event.date);
         const dayOfWeek = eventDate.getDay();
-        return !excludedWeekdays.includes(dayOfWeek);
+        if (excludedWeekdays.includes(dayOfWeek)) return false;
+
+        // 종료날짜 기준으로 필터링
+        const eventEndDate = new Date(event.end_date || event.start_date || event.date);
+        if (eventEndDate < new Date(startDate)) return false;
+        if (endDate && eventEndDate > new Date(endDate)) return false;
+
+        return true;
       });
 
       setEvents(filteredEvents);

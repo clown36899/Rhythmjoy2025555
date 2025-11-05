@@ -547,14 +547,16 @@ export default function BillboardPage() {
       const eventDate = new Date(event.start_date || event.date || "");
       const weekday = eventDate.getDay();
       if (settings.excluded_weekdays.includes(weekday)) return false;
-      if (settings.date_filter_start && eventDate < new Date(settings.date_filter_start))
+      
+      // 종료날짜 기준으로 필터링
+      const eventEndDate = new Date(
+        event.end_date || event.start_date || event.date || "",
+      );
+      if (settings.date_filter_start && eventEndDate < new Date(settings.date_filter_start))
         return false;
-      if (settings.date_filter_end && eventDate > new Date(settings.date_filter_end))
+      if (settings.date_filter_end && eventEndDate > new Date(settings.date_filter_end))
         return false;
       if (!settings.date_filter_start && !settings.date_filter_end) {
-        const eventEndDate = new Date(
-          event.end_date || event.start_date || event.date || "",
-        );
         if (eventEndDate < today) return false;
       }
       return true;
