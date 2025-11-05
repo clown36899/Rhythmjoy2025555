@@ -147,6 +147,25 @@ export default function BillboardPage() {
   const pendingReloadTimeRef = useRef<number>(0);
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
+  const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
+
+  // 화면 비율 감지 - 가로가 세로보다 크면 회전 필요
+  useEffect(() => {
+    const checkOrientation = () => {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      setNeedsRotation(isLandscape);
+      console.log(`[빌보드] 화면 방향 감지: ${isLandscape ? '가로 (회전 적용)' : '세로 (회전 없음)'} - ${window.innerWidth}×${window.innerHeight}`);
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((index: number) => {
@@ -450,9 +469,11 @@ export default function BillboardPage() {
           position: "absolute",
           top: "50%",
           left: "50%",
-          width: "100vh",
-          height: "100vw",
-          transform: `translate(-50%, -50%) rotate(90deg)`,
+          width: needsRotation ? "100vh" : "100vw",
+          height: needsRotation ? "100vw" : "100vh",
+          transform: needsRotation 
+            ? `translate(-50%, -50%) rotate(90deg)`
+            : `translate(-50%, -50%)`,
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? "auto" : "none",
           transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
