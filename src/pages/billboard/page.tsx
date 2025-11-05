@@ -753,79 +753,71 @@ export default function BillboardPage() {
                 }}
               />
 
-              {/* 제목 + QR */}
+              {/* 날짜 + 장소 (10% 제한 밖) */}
+              <div
+                style={{
+                  marginBottom: `${8 * scale}px`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: `${4 * scale}px`,
+                }}
+              >
+                {event.start_date && (
+                  <div
+                    className="text-blue-400 font-semibold"
+                    style={{
+                      fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                      animation: `slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards`,
+                      opacity: 0,
+                      transform: `translateX(-${150 * scale}px) rotate(-8deg)`,
+                    }}
+                  >
+                    <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                    {formatDateRange(event.start_date, event.end_date)}
+                  </div>
+                )}
+                {event.location && event.location.trim() && event.location !== "미정" && (
+                  <div
+                    className="text-gray-300"
+                    style={{
+                      fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
+                      animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards`,
+                      opacity: 0,
+                      transform: `translateX(${150 * scale}px) rotate(8deg)`,
+                    }}
+                  >
+                    <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
+                    {event.location}
+                  </div>
+                )}
+              </div>
+
+              {/* 제목 + QR (10% 제한 영역) */}
               <div 
-                className="flex items-end justify-between"
+                className="flex items-center justify-between"
                 style={{
                   height: `${bottomInfoHeight}px`,
                   overflow: "hidden",
                 }}
               >
-                <div
-                  className="flex-1"
-                  style={{ 
-                    minWidth: 0, 
+                <h3
+                  className="text-white font-bold flex-1"
+                  style={{
+                    fontSize: `${titleFontSize}px`,
+                    lineHeight: 1.2,
+                    wordBreak: "keep-all",
+                    overflow: "hidden",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
                     paddingRight: `${qrSize * 0.1}px`,
-                    display: "flex",
-                    alignItems: "flex-end",
+                    animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
+                    opacity: 0,
+                    transform: `scale(0.2) translateY(${titleFontSize * 2}px) rotate(-15deg)`,
                   }}
                 >
-                  <div
-                    style={{
-                      marginBottom: `${8 * scale}px`,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: `${4 * scale}px`,
-                    }}
-                  >
-                    {event.start_date && (
-                      <div
-                        className="text-blue-400 font-semibold"
-                        style={{
-                          fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
-                          animation: `slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards`,
-                          opacity: 0,
-                          transform: `translateX(-${150 * scale}px) rotate(-8deg)`,
-                        }}
-                      >
-                        <i className="ri-calendar-line" style={{ marginRight: `${8 * scale}px` }}></i>
-                        {formatDateRange(event.start_date, event.end_date)}
-                      </div>
-                    )}
-                    {event.location && event.location.trim() && event.location !== "미정" && (
-                      <div
-                        className="text-gray-300"
-                        style={{
-                          fontSize: `${Math.max(24, Math.min(31 * scale, 216))}px`,
-                          animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards`,
-                          opacity: 0,
-                          transform: `translateX(${150 * scale}px) rotate(8deg)`,
-                        }}
-                      >
-                        <i className="ri-map-pin-line" style={{ marginRight: `${8 * scale}px` }}></i>
-                        {event.location}
-                      </div>
-                    )}
-                  </div>
-                  <h3
-                    className="text-white font-bold"
-                    style={{
-                      fontSize: `${titleFontSize}px`,
-                      lineHeight: 1.2,
-                      wordBreak: "keep-all",
-                      width: "100%",
-                      overflow: "hidden",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
-                      opacity: 0,
-                      transform: `scale(0.2) translateY(${titleFontSize * 2}px) rotate(-15deg)`,
-                    }}
-                  >
-                    {event.title}
-                  </h3>
-                </div>
+                  {event.title}
+                </h3>
                 <div
                   className="bg-white rounded-lg flex-shrink-0"
                   style={{
