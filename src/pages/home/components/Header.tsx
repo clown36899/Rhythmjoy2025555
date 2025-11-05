@@ -47,7 +47,7 @@ export default function Header({
   const [loginSuccessType, setLoginSuccessType] = useState("");
   const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
   
-  const { isAdmin, signOut, signInWithKakao } = useAuth();
+  const { isAdmin, signOut, signInWithKakao, signInAsDevAdmin } = useAuth();
   const [showQRModal, setShowQRModal] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] =
@@ -467,23 +467,51 @@ export default function Header({
                     카카오톡 계정으로 로그인하세요
                   </p>
                   
-                  <button
-                    onClick={handleKakaoLogin}
-                    disabled={loginLoading}
-                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-3 px-4 rounded-lg text-base font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loginLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-900 border-t-transparent"></div>
-                        로그인 중...
-                      </>
-                    ) : (
-                      <>
-                        <i className="ri-kakao-talk-fill text-xl"></i>
-                        카카오로 로그인
-                      </>
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleKakaoLogin}
+                      disabled={loginLoading}
+                      className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-3 px-4 rounded-lg text-base font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loginLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-900 border-t-transparent"></div>
+                          로그인 중...
+                        </>
+                      ) : (
+                        <>
+                          <i className="ri-kakao-talk-fill text-xl"></i>
+                          카카오로 로그인
+                        </>
+                      )}
+                    </button>
+                    
+                    {signInAsDevAdmin && (
+                      <button
+                        onClick={async () => {
+                          setLoginLoading(true);
+                          try {
+                            await signInAsDevAdmin();
+                            onAdminModeToggle?.(true, "super", null, "");
+                            setLoginSuccessName("개발자");
+                            setLoginSuccessType("전체 관리자 모드 (개발)");
+                            setShowSettingsModal(false);
+                            setShowLoginSuccessModal(true);
+                          } catch (error: any) {
+                            console.error('[개발 로그인] 실패:', error);
+                            alert('개발자 로그인에 실패했습니다: ' + error.message);
+                          } finally {
+                            setLoginLoading(false);
+                          }
+                        }}
+                        disabled={loginLoading}
+                        className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-red-400"
+                      >
+                        <i className="ri-shield-keyhole-line text-base"></i>
+                        개발자 로그인 (테스트용)
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </div>
               ) : (
                 <div>
