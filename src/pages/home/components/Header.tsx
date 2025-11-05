@@ -490,10 +490,10 @@ export default function Header({
                       <button
                         onClick={() => {
                           // 개발 환경 전용 - Supabase 우회하고 바로 관리자 모드 활성화
-                          console.log('[개발 로그인] 우회 로그인 시작');
+                          console.log('[개발 프리패스] 우회 로그인 시작');
                           onAdminModeToggle?.(true, "super", null, "");
-                          setLoginSuccessName("개발자");
-                          setLoginSuccessType("전체 관리자 모드 (개발)");
+                          setLoginSuccessName("개발자 (프리패스)");
+                          setLoginSuccessType("개발자 프리패스 - 전체 관리자");
                           setShowSettingsModal(false);
                           setShowLoginSuccessModal(true);
                         }}
@@ -895,8 +895,16 @@ export default function Header({
             >
               <div className="text-center">
                 <div className="mb-4 flex justify-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <i className="ri-shield-check-line text-3xl text-white"></i>
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                    loginSuccessType.includes('프리패스')
+                      ? 'bg-gradient-to-br from-red-500 to-orange-500'
+                      : 'bg-gradient-to-br from-purple-500 to-blue-500'
+                  }`}>
+                    <i className={`text-3xl text-white ${
+                      loginSuccessType.includes('프리패스')
+                        ? 'ri-shield-keyhole-line'
+                        : 'ri-shield-check-line'
+                    }`}></i>
                   </div>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">
@@ -905,11 +913,22 @@ export default function Header({
                 <p className="text-gray-400 text-sm mb-6">
                   {loginSuccessType}로 로그인되었습니다
                 </p>
+                {loginSuccessType.includes('프리패스') && (
+                  <div className="mb-4 p-2 bg-red-900/30 border border-red-500/50 rounded-lg">
+                    <p className="text-red-300 text-xs">
+                      🚨 개발 환경 전용 모드입니다
+                    </p>
+                  </div>
+                )}
                 <button
                   onClick={() => {
                     setShowLoginSuccessModal(false);
                   }}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
+                  className={`w-full text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer ${
+                    loginSuccessType.includes('프리패스')
+                      ? 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700'
+                      : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
+                  }`}
                 >
                   시작하기
                 </button>
