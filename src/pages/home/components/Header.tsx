@@ -567,7 +567,7 @@ export default function Header({
                 </div>
               ) : (
                 <div>
-                  <h4 className="text-lg font-semibold text-white mb-4">
+                  <h4 className="text-lg font-semibold text-white mb-2">
                     {isEffectiveAdmin && billboardUserId === null
                       ? (isDevAdmin ? "슈퍼 관리자 모드 (개발)" : "슈퍼 관리자 모드")
                       : `${billboardUserName} 빌보드 관리자`}
@@ -577,66 +577,104 @@ export default function Header({
                       ? "모든 콘텐츠를 관리할 수 있습니다."
                       : "자신의 빌보드 설정을 관리할 수 있습니다."}
                   </p>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        onBillboardSettingsOpen?.();
-                      }}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <i className="ri-image-2-line text-base"></i>
-                      광고판 설정
-                    </button>
-                    {billboardUserId !== null && (
-                      <div className="grid grid-cols-2 gap-2">
+                  
+                  {/* 서브 관리자 전용 레이아웃 */}
+                  {billboardUserId !== null ? (
+                    <div className="space-y-3">
+                      {/* 광고판 설정 + 주소/공유 섹션 */}
+                      <div className="bg-gray-700/30 rounded-lg p-3 space-y-2">
+                        {/* 광고판 설정 - 넓게 */}
                         <button
                           onClick={() => {
-                            const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
-                            navigator.clipboard.writeText(billboardUrl);
-                            setShowCopySuccessModal(true);
-                            setTimeout(() => setShowCopySuccessModal(false), 1500);
+                            onBillboardSettingsOpen?.();
                           }}
-                          className="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg text-base font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2"
                         >
-                          <i className="ri-link text-base"></i>
-                          빌보드 주소 복사
+                          <i className="ri-image-2-line text-lg"></i>
+                          광고판 설정
                         </button>
-                        <button
-                          onClick={async () => {
-                            const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
-                            
-                            // Web Share API 지원 확인
-                            if (navigator.share) {
-                              try {
-                                await navigator.share({
-                                  title: `${billboardUserName} 빌보드`,
-                                  text: `${billboardUserName}의 빌보드를 확인하세요!`,
-                                  url: billboardUrl,
-                                });
-                              } catch (err) {
-                                // 사용자가 공유를 취소한 경우 무시
-                                if ((err as Error).name !== 'AbortError') {
-                                  console.error('공유 실패:', err);
-                                  // 공유 실패 시 복사로 대체
-                                  navigator.clipboard.writeText(billboardUrl);
-                                  setShowCopySuccessModal(true);
-                                  setTimeout(() => setShowCopySuccessModal(false), 1500);
-                                }
-                              }
-                            } else {
-                              // Web Share API 미지원 시 복사로 대체
+                        
+                        {/* 주소 복사 (2/3) + 공유 (1/3) */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
                               navigator.clipboard.writeText(billboardUrl);
                               setShowCopySuccessModal(true);
                               setTimeout(() => setShowCopySuccessModal(false), 1500);
-                            }
-                          }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <i className="ri-share-line text-base"></i>
-                          공유
-                        </button>
+                            }}
+                            className="flex-[2] bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <i className="ri-link text-base"></i>
+                            빌보드 주소 복사
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
+                              
+                              // Web Share API 지원 확인
+                              if (navigator.share) {
+                                try {
+                                  await navigator.share({
+                                    title: `${billboardUserName} 빌보드`,
+                                    text: `${billboardUserName}의 빌보드를 확인하세요!`,
+                                    url: billboardUrl,
+                                  });
+                                } catch (err) {
+                                  // 사용자가 공유를 취소한 경우 무시
+                                  if ((err as Error).name !== 'AbortError') {
+                                    console.error('공유 실패:', err);
+                                    // 공유 실패 시 복사로 대체
+                                    navigator.clipboard.writeText(billboardUrl);
+                                    setShowCopySuccessModal(true);
+                                    setTimeout(() => setShowCopySuccessModal(false), 1500);
+                                  }
+                                }
+                              } else {
+                                // Web Share API 미지원 시 복사로 대체
+                                navigator.clipboard.writeText(billboardUrl);
+                                setShowCopySuccessModal(true);
+                                setTimeout(() => setShowCopySuccessModal(false), 1500);
+                              }
+                            }}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <i className="ri-share-line text-base"></i>
+                            공유
+                          </button>
+                        </div>
                       </div>
-                    )}
+                      
+                      {/* 닫기 + 로그아웃 - 컨테이너 하단에 붙임 */}
+                      <div className="pt-2 border-t border-gray-700">
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => setShowSettingsModal(false)}
+                            className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                          >
+                            닫기
+                          </button>
+                          <button
+                            onClick={handleAdminLogout}
+                            className="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                          >
+                            로그아웃
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* 슈퍼 관리자 레이아웃 */
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          onBillboardSettingsOpen?.();
+                        }}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <i className="ri-image-2-line text-base"></i>
+                        광고판 설정
+                      </button>
                     {isEffectiveAdmin && billboardUserId === null && (
                       <>
                         <button
@@ -717,21 +755,25 @@ export default function Header({
                       </>
                     )}
                     
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setShowSettingsModal(false)}
-                        className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                      >
-                        닫기
-                      </button>
-                      <button
-                        onClick={handleAdminLogout}
-                        className="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                      >
-                        로그아웃
-                      </button>
+                    {/* 닫기 + 로그아웃 - 컨테이너 하단에 붙임 */}
+                    <div className="pt-2 border-t border-gray-700 mt-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setShowSettingsModal(false)}
+                          className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                        >
+                          닫기
+                        </button>
+                        <button
+                          onClick={handleAdminLogout}
+                          className="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                        >
+                          로그아웃
+                        </button>
+                      </div>
                     </div>
                   </div>
+                  )}
                 </div>
               )}
             </div>
