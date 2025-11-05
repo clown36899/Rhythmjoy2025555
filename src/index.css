@@ -8,6 +8,9 @@ html, body {
   margin: 0 auto;
   overflow-x: hidden;
   width: 100%;
+  /* 수직 스크롤만 허용, 수평 슬라이드는 JS로 제어 */
+  /* passive event listener 에러 방지 */
+  touch-action: pan-y;
 }
 
 #root {

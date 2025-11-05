@@ -461,7 +461,11 @@ export default function HomePage() {
     // 수평 슬라이드로 결정되었을 때만 dragOffset 업데이트
     if (swipeDirection === 'horizontal') {
       setDragOffset(diffX);
-      e.preventDefault(); // 스크롤 방지
+      // CSS touch-action으로 스크롤 제어하므로 preventDefault 불필요
+      // passive event listener 에러 방지
+      if (e.cancelable) {
+        e.preventDefault();
+      }
     } else if (swipeDirection === 'vertical') {
       // 수직 스크롤은 기본 동작 허용 (dragOffset 업데이트 안 함)
       return;
