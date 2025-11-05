@@ -659,26 +659,7 @@ export default function HomePage() {
 
       {/* Mobile Layout - Sticky Calendar, Scrollable Events */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* 빌보드 관리자는 달력/이벤트 숨기기 */}
-        {adminType === 'sub' ? (
-          <div className="flex flex-col items-center justify-center flex-1 px-4 text-center overflow-y-auto">
-            <div className="bg-gray-800 rounded-lg p-8 max-w-md">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i className="ri-settings-3-line text-3xl text-white"></i>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">
-                빌보드 관리자 모드
-              </h3>
-              <p className="text-gray-400 text-sm mb-6">
-                우측 상단 설정 버튼을 눌러<br />빌보드 설정을 관리하세요
-              </p>
-              <p className="text-gray-500 text-xs">
-                로그아웃하면 이벤트 달력을 볼 수 있습니다
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
+        {/* 서브 관리자도 일반 사용자처럼 달력/이벤트 표시 */}
         {/* Calendar Section - Fixed (헤더 아래 고정) */}
         <div
           ref={calendarRef}
@@ -816,8 +797,6 @@ export default function HomePage() {
               <Footer />
             </div>
           </div>
-        </>
-        )}
       </div>
 
       {/* Fullscreen Billboard */}
