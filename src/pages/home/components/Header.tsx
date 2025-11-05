@@ -41,14 +41,12 @@ export default function Header({
     currentMonth?.getMonth() || new Date().getMonth(),
   );
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
-  const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccessType, setLoginSuccessType] = useState("");
   const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
   const [isDevAdmin, setIsDevAdmin] = useState(false); // 개발자 프리패스 상태
   
-  const { isAdmin, signOut, signInWithKakao, signInAsDevAdmin } = useAuth();
+  const { isAdmin, billboardUserId, billboardUserName, setBillboardUser, signOut, signInWithKakao, signInAsDevAdmin } = useAuth();
   
   // 실제 관리자 또는 개발자 프리패스
   const isEffectiveAdmin = isAdmin || isDevAdmin;
@@ -137,8 +135,7 @@ export default function Header({
         loginTypeText = '전체 관리자 모드';
       } else if (result.isBillboardUser && result.billboardUserId && result.billboardUserName) {
         // 서브 관리자 (빌보드 사용자)
-        setBillboardUserId(result.billboardUserId);
-        setBillboardUserName(result.billboardUserName);
+        setBillboardUser(result.billboardUserId, result.billboardUserName);
         onAdminModeToggle?.(true, "sub", result.billboardUserId, result.billboardUserName);
         loginTypeText = '개인빌보드 관리자 모드';
         isBillboardAdmin = true;
@@ -225,10 +222,9 @@ export default function Header({
     }
     
     // 로컬 상태 초기화
-    setBillboardUserId(null);
-    setBillboardUserName("");
     setIsDevAdmin(false); // 개발자 프리패스 상태 초기화
     onAdminModeToggle?.(false, null, null, "");
+    // Billboard 사용자 정보는 AuthContext의 signOut에서 초기화됨
     
     // 강제 새로고침 (PWA 캐시 무시)
     console.log('[로그아웃] 강제 새로고침');
@@ -1095,11 +1091,8 @@ export default function Header({
                         billboardUserName
                       });
                       
-                      console.log('[개발 모드] setBillboardUserId:', user.id);
-                      setBillboardUserId(user.id);
-                      
-                      console.log('[개발 모드] setBillboardUserName:', user.name);
-                      setBillboardUserName(user.name);
+                      console.log('[개발 모드] setBillboardUser:', user.id, user.name);
+                      setBillboardUser(user.id, user.name);
                       
                       console.log('[개발 모드] setIsDevAdmin(false) - 슈퍼 관리자 해제');
                       setIsDevAdmin(false);

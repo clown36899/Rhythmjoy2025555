@@ -18,6 +18,9 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   loading: boolean;
+  billboardUserId: string | null;
+  billboardUserName: string | null;
+  setBillboardUser: (userId: string | null, userName: string | null) => void;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithKakao: () => Promise<KakaoAuthResult>;
   signOut: () => Promise<void>;
@@ -30,6 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
+    return localStorage.getItem('billboardUserId');
+  });
+  const [billboardUserName, setBillboardUserName] = useState<string | null>(() => {
+    return localStorage.getItem('billboardUserName');
+  });
 
   useEffect(() => {
     // 5초 timeout 설정 (모바일 네트워크 느릴 때 대응)
@@ -178,6 +187,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     throw lastError || new Error('인증에 실패했습니다');
   };
 
+  const setBillboardUser = (userId: string | null, userName: string | null) => {
+    setBillboardUserId(userId);
+    setBillboardUserName(userName);
+    if (userId && userName) {
+      localStorage.setItem('billboardUserId', userId);
+      localStorage.setItem('billboardUserName', userName);
+    } else {
+      localStorage.removeItem('billboardUserId');
+      localStorage.removeItem('billboardUserName');
+    }
+  };
+
   const signOut = async () => {
     // 카카오 로그아웃
     await logoutKakao();
@@ -185,6 +206,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Supabase 로그아웃
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    
+    // Billboard 사용자 정보도 초기화
+    setBillboardUser(null, null);
   };
 
   // 개발 환경 전용 - 단순 플래그 (UI에서만 사용)
@@ -214,6 +238,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     isAdmin,
     loading,
+    billboardUserId,
+    billboardUserName,
+    setBillboardUser,
     signIn,
     signInWithKakao,
     signOut,
