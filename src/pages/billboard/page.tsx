@@ -313,54 +313,21 @@ export default function BillboardPage() {
               const newEvent = change.new;
               const oldEvent = change.old;
               
-              console.log(`[증분 업데이트] ${index + 1}/${pendingChangesRef.current.length} - ${eventType}:`, newEvent?.id || oldEvent?.id);
+              console.log(`[간소화 업데이트] ${index + 1}/${pendingChangesRef.current.length} - ${eventType}:`, newEvent?.id || oldEvent?.id);
               
               if (eventType === 'INSERT' && newEvent) {
-                // 새 이벤트 추가 (필터링 후, 날짜 순 정렬 유지)
+                // 새 이벤트 추가 (필터링 적용)
                 const filtered = latestSettings ? filterEvents([newEvent], latestSettings) : [];
                 if (filtered.length > 0) {
-                  const newEventData = filtered[0];
-                  // 날짜 순으로 삽입할 위치 찾기
-                  const insertIndex = updatedEvents.findIndex(e => {
-                    const eDate = new Date(e.start_date || e.date || "");
-                    const newDate = new Date(newEventData.start_date || newEventData.date || "");
-                    return newDate < eDate;
-                  });
-                  
-                  if (insertIndex === -1) {
-                    updatedEvents.push(newEventData); // 가장 늦은 날짜 → 끝에 추가
-                  } else {
-                    updatedEvents.splice(insertIndex, 0, newEventData); // 중간 삽입
-                  }
-                  
-                  needsPlaylistRebuild = true; // 새 슬라이드 추가 → 플레이리스트 재구성
-                  console.log(`[증분 업데이트] INSERT: 이벤트 ${newEvent.id} 추가됨 (인덱스 ${insertIndex === -1 ? updatedEvents.length - 1 : insertIndex})`);
+                  updatedEvents.push(filtered[0]);
+                  needsPlaylistRebuild = true;
+                  console.log(`[간소화 업데이트] INSERT: 이벤트 ${newEvent.id} 추가 (끝에 추가, 나중에 정렬)`);
                 }
               } 
-              else if (eventType === 'UPDATE' && newEvent) {
-                // 이벤트 업데이트 (필터 재검증 후 반영)
-                const filtered = latestSettings ? filterEvents([newEvent], latestSettings) : [];
-                const existingIndex = updatedEvents.findIndex(e => e.id === newEvent.id);
-                
-                if (filtered.length > 0) {
-                  // 필터 통과 → 업데이트
-                  if (existingIndex >= 0) {
-                    updatedEvents[existingIndex] = filtered[0];
-                    console.log(`[증분 업데이트] UPDATE: 이벤트 ${newEvent.id} 업데이트됨`);
-                  } else {
-                    // 기존에 없었지만 이제 필터 통과 → 추가
-                    updatedEvents.push(filtered[0]);
-                    needsPlaylistRebuild = true;
-                    console.log(`[증분 업데이트] UPDATE→INSERT: 이벤트 ${newEvent.id} 추가됨 (필터 통과)`);
-                  }
-                } else {
-                  // 필터 실패 → 제거 (기존에 있었다면)
-                  if (existingIndex >= 0) {
-                    updatedEvents.splice(existingIndex, 1);
-                    needsPlaylistRebuild = true;
-                    console.log(`[증분 업데이트] UPDATE→DELETE: 이벤트 ${newEvent.id} 제거됨 (필터 실패)`);
-                  }
-                }
+              else if (eventType === 'UPDATE') {
+                // UPDATE는 전체 새로고침으로 처리 (React.memo가 캐시 관리)
+                console.log(`[간소화 업데이트] UPDATE 감지 → 전체 새로고침 예약`);
+                pendingReloadRef.current = true;
               }
               else if (eventType === 'DELETE' && oldEvent) {
                 // 이벤트 삭제
@@ -372,10 +339,20 @@ export default function BillboardPage() {
                   }
                   updatedEvents.splice(existingIndex, 1);
                   needsPlaylistRebuild = true;
-                  console.log(`[증분 업데이트] DELETE: 이벤트 ${oldEvent.id} 삭제됨 (인덱스 ${existingIndex})`);
+                  console.log(`[간소화 업데이트] DELETE: 이벤트 ${oldEvent.id} 삭제됨 (인덱스 ${existingIndex})`);
                 }
               }
             });
+            
+            // INSERT로 추가된 이벤트들 정렬 (한 번만)
+            if (needsPlaylistRebuild && !pendingReloadRef.current) {
+              updatedEvents.sort((a, b) => {
+                const aDate = new Date(a.start_date || a.date || "");
+                const bDate = new Date(b.start_date || b.date || "");
+                return aDate.getTime() - bDate.getTime();
+              });
+              console.log(`[간소화 업데이트] 전체 이벤트 날짜순 정렬 완료`);
+            }
             
             return updatedEvents;
           });
