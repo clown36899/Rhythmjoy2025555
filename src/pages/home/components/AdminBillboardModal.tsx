@@ -283,7 +283,7 @@ export default function AdminBillboardModal({
       setShowSuccessModal(true);
       setTimeout(() => {
         setShowSuccessModal(false);
-        onClose();
+        // 모달을 닫지 않음 - 계속 설정 편집 가능
       }, 1500);
     } catch (error) {
       console.error("설정 저장 오류:", error);
