@@ -21,7 +21,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithKakao: () => Promise<KakaoAuthResult>;
   signOut: () => Promise<void>;
-  signInAsDevAdmin?: () => Promise<void>; // 개발 환경 전용
+  signInAsDevAdmin?: () => void; // 개발 환경 전용 - UI 플래그만
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -187,26 +187,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  // 개발 환경 전용 백도어 로그인
-  const signInAsDevAdmin = import.meta.env.DEV ? async () => {
-    const devEmail = import.meta.env.VITE_DEV_ADMIN_EMAIL;
-    const devPassword = import.meta.env.VITE_DEV_ADMIN_PASSWORD;
-    
-    if (!devEmail || !devPassword) {
-      throw new Error('개발 환경 로그인 정보가 설정되지 않았습니다');
-    }
-
-    console.log('[개발 로그인] 시작:', devEmail);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: devEmail,
-      password: devPassword,
-    });
-
-    if (error) {
-      console.error('[개발 로그인] 실패:', error);
-      throw error;
-    }
-    console.log('[개발 로그인] 성공');
+  // 개발 환경 전용 - 단순 플래그 (UI에서만 사용)
+  const signInAsDevAdmin = import.meta.env.DEV ? () => {
+    // 실제 로그인은 하지 않고, UI에서 관리자 모드 활성화만 트리거
+    console.log('[개발 프리패스] 활성화됨 - UI 전용 모드');
   } : undefined;
 
   // 보안: user와 adminEmail이 모두 존재하고 일치할 때만 관리자

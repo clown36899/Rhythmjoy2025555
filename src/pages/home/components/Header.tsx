@@ -488,27 +488,19 @@ export default function Header({
                     
                     {signInAsDevAdmin && (
                       <button
-                        onClick={async () => {
-                          setLoginLoading(true);
-                          try {
-                            await signInAsDevAdmin();
-                            onAdminModeToggle?.(true, "super", null, "");
-                            setLoginSuccessName("개발자");
-                            setLoginSuccessType("전체 관리자 모드 (개발)");
-                            setShowSettingsModal(false);
-                            setShowLoginSuccessModal(true);
-                          } catch (error: any) {
-                            console.error('[개발 로그인] 실패:', error);
-                            alert('개발자 로그인에 실패했습니다: ' + error.message);
-                          } finally {
-                            setLoginLoading(false);
-                          }
+                        onClick={() => {
+                          // 개발 환경 전용 - Supabase 우회하고 바로 관리자 모드 활성화
+                          console.log('[개발 로그인] 우회 로그인 시작');
+                          onAdminModeToggle?.(true, "super", null, "");
+                          setLoginSuccessName("개발자");
+                          setLoginSuccessType("전체 관리자 모드 (개발)");
+                          setShowSettingsModal(false);
+                          setShowLoginSuccessModal(true);
                         }}
-                        disabled={loginLoading}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-red-400"
+                        className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 border-2 border-red-400"
                       >
                         <i className="ri-shield-keyhole-line text-base"></i>
-                        개발자 로그인 (테스트용)
+                        개발자 프리패스 🔓
                       </button>
                     )}
                   </div>
