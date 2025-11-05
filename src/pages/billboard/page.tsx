@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
@@ -17,19 +17,41 @@ declare global {
   }
 }
 
-// YouTube Player 컴포넌트 (컴포넌트 외부에 정의)
-function YouTubePlayer({
-  videoId,
-  slideIndex,
-  onPlayingCallback,
-}: {
+// YouTube Player 컴포넌트 인터페이스
+export interface YouTubePlayerHandle {
+  pauseVideo: () => void;
+  playVideo: () => void;
+}
+
+// YouTube Player 컴포넌트 (forwardRef로 변경)
+const YouTubePlayer = forwardRef<YouTubePlayerHandle, {
   videoId: string;
   slideIndex: number;
   onPlayingCallback: (index: number) => void;
-}) {
+}>(({
+  videoId,
+  slideIndex,
+  onPlayingCallback,
+}, ref) => {
   const playerRef = useRef<any>(null);
   const [apiReady, setApiReady] = useState(false);
   const hasCalledOnPlaying = useRef(false);
+
+  // 외부에서 제어 가능하도록 함수 노출
+  useImperativeHandle(ref, () => ({
+    pauseVideo: () => {
+      if (playerRef.current?.pauseVideo) {
+        playerRef.current.pauseVideo();
+        console.log('[YouTube] 일시정지:', slideIndex);
+      }
+    },
+    playVideo: () => {
+      if (playerRef.current?.playVideo) {
+        playerRef.current.playVideo();
+        console.log('[YouTube] 재생:', slideIndex);
+      }
+    },
+  }));
 
   // YouTube API 로드
   useEffect(() => {
@@ -101,21 +123,16 @@ function YouTubePlayer({
 
     return () => {
       clearTimeout(timer);
-      if (playerRef.current?.destroy) {
-        try {
-          playerRef.current.destroy();
-          console.log('[YouTube] Player 정리 완료:', slideIndex);
-        } catch (e) {
-          console.log('[YouTube] Player 정리 중 에러 (무시):', e);
-        }
-      }
-      playerRef.current = null;
-      hasCalledOnPlaying.current = false;
+      // destroy() 제거 - Player 객체 유지하여 캐시 활용
+      console.log('[YouTube] Player cleanup (destroy 안함):', slideIndex);
     };
   }, [apiReady, videoId, slideIndex, onPlayingCallback]);
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
-}
+});
+
+// displayName 설정 (forwardRef 사용 시 필요)
+YouTubePlayer.displayName = 'YouTubePlayer';
 
 // 배열 셔플 함수
 function shuffleArray<T>(array: T[]): T[] {
@@ -152,6 +169,8 @@ export default function BillboardPage() {
   const [dateLocationFontSize, setDateLocationFontSize] = useState(31); // 날짜+장소 폰트 크기
   const slideTimerRef = useRef<NodeJS.Timeout | null>(null); // 슬라이드 전환 타이머
   const slideStartTimeRef = useRef<number>(0); // 슬라이드 시작 시간
+  const playerRefsRef = useRef<(YouTubePlayerHandle | null)[]>([]); // 모든 Player 참조
+  const prevIndexRef = useRef<number>(0); // 이전 슬라이드 인덱스
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -266,6 +285,30 @@ export default function BillboardPage() {
       }, 500);
     }, slideInterval);
   }, [currentIndex, events, settings, shuffledPlaylist, pendingReload]);
+
+  // 메모리 모니터링
+  const checkMemory = useCallback(() => {
+    if ((performance as any).memory) {
+      const { usedJSHeapSize, totalJSHeapSize, jsHeapSizeLimit } = (performance as any).memory;
+      const usedMB = (usedJSHeapSize / 1048576).toFixed(2);
+      const limitMB = (jsHeapSizeLimit / 1048576).toFixed(2);
+      const percentage = ((usedJSHeapSize / jsHeapSizeLimit) * 100).toFixed(1);
+      console.log(`[메모리] 사용: ${usedMB}MB / ${limitMB}MB (${percentage}%), 로드된 Player: ${events.length}개`);
+    }
+  }, [events.length]);
+
+  // currentIndex 변경 시 이전 슬라이드 pause
+  useEffect(() => {
+    const prevIndex = prevIndexRef.current;
+    if (prevIndex !== currentIndex && playerRefsRef.current[prevIndex]) {
+      console.log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 슬라이드 일시정지`);
+      playerRefsRef.current[prevIndex]?.pauseVideo();
+    }
+    prevIndexRef.current = currentIndex;
+    
+    // 메모리 모니터링
+    checkMemory();
+  }, [currentIndex, checkMemory]);
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((index: number) => {
@@ -601,6 +644,9 @@ export default function BillboardPage() {
               }}
             >
               <YouTubePlayer
+                ref={(el) => {
+                  playerRefsRef.current[slideIndex] = el;
+                }}
                 videoId={videoInfo.videoId}
                 slideIndex={slideIndex}
                 onPlayingCallback={handleVideoPlaying}
@@ -906,10 +952,6 @@ export default function BillboardPage() {
     );
   };
 
-  const currentEvent = events[currentIndex];
-
-
-
   return (
     <>
       <link rel="dns-prefetch" href="https://www.youtube.com" />
@@ -931,7 +973,19 @@ export default function BillboardPage() {
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
       <div className="billboard-page">
-        {renderSlide(currentEvent, true, currentIndex)}
+        {/* 모든 슬라이드를 DOM에 미리 로드 (A안: Pause/Resume 전략) */}
+        {events.map((event, index) => (
+          <div
+            key={`slide-${event.id}-${index}`}
+            style={{
+              display: index === currentIndex ? 'block' : 'none',
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            {renderSlide(event, true, index)}
+          </div>
+        ))}
       </div>
     </>
   );
