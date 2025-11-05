@@ -2666,20 +2666,40 @@ export default function EventList({
                           alt="이벤트 이미지"
                           className="w-full h-48 object-cover rounded-lg"
                         />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditImagePreview("");
-                            setEditImageFile(null);
-                            setEditFormData((prev) => ({
-                              ...prev,
-                              image: "",
-                            }));
-                          }}
-                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
-                        >
-                          이미지 삭제
-                        </button>
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          {isAdminMode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                // 썸네일 다운로드
+                                const link = document.createElement('a');
+                                link.href = editImagePreview;
+                                link.download = `thumbnail-${Date.now()}.jpg`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                            >
+                              <i className="ri-download-line mr-1"></i>
+                              다운로드
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditImagePreview("");
+                              setEditImageFile(null);
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                image: "",
+                              }));
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                          >
+                            이미지 삭제
+                          </button>
+                        </div>
                       </div>
                     )}
                     <input
@@ -2753,8 +2773,8 @@ export default function EventList({
                     영상 URL (선택사항)
                   </label>
                   <div className="space-y-2">
-                    {/* 영상 프리뷰 또는 입력 */}
-                    {editVideoPreview.provider && editVideoPreview.embedUrl ? (
+                    {/* 영상 프리뷰 */}
+                    {editVideoPreview.provider && editVideoPreview.embedUrl && (
                       <div className="relative">
                         <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
                           <i className="ri-check-line"></i>
@@ -2791,7 +2811,13 @@ export default function EventList({
                           영상 삭제
                         </button>
                       </div>
-                    ) : (
+                    )}
+                    
+                    {/* 영상 URL 입력창 - 항상 표시 */}
+                    <div>
+                      <label className="block text-gray-300 text-xs mb-1">
+                        {editVideoPreview.provider ? '영상 주소 (복사/수정 가능)' : '영상 주소 입력'}
+                      </label>
                       <input
                         type="url"
                         value={editFormData.videoUrl}
@@ -2830,7 +2856,7 @@ export default function EventList({
                         className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         placeholder="YouTube 링크만 가능"
                       />
-                    )}
+                    </div>
                     <div className="mt-2 space-y-1">
                       <p className="text-xs text-gray-400">
                         <i className="ri-information-line mr-1"></i>
