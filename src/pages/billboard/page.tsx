@@ -1154,7 +1154,7 @@ export default function BillboardPage() {
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
       <div className="billboard-page">
-        {/* 모든 슬라이드를 DOM에 유지 (visibility로 표시/숨김, MediaCodec 캐시 보존) */}
+        {/* 모든 슬라이드를 DOM에 항상 visible 유지 (opacity + z-index로만 제어, MediaCodec 캐시 보존) */}
         {events.map((event, index) => (
           <div
             key={`slide-${event.id}-${index}`}
@@ -1164,7 +1164,10 @@ export default function BillboardPage() {
               left: 0,
               width: '100%',
               height: '100%',
-              visibility: index === currentIndex ? 'visible' : 'hidden',
+              opacity: index === currentIndex ? 1 : 0,
+              zIndex: index === currentIndex ? 10 : 1,
+              pointerEvents: index === currentIndex ? 'auto' : 'none',
+              transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
             }}
           >
             {renderSlide(event, index === currentIndex, index)}
