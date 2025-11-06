@@ -10,18 +10,51 @@ export function MobileShell() {
   const { isAdmin } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
+  const [calendarView, setCalendarView] = useState<{ year: number; month: number; viewMode: 'month' | 'year' }>({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+    viewMode: 'month'
+  });
 
-  // 이벤트 개수 로드
+  // 달력 월/뷰모드 변경 감지
+  useEffect(() => {
+    const handleCalendarMonthChanged = (e: CustomEvent) => {
+      setCalendarView(e.detail);
+    };
+
+    window.addEventListener('calendarMonthChanged', handleCalendarMonthChanged as EventListener);
+    
+    return () => {
+      window.removeEventListener('calendarMonthChanged', handleCalendarMonthChanged as EventListener);
+    };
+  }, []);
+
+  // 이벤트 개수 로드 (현재 달력 월/년 기준)
   useEffect(() => {
     const loadEventCounts = async () => {
       try {
         const { data: events } = await supabase
           .from('events')
-          .select('category');
+          .select('category, date, start_date, end_date');
         
         if (events) {
-          const classCount = events.filter(e => e.category === 'class').length;
-          const eventCount = events.filter(e => e.category === 'event').length;
+          // 현재 달력에 표시된 월/년에 해당하는 이벤트만 필터링
+          const filteredEvents = events.filter(event => {
+            const eventDate = new Date(event.start_date || event.date);
+            const eventYear = eventDate.getFullYear();
+            const eventMonth = eventDate.getMonth();
+            
+            if (calendarView.viewMode === 'year') {
+              // 년 단위 표시: 해당 년도의 모든 이벤트
+              return eventYear === calendarView.year;
+            } else {
+              // 월 단위 표시: 해당 월의 이벤트만
+              return eventYear === calendarView.year && eventMonth === calendarView.month;
+            }
+          });
+          
+          const classCount = filteredEvents.filter(e => e.category === 'class').length;
+          const eventCount = filteredEvents.filter(e => e.category === 'event').length;
           setEventCounts({ class: classCount, event: eventCount });
         }
       } catch (error) {
@@ -47,7 +80,7 @@ export function MobileShell() {
         window.removeEventListener('eventDeleted', handleEventChange);
       };
     }
-  }, [location.pathname]);
+  }, [location.pathname, calendarView]);
 
   // 테마 색상 로드 (DB 최우선, index.css는 폴백)
   useEffect(() => {

@@ -55,6 +55,17 @@ export default function EventCalendar({
     }
   }, [externalCurrentMonth]);
 
+  // 현재 월/뷰모드 변경 시 이벤트 발생 (MobileShell의 카운트 업데이트용)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('calendarMonthChanged', { 
+      detail: { 
+        year: currentMonth.getFullYear(), 
+        month: currentMonth.getMonth(),
+        viewMode 
+      } 
+    }));
+  }, [currentMonth, viewMode]);
+
   // currentMonth가 변경될 때 년도 범위 업데이트 (범위를 벗어난 경우에만)
   useEffect(() => {
     const newYear = currentMonth.getFullYear();
