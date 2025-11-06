@@ -23,6 +23,11 @@ Key components include `EventCalendar` for date-based discovery, `EventList` for
 ### Authentication & Authorization
 The platform uses a unified super admin authentication system with **Supabase Auth** for email/password logins. The super admin role is determined by the `VITE_ADMIN_EMAIL` environment variable, granting full CRUD access to all content. A two-tier admin system includes Super Admins and Billboard Sub-Admins. Supabase Row-Level Security (RLS) enforces access control at the database level, while the frontend conditionally renders UI based on an `isAdmin` flag from the `AuthContext`. All users have public read access to event data.
 
+**Session Management (Updated: 2025-11-06)**:
+- **Complete Logout**: The `signOut` function performs comprehensive cleanup including Kakao SDK logout, Supabase session termination, localStorage/sessionStorage clearing (especially Supabase-prefixed keys), and Service Worker cache deletion for PWA compatibility.
+- **Forced Reload**: After logout, a hard page reload (`window.location.href = '/'`) ensures complete React state reset, preventing stale cached data issues on mobile devices.
+- **Mobile-Optimized**: Resolves long-standing mobile session persistence issues where logout didn't clear browser cache, requiring manual cache clearing.
+
 ### Data Management
 Events support multi-day occurrences and are categorized as 'class' or 'event'. Practice rooms store detailed information including images. Private registrant details are collected but only visible to admins through conditional Supabase queries. A public `contact` field in events supports auto-detection of contact types (phone, KakaoTalk, Instagram, email, URL) for interactive actions. Admins can configure category-specific default thumbnails via `billboard_settings`.
 

@@ -209,15 +209,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    // 카카오 로그아웃
-    await logoutKakao();
+    console.log('[로그아웃] 시작');
     
-    // Supabase 로그아웃
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    
-    // Billboard 사용자 정보도 초기화
-    setBillboardUser(null, null);
+    try {
+      // 1. 카카오 로그아웃
+      await logoutKakao();
+      console.log('[로그아웃] 카카오 로그아웃 완료');
+      
+      // 2. Supabase 로그아웃
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[로그아웃] Supabase 로그아웃 실패:', error);
+        throw error;
+      }
+      console.log('[로그아웃] Supabase 로그아웃 완료');
+      
+      // 3. Billboard 사용자 정보 초기화
+      setBillboardUser(null, null);
+      
+      // 4. localStorage 완전 정리 (Supabase 관련 항목)
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      console.log('[로그아웃] localStorage 정리 완료:', keysToRemove.length + '개 항목');
+      
+      // 5. sessionStorage 완전 정리
+      sessionStorage.clear();
+      console.log('[로그아웃] sessionStorage 정리 완료');
+      
+      // 6. Service Worker 캐시 정리 (PWA)
+      if ('serviceWorker' in navigator && 'caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+        console.log('[로그아웃] Service Worker 캐시 정리 완료:', cacheNames.length + '개');
+      }
+      
+      console.log('[로그아웃] 완료 - 페이지 리로드');
+      
+      // 7. 페이지 강제 리로드 (React 상태 완전 초기화)
+      window.location.href = '/';
+    } catch (error) {
+      console.error('[로그아웃] 실패:', error);
+      // 실패해도 페이지 리로드로 강제 초기화
+      window.location.href = '/';
+    }
   };
 
   // 개발 환경 전용 - 단순 플래그 (UI에서만 사용)
