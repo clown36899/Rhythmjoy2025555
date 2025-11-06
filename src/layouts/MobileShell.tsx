@@ -93,7 +93,7 @@ export function MobileShell() {
                 }`}
               >
                 <span>강습</span>
-                <i className="ri-close-line text-sm"></i>
+                <i className={`${category === 'class' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
               
               {/* 행사 버튼 */}
@@ -114,7 +114,7 @@ export function MobileShell() {
                 }`}
               >
                 <span>행사</span>
-                <i className="ri-close-line text-sm"></i>
+                <i className={`${category === 'event' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
             </div>
             
