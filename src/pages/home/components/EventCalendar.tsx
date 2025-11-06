@@ -283,7 +283,12 @@ export default function EventCalendar({
       // 두 번째 클릭: 항상 등록 모달 열기 (누구나 등록 가능)
       console.log("[달력] 두 번째 클릭 - 등록 모달 열기");
       setClickedDate(date);
-      setShowRegistrationModal(true);
+      
+      // 모바일 터치 이벤트 완전 종료 대기 후 모달 열기 (150ms)
+      // 이렇게 하지 않으면 마지막 터치 위치의 모달 내부 요소가 자동 클릭됨
+      setTimeout(() => {
+        setShowRegistrationModal(true);
+      }, 150);
     } else {
       // 새로운 날짜 선택 - 이벤트 유무 확인
       const year = date.getFullYear();

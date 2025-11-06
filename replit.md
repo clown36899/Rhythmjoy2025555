@@ -37,6 +37,9 @@ Event discovery includes date-based filtering via the calendar, category filteri
 ### Calendar
 The calendar provides month/year navigation, visualizes multi-day events, supports date range selection for filtering, responsive layouts, and touch swipe navigation.
 
+**Mobile Touch Optimization (Updated: 2025-11-06)**:
+- **Double-tap Modal Opening**: Calendar double-tap event registration modal opening now includes a 150ms delay to prevent touch event propagation, ensuring the modal opens without accidentally triggering input focus or button clicks at the last touch position on mobile devices.
+
 ### Billboard & Auto-Scroll
 The billboard system provides a fullscreen slideshow with random/sequential playback, auto-opening on inactivity, and smart cross-month navigation. Clicking an event on the billboard triggers automatic calendar navigation and precise auto-scrolling to the event card. Billboard settings, including auto-slide interval, play order, and admin-controlled date range filters, are persistent in the Supabase `billboard_settings` table.
 
