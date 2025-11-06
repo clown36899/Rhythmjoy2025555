@@ -3114,11 +3114,11 @@ export default function EventList({
           onTouchMove={(e) => e.stopPropagation()}
         >
           <div
-            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border-2 relative"
+            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border-2 relative flex flex-col"
             style={{ borderColor: "rgb(255 191 19)" }}
           >
             {/* 스크롤 가능한 전체 영역 */}
-            <div className="overflow-y-auto max-h-[90svh]">
+            <div className="overflow-y-auto flex-1">
               {/* 이미지 영역 (스크롤과 함께 사라짐) */}
               <div
                 className={`relative w-full ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
@@ -3203,37 +3203,14 @@ export default function EventList({
 
               {/* 제목 - Sticky Header */}
               <div
-                className="sticky top-0 z-40 bg-gray-800 border-b border-gray-700 flex items-start justify-between gap-3"
+                className="sticky top-0 z-40 bg-gray-800 border-b border-gray-700"
                 style={{
                   padding: "16px",
                 }}
               >
-                <h2 className="text-xl font-bold text-white leading-tight break-words flex-1">
+                <h2 className="text-xl font-bold text-white leading-tight break-words">
                   {selectedEvent.title}
                 </h2>
-                {/* 수정/닫기 버튼 - sticky 제목 영역 우측 */}
-                <div className="flex space-x-2 flex-shrink-0">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditClick(selectedEvent, e);
-                    }}
-                    className="bg-black/60 hover:bg-black/80 text-yellow-400 hover:text-yellow-300 px-2.5 py-[0.2rem] rounded-lg transition-all cursor-pointer backdrop-blur-sm shadow-lg"
-                    title="이벤트 수정"
-                  >
-                    <i className="ri-edit-line text-2xl"></i>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      closeModal();
-                    }}
-                    className="bg-black/60 hover:bg-black/80 text-white px-2.5 py-[0.2rem] rounded-lg transition-all cursor-pointer backdrop-blur-sm shadow-lg"
-                    title="닫기"
-                  >
-                    <i className="ri-close-line text-2xl"></i>
-                  </button>
-                </div>
               </div>
 
               {/* 세부 정보 */}
@@ -3503,6 +3480,32 @@ export default function EventList({
                   </div>
                 )}
               </div>
+            </div>
+            
+            {/* 하단 고정 버튼 영역 */}
+            <div className="border-t border-gray-700 bg-gray-800 p-4 flex gap-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditClick(selectedEvent, e);
+                }}
+                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2"
+                title="이벤트 수정"
+              >
+                <i className="ri-edit-line text-xl"></i>
+                <span>수정</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeModal();
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2"
+                title="닫기"
+              >
+                <i className="ri-close-line text-xl"></i>
+                <span>닫기</span>
+              </button>
             </div>
           </div>
         </div>
