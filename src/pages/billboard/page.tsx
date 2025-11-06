@@ -59,10 +59,15 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
 
   // Player 생성
   useEffect(() => {
-    if (!apiReady || !videoId || playerRef.current) return;
+    if (!apiReady || !videoId || playerRef.current) {
+      if (playerRef.current) {
+        console.log(`[YouTube 캐시] Player 이미 존재, 재생성 스킵: ${videoId}`);
+      }
+      return;
+    }
 
     const playerId = `yt-player-${slideIndex}`;
-    console.log('[YouTube] Player 생성 시작:', playerId);
+    console.log('[YouTube] Player 생성 시작:', playerId, 'videoId:', videoId);
     
     const timer = setTimeout(() => {
       const element = document.getElementById(playerId);
@@ -132,18 +137,24 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     return () => {
       clearTimeout(timer);
       // destroy() 제거 - Player 객체 유지하여 캐시 활용
-      console.log('[YouTube] Player cleanup (destroy 안함):', slideIndex);
+      console.log('[YouTube] Player cleanup (destroy 안함, 캐시 유지):', videoId);
       // hasCalledOnPlaying 리셋하여 재진입 시 다시 재생 가능
       hasCalledOnPlaying.current = false;
     };
-  }, [apiReady, videoId, slideIndex, onPlayingCallback]);
+  }, [apiReady, videoId, onPlayingCallback]);  // ✅ slideIndex 제거 - videoId만 의존
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
 }), (prevProps, nextProps) => {
-  // videoId와 slideIndex가 같으면 리렌더링 방지 (Player 재사용)
-  return prevProps.videoId === nextProps.videoId &&
-         prevProps.slideIndex === nextProps.slideIndex &&
-         prevProps.apiReady === nextProps.apiReady;
+  // ✅ videoId만 비교 - 같은 영상이면 slideIndex 달라도 Player 재사용
+  // slideIndex는 표시 목적이므로 캐싱과 무관
+  const shouldSkipRender = prevProps.videoId === nextProps.videoId && 
+                           prevProps.apiReady === nextProps.apiReady;
+  
+  if (shouldSkipRender && prevProps.slideIndex !== nextProps.slideIndex) {
+    console.log(`[YouTube 캐시] videoId ${prevProps.videoId} 재사용 (슬라이드 ${prevProps.slideIndex} → ${nextProps.slideIndex})`);
+  }
+  
+  return shouldSkipRender;
 });
 
 // displayName 설정 (forwardRef 사용 시 필요)

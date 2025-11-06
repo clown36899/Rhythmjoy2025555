@@ -48,10 +48,11 @@ Allows Super Admins to create and manage multiple billboard users, each with a c
 
 **Performance Optimizations (Updated: 2025-11-06)**:
 - **Simplified Realtime Updates**: All Supabase Realtime changes (INSERT/UPDATE/DELETE) trigger a full page reload for maximum stability. When the event list is empty, reloads trigger immediately; otherwise, they queue until the next slide transition.
-- **React.memo Caching**: `YouTubePlayer` components are memoized by `videoId`, preserving media players across reloads even when event data refreshes, ensuring smooth video playback without interruption.
+- **React.memo Caching**: `YouTubePlayer` components are memoized by `videoId` only (not `slideIndex`), preserving media players even when the same video appears on different slides, ensuring smooth video playback without interruption and eliminating redundant iframe loads.
 - **Ref-Based Architecture**: All timer callbacks use refs (`eventsRef`, `settingsRef`, `currentEventIdRef`, `pendingReloadRef`) instead of state closures to prevent stale values and ensure real-time changes are observed.
 - **Concurrent Updates**: Multiple simultaneous changes (e.g., 3 users editing) queue together and trigger a single reload, preventing excessive refreshes.
 - **Accurate Video Timing**: Slideshow timers for YouTube videos start when the `PLAYING` state is detected (not when `playVideo()` is called), ensuring full video playback duration regardless of YouTube iframe load time (typically 8-10 seconds for first load).
+- **Smart Player Reuse**: YouTube Player objects are never destroyed during cleanup, remaining in memory for instant reuse when the same video reappears, eliminating 8-10 second load times on subsequent plays.
 
 ### Social Venues System
 An independent system (`/social`) for discovering and managing schedules for specific social venues. It integrates **Kakao Maps SDK** and **Kakao Local API** for mapping and address search. Features include a map view with venue markers, a scrollable venue list, and a dedicated monthly calendar for each venue's schedules. Admin CRUD operations for venues and schedules are password-protected, with RLS policies ensuring super admin-only writes and public read access.
