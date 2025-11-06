@@ -282,12 +282,12 @@ export default function BillboardPage() {
     slideStartTimeRef.current = startTime;
     console.log(`[타이머 시작] 슬라이드 ${currentIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
     
-    // 진행바 업데이트 (150ms 간격으로 부드러운 애니메이션 + 성능 개선)
+    // 진행바 업데이트 (50ms 간격으로 매우 부드러운 애니메이션)
     setProgress(0);
-    const step = (150 / slideInterval) * 100;
+    const step = (50 / slideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((p) => (p >= 100 ? 0 : p + step));
-    }, 150);
+    }, 50);
 
     // 슬라이드 전환 타이머
     slideTimerRef.current = setInterval(() => {
@@ -877,7 +877,7 @@ export default function BillboardPage() {
                       fill="none"
                       strokeDasharray={264 * scale}
                       strokeDashoffset={264 * scale - (264 * scale * progress) / 100}
-                      style={{ transition: "stroke-dashoffset 0.05s linear" }}
+                      style={{ transition: "stroke-dashoffset 0.15s ease-out" }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
