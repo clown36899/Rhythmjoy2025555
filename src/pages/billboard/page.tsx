@@ -28,11 +28,13 @@ export interface YouTubePlayerHandle {
 const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   videoId: string;
   slideIndex: number;
+  isVisible: boolean;  // 현재 표시 중인지 여부
   onPlayingCallback: (index: number) => void;
   apiReady: boolean;  // 부모로부터 API 준비 상태 받기
 }>(({
   videoId,
   slideIndex,
+  isVisible,  // props로 받기
   onPlayingCallback,
   apiReady,  // props로 받기
 }, ref) => {
@@ -105,8 +107,8 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                   onPlayingCallback(slideIndex);
                 }
               }
-              // 종료 감지 (YT.PlayerState.ENDED = 0) → 0초로 돌아가서 루프 재생
-              else if (event.data === 0) {
+              // 종료 감지 (YT.PlayerState.ENDED = 0) → 0초로 돌아가서 루프 재생 (현재 표시 중일 때만)
+              else if (event.data === 0 && isVisible) {
                 console.log('[YouTube] 재생 종료 감지 → 0초로 돌아가서 다시 재생:', slideIndex);
                 if (playerRef.current?.seekTo && playerRef.current?.playVideo) {
                   playerRef.current.seekTo(0, true); // 0초로 이동
@@ -829,6 +831,7 @@ export default function BillboardPage() {
                 }}
                 videoId={videoInfo.videoId}
                 slideIndex={slideIndex}
+                isVisible={isVisible}
                 apiReady={youtubeApiReady}
                 onPlayingCallback={handleVideoPlaying}
               />
