@@ -66,7 +66,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       return;
     }
 
-    const playerId = `yt-player-${videoId}`;
+    const playerId = `yt-player-${slideIndex}`;
     console.log('[YouTube] Player 생성 시작:', playerId, 'videoId:', videoId);
     
     const timer = setTimeout(() => {
@@ -143,7 +143,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     };
   }, [apiReady, videoId, onPlayingCallback]);  // ✅ slideIndex 제거 - videoId만 의존
 
-  return <div id={`yt-player-${videoId}`} className="w-full h-full" />;
+  return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
 }), (prevProps, nextProps) => {
   // ✅ videoId만 비교 - 같은 영상이면 slideIndex 달라도 Player 재사용
   // slideIndex는 표시 목적이므로 캐싱과 무관
@@ -201,12 +201,11 @@ export default function BillboardPage() {
   const [dateLocationFontSize, setDateLocationFontSize] = useState(31); // 날짜+장소 폰트 크기
   const slideTimerRef = useRef<NodeJS.Timeout | null>(null); // 슬라이드 전환 타이머
   const slideStartTimeRef = useRef<number>(0); // 슬라이드 시작 시간
-  const playerRefsRef = useRef<Record<string, YouTubePlayerHandle | null>>({}); // videoId별 Player 참조
+  const playerRefsRef = useRef<(YouTubePlayerHandle | null)[]>([]); // 슬라이드별 Player 참조
   const prevIndexRef = useRef<number>(0); // 이전 슬라이드 인덱스
   const currentActiveIndexRef = useRef<number>(0); // 현재 활성 슬라이드 인덱스 (attemptPlay 취소용)
   const [youtubeApiReady, setYoutubeApiReady] = useState(false); // YouTube API 준비 상태
   const loadBillboardDataRef = useRef<(() => Promise<void>) | null>(null); // loadBillboardData 함수 ref
-  const [uniqueVideoIds, setUniqueVideoIds] = useState<string[]>([]); // 고유 videoId 목록
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -391,20 +390,6 @@ export default function BillboardPage() {
   // State-Ref 동기화 (stale closure 방지)
   useEffect(() => {
     eventsRef.current = events;
-    
-    // 고유 videoId 목록 추출 (Player Pool 생성용)
-    const videoIds = new Set<string>();
-    events.forEach(event => {
-      const videoUrl = event?.video_url;
-      if (videoUrl) {
-        const videoInfo = parseVideoUrl(videoUrl);
-        if (videoInfo?.videoId) {
-          videoIds.add(videoInfo.videoId);
-        }
-      }
-    });
-    setUniqueVideoIds(Array.from(videoIds));
-    console.log(`[Player Pool] 고유 영상 ${videoIds.size}개 감지:`, Array.from(videoIds));
   }, [events]);
 
   useEffect(() => {
@@ -431,29 +416,19 @@ export default function BillboardPage() {
     const currentEvent = events[currentIndex];
     const hasVideo = !!currentEvent?.video_url;
     
-    // 이전/현재 슬라이드의 videoId 추출
-    const prevEvent = events[prevIndex];
-    const prevVideoUrl = prevEvent?.video_url;
-    const prevVideoInfo = prevVideoUrl ? parseVideoUrl(prevVideoUrl) : null;
-    const prevVideoId = prevVideoInfo?.videoId;
-    
-    const currentVideoUrl = currentEvent?.video_url;
-    const currentVideoInfo = currentVideoUrl ? parseVideoUrl(currentVideoUrl) : null;
-    const currentVideoId = currentVideoInfo?.videoId;
-    
     // 현재 활성 슬라이드 업데이트
     currentActiveIndexRef.current = currentIndex;
     
-    // 이전 슬라이드 pause (videoId 기반)
-    if (prevIndex !== currentIndex && prevVideoId && playerRefsRef.current[prevVideoId]) {
-      console.log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 영상 일시정지 (videoId: ${prevVideoId})`);
-      playerRefsRef.current[prevVideoId]?.pauseVideo();
+    // 이전 슬라이드 pause
+    if (prevIndex !== currentIndex && playerRefsRef.current[prevIndex]) {
+      console.log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 슬라이드 일시정지`);
+      playerRefsRef.current[prevIndex]?.pauseVideo();
     }
     
     // 현재 슬라이드가 영상이면 재생 시작
-    if (hasVideo && currentVideoId) {
+    if (hasVideo) {
       const targetIndex = currentIndex;  // 현재 타겟 캡처 (클로저 보존)
-      console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 준비 (videoId: ${currentVideoId})`);
+      console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 준비`);
       // Player가 준비될 때까지 대기 후 재생
       let attemptCount = 0;
       const maxAttempts = 50;  // 최대 5초 대기 (50 * 100ms)
@@ -464,10 +439,10 @@ export default function BillboardPage() {
           return;
         }
         
-        const player = playerRefsRef.current[currentVideoId];
+        const player = playerRefsRef.current[targetIndex];
         // Player가 준비되었는지 확인
         if (player && player.isReady && player.isReady()) {
-          console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 시작 (videoId: ${currentVideoId})`);
+          console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 시작`);
           player.playVideo();
           
           // ❌ 타이머 시작 제거: 실제 재생 감지 시점(handleVideoPlaying)에서 시작
@@ -788,7 +763,7 @@ export default function BillboardPage() {
     return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
   };
 
-  // 슬라이드 렌더링 (Player 제외, 정보만)
+  // 슬라이드 렌더링
   const renderSlide = (event: any, isVisible: boolean, slideIndex: number) => {
     const imageUrl = event?.image_full || event?.image;
     const videoUrl = event?.video_url;
@@ -813,29 +788,54 @@ export default function BillboardPage() {
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? "auto" : "none",
           transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
-          zIndex: isVisible ? 10 : 1,
+          zIndex: isVisible ? 2 : 1,
         }}
       >
-        {/* === 유튜브 영상 썸네일 (로딩 중에만 표시, Player는 Pool에서 관리) === */}
-        {videoInfo?.videoId && thumbnailUrl && (
-          <img
-            src={thumbnailUrl}
-            alt={event.title}
-            className="w-full h-full object-contain"
-            style={{
-              backgroundColor: "#000",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              zIndex: 1,
-              opacity: videoLoaded ? 0 : 1,
-              transition: "opacity 0.8s ease-in-out",
-            }}
-          />
-        )}
-        
-        {/* === 일반 이미지 === */}
-        {!videoInfo?.videoId && imageUrl && (
+        {/* === 유튜브 영상 + 썸네일 === */}
+        {videoInfo?.videoId ? (
+          <>
+            {/* 썸네일 (로딩 중에만 표시) - 커스텀 이미지 우선, 없으면 YouTube 기본 */}
+            {thumbnailUrl && (
+              <img
+                src={thumbnailUrl}
+                alt={event.title}
+                className="w-full h-full object-contain"
+                style={{
+                  backgroundColor: "#000",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  zIndex: 1,
+                  opacity: videoLoaded ? 0 : 1,
+                  transition: "opacity 0.8s ease-in-out",
+                }}
+              />
+            )}
+            {/* YouTube Player */}
+            <div
+              className="w-full h-full"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                zIndex: 2,
+                opacity: videoLoaded ? 1 : 0,
+                transition: "opacity 0.8s ease-in-out",
+              }}
+            >
+              <YouTubePlayer
+                ref={(el) => {
+                  playerRefsRef.current[slideIndex] = el;
+                }}
+                videoId={videoInfo.videoId}
+                slideIndex={slideIndex}
+                apiReady={youtubeApiReady}
+                onPlayingCallback={handleVideoPlaying}
+              />
+            </div>
+          </>
+        ) : (
+          /* === 일반 이미지 === */
           <img
             src={imageUrl}
             alt={event.title}
@@ -1154,56 +1154,20 @@ export default function BillboardPage() {
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
       <div className="billboard-page">
-        {/* === Player Pool: 고유 videoId별로 단 1개씩만 생성 (항상 DOM에 존재) === */}
-        {uniqueVideoIds.map(videoId => {
-          // 현재 슬라이드의 videoId 확인
-          const currentEvent = events[currentIndex];
-          const currentVideoUrl = currentEvent?.video_url;
-          const currentVideoInfo = currentVideoUrl ? parseVideoUrl(currentVideoUrl) : null;
-          const isCurrentVideo = currentVideoInfo?.videoId === videoId;
-          
-          return (
-            <div
-              key={`player-pool-${videoId}`}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                width: needsRotation ? '100vh' : '100vw',
-                height: needsRotation ? '100vw' : '100vh',
-                transform: needsRotation 
-                  ? `translate(-50%, -50%) rotate(90deg)`
-                  : `translate(-50%, -50%)`,
-                zIndex: isCurrentVideo ? 5 : 1,
-                opacity: isCurrentVideo && (videoLoadedMap[currentIndex] ?? false) ? 1 : 0,
-                pointerEvents: 'none',
-                transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
-              }}
-            >
-              <YouTubePlayer
-                ref={(el) => {
-                  playerRefsRef.current[videoId] = el;
-                }}
-                videoId={videoId}
-                slideIndex={currentIndex}
-                apiReady={youtubeApiReady}
-                onPlayingCallback={handleVideoPlaying}
-              />
-            </div>
-          );
-        })}
-        
-        {/* === Slide Layer: 슬라이드 정보만 (제목, 날짜, QR 등) === */}
+        {/* 모든 슬라이드를 DOM에 유지 (visibility로 표시/숨김, MediaCodec 캐시 보존) */}
         {events.map((event, index) => (
           <div
             key={`slide-${event.id}-${index}`}
             style={{
-              display: index === currentIndex ? 'block' : 'none',
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
+              visibility: index === currentIndex ? 'visible' : 'hidden',
             }}
           >
-            {renderSlide(event, true, index)}
+            {renderSlide(event, index === currentIndex, index)}
           </div>
         ))}
       </div>
