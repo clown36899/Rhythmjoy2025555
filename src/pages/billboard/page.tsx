@@ -434,15 +434,10 @@ export default function BillboardPage() {
           console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 시작`);
           player.playVideo();
           
-          // 영상 재생 시작 시 즉시 타이머 시작
-          console.log(`[디버그] settings 존재: ${!!settings}, video_play_duration: ${settings?.video_play_duration}`);
-          if (settings) {
-            const slideInterval = settings.video_play_duration || 10000;
-            console.log(`[타이머 시작] 영상 재생 시작, 타이머: ${slideInterval}ms`);
-            startSlideTimer(slideInterval);
-          } else {
-            console.error('[타이머 시작 실패] settings가 null입니다!');
-          }
+          // ❌ 타이머 시작 제거: 실제 재생 감지 시점(handleVideoPlaying)에서 시작
+          // YouTube iframe 로드 시간으로 인해 playVideo() 호출 시점과
+          // 실제 재생 시작 시점이 8-10초 차이 날 수 있음
+          console.log(`[디버그] playVideo() 호출 완료, 실제 재생 시 타이머 시작 예정`);
         } else if (attemptCount < maxAttempts) {
           // Player가 아직 준비 안되면 100ms 후 재시도
           attemptCount++;
@@ -464,8 +459,15 @@ export default function BillboardPage() {
   const handleVideoPlaying = useCallback((index: number) => {
     console.log('[빌보드] 영상 재생 감지 (onStateChange):', index);
     setVideoLoadedMap(prev => ({ ...prev, [index]: true }));
-    // 타이머는 playVideo() 호출 시 이미 시작됨 (중복 방지)
-  }, []);
+    
+    // ✅ 실제 재생 시작 시점에 타이머 시작 (정확한 재생 시간 보장)
+    const currentSettings = settingsRef.current;
+    if (currentSettings && index === currentActiveIndexRef.current) {
+      const slideInterval = currentSettings.video_play_duration || 10000;
+      console.log(`[타이머 시작] 실제 재생 감지, 타이머: ${slideInterval}ms`);
+      startSlideTimer(slideInterval);
+    }
+  }, [startSlideTimer]);
 
   // 모바일 주소창 숨기기
   useEffect(() => {
@@ -675,7 +677,7 @@ export default function BillboardPage() {
       console.log(`[슬라이드 ${currentIndex}] 이미지 감지 - 즉시 타이머 시작: ${slideInterval}ms`);
       startSlideTimer(slideInterval);
     } else {
-      console.log(`[슬라이드 ${currentIndex}] 영상 감지 - playVideo()에서 타이머 시작 예정`);
+      console.log(`[슬라이드 ${currentIndex}] 영상 감지 - 실제 재생 감지 시 타이머 시작 예정`);
     }
 
     return () => {
