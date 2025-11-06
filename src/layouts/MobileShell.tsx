@@ -7,8 +7,6 @@ export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const { isAdmin } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
@@ -41,35 +39,6 @@ export function MobileShell() {
     loadThemeColors();
   }, []);
 
-  // HomePage에서 전달되는 현재 월 정보 수신
-  useEffect(() => {
-    const handleMonthChange = (event: CustomEvent) => {
-      if (event.detail && event.detail.month) {
-        setCurrentMonth(new Date(event.detail.month));
-      }
-    };
-
-    window.addEventListener('monthChanged', handleMonthChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('monthChanged', handleMonthChange as EventListener);
-    };
-  }, []);
-
-  // HomePage에서 전달되는 viewMode 정보 수신
-  useEffect(() => {
-    const handleViewModeChange = (event: CustomEvent) => {
-      if (event.detail && event.detail.viewMode) {
-        setViewMode(event.detail.viewMode);
-      }
-    };
-
-    window.addEventListener('viewModeChanged', handleViewModeChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('viewModeChanged', handleViewModeChange as EventListener);
-    };
-  }, []);
 
   // 현재 페이지와 카테고리 파악
   const isEventsPage = location.pathname === '/';
@@ -96,32 +65,63 @@ export function MobileShell() {
 
       {/* Bottom Navigation - 모든 페이지 공통 */}
       <div className="fixed bottom-0 left-0 right-0 z-20" style={{ maxWidth: '650px', margin: '0 auto' }}>
-        {/* Month/Year Indicator - 홈 페이지에서만 표시 */}
+        {/* Category Filter Badges - 홈 페이지에서만 표시 */}
         {isEventsPage && (
           <div 
-            className="border-t border-[#22262a] flex items-center justify-between px-3 no-select"
+            className="border-t border-[#22262a] flex items-center justify-between px-3 py-1.5 no-select gap-2"
             style={{ 
               backgroundColor: "var(--header-bg-color)",
-              height: '20px'
+              minHeight: '32px'
             }}
           >
-            <span className="text-gray-400 font-medium no-select" style={{ fontSize: '12px', lineHeight: '1.2' }}>
-              {viewMode === "year" ? (
-                <>
-                  {currentMonth.getFullYear()}년{' '}
-                  {category === 'all' ? '전체' : category === 'class' ? '강습' : '행사'}
-                </>
-              ) : (
-                <>
-                  {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월{' '}
-                  {category === 'all' ? '전체' : category === 'class' ? '강습' : '행사'}
-                </>
-              )}
-            </span>
+            <div className="flex items-center gap-2">
+              {/* 강습 버튼 */}
+              <button
+                onClick={() => {
+                  if (category === 'class') {
+                    handleCategoryChange('event'); // 강습 끄고 행사만
+                  } else if (category === 'event') {
+                    handleCategoryChange('all'); // 둘 다 켜기
+                  } else {
+                    handleCategoryChange('event'); // all → 강습 끄기
+                  }
+                }}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                  category === 'class' || category === 'all'
+                    ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                    : 'bg-gray-700/30 border-gray-600 text-gray-400'
+                }`}
+              >
+                <span>강습</span>
+                <i className="ri-close-line text-sm"></i>
+              </button>
+              
+              {/* 행사 버튼 */}
+              <button
+                onClick={() => {
+                  if (category === 'event') {
+                    handleCategoryChange('class'); // 행사 끄고 강습만
+                  } else if (category === 'class') {
+                    handleCategoryChange('all'); // 둘 다 켜기
+                  } else {
+                    handleCategoryChange('class'); // all → 행사 끄기
+                  }
+                }}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                  category === 'event' || category === 'all'
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                    : 'bg-gray-700/30 border-gray-600 text-gray-400'
+                }`}
+              >
+                <span>행사</span>
+                <i className="ri-close-line text-sm"></i>
+              </button>
+            </div>
+            
             {isAdmin && (
               <button
                 onClick={() => setShowAdminPanel(!showAdminPanel)}
-                className="text-red-400 hover:text-red-300 transition-colors"
+                className="text-red-400 hover:text-red-300 transition-colors ml-auto"
                 style={{ fontSize: '12px', lineHeight: '1.2' }}
               >
                 <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} text-sm`}></i>
@@ -157,43 +157,17 @@ export function MobileShell() {
         )}
         
         <div className="flex items-center justify-around px-2 py-2 border-t border-[#22262a] no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
-          {/* 전체 버튼 */}
+          {/* 이벤트 달력 버튼 */}
           <button
-            onClick={() => handleCategoryChange('all')}
+            onClick={() => navigate('/')}
             className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
-              isEventsPage && category === 'all'
+              isEventsPage
                 ? "text-blue-500"
                 : "text-gray-300 hover:text-white"
             }`}
           >
-            <i className="ri-file-list-3-line text-xl mb-0.5"></i>
-            <span className="text-xs">전체</span>
-          </button>
-
-          {/* 강습 버튼 */}
-          <button
-            onClick={() => handleCategoryChange('class')}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
-              isEventsPage && category === 'class'
-                ? "text-purple-500"
-                : "text-gray-300 hover:text-white"
-            }`}
-          >
-            <i className="ri-book-open-line text-xl mb-0.5"></i>
-            <span className="text-xs">강습</span>
-          </button>
-
-          {/* 행사 버튼 */}
-          <button
-            onClick={() => handleCategoryChange('event')}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
-              isEventsPage && category === 'event'
-                ? "text-blue-500"
-                : "text-gray-300 hover:text-white"
-            }`}
-          >
-            <i className="ri-calendar-event-line text-xl mb-0.5"></i>
-            <span className="text-xs">행사</span>
+            <i className="ri-calendar-line text-xl mb-0.5"></i>
+            <span className="text-xs">이벤트 달력</span>
           </button>
 
           {/* 소셜 버튼 */}
