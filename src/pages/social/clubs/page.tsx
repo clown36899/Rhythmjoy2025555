@@ -37,29 +37,48 @@ export default function ClubsPage() {
 
   const initMap = () => {
     const container = document.getElementById('clubs-map');
-    if (!container || !window.kakao || !window.kakao.maps) {
-      console.error('카카오맵 SDK가 로드되지 않았습니다.');
+    if (!container) {
+      console.error('지도 컨테이너를 찾을 수 없습니다.');
       setLoading(false);
       return;
     }
 
-    // SDK가 로드되었다면, load()를 사용하여 내부 클래스 등록을 보장
-    window.kakao.maps.load(() => {
-      try {
-        const center = new window.kakao.maps.LatLng(37.5665, 126.978);
-        const options = {
-          center,
-          level: 8,
-        };
+    let attempts = 0;
+    const maxAttempts = 30;
 
-        const newMap = new window.kakao.maps.Map(container, options);
-        setMap(newMap);
-        setLoading(false);
-      } catch (error) {
-        console.error('카카오맵 초기화 실패:', error);
-        setLoading(false);
+    const tryInit = () => {
+      if (!window.kakao || !window.kakao.maps) {
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(tryInit, 200);
+        } else {
+          console.error('카카오맵 SDK 로드 시간 초과');
+          setLoading(false);
+        }
+        return;
       }
-    });
+
+      // SDK가 로드되었다면, load()를 사용하여 내부 클래스 등록을 보장
+      window.kakao.maps.load(() => {
+        try {
+          const center = new window.kakao.maps.LatLng(37.5665, 126.978);
+          const options = {
+            center,
+            level: 8,
+          };
+
+          const newMap = new window.kakao.maps.Map(container, options);
+          setMap(newMap);
+          setLoading(false);
+          console.log('카카오맵 초기화 성공 (동호회)');
+        } catch (error) {
+          console.error('카카오맵 초기화 실패:', error);
+          setLoading(false);
+        }
+      });
+    };
+
+    tryInit();
   };
 
   useEffect(() => {
