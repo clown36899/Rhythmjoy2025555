@@ -1157,25 +1157,34 @@ export default function BillboardPage() {
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
       <div className="billboard-page">
-        {/* 모든 슬라이드를 DOM에 항상 visible 유지 (opacity + z-index로만 제어, MediaCodec 캐시 보존) */}
-        {events.map((event, index) => (
-          <div
-            key={`slide-${event.id}-${index}`}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              opacity: index === currentIndex ? 1 : 0,
-              zIndex: index === currentIndex ? 10 : 1,
-              pointerEvents: index === currentIndex ? 'auto' : 'none',
-              transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
-            }}
-          >
-            {renderSlide(event, index === currentIndex, index)}
-          </div>
-        ))}
+        {/* 현재 + 이전/다음 슬라이드만 DOM에 유지 (Player 개수 제한으로 Android 재생 차단 방지) */}
+        {events.map((event, index) => {
+          // 현재 슬라이드 ± 1 범위만 렌더링 (순환)
+          const prevIndex = currentIndex === 0 ? events.length - 1 : currentIndex - 1;
+          const nextIndex = currentIndex === events.length - 1 ? 0 : currentIndex + 1;
+          const shouldRender = index === currentIndex || index === prevIndex || index === nextIndex;
+          
+          if (!shouldRender) return null;
+          
+          return (
+            <div
+              key={`slide-${event.id}-${index}`}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: index === currentIndex ? 1 : 0,
+                zIndex: index === currentIndex ? 10 : 1,
+                pointerEvents: index === currentIndex ? 'auto' : 'none',
+                transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
+              }}
+            >
+              {renderSlide(event, index === currentIndex, index)}
+            </div>
+          );
+        })}
       </div>
     </>
   );
