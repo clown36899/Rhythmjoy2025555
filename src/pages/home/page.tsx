@@ -13,17 +13,20 @@ import { useAuth } from "../../contexts/AuthContext";
 export default function HomePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const selectedCategory = searchParams.get('category') || 'all';
+  const selectedCategory = searchParams.get("category") || "all";
   const { isAdmin } = useAuth();
-  
+
   // 카테고리 변경 헬퍼 함수
-  const navigateWithCategory = useCallback((cat?: string) => {
-    if (!cat || cat === 'all') {
-      navigate('/');
-    } else {
-      navigate(`/?category=${cat}`);
-    }
-  }, [navigate]);
+  const navigateWithCategory = useCallback(
+    (cat?: string) => {
+      if (!cat || cat === "all") {
+        navigate("/");
+      } else {
+        navigate(`/?category=${cat}`);
+      }
+    },
+    [navigate],
+  );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
@@ -33,31 +36,35 @@ export default function HomePage() {
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const calendarRef = useRef<HTMLDivElement>(null);
-  
+
   // isAdmin 상태에 따라 adminType 자동 동기화
   useEffect(() => {
     if (isAdmin) {
       setAdminType("super");
-      console.log('[HomePage] 슈퍼 관리자 모드 활성화');
+      console.log("[HomePage] 슈퍼 관리자 모드 활성화");
     } else if (!billboardUserId) {
       // 빌보드 사용자도 아니고 슈퍼 관리자도 아니면 null
       setAdminType(null);
-      console.log('[HomePage] 관리자 모드 비활성화');
+      console.log("[HomePage] 관리자 모드 비활성화");
     }
   }, [isAdmin, billboardUserId]);
-  
+
   // MobileShell에 현재 월 정보 전달
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('monthChanged', { 
-      detail: { month: currentMonth.toISOString() } 
-    }));
+    window.dispatchEvent(
+      new CustomEvent("monthChanged", {
+        detail: { month: currentMonth.toISOString() },
+      }),
+    );
   }, [currentMonth]);
 
   // MobileShell에 viewMode 정보 전달
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('viewModeChanged', { 
-      detail: { viewMode } 
-    }));
+    window.dispatchEvent(
+      new CustomEvent("viewModeChanged", {
+        detail: { viewMode },
+      }),
+    );
   }, [viewMode]);
   const [savedMonth, setSavedMonth] = useState<Date | null>(null);
   const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
@@ -70,27 +77,32 @@ export default function HomePage() {
     id: number;
     nonce: number;
   } | null>(null);
-  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
+  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(true);
+  //isCalendarCollapsed -> 달력 펼침상태 제어 true | false
   const [searchTerm, setSearchTerm] = useState("");
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
+    null,
+  );
   const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState<'horizontal' | 'vertical' | null>(null);
+  const [swipeDirection, setSwipeDirection] = useState<
+    "horizontal" | "vertical" | null
+  >(null);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
   const [fromQR] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    const source = params.get('from');
-    return source === 'qr' || source === 'edit';
+    const source = params.get("from");
+    return source === "qr" || source === "edit";
   });
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
@@ -98,22 +110,22 @@ export default function HomePage() {
   // URL 파라미터 처리 (QR 코드 스캔 또는 이벤트 수정 후 하이라이트)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const eventId = params.get('event');
-    const source = params.get('from');
+    const eventId = params.get("event");
+    const source = params.get("from");
 
-    if ((source === 'qr' || source === 'edit') && eventId) {
+    if ((source === "qr" || source === "edit") && eventId) {
       const id = parseInt(eventId);
       setQrLoading(true);
-      
+
       // 이벤트 정보 조회 후 달력 이동
       const loadEventAndNavigate = async () => {
         try {
           const { data: event } = await supabase
-            .from('events')
-            .select('start_date, date')
-            .eq('id', id)
+            .from("events")
+            .select("start_date, date")
+            .eq("id", id)
             .single();
-          
+
           if (event) {
             // 이벤트 날짜로 달력 이동
             const eventDate = event.start_date || event.date;
@@ -121,7 +133,7 @@ export default function HomePage() {
               const date = new Date(eventDate);
               setCurrentMonth(date);
             }
-            
+
             // 로딩 해제 후 하이라이트
             setTimeout(() => {
               setQrLoading(false);
@@ -133,24 +145,23 @@ export default function HomePage() {
             setQrLoading(false);
           }
         } catch (error) {
-          console.error('Error loading event for navigation:', error);
+          console.error("Error loading event for navigation:", error);
           setQrLoading(false);
         }
       };
-      
+
       loadEventAndNavigate();
-      
+
       // URL에서 파라미터 제거 (깔끔하게)
-      window.history.replaceState({}, '', window.location.pathname);
+      window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
-
 
   // 검색 취소 시 전체 모드로 리셋
   useEffect(() => {
     if (!searchTerm) {
       // 검색 취소: 전체 모드로 리셋
-      navigateWithCategory('all');
+      navigateWithCategory("all");
     }
   }, [searchTerm, navigateWithCategory]);
 
@@ -167,13 +178,13 @@ export default function HomePage() {
   // 이벤트 삭제/수정 시 빌보드 재로딩
   useEffect(() => {
     const handleEventUpdate = () => {
-      setRefreshTrigger(prev => prev + 1);
+      setRefreshTrigger((prev) => prev + 1);
     };
 
-    window.addEventListener('eventDeleted', handleEventUpdate);
-    
+    window.addEventListener("eventDeleted", handleEventUpdate);
+
     return () => {
-      window.removeEventListener('eventDeleted', handleEventUpdate);
+      window.removeEventListener("eventDeleted", handleEventUpdate);
     };
   }, []);
 
@@ -183,17 +194,17 @@ export default function HomePage() {
       setSelectedDate(null);
     };
 
-    window.addEventListener('clearSelectedDate', handleClearDate);
-    
+    window.addEventListener("clearSelectedDate", handleClearDate);
+
     return () => {
-      window.removeEventListener('clearSelectedDate', handleClearDate);
+      window.removeEventListener("clearSelectedDate", handleClearDate);
     };
   }, []);
 
   // 검색 시작 시 호출되는 콜백
   const handleSearchStart = () => {
     // 전체 모드로 전환
-    navigateWithCategory('all');
+    navigateWithCategory("all");
   };
 
   // 비활동 타이머 초기화 함수
@@ -274,7 +285,9 @@ export default function HomePage() {
 
         const { data: events } = await supabase
           .from("events")
-          .select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at")
+          .select(
+            "id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at",
+          )
           .order("date", { ascending: true });
 
         if (events && events.length > 0) {
@@ -290,12 +303,18 @@ export default function HomePage() {
             }
 
             // 특정 이벤트 제외
-            if (settings.excludedEventIds && settings.excludedEventIds.includes(event.id)) {
+            if (
+              settings.excludedEventIds &&
+              settings.excludedEventIds.includes(event.id)
+            ) {
               return false;
             }
 
             // 요일 제외
-            if (settings.excludedWeekdays && settings.excludedWeekdays.length > 0) {
+            if (
+              settings.excludedWeekdays &&
+              settings.excludedWeekdays.length > 0
+            ) {
               const eventDate = new Date(event.start_date || event.date);
               const dayOfWeek = eventDate.getDay();
               if (settings.excludedWeekdays.includes(dayOfWeek)) {
@@ -306,12 +325,18 @@ export default function HomePage() {
             // 날짜 범위 필터 적용 (시작 날짜만 체크)
             if (settings.dateRangeStart || settings.dateRangeEnd) {
               const eventStartDate = event.start_date || event.date;
-              
-              if (settings.dateRangeStart && eventStartDate < settings.dateRangeStart) {
+
+              if (
+                settings.dateRangeStart &&
+                eventStartDate < settings.dateRangeStart
+              ) {
                 return false;
               }
-              
-              if (settings.dateRangeEnd && eventStartDate > settings.dateRangeEnd) {
+
+              if (
+                settings.dateRangeEnd &&
+                eventStartDate > settings.dateRangeEnd
+              ) {
                 return false;
               }
             }
@@ -320,10 +345,10 @@ export default function HomePage() {
           });
 
           // 이미지 또는 영상 URL 추출 (인덱스 일치 보장)
-          const imagesOrVideos = filteredEvents.map((event) => 
-            event?.video_url || event?.image_full || event?.image
+          const imagesOrVideos = filteredEvents.map(
+            (event) => event?.video_url || event?.image_full || event?.image,
           );
-          
+
           setBillboardImages(imagesOrVideos);
           setBillboardEvents(filteredEvents);
 
@@ -345,7 +370,16 @@ export default function HomePage() {
     };
 
     loadBillboardImages();
-  }, [settings.enabled, settings.autoOpenOnLoad, settings.dateRangeStart, settings.dateRangeEnd, settings.excludedWeekdays, settings.excludedEventIds, fromQR, refreshTrigger]);
+  }, [
+    settings.enabled,
+    settings.autoOpenOnLoad,
+    settings.dateRangeStart,
+    settings.dateRangeEnd,
+    settings.excludedWeekdays,
+    settings.excludedEventIds,
+    fromQR,
+    refreshTrigger,
+  ]);
 
   const handleBillboardClose = () => {
     setIsBillboardOpen(false);
@@ -392,32 +426,32 @@ export default function HomePage() {
 
     // 이벤트가 있는 날짜만 전체 리스트로 변경 (해당 날짜 이벤트는 상단에 정렬됨)
     if (date && hasEvents) {
-      navigateWithCategory('all');
+      navigateWithCategory("all");
     }
   };
 
   const handleMonthChange = (month: Date) => {
-    console.log('>>> handleMonthChange 시작 <<<');
-    console.log('받은 month:', month);
-    console.log('month.toISOString():', month.toISOString());
-    console.log('현재 viewMode:', viewMode);
-    console.log('현재 currentMonth:', currentMonth);
-    
+    console.log(">>> handleMonthChange 시작 <<<");
+    console.log("받은 month:", month);
+    console.log("month.toISOString():", month.toISOString());
+    console.log("현재 viewMode:", viewMode);
+    console.log("현재 currentMonth:", currentMonth);
+
     setCurrentMonth(month);
-    console.log('setCurrentMonth 완료');
-    
+    console.log("setCurrentMonth 완료");
+
     // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
     setSelectedDate(null);
-    console.log('setSelectedDate(null) 완료');
-    
+    console.log("setSelectedDate(null) 완료");
+
     // 년 모드가 아닐 때만 카테고리 변경 (년 모드에서는 뷰 유지)
     if (viewMode === "month") {
-      console.log('월 모드 - navigateWithCategory 호출');
-      navigateWithCategory('all');
+      console.log("월 모드 - navigateWithCategory 호출");
+      navigateWithCategory("all");
     } else {
-      console.log('년 모드 - navigateWithCategory 생략');
+      console.log("년 모드 - navigateWithCategory 생략");
     }
-    console.log('>>> handleMonthChange 완료 <<<');
+    console.log(">>> handleMonthChange 완료 <<<");
   };
 
   // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
@@ -444,30 +478,30 @@ export default function HomePage() {
     if (swipeDirection === null) {
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
-      
+
       // 임계값: 최소 3px 이동 후 방향 결정 (즉각 반응)
       if (absX > 3 || absY > 3) {
         // Y축 이동이 X축보다 1.5배 이상 크면 수직 스크롤
         if (absY > absX * 1.5) {
-          setSwipeDirection('vertical');
-        } 
+          setSwipeDirection("vertical");
+        }
         // X축 이동이 Y축보다 1.5배 이상 크면 수평 슬라이드
         else if (absX > absY * 1.5) {
-          setSwipeDirection('horizontal');
+          setSwipeDirection("horizontal");
         }
       }
     }
 
     // 수평 슬라이드로 결정되었을 때만 dragOffset 업데이트
-    if (swipeDirection === 'horizontal') {
+    if (swipeDirection === "horizontal") {
       setDragOffset(diffX);
       // CSS touch-action으로 스크롤 제어하므로 preventDefault 불필요
       // passive event listener 에러 방지
       if (e.cancelable) {
         e.preventDefault();
       }
-    } else if (swipeDirection === 'vertical') {
-      // 수직 스크롤은 기본 동작 허용 (dragOffset 업데이트 안 함)
+    } else if (swipeDirection === "vertical") {
+      // 수직 스크 ��은 기본 동작 허용 (dragOffset 업데이트 안 함)
       return;
     }
   };
@@ -478,7 +512,7 @@ export default function HomePage() {
     setIsDragging(false);
 
     // 수평 슬라이드로 인식된 경우만 월 변경
-    if (swipeDirection === 'horizontal') {
+    if (swipeDirection === "horizontal") {
       const distance = dragOffset;
       const threshold = minSwipeDistance;
 
@@ -522,7 +556,6 @@ export default function HomePage() {
     }
   };
 
-
   const handleEventsUpdate = async (createdDate?: Date) => {
     setRefreshTrigger((prev) => prev + 1);
 
@@ -533,10 +566,10 @@ export default function HomePage() {
   };
 
   const handleAdminModeToggle = (
-    adminMode: boolean, 
+    adminMode: boolean,
     type: "super" | "sub" | null = null,
     userId: string | null = null,
-    userName: string = ""
+    userName: string = "",
   ) => {
     // AuthContext에서 관리하므로 isAdminMode state는 제거
     // 빌보드 사용자 정보만 저장
@@ -544,7 +577,6 @@ export default function HomePage() {
     setBillboardUserId(userId);
     setBillboardUserName(userName);
   };
-
 
   const getSortIcon = () => {
     switch (sortBy) {
@@ -577,25 +609,38 @@ export default function HomePage() {
   };
 
   const handleViewModeChange = (mode: "month" | "year") => {
-    console.log('@@@ handleViewModeChange 시작 @@@');
-    console.log('이전 모드:', viewMode);
-    console.log('새 모드:', mode);
-    
+    console.log("@@@ handleViewModeChange 시작 @@@");
+    console.log("이전 모드:", viewMode);
+    console.log("새 모드:", mode);
+
     if (mode === "year") {
-      console.log('년 모드로 전환 - 현재 월 저장');
+      console.log("년 모드로 전환 - 현재 월 저장");
       setSavedMonth(new Date(currentMonth));
     } else if (mode === "month" && savedMonth) {
-      console.log('월 모드로 복귀 - 저장된 월 복원');
+      console.log("월 모드로 복귀 - 저장된 월 복원");
       setCurrentMonth(new Date(savedMonth));
     }
-    
+
     setViewMode(mode);
-    console.log('setViewMode 완료');
-    
+    console.log("setViewMode 완료");
+
     // 뷰 모드 변경 시 이벤트 리스트 표시
-    navigateWithCategory('all');
-    console.log('@@@ handleViewModeChange 완료 @@@');
+    navigateWithCategory("all");
+    console.log("@@@ handleViewModeChange 완료 @@@");
   };
+  // 1. 달력 접기/펴기 버튼의 배경색/텍스트를 조건부로 설정하는 상수
+  const buttonBgClass = isCalendarCollapsed
+    ? "bg-blue-600 hover:bg-blue-700 text-white" // 달력 접힘 상태일 때 (이벤트 등록 버튼) -> 파란색 배경
+    : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"; // 달력 펼침 상태일 때 (달력 접기 버튼) -> 어두운 배경
+
+  // 2. 화살표 아이콘 및 색상 설정
+  const arrowIconContent = isCalendarCollapsed ? (
+    // 달력 접힘 (true): 펼치라는 의미의 '위쪽' 화살표 + 파란색 배경 대비를 위한 흰색 텍스트
+    <i className="ri-arrow-up-s-line text-sm leading-none align-middle text-white font-bold"></i>
+  ) : (
+    // 달력 펼침 (false): 접으라는 의미의 '아래쪽' 화살표 + 어두운 배경 대비를 위한 파란색 텍스트
+    <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
+  );
 
   return (
     <div
@@ -611,11 +656,12 @@ export default function HomePage() {
           currentMonth={currentMonth}
           onNavigateMonth={(direction) => {
             if (isAnimating) return;
-            
+
             setIsAnimating(true);
-            
+
             const screenWidth = window.innerWidth;
-            const targetOffset = direction === "prev" ? screenWidth : -screenWidth;
+            const targetOffset =
+              direction === "prev" ? screenWidth : -screenWidth;
             setDragOffset(targetOffset);
 
             // 날짜 오버플로우 방지 (10월 31일 → 11월 문제 해결)
@@ -643,14 +689,14 @@ export default function HomePage() {
               setIsAnimating(false);
               // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
               setSelectedDate(null);
-              navigateWithCategory('all');
+              navigateWithCategory("all");
             }, 300);
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
             // 날짜 변경 시 날짜 리셋하고 이벤트 리스트 표시
             setSelectedDate(null);
-            navigateWithCategory('all');
+            navigateWithCategory("all");
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
@@ -674,7 +720,7 @@ export default function HomePage() {
           <div
             className="transition-all duration-300 ease-in-out overflow-hidden"
             style={{
-              maxHeight: isCalendarCollapsed ? '0px' : '2000px',
+              maxHeight: isCalendarCollapsed ? "0px" : "2000px",
             }}
           >
             <EventCalendar
@@ -696,111 +742,119 @@ export default function HomePage() {
             />
           </div>
 
-        {/* Tools Panel - 달력 바로 아래 (같은 sticky 컨테이너 내) */}
-        <div 
-          className="w-full border-b border-[#22262a]"
-          style={{ 
-            backgroundColor: "var(--calendar-bg-color)"
-          }}
-        >
-          <div className="flex items-center gap-2 px-2 py-1">
-            {/* 달력 접기/펴기 토글 버튼 */}
-            <button
-              onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
-              className="flex items-center justify-center gap-1 h-6 px-2
-                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
-              aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기"}
-            >
-              <i className={`${isCalendarCollapsed ? 'ri-calendar-line' : 'ri-calendar-close-line'} text-sm leading-none align-middle`}></i>
-              <span className="text-xs leading-none align-middle whitespace-nowrap">
-                {isCalendarCollapsed ? "달력 펼침" : "달력 접기"}
-              </span>
-            </button>
-            
-            <div className="flex-1"></div>
+          {/* Tools Panel - 달력 바로 아래 (같은 sticky 컨테이너 내) */}
+          <div
+            className="w-full border-b border-[#22262a]"
+            style={{
+              backgroundColor: "var(--calendar-bg-color)",
+            }}
+          >
+            <div className="flex items-center gap-2 px-2 py-1">
+              {/* 달력 접기/펴기 토글 버튼 */}
+              <button
+                onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                // 중복된 배경색 클래스를 제거하고 buttonBgClass만 적용하여
+                // '이벤트 등록' 상태(달력 접힘)일 때 파란색 배경이 적용되도록 합니다.
+                className={`flex items-center justify-center gap-1 h-6 px-2
+                         ${buttonBgClass}
+                         rounded-lg transition-colors cursor-pointer flex-shrink-0`}
+                aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기:"}
+              >
+                <i
+                  className={`${isCalendarCollapsed ? "ri-calendar-line" : "ri-calendar-close-line"} text-sm leading-none align-middle`}
+                ></i>
 
-            {/* 정렬 버튼 */}
-            <button
-              onClick={() => setShowSortModal(true)}
-              className="flex items-center justify-center h-6 gap-1 px-2
-                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
-            >
-              <i
-                className={`${getSortIcon()} text-sm leading-none align-middle`}
-              ></i>
-              <span className="text-xs leading-none align-middle">
-                {getSortLabel()}
-              </span>
-            </button>
+                <span className="text-xs leading-none align-middle whitespace-nowrap">
+                  {isCalendarCollapsed ? "이벤트 등록" : "달력 접기"}
+                </span>
 
-            {/* 검색 버튼 */}
-            <button
-              onClick={() => setShowSearchModal(true)}
-              className="flex items-center justify-center h-6 w-8
+                {/* 화살표 아이콘 (상단에 정의된 arrowIconContent 사용) */}
+                {arrowIconContent}
+              </button>
+
+              <div className="flex-1"></div>
+
+              {/* 정렬 버튼 */}
+              <button
+                onClick={() => setShowSortModal(true)}
+                className="flex items-center justify-center h-6 gap-1 px-2
                          bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
                          rounded-lg transition-colors cursor-pointer flex-shrink-0"
-              aria-label="검색"
-            >
-              <i className="ri-search-line text-sm leading-none align-middle"></i>
-            </button>
+              >
+                <i
+                  className={`${getSortIcon()} text-sm leading-none align-middle`}
+                ></i>
+                <span className="text-xs leading-none align-middle">
+                  {getSortLabel()}
+                </span>
+              </button>
+
+              {/* 검색 버튼 */}
+              <button
+                onClick={() => setShowSearchModal(true)}
+                className="flex items-center justify-center h-6 w-8
+                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                aria-label="검색"
+              >
+                <i className="ri-search-line text-sm leading-none align-middle"></i>
+              </button>
+            </div>
           </div>
-        </div>
         </div>
 
         {/* Scrollable Content Area - Events and Footer (독립 스크롤) */}
-          <div className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20">
-            {/* 이벤트 등록 안내 */}
-            <div className="p-0 bg-[#222] rounded-none no-select">
-              <p className="text-gray-300 text-[13px] text-center no-select">
-                <i className="ri-information-line mr-1"></i>
-                날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
-              </p>
-            </div>
-            
-            {qrLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-gray-400">이벤트 로딩 중...</div>
-              </div>
-            ) : (
-              <EventList
-                selectedDate={selectedDate}
-                selectedCategory={selectedCategory}
-                currentMonth={currentMonth}
-                refreshTrigger={refreshTrigger}
-                isAdminMode={isAdmin}
-                adminType={adminType}
-                viewMode={viewMode}
-                onEventHover={setHoveredEventId}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                onSearchStart={handleSearchStart}
-                showSearchModal={showSearchModal}
-                setShowSearchModal={setShowSearchModal}
-                showSortModal={showSortModal}
-                setShowSortModal={setShowSortModal}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                highlightEvent={highlightEvent}
-                onHighlightComplete={handleHighlightComplete}
-                dragOffset={dragOffset}
-                isAnimating={isAnimating}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-              />
-            )}
+        <div className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20">
+          {/* 이벤트 등록 안내 */}
+          <div className="p-0 bg-[#222] rounded-none no-select">
+            <p className="text-gray-300 text-[13px] text-center no-select">
+              <i className="ri-information-line mr-1"></i>
+              날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
+            </p>
+          </div>
 
-            {/* Footer - 고정 (위치는 고정이지만 터치 슬라이드 인식) */}
-            <div
+          {qrLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-gray-400">이벤트 로딩 중...</div>
+            </div>
+          ) : (
+            <EventList
+              selectedDate={selectedDate}
+              selectedCategory={selectedCategory}
+              currentMonth={currentMonth}
+              refreshTrigger={refreshTrigger}
+              isAdminMode={isAdmin}
+              adminType={adminType}
+              viewMode={viewMode}
+              onEventHover={setHoveredEventId}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              onSearchStart={handleSearchStart}
+              showSearchModal={showSearchModal}
+              setShowSearchModal={setShowSearchModal}
+              showSortModal={showSortModal}
+              setShowSortModal={setShowSortModal}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              highlightEvent={highlightEvent}
+              onHighlightComplete={handleHighlightComplete}
+              dragOffset={dragOffset}
+              isAnimating={isAnimating}
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
-            >
-              <Footer />
-            </div>
+            />
+          )}
+
+          {/* Footer - 고정 (위치는 고정이지만 터치 슬라이드 인식) */}
+          <div
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            <Footer />
           </div>
+        </div>
       </div>
 
       {/* Fullscreen Billboard */}
@@ -828,14 +882,14 @@ export default function HomePage() {
           // 서브 관리자는 설정 창 닫아도 설정 모달 다시 열기
           if (adminType === "sub") {
             setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('reopenAdminSettings'));
+              window.dispatchEvent(new CustomEvent("reopenAdminSettings"));
             }, 100);
           }
         }}
         settings={settings}
         onUpdateSettings={updateSettings}
         onResetSettings={resetSettings}
-        adminType={billboardUserId ? "sub" : (isAdmin ? "super" : null)}
+        adminType={billboardUserId ? "sub" : isAdmin ? "super" : null}
         billboardUserId={billboardUserId}
         billboardUserName={billboardUserName}
       />
