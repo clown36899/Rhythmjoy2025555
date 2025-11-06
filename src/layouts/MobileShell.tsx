@@ -9,6 +9,45 @@ export function MobileShell() {
   const [searchParams] = useSearchParams();
   const { isAdmin } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
+
+  // 이벤트 개수 로드
+  useEffect(() => {
+    const loadEventCounts = async () => {
+      try {
+        const { data: events } = await supabase
+          .from('events')
+          .select('category');
+        
+        if (events) {
+          const classCount = events.filter(e => e.category === 'class').length;
+          const eventCount = events.filter(e => e.category === 'event').length;
+          setEventCounts({ class: classCount, event: eventCount });
+        }
+      } catch (error) {
+        console.error('이벤트 개수 로드 실패:', error);
+      }
+    };
+
+    if (location.pathname === '/') {
+      loadEventCounts();
+      
+      // 이벤트 변경 시 개수 업데이트
+      const handleEventChange = () => {
+        loadEventCounts();
+      };
+      
+      window.addEventListener('eventCreated', handleEventChange);
+      window.addEventListener('eventUpdated', handleEventChange);
+      window.addEventListener('eventDeleted', handleEventChange);
+      
+      return () => {
+        window.removeEventListener('eventCreated', handleEventChange);
+        window.removeEventListener('eventUpdated', handleEventChange);
+        window.removeEventListener('eventDeleted', handleEventChange);
+      };
+    }
+  }, [location.pathname]);
 
   // 테마 색상 로드 (DB 최우선, index.css는 폴백)
   useEffect(() => {
@@ -92,7 +131,7 @@ export function MobileShell() {
                     : 'bg-gray-700/30 border-gray-600 text-gray-400'
                 }`}
               >
-                <span>강습</span>
+                <span>강습 {eventCounts.class}</span>
                 <i className={`${category === 'class' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
               
@@ -113,7 +152,7 @@ export function MobileShell() {
                     : 'bg-gray-700/30 border-gray-600 text-gray-400'
                 }`}
               >
-                <span>행사</span>
+                <span>행사 {eventCounts.event}</span>
                 <i className={`${category === 'event' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
             </div>
