@@ -66,7 +66,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       return;
     }
 
-    const playerId = `yt-player-${slideIndex}`;
+    const playerId = `yt-player-${videoId}`;
     console.log('[YouTube] Player 생성 시작:', playerId, 'videoId:', videoId);
     
     const timer = setTimeout(() => {
@@ -143,7 +143,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     };
   }, [apiReady, videoId, onPlayingCallback]);  // ✅ slideIndex 제거 - videoId만 의존
 
-  return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
+  return <div id={`yt-player-${videoId}`} className="w-full h-full" />;
 }), (prevProps, nextProps) => {
   // ✅ videoId만 비교 - 같은 영상이면 slideIndex 달라도 Player 재사용
   // slideIndex는 표시 목적이므로 캐싱과 무관
