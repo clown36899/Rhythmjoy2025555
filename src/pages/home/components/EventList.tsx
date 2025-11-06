@@ -3489,11 +3489,10 @@ export default function EventList({
                   e.stopPropagation();
                   handleEditClick(selectedEvent, e);
                 }}
-                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2"
+                className="bg-black/30 hover:bg-black/50 text-yellow-400 hover:text-yellow-300 w-12 h-12 rounded-lg transition-all cursor-pointer backdrop-blur-sm flex items-center justify-center"
                 title="이벤트 수정"
               >
-                <i className="ri-edit-line text-xl"></i>
-                <span>수정</span>
+                <i className="ri-edit-line text-2xl"></i>
               </button>
               <button
                 onClick={(e) => {
