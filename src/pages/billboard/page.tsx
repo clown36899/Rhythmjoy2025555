@@ -195,7 +195,7 @@ export default function BillboardPage() {
   const pendingReloadTimeRef = useRef<number>(0);
   const pendingChangesRef = useRef<any[]>([]); // 지연 업데이트용 대기열 (ref로 stale closure 방지)
   const scale = 1; // 고정 스케일 (원래 크기 유지)
-  const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
+  const [videoLoaded, setVideoLoaded] = useState(false); // 현재 비디오 로딩 상태
   const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
   const [bottomInfoHeight, setBottomInfoHeight] = useState(0); // 하단 정보 영역 높이 (화면의 10%)
   const [qrSize, setQrSize] = useState(144); // QR 코드 크기
@@ -204,9 +204,7 @@ export default function BillboardPage() {
   const [dateLocationFontSize, setDateLocationFontSize] = useState(31); // 날짜+장소 폰트 크기
   const slideTimerRef = useRef<NodeJS.Timeout | null>(null); // 슬라이드 전환 타이머
   const slideStartTimeRef = useRef<number>(0); // 슬라이드 시작 시간
-  const playerRefsRef = useRef<(YouTubePlayerHandle | null)[]>([]); // 슬라이드별 Player 참조
-  const prevIndexRef = useRef<number>(0); // 이전 슬라이드 인덱스
-  const currentActiveIndexRef = useRef<number>(0); // 현재 활성 슬라이드 인덱스 (attemptPlay 취소용)
+  const playerRef = useRef<YouTubePlayerHandle | null>(null); // 현재 Player 참조
   const [youtubeApiReady, setYoutubeApiReady] = useState(false); // YouTube API 준비 상태
   const loadBillboardDataRef = useRef<(() => Promise<void>) | null>(null); // loadBillboardData 함수 ref
 
@@ -368,15 +366,6 @@ export default function BillboardPage() {
             return nextIndex;
           });
         }
-        
-        // 슬라이드 전환 후 이전 슬라이드의 비디오 로딩 상태 초기화
-        setTimeout(() => {
-          setVideoLoadedMap(prev => {
-            const newMap = { ...prev };
-            delete newMap[previousIndex];
-            return newMap;
-          });
-        }, 100);
       }, 500);
     }, slideInterval);
   }, []); // 모든 state ref로 변경, dependency array 비움 (stale closure 완전 제거)
@@ -416,78 +405,54 @@ export default function BillboardPage() {
     pendingReloadRef.current = pendingReload;
   }, [pendingReload]);
 
-  // currentIndex 변경 시 슬라이드 전환 (pause 이전, play 현재)
+  // currentIndex 변경 시 슬라이드 전환 및 영상 로딩 상태 초기화
   useEffect(() => {
-    const prevIndex = prevIndexRef.current;
     const currentEvent = events[currentIndex];
     const hasVideo = !!currentEvent?.video_url;
     
-    // 현재 활성 슬라이드 업데이트
-    currentActiveIndexRef.current = currentIndex;
+    // 슬라이드 변경 시 영상 로딩 상태 초기화
+    setVideoLoaded(false);
     
-    // 이전 슬라이드 pause
-    if (prevIndex !== currentIndex && playerRefsRef.current[prevIndex]) {
-      console.log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 슬라이드 일시정지`);
-      playerRefsRef.current[prevIndex]?.pauseVideo();
-    }
-    
-    // 현재 슬라이드가 영상이면 재생 시작
-    if (hasVideo) {
-      const targetIndex = currentIndex;  // 현재 타겟 캡처 (클로저 보존)
-      console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 준비`);
+    // 웹 환경에서 영상이 있으면 재생 시작
+    if (hasVideo && !isAndroidWebView()) {
+      console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 준비`);
       // Player가 준비될 때까지 대기 후 재생
       let attemptCount = 0;
       const maxAttempts = 50;  // 최대 5초 대기 (50 * 100ms)
       const attemptPlay = () => {
-        // 슬라이드가 변경되었으면 재시도 중단
-        if (currentActiveIndexRef.current !== targetIndex) {
-          console.log(`[슬라이드 전환] 슬라이드 ${targetIndex} 재시도 중단 (현재: ${currentActiveIndexRef.current})`);
-          return;
-        }
-        
-        const player = playerRefsRef.current[targetIndex];
+        const player = playerRef.current;
         // Player가 준비되었는지 확인
         if (player && player.isReady && player.isReady()) {
-          console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 시작`);
+          console.log(`[슬라이드 전환] 현재 슬라이드 ${currentIndex} 재생 시작`);
           player.playVideo();
-          
-          // ❌ 타이머 시작 제거: 실제 재생 감지 시점(handleVideoPlaying)에서 시작
-          // YouTube iframe 로드 시간으로 인해 playVideo() 호출 시점과
-          // 실제 재생 시작 시점이 8-10초 차이 날 수 있음
-          console.log(`[디버그] playVideo() 호출 완료, 실제 재생 시 타이머 시작 예정`);
         } else if (attemptCount < maxAttempts) {
           // Player가 아직 준비 안되면 100ms 후 재시도
           attemptCount++;
           setTimeout(attemptPlay, 100);
         } else {
-          console.error(`[슬라이드 전환] Player ${targetIndex} 준비 시간 초과 (5초)`);
+          console.error(`[슬라이드 전환] Player 준비 시간 초과 (5초)`);
         }
       };
       attemptPlay();
     }
     
-    prevIndexRef.current = currentIndex;
-    
     // 메모리 모니터링
     checkMemory();
-  }, [currentIndex, checkMemory, events, settings, startSlideTimer, youtubeApiReady]);
+  }, [currentIndex, checkMemory, events]);
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((slideIndex: number) => {
     console.log('[빌보드] 영상 재생 감지 (onStateChange), 슬라이드:', slideIndex);
-    const currentActiveIndex = currentActiveIndexRef.current;
     
-    // 현재 활성 슬라이드의 영상만 처리
-    if (slideIndex === currentActiveIndex) {
-      setVideoLoadedMap(prev => ({ ...prev, [slideIndex]: true }));
-      
-      // ✅ 실제 재생 시작 시점에 타이머 시작 (정확한 재생 시간 보장)
-      const currentSettings = settingsRef.current;
-      if (currentSettings) {
-        const slideInterval = currentSettings.video_play_duration || 10000;
-        console.log(`[타이머 시작] 실제 재생 감지, 타이머: ${slideInterval}ms`);
-        startSlideTimer(slideInterval);
-      }
+    // 현재 슬라이드가 재생되면 로딩 완료 상태로 변경 (항상 현재 슬라이드이므로 조건 제거)
+    setVideoLoaded(true);
+    
+    // ✅ 실제 재생 시작 시점에 타이머 시작 (정확한 재생 시간 보장)
+    const currentSettings = settingsRef.current;
+    if (currentSettings) {
+      const slideInterval = currentSettings.video_play_duration || 10000;
+      console.log(`[타이머 시작] 실제 재생 감지, 타이머: ${slideInterval}ms`);
+      startSlideTimer(slideInterval);
     }
   }, [startSlideTimer]);
 
@@ -790,7 +755,6 @@ export default function BillboardPage() {
     const imageUrl = event?.image_full || event?.image;
     const videoUrl = event?.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
-    const videoLoaded = videoLoadedMap[slideIndex] || false;
     
     // 썸네일: 사용자 업로드 이미지 우선, 없으면 YouTube 기본 썸네일
     const thumbnailUrl = imageUrl || videoInfo?.thumbnailUrl;
@@ -861,9 +825,7 @@ export default function BillboardPage() {
                 }}
               >
                 <YouTubePlayer
-                  ref={(el) => {
-                    playerRefsRef.current[slideIndex] = el;
-                  }}
+                  ref={playerRef}
                   videoId={videoInfo.videoId}
                   slideIndex={slideIndex}
                   isVisible={isVisible}
