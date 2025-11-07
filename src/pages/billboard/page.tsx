@@ -8,7 +8,7 @@ import type {
   Event,
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
-import { isAndroidWebView, playVideoNative } from "../../utils/platform";
+import { isAndroidWebView, playVideoNative, hideVideoNative } from "../../utils/platform";
 
 // YouTube IFrame Player API 타입
 declare global {
@@ -320,6 +320,9 @@ export default function BillboardPage() {
       }
       
       setTimeout(() => {
+        // Android 네이티브 영상 숨김 (다음 슬라이드로 넘어가기 직전)
+        hideVideoNative();
+        
         // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
