@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { parseVideoUrl } from "../utils/videoEmbed";
-import { isAndroidWebView, playVideoNative } from "../utils/platform";
+import { isAndroidWebView, playVideoNative, hideVideoNative } from "../utils/platform";
 
 interface FullscreenBillboardProps {
   images: string[];
@@ -130,6 +130,9 @@ export default function FullscreenBillboard({
 
     // 다음 슬라이드로 전환
     intervalRef.current = setTimeout(() => {
+      // Android 네이티브 영상 숨김 (다음 슬라이드로 넘어가기 직전)
+      hideVideoNative();
+      
       setIsTransitioning(true);
       setProgress(0);
       setTimeout(() => {
