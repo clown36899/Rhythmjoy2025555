@@ -99,9 +99,9 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
               // 부모 컴포넌트에서 명시적으로 playVideo 호출할 예정
             },
-            onStateChange: (event: any) => {
+            onStateChange: (e: any) => {
               // 재생 시작 감지 (YT.PlayerState.PLAYING = 1)
-              if (event.data === 1) {
+              if (e.data === 1) {
                 if (!hasCalledOnPlaying.current) {
                   console.log('[YouTube] 재생 시작 감지 (첫 재생):', slideIndex);
                   hasCalledOnPlaying.current = true;
@@ -109,7 +109,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                 }
               }
               // 종료 감지 (YT.PlayerState.ENDED = 0) → 0초로 돌아가서 루프 재생 (현재 표시 중일 때만)
-              else if (event.data === 0 && isVisible) {
+              else if (e.data === 0 && isVisible) {
                 console.log('[YouTube] 재생 종료 감지 → 0초로 돌아가서 다시 재생:', slideIndex);
                 if (playerRef.current?.seekTo && playerRef.current?.playVideo) {
                   playerRef.current.seekTo(0, true); // 0초로 이동
@@ -120,7 +120,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                 hasCalledOnPlaying.current = false; // 플래그 리셋
               }
               // 일시정지 감지 (YT.PlayerState.PAUSED = 2)
-              else if (event.data === 2) {
+              else if (e.data === 2) {
                 console.log('[YouTube] 일시정지 감지:', slideIndex);
                 // 다음 재생을 위해 플래그 리셋
                 hasCalledOnPlaying.current = false;
@@ -181,7 +181,7 @@ export default function BillboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const eventsRef = useRef<Event[]>([]); // Ref 동기화 (stale closure 방지)
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentEventIdRef = useRef<string | null>(null); // 현재 이벤트 ID 추적
+  const currentEventIdRef = useRef<number | null>(null); // 현재 이벤트 ID 추적
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -321,11 +321,7 @@ export default function BillboardPage() {
         // Android 네이티브 영상 숨김 (다음 슬라이드로 넘어가기 직전)
         hideVideoNative();
         
-        // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
-        const currentEventId = currentEventIdRef.current;
-        const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
-        
-        // 🎯 변경사항 감지 시 데이터만 새로고침 (React.memo가 Player 캐시 보존)
+        // 🎯 변경사항 감지 시 데이터만 새로고침
         if (pendingChangesRef.current.length > 0) {
           const changeCount = pendingChangesRef.current.length;
           console.log(`[변경사항 감지] ${changeCount}건 → 데이터만 새로고침`);
