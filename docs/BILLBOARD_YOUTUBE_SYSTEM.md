@@ -2,11 +2,11 @@
 
 ## 목차
 1. [시스템 개요](#시스템-개요)
-2. [빌보드 시스템 구조](#빌보드-시스템-구조)
-3. [YouTube 재생 방식](#youtube-재생-방식)
-4. [자동 재생 로직](#자동-재생-로직)
-5. [타이밍 제어](#타이밍-제어)
-6. [Android TV 연동](#android-tv-연동)
+2. [핵심 아키텍처: 웹이 지휘자, Android가 연주자](#핵심-아키텍처)
+3. [빌보드 시스템 구조](#빌보드-시스템-구조)
+4. [YouTube 재생 방식](#youtube-재생-방식)
+5. [Android TV APK 연동 가이드](#android-tv-apk-연동-가이드)
+6. [자동 재생 로직](#자동-재생-로직)
 7. [주요 파일 구조](#주요-파일-구조)
 
 ---
@@ -21,6 +21,40 @@
 - **크로스 플랫폼**: 웹 브라우저 + Android TV 지원
 - **실시간 업데이트**: Supabase Realtime으로 콘텐츠 자동 동기화
 - **세로 모드 최적화**: 40인치 세로 모니터 및 Android TV 전용
+
+---
+
+## 핵심 아키텍처
+
+### 🎯 **웹이 지휘자, Android가 연주자**
+
+이 시스템의 핵심은 **역할 분리**입니다:
+
+#### **웹사이트 (지휘자)**
+- ✅ **언제, 무엇을 재생할지 결정**
+- ✅ **슬라이드 타이밍 제어** (이미지 5초, 영상 10초 등)
+- ✅ **자동 전환 관리** (순차/랜덤 재생)
+- ✅ **Android에 명령 전달**:
+  - `playVideo(videoId)` - 영상 재생 시작
+  - `hideVideo()` - 영상 숨김/종료
+
+#### **Android 앱 (연주자)**
+- ✅ **웹의 명령만 수행**
+- ✅ **두 가지 간단한 함수만 구현**:
+  ```kotlin
+  window.Android.playVideo(videoId)  // 영상 전체화면 재생
+  window.Android.hideVideo()         // 영상 숨김
+  ```
+- ✅ **복잡한 타이밍/로직 불필요** - 모두 웹이 처리
+
+### 왜 이 방식인가?
+
+| 항목 | 기존 방식 | 새로운 방식 (지휘자-연주자) |
+|------|----------|--------------------------|
+| **APK 복잡도** | 높음 (타이밍, 상태 관리) | 낮음 (2개 함수만 구현) |
+| **유지보수** | 웹+앱 둘 다 수정 필요 | 웹만 수정하면 됨 |
+| **썸네일 설정** | 제한적 | 웹에서 자유롭게 설정 가능 ✅ |
+| **타이밍 제어** | 앱에서 처리 (복잡) | 웹에서 처리 (간단) |
 
 ---
 
@@ -67,43 +101,17 @@ interface BillboardSettings {
 
 ### 웹 환경 (일반 브라우저)
 
-#### 기술 스택
-- **YouTube IFrame Player API**: 공식 JavaScript API
-- **React 컴포넌트**: `YouTubePlayer.tsx`
+#### 재생 방법
+- **YouTube IFrame Player API** 사용
+- `<iframe>` 태그로 영상 임베드
+- 자동 재생 및 루프 재생
 
-#### 재생 흐름
+#### 동작 흐름
 ```
 1. 슬라이드 전환 → YouTube 영상 슬라이드 감지
 2. iframe 생성 및 YouTube Player 초기화
-3. onReady 이벤트 → playVideo() 호출
-4. onStateChange 감지 → PLAYING 상태 시 타이머 시작
-5. videoPlayDuration 경과 → 다음 슬라이드 전환
-```
-
-#### 성능 최적화
-- **React.memo**: videoId 기준 메모이제이션
-- **Player 재사용**: 동일 영상 재등장 시 Player 객체 재사용
-- **지연 로드**: PLAYING 상태 감지 후 타이머 시작 (YouTube iframe 로드 시간 8-10초 고려)
-
-#### 코드 예시
-```typescript
-// src/components/YouTubePlayer.tsx
-<YouTube
-  videoId={videoId}
-  opts={{
-    width: '100%',
-    height: '100%',
-    playerVars: {
-      autoplay: 1,
-      controls: 0,
-      showinfo: 0,
-      modestbranding: 1,
-      rel: 0
-    }
-  }}
-  onReady={(e) => e.target.playVideo()}
-  onStateChange={handleStateChange}
-/>
+3. autoplay 설정으로 자동 재생
+4. videoPlayDuration 경과 → 다음 슬라이드 전환
 ```
 
 ---
@@ -114,150 +122,137 @@ interface BillboardSettings {
 - YouTube iframe Player는 **VP9 코덱 미지원**
 - Android TV 브라우저에서 영상 재생 불가
 
-#### 해결 방법: 네이티브 플레이어 자동 호출
+#### 해결 방법: 네이티브 플레이어 명령 방식
 
-#### 기술 구현
-1. **플랫폼 감지** (`src/utils/platform.ts`)
+웹사이트가 Android 앱에 **직접 명령**을 내려 네이티브 YouTube 플레이어를 제어합니다.
+
+#### 1단계: Android 환경 감지
+
 ```typescript
+// src/utils/platform.ts
 export function isAndroidWebView(): boolean {
   return typeof window !== 'undefined' && 
-         typeof (window as any).Android !== 'undefined';
+         typeof window.Android !== 'undefined';
 }
 ```
 
-2. **네이티브 플레이어 호출**
+#### 2단계: 명령 전달 함수
+
 ```typescript
+// 영상 재생 명령
 export function playVideoNative(videoId: string): void {
-  if (isAndroidWebView()) {
-    (window as any).Android.playVideo(videoId);
+  if (isAndroidWebView() && window.Android?.playVideo) {
+    window.Android.playVideo(videoId);
+  }
+}
+
+// 영상 숨김 명령
+export function hideVideoNative(): void {
+  if (isAndroidWebView() && window.Android?.hideVideo) {
+    window.Android.hideVideo();
   }
 }
 ```
 
-3. **자동 호출 로직** (`src/pages/billboard/page.tsx`)
+#### 3단계: 자동 호출 로직
+
 ```typescript
+// 슬라이드 전환 시
 useEffect(() => {
+  // 1. 이전 영상 숨김
+  hideVideoNative();
+  
+  // 2. 현재 슬라이드가 영상이면 재생
   if (currentEvent?.youtube_url && isAndroidWebView()) {
     const videoId = extractYouTubeId(currentEvent.youtube_url);
     if (videoId) {
       playVideoNative(videoId);
     }
   }
-}, [currentEventId]);
+}, [currentIndex]);
 ```
 
-#### Android 환경 동작
+#### Android 환경 동작 플로우
+
 ```
-1. 슬라이드 전환 → YouTube 영상 감지
-2. isAndroidWebView() 체크 → true
-3. window.Android.playVideo(videoId) 자동 호출
-4. APK 네이티브 플레이어 실행 (VP9 지원 ✅)
-5. 웹앱은 썸네일만 표시 (iframe 렌더링 안함)
-6. videoPlayDuration 경과 → 다음 슬라이드
-```
+[슬라이드 1: 이미지]
+├─ 웹: 썸네일 표시 (5초)
+└─ Android: 대기
 
----
+      ↓ (5초 경과)
 
-## 자동 재생 로직
+[슬라이드 전환]
+├─ 웹: hideVideoNative() 호출
+└─ Android: (영상 없으므로 무시)
 
-### 슬라이드 전환 메커니즘
+      ↓
 
-#### 1. 초기 로드
-```typescript
-useEffect(() => {
-  if (events.length > 0) {
-    setCurrentEventId(events[0].id);
-  }
-}, [events]);
-```
+[슬라이드 2: YouTube 영상]
+├─ 웹: 썸네일 표시 + playVideoNative('dQw4w9WgXcQ') 호출
+└─ Android: 네이티브 플레이어 전체화면 재생 (VP9 지원 ✅)
 
-#### 2. 자동 전환 타이머
-```typescript
-useEffect(() => {
-  if (!currentEventId || events.length === 0) return;
+      ↓ (10초 경과)
 
-  // 현재 슬라이드 타입 확인
-  const currentEvent = events.find(e => e.id === currentEventId);
-  const isVideo = currentEvent?.youtube_url;
-  const isAndroid = isAndroidWebView();
+[슬라이드 전환]
+├─ 웹: hideVideoNative() 호출
+└─ Android: 네이티브 플레이어 숨김
 
-  // 간격 계산
-  let interval: number;
-  if (isVideo && isAndroid) {
-    interval = videoPlayDuration;  // Android 영상: 설정값 사용
-  } else if (isVideo) {
-    interval = videoPlayDuration;  // 웹 영상: 설정값 사용
-  } else {
-    interval = autoSlideInterval;  // 이미지: 이미지 간격 사용
-  }
+      ↓
 
-  const timer = setTimeout(() => {
-    handleNextSlide();
-  }, interval);
-
-  return () => clearTimeout(timer);
-}, [currentEventId, events]);
-```
-
-#### 3. 다음 슬라이드 선택
-```typescript
-const handleNextSlide = () => {
-  if (playOrder === 'random') {
-    // 랜덤: 현재와 다른 슬라이드 선택
-    const otherEvents = events.filter(e => e.id !== currentEventId);
-    const randomEvent = otherEvents[Math.floor(Math.random() * otherEvents.length)];
-    setCurrentEventId(randomEvent.id);
-  } else {
-    // 순차: 다음 인덱스
-    const currentIndex = events.findIndex(e => e.id === currentEventId);
-    const nextIndex = (currentIndex + 1) % events.length;
-    setCurrentEventId(events[nextIndex].id);
-  }
-};
+[슬라이드 3: 이미지]
+├─ 웹: 썸네일 표시 (5초)
+└─ Android: 대기
 ```
 
 ---
 
-## 타이밍 제어
+## Android TV APK 연동 가이드
 
-### 간격 설정값
+### APK에서 구현할 두 가지 함수
 
-| 항목 | 설정 필드 | 기본값 | 설명 |
-|------|----------|--------|------|
-| 이미지 슬라이드 | `auto_slide_interval` | 5000ms | 이미지 표시 시간 |
-| 영상 슬라이드 | `video_play_duration` | 10000ms | 영상 재생 시간 |
-| 전환 애니메이션 | `transition_duration` | 300ms | fade-in/out 시간 |
+#### 1. `playVideo(videoId: String)`
 
-### 타이밍 차트
+네이티브 YouTube 플레이어로 영상을 **전체화면 재생**합니다.
 
+```kotlin
+// MainActivity.kt
+class AndroidBridge(private val activity: MainActivity) {
+    
+    @JavascriptInterface
+    fun playVideo(videoId: String) {
+        activity.runOnUiThread {
+            // YouTube 앱으로 전체화면 재생
+            val intent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("vnd.youtube:$videoId")
+            )
+            
+            try {
+                activity.startActivity(intent)
+            } catch (e: Exception) {
+                // YouTube 앱이 없으면 브라우저로 fallback
+                val webIntent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://www.youtube.com/watch?v=$videoId")
+                )
+                activity.startActivity(webIntent)
+            }
+        }
+    }
+    
+    @JavascriptInterface
+    fun hideVideo() {
+        activity.runOnUiThread {
+            // 현재 재생 중인 영상 Activity 종료
+            // (YouTube 앱이 별도 Activity로 실행되므로)
+            // 또는 WebView로 돌아오기
+        }
+    }
+}
 ```
-[이미지 슬라이드]
-├─ 표시: 5000ms (autoSlideInterval)
-├─ 페이드 아웃: 300ms (transitionDuration)
-└─ 다음 슬라이드
 
-[YouTube 영상 - 웹]
-├─ iframe 로드: ~8000ms (자동)
-├─ PLAYING 상태 감지
-├─ 재생: 10000ms (videoPlayDuration)
-├─ 페이드 아웃: 300ms
-└─ 다음 슬라이드
+#### 2. WebView 설정
 
-[YouTube 영상 - Android]
-├─ 썸네일 표시
-├─ Android.playVideo() 호출 (즉시)
-├─ 네이티브 재생: 10000ms (videoPlayDuration)
-├─ 페이드 아웃: 300ms
-└─ 다음 슬라이드
-```
-
----
-
-## Android TV 연동
-
-### APK 요구사항
-
-#### 1. WebView 설정
 ```kotlin
 // MainActivity.kt
 val webView = findViewById<WebView>(R.id.webView)
@@ -271,65 +266,74 @@ webView.settings.apply {
 // JavaScript 인터페이스 주입
 webView.addJavascriptInterface(
     AndroidBridge(this),
-    "Android"
+    "Android"  // ← window.Android로 접근 가능
 )
 ```
 
-#### 2. JavaScript Bridge 구현
-```kotlin
-class AndroidBridge(private val activity: MainActivity) {
-    
-    @JavascriptInterface
-    fun playVideo(videoId: String) {
-        activity.runOnUiThread {
-            // YouTube Android Player API 호출
-            val intent = Intent(
-                Intent.ACTION_VIEW,
-                Uri.parse("vnd.youtube:$videoId")
-            )
-            
-            // YouTube 앱이 없으면 브라우저로 fallback
-            try {
-                activity.startActivity(intent)
-            } catch (e: Exception) {
-                val webIntent = Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://www.youtube.com/watch?v=$videoId")
-                )
-                activity.startActivity(webIntent)
-            }
-        }
-    }
-}
+### 구현 요구사항
+
+| 함수 | 필수 기능 | 선택 옵션 |
+|------|----------|----------|
+| `playVideo(videoId)` | ✅ 네이티브 플레이어로 전체화면 재생 | 오버레이 UI, PiP 모드 |
+| `hideVideo()` | ✅ 재생 중인 영상 숨김/종료 | 페이드 아웃 애니메이션 |
+
+### 테스트 방법
+
+#### 1. WebView에서 콘솔 테스트
+```javascript
+// Chrome DevTools (chrome://inspect)
+console.log(typeof window.Android);  // "object"
+window.Android.playVideo('dQw4w9WgXcQ');  // 영상 재생
+window.Android.hideVideo();  // 영상 숨김
 ```
 
-#### 3. 테스트 방법
+#### 2. 실제 빌보드 테스트
 1. APK를 Android TV에 설치
 2. 빌보드 페이지 접속: `https://your-domain.com/billboard/user123`
-3. YouTube 영상 슬라이드 전환 시 자동 재생 확인
-4. 영상 종료 후 자동으로 다음 슬라이드 전환 확인
+3. YouTube 영상이 포함된 이벤트 슬라이드 확인
+4. **자동으로** 네이티브 플레이어가 재생되는지 확인
+5. 슬라이드 전환 시 영상이 자동으로 숨겨지는지 확인
 
-### 디버깅
+---
 
-#### 웹앱 디버그 (Chrome DevTools)
-```javascript
-// 콘솔에서 Android 인터페이스 확인
-console.log(typeof window.Android);  // "object" 또는 "undefined"
+## 자동 재생 로직
 
-// 수동 테스트
-if (typeof window.Android !== 'undefined') {
-  window.Android.playVideo('dQw4w9WgXcQ');
+### 슬라이드 전환 메커니즘
+
+#### 타이밍 제어
+
+```typescript
+// 현재 슬라이드 타입 확인
+const isVideo = currentEvent?.youtube_url;
+const isAndroid = isAndroidWebView();
+
+// 간격 계산
+let interval: number;
+if (isVideo && isAndroid) {
+  interval = videoPlayDuration;  // 예: 10000ms
+} else if (isVideo) {
+  interval = videoPlayDuration;  // 웹도 동일
+} else {
+  interval = autoSlideInterval;  // 예: 5000ms
 }
+
+// 타이머 설정
+setTimeout(() => {
+  // 1. 이전 영상 숨김
+  hideVideoNative();
+  
+  // 2. 다음 슬라이드로 전환
+  handleNextSlide();
+}, interval);
 ```
 
-#### APK 디버그 (Android Studio Logcat)
-```kotlin
-@JavascriptInterface
-fun playVideo(videoId: String) {
-    Log.d("AndroidBridge", "playVideo called with: $videoId")
-    // ...
-}
-```
+#### 타이밍 차트
+
+| 슬라이드 타입 | 웹 환경 | Android 환경 | 간격 |
+|-------------|---------|-------------|------|
+| 이미지 | 썸네일 표시 | 썸네일 표시 | 5초 (autoSlideInterval) |
+| YouTube 영상 | iframe 재생 | 네이티브 재생 | 10초 (videoPlayDuration) |
+| 전환 애니메이션 | fade-in/out | fade-in/out | 0.3초 (transitionDuration) |
 
 ---
 
@@ -338,17 +342,23 @@ fun playVideo(videoId: String) {
 ```
 src/
 ├── utils/
-│   └── platform.ts                    # Android 감지 유틸리티
+│   └── platform.ts                    # Android 감지 + 명령 함수
+│       ├── isAndroidWebView()
+│       ├── playVideoNative(videoId)
+│       └── hideVideoNative()
 │
 ├── components/
-│   ├── YouTubePlayer.tsx              # 웹 YouTube Player
+│   ├── YouTubePlayer.tsx              # 웹 YouTube Player (iframe)
 │   └── FullscreenBillboard.tsx        # 풀스크린 빌보드 UI
+│       └── 슬라이드 전환 시 hideVideoNative() 호출
 │
 ├── pages/
 │   ├── home/
-│   │   └── page.tsx                   # 홈 빌보드 (슈퍼 관리자)
+│   │   └── page.tsx                   # 홈 빌보드
+│   │       └── 슬라이드 전환 시 hideVideoNative() 호출
 │   └── billboard/
 │       └── page.tsx                   # 사용자별 빌보드
+│           └── 슬라이드 전환 시 hideVideoNative() 호출
 │
 └── hooks/
     ├── useBillboardSettings.ts        # 홈 빌보드 설정
@@ -358,29 +368,52 @@ src/
 ### 핵심 파일 설명
 
 #### `src/utils/platform.ts`
-- Android WebView 감지
-- 네이티브 플레이어 호출 인터페이스
+**역할**: Android WebView 감지 및 명령 인터페이스
 
-#### `src/components/YouTubePlayer.tsx`
-- 웹 환경 YouTube iframe Player 래퍼
-- React.memo로 성능 최적화
-- onStateChange 이벤트 처리
+```typescript
+// TypeScript 인터페이스 정의
+interface Window {
+  Android?: {
+    playVideo: (videoId: string) => void;
+    hideVideo: () => void;
+  };
+}
+
+// 감지 함수
+isAndroidWebView()  // Android 환경인지 확인
+
+// 명령 함수
+playVideoNative(videoId)  // Android에 재생 명령
+hideVideoNative()         // Android에 숨김 명령
+```
 
 #### `src/components/FullscreenBillboard.tsx`
-- 풀스크린 슬라이드쇼 UI
-- 자동 전환 로직
-- 플랫폼별 타이밍 제어
+**역할**: 풀스크린 슬라이드쇼 UI 및 자동 전환 로직
+
+```typescript
+// 슬라이드 전환 타이머
+setTimeout(() => {
+  hideVideoNative();  // 1. 이전 영상 숨김
+  setCurrentIndex(nextIndex);  // 2. 다음 슬라이드
+}, interval);
+
+// 슬라이드 변경 시 영상 재생
+useEffect(() => {
+  if (currentEvent?.youtube_url && isAndroidWebView()) {
+    playVideoNative(videoId);
+  }
+}, [currentIndex]);
+```
 
 #### `src/pages/billboard/page.tsx`
-- 사용자별 빌보드 페이지
-- Android 네이티브 플레이어 자동 호출
-- Supabase Realtime 연동
+**역할**: 사용자별 빌보드 페이지 (Realtime 연동)
 
 ---
 
 ## 실시간 업데이트 시스템
 
 ### Supabase Realtime 구독
+
 ```typescript
 const channel = supabase
   .channel('billboard-changes')
@@ -396,6 +429,7 @@ const channel = supabase
 ```
 
 ### 변경 감지 시 동작
+
 ```typescript
 const handleRealtimeChange = () => {
   // 현재 슬라이드가 비어있으면 즉시 리로드
@@ -406,8 +440,6 @@ const handleRealtimeChange = () => {
   
   // 슬라이드 재생 중이면 다음 전환 시 리로드 예약
   pendingReloadRef.current = true;
-  
-  // 다음 슬라이드 전환 시 리로드 실행
 };
 ```
 
@@ -421,15 +453,52 @@ const handleRealtimeChange = () => {
 3. 네트워크 탭에서 YouTube iframe 로드 확인
 
 ### Android TV에서 영상이 안 나올 때
-1. `window.Android` 객체 확인 (콘솔)
-2. APK의 JavaScript 인터페이스 주입 확인
-3. YouTube 앱 설치 여부 확인
-4. Logcat에서 `playVideo` 호출 로그 확인
+
+#### 체크리스트
+```javascript
+// 1. Android 인터페이스 확인 (브라우저 콘솔)
+console.log(typeof window.Android);  // "object" 여야 함
+
+// 2. playVideo 함수 존재 확인
+console.log(typeof window.Android.playVideo);  // "function" 여야 함
+
+// 3. hideVideo 함수 존재 확인
+console.log(typeof window.Android.hideVideo);  // "function" 여야 함
+```
+
+#### 디버깅 (Logcat)
+```kotlin
+@JavascriptInterface
+fun playVideo(videoId: String) {
+    Log.d("AndroidBridge", "playVideo 호출됨: $videoId")
+    // ...
+}
+
+@JavascriptInterface
+fun hideVideo() {
+    Log.d("AndroidBridge", "hideVideo 호출됨")
+    // ...
+}
+```
 
 ### 슬라이드 전환이 느릴 때
-1. `video_play_duration` 설정값 확인
-2. YouTube iframe 로드 시간 고려 (8-10초)
-3. Android의 경우 네이티브 플레이어 응답 시간 확인
+1. `video_play_duration` 설정값 확인 (기본 10초)
+2. Android 네이티브 플레이어 응답 시간 확인
+3. 웹에서 hideVideo() 호출이 제대로 되는지 콘솔 로그 확인
+
+---
+
+## 썸네일 설정 기능
+
+### 현재 구현
+- ✅ 웹에서 이벤트별 썸네일 자유롭게 설정 가능
+- ✅ Android는 웹의 썸네일을 그대로 표시
+- ✅ 영상 재생 중에도 웹 썸네일이 배경으로 유지됨
+
+### 장점
+- Android APK는 썸네일 관리 불필요
+- 웹 관리자 페이지에서 모든 썸네일 제어
+- 썸네일 변경 시 APK 업데이트 불필요
 
 ---
 
@@ -442,7 +511,31 @@ const handleRealtimeChange = () => {
 
 ---
 
+## 요약: APK 개발자가 해야 할 일
+
+### 필수 구현 (2개 함수)
+
+```kotlin
+@JavascriptInterface
+fun playVideo(videoId: String) {
+    // TODO: 네이티브 YouTube 플레이어로 전체화면 재생
+}
+
+@JavascriptInterface
+fun hideVideo() {
+    // TODO: 재생 중인 영상 숨김/종료
+}
+```
+
+### 나머지는?
+- ❌ **타이밍 제어 불필요** - 웹이 처리
+- ❌ **슬라이드 전환 불필요** - 웹이 처리
+- ❌ **썸네일 관리 불필요** - 웹이 처리
+- ✅ **두 함수만 구현하면 끝!**
+
+---
+
 ## 연락처
 
-기술 문의: 개발팀
+기술 문의: 개발팀  
 APK 관련: Android 개발자
