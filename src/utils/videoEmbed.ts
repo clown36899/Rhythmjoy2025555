@@ -5,6 +5,8 @@ export interface VideoEmbedInfo {
   thumbnailUrl: string | null;
   videoId: string | null;
   nativeUrl: string | null; // ← 기존 유지 (AndroidKiosk.playNativeVideo용)
+  width: number | null; // 영상 가로 크기 (Android 플레이어 비율 조정용)
+  height: number | null; // 영상 세로 크기 (Android 플레이어 비율 조정용)
 }
 
 export function parseVideoUrl(url: string): VideoEmbedInfo {
@@ -15,6 +17,8 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
       thumbnailUrl: null,
       videoId: null,
       nativeUrl: null,
+      width: null,
+      height: null,
     };
   }
 
@@ -26,6 +30,8 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
       thumbnailUrl: null,
       videoId: null,
       nativeUrl: null,
+      width: null,
+      height: null,
     };
   }
 
@@ -37,8 +43,15 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
       thumbnailUrl: null,
       videoId: null,
       nativeUrl: null,
+      width: null,
+      height: null,
     };
   }
+
+  // YouTube Shorts는 세로 영상 (9:16), 일반 영상은 가로 (16:9)
+  const isShorts = /\/shorts\//i.test(trimmed);
+  const width = isShorts ? 1080 : 1920;
+  const height = isShorts ? 1920 : 1080;
 
   return {
     provider: "youtube",
@@ -46,6 +59,8 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
     thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
     videoId,
     nativeUrl: trimmed, // ← 클릭 시 네이티브 재생용 (옵션)
+    width, // Android 플레이어 비율 조정용
+    height, // Android 플레이어 비율 조정용
   };
 }
 

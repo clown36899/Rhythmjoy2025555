@@ -661,8 +661,8 @@ export default function BillboardPage() {
       const videoInfo = parseVideoUrl(videoUrl);
       if (videoInfo.videoId) {
         const thumbnailUrl = currentEvent?.image_full || currentEvent?.image || videoInfo.thumbnailUrl;
-        console.log(`[Android 자동 재생] 슬라이드 ${currentIndex} - videoId: ${videoInfo.videoId}, 썸네일: ${thumbnailUrl}`);
-        playVideoNative(videoInfo.videoId, thumbnailUrl);
+        console.log(`[Android 자동 재생] 슬라이드 ${currentIndex} - videoId: ${videoInfo.videoId}, 썸네일: ${thumbnailUrl}, 크기: ${videoInfo.width}x${videoInfo.height}`);
+        playVideoNative(videoInfo.videoId, thumbnailUrl, videoInfo.width || undefined, videoInfo.height || undefined);
       }
       // Android는 네이티브 플레이어가 재생하므로 타이머 즉시 시작 (영상 재생 시간 사용!)
       const slideInterval = settings.video_play_duration || 10000;
