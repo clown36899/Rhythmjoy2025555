@@ -42,8 +42,8 @@
 - ✅ **웹의 명령만 수행**
 - ✅ **두 가지 간단한 함수만 구현**:
   ```kotlin
-  window.Android.playVideo(videoId)  // 영상 전체화면 재생
-  window.Android.hideVideo()         // 영상 숨김
+  window.Android.playVideo(videoId, thumbnailUrl)  // 영상 전체화면 재생 (썸네일 포함)
+  window.Android.hideVideo()                       // 영상 숨김
   ```
 - ✅ **복잡한 타이밍/로직 불필요** - 모두 웹이 처리
 
@@ -139,10 +139,10 @@ export function isAndroidWebView(): boolean {
 #### 2단계: 명령 전달 함수
 
 ```typescript
-// 영상 재생 명령
-export function playVideoNative(videoId: string): void {
+// 영상 재생 명령 (썸네일 URL 포함)
+export function playVideoNative(videoId: string, thumbnailUrl?: string): void {
   if (isAndroidWebView() && window.Android?.playVideo) {
-    window.Android.playVideo(videoId);
+    window.Android.playVideo(videoId, thumbnailUrl);
   }
 }
 
@@ -165,8 +165,9 @@ useEffect(() => {
   // 2. 현재 슬라이드가 영상이면 재생
   if (currentEvent?.youtube_url && isAndroidWebView()) {
     const videoId = extractYouTubeId(currentEvent.youtube_url);
+    const thumbnailUrl = currentEvent?.image_full || currentEvent?.image || videoInfo.thumbnailUrl;
     if (videoId) {
-      playVideoNative(videoId);
+      playVideoNative(videoId, thumbnailUrl);
     }
   }
 }, [currentIndex]);
@@ -188,8 +189,9 @@ useEffect(() => {
       ↓
 
 [슬라이드 2: YouTube 영상]
-├─ 웹: 썸네일 표시 + playVideoNative('dQw4w9WgXcQ') 호출
+├─ 웹: 썸네일 표시 + playVideoNative('dQw4w9WgXcQ', 'https://...') 호출
 └─ Android: 네이티브 플레이어 전체화면 재생 (VP9 지원 ✅)
+           (썸네일 URL로 로딩 화면 표시 가능)
 
       ↓ (10초 경과)
 
@@ -210,17 +212,22 @@ useEffect(() => {
 
 ### APK에서 구현할 두 가지 함수
 
-#### 1. `playVideo(videoId: String)`
+#### 1. `playVideo(videoId: String, thumbnailUrl: String?)`
 
-네이티브 YouTube 플레이어로 영상을 **전체화면 재생**합니다.
+네이티브 YouTube 플레이어로 영상을 **전체화면 재생**합니다. 썸네일 URL도 함께 전달됩니다.
 
 ```kotlin
 // MainActivity.kt
 class AndroidBridge(private val activity: MainActivity) {
     
     @JavascriptInterface
-    fun playVideo(videoId: String) {
+    fun playVideo(videoId: String, thumbnailUrl: String?) {
         activity.runOnUiThread {
+            Log.d("AndroidBridge", "playVideo 호출: videoId=$videoId, thumbnail=$thumbnailUrl")
+            
+            // 썸네일은 로딩 화면이나 플레이어 백그라운드로 사용 가능
+            // 예: Glide로 썸네일 미리 로드 후 네이티브 플레이어 띄우기
+            
             // YouTube 앱으로 전체화면 재생
             val intent = Intent(
                 Intent.ACTION_VIEW,
@@ -274,7 +281,7 @@ webView.addJavascriptInterface(
 
 | 함수 | 필수 기능 | 선택 옵션 |
 |------|----------|----------|
-| `playVideo(videoId)` | ✅ 네이티브 플레이어로 전체화면 재생 | 오버레이 UI, PiP 모드 |
+| `playVideo(videoId, thumbnailUrl)` | ✅ 네이티브 플레이어로 전체화면 재생<br>✅ 썸네일 URL 수신 | 썸네일 로딩 화면, 오버레이 UI, PiP 모드 |
 | `hideVideo()` | ✅ 재생 중인 영상 숨김/종료 | 페이드 아웃 애니메이션 |
 
 ### 테스트 방법
@@ -283,7 +290,7 @@ webView.addJavascriptInterface(
 ```javascript
 // Chrome DevTools (chrome://inspect)
 console.log(typeof window.Android);  // "object"
-window.Android.playVideo('dQw4w9WgXcQ');  // 영상 재생
+window.Android.playVideo('dQw4w9WgXcQ', 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg');  // 영상 재생
 window.Android.hideVideo();  // 영상 숨김
 ```
 
@@ -492,13 +499,16 @@ fun hideVideo() {
 
 ### 현재 구현
 - ✅ 웹에서 이벤트별 썸네일 자유롭게 설정 가능
-- ✅ Android는 웹의 썸네일을 그대로 표시
-- ✅ 영상 재생 중에도 웹 썸네일이 배경으로 유지됨
+- ✅ Android는 `playVideo()` 호출 시 썸네일 URL을 함께 수신
+- ✅ 썸네일 우선순위:
+  1. 사용자 업로드 이미지 (`event.image_full` 또는 `event.image`)
+  2. YouTube 기본 썸네일 (`https://i.ytimg.com/vi/{videoId}/maxresdefault.jpg`)
 
 ### 장점
-- Android APK는 썸네일 관리 불필요
-- 웹 관리자 페이지에서 모든 썸네일 제어
-- 썸네일 변경 시 APK 업데이트 불필요
+- ✅ Android APK는 웹이 전달한 썸네일 URL만 사용하면 됨
+- ✅ 웹 관리자 페이지에서 모든 썸네일 제어
+- ✅ 썸네일 변경 시 APK 업데이트 불필요
+- ✅ APK는 썸네일을 로딩 화면, 플레이어 백그라운드 등으로 활용 가능
 
 ---
 
@@ -517,8 +527,10 @@ fun hideVideo() {
 
 ```kotlin
 @JavascriptInterface
-fun playVideo(videoId: String) {
+fun playVideo(videoId: String, thumbnailUrl: String?) {
     // TODO: 네이티브 YouTube 플레이어로 전체화면 재생
+    // thumbnailUrl: 사용자 업로드 썸네일 또는 YouTube 기본 썸네일
+    // 로딩 화면이나 백그라운드 이미지로 활용 가능
 }
 
 @JavascriptInterface

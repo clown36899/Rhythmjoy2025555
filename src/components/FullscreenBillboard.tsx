@@ -163,8 +163,9 @@ export default function FullscreenBillboard({
     if (isAndroidWebView() && videoUrl) {
       const videoInfo = parseVideoUrl(videoUrl);
       if (videoInfo.videoId) {
-        console.log(`[FullscreenBillboard Android 자동 재생] 슬라이드 ${currentIndex} - videoId: ${videoInfo.videoId}`);
-        playVideoNative(videoInfo.videoId);
+        const thumbnailUrl = currentEvent?.image_full || currentEvent?.image || videoInfo.thumbnailUrl;
+        console.log(`[FullscreenBillboard Android 자동 재생] 슬라이드 ${currentIndex} - videoId: ${videoInfo.videoId}, 썸네일: ${thumbnailUrl}`);
+        playVideoNative(videoInfo.videoId, thumbnailUrl);
       }
     }
   }, [isOpen, currentIndex, sortedEvents]);
