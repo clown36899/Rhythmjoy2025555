@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { parseVideoUrl } from "../utils/videoEmbed";
+import { isAndroidWebView, playVideoNative } from "../utils/platform";
 
 interface FullscreenBillboardProps {
   images: string[];
@@ -10,6 +11,7 @@ interface FullscreenBillboardProps {
   onClose: () => void;
   onEventClick: (event: any) => void;
   autoSlideInterval?: number;
+  videoPlayDuration?: number;
   transitionDuration?: number;
   dateRangeStart?: string | null;
   dateRangeEnd?: string | null;
@@ -34,6 +36,7 @@ export default function FullscreenBillboard({
   onClose,
   onEventClick,
   autoSlideInterval = 5000,
+  videoPlayDuration = 10000,
   transitionDuration = 300,
   dateRangeStart,
   dateRangeEnd,
@@ -80,70 +83,88 @@ export default function FullscreenBillboard({
     };
   }, []); // 빈 배열: 마운트/언마운트 시에만 실행
 
+  // 슬라이드 타이머 (슬라이드마다 동적 간격)
   useEffect(() => {
     if (!isOpen || sortedImages.length === 0) {
-      // 광고판이 닫히거나 이미지가 없으면 타이머 정리 및 인덱스 초기화
+      // 광고판이 닫히거나 이미지가 없으면 타이머 정리
       if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+        clearTimeout(intervalRef.current);
         intervalRef.current = null;
       }
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      setCurrentIndex(0);
       setIsTransitioning(false);
       setProgress(0);
       return;
     }
 
-    // 기존 타이머가 있으면 정리 (명시적 null 체크)
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
+    // 기존 타이머 정리
+    if (intervalRef.current) {
+      clearTimeout(intervalRef.current);
       intervalRef.current = null;
     }
-    if (progressIntervalRef.current !== null) {
+    if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
     }
 
-    // 인덱스 초기화
-    setCurrentIndex(0);
+    // 현재 슬라이드의 간격 계산 (인라인으로 처리하여 dependency 이슈 방지)
+    const currentEvent = sortedEvents[currentIndex];
+    const hasVideo = !!currentEvent?.video_url;
+    const isAndroid = isAndroidWebView();
+    const currentInterval = (isAndroid && hasVideo) ? videoPlayDuration : autoSlideInterval;
+    
+    // 진행 바 업데이트 (200ms마다)
+    const progressStep = (200 / currentInterval) * 100;
     setProgress(0);
-
-    // 진행 바 업데이트 (200ms마다 - CPU 사용량 75% 감소)
-    const progressStep = (200 / autoSlideInterval) * 100;
     progressIntervalRef.current = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          return 0;
+          return 100;
         }
         return prev + progressStep;
       });
     }, 200);
 
-    // 새로운 자동 재생 시작
-    intervalRef.current = setInterval(() => {
+    // 다음 슬라이드로 전환
+    intervalRef.current = setTimeout(() => {
       setIsTransitioning(true);
       setProgress(0);
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
         setIsTransitioning(false);
       }, transitionDuration);
-    }, autoSlideInterval);
+    }, currentInterval);
 
     return () => {
-      // 설정 변경 시 타이머 정리
-      if (intervalRef.current !== null) {
-        clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearTimeout(intervalRef.current);
         intervalRef.current = null;
       }
-      if (progressIntervalRef.current !== null) {
+      if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
     };
-  }, [isOpen, sortedImages.length, autoSlideInterval, transitionDuration]);
+  }, [isOpen, currentIndex, sortedImages.length, sortedEvents, autoSlideInterval, videoPlayDuration, transitionDuration]);
+
+  // Android 자동 재생: 슬라이드 변경 시 영상이 있으면 네이티브 플레이어 호출
+  useEffect(() => {
+    if (!isOpen || sortedEvents.length === 0) return;
+    
+    const currentEvent = sortedEvents[currentIndex];
+    const videoUrl = currentEvent?.video_url;
+    
+    if (isAndroidWebView() && videoUrl) {
+      const videoInfo = parseVideoUrl(videoUrl);
+      if (videoInfo.videoId) {
+        console.log(`[FullscreenBillboard Android 자동 재생] 슬라이드 ${currentIndex} - videoId: ${videoInfo.videoId}`);
+        playVideoNative(videoInfo.videoId);
+      }
+    }
+  }, [isOpen, currentIndex, sortedEvents]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -192,7 +213,23 @@ export default function FullscreenBillboard({
             
             if (videoUrl) {
               const videoInfo = parseVideoUrl(videoUrl);
-              if (videoInfo.embedUrl) {
+              if (videoInfo.embedUrl && videoInfo.videoId) {
+                // Android 환경: 썸네일만 표시 (자동 재생은 useEffect에서 처리)
+                if (isAndroidWebView()) {
+                  const thumbnailUrl = sortedImages[currentIndex] || videoInfo.thumbnailUrl || '';
+                  return (
+                    <img
+                      src={thumbnailUrl}
+                      alt={currentEvent?.title || "YouTube Video"}
+                      className={`max-w-full max-h-screen object-contain transition-opacity ${
+                        isTransitioning ? "opacity-0" : "opacity-100"
+                      }`}
+                      style={{ transitionDuration: `${transitionDuration}ms` }}
+                    />
+                  );
+                }
+                
+                // 웹 환경: 기존 iframe
                 return (
                   <div 
                     className={`relative w-full h-screen flex items-center justify-center transition-opacity cursor-pointer ${
