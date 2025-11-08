@@ -915,6 +915,7 @@ export default function BillboardPage() {
 
             {/* 하단 정보 레이어 */}
             <div
+              id="billboard-info-layer"
               key={`info-${event.id}-${slideIndex}`}
               className="absolute bottom-0 left-0 right-0"
               style={{
