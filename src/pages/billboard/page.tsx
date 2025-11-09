@@ -82,21 +82,10 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
         // Android WebView 감지
         const isAndroidWebView = /android/i.test(navigator.userAgent) && /wv/i.test(navigator.userAgent);
         
-        // 환경별 origin 설정
-        const getOrigin = () => {
-          if (isAndroidWebView) {
-            // APK WebView: origin 제거 (postMessage 오류 방지)
-            return undefined;
-          } else if (import.meta.env.PROD) {
-            // 프로덕션 웹: 고정 도메인 (Netlify)
-            return 'https://voluble-mochi-a91544.netlify.app';
-          } else {
-            // 개발 환경: 동적 origin
-            return window.location.origin;
-          }
-        };
-        
-        const originValue = getOrigin();
+        // Origin 설정 (동적)
+        const originValue = isAndroidWebView 
+          ? undefined  // APK WebView: origin 제거 (postMessage 오류 방지)
+          : window.location.origin;  // 웹: 항상 동적 origin 사용
         
         playerRef.current = new window.YT.Player(playerId, {
           videoId,
