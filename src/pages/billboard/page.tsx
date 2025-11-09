@@ -196,7 +196,8 @@ export default function BillboardPage() {
   const pendingChangesRef = useRef<any[]>([]); // 지연 업데이트용 대기열 (ref로 stale closure 방지)
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoaded, setVideoLoaded] = useState(false); // 현재 비디오 로딩 상태
-  const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
+  // const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부 (비활성화)
+  const needsRotation = false; // 회전 비활성화 (항상 0도)
   const [bottomInfoHeight, setBottomInfoHeight] = useState(0); // 하단 정보 영역 높이 (화면의 10%)
   const [qrSize, setQrSize] = useState(144); // QR 코드 크기
   const [titleFontSize, setTitleFontSize] = useState(56); // 제목 폰트 크기
@@ -213,8 +214,9 @@ export default function BillboardPage() {
     let debounceTimer: NodeJS.Timeout;
     
     const calculateSizes = () => {
-      const isLandscape = window.innerWidth > window.innerHeight;
-      setNeedsRotation(isLandscape);
+      // const isLandscape = window.innerWidth > window.innerHeight;
+      // setNeedsRotation(isLandscape); // 회전 비활성화
+      const isLandscape = false; // 회전 비활성화 (항상 세로 모드로 계산)
       
       // 화면 높이의 10% 계산 (회전 여부에 따라) - 제목+QR 영역
       const effectiveHeight = isLandscape ? window.innerWidth : window.innerHeight;
@@ -801,11 +803,9 @@ export default function BillboardPage() {
           position: "absolute",
           top: "50%",
           left: "50%",
-          width: needsRotation ? "100vh" : "100vw",
-          height: needsRotation ? "100vw" : "100vh",
-          transform: needsRotation 
-            ? `translate(-50%, -50%) rotate(90deg)`
-            : `translate(-50%, -50%)`,
+          width: "100vw", // needsRotation ? "100vh" : "100vw" (회전 비활성화)
+          height: "100vh", // needsRotation ? "100vw" : "100vh" (회전 비활성화)
+          transform: `translate(-50%, -50%)`, // rotate(90deg) 제거 (0도 원복)
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? "auto" : "none",
           transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
