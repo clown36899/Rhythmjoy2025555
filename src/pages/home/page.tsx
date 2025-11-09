@@ -866,7 +866,6 @@ export default function HomePage() {
           onClose={handleBillboardClose}
           onEventClick={handleBillboardEventClick}
           autoSlideInterval={settings.autoSlideInterval}
-          videoPlayDuration={10000}  
           transitionDuration={settings.transitionDuration}
           dateRangeStart={settings.dateRangeStart}
           dateRangeEnd={settings.dateRangeEnd}

@@ -8,7 +8,6 @@ import type {
   Event,
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
-import { isAndroidWebView, playVideoNative, hideVideoNative } from "../../utils/platform";
 
 // YouTube IFrame Player API 타입
 declare global {
@@ -320,9 +319,6 @@ export default function BillboardPage() {
       }
       
       setTimeout(() => {
-        // Android 네이티브 영상 숨김 (다음 슬라이드로 넘어가기 직전)
-        hideVideoNative();
-        
         // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
@@ -685,37 +681,21 @@ export default function BillboardPage() {
     loadBillboardDataRef.current = loadBillboardData;
   }, [loadBillboardData]);
 
-  // 슬라이드 전환 시 타이머 설정 및 Android 자동 재생
+  // 슬라이드 전환 시 이미지 타이머 설정 (영상은 playVideo()에서 타이머 시작)
   useEffect(() => {
     if (!settings || events.length === 0) return;
     
     // 현재 이벤트 가져오기
     const currentEvent = events[currentIndex];
-    const videoUrl = currentEvent?.video_url;
-    const hasVideo = !!videoUrl;
-    const isAndroid = isAndroidWebView();
+    const hasVideo = !!currentEvent?.video_url;
     
-    // Android 환경에서 영상이 있으면 자동으로 네이티브 플레이어 호출
-    if (isAndroid && hasVideo) {
-      const videoInfo = parseVideoUrl(videoUrl);
-      if (videoInfo.videoId) {
-        console.log(`[Android 자동 재생] 슬라이드 ${currentIndex} - videoId: ${videoInfo.videoId}`);
-        playVideoNative(videoInfo.videoId);
-      }
-      // Android는 네이티브 플레이어가 재생하므로 타이머 즉시 시작 (영상 재생 시간 사용!)
-      const slideInterval = settings.video_play_duration || 10000;
-      console.log(`[슬라이드 ${currentIndex}] Android 영상 감지 - 즉시 타이머 시작: ${slideInterval}ms`);
-      startSlideTimer(slideInterval);
-    }
-    // 이미지 슬라이드는 즉시 타이머 시작
-    else if (!hasVideo) {
+    // 이미지 슬라이드만 여기서 타이머 시작
+    if (!hasVideo) {
       const slideInterval = settings.auto_slide_interval;
       console.log(`[슬라이드 ${currentIndex}] 이미지 감지 - 즉시 타이머 시작: ${slideInterval}ms`);
       startSlideTimer(slideInterval);
-    }
-    // 웹 환경 영상은 playVideo()에서 타이머 시작
-    else {
-      console.log(`[슬라이드 ${currentIndex}] 웹 영상 감지 - 실제 재생 감지 시 타이머 시작 예정`);
+    } else {
+      console.log(`[슬라이드 ${currentIndex}] 영상 감지 - 실제 재생 감지 시 타이머 시작 예정`);
     }
 
     return () => {
@@ -815,64 +795,48 @@ export default function BillboardPage() {
       >
         {/* === 유튜브 영상 + 썸네일 === */}
         {videoInfo?.videoId ? (
-          isAndroidWebView() ? (
-            /* Android 환경: 썸네일만 표시 (자동 재생은 useEffect에서 처리) */
-            thumbnailUrl && (
+          <>
+            {/* 썸네일 (로딩 중에만 표시) - 커스텀 이미지 우선, 없으면 YouTube 기본 */}
+            {thumbnailUrl && (
               <img
                 src={thumbnailUrl}
                 alt={event.title}
                 className="w-full h-full object-contain"
                 style={{
                   backgroundColor: "#000",
-                }}
-                loading="lazy"
-              />
-            )
-          ) : (
-            /* 웹 환경: 기존 YouTube Player */
-            <>
-              {/* 썸네일 (로딩 중에만 표시) - 커스텀 이미지 우선, 없으면 YouTube 기본 */}
-              {thumbnailUrl && (
-                <img
-                  src={thumbnailUrl}
-                  alt={event.title}
-                  className="w-full h-full object-contain"
-                  style={{
-                    backgroundColor: "#000",
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    zIndex: 1,
-                    opacity: videoLoaded ? 0 : 1,
-                    transition: "opacity 0.8s ease-in-out",
-                  }}
-                />
-              )}
-              {/* YouTube Player */}
-              <div
-                className="w-full h-full"
-                style={{
                   position: "absolute",
                   top: 0,
                   left: 0,
-                  zIndex: 2,
-                  opacity: videoLoaded ? 1 : 0,
+                  zIndex: 1,
+                  opacity: videoLoaded ? 0 : 1,
                   transition: "opacity 0.8s ease-in-out",
                 }}
-              >
-                <YouTubePlayer
-                  ref={(el) => {
-                    playerRefsRef.current[slideIndex] = el;
-                  }}
-                  videoId={videoInfo.videoId}
-                  slideIndex={slideIndex}
-                  isVisible={isVisible}
-                  apiReady={youtubeApiReady}
-                  onPlayingCallback={handleVideoPlaying}
-                />
-              </div>
-            </>
-          )
+              />
+            )}
+            {/* YouTube Player */}
+            <div
+              className="w-full h-full"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                zIndex: 2,
+                opacity: videoLoaded ? 1 : 0,
+                transition: "opacity 0.8s ease-in-out",
+              }}
+            >
+              <YouTubePlayer
+                ref={(el) => {
+                  playerRefsRef.current[slideIndex] = el;
+                }}
+                videoId={videoInfo.videoId}
+                slideIndex={slideIndex}
+                isVisible={isVisible}
+                apiReady={youtubeApiReady}
+                onPlayingCallback={handleVideoPlaying}
+              />
+            </div>
+          </>
         ) : (
           /* === 일반 이미지 === */
           <img
@@ -1193,24 +1157,34 @@ export default function BillboardPage() {
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
       <div className="billboard-page">
-        {/* 현재 슬라이드만 렌더링 (Android 네이티브 플레이어 방식) */}
-        {events[currentIndex] && (
-          <div
-            key={`slide-${events[currentIndex].id}-${currentIndex}`}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              opacity: 1,
-              zIndex: 10,
-              pointerEvents: 'auto',
-            }}
-          >
-            {renderSlide(events[currentIndex], true, currentIndex)}
-          </div>
-        )}
+        {/* 현재 + 이전/다음 슬라이드만 DOM에 유지 (Player 개수 제한으로 Android 재생 차단 방지) */}
+        {events.map((event, index) => {
+          // 현재 슬라이드 ± 1 범위만 렌더링 (순환)
+          const prevIndex = currentIndex === 0 ? events.length - 1 : currentIndex - 1;
+          const nextIndex = currentIndex === events.length - 1 ? 0 : currentIndex + 1;
+          const shouldRender = index === currentIndex || index === prevIndex || index === nextIndex;
+          
+          if (!shouldRender) return null;
+          
+          return (
+            <div
+              key={`slide-${event.id}-${index}`}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: index === currentIndex ? 1 : 0,
+                zIndex: index === currentIndex ? 10 : 1,
+                pointerEvents: index === currentIndex ? 'auto' : 'none',
+                transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
+              }}
+            >
+              {renderSlide(event, index === currentIndex, index)}
+            </div>
+          );
+        })}
       </div>
     </>
   );
