@@ -492,19 +492,6 @@ export default function BillboardPage() {
     }
   }, [startSlideTimer]);
 
-  // 모바일 주소창 숨기기
-  useEffect(() => {
-    const hideAddressBar = () => {
-      window.scrollTo(0, 1);
-    };
-    setTimeout(hideAddressBar, 100);
-    setTimeout(hideAddressBar, 500);
-    setTimeout(hideAddressBar, 1000);
-    window.addEventListener("orientationchange", hideAddressBar);
-    return () => {
-      window.removeEventListener("orientationchange", hideAddressBar);
-    };
-  }, []);
 
   // 문서 제목 설정
   useEffect(() => {
