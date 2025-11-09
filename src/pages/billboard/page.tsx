@@ -452,8 +452,8 @@ export default function BillboardPage() {
       attemptPlay();
     }
     
-    // 🎯 APK 오버레이 업데이트 (현재 슬라이드 정보 전달)
-    if (currentEvent && userId) {
+    // 🎯 웹 환경 전용: 오버레이 URL 로깅 (Android는 위 playVideo effect에서 처리)
+    if (!isAndroidWebView() && currentEvent && userId) {
       const dateString = currentEvent.start_date ? formatDateRange(currentEvent.start_date, currentEvent.end_date) : '';
       const qrUrl = `${window.location.origin}/?event=${currentEvent.id}&from=qr`;
       
@@ -465,14 +465,13 @@ export default function BillboardPage() {
       });
       
       const overlayUrl = `${window.location.origin}/billboard/overlay/${userId}?${params.toString()}`;
-      console.log('[오버레이] URL 생성:', overlayUrl);
-      console.log('[오버레이] 이벤트 정보:', {
+      console.log('[웹 오버레이] URL 생성:', overlayUrl);
+      console.log('[웹 오버레이] 이벤트 정보:', {
         title: currentEvent.title,
         date: dateString,
         location: currentEvent.location || '(없음)',
         qrUrl: qrUrl
       });
-      updateOverlayNative(overlayUrl);
     }
     
     // 메모리 모니터링
@@ -703,6 +702,23 @@ export default function BillboardPage() {
     if (isAndroid && hasVideo) {
       const videoInfo = parseVideoUrl(videoUrl);
       if (videoInfo.videoId) {
+        // 🎯 중요: 영상 재생 신호 보내기 **전**에 오버레이 URL 먼저 전달!
+        if (currentEvent && userId) {
+          const dateString = currentEvent.start_date ? formatDateRange(currentEvent.start_date, currentEvent.end_date) : '';
+          const qrUrl = `${window.location.origin}/?event=${currentEvent.id}&from=qr`;
+          
+          const params = new URLSearchParams({
+            title: currentEvent.title,
+            ...(dateString && { date: dateString }),
+            ...(currentEvent.location && { location: currentEvent.location }),
+            qrUrl: qrUrl,
+          });
+          
+          const overlayUrl = `${window.location.origin}/billboard/overlay/${userId}?${params.toString()}`;
+          console.log('[Android 오버레이] URL 먼저 전달:', overlayUrl);
+          updateOverlayNative(overlayUrl);
+        }
+        
         console.log(`[Android 자동 재생] 슬라이드 ${currentIndex} - videoId: ${videoInfo.videoId}`);
         playVideoNative(videoInfo.videoId);
       }
