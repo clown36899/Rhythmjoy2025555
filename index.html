@@ -73,8 +73,13 @@
       const originalError = console.error;
       console.error = function(...args) {
         const errorMsg = args[0]?.toString() || '';
+        // YouTube 내부 오류 무시
         if (errorMsg.includes('Unknown yt page')) {
-          return; // 유튜브 내부 에러 무시
+          return;
+        }
+        // postMessage cross-origin 오류 무시 (YouTube iframe 내부 통신)
+        if (errorMsg.includes('postMessage') || errorMsg.includes('DOMWindow')) {
+          return;
         }
         originalError.apply(console, args);
       };
