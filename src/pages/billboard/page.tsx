@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle, memo } from "react";
+import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle, memo } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
@@ -100,7 +100,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
             iv_load_policy: 3,
           },
           events: {
-            onReady: (event: any) => {
+            onReady: (_event: any) => {
               console.log('[YouTube] Player 준비 완료:', slideIndex);
               playerReady.current = true;  // 준비 상태 플래그 설정
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
@@ -188,7 +188,7 @@ export default function BillboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const eventsRef = useRef<Event[]>([]); // Ref 동기화 (stale closure 방지)
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentEventIdRef = useRef<string | null>(null); // 현재 이벤트 ID 추적
+  const currentEventIdRef = useRef<number | null>(null); // 현재 이벤트 ID 추적 (Event.id는 number 타입)
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
@@ -525,7 +525,7 @@ export default function BillboardPage() {
           table: "billboard_user_settings",
           filter: `billboard_user_id=eq.${userId}`  // 서버 레벨 필터 (네트워크 90% 감소)
         },
-        (payload) => {
+        (_payload) => {
           // 이미 필터링된 상태로 수신 (if 체크 불필요)
           setRealtimeStatus("설정 변경 감지!");
           loadBillboardData();
