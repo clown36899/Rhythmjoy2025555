@@ -202,8 +202,6 @@ export default function BillboardPage() {
   const currentEventIdRef = useRef<string | null>(null); // 현재 이벤트 ID 추적
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   const shuffledPlaylistRef = useRef<number[]>([]); // Ref 동기화 (stale closure 방지)
   const playlistIndexRef = useRef(0);
@@ -305,21 +303,10 @@ export default function BillboardPage() {
       clearInterval(slideTimerRef.current);
       slideTimerRef.current = null;
     }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
     
     const startTime = Date.now();
     slideStartTimeRef.current = startTime;
     console.log(`[타이머 시작] 슬라이드 ${currentIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
-    
-    // 진행바 업데이트 (50ms 간격으로 매우 부드러운 애니메이션)
-    setProgress(0);
-    const step = (50 / slideInterval) * 100;
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((p) => (p >= 100 ? 0 : p + step));
-    }, 50);
 
     // 슬라이드 전환 타이머
     slideTimerRef.current = setInterval(() => {
@@ -331,7 +318,6 @@ export default function BillboardPage() {
       const latestPendingReload = pendingReloadRef.current;
       console.log(`[타이머 종료] - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
       
-      setProgress(0);
       if (latestPendingReload) {
         setTimeout(() => window.location.reload(), 500);
         return;
@@ -634,10 +620,6 @@ export default function BillboardPage() {
   const loadBillboardData = useCallback(async () => {
     try {
       console.log("[빌보드] 데이터 리로드: 기존 타이머 정리 중...");
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
 
       const { data: user, error: userError } = await supabase
         .from("billboard_users")
@@ -723,11 +705,6 @@ export default function BillboardPage() {
         clearInterval(slideTimerRef.current);
         slideTimerRef.current = null;
       }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      setProgress(0);
     };
   }, [events, settings, currentIndex, startSlideTimer]);
 
@@ -909,6 +886,7 @@ export default function BillboardPage() {
                       fill="none"
                     />
                     <circle
+                      key={`progress-${currentIndex}`}
                       cx={48 * scale}
                       cy={48 * scale}
                       r={42 * scale}
@@ -916,8 +894,10 @@ export default function BillboardPage() {
                       strokeWidth={6 * scale}
                       fill="none"
                       strokeDasharray={264 * scale}
-                      strokeDashoffset={264 * scale - (264 * scale * progress) / 100}
-                      style={{ transition: "stroke-dashoffset 0.15s ease-out" }}
+                      strokeDashoffset={264 * scale}
+                      style={{
+                        animation: `progressCircle ${settings?.auto_slide_interval ?? 5000}ms linear forwards`,
+                      }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -1161,6 +1141,7 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
       <style>{`
+        @keyframes progressCircle { from { stroke-dashoffset: inherit; } to { stroke-dashoffset: 0; } }
         @keyframes float1 { 0% { opacity: 0; transform: scale(0) translateY(-50px); } 30% { opacity: 0.8; transform: scale(1.3) translateY(5px); } 60% { opacity: 0.6; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.8) translateY(10px); } }
         @keyframes float2 { 0% { opacity: 0; transform: scale(0) translateY(-80px); } 30% { opacity: 0.7; transform: scale(1.4) translateY(8px); } 60% { opacity: 0.5; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.7) translateY(15px); } }
         @keyframes diamond { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 30% { opacity: 0.7; transform: rotate(225deg) scale(1.3); } 60% { opacity: 0.5; transform: rotate(405deg) scale(1); } 100% { opacity: 0; transform: rotate(495deg) scale(0.6); } }
