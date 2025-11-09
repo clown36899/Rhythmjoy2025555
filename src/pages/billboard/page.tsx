@@ -79,10 +79,29 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       }
 
       try {
+        // Android WebView 감지
+        const isAndroidWebView = /android/i.test(navigator.userAgent) && /wv/i.test(navigator.userAgent);
+        
+        // 환경별 origin 설정
+        const getOrigin = () => {
+          if (isAndroidWebView) {
+            // APK WebView: origin 제거 (postMessage 오류 방지)
+            return undefined;
+          } else if (import.meta.env.PROD) {
+            // 프로덕션 웹: 고정 도메인 (Netlify)
+            return 'https://voluble-mochi-a91544.netlify.app';
+          } else {
+            // 개발 환경: 동적 origin
+            return window.location.origin;
+          }
+        };
+        
+        const originValue = getOrigin();
+        
         playerRef.current = new window.YT.Player(playerId, {
           videoId,
           playerVars: {
-            origin: window.location.origin,
+            ...(originValue ? { origin: originValue } : {}), // origin이 있을 때만 추가
             autoplay: 0,  // 자동재생 비활성화 (부모가 명시적으로 playVideo 호출)
             mute: 1,
             controls: 0,
