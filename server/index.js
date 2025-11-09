@@ -3,6 +3,7 @@ import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import fetch from 'node-fetch';
 import { hashPassword } from './utils/passwordHash.js';
+import billboardScheduleRouter from './api/billboard-schedule.js';
 
 const app = express();
 const PORT = 3001;
@@ -23,6 +24,9 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     persistSession: false
   }
 });
+
+// 빌보드 스케줄 API 라우트 등록
+app.use('/api/billboard', billboardScheduleRouter);
 
 // 빌보드 동적 manifest 생성
 app.get('/api/billboard-manifest', async (req, res) => {
