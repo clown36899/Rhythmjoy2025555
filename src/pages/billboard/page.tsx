@@ -864,12 +864,42 @@ export default function BillboardPage() {
             >
               {events.length > 1 && (
                 <div
-                  className="relative"
+                  className="relative flex items-center justify-center"
                   style={{
                     width: `${96 * scale}px`,
                     height: `${96 * scale}px`,
                   }}
                 >
+                  {/* 펄스 링 (외부) - 부하 1%, CSS animation만 사용 */}
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      animation: 'billboard-pulse 3s ease-in-out infinite',
+                    }}
+                  />
+                  {/* 펄스 링 (내부) */}
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      width: `${72 * scale}px`,
+                      height: `${72 * scale}px`,
+                      top: `${12 * scale}px`,
+                      left: `${12 * scale}px`,
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                      animation: 'billboard-pulse-inner 3s ease-in-out infinite',
+                    }}
+                  />
+                  {/* 슬라이드 번호 */}
+                  <span
+                    className="relative text-white font-bold z-10"
+                    style={{ fontSize: `${20 * scale}px` }}
+                  >
+                    {currentIndex + 1}/{events.length}
+                  </span>
+                  
+                  {/* 
+                  === 기존 SVG 원형 프로그레스 바 (주석 처리) ===
                   <svg
                     className="transform -rotate-90"
                     style={{
@@ -900,14 +930,7 @@ export default function BillboardPage() {
                       }}
                     />
                   </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span
-                      className="text-white font-bold"
-                      style={{ fontSize: `${20 * scale}px` }}
-                    >
-                      {currentIndex + 1}/{events.length}
-                    </span>
-                  </div>
+                  */}
                 </div>
               )}
               <div
@@ -1141,6 +1164,14 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
       <style>{`
+        @keyframes billboard-pulse { 
+          0%, 100% { opacity: 0.15; transform: scale(1); }
+          50% { opacity: 0.3; transform: scale(1.08); }
+        }
+        @keyframes billboard-pulse-inner { 
+          0%, 100% { opacity: 0.25; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.05); }
+        }
         @keyframes progressCircle { from { stroke-dashoffset: var(--dash-total); } to { stroke-dashoffset: 0; } }
         @keyframes float1 { 0% { opacity: 0; transform: scale(0) translateY(-50px); } 30% { opacity: 0.8; transform: scale(1.3) translateY(5px); } 60% { opacity: 0.6; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.8) translateY(10px); } }
         @keyframes float2 { 0% { opacity: 0; transform: scale(0) translateY(-80px); } 30% { opacity: 0.7; transform: scale(1.4) translateY(8px); } 60% { opacity: 0.5; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.7) translateY(15px); } }
