@@ -465,6 +465,13 @@ export default function BillboardPage() {
       });
       
       const overlayUrl = `${window.location.origin}/billboard/overlay/${userId}?${params.toString()}`;
+      console.log('[오버레이] URL 생성:', overlayUrl);
+      console.log('[오버레이] 이벤트 정보:', {
+        title: currentEvent.title,
+        date: dateString,
+        location: currentEvent.location || '(없음)',
+        qrUrl: qrUrl
+      });
       updateOverlayNative(overlayUrl);
     }
     
