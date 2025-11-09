@@ -894,8 +894,8 @@ export default function BillboardPage() {
                       strokeWidth={6 * scale}
                       fill="none"
                       strokeDasharray={264 * scale}
-                      strokeDashoffset={264 * scale}
                       style={{
+                        ['--dash-total' as any]: `${264 * scale}`,
                         animation: `progressCircle ${settings?.auto_slide_interval ?? 5000}ms linear forwards`,
                       }}
                     />
@@ -1141,7 +1141,7 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
       <style>{`
-        @keyframes progressCircle { from { stroke-dashoffset: inherit; } to { stroke-dashoffset: 0; } }
+        @keyframes progressCircle { from { stroke-dashoffset: var(--dash-total); } to { stroke-dashoffset: 0; } }
         @keyframes float1 { 0% { opacity: 0; transform: scale(0) translateY(-50px); } 30% { opacity: 0.8; transform: scale(1.3) translateY(5px); } 60% { opacity: 0.6; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.8) translateY(10px); } }
         @keyframes float2 { 0% { opacity: 0; transform: scale(0) translateY(-80px); } 30% { opacity: 0.7; transform: scale(1.4) translateY(8px); } 60% { opacity: 0.5; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.7) translateY(15px); } }
         @keyframes diamond { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 30% { opacity: 0.7; transform: rotate(225deg) scale(1.3); } 60% { opacity: 0.5; transform: rotate(405deg) scale(1); } 100% { opacity: 0; transform: rotate(495deg) scale(0.6); } }
