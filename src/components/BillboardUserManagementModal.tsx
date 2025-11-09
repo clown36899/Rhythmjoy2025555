@@ -290,6 +290,37 @@ export default function BillboardUserManagementModal({
     }
   };
 
+  const copyApiUrl = async (userId: string) => {
+    const isDev = import.meta.env.DEV;
+    const url = isDev
+      ? `http://localhost:3001/api/billboard/${userId}/schedule`
+      : `${window.location.origin}/.netlify/functions/billboard-schedule?userId=${userId}`;
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      alert(`API URL이 복사되었습니다.\n\n${url}`);
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error);
+      
+      // Fallback: 수동 복사
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      
+      try {
+        document.execCommand('copy');
+        alert(`API URL이 복사되었습니다.\n\n${url}`);
+      } catch (fallbackError) {
+        alert(`복사 실패. URL을 직접 복사하세요:\n\n${url}`);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+  };
+
   const resetCreateForm = () => {
     setNewUserName('');
     setNewUserPassword('');
@@ -398,9 +429,16 @@ export default function BillboardUserManagementModal({
                   <button
                     onClick={() => copyBillboardUrl(user.id)}
                     className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors"
-                    title="URL 복사"
+                    title="빌보드 URL 복사"
                   >
                     <i className="ri-file-copy-line"></i>
+                  </button>
+                  <button
+                    onClick={() => copyApiUrl(user.id)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm transition-colors"
+                    title="API URL 복사"
+                  >
+                    <i className="ri-code-s-slash-line"></i>
                   </button>
                   <button
                     onClick={() => handleEditUser(user)}
