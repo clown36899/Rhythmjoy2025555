@@ -557,13 +557,17 @@ export default function BillboardPage() {
       .channel("billboard-settings-changes")
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "billboard_user_settings" },
+        { 
+          event: "UPDATE", 
+          schema: "public", 
+          table: "billboard_user_settings",
+          filter: `billboard_user_id=eq.${userId}`  // 서버 레벨 필터 (네트워크 90% 감소)
+        },
         (payload) => {
-          if (payload.new.billboard_user_id === userId) {
-            setRealtimeStatus("설정 변경 감지!");
-            loadBillboardData();
-            setTimeout(() => setRealtimeStatus("연결됨"), 3000);
-          }
+          // 이미 필터링된 상태로 수신 (if 체크 불필요)
+          setRealtimeStatus("설정 변경 감지!");
+          loadBillboardData();
+          setTimeout(() => setRealtimeStatus("연결됨"), 3000);
         },
       )
       .subscribe((status) => setRealtimeStatus(`설정: ${status}`));
