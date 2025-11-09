@@ -382,17 +382,6 @@ export default function BillboardPage() {
     }, slideInterval);
   }, []); // 모든 state ref로 변경, dependency array 비움 (stale closure 완전 제거)
 
-  // 메모리 모니터링
-  const checkMemory = useCallback(() => {
-    if ((performance as any).memory) {
-      const { usedJSHeapSize, jsHeapSizeLimit } = (performance as any).memory;
-      const usedMB = (usedJSHeapSize / 1048576).toFixed(2);
-      const limitMB = (jsHeapSizeLimit / 1048576).toFixed(2);
-      const percentage = ((usedJSHeapSize / jsHeapSizeLimit) * 100).toFixed(1);
-      const videoCount = events.filter(e => !!e.video_url).length;
-      console.log(`[메모리] 사용: ${usedMB}MB / ${limitMB}MB (${percentage}%), 전체: ${events.length}개 (영상: ${videoCount}개)`);
-    }
-  }, [events]);
 
   // State-Ref 동기화 (stale closure 방지)
   useEffect(() => {
@@ -468,10 +457,7 @@ export default function BillboardPage() {
     }
     
     prevIndexRef.current = currentIndex;
-    
-    // 메모리 모니터링
-    checkMemory();
-  }, [currentIndex, checkMemory, events, settings, startSlideTimer, youtubeApiReady]);
+  }, [currentIndex, events, settings, startSlideTimer, youtubeApiReady]);
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((slideIndex: number) => {
