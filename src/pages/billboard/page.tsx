@@ -8,7 +8,7 @@ import type {
   Event,
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
-import { isAndroidWebView, playVideoNative, hideVideoNative, updateOverlayNative } from "../../utils/platform";
+import { isAndroidWebView, playVideoNative, hideVideoNative } from "../../utils/platform";
 
 // YouTube IFrame Player API 타입
 declare global {
@@ -99,9 +99,9 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
               // 부모 컴포넌트에서 명시적으로 playVideo 호출할 예정
             },
-            onStateChange: (e: any) => {
+            onStateChange: (event: any) => {
               // 재생 시작 감지 (YT.PlayerState.PLAYING = 1)
-              if (e.data === 1) {
+              if (event.data === 1) {
                 if (!hasCalledOnPlaying.current) {
                   console.log('[YouTube] 재생 시작 감지 (첫 재생):', slideIndex);
                   hasCalledOnPlaying.current = true;
@@ -109,7 +109,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                 }
               }
               // 종료 감지 (YT.PlayerState.ENDED = 0) → 0초로 돌아가서 루프 재생 (현재 표시 중일 때만)
-              else if (e.data === 0 && isVisible) {
+              else if (event.data === 0 && isVisible) {
                 console.log('[YouTube] 재생 종료 감지 → 0초로 돌아가서 다시 재생:', slideIndex);
                 if (playerRef.current?.seekTo && playerRef.current?.playVideo) {
                   playerRef.current.seekTo(0, true); // 0초로 이동
@@ -120,7 +120,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                 hasCalledOnPlaying.current = false; // 플래그 리셋
               }
               // 일시정지 감지 (YT.PlayerState.PAUSED = 2)
-              else if (e.data === 2) {
+              else if (event.data === 2) {
                 console.log('[YouTube] 일시정지 감지:', slideIndex);
                 // 다음 재생을 위해 플래그 리셋
                 hasCalledOnPlaying.current = false;
@@ -181,7 +181,7 @@ export default function BillboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const eventsRef = useRef<Event[]>([]); // Ref 동기화 (stale closure 방지)
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentEventIdRef = useRef<number | null>(null); // 현재 이벤트 ID 추적
+  const currentEventIdRef = useRef<string | null>(null); // 현재 이벤트 ID 추적
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -196,8 +196,7 @@ export default function BillboardPage() {
   const pendingChangesRef = useRef<any[]>([]); // 지연 업데이트용 대기열 (ref로 stale closure 방지)
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoaded, setVideoLoaded] = useState(false); // 현재 비디오 로딩 상태
-  // const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부 (비활성화)
-  const needsRotation = false; // 회전 비활성화 (항상 0도)
+  const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
   const [bottomInfoHeight, setBottomInfoHeight] = useState(0); // 하단 정보 영역 높이 (화면의 10%)
   const [qrSize, setQrSize] = useState(144); // QR 코드 크기
   const [titleFontSize, setTitleFontSize] = useState(56); // 제목 폰트 크기
@@ -214,9 +213,8 @@ export default function BillboardPage() {
     let debounceTimer: NodeJS.Timeout;
     
     const calculateSizes = () => {
-      // const isLandscape = window.innerWidth > window.innerHeight;
-      // setNeedsRotation(isLandscape); // 회전 비활성화
-      const isLandscape = false; // 회전 비활성화 (항상 세로 모드로 계산)
+      const isLandscape = window.innerWidth > window.innerHeight;
+      setNeedsRotation(isLandscape);
       
       // 화면 높이의 10% 계산 (회전 여부에 따라) - 제목+QR 영역
       const effectiveHeight = isLandscape ? window.innerWidth : window.innerHeight;
@@ -323,7 +321,11 @@ export default function BillboardPage() {
         // Android 네이티브 영상 숨김 (다음 슬라이드로 넘어가기 직전)
         hideVideoNative();
         
-        // 🎯 변경사항 감지 시 데이터만 새로고침
+        // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
+        const currentEventId = currentEventIdRef.current;
+        const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
+        
+        // 🎯 변경사항 감지 시 데이터만 새로고침 (React.memo가 Player 캐시 보존)
         if (pendingChangesRef.current.length > 0) {
           const changeCount = pendingChangesRef.current.length;
           console.log(`[변경사항 감지] ${changeCount}건 → 데이터만 새로고침`);
@@ -380,26 +382,6 @@ export default function BillboardPage() {
     }
   }, [events]);
 
-  // 날짜 범위 포맷팅 함수 (오버레이와 메인 모두 사용)
-  const formatDateRange = useCallback((startDate: string, endDate?: string | null) => {
-    if (!endDate || startDate === endDate) return startDate;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const startYear = start.getFullYear();
-    const endYear = end.getFullYear();
-    const startMonth = String(start.getMonth() + 1).padStart(2, "0");
-    const endMonth = String(end.getMonth() + 1).padStart(2, "0");
-    const startDay = String(start.getDate()).padStart(2, "0");
-    const endDay = String(end.getDate()).padStart(2, "0");
-    if (startYear === endYear) {
-      if (startMonth === endMonth) {
-        return `${startYear}-${startMonth}-${startDay}~${endDay}`;
-      }
-      return `${startYear}-${startMonth}-${startDay}~${endMonth}-${endDay}`;
-    }
-    return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
-  }, []);
-
   // State-Ref 동기화 (stale closure 방지)
   useEffect(() => {
     eventsRef.current = events;
@@ -454,31 +436,9 @@ export default function BillboardPage() {
       attemptPlay();
     }
     
-    // 🎯 웹 환경 전용: 오버레이 URL 로깅 (Android는 위 playVideo effect에서 처리)
-    if (!isAndroidWebView() && currentEvent && userId) {
-      const dateString = currentEvent.start_date ? formatDateRange(currentEvent.start_date, currentEvent.end_date) : '';
-      const qrUrl = `${window.location.origin}/?event=${currentEvent.id}&from=qr`;
-      
-      const params = new URLSearchParams({
-        title: currentEvent.title,
-        ...(dateString && { date: dateString }),
-        ...(currentEvent.location && { location: currentEvent.location }),
-        qrUrl: qrUrl,
-      });
-      
-      const overlayUrl = `${window.location.origin}/billboard/overlay/${userId}?${params.toString()}`;
-      console.log('[웹 오버레이] URL 생성:', overlayUrl);
-      console.log('[웹 오버레이] 이벤트 정보:', {
-        title: currentEvent.title,
-        date: dateString,
-        location: currentEvent.location || '(없음)',
-        qrUrl: qrUrl
-      });
-    }
-    
     // 메모리 모니터링
     checkMemory();
-  }, [currentIndex, checkMemory, events, userId, formatDateRange]);
+  }, [currentIndex, checkMemory, events]);
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((slideIndex: number) => {
@@ -704,23 +664,6 @@ export default function BillboardPage() {
     if (isAndroid && hasVideo) {
       const videoInfo = parseVideoUrl(videoUrl);
       if (videoInfo.videoId) {
-        // 🎯 중요: 영상 재생 신호 보내기 **전**에 오버레이 URL 먼저 전달!
-        if (currentEvent && userId) {
-          const dateString = currentEvent.start_date ? formatDateRange(currentEvent.start_date, currentEvent.end_date) : '';
-          const qrUrl = `${window.location.origin}/?event=${currentEvent.id}&from=qr`;
-          
-          const params = new URLSearchParams({
-            title: currentEvent.title,
-            ...(dateString && { date: dateString }),
-            ...(currentEvent.location && { location: currentEvent.location }),
-            qrUrl: qrUrl,
-          });
-          
-          const overlayUrl = `${window.location.origin}/billboard/overlay/${userId}?${params.toString()}`;
-          console.log('[Android 오버레이] URL 먼저 전달:', overlayUrl);
-          updateOverlayNative(overlayUrl);
-        }
-        
         console.log(`[Android 자동 재생] 슬라이드 ${currentIndex} - videoId: ${videoInfo.videoId}`);
         playVideoNative(videoInfo.videoId);
       }
@@ -787,6 +730,26 @@ export default function BillboardPage() {
     );
   }
 
+  // 날짜 포맷
+  const formatDateRange = (startDate: string, endDate?: string | null) => {
+    if (!endDate || startDate === endDate) return startDate;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+    const startMonth = String(start.getMonth() + 1).padStart(2, "0");
+    const endMonth = String(end.getMonth() + 1).padStart(2, "0");
+    const startDay = String(start.getDate()).padStart(2, "0");
+    const endDay = String(end.getDate()).padStart(2, "0");
+    if (startYear === endYear) {
+      if (startMonth === endMonth) {
+        return `${startYear}-${startMonth}-${startDay}~${endDay}`;
+      }
+      return `${startYear}-${startMonth}-${startDay}~${endMonth}-${endDay}`;
+    }
+    return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
+  };
+
   // 슬라이드 렌더링
   const renderSlide = (event: any, isVisible: boolean, slideIndex: number) => {
     const imageUrl = event?.image_full || event?.image;
@@ -803,9 +766,11 @@ export default function BillboardPage() {
           position: "absolute",
           top: "50%",
           left: "50%",
-          width: "100vw", // needsRotation ? "100vh" : "100vw" (회전 비활성화)
-          height: "100vh", // needsRotation ? "100vw" : "100vh" (회전 비활성화)
-          transform: `translate(-50%, -50%)`, // rotate(90deg) 제거 (0도 원복)
+          width: needsRotation ? "100vh" : "100vw",
+          height: needsRotation ? "100vw" : "100vh",
+          transform: needsRotation 
+            ? `translate(-50%, -50%) rotate(90deg)`
+            : `translate(-50%, -50%)`,
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? "auto" : "none",
           transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
@@ -954,7 +919,6 @@ export default function BillboardPage() {
 
             {/* 하단 정보 레이어 */}
             <div
-              id="billboard-info-layer"
               key={`info-${event.id}-${slideIndex}`}
               className="absolute bottom-0 left-0 right-0"
               style={{

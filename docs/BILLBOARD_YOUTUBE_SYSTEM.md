@@ -42,7 +42,7 @@
 - ✅ **웹의 명령만 수행**
 - ✅ **두 가지 간단한 함수만 구현**:
   ```kotlin
-  window.Android.playVideo(videoId)  // 영상 전체화면 재생 (videoId만 전달)
+  window.Android.playVideo(videoId)  // 영상 전체화면 재생
   window.Android.hideVideo()         // 영상 숨김
   ```
 - ✅ **복잡한 타이밍/로직 불필요** - 모두 웹이 처리
@@ -139,7 +139,7 @@ export function isAndroidWebView(): boolean {
 #### 2단계: 명령 전달 함수
 
 ```typescript
-// 영상 재생 명령 (videoId만 전달)
+// 영상 재생 명령
 export function playVideoNative(videoId: string): void {
   if (isAndroidWebView() && window.Android?.playVideo) {
     window.Android.playVideo(videoId);
@@ -221,8 +221,6 @@ class AndroidBridge(private val activity: MainActivity) {
     @JavascriptInterface
     fun playVideo(videoId: String) {
         activity.runOnUiThread {
-            Log.d("AndroidBridge", "playVideo 호출: videoId=$videoId")
-            
             // YouTube 앱으로 전체화면 재생
             val intent = Intent(
                 Intent.ACTION_VIEW,
@@ -276,7 +274,7 @@ webView.addJavascriptInterface(
 
 | 함수 | 필수 기능 | 선택 옵션 |
 |------|----------|----------|
-| `playVideo(videoId)` | ✅ 네이티브 플레이어로 전체화면 재생 | 로딩 화면, 오버레이 UI, PiP 모드 |
+| `playVideo(videoId)` | ✅ 네이티브 플레이어로 전체화면 재생 | 오버레이 UI, PiP 모드 |
 | `hideVideo()` | ✅ 재생 중인 영상 숨김/종료 | 페이드 아웃 애니메이션 |
 
 ### 테스트 방법
@@ -489,6 +487,18 @@ fun hideVideo() {
 3. 웹에서 hideVideo() 호출이 제대로 되는지 콘솔 로그 확인
 
 ---
+
+## 썸네일 설정 기능
+
+### 현재 구현
+- ✅ 웹에서 이벤트별 썸네일 자유롭게 설정 가능
+- ✅ Android는 웹의 썸네일을 그대로 표시
+- ✅ 영상 재생 중에도 웹 썸네일이 배경으로 유지됨
+
+### 장점
+- Android APK는 썸네일 관리 불필요
+- 웹 관리자 페이지에서 모든 썸네일 제어
+- 썸네일 변경 시 APK 업데이트 불필요
 
 ---
 

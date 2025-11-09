@@ -3,7 +3,6 @@ import { Navigate } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import Home from "../pages/home/page";
 import BillboardPage from "../pages/billboard/page";
-import BillboardOverlayPage from "../pages/billboard/overlay/page";
 import PracticeRoomsPage from "../pages/practice/page";
 import GuidePage from "../pages/guide/page";
 import ClubsPage from "../pages/social/clubs/page";
@@ -16,10 +15,6 @@ const routes: RouteObject[] = [
   {
     path: "/billboard/:userId",
     element: <BillboardPage />,
-  },
-  {
-    path: "/billboard/overlay/:userId",
-    element: <BillboardOverlayPage />,
   },
   {
     path: "/invite/:token",

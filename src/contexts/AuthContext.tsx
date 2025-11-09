@@ -81,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('[AuthContext] Auth state changed:', {
         event,
         hasSession: !!session,
-        userEmail: session?.user?.email || '비로그인',
-        sessionExpiry: session?.expires_at || 'N/A'
+        userEmail: session?.user?.email,
+        sessionExpiry: session?.expires_at
       });
       
       if (event === 'SIGNED_OUT') {
@@ -91,16 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
         setUser(null);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        if (session) {
-          console.log('[AuthContext] 세션 설정:', session.user?.email);
-        } else {
-          console.log('[AuthContext] 세션 없음 (비로그인 상태)');
-        }
+        console.log('[AuthContext] 세션 설정:', session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
       } else {
         // 기타 이벤트
-        console.log('[AuthContext] 기타 이벤트 처리 (세션:', session ? '있음' : '없음', ')');
+        console.log('[AuthContext] 기타 이벤트 처리');
         setSession(session);
         setUser(session?.user ?? null);
       }
