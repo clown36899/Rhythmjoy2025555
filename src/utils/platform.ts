@@ -3,6 +3,7 @@ declare global {
     Android?: {
       playVideo: (videoId: string) => void;
       hideVideo: () => void;
+      updateOverlay: (url: string) => void;
     };
   }
 }
@@ -24,5 +25,14 @@ export function hideVideoNative(): void {
   if (isAndroidWebView() && window.Android?.hideVideo) {
     console.log('[Android] 네이티브 플레이어 숨김');
     window.Android.hideVideo();
+  }
+}
+
+export function updateOverlayNative(url: string): void {
+  if (isAndroidWebView() && window.Android?.updateOverlay) {
+    console.log('[Android] 오버레이 업데이트:', url);
+    window.Android.updateOverlay(url);
+  } else {
+    console.log('[Android] 오버레이 인터페이스 없음 (웹 환경)');
   }
 }

@@ -8,7 +8,7 @@ import type {
   Event,
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
-import { isAndroidWebView, playVideoNative, hideVideoNative } from "../../utils/platform";
+import { isAndroidWebView, playVideoNative, hideVideoNative, updateOverlayNative } from "../../utils/platform";
 
 // YouTube IFrame Player API 타입
 declare global {
@@ -378,6 +378,26 @@ export default function BillboardPage() {
     }
   }, [events]);
 
+  // 날짜 범위 포맷팅 함수 (오버레이와 메인 모두 사용)
+  const formatDateRange = useCallback((startDate: string, endDate?: string | null) => {
+    if (!endDate || startDate === endDate) return startDate;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+    const startMonth = String(start.getMonth() + 1).padStart(2, "0");
+    const endMonth = String(end.getMonth() + 1).padStart(2, "0");
+    const startDay = String(start.getDate()).padStart(2, "0");
+    const endDay = String(end.getDate()).padStart(2, "0");
+    if (startYear === endYear) {
+      if (startMonth === endMonth) {
+        return `${startYear}-${startMonth}-${startDay}~${endDay}`;
+      }
+      return `${startYear}-${startMonth}-${startDay}~${endMonth}-${endDay}`;
+    }
+    return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
+  }, []);
+
   // State-Ref 동기화 (stale closure 방지)
   useEffect(() => {
     eventsRef.current = events;
@@ -432,9 +452,25 @@ export default function BillboardPage() {
       attemptPlay();
     }
     
+    // 🎯 APK 오버레이 업데이트 (현재 슬라이드 정보 전달)
+    if (currentEvent && userId) {
+      const dateString = currentEvent.start_date ? formatDateRange(currentEvent.start_date, currentEvent.end_date) : '';
+      const qrUrl = `${window.location.origin}/?event=${currentEvent.id}&from=qr`;
+      
+      const params = new URLSearchParams({
+        title: currentEvent.title,
+        ...(dateString && { date: dateString }),
+        ...(currentEvent.location && { location: currentEvent.location }),
+        qrUrl: qrUrl,
+      });
+      
+      const overlayUrl = `${window.location.origin}/billboard/overlay/${userId}?${params.toString()}`;
+      updateOverlayNative(overlayUrl);
+    }
+    
     // 메모리 모니터링
     checkMemory();
-  }, [currentIndex, checkMemory, events]);
+  }, [currentIndex, checkMemory, events, userId, formatDateRange]);
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((slideIndex: number) => {
@@ -725,26 +761,6 @@ export default function BillboardPage() {
       </div>
     );
   }
-
-  // 날짜 포맷
-  const formatDateRange = (startDate: string, endDate?: string | null) => {
-    if (!endDate || startDate === endDate) return startDate;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const startYear = start.getFullYear();
-    const endYear = end.getFullYear();
-    const startMonth = String(start.getMonth() + 1).padStart(2, "0");
-    const endMonth = String(end.getMonth() + 1).padStart(2, "0");
-    const startDay = String(start.getDate()).padStart(2, "0");
-    const endDay = String(end.getDate()).padStart(2, "0");
-    if (startYear === endYear) {
-      if (startMonth === endMonth) {
-        return `${startYear}-${startMonth}-${startDay}~${endDay}`;
-      }
-      return `${startYear}-${startMonth}-${startDay}~${endMonth}-${endDay}`;
-    }
-    return `${startYear}-${startMonth}-${startDay}~${endYear}-${endMonth}-${endDay}`;
-  };
 
   // 슬라이드 렌더링
   const renderSlide = (event: any, isVisible: boolean, slideIndex: number) => {
