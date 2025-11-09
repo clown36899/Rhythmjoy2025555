@@ -5,14 +5,26 @@ Android APK가 빌보드 스케줄 정보를 받아 영상을 선행 로딩하�
 
 ## API 엔드포인트
 
-### GET `/api/billboard/:userId/schedule`
+### 개발 환경 (Replit/로컬)
+```
+GET http://localhost:3001/api/billboard/:userId/schedule
+```
 
-특정 빌보드 사용자의 전체 스케줄을 JSON 형태로 반환합니다.
+### 프로덕션 환경 (Netlify)
+```
+GET https://yoursite.netlify.app/.netlify/functions/billboard-schedule?userId={userId}
+```
 
 ## 요청 예시
 
+### 개발 환경
 ```bash
 GET http://localhost:3001/api/billboard/user123/schedule
+```
+
+### 프로덕션 환경
+```bash
+GET https://yoursite.netlify.app/.netlify/functions/billboard-schedule?userId=user123
 ```
 
 ## 응답 예시
