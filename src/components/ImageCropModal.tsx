@@ -155,13 +155,14 @@ export default function ImageCropModal({
   const handleAspectRatioChange = (mode: 'free' | '9:16' | '1:1') => {
     setCompletedCrop(undefined);
     
-    // 비율 변경 후 약간의 지연을 두고 크롭 영역 설정
+    // 1단계: 크롭 초기화
+    setCrop(undefined);
+    
+    // 2단계: aspect ratio 변경
     setAspectRatioMode(mode);
     
-    // 다음 렌더 사이클에서 크롭 영역 설정 (aspect ratio 적용 후)
-    setTimeout(() => {
-      // 모든 비율에서 동일한 초기 크롭 영역 설정
-      // ReactCrop이 각 aspect ratio에 맞게 자동으로 조정함
+    // 3단계: 다음 렌더 사이클에서 새로운 크롭 영역 설정
+    requestAnimationFrame(() => {
       setCrop({
         unit: '%',
         x: 20,
@@ -169,7 +170,7 @@ export default function ImageCropModal({
         width: 60,
         height: 60,
       });
-    }, 0);
+    });
   };
 
   if (!isOpen) return null;
