@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import Cropper from 'react-easy-crop';
-import type { Area, Point } from 'react-easy-crop';
+import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 
 interface ImageCropModalProps {
   isOpen: boolean;
@@ -13,18 +13,10 @@ interface ImageCropModalProps {
 }
 
 async function createCroppedImage(
-  imageSrc: string,
-  pixelCrop: Area,
+  image: HTMLImageElement,
+  pixelCrop: PixelCrop,
   fileName: string
 ): Promise<{ file: File; previewUrl: string }> {
-  const image = new Image();
-  image.src = imageSrc;
-
-  await new Promise((resolve, reject) => {
-    image.onload = resolve;
-    image.onerror = reject;
-  });
-
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
@@ -32,8 +24,19 @@ async function createCroppedImage(
     throw new Error('Canvas context not available');
   }
 
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  // 1080px 최대 크기 제한 (메모리 절약)
+  const maxSize = 1080;
+  let width = pixelCrop.width;
+  let height = pixelCrop.height;
+
+  if (width > maxSize || height > maxSize) {
+    const ratio = Math.min(maxSize / width, maxSize / height);
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  }
+
+  canvas.width = width;
+  canvas.height = height;
 
   ctx.drawImage(
     image,
@@ -43,8 +46,8 @@ async function createCroppedImage(
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    width,
+    height
   );
 
   return new Promise((resolve, reject) => {
@@ -85,26 +88,31 @@ export default function ImageCropModal({
   onDiscard,
   fileName = 'cropped.jpg',
 }: ImageCropModalProps) {
-  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [crop, setCrop] = useState<Crop>({
+    unit: '%',
+    x: 10,
+    y: 10,
+    width: 80,
+    height: 80,
+  });
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '16:9' | '1:1'>('16:9');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 16 / 9 : 1;
 
-  const onCropCompleteCallback = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
-
   const handleCropConfirm = async () => {
-    if (!croppedAreaPixels) return;
+    if (!completedCrop || !imgRef.current) {
+      alert('크롭 영역을 선택해주세요.');
+      return;
+    }
 
     setIsProcessing(true);
     try {
       const { file, previewUrl } = await createCroppedImage(
-        imageUrl,
-        croppedAreaPixels,
+        imgRef.current,
+        completedCrop,
         fileName
       );
 
@@ -123,6 +131,38 @@ export default function ImageCropModal({
       onDiscard();  // 메모리 정리
     }
     onClose();
+  };
+
+  // 비율 변경 시 크롭 영역 재설정
+  const handleAspectRatioChange = (mode: 'free' | '16:9' | '1:1') => {
+    setAspectRatioMode(mode);
+    
+    // 비율에 맞게 크롭 영역 초기화
+    if (mode === '16:9') {
+      setCrop({
+        unit: '%',
+        x: 10,
+        y: 25,
+        width: 80,
+        height: 45,
+      });
+    } else if (mode === '1:1') {
+      setCrop({
+        unit: '%',
+        x: 25,
+        y: 10,
+        width: 50,
+        height: 50,
+      });
+    } else {
+      setCrop({
+        unit: '%',
+        x: 10,
+        y: 10,
+        width: 80,
+        height: 80,
+      });
+    }
   };
 
   if (!isOpen) return null;
@@ -153,43 +193,26 @@ export default function ImageCropModal({
         </div>
 
         {/* 크롭 영역 */}
-        <div className="relative w-full" style={{ height: '500px' }}>
-          <Cropper
-            image={imageUrl}
+        <div className="px-6 py-6 flex justify-center bg-black">
+          <ReactCrop
             crop={crop}
-            zoom={zoom}
+            onChange={(c) => setCrop(c)}
+            onComplete={(c) => setCompletedCrop(c)}
             aspect={aspectRatio}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropCompleteCallback}
-            style={{
-              containerStyle: {
-                backgroundColor: '#000',
-              },
-            }}
-          />
+            minWidth={50}
+            minHeight={50}
+          >
+            <img
+              ref={imgRef}
+              src={imageUrl}
+              alt="크롭할 이미지"
+              className="max-w-full max-h-[500px] object-contain"
+            />
+          </ReactCrop>
         </div>
 
         {/* 컨트롤 */}
         <div className="px-6 py-4 space-y-4">
-          {/* 줌 슬라이더 */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-2">
-              <i className="ri-zoom-in-line mr-1"></i>
-              확대/축소
-            </label>
-            <input
-              type="range"
-              min={1}
-              max={3}
-              step={0.1}
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              className="w-full"
-              disabled={isProcessing}
-            />
-          </div>
-
           {/* 비율 선택 */}
           <div>
             <label className="block text-sm text-gray-300 mb-2">
@@ -198,7 +221,7 @@ export default function ImageCropModal({
             </label>
             <div className="flex gap-2">
               <button
-                onClick={() => setAspectRatioMode('free')}
+                onClick={() => handleAspectRatioChange('free')}
                 className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                   aspectRatioMode === 'free'
                     ? 'bg-blue-600 text-white'
@@ -209,7 +232,7 @@ export default function ImageCropModal({
                 자유
               </button>
               <button
-                onClick={() => setAspectRatioMode('16:9')}
+                onClick={() => handleAspectRatioChange('16:9')}
                 className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                   aspectRatioMode === '16:9'
                     ? 'bg-blue-600 text-white'
@@ -220,7 +243,7 @@ export default function ImageCropModal({
                 16:9
               </button>
               <button
-                onClick={() => setAspectRatioMode('1:1')}
+                onClick={() => handleAspectRatioChange('1:1')}
                 className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                   aspectRatioMode === '1:1'
                     ? 'bg-blue-600 text-white'
@@ -231,6 +254,12 @@ export default function ImageCropModal({
                 1:1
               </button>
             </div>
+          </div>
+
+          {/* 안내 메시지 */}
+          <div className="text-sm text-gray-400 bg-gray-800 p-3 rounded-lg">
+            <i className="ri-information-line mr-1"></i>
+            네 모서리나 변을 드래그하여 영역을 조절하세요
           </div>
         </div>
 
