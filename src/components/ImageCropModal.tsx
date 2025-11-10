@@ -154,10 +154,21 @@ export default function ImageCropModal({
   // 비율 변경 시 크롭 영역 재설정
   const handleAspectRatioChange = (mode: 'free' | '9:16' | '1:1') => {
     setAspectRatioMode(mode);
-    
-    // 크롭 영역 undefined로 초기화하여 aspect ratio만 적용되게 함
-    setCrop(undefined as any);
     setCompletedCrop(undefined);
+    
+    if (mode === 'free') {
+      // 자유 비율일 때는 기본 크롭 영역 설정
+      setCrop({
+        unit: '%',
+        x: 10,
+        y: 10,
+        width: 80,
+        height: 80,
+      });
+    } else {
+      // 9:16, 1:1일 때는 undefined로 초기화하여 aspect ratio가 자동 적용되게
+      setCrop(undefined as any);
+    }
   };
 
   if (!isOpen) return null;
