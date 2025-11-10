@@ -230,18 +230,16 @@ export default function EventRegistrationModal({
     setCropImageUrl('');
   };
 
-  // 원본으로 되돌리기
+  // 원본으로 되돌리기 (모달 안에서)
   const handleRestoreOriginal = () => {
-    if (originalImageFile && originalImagePreview) {
-      setImageFile(originalImageFile);
-      setImagePreview(originalImagePreview);
-      setShowCropModal(false);
-      
-      // 크롭 이미지 URL 정리
+    if (originalImagePreview) {
+      // 기존 크롭 이미지 URL 정리
       if (cropImageUrl.startsWith('blob:')) {
         URL.revokeObjectURL(cropImageUrl);
       }
-      setCropImageUrl('');
+      
+      // 원본 이미지를 크롭 모달에 표시 (모달 닫지 않음)
+      setCropImageUrl(originalImagePreview);
     }
   };
 
