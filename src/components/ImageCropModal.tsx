@@ -91,13 +91,13 @@ export default function ImageCropModal({
   const imgRef = useRef<HTMLImageElement>(null);
   const [crop, setCrop] = useState<Crop>({
     unit: '%',
-    x: 10,
-    y: 10,
-    width: 80,
-    height: 80,
+    x: 25,
+    y: 25,
+    width: 50,
+    height: 50,
   });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '16:9' | '1:1'>('16:9');
+  const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '16:9' | '1:1'>('free');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 16 / 9 : 1;
@@ -219,8 +219,6 @@ export default function ImageCropModal({
               }
             }}
             aspect={aspectRatio}
-            minWidth={50}
-            minHeight={50}
           >
             <img
               ref={imgRef}
