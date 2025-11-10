@@ -100,10 +100,10 @@ export default function ImageCropModal({
     height: 50,
   });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '16:9' | '1:1'>('free');
+  const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '9:16' | '1:1'>('free');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 9 / 16 : 1;
+  const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '9:16' ? 9 / 16 : 1;
 
   // 모달이 열릴 때마다 크롭 영역 초기화
   useEffect(() => {
@@ -152,25 +152,25 @@ export default function ImageCropModal({
   };
 
   // 비율 변경 시 크롭 영역 재설정
-  const handleAspectRatioChange = (mode: 'free' | '16:9' | '1:1') => {
+  const handleAspectRatioChange = (mode: 'free' | '9:16' | '1:1') => {
     setAspectRatioMode(mode);
     
     // 비율에 맞게 크롭 영역 초기화
-    if (mode === '16:9') {
+    if (mode === '9:16') {
       setCrop({
         unit: '%',
-        x: 25,
+        x: 30,
         y: 10,
-        width: 45,
+        width: 40,
         height: 80,
       });
     } else if (mode === '1:1') {
       setCrop({
         unit: '%',
-        x: 25,
-        y: 10,
-        width: 50,
-        height: 50,
+        x: 20,
+        y: 25,
+        width: 60,
+        height: 60,
       });
     } else {
       setCrop({
@@ -263,9 +263,9 @@ export default function ImageCropModal({
               자유
             </button>
             <button
-              onClick={() => handleAspectRatioChange('16:9')}
+              onClick={() => handleAspectRatioChange('9:16')}
               className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                aspectRatioMode === '16:9'
+                aspectRatioMode === '9:16'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
