@@ -35,19 +35,9 @@ async function createCroppedImage(
   const cropWidth = Math.max(1, Math.min(Math.round(pixelCrop.width), imgWidth - cropX));
   const cropHeight = Math.max(1, Math.min(Math.round(pixelCrop.height), imgHeight - cropY));
 
-  // 2160px 최대 크기 제한 (고화질 유지, 메모리 절약)
-  const maxSize = 2160;
-  let canvasWidth = cropWidth;
-  let canvasHeight = cropHeight;
-
-  if (canvasWidth > maxSize || canvasHeight > maxSize) {
-    const ratio = Math.min(maxSize / canvasWidth, maxSize / canvasHeight);
-    canvasWidth = Math.round(canvasWidth * ratio);
-    canvasHeight = Math.round(canvasHeight * ratio);
-  }
-
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
+  // 원본 해상도 그대로 자르기 (리사이즈는 나중에 createResizedImages에서 처리)
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
 
   ctx.drawImage(
     image,
@@ -57,8 +47,8 @@ async function createCroppedImage(
     cropHeight,
     0,
     0,
-    canvasWidth,
-    canvasHeight
+    cropWidth,
+    cropHeight
   );
 
   return new Promise((resolve, reject) => {
