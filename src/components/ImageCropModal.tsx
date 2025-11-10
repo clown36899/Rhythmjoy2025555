@@ -119,17 +119,6 @@ export default function ImageCropModal({
 
   const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 16 / 9 : 1;
 
-  // % → 픽셀 변환 (정수로 반올림)
-  const convertToPixelCrop = (percentCrop: Crop, imageWidth: number, imageHeight: number): PixelCrop => {
-    return {
-      unit: 'px',
-      x: Math.round((percentCrop.x * imageWidth) / 100),
-      y: Math.round((percentCrop.y * imageHeight) / 100),
-      width: Math.round((percentCrop.width * imageWidth) / 100),
-      height: Math.round((percentCrop.height * imageHeight) / 100),
-    };
-  };
-
   const handleCropConfirm = async () => {
     if (!completedCrop || !imgRef.current) {
       alert('크롭 영역을 선택해주세요.');
@@ -234,14 +223,35 @@ export default function ImageCropModal({
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
-            onComplete={(c) => {
-              if (imgRef.current) {
-                const pixelCrop = convertToPixelCrop(
-                  c,
-                  imgRef.current.naturalWidth,
-                  imgRef.current.naturalHeight
-                );
-                setCompletedCrop(pixelCrop);
+            onComplete={(percentCrop, pixelCrop) => {
+              console.log('✂️ onComplete 호출:', {
+                percentCrop,
+                pixelCrop,
+                imageNatural: imgRef.current ? { width: imgRef.current.naturalWidth, height: imgRef.current.naturalHeight } : null,
+                imageDisplay: imgRef.current ? { width: imgRef.current.width, height: imgRef.current.height } : null
+              });
+              
+              // ReactCrop이 제공하는 픽셀 크롭을 직접 사용
+              if (pixelCrop.width && pixelCrop.height && imgRef.current) {
+                // display 크기 기준 픽셀을 natural 크기로 변환
+                const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+                const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+                
+                const naturalPixelCrop: PixelCrop = {
+                  unit: 'px',
+                  x: pixelCrop.x * scaleX,
+                  y: pixelCrop.y * scaleY,
+                  width: pixelCrop.width * scaleX,
+                  height: pixelCrop.height * scaleY,
+                };
+                
+                console.log('🔄 스케일 변환:', {
+                  scale: { x: scaleX, y: scaleY },
+                  displayPixel: pixelCrop,
+                  naturalPixel: naturalPixelCrop
+                });
+                
+                setCompletedCrop(naturalPixelCrop);
               }
             }}
             aspect={aspectRatio}
