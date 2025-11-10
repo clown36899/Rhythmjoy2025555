@@ -143,7 +143,12 @@ export default function EventList({
   const [thumbnailOptions, setThumbnailOptions] = useState<
     VideoThumbnailOption[]
   >([]);
-  const [tempDateInput, setTempDateInput] = useState<string>(""); // 편집 모달에서 특정 날짜 추가용
+  const [tempDateInput, setTempDateInput] = useState<string>("");
+  
+  const [showEditCropModal, setShowEditCropModal] = useState(false);
+  const [editCropImageUrl, setEditCropImageUrl] = useState<string>("");
+  const [editOriginalImageFile, setEditOriginalImageFile] = useState<File | null>(null);
+  const [editOriginalImagePreview, setEditOriginalImagePreview] = useState<string>(""); // 편집 모달에서 특정 날짜 추가용
 
   const { defaultThumbnailClass, defaultThumbnailEvent } =
     useDefaultThumbnail();
@@ -1076,8 +1081,79 @@ export default function EventList({
     const file = e.target.files?.[0];
     if (file) {
       setEditImageFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setEditImagePreview(previewUrl);
+      if (!editOriginalImageFile) {
+        setEditOriginalImageFile(file);
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = e.target?.result as string;
+        setEditImagePreview(preview);
+        if (!editOriginalImagePreview) {
+          setEditOriginalImagePreview(preview);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleEditOpenCropForFile = () => {
+    if (editImagePreview) {
+      setEditCropImageUrl(editImagePreview);
+      setShowEditCropModal(true);
+    }
+  };
+  
+  const handleEditOpenCropForThumbnail = async (thumbnailUrl: string) => {
+    try {
+      const blob = await downloadThumbnailAsBlob(thumbnailUrl);
+      if (!blob) {
+        alert('썸네일 다운로드에 실패했습니다.');
+        return;
+      }
+      
+      if (!editOriginalImageFile) {
+        const file = new File([blob], 'youtube-thumbnail.jpg', { type: 'image/jpeg' });
+        setEditOriginalImageFile(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setEditOriginalImagePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      const blobUrl = URL.createObjectURL(blob);
+      setEditCropImageUrl(blobUrl);
+      setShowEditCropModal(true);
+      setShowThumbnailSelector(false);
+    } catch (error) {
+      console.error('썸네일 다운로드 실패:', error);
+      alert('썸네일 다운로드 중 오류가 발생했습니다.');
+    }
+  };
+  
+  const handleEditCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
+    setEditImageFile(croppedFile);
+    setEditImagePreview(croppedPreviewUrl);
+    
+    if (editCropImageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(editCropImageUrl);
+    }
+    setEditCropImageUrl('');
+  };
+  
+  const handleEditCropDiscard = () => {
+    if (editCropImageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(editCropImageUrl);
+    }
+    setEditCropImageUrl('');
+  };
+  
+  const handleEditRestoreOriginal = () => {
+    if (editOriginalImagePreview) {
+      if (editCropImageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(editCropImageUrl);
+      }
+      setEditCropImageUrl(editOriginalImagePreview);
     }
   };
 
