@@ -156,19 +156,15 @@ export default function ImageCropModal({
     setAspectRatioMode(mode);
     setCompletedCrop(undefined);
     
-    if (mode === 'free') {
-      // 자유 비율일 때는 기본 크롭 영역 설정
-      setCrop({
-        unit: '%',
-        x: 10,
-        y: 10,
-        width: 80,
-        height: 80,
-      });
-    } else {
-      // 9:16, 1:1일 때는 undefined로 초기화하여 aspect ratio가 자동 적용되게
-      setCrop(undefined as any);
-    }
+    // 모든 경우에 초기 크롭 영역 설정
+    // ReactCrop이 aspect ratio에 맞게 자동으로 조정함
+    setCrop({
+      unit: '%',
+      x: 25,
+      y: 25,
+      width: 50,
+      height: 50,
+    });
   };
 
   if (!isOpen) return null;
