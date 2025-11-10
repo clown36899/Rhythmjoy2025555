@@ -223,32 +223,31 @@ export default function ImageCropModal({
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
-            onComplete={(percentCrop, pixelCrop) => {
-              console.log('✂️ onComplete 호출:', {
-                percentCrop,
-                pixelCrop,
-                imageNatural: imgRef.current ? { width: imgRef.current.naturalWidth, height: imgRef.current.naturalHeight } : null,
-                imageDisplay: imgRef.current ? { width: imgRef.current.width, height: imgRef.current.height } : null
-              });
-              
-              // ReactCrop이 제공하는 픽셀 크롭을 직접 사용
-              if (pixelCrop.width && pixelCrop.height && imgRef.current) {
+            onComplete={(displayPixelCrop) => {
+              // ReactCrop의 첫 번째 파라미터가 display 기준 픽셀 크롭
+              if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
                 // display 크기 기준 픽셀을 natural 크기로 변환
                 const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
                 const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
                 
                 const naturalPixelCrop: PixelCrop = {
                   unit: 'px',
-                  x: pixelCrop.x * scaleX,
-                  y: pixelCrop.y * scaleY,
-                  width: pixelCrop.width * scaleX,
-                  height: pixelCrop.height * scaleY,
+                  x: displayPixelCrop.x * scaleX,
+                  y: displayPixelCrop.y * scaleY,
+                  width: displayPixelCrop.width * scaleX,
+                  height: displayPixelCrop.height * scaleY,
                 };
                 
-                console.log('🔄 스케일 변환:', {
-                  scale: { x: scaleX, y: scaleY },
-                  displayPixel: pixelCrop,
-                  naturalPixel: naturalPixelCrop
+                console.log('✂️ 크롭 영역 계산:', {
+                  이미지: {
+                    display: { width: imgRef.current.width, height: imgRef.current.height },
+                    natural: { width: imgRef.current.naturalWidth, height: imgRef.current.naturalHeight }
+                  },
+                  스케일: { x: scaleX.toFixed(2), y: scaleY.toFixed(2) },
+                  크롭: {
+                    display픽셀: displayPixelCrop,
+                    natural픽셀: naturalPixelCrop
+                  }
                 });
                 
                 setCompletedCrop(naturalPixelCrop);
