@@ -662,7 +662,14 @@ export default function BillboardPage() {
       console.log(`[슬라이드 ${currentIndex}] 이미지 감지 - 즉시 타이머 시작: ${slideInterval}ms`);
       startSlideTimer(slideInterval);
     } else {
-      console.log(`[슬라이드 ${currentIndex}] 영상 감지 - 실제 재생 감지 시 타이머 시작 예정`);
+      // 영상 슬라이드: 이미 재생 중이면 타이머 재시작 (데이터 새로고침 후 타이머 손실 방지)
+      if (videoLoadedMap[currentIndex]) {
+        const slideInterval = settings.video_play_duration || 10000;
+        console.log(`[슬라이드 ${currentIndex}] 영상 이미 재생 중 - 타이머 재시작: ${slideInterval}ms`);
+        startSlideTimer(slideInterval);
+      } else {
+        console.log(`[슬라이드 ${currentIndex}] 영상 감지 - 실제 재생 감지 시 타이머 시작 예정`);
+      }
     }
 
     return () => {
@@ -672,7 +679,7 @@ export default function BillboardPage() {
         slideTimerRef.current = null;
       }
     };
-  }, [events, settings, currentIndex, startSlideTimer]);
+  }, [events, settings, currentIndex, startSlideTimer, videoLoadedMap]);
 
   // 로딩/에러/빈 화면
   if (isLoading) {
