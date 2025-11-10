@@ -160,34 +160,15 @@ export default function ImageCropModal({
     
     // 다음 렌더 사이클에서 크롭 영역 설정 (aspect ratio 적용 후)
     setTimeout(() => {
-      if (mode === '9:16') {
-        // 9:16 세로 비율 - width 기준으로 설정
-        setCrop({
-          unit: '%',
-          x: 20,
-          y: 10,
-          width: 60,
-          height: 10, // ReactCrop이 aspect ratio에 맞춰 자동으로 height 조정
-        });
-      } else if (mode === '1:1') {
-        // 1:1 정사각형 - width만 설정
-        setCrop({
-          unit: '%',
-          x: 20,
-          y: 20,
-          width: 60,
-          height: 10, // ReactCrop이 aspect ratio에 맞춰 자동으로 height 조정
-        });
-      } else {
-        // 자유 비율
-        setCrop({
-          unit: '%',
-          x: 10,
-          y: 10,
-          width: 80,
-          height: 80,
-        });
-      }
+      // 모든 비율에서 동일한 초기 크롭 영역 설정
+      // ReactCrop이 각 aspect ratio에 맞게 자동으로 조정함
+      setCrop({
+        unit: '%',
+        x: 20,
+        y: 20,
+        width: 60,
+        height: 60,
+      });
     }, 0);
   };
 
