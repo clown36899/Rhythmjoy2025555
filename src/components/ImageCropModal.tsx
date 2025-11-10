@@ -211,7 +211,7 @@ export default function ImageCropModal({
         </div>
 
         {/* 크롭 영역 */}
-        <div className="px-6 py-6 flex justify-center bg-black">
+        <div className="px-4 py-4 flex justify-center bg-black">
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
@@ -239,104 +239,77 @@ export default function ImageCropModal({
               ref={imgRef}
               src={imageUrl}
               alt="크롭할 이미지"
-              className="max-w-full max-h-[500px] object-contain"
+              className="max-w-full max-h-[300px] object-contain"
               crossOrigin="anonymous"
             />
           </ReactCrop>
         </div>
 
         {/* 컨트롤 */}
-        <div className="px-6 py-4 space-y-4">
+        <div className="px-4 py-3">
           {/* 비율 선택 */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-2">
-              <i className="ri-aspect-ratio-line mr-1"></i>
-              비율
-            </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleAspectRatioChange('free')}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  aspectRatioMode === 'free'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-                disabled={isProcessing}
-              >
-                자유
-              </button>
-              <button
-                onClick={() => handleAspectRatioChange('16:9')}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  aspectRatioMode === '16:9'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-                disabled={isProcessing}
-              >
-                9:16
-              </button>
-              <button
-                onClick={() => handleAspectRatioChange('1:1')}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  aspectRatioMode === '1:1'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-                disabled={isProcessing}
-              >
-                1:1
-              </button>
-            </div>
-          </div>
-
-          {/* 안내 메시지 */}
-          <div className="text-sm text-gray-400 bg-gray-800 p-3 rounded-lg">
-            <i className="ri-information-line mr-1"></i>
-            네 모서리나 변을 드래그하여 영역을 조절하세요
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleAspectRatioChange('free')}
+              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                aspectRatioMode === 'free'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+              disabled={isProcessing}
+            >
+              자유
+            </button>
+            <button
+              onClick={() => handleAspectRatioChange('16:9')}
+              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                aspectRatioMode === '16:9'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+              disabled={isProcessing}
+            >
+              9:16
+            </button>
+            <button
+              onClick={() => handleAspectRatioChange('1:1')}
+              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                aspectRatioMode === '1:1'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+              disabled={isProcessing}
+            >
+              1:1
+            </button>
           </div>
         </div>
 
         {/* 푸터 */}
-        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 px-6 py-4 flex gap-3 justify-between">
-          <div>
-            {hasOriginal && onRestoreOriginal && (
-              <button
-                onClick={onRestoreOriginal}
-                className="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                disabled={isProcessing}
-              >
-                <i className="ri-refresh-line"></i>
-                원본으로 되돌리기
-              </button>
-            )}
-          </div>
-          <div className="flex gap-3">
+        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 px-4 py-3 flex gap-2">
+          <button
+            onClick={handleCancel}
+            className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
+            disabled={isProcessing}
+          >
+            취소
+          </button>
+          {hasOriginal && onRestoreOriginal && (
             <button
-              onClick={handleCancel}
-              className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+              onClick={onRestoreOriginal}
+              className="flex-1 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
               disabled={isProcessing}
             >
-              취소
+              원본 되돌리기
             </button>
-            <button
-              onClick={handleCropConfirm}
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <>
-                  <i className="ri-loader-4-line animate-spin"></i>
-                  처리 중...
-                </>
-              ) : (
-                <>
-                  <i className="ri-check-line"></i>
-                  자르기 완료
-                </>
-              )}
-            </button>
-          </div>
+          )}
+          <button
+            onClick={handleCropConfirm}
+            className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+            disabled={isProcessing}
+          >
+            {isProcessing ? '처리 중...' : '자르기 완료'}
+          </button>
         </div>
       </div>
     </div>,
