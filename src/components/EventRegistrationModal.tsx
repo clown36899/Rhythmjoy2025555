@@ -13,6 +13,7 @@ import {
   type VideoThumbnailOption,
 } from "../utils/videoThumbnail";
 import { useAuth } from "../contexts/AuthContext";
+import ImageCropModal from "./ImageCropModal";
 
 interface EventRegistrationModalProps {
   isOpen: boolean;
@@ -66,6 +67,10 @@ export default function EventRegistrationModal({
   const [thumbnailOptions, setThumbnailOptions] = useState<
     VideoThumbnailOption[]
   >([]);
+
+  // 이미지 크롭 모달
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageUrl, setCropImageUrl] = useState<string>("");
 
   // 날짜 선택 모드: 'range' (연속 기간) 또는 'specific' (특정 날짜들)
   const [dateMode, setDateMode] = useState<"range" | "specific">("range");
@@ -151,6 +156,53 @@ export default function EventRegistrationModal({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // 파일 선택 이미지 편집
+  const handleOpenCropForFile = () => {
+    if (imagePreview) {
+      setCropImageUrl(imagePreview);
+      setShowCropModal(true);
+    }
+  };
+
+  // 썸네일 선택 후 편집
+  const handleOpenCropForThumbnail = async (thumbnailUrl: string) => {
+    try {
+      const blob = await downloadThumbnailAsBlob(thumbnailUrl);
+      if (!blob) {
+        alert('썸네일 다운로드에 실패했습니다.');
+        return;
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      setCropImageUrl(blobUrl);
+      setShowCropModal(true);
+      setShowThumbnailSelector(false);
+    } catch (error) {
+      console.error('썸네일 다운로드 실패:', error);
+      alert('썸네일 다운로드 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 크롭 완료 처리
+  const handleCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
+    setImageFile(croppedFile);
+    setImagePreview(croppedPreviewUrl);
+    
+    // ObjectURL 정리 (메모리 누수 방지)
+    if (cropImageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(cropImageUrl);
+    }
+    setCropImageUrl('');
+  };
+
+  // 크롭 취소 처리 (메모리 정리)
+  const handleCropDiscard = () => {
+    // ObjectURL 정리
+    if (cropImageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(cropImageUrl);
+    }
+    setCropImageUrl('');
   };
 
   const sanitizeFileName = (fileName: string): string => {
@@ -764,6 +816,14 @@ export default function EventRegistrationModal({
                         )}
                         <button
                           type="button"
+                          onClick={handleOpenCropForFile}
+                          className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                        >
+                          <i className="ri-crop-line mr-1"></i>
+                          편집
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             setImagePreview("");
                             setImageFile(null);
@@ -1022,34 +1082,7 @@ export default function EventRegistrationModal({
                 {thumbnailOptions.map((option, index) => (
                   <div
                     key={index}
-                    onClick={async () => {
-                      try {
-                        const blob = await downloadThumbnailAsBlob(option.url);
-                        if (blob) {
-                          const file = new File([blob], "video-thumbnail.jpg", {
-                            type: "image/jpeg",
-                          });
-                          setImageFile(file);
-                          setImagePreview(URL.createObjectURL(blob));
-
-                          // 영상 URL은 유지 (빌보드에서 영상 재생, 리스트에서는 썸네일 표시)
-                          // 영상 URL 삭제하지 않음!
-
-                          // 모달 닫기
-                          setShowThumbnailSelector(false);
-                          setThumbnailOptions([]);
-
-                          alert(
-                            "썸네일이 추출되었습니다! 리스트에서는 썸네일이, 빌보드에서는 영상이 표시됩니다.",
-                          );
-                        } else {
-                          alert("썸네일 다운로드에 실패했습니다.");
-                        }
-                      } catch (error) {
-                        console.error("썸네일 다운로드 오류:", error);
-                        alert("썸네일 다운로드 중 오류가 발생했습니다.");
-                      }
-                    }}
+                    onClick={() => handleOpenCropForThumbnail(option.url)}
                     className="cursor-pointer group"
                   >
                     <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-800 border-2 border-gray-700 group-hover:border-blue-500 transition-colors">
@@ -1077,6 +1110,16 @@ export default function EventRegistrationModal({
           </div>
         </div>
       )}
+
+      {/* 이미지 크롭 모달 */}
+      <ImageCropModal
+        isOpen={showCropModal}
+        imageUrl={cropImageUrl}
+        onClose={() => setShowCropModal(false)}
+        onCropComplete={handleCropComplete}
+        onDiscard={handleCropDiscard}
+        fileName="cropped-thumbnail.jpg"
+      />
     </>
   );
 
