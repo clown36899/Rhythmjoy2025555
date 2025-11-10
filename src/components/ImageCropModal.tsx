@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -35,12 +35,6 @@ async function createCroppedImage(
   const cropWidth = Math.max(1, Math.min(Math.round(pixelCrop.width), imgWidth - cropX));
   const cropHeight = Math.max(1, Math.min(Math.round(pixelCrop.height), imgHeight - cropY));
 
-  console.log('🖼️ 크롭 정보:', {
-    원본이미지: { width: imgWidth, height: imgHeight },
-    크롭영역: { x: cropX, y: cropY, width: cropWidth, height: cropHeight },
-    원본픽셀값: pixelCrop
-  });
-
   // 1080px 최대 크기 제한 (메모리 절약)
   const maxSize = 1080;
   let canvasWidth = cropWidth;
@@ -54,8 +48,6 @@ async function createCroppedImage(
 
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
-
-  console.log('🎨 캔버스:', { width: canvasWidth, height: canvasHeight });
 
   ctx.drawImage(
     image,
@@ -123,19 +115,26 @@ export default function ImageCropModal({
 
   const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 16 / 9 : 1;
 
+  // 모달이 열릴 때마다 크롭 영역 초기화
+  useEffect(() => {
+    if (isOpen) {
+      setCrop({
+        unit: '%',
+        x: 25,
+        y: 25,
+        width: 50,
+        height: 50,
+      });
+      setCompletedCrop(undefined);
+      setAspectRatioMode('free');
+    }
+  }, [isOpen, imageUrl]);
+
   const handleCropConfirm = async () => {
     if (!completedCrop || !imgRef.current) {
       alert('크롭 영역을 선택해주세요.');
       return;
     }
-
-    console.log('크롭 시작:', {
-      completedCrop,
-      imageSize: {
-        natural: { width: imgRef.current.naturalWidth, height: imgRef.current.naturalHeight },
-        display: { width: imgRef.current.width, height: imgRef.current.height }
-      }
-    });
 
     setIsProcessing(true);
     try {
@@ -145,12 +144,11 @@ export default function ImageCropModal({
         fileName
       );
 
-      console.log('크롭 완료:', { fileSize: file.size, previewUrlLength: previewUrl.length });
       onCropComplete(file, previewUrl);
       onClose();
     } catch (error) {
       console.error('이미지 크롭 실패:', error);
-      alert('이미지 크롭 중 오류가 발생했습니다: ' + (error as Error).message);
+      alert('이미지 크롭 중 오류가 발생했습니다.');
     } finally {
       setIsProcessing(false);
     }
@@ -241,18 +239,6 @@ export default function ImageCropModal({
                   width: displayPixelCrop.width * scaleX,
                   height: displayPixelCrop.height * scaleY,
                 };
-                
-                console.log('✂️ 크롭 영역 계산:', {
-                  이미지: {
-                    display: { width: imgRef.current.width, height: imgRef.current.height },
-                    natural: { width: imgRef.current.naturalWidth, height: imgRef.current.naturalHeight }
-                  },
-                  스케일: { x: scaleX.toFixed(2), y: scaleY.toFixed(2) },
-                  크롭: {
-                    display픽셀: displayPixelCrop,
-                    natural픽셀: naturalPixelCrop
-                  }
-                });
                 
                 setCompletedCrop(naturalPixelCrop);
               }
