@@ -17,6 +17,8 @@ async function createCroppedImage(
   pixelCrop: PixelCrop,
   fileName: string
 ): Promise<{ file: File; previewUrl: string }> {
+  console.log('createCroppedImage 호출:', { pixelCrop, imageNaturalSize: { width: image.naturalWidth, height: image.naturalHeight } });
+  
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
@@ -37,6 +39,18 @@ async function createCroppedImage(
 
   canvas.width = width;
   canvas.height = height;
+
+  console.log('Canvas 크기:', { canvasWidth: canvas.width, canvasHeight: canvas.height });
+  console.log('drawImage 파라미터:', {
+    sx: pixelCrop.x,
+    sy: pixelCrop.y,
+    sWidth: pixelCrop.width,
+    sHeight: pixelCrop.height,
+    dx: 0,
+    dy: 0,
+    dWidth: width,
+    dHeight: height
+  });
 
   ctx.drawImage(
     image,
@@ -119,6 +133,14 @@ export default function ImageCropModal({
       return;
     }
 
+    console.log('크롭 시작:', {
+      completedCrop,
+      imageSize: {
+        natural: { width: imgRef.current.naturalWidth, height: imgRef.current.naturalHeight },
+        display: { width: imgRef.current.width, height: imgRef.current.height }
+      }
+    });
+
     setIsProcessing(true);
     try {
       const { file, previewUrl } = await createCroppedImage(
@@ -127,11 +149,12 @@ export default function ImageCropModal({
         fileName
       );
 
+      console.log('크롭 완료:', { fileSize: file.size, previewUrlLength: previewUrl.length });
       onCropComplete(file, previewUrl);
       onClose();
     } catch (error) {
       console.error('이미지 크롭 실패:', error);
-      alert('이미지 크롭 중 오류가 발생했습니다.');
+      alert('이미지 크롭 중 오류가 발생했습니다: ' + (error as Error).message);
     } finally {
       setIsProcessing(false);
     }
