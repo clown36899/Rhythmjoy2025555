@@ -155,36 +155,9 @@ export default function ImageCropModal({
   const handleAspectRatioChange = (mode: 'free' | '9:16' | '1:1') => {
     setAspectRatioMode(mode);
     
-    // 비율에 맞게 크롭 영역 초기화
-    if (mode === '9:16') {
-      // 9:16 세로 비율 (width:height = 9:16)
-      // width = 36%, height = 36 * 16/9 = 64%
-      setCrop({
-        unit: '%',
-        x: 32,
-        y: 18,
-        width: 36,
-        height: 64,
-      });
-    } else if (mode === '1:1') {
-      // 1:1 정사각형
-      setCrop({
-        unit: '%',
-        x: 25,
-        y: 25,
-        width: 50,
-        height: 50,
-      });
-    } else {
-      // 자유 비율
-      setCrop({
-        unit: '%',
-        x: 10,
-        y: 10,
-        width: 80,
-        height: 80,
-      });
-    }
+    // 크롭 영역 undefined로 초기화하여 aspect ratio만 적용되게 함
+    setCrop(undefined as any);
+    setCompletedCrop(undefined);
   };
 
   if (!isOpen) return null;
