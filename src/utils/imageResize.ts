@@ -88,9 +88,9 @@ export async function resizeImage(
 
 export async function createResizedImages(file: File): Promise<ResizedImages> {
   const [thumbnail, medium, full] = await Promise.all([
-    resizeImage(file, 400, 0.82),  // 썸네일: 320px→400px, Retina 대응
-    resizeImage(file, 1080, 0.9),  // 미디엄: 유지 (상세보기용)
-    resizeImage(file, 1080, 0.92), // 풀사이즈: 1920px→1080px (빌보드용, 세로 모니터 1080p)
+    resizeImage(file, 400, 0.82),  // 썸네일: 400px (리스트용)
+    resizeImage(file, 1080, 0.9),  // 미디엄: 1080px (일반 상세보기용)
+    resizeImage(file, 2160, 0.92), // 풀사이즈: 2160px (고화질 상세보기/빌보드용)
   ]);
 
   return { thumbnail, medium, full };
