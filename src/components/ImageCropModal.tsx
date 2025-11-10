@@ -113,7 +113,7 @@ export default function ImageCropModal({
   const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '16:9' | '1:1'>('free');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 16 / 9 : 1;
+  const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 9 / 16 : 1;
 
   // 모달이 열릴 때마다 크롭 영역 초기화
   useEffect(() => {
@@ -169,10 +169,10 @@ export default function ImageCropModal({
     if (mode === '16:9') {
       setCrop({
         unit: '%',
-        x: 10,
-        y: 25,
-        width: 80,
-        height: 45,
+        x: 25,
+        y: 10,
+        width: 45,
+        height: 80,
       });
     } else if (mode === '1:1') {
       setCrop({
@@ -283,7 +283,7 @@ export default function ImageCropModal({
                 }`}
                 disabled={isProcessing}
               >
-                16:9
+                9:16
               </button>
               <button
                 onClick={() => handleAspectRatioChange('1:1')}
