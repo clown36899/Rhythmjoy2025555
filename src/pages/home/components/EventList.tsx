@@ -15,6 +15,7 @@ import {
   copyToClipboard,
 } from "../../../utils/contactLink";
 import { QRCodeSVG } from "qrcode.react";
+import ImageCropModal from "../../../components/ImageCropModal";
 
 const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
