@@ -102,6 +102,17 @@ export default function ImageCropModal({
 
   const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 16 / 9 : 1;
 
+  // % → 픽셀 변환
+  const convertToPixelCrop = (percentCrop: Crop, imageWidth: number, imageHeight: number): PixelCrop => {
+    return {
+      unit: 'px',
+      x: (percentCrop.x * imageWidth) / 100,
+      y: (percentCrop.y * imageHeight) / 100,
+      width: (percentCrop.width * imageWidth) / 100,
+      height: (percentCrop.height * imageHeight) / 100,
+    };
+  };
+
   const handleCropConfirm = async () => {
     if (!completedCrop || !imgRef.current) {
       alert('크롭 영역을 선택해주세요.');
@@ -197,7 +208,16 @@ export default function ImageCropModal({
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
-            onComplete={(c) => setCompletedCrop(c)}
+            onComplete={(c) => {
+              if (imgRef.current) {
+                const pixelCrop = convertToPixelCrop(
+                  c,
+                  imgRef.current.naturalWidth,
+                  imgRef.current.naturalHeight
+                );
+                setCompletedCrop(pixelCrop);
+              }
+            }}
             aspect={aspectRatio}
             minWidth={50}
             minHeight={50}
