@@ -2474,9 +2474,10 @@ export default function EventList({
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
         >
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-y-auto">
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-3">
+          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] flex flex-col">
+            {/* 헤더 */}
+            <div className="p-4 border-b border-gray-700">
+              <div className="flex justify-between items-center">
                 <h2 className="text-lg font-bold text-white">이벤트 수정</h2>
                 <button
                   onClick={() => {
@@ -2488,8 +2489,11 @@ export default function EventList({
                   <i className="ri-close-line text-xl"></i>
                 </button>
               </div>
+            </div>
 
-              <form onSubmit={handleEditSubmit} className="space-y-3">
+            {/* 스크롤 가능한 폼 영역 */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
+              <form id="edit-event-form" onSubmit={handleEditSubmit} className="space-y-3">
                 <div>
                   <label className="block text-gray-300 text-xs font-medium mb-1">
                     이벤트 제목
@@ -3117,39 +3121,44 @@ export default function EventList({
                   </p>
                 </div>
 
-                <div className="flex space-x-3 pt-2">
+              </form>
+            </div>
+
+            {/* 하단 고정 버튼 */}
+            <div className="sticky bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (eventToEdit) {
+                      handleDeleteClick(eventToEdit);
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
+                >
+                  삭제
+                </button>
+                <div className="flex-1 flex space-x-3">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (eventToEdit) {
-                        handleDeleteClick(eventToEdit);
-                      }
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEventToEdit(null);
                     }}
-                    className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
                   >
-                    삭제
+                    취소
                   </button>
-                  <div className="flex-1 flex space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowEditModal(false);
-                        setEventToEdit(null);
-                      }}
-                      className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
-                    >
-                      취소
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap text-sm"
-                    >
-                      수정 완료
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    form="edit-event-form"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap text-sm"
+                  >
+                    수정 완료
+                  </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
