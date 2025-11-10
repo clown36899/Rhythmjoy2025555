@@ -1096,8 +1096,38 @@ export default function EventList({
     }
   };
   
-  const handleEditOpenCropForFile = () => {
-    if (editImagePreview) {
+  const handleEditOpenCropForFile = async () => {
+    if (!editImagePreview) return;
+    
+    // Supabase URL인 경우 blob으로 변환 (CORS 문제 해결)
+    if (editImagePreview.startsWith('http')) {
+      try {
+        const blob = await downloadThumbnailAsBlob(editImagePreview);
+        if (!blob) {
+          alert('이미지 로드에 실패했습니다.');
+          return;
+        }
+        
+        // 원본 보관 (최초 편집 시만)
+        if (!editOriginalImageFile) {
+          const file = new File([blob], 'existing-image.jpg', { type: 'image/jpeg' });
+          setEditOriginalImageFile(file);
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setEditOriginalImagePreview(e.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+        
+        const blobUrl = URL.createObjectURL(blob);
+        setEditCropImageUrl(blobUrl);
+        setShowEditCropModal(true);
+      } catch (error) {
+        console.error('이미지 로드 실패:', error);
+        alert('이미지를 불러오는 중 오류가 발생했습니다.');
+      }
+    } else {
+      // data URL인 경우 바로 사용
       setEditCropImageUrl(editImagePreview);
       setShowEditCropModal(true);
     }

@@ -240,6 +240,7 @@ export default function ImageCropModal({
               src={imageUrl}
               alt="크롭할 이미지"
               className="max-w-full max-h-[500px] object-contain"
+              crossOrigin="anonymous"
             />
           </ReactCrop>
         </div>
