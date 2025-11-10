@@ -157,22 +157,25 @@ export default function ImageCropModal({
     
     // 비율에 맞게 크롭 영역 초기화
     if (mode === '9:16') {
+      // 9:16 = width:height, 세로로 긴 형태
       setCrop({
         unit: '%',
-        x: 30,
-        y: 10,
-        width: 40,
-        height: 80,
+        x: 25,
+        y: 5,
+        width: 50,
+        height: 90,
       });
     } else if (mode === '1:1') {
+      // 1:1 정사각형
       setCrop({
         unit: '%',
-        x: 20,
-        y: 25,
-        width: 60,
-        height: 60,
+        x: 15,
+        y: 15,
+        width: 70,
+        height: 70,
       });
     } else {
+      // 자유 비율
       setCrop({
         unit: '%',
         x: 10,
