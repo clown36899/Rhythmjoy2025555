@@ -2744,11 +2744,18 @@ export default function EventList({
                           className="w-full h-48 object-cover rounded-lg"
                         />
                         <div className="absolute top-2 right-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleEditOpenCropForFile}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                          >
+                            <i className="ri-crop-line mr-1"></i>
+                            편집
+                          </button>
                           {isAdminMode && (
                             <button
                               type="button"
                               onClick={() => {
-                                // 썸네일 다운로드
                                 const link = document.createElement('a');
                                 link.href = editImagePreview;
                                 link.download = `thumbnail-${Date.now()}.jpg`;
@@ -3624,6 +3631,18 @@ export default function EventList({
           </div>
         )}
 
+      {/* 이미지 크롭 모달 */}
+      <ImageCropModal
+        isOpen={showEditCropModal}
+        imageUrl={editCropImageUrl}
+        onClose={() => setShowEditCropModal(false)}
+        onCropComplete={handleEditCropComplete}
+        onDiscard={handleEditCropDiscard}
+        onRestoreOriginal={handleEditRestoreOriginal}
+        hasOriginal={!!editOriginalImageFile}
+        fileName="cropped-edit-image.jpg"
+      />
+
       {/* 썸네일 선택 모달 */}
       {showThumbnailSelector && (
         <div
@@ -3653,34 +3672,7 @@ export default function EventList({
                 {thumbnailOptions.map((option, index) => (
                   <div
                     key={index}
-                    onClick={async () => {
-                      try {
-                        const blob = await downloadThumbnailAsBlob(option.url);
-                        if (blob) {
-                          const file = new File([blob], "video-thumbnail.jpg", {
-                            type: "image/jpeg",
-                          });
-                          setEditImageFile(file);
-                          setEditImagePreview(URL.createObjectURL(blob));
-
-                          // 영상 URL은 유지 (빌보드에서 영상 재생, 리스트에서는 썸네일 표시)
-                          // 영상 URL 삭제하지 않음!
-
-                          // 모달 닫기
-                          setShowThumbnailSelector(false);
-                          setThumbnailOptions([]);
-
-                          alert(
-                            "썸네일이 추출되었습니다! 리스트에서는 썸네일이, 빌보드에서는 영상이 표시됩니다.",
-                          );
-                        } else {
-                          alert("썸네일 다운로드에 실패했습니다.");
-                        }
-                      } catch (error) {
-                        console.error("썸네일 다운로드 오류:", error);
-                        alert("썸네일 다운로드 중 오류가 발생했습니다.");
-                      }
-                    }}
+                    onClick={() => handleEditOpenCropForThumbnail(option.url)}
                     className="cursor-pointer group"
                   >
                     <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-800 border-2 border-gray-700 group-hover:border-blue-500 transition-colors">
