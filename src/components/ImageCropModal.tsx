@@ -194,7 +194,7 @@ export default function ImageCropModal({
         }
       }}
     >
-      <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* 헤더 */}
         <div className="sticky top-0 bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-white">
@@ -211,7 +211,7 @@ export default function ImageCropModal({
         </div>
 
         {/* 크롭 영역 */}
-        <div className="px-4 py-4 flex justify-center bg-black">
+        <div className="px-4 py-4 flex justify-center bg-black flex-1">
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
@@ -239,14 +239,14 @@ export default function ImageCropModal({
               ref={imgRef}
               src={imageUrl}
               alt="크롭할 이미지"
-              className="max-w-full max-h-[300px] object-contain"
+              className="max-w-full max-h-full object-contain"
               crossOrigin="anonymous"
             />
           </ReactCrop>
         </div>
 
-        {/* 컨트롤 */}
-        <div className="px-4 py-3">
+        {/* 푸터 */}
+        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 px-4 py-3 space-y-2">
           {/* 비율 선택 */}
           <div className="flex gap-2">
             <button
@@ -283,33 +283,33 @@ export default function ImageCropModal({
               1:1
             </button>
           </div>
-        </div>
-
-        {/* 푸터 */}
-        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 px-4 py-3 flex gap-2">
-          <button
-            onClick={handleCancel}
-            className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
-            disabled={isProcessing}
-          >
-            취소
-          </button>
-          {hasOriginal && onRestoreOriginal && (
+          
+          {/* 액션 버튼 */}
+          <div className="flex gap-2">
             <button
-              onClick={onRestoreOriginal}
-              className="flex-1 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+              onClick={handleCancel}
+              className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
               disabled={isProcessing}
             >
-              원본 되돌리기
+              취소
             </button>
-          )}
-          <button
-            onClick={handleCropConfirm}
-            className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-            disabled={isProcessing}
-          >
-            {isProcessing ? '처리 중...' : '자르기 완료'}
-          </button>
+            {hasOriginal && onRestoreOriginal && (
+              <button
+                onClick={onRestoreOriginal}
+                className="flex-1 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                disabled={isProcessing}
+              >
+                원본 되돌리기
+              </button>
+            )}
+            <button
+              onClick={handleCropConfirm}
+              className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+              disabled={isProcessing}
+            >
+              {isProcessing ? '처리 중...' : '자르기 완료'}
+            </button>
+          </div>
         </div>
       </div>
     </div>,
