@@ -129,7 +129,7 @@ export default function ImageCropModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-90 p-4"
+      className="fixed inset-0 z-[10000001] flex items-center justify-center bg-black bg-opacity-90 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isProcessing) {
           handleCancel();
