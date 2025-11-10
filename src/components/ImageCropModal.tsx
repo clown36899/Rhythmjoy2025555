@@ -17,8 +17,6 @@ async function createCroppedImage(
   pixelCrop: PixelCrop,
   fileName: string
 ): Promise<{ file: File; previewUrl: string }> {
-  console.log('createCroppedImage 호출:', { pixelCrop, imageNaturalSize: { width: image.naturalWidth, height: image.naturalHeight } });
-  
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
@@ -26,58 +24,47 @@ async function createCroppedImage(
     throw new Error('Canvas context not available');
   }
 
-  // 정수로 반올림 (소수점 제거)
-  const cropX = Math.round(pixelCrop.x);
-  const cropY = Math.round(pixelCrop.y);
-  const cropWidth = Math.round(pixelCrop.width);
-  const cropHeight = Math.round(pixelCrop.height);
+  // 정수로 반올림하고 이미지 경계 내로 제한 (clamp)
+  const imgWidth = image.naturalWidth;
+  const imgHeight = image.naturalHeight;
+  
+  const cropX = Math.max(0, Math.min(Math.round(pixelCrop.x), imgWidth - 1));
+  const cropY = Math.max(0, Math.min(Math.round(pixelCrop.y), imgHeight - 1));
+  const cropWidth = Math.max(1, Math.min(Math.round(pixelCrop.width), imgWidth - cropX));
+  const cropHeight = Math.max(1, Math.min(Math.round(pixelCrop.height), imgHeight - cropY));
 
-  // 이미지 경계 검증
-  const maxX = Math.min(cropX + cropWidth, image.naturalWidth);
-  const maxY = Math.min(cropY + cropHeight, image.naturalHeight);
-  const validWidth = maxX - cropX;
-  const validHeight = maxY - cropY;
-
-  if (validWidth <= 0 || validHeight <= 0) {
-    throw new Error('크롭 영역이 이미지 경계를 벗어났습니다.');
-  }
+  console.log('🖼️ 크롭 정보:', {
+    원본이미지: { width: imgWidth, height: imgHeight },
+    크롭영역: { x: cropX, y: cropY, width: cropWidth, height: cropHeight },
+    원본픽셀값: pixelCrop
+  });
 
   // 1080px 최대 크기 제한 (메모리 절약)
   const maxSize = 1080;
-  let width = validWidth;
-  let height = validHeight;
+  let canvasWidth = cropWidth;
+  let canvasHeight = cropHeight;
 
-  if (width > maxSize || height > maxSize) {
-    const ratio = Math.min(maxSize / width, maxSize / height);
-    width = Math.round(width * ratio);
-    height = Math.round(height * ratio);
+  if (canvasWidth > maxSize || canvasHeight > maxSize) {
+    const ratio = Math.min(maxSize / canvasWidth, maxSize / canvasHeight);
+    canvasWidth = Math.round(canvasWidth * ratio);
+    canvasHeight = Math.round(canvasHeight * ratio);
   }
 
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
 
-  console.log('Canvas 크기:', { canvasWidth: canvas.width, canvasHeight: canvas.height });
-  console.log('drawImage 파라미터:', {
-    sx: cropX,
-    sy: cropY,
-    sWidth: validWidth,
-    sHeight: validHeight,
-    dx: 0,
-    dy: 0,
-    dWidth: width,
-    dHeight: height
-  });
+  console.log('🎨 캔버스:', { width: canvasWidth, height: canvasHeight });
 
   ctx.drawImage(
     image,
     cropX,
     cropY,
-    validWidth,
-    validHeight,
+    cropWidth,
+    cropHeight,
     0,
     0,
-    width,
-    height
+    canvasWidth,
+    canvasHeight
   );
 
   return new Promise((resolve, reject) => {
