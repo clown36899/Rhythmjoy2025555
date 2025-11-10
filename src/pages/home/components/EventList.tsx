@@ -986,13 +986,81 @@ export default function EventList({
 
   const deleteEvent = async (eventId: number) => {
     try {
-      const { error } = await supabase
+      // 1. 이벤트 정보를 조회하여 이미지 URL 가져오기 (원본 image 포함)
+      const { data: event, error: fetchError } = await supabase
+        .from("events")
+        .select("image, image_thumbnail, image_medium, image_full")
+        .eq("id", eventId)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching event:", fetchError);
+        alert("이벤트 정보를 불러오는 중 오류가 발생했습니다.");
+        return;
+      }
+
+      // 2. Storage에서 이미지 파일 삭제
+      if (event) {
+        const imagesToDelete: string[] = [];
+
+        // URL에서 Storage 경로 추출 및 디코딩 함수
+        const extractStoragePath = (url: string | null | undefined): string | null => {
+          if (!url) return null;
+          try {
+            // Supabase Storage URL 형식: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
+            const match = url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+?)(\?|$)/);
+            if (!match) return null;
+            
+            // URL 디코딩 (events%2Fthumb.jpg → events/thumb.jpg)
+            const encodedPath = match[1];
+            return decodeURIComponent(encodedPath);
+          } catch (error) {
+            console.error("경로 추출 실패:", url, error);
+            return null;
+          }
+        };
+
+        // 각 이미지 URL에서 경로 추출 (원본 포함 4개)
+        const imagePath = extractStoragePath(event.image);
+        const thumbnailPath = extractStoragePath(event.image_thumbnail);
+        const mediumPath = extractStoragePath(event.image_medium);
+        const fullPath = extractStoragePath(event.image_full);
+
+        // 중복 제거하여 배열에 추가
+        const paths = [imagePath, thumbnailPath, mediumPath, fullPath].filter(
+          (path): path is string => !!path
+        );
+        imagesToDelete.push(...new Set(paths));
+
+        // Storage에서 이미지 삭제
+        if (imagesToDelete.length > 0) {
+          console.log("삭제할 이미지 경로:", imagesToDelete);
+          
+          const { error: storageError } = await supabase.storage
+            .from("event-images")
+            .remove(imagesToDelete);
+
+          if (storageError) {
+            console.error("Storage 이미지 삭제 실패:", storageError);
+            alert(
+              `이미지 파일 삭제 중 오류가 발생했습니다.\n계속 진행하시겠습니까?\n\n오류: ${storageError.message}`
+            );
+            const proceed = confirm("DB에서 이벤트를 삭제하시겠습니까?");
+            if (!proceed) {
+              return;
+            }
+          }
+        }
+      }
+
+      // 3. DB에서 이벤트 삭제
+      const { error: deleteError } = await supabase
         .from("events")
         .delete()
         .eq("id", eventId);
 
-      if (error) {
-        console.error("Error deleting event:", error);
+      if (deleteError) {
+        console.error("Error deleting event:", deleteError);
         alert("이벤트 삭제 중 오류가 발생했습니다.");
       } else {
         alert("이벤트가 삭제되었습니다.");
