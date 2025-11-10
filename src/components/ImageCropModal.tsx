@@ -26,10 +26,26 @@ async function createCroppedImage(
     throw new Error('Canvas context not available');
   }
 
+  // 정수로 반올림 (소수점 제거)
+  const cropX = Math.round(pixelCrop.x);
+  const cropY = Math.round(pixelCrop.y);
+  const cropWidth = Math.round(pixelCrop.width);
+  const cropHeight = Math.round(pixelCrop.height);
+
+  // 이미지 경계 검증
+  const maxX = Math.min(cropX + cropWidth, image.naturalWidth);
+  const maxY = Math.min(cropY + cropHeight, image.naturalHeight);
+  const validWidth = maxX - cropX;
+  const validHeight = maxY - cropY;
+
+  if (validWidth <= 0 || validHeight <= 0) {
+    throw new Error('크롭 영역이 이미지 경계를 벗어났습니다.');
+  }
+
   // 1080px 최대 크기 제한 (메모리 절약)
   const maxSize = 1080;
-  let width = pixelCrop.width;
-  let height = pixelCrop.height;
+  let width = validWidth;
+  let height = validHeight;
 
   if (width > maxSize || height > maxSize) {
     const ratio = Math.min(maxSize / width, maxSize / height);
@@ -42,10 +58,10 @@ async function createCroppedImage(
 
   console.log('Canvas 크기:', { canvasWidth: canvas.width, canvasHeight: canvas.height });
   console.log('drawImage 파라미터:', {
-    sx: pixelCrop.x,
-    sy: pixelCrop.y,
-    sWidth: pixelCrop.width,
-    sHeight: pixelCrop.height,
+    sx: cropX,
+    sy: cropY,
+    sWidth: validWidth,
+    sHeight: validHeight,
     dx: 0,
     dy: 0,
     dWidth: width,
@@ -54,10 +70,10 @@ async function createCroppedImage(
 
   ctx.drawImage(
     image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
+    cropX,
+    cropY,
+    validWidth,
+    validHeight,
     0,
     0,
     width,
@@ -116,14 +132,14 @@ export default function ImageCropModal({
 
   const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '16:9' ? 16 / 9 : 1;
 
-  // % → 픽셀 변환
+  // % → 픽셀 변환 (정수로 반올림)
   const convertToPixelCrop = (percentCrop: Crop, imageWidth: number, imageHeight: number): PixelCrop => {
     return {
       unit: 'px',
-      x: (percentCrop.x * imageWidth) / 100,
-      y: (percentCrop.y * imageHeight) / 100,
-      width: (percentCrop.width * imageWidth) / 100,
-      height: (percentCrop.height * imageHeight) / 100,
+      x: Math.round((percentCrop.x * imageWidth) / 100),
+      y: Math.round((percentCrop.y * imageHeight) / 100),
+      width: Math.round((percentCrop.width * imageWidth) / 100),
+      height: Math.round((percentCrop.height * imageHeight) / 100),
     };
   };
 
