@@ -212,37 +212,39 @@ export default function ImageCropModal({
 
         {/* 크롭 영역 */}
         <div className="px-4 py-4 flex justify-center items-center bg-black" style={{ height: 'calc(90vh - 240px)' }}>
-          <ReactCrop
-            crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={(displayPixelCrop) => {
-              // ReactCrop의 첫 번째 파라미터가 display 기준 픽셀 크롭
-              if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
-                // display 크기 기준 픽셀을 natural 크기로 변환
-                const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-                const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-                
-                const naturalPixelCrop: PixelCrop = {
-                  unit: 'px',
-                  x: displayPixelCrop.x * scaleX,
-                  y: displayPixelCrop.y * scaleY,
-                  width: displayPixelCrop.width * scaleX,
-                  height: displayPixelCrop.height * scaleY,
-                };
-                
-                setCompletedCrop(naturalPixelCrop);
-              }
-            }}
-            aspect={aspectRatio}
-          >
-            <img
-              ref={imgRef}
-              src={imageUrl}
-              alt="크롭할 이미지"
-              className="max-w-full max-h-full object-contain"
-              crossOrigin="anonymous"
-            />
-          </ReactCrop>
+          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ReactCrop
+              crop={crop}
+              onChange={(c) => setCrop(c)}
+              onComplete={(displayPixelCrop) => {
+                // ReactCrop의 첫 번째 파라미터가 display 기준 픽셀 크롭
+                if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
+                  // display 크기 기준 픽셀을 natural 크기로 변환
+                  const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+                  const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+                  
+                  const naturalPixelCrop: PixelCrop = {
+                    unit: 'px',
+                    x: displayPixelCrop.x * scaleX,
+                    y: displayPixelCrop.y * scaleY,
+                    width: displayPixelCrop.width * scaleX,
+                    height: displayPixelCrop.height * scaleY,
+                  };
+                  
+                  setCompletedCrop(naturalPixelCrop);
+                }
+              }}
+              aspect={aspectRatio}
+            >
+              <img
+                ref={imgRef}
+                src={imageUrl}
+                alt="크롭할 이미지"
+                style={{ maxHeight: 'calc(90vh - 240px)', width: 'auto', height: 'auto' }}
+                crossOrigin="anonymous"
+              />
+            </ReactCrop>
+          </div>
         </div>
 
         {/* 푸터 */}
