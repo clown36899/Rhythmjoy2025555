@@ -151,25 +151,70 @@ export default function ImageCropModal({
     onClose();
   };
 
+  // 이미지 크기에 맞는 정확한 비율의 크롭 영역 계산
+  const calculateCropForAspect = (mode: 'free' | '9:16' | '1:1'): Crop => {
+    const img = imgRef.current;
+    if (!img) {
+      // 이미지 로드 전 기본값
+      return { unit: '%', x: 20, y: 20, width: 60, height: 60 };
+    }
+
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+
+    if (mode === 'free') {
+      // 자유 비율: 큰 영역
+      return { unit: '%', x: 10, y: 10, width: 80, height: 80 };
+    }
+
+    // 목표 aspect ratio 계산
+    const targetAspect = mode === '9:16' ? 9 / 16 : 1; // width/height
+
+    // 이미지 중앙에 목표 비율로 크롭 영역 생성
+    let cropWidth: number;
+    let cropHeight: number;
+
+    // 이미지 크기의 70%를 차지하도록 설정
+    if (mode === '9:16') {
+      // 9:16 세로: height 기준
+      cropHeight = imgHeight * 0.7;
+      cropWidth = cropHeight * targetAspect;
+      
+      // 너비가 이미지를 초과하면 width 기준으로 재계산
+      if (cropWidth > imgWidth) {
+        cropWidth = imgWidth * 0.7;
+        cropHeight = cropWidth / targetAspect;
+      }
+    } else {
+      // 1:1: 작은 쪽 기준
+      const minDimension = Math.min(imgWidth, imgHeight);
+      cropWidth = minDimension * 0.7;
+      cropHeight = cropWidth; // 1:1
+    }
+
+    // 중앙 배치를 위한 x, y 계산 (픽셀)
+    const cropX = (imgWidth - cropWidth) / 2;
+    const cropY = (imgHeight - cropHeight) / 2;
+
+    // 픽셀을 퍼센트로 변환
+    return {
+      unit: '%',
+      x: (cropX / imgWidth) * 100,
+      y: (cropY / imgHeight) * 100,
+      width: (cropWidth / imgWidth) * 100,
+      height: (cropHeight / imgHeight) * 100,
+    };
+  };
+
   // 비율 변경 시 크롭 영역 재설정
   const handleAspectRatioChange = (mode: 'free' | '9:16' | '1:1') => {
     setCompletedCrop(undefined);
-    
-    // 1단계: 크롭 초기화
-    setCrop(undefined);
-    
-    // 2단계: aspect ratio 변경
     setAspectRatioMode(mode);
     
-    // 3단계: 다음 렌더 사이클에서 새로운 크롭 영역 설정
+    // 정확한 비율의 크롭 영역 계산 및 설정
     requestAnimationFrame(() => {
-      setCrop({
-        unit: '%',
-        x: 20,
-        y: 20,
-        width: 60,
-        height: 60,
-      });
+      const newCrop = calculateCropForAspect(mode);
+      setCrop(newCrop);
     });
   };
 
