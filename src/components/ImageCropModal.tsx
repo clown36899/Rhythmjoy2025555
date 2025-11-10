@@ -211,7 +211,7 @@ export default function ImageCropModal({
         </div>
 
         {/* 크롭 영역 */}
-        <div className="px-4 py-4 flex justify-center bg-black flex-1">
+        <div className="px-4 py-4 flex justify-center items-center bg-black" style={{ height: 'calc(90vh - 240px)' }}>
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
