@@ -71,6 +71,10 @@ export default function EventRegistrationModal({
   // 이미지 크롭 모달
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropImageUrl, setCropImageUrl] = useState<string>("");
+  
+  // 원본 이미지 보관 (되돌리기용)
+  const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+  const [originalImagePreview, setOriginalImagePreview] = useState<string>("");
 
   // 날짜 선택 모드: 'range' (연속 기간) 또는 'specific' (특정 날짜들)
   const [dateMode, setDateMode] = useState<"range" | "specific">("range");
@@ -150,9 +154,18 @@ export default function EventRegistrationModal({
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
+      // 원본 보관 (최초 선택 시만)
+      if (!originalImageFile) {
+        setOriginalImageFile(file);
+      }
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+        const preview = e.target?.result as string;
+        setImagePreview(preview);
+        // 원본 미리보기 보관 (최초 선택 시만)
+        if (!originalImagePreview) {
+          setOriginalImagePreview(preview);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -174,6 +187,18 @@ export default function EventRegistrationModal({
         alert('썸네일 다운로드에 실패했습니다.');
         return;
       }
+      
+      // 원본 보관 (최초 선택 시만)
+      if (!originalImageFile) {
+        const file = new File([blob], 'youtube-thumbnail.jpg', { type: 'image/jpeg' });
+        setOriginalImageFile(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setOriginalImagePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+      
       const blobUrl = URL.createObjectURL(blob);
       setCropImageUrl(blobUrl);
       setShowCropModal(true);
@@ -203,6 +228,21 @@ export default function EventRegistrationModal({
       URL.revokeObjectURL(cropImageUrl);
     }
     setCropImageUrl('');
+  };
+
+  // 원본으로 되돌리기
+  const handleRestoreOriginal = () => {
+    if (originalImageFile && originalImagePreview) {
+      setImageFile(originalImageFile);
+      setImagePreview(originalImagePreview);
+      setShowCropModal(false);
+      
+      // 크롭 이미지 URL 정리
+      if (cropImageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(cropImageUrl);
+      }
+      setCropImageUrl('');
+    }
   };
 
   const sanitizeFileName = (fileName: string): string => {
@@ -1118,6 +1158,8 @@ export default function EventRegistrationModal({
         onClose={() => setShowCropModal(false)}
         onCropComplete={handleCropComplete}
         onDiscard={handleCropDiscard}
+        onRestoreOriginal={handleRestoreOriginal}
+        hasOriginal={!!originalImageFile}
         fileName="cropped-thumbnail.jpg"
       />
     </>

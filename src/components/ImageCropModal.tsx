@@ -9,6 +9,8 @@ interface ImageCropModalProps {
   onClose: () => void;
   onCropComplete: (croppedFile: File, croppedPreviewUrl: string) => void;
   onDiscard?: () => void;  // 취소 시 호출 (메모리 정리용)
+  onRestoreOriginal?: () => void;  // 원본으로 되돌리기
+  hasOriginal?: boolean;  // 원본이 있는지 여부
   fileName?: string;
 }
 
@@ -103,6 +105,8 @@ export default function ImageCropModal({
   onClose,
   onCropComplete,
   onDiscard,
+  onRestoreOriginal,
+  hasOriginal = false,
   fileName = 'cropped.jpg',
 }: ImageCropModalProps) {
   const imgRef = useRef<HTMLImageElement>(null);
@@ -317,31 +321,45 @@ export default function ImageCropModal({
         </div>
 
         {/* 푸터 */}
-        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 px-6 py-4 flex gap-3 justify-end">
-          <button
-            onClick={handleCancel}
-            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-            disabled={isProcessing}
-          >
-            취소
-          </button>
-          <button
-            onClick={handleCropConfirm}
-            className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <>
-                <i className="ri-loader-4-line animate-spin"></i>
-                처리 중...
-              </>
-            ) : (
-              <>
-                <i className="ri-check-line"></i>
-                자르기 완료
-              </>
+        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 px-6 py-4 flex gap-3 justify-between">
+          <div>
+            {hasOriginal && onRestoreOriginal && (
+              <button
+                onClick={onRestoreOriginal}
+                className="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                disabled={isProcessing}
+              >
+                <i className="ri-refresh-line"></i>
+                원본으로 되돌리기
+              </button>
             )}
-          </button>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleCancel}
+              className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+              disabled={isProcessing}
+            >
+              취소
+            </button>
+            <button
+              onClick={handleCropConfirm}
+              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <i className="ri-loader-4-line animate-spin"></i>
+                  처리 중...
+                </>
+              ) : (
+                <>
+                  <i className="ri-check-line"></i>
+                  자르기 완료
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>,
