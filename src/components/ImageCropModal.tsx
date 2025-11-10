@@ -161,31 +161,32 @@ export default function ImageCropModal({
     // 다음 렌더 사이클에서 크롭 영역 설정 (aspect ratio 적용 후)
     setTimeout(() => {
       if (mode === '9:16') {
-        // 9:16 세로 비율에 맞는 초기 영역
+        // 9:16 세로 비율: width/height = 9/16 = 0.5625
+        // height를 80%로 하면 width는 80 * 9/16 = 45%
         setCrop({
           unit: '%',
-          x: 30,
-          y: 15,
-          width: 40,
-          height: 70,
+          x: 27.5,
+          y: 10,
+          width: 45,
+          height: 80,
         });
       } else if (mode === '1:1') {
-        // 1:1 정사각형
+        // 1:1 정사각형: width = height
         setCrop({
           unit: '%',
-          x: 25,
-          y: 25,
-          width: 50,
-          height: 50,
+          x: 20,
+          y: 20,
+          width: 60,
+          height: 60,
         });
       } else {
         // 자유 비율
         setCrop({
           unit: '%',
-          x: 15,
-          y: 15,
-          width: 70,
-          height: 70,
+          x: 10,
+          y: 10,
+          width: 80,
+          height: 80,
         });
       }
     }, 0);
