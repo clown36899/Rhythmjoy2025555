@@ -86,6 +86,7 @@ export default function HomePage() {
   const [calendarPullStart, setCalendarPullStart] = useState<number | null>(null);
   const [calendarPullDistance, setCalendarPullDistance] = useState(0);
   const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
+  const [dragStartHeight, setDragStartHeight] = useState(0); // 드래그 시작 시점의 높이
   const calendarContentRef = useRef<HTMLDivElement>(null);
   
 
@@ -661,22 +662,11 @@ export default function HomePage() {
       return '500px'; // expanded - 고정 높이 (사용 안 함, auto로 감)
     }
     
-    // 드래그 중: 현재 실제 높이를 기준으로 계산
-    // expanded 상태에서 auto였던 높이를 정확히 가져옴
-    const actualHeight = calendarContentRef.current?.offsetHeight || 0;
-    
-    // 실시간 높이 = 실제 높이 + 드래그한 만큼
-    let currentHeight = actualHeight + calendarPullDistance;
+    // 드래그 중: 시작 시점의 고정된 높이 + 드래그 거리
+    let currentHeight = dragStartHeight + calendarPullDistance;
     
     // 0 이상, fullscreen 높이 이하로 제한
     currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
-    
-    console.log('🎯 getCalendarDragHeight:', {
-      mode: calendarMode,
-      actualHeight,
-      pullDistance: calendarPullDistance.toFixed(0),
-      계산된높이: currentHeight.toFixed(0)
-    });
     
     return `${currentHeight}px`;
   };
@@ -700,16 +690,8 @@ export default function HomePage() {
       console.log('📱 TOUCH START:', {
         Y: touch.clientY,
         mode: calendarMode,
-        isDragging: isDraggingCalendar,
-        target: target.className.substring(0, 50),
-        tagName: target.tagName,
-        isButton: !!isButton,
-        currentActualHeight: currentActualHeight,
-        scrollHeight: calendarContentRef.current?.scrollHeight || 0,
-        stateHeight_collapsed: 0,
-        stateHeight_expanded: 500,
-        stateHeight_fullscreen: fullscreenHeight,
-        문제: currentActualHeight !== 500 && calendarMode === 'expanded' ? '⚠️ expanded인데 500px 아님!' : '정상'
+        시작높이: currentActualHeight,
+        target: target.tagName
       });
       
       // 버튼 터치면 드래그 방지
@@ -720,6 +702,7 @@ export default function HomePage() {
       
       setCalendarPullStart(touch.clientY);
       setCalendarPullDistance(0);
+      setDragStartHeight(currentActualHeight); // 시작 높이 저장!
       setIsDraggingCalendar(true);
     };
 
@@ -731,18 +714,14 @@ export default function HomePage() {
       const touch = e.touches[0];
       const distance = touch.clientY - calendarPullStart;
       
-      const currentHeight = calendarContentRef.current?.offsetHeight || 0;
-      const computedMaxHeight = getCalendarDragHeight();
-      
-      // 상세 로그
-      console.log('👆 TOUCH MOVE:', {
-        distance: distance.toFixed(0),
-        mode: calendarMode,
-        isDragging: isDraggingCalendar,
-        currentActualHeight: currentHeight,
-        computedMaxHeight: computedMaxHeight,
-        pullDistance: calendarPullDistance.toFixed(0)
-      });
+      // 로그 최소화
+      if (Math.abs(distance) % 50 === 0) { // 50px마다 로그
+        console.log('👆 TOUCH MOVE:', {
+          시작높이: dragStartHeight,
+          드래그거리: distance.toFixed(0),
+          계산높이: (dragStartHeight + distance).toFixed(0)
+        });
+      }
       
       setCalendarPullDistance(distance);
     };
@@ -799,6 +778,7 @@ export default function HomePage() {
       setCalendarMode(closestState);
       setCalendarPullStart(null);
       setCalendarPullDistance(0);
+      setDragStartHeight(0);
       setIsDraggingCalendar(false);
     };
 
