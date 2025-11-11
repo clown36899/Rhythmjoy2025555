@@ -1606,7 +1606,7 @@ export default function EventList({
                       }}
                     >
                       {/* 이미지와 제목 오버레이 */}
-                      <div className="relative aspect-[9/12]">
+                      <div className="relative aspect-[3/4]">
                         {(() => {
                           // getEventThumbnail 유틸리티 함수로 최종 썸네일 URL 결정
                           const finalThumbnailUrl = getEventThumbnail(
@@ -1629,7 +1629,7 @@ export default function EventList({
                             // 텍스트 fallback (이미지도 기본 썸네일도 없을 때)
                             return (
                               <div
-                                className="w-full aspect-[9/12] flex items-center justify-center bg-cover bg-center relative"
+                                className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
                                 style={{
                                   backgroundImage: "url(/grunge.png)",
                                 }}
@@ -1829,7 +1829,7 @@ export default function EventList({
                             borderRadius: "0.3rem",
                           }}
                         >
-                          <div className="relative aspect-[9/12]">
+                          <div className="relative aspect-[3/4]">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(
                                 event,
@@ -1863,7 +1863,7 @@ export default function EventList({
                                 );
                               } else {
                                 return (
-                                  <div className="w-full aspect-[9/12] bg-[#000000] flex items-center justify-center">
+                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
                                       {event.category === "class"
                                         ? "강습"
@@ -2005,7 +2005,7 @@ export default function EventList({
                             borderRadius: "0.3rem",
                           }}
                         >
-                          <div className="relative aspect-[9/12]">
+                          <div className="relative aspect-[3/4]">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(
                                 event,
@@ -2039,7 +2039,7 @@ export default function EventList({
                                 );
                               } else {
                                 return (
-                                  <div className="w-full aspect-[9/12] bg-[#000000] flex items-center justify-center">
+                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
                                       {event.category === "class"
                                         ? "강습"
@@ -2164,7 +2164,7 @@ export default function EventList({
                             borderRadius: "0.3rem",
                           }}
                         >
-                          <div className="relative aspect-[9/12]">
+                          <div className="relative aspect-[3/4]">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(
                                 event,
@@ -2198,7 +2198,7 @@ export default function EventList({
                                 );
                               } else {
                                 return (
-                                  <div className="w-full aspect-[9/12] bg-[#000000] flex items-center justify-center">
+                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
                                       {event.category === "class"
                                         ? "강습"
