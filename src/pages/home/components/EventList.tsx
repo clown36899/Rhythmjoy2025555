@@ -1606,7 +1606,7 @@ export default function EventList({
                       }}
                     >
                       {/* 이미지와 제목 오버레이 */}
-                      <div className="relative">
+                      <div className="relative aspect-[9/16]">
                         {(() => {
                           // getEventThumbnail 유틸리티 함수로 최종 썸네일 URL 결정
                           const finalThumbnailUrl = getEventThumbnail(
@@ -1829,7 +1829,7 @@ export default function EventList({
                             borderRadius: "0.3rem",
                           }}
                         >
-                          <div className="relative">
+                          <div className="relative aspect-[9/16]">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(
                                 event,
@@ -2005,7 +2005,7 @@ export default function EventList({
                             borderRadius: "0.3rem",
                           }}
                         >
-                          <div className="relative">
+                          <div className="relative aspect-[9/16]">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(
                                 event,
@@ -2164,7 +2164,7 @@ export default function EventList({
                             borderRadius: "0.3rem",
                           }}
                         >
-                          <div className="relative">
+                          <div className="relative aspect-[9/16]">
                             {(() => {
                               const finalThumbnailUrl = getEventThumbnail(
                                 event,
