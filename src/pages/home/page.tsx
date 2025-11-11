@@ -881,7 +881,12 @@ export default function HomePage() {
         }
       }
       
-      // 로그 제거 (성능 향상)
+      console.log('🎬 스냅 완료:', {
+        finalHeight,
+        targets,
+        closestState,
+        magneticZone
+      });
       
       setCalendarMode(closestState);
       setCalendarPullStart(null);
@@ -1138,8 +1143,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Scrollable Content Area - Events and Footer (독립 스크롤) - fullscreen 모드에서는 숨김 */}
-        <div className={`flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20 ${calendarMode === 'fullscreen' ? 'hidden' : ''}`}>
+        {/* Scrollable Content Area - Events and Footer (독립 스크롤) */}
+        <div 
+          className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20"
+          style={{
+            // 로그: 현재 상태 확인
+            ...(console.log('🎯 이벤트 리스트 렌더링:', {
+              calendarMode,
+              isDragging: isDraggingCalendar,
+              dragHeight: isDraggingCalendar ? dragStartHeight + calendarPullDistance : 'N/A',
+              shouldHide: calendarMode === 'fullscreen'
+            }), {})
+          }}
+        >
           {/* 이벤트 등록 안내 */}
           <div className="p-0 bg-[#222] rounded-none no-select">
             <p className="text-gray-300 text-[13px] text-center no-select">
