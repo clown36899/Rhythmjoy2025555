@@ -902,8 +902,9 @@ export default function HomePage() {
             ref={calendarContentRef}
             className={isDraggingCalendar ? "overflow-hidden" : "transition-all duration-300 ease-in-out overflow-hidden"}
             style={{
-              height: calendarMode === 'fullscreen' && !isDraggingCalendar ? "calc(100dvh - 200px)" : "auto",
-              maxHeight: getCalendarDragHeight(),
+              height: isDraggingCalendar || calendarMode === 'fullscreen' || calendarMode === 'collapsed'
+                ? getCalendarDragHeight()
+                : "auto",
             }}
           >
             <EventCalendar
