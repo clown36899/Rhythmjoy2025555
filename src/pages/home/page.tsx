@@ -687,12 +687,7 @@ export default function HomePage() {
       const currentActualHeight = calendarContentRef.current?.offsetHeight || 0;
       const fullscreenHeight = window.innerHeight - 200;
       
-      console.log('📱 TOUCH START:', {
-        Y: touch.clientY,
-        mode: calendarMode,
-        시작높이: currentActualHeight,
-        target: target.tagName
-      });
+      // 로그 제거 (성능 향상)
       
       // 버튼 터치면 드래그 방지
       if (isButton) {
@@ -714,14 +709,7 @@ export default function HomePage() {
       const touch = e.touches[0];
       const distance = touch.clientY - calendarPullStart;
       
-      // 로그 최소화
-      if (Math.abs(distance) % 50 === 0) { // 50px마다 로그
-        console.log('👆 TOUCH MOVE:', {
-          시작높이: dragStartHeight,
-          드래그거리: distance.toFixed(0),
-          계산높이: (dragStartHeight + distance).toFixed(0)
-        });
-      }
+      // 로그 제거 (성능 향상)
       
       setCalendarPullDistance(distance);
     };
@@ -761,23 +749,7 @@ export default function HomePage() {
         closestState = 'fullscreen';
       }
       
-      console.log('🏁 TOUCH END (스냅 결정):', {
-        시작모드: calendarMode,
-        시작높이: dragStartHeight,
-        드래그거리: calendarPullDistance.toFixed(0),
-        최종높이: finalHeight.toFixed(0),
-        타겟높이: {
-          collapsed: targets.collapsed,
-          expanded: targets.expanded,
-          fullscreen: targets.fullscreen
-        },
-        구간경계: {
-          'collapsed/expanded': boundary1.toFixed(0) + 'px',
-          'expanded/fullscreen': boundary2.toFixed(0) + 'px'
-        },
-        선택된상태: closestState,
-        판단: finalHeight < boundary1 ? 'collapsed 구간' : finalHeight < boundary2 ? 'expanded 구간' : 'fullscreen 구간'
-      });
+      // 로그 제거 (성능 향상)
       
       setCalendarMode(closestState);
       setCalendarPullStart(null);
@@ -894,12 +866,14 @@ export default function HomePage() {
           {/* Calendar - Collapsible */}
           <div
             ref={calendarContentRef}
-            className={isDraggingCalendar ? "overflow-hidden" : "transition-all duration-300 ease-in-out overflow-hidden"}
+            className={isDraggingCalendar ? "overflow-hidden" : "overflow-hidden"}
             style={{
               height: isDraggingCalendar || calendarMode === 'collapsed' || calendarMode === 'fullscreen'
                 ? getCalendarDragHeight()
                 : 'auto',
               maxHeight: calendarMode === 'expanded' && !isDraggingCalendar ? '500px' : undefined,
+              transition: isDraggingCalendar ? 'none' : 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              willChange: isDraggingCalendar ? 'height' : 'auto',
             }}
           >
             <EventCalendar
