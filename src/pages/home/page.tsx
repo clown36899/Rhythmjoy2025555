@@ -675,12 +675,12 @@ export default function HomePage() {
       return;
     }
     
-    // 펼쳐짐 → 전체화면: 50px 이상 아래로 끌어내리기
-    if (calendarMode === 'expanded' && calendarPullDistance > 50) {
+    // 펼쳐짐 → 전체화면: 30px 이상 아래로 끌어내리기
+    if (calendarMode === 'expanded' && calendarPullDistance > 30) {
       setCalendarMode('fullscreen');
     }
-    // 전체화면 → 펼쳐짐: 50px 이상 위로 슬라이드
-    else if (calendarMode === 'fullscreen' && calendarPullDistance < -50) {
+    // 전체화면 → 펼쳐짐: 30px 이상 위로 슬라이드
+    else if (calendarMode === 'fullscreen' && calendarPullDistance < -30) {
       setCalendarMode('expanded');
     }
     
