@@ -650,15 +650,14 @@ export default function HomePage() {
     <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
   );
   
-  // 실시간 달력 높이 계산 (간단 버전)
+  // 실시간 달력 높이 계산
   const getCalendarDragHeight = () => {
-    // 최대 높이는 CSS calc(100dvh - 200px)에 맡기고, JS는 넉넉하게 설정
-    const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight : 1000;
+    const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
     
     if (!isDraggingCalendar) {
       // 드래그 중이 아니면 고정 상태
       if (calendarMode === 'collapsed') return '0px';
-      if (calendarMode === 'fullscreen') return 'calc(100dvh - 200px)';
+      if (calendarMode === 'fullscreen') return `${fullscreenHeight}px`;
       return '500px'; // expanded - 고정 높이
     }
     
@@ -666,14 +665,14 @@ export default function HomePage() {
     const stateHeights = {
       collapsed: 0,
       expanded: 500,
-      fullscreen: fullscreenHeight - 200 // 실제 fullscreen 높이
+      fullscreen: fullscreenHeight
     };
     
     // 실시간 높이 = 기준 높이 + 드래그한 만큼
     let currentHeight = stateHeights[calendarMode] + calendarPullDistance;
     
-    // 0 이상, JS에서는 제한 없음 (CSS가 제한)
-    currentHeight = Math.max(0, currentHeight);
+    // 0 이상, fullscreen 높이 이하로 제한
+    currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
     
     return `${currentHeight}px`;
   };
@@ -902,9 +901,7 @@ export default function HomePage() {
             ref={calendarContentRef}
             className={isDraggingCalendar ? "overflow-hidden" : "transition-all duration-300 ease-in-out overflow-hidden"}
             style={{
-              height: isDraggingCalendar || calendarMode === 'fullscreen' || calendarMode === 'collapsed'
-                ? getCalendarDragHeight()
-                : "auto",
+              height: getCalendarDragHeight(),
             }}
           >
             <EventCalendar
