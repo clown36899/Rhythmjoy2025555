@@ -446,7 +446,14 @@ export default function BillboardPage() {
           attemptCount++;
           setTimeout(attemptPlay, 100);
         } else {
-          console.error(`[슬라이드 전환] Player ${targetIndex} 준비 시간 초과 (5초)`);
+          console.error(`[슬라이드 전환] Player ${targetIndex} 준비 시간 초과 (5초) - fallback으로 이미지 타이머 시작`);
+          // ✅ Fallback: Player 준비 실패 시에도 타이머 시작하여 다음 슬라이드로 전환
+          const currentSettings = settingsRef.current;
+          if (currentSettings) {
+            const fallbackInterval = currentSettings.auto_slide_interval || 5000;
+            console.log(`[Fallback 타이머] 영상 로드 실패, 이미지 타이머로 전환: ${fallbackInterval}ms`);
+            startSlideTimer(fallbackInterval);
+          }
         }
       };
       attemptPlay();
