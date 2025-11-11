@@ -86,6 +86,7 @@ export default function HomePage() {
   const [calendarPullStart, setCalendarPullStart] = useState<number | null>(null);
   const [calendarPullDistance, setCalendarPullDistance] = useState(0);
   const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
+  const calendarContentRef = useRef<HTMLDivElement>(null);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
@@ -648,29 +649,14 @@ export default function HomePage() {
     <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
   );
   
-  // 달력 높이 계산 (실시간 드래그 중)
-  const getCalendarHeight = () => {
-    if (!isDraggingCalendar) {
-      // 드래그 중이 아니면 고정 상태
-      if (calendarMode === 'collapsed') return '0px';
-      if (calendarMode === 'fullscreen') return 'calc(100dvh - 200px)';
-      return '2000px'; // expanded
+  // 달력 실시간 transform 계산
+  const getCalendarTransform = () => {
+    if (!isDraggingCalendar || calendarPullDistance === 0) {
+      return 'translateY(0)';
     }
     
-    // 드래그 중 실시간 높이 계산
-    const baseHeights = {
-      collapsed: 0,
-      expanded: 500, // 대략적인 펼쳐진 높이
-      fullscreen: typeof window !== 'undefined' ? window.innerHeight - 200 : 600
-    };
-    
-    let currentHeight = baseHeights[calendarMode];
-    currentHeight += calendarPullDistance;
-    
-    // 최소/최대 제한
-    currentHeight = Math.max(0, Math.min(currentHeight, baseHeights.fullscreen));
-    
-    return `${currentHeight}px`;
+    // 드래그 중: transform으로 실시간 반응
+    return `translateY(${calendarPullDistance}px)`;
   };
   
   // 달력 끌어내림 제스처 핸들러
@@ -829,10 +815,16 @@ export default function HomePage() {
         >
           {/* Calendar - Collapsible */}
           <div
+            ref={calendarContentRef}
             className={isDraggingCalendar ? "overflow-hidden" : "transition-all duration-300 ease-in-out overflow-hidden"}
             style={{
               height: calendarMode === 'fullscreen' && !isDraggingCalendar ? "calc(100dvh - 200px)" : "auto",
-              maxHeight: getCalendarHeight(),
+              maxHeight: calendarMode === 'collapsed' 
+                ? "0px" 
+                : calendarMode === 'fullscreen' 
+                  ? "calc(100dvh - 200px)" 
+                  : "2000px",
+              transform: getCalendarTransform(),
             }}
           >
             <EventCalendar
