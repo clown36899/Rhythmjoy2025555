@@ -884,12 +884,13 @@ export default function HomePage() {
       // 일반 구간 (기존 로직)
       else {
         const boundary1 = (targets.collapsed + targets.expanded) / 2;
-        const boundary2 = targets.expanded + (targets.fullscreen - targets.expanded) * 0.5; // 30% → 50%로 확대
+        // fullscreen 자석 구간 밖은 모두 expanded로!
+        const boundary2 = targets.fullscreen - bottomMagneticZone; // 405px
         
         if (finalHeight < boundary1) {
           closestState = 'collapsed';
         } else if (finalHeight < boundary2) {
-          closestState = 'expanded';
+          closestState = 'expanded'; // 405px 이하는 모두 expanded!
         } else {
           closestState = 'fullscreen';
         }
