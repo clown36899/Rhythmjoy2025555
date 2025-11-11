@@ -881,16 +881,17 @@ export default function HomePage() {
       else if (finalHeight > targets.fullscreen - bottomMagneticZone) {
         closestState = 'fullscreen';
       }
-      // 일반 구간 (기존 로직)
+      // 일반 구간
       else {
-        const boundary1 = (targets.collapsed + targets.expanded) / 2;
+        // collapsed 자석 구간 바로 다음은 expanded로!
+        const boundary1 = topMagneticZone; // 30px
         // fullscreen 자석 구간 밖은 모두 expanded로!
         const boundary2 = targets.fullscreen - bottomMagneticZone; // 405px
         
-        if (finalHeight < boundary1) {
-          closestState = 'collapsed';
+        if (finalHeight <= boundary1) {
+          closestState = 'collapsed'; // 30px 이하만 collapsed
         } else if (finalHeight < boundary2) {
-          closestState = 'expanded'; // 405px 이하는 모두 expanded!
+          closestState = 'expanded'; // 31~404px는 모두 expanded!
         } else {
           closestState = 'fullscreen';
         }
