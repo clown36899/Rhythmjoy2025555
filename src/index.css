@@ -74,21 +74,21 @@ body, html {
   user-drag: none;
 }
 
-/* 달력 날짜 칸 모바일 터치 타겟 크기 증가 */
+/* 달력 날짜 칸 - 동적 높이 (grid-auto-rows로 제어) */
 .calendar-day-cell {
-  height: 32px;
-  min-height: 32px;
+  /* height는 grid-auto-rows로 제어됨 */
+  min-height: 30px;
   padding: 4px 2px;
   border-right: 1px solid #15151575;
   border-bottom: 1px solid #15151575;
 }
 
-/* 태블릿 이상에서는 원래 크기 유지 */
+/* 태블릿 이상에서는 패딩만 조정 */
 @media (min-width: 650px) {
   .calendar-day-cell {
-    height: 20px;
-    min-height: 20px;
-    padding: 0;
+    /* height는 grid-auto-rows로 제어됨 */
+    min-height: 30px;
+    padding: 2px;
     border-right: 1px solid #15151575;
     border-bottom: 1px solid #15151575;
   }
