@@ -889,18 +889,26 @@ export default function HomePage() {
       }
       // 일반 구간 (중간 자석 효과 적용)
       else {
-        // expanded 주변 자석 구간
+        // expanded 주변 좁은 자석 구간 (중간에서만 위아래로 붙음)
         const expandedLowerBound = targets.expanded - expandedMagneticZone; // 250 - 50 = 200px
         const expandedUpperBound = targets.expanded + expandedMagneticZone; // 250 + 50 = 300px
         
         if (finalHeight <= topMagneticZone) {
-          closestState = 'collapsed'; // 30px 이하
+          closestState = 'collapsed'; // 0~30px만 collapsed
         } else if (finalHeight < expandedLowerBound) {
-          closestState = 'collapsed'; // 31~199px → collapsed로!
+          closestState = 'expanded'; // 31~199px → expanded 유지 (이전처럼!)
         } else if (finalHeight <= expandedUpperBound) {
-          closestState = 'expanded'; // 200~300px만 expanded
+          // 200~300px: 중간 자석 구간
+          // 어디서 왔는지에 따라 판단
+          if (finalHeight < targets.expanded - expandedMagneticZone/2) {
+            closestState = 'collapsed'; // 아래쪽 절반 → collapsed로
+          } else if (finalHeight > targets.expanded + expandedMagneticZone/2) {
+            closestState = 'fullscreen'; // 위쪽 절반 → fullscreen으로
+          } else {
+            closestState = 'expanded'; // 가운데 → expanded 유지
+          }
         } else if (finalHeight < targets.fullscreen - bottomMagneticZone) {
-          closestState = 'fullscreen'; // 301~404px → fullscreen으로!
+          closestState = 'expanded'; // 301~404px → expanded 유지 (이전처럼!)
         } else {
           closestState = 'fullscreen'; // 405px 이상
         }
