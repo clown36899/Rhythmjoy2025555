@@ -994,11 +994,31 @@ export default function HomePage() {
         {/* Calendar Section - Fixed (헤더 아래 고정) */}
         <div
           ref={calendarRef}
-          className={`w-full ${calendarMode === 'fullscreen' ? 'fixed inset-0 z-[50]' : 'flex-shrink-0 z-[15]'}`}
+          className="w-full"
           style={{ 
             backgroundColor: "var(--calendar-bg-color)",
             touchAction: "none",
-            top: calendarMode === 'fullscreen' ? 'var(--header-height, 60px)' : undefined,
+            // 드래그 중 실시간 position 적용
+            position: (calendarMode === 'fullscreen' || 
+                      (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2))) 
+              ? 'fixed' 
+              : 'relative',
+            inset: (calendarMode === 'fullscreen' || 
+                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+              ? '0' 
+              : undefined,
+            top: (calendarMode === 'fullscreen' || 
+                 (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+              ? 'var(--header-height, 60px)' 
+              : undefined,
+            zIndex: (calendarMode === 'fullscreen' || 
+                    (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+              ? 50 
+              : 15,
+            flexShrink: (calendarMode === 'fullscreen' || 
+                        (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+              ? undefined 
+              : 0,
           }}
         >
           {/* Calendar - Collapsible */}
