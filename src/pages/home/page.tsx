@@ -1008,10 +1008,23 @@ export default function HomePage() {
                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2))) 
               ? 'fixed' 
               : 'relative',
+            // top은 항상 0! (헤더는 이미 위에 있음)
             top: (calendarMode === 'fullscreen' || 
                  (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
-              ? 'var(--header-height, 60px)' 
+              ? 0
               : undefined,
+            ...(console.log('📍 달력 position:', {
+              isFixed: (calendarMode === 'fullscreen' || 
+                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250)),
+              position: (calendarMode === 'fullscreen' || 
+                        (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250))
+                ? 'fixed'
+                : 'relative',
+              top: (calendarMode === 'fullscreen' || 
+                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250))
+                ? 0
+                : undefined
+            }), {}),
             left: (calendarMode === 'fullscreen' || 
                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
               ? '0' 
