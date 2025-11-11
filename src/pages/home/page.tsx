@@ -887,30 +887,23 @@ export default function HomePage() {
       else if (finalHeight > targets.fullscreen - bottomMagneticZone) {
         closestState = 'fullscreen';
       }
-      // 일반 구간 (중간 자석 효과 적용)
+      // 일반 구간 - 중간 자석만 좁게, 나머지는 가장 가까운 곳으로!
       else {
-        // expanded 주변 좁은 자석 구간 (중간에서만 위아래로 붙음)
-        const expandedLowerBound = targets.expanded - expandedMagneticZone; // 250 - 50 = 200px
-        const expandedUpperBound = targets.expanded + expandedMagneticZone; // 250 + 50 = 300px
+        // expanded 중간 자석 구간 (매우 좁게!)
+        const expandedLowerBound = targets.expanded - expandedMagneticZone; // 250 - 15 = 235px
+        const expandedUpperBound = targets.expanded + expandedMagneticZone; // 250 + 15 = 265px
         
-        if (finalHeight <= topMagneticZone) {
-          closestState = 'collapsed'; // 0~30px만 collapsed
-        } else if (finalHeight < expandedLowerBound) {
-          closestState = 'expanded'; // 31~199px → expanded 유지 (이전처럼!)
-        } else if (finalHeight <= expandedUpperBound) {
-          // 200~300px: 중간 자석 구간
-          // 어디서 왔는지에 따라 판단
-          if (finalHeight < targets.expanded - expandedMagneticZone/2) {
-            closestState = 'collapsed'; // 아래쪽 절반 → collapsed로
-          } else if (finalHeight > targets.expanded + expandedMagneticZone/2) {
-            closestState = 'fullscreen'; // 위쪽 절반 → fullscreen으로
-          } else {
-            closestState = 'expanded'; // 가운데 → expanded 유지
-          }
-        } else if (finalHeight < targets.fullscreen - bottomMagneticZone) {
-          closestState = 'expanded'; // 301~404px → expanded 유지 (이전처럼!)
-        } else {
-          closestState = 'fullscreen'; // 405px 이상
+        // 중간 자석 구간 안이면 expanded 유지
+        if (finalHeight >= expandedLowerBound && finalHeight <= expandedUpperBound) {
+          closestState = 'expanded'; // 235~265px만 expanded!
+        }
+        // 중간 자석 아래쪽이면 collapsed로 스냅
+        else if (finalHeight < expandedLowerBound) {
+          closestState = 'collapsed'; // 31~234px → collapsed로!
+        }
+        // 중간 자석 위쪽이면 fullscreen으로 스냅
+        else {
+          closestState = 'fullscreen'; // 266~404px → fullscreen으로!
         }
       }
       
