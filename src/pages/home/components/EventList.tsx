@@ -1622,7 +1622,7 @@ export default function EventList({
                                 src={finalThumbnailUrl}
                                 alt={event.title}
                                 loading="lazy"
-                                className="w-full object-cover object-center bg-gray-900"
+                                className="w-full h-full object-cover object-center bg-gray-900"
                               />
                             );
                           } else {
