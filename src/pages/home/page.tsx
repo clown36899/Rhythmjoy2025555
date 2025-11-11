@@ -80,6 +80,7 @@ export default function HomePage() {
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(true);
   //isCalendarCollapsed -> 달력 펼침상태 제어 true | false
   const [searchTerm, setSearchTerm] = useState("");
+  const [isRandomBlinking, setIsRandomBlinking] = useState(false);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
@@ -708,6 +709,11 @@ export default function HomePage() {
             setRefreshTrigger((prev) => prev + 1);
             // 전체 모드로 전환
             navigateWithCategory("all");
+            // 랜덤 버튼 깜빡임 (랜덤 정렬일 때만)
+            if (sortBy === "random") {
+              setIsRandomBlinking(true);
+              setTimeout(() => setIsRandomBlinking(false), 500);
+            }
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
@@ -788,9 +794,12 @@ export default function HomePage() {
               {/* 정렬 버튼 */}
               <button
                 onClick={() => setShowSortModal(true)}
-                className="flex items-center justify-center h-6 gap-1 px-2
-                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                className={`flex items-center justify-center h-6 gap-1 px-2
+                         rounded-lg transition-colors cursor-pointer flex-shrink-0 ${
+                           sortBy === "random" && isRandomBlinking
+                             ? "bg-blue-500 text-white animate-pulse"
+                             : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
+                         }`}
               >
                 <i
                   className={`${getSortIcon()} text-sm leading-none align-middle`}
