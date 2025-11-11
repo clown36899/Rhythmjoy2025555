@@ -1153,19 +1153,25 @@ export default function HomePage() {
           className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20"
           style={{
             // 달력이 fixed일 때 이벤트 리스트 위치 유지
+            // 중요: 250px 고정! (계속 증가하면 안 됨)
             marginTop: (calendarMode === 'fullscreen' || 
                        (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
-              ? `${isDraggingCalendar ? dragStartHeight + calendarPullDistance : (typeof window !== 'undefined' ? window.innerHeight - 200 : 700)}px`
+              ? calendarMode === 'fullscreen'
+                ? `${(typeof window !== 'undefined' ? window.innerHeight - 200 : 700)}px`
+                : '250px' // 드래그 중일 때는 250px 고정!
               : undefined,
             // 로그: 현재 상태 확인
             ...(console.log('🎯 이벤트 리스트 렌더링:', {
               calendarMode,
               isDragging: isDraggingCalendar,
               dragHeight: isDraggingCalendar ? dragStartHeight + calendarPullDistance : 'N/A',
+              threshold: 250,
+              isFixed: (calendarMode === 'fullscreen' || 
+                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250)),
               marginTop: (calendarMode === 'fullscreen' || 
-                         (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
-                ? `${isDraggingCalendar ? dragStartHeight + calendarPullDistance : (typeof window !== 'undefined' ? window.innerHeight - 200 : 700)}px`
-                : 'none'
+                         (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250))
+                ? calendarMode === 'fullscreen' ? 'fullscreen height' : '250px 고정'
+                : 'none (같이 움직임)'
             }), {})
           }}
         >
