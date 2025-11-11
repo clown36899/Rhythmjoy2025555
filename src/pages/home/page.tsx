@@ -80,6 +80,7 @@ export default function HomePage() {
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(true);
   //isCalendarCollapsed -> 달력 펼침상태 제어 true | false
   const [searchTerm, setSearchTerm] = useState("");
+  const [randomBlinkNonce, setRandomBlinkNonce] = useState(0);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
@@ -698,6 +699,9 @@ export default function HomePage() {
             setSelectedDate(null);
             navigateWithCategory("all");
           }}
+          onTriggerRandomBlink={() => {
+            setRandomBlinkNonce((prev) => prev + 1);
+          }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
           onBillboardSettingsOpen={handleBillboardSettingsOpen}
@@ -843,6 +847,7 @@ export default function HomePage() {
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
+              randomBlinkNonce={randomBlinkNonce}
             />
           )}
 

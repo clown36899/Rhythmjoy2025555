@@ -11,6 +11,7 @@ interface HeaderProps {
   currentMonth?: Date;
   onNavigateMonth?: (direction: "prev" | "next") => void;
   onDateChange?: (date: Date) => void;
+  onTriggerRandomBlink?: () => void;
   onAdminModeToggle?: (
     isAdmin: boolean,
     type?: "super" | "sub" | null,
@@ -26,6 +27,7 @@ export default function Header({
   currentMonth,
   onNavigateMonth,
   onDateChange,
+  onTriggerRandomBlink,
   onAdminModeToggle,
   onBillboardOpen,
   onBillboardSettingsOpen,
@@ -126,6 +128,7 @@ export default function Header({
   const handleTodayClick = () => {
     const today = new Date();
     onDateChange?.(today);
+    onTriggerRandomBlink?.();
   };
 
   const handleSettingsClick = () => {

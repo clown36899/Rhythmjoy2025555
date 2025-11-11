@@ -49,6 +49,7 @@ interface EventListProps {
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: () => void;
+  randomBlinkNonce?: number;
 }
 
 export default function EventList({
@@ -76,6 +77,7 @@ export default function EventList({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
+  randomBlinkNonce = 0,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -101,6 +103,7 @@ export default function EventList({
     "random" | "time" | "title" | "newest"
   >("random");
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
+  const [isRandomBlinking, setIsRandomBlinking] = useState(false);
 
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
   const setShowSearchModal =
@@ -183,6 +186,18 @@ export default function EventList({
   useEffect(() => {
     sortedEventsCache.current = {};
   }, [selectedCategory, sortBy, events, currentDay]);
+
+  // 랜덤 버튼 깜빡임 효과 (이번달 버튼 클릭 시)
+  useEffect(() => {
+    if (randomBlinkNonce > 0) {
+      setIsRandomBlinking(true);
+      const timeout = setTimeout(() => {
+        setIsRandomBlinking(false);
+      }, 500); // 500ms 깜빡임
+
+      return () => clearTimeout(timeout);
+    }
+  }, [randomBlinkNonce]);
 
   // 슬라이드 높이 측정 및 업데이트 (애니메이션과 동시에)
   // ⚠️ 높이 자동 조정 기능 비활성화 - 푸터가 올라오는 문제 해결
@@ -2312,27 +2327,34 @@ export default function EventList({
               </div>
 
               <div className="space-y-2">
-                {sortOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() =>
-                      handleSortChange(
-                        option.id as "random" | "time" | "title" | "newest",
-                      )
-                    }
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
-                      sortBy === option.id
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    <i className={`${option.icon} text-lg`}></i>
-                    <span className="font-medium">{option.name}</span>
-                    {sortBy === option.id && (
-                      <i className="ri-check-line text-lg ml-auto"></i>
-                    )}
-                  </button>
-                ))}
+                {sortOptions.map((option) => {
+                  const isRandomOption = option.id === "random";
+                  const shouldBlink = isRandomOption && isRandomBlinking;
+                  
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() =>
+                        handleSortChange(
+                          option.id as "random" | "time" | "title" | "newest",
+                        )
+                      }
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
+                        shouldBlink
+                          ? "bg-blue-500 text-white animate-pulse"
+                          : sortBy === option.id
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      }`}
+                    >
+                      <i className={`${option.icon} text-lg`}></i>
+                      <span className="font-medium">{option.name}</span>
+                      {sortBy === option.id && (
+                        <i className="ri-check-line text-lg ml-auto"></i>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
