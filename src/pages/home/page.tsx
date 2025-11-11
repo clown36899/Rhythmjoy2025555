@@ -862,6 +862,9 @@ export default function HomePage() {
             style={{
               backgroundColor: "var(--calendar-bg-color)",
             }}
+            onTouchStart={handleCalendarTouchStart}
+            onTouchMove={handleCalendarTouchMove}
+            onTouchEnd={handleCalendarTouchEnd}
           >
             <div className="flex items-center gap-2 px-2 py-1">
               {/* 달력 접기/펴기 토글 버튼 */}
