@@ -649,29 +649,32 @@ export default function HomePage() {
     <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
   );
   
-  // 달력 실시간 높이 계산
+  // 실시간 달력 높이 계산 (간단 버전)
   const getCalendarDragHeight = () => {
+    // 최대 높이 (전체화면)
+    const maxHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
+    
     if (!isDraggingCalendar) {
       // 드래그 중이 아니면 고정 상태
       if (calendarMode === 'collapsed') return '0px';
-      if (calendarMode === 'fullscreen') return 'calc(100dvh - 200px)';
-      return '2000px'; // expanded
+      if (calendarMode === 'fullscreen') return `${maxHeight}px`;
+      return '500px'; // expanded - 고정 높이
     }
     
-    // 드래그 중 실시간 높이 계산
-    // 기준 높이 설정
-    const baseHeights = {
+    // 드래그 중: 현재 상태의 높이 + 드래그 거리
+    const stateHeights = {
       collapsed: 0,
       expanded: 500,
-      fullscreen: typeof window !== 'undefined' ? window.innerHeight - 200 : 700
+      fullscreen: maxHeight
     };
     
-    let targetHeight = baseHeights[calendarMode] + calendarPullDistance;
+    // 실시간 높이 = 기준 높이 + 드래그한 만큼
+    let currentHeight = stateHeights[calendarMode] + calendarPullDistance;
     
-    // 최소 0, 최대 fullscreen 높이로 제한
-    targetHeight = Math.max(0, Math.min(targetHeight, baseHeights.fullscreen));
+    // 0 ~ 최대 높이 사이로 제한
+    currentHeight = Math.max(0, Math.min(currentHeight, maxHeight));
     
-    return `${targetHeight}px`;
+    return `${currentHeight}px`;
   };
   
   // 달력 끌어내림 제스처 핸들러
@@ -698,38 +701,40 @@ export default function HomePage() {
       return;
     }
     
-    // 스냅: 가장 가까운 상태로 전환
-    const absDistance = Math.abs(calendarPullDistance);
+    // 현재 실제 높이 계산
+    const maxHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
+    const stateHeights = {
+      collapsed: 0,
+      expanded: 500,
+      fullscreen: maxHeight
+    };
     
-    if (absDistance < 30) {
-      // 너무 작으면 현재 상태 유지 - 상태 초기화는 먼저
-      setCalendarPullStart(null);
-      setCalendarPullDistance(0);
-      setIsDraggingCalendar(false);
-      return;
+    let finalHeight = stateHeights[calendarMode] + calendarPullDistance;
+    finalHeight = Math.max(0, Math.min(finalHeight, maxHeight));
+    
+    // 가장 가까운 상태로 스냅
+    const distances = {
+      collapsed: Math.abs(finalHeight - 0),
+      expanded: Math.abs(finalHeight - 500),
+      fullscreen: Math.abs(finalHeight - maxHeight)
+    };
+    
+    // 가장 가까운 상태 찾기
+    let closestState: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
+    let minDistance = distances.collapsed;
+    
+    if (distances.expanded < minDistance) {
+      closestState = 'expanded';
+      minDistance = distances.expanded;
+    }
+    if (distances.fullscreen < minDistance) {
+      closestState = 'fullscreen';
     }
     
-    // 접힘 → 펼쳐짐: 30px 이상 아래로 끌어내리기
-    if (calendarMode === 'collapsed' && calendarPullDistance > 30) {
-      setCalendarMode('expanded');
-    }
-    // 펼쳐짐 상태
-    else if (calendarMode === 'expanded') {
-      // 펼쳐짐 → 전체화면: 30px 이상 아래로 끌어내리기
-      if (calendarPullDistance > 30) {
-        setCalendarMode('fullscreen');
-      }
-      // 펼쳐짐 → 접힘: 30px 이상 위로 슬라이드
-      else if (calendarPullDistance < -30) {
-        setCalendarMode('collapsed');
-      }
-    }
-    // 전체화면 → 펼쳐짐: 30px 이상 위로 슬라이드
-    else if (calendarMode === 'fullscreen' && calendarPullDistance < -30) {
-      setCalendarMode('expanded');
-    }
+    // 상태 변경
+    setCalendarMode(closestState);
     
-    // 상태 초기화는 마지막에
+    // 초기화
     setCalendarPullStart(null);
     setCalendarPullDistance(0);
     setIsDraggingCalendar(false);
