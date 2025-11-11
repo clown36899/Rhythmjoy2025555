@@ -87,6 +87,9 @@ export default function HomePage() {
   const [calendarPullDistance, setCalendarPullDistance] = useState(0);
   const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
   const calendarContentRef = useRef<HTMLDivElement>(null);
+  
+  // 디버그 정보
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
@@ -683,6 +686,7 @@ export default function HomePage() {
     setCalendarPullStart(touch.clientY);
     setCalendarPullDistance(0);
     setIsDraggingCalendar(true);
+    setDebugInfo(`START: Y=${touch.clientY.toFixed(0)} mode=${calendarMode}`);
   };
   
   const handleCalendarTouchMove = (e: React.TouchEvent) => {
@@ -693,11 +697,23 @@ export default function HomePage() {
     
     // 모든 상태에서 제스처 감지 - 실시간 업데이트
     setCalendarPullDistance(distance);
+    
+    const maxHeight = window.innerHeight - 200;
+    const stateHeights = {
+      collapsed: 0,
+      expanded: 500,
+      fullscreen: maxHeight
+    };
+    let currentHeight = stateHeights[calendarMode] + distance;
+    currentHeight = Math.max(0, Math.min(currentHeight, maxHeight));
+    
+    setDebugInfo(`MOVE: dist=${distance.toFixed(0)}px, height=${currentHeight.toFixed(0)}px, mode=${calendarMode}`);
   };
   
   const handleCalendarTouchEnd = () => {
     if (calendarPullStart === null) {
       setIsDraggingCalendar(false);
+      setDebugInfo('END: no start');
       return;
     }
     
@@ -730,6 +746,8 @@ export default function HomePage() {
     if (distances.fullscreen < minDistance) {
       closestState = 'fullscreen';
     }
+    
+    setDebugInfo(`END: ${calendarMode}→${closestState}, final=${finalHeight.toFixed(0)}px`);
     
     // 상태 변경
     setCalendarMode(closestState);
@@ -820,6 +838,13 @@ export default function HomePage() {
           billboardEnabled={settings.enabled}
         />
       </div>
+
+      {/* 디버그 정보 표시 */}
+      {debugInfo && (
+        <div className="fixed top-16 left-0 right-0 z-50 bg-black/80 text-white text-xs p-2 font-mono">
+          {debugInfo}
+        </div>
+      )}
 
       {/* Mobile Layout - Sticky Calendar, Scrollable Events */}
       <div className="flex-1 flex flex-col overflow-hidden">
