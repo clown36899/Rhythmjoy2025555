@@ -81,6 +81,8 @@ export default function HomePage() {
   // calendarMode -> 달력 3단계 상태: collapsed (접힘) / expanded (펼쳐짐) / fullscreen (전체화면)
   const [searchTerm, setSearchTerm] = useState("");
   const [isRandomBlinking, setIsRandomBlinking] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(60); // 헤더 높이 (기본 60px)
+  const headerRef = useRef<HTMLDivElement>(null);
   
   // 달력 끌어내림 제스처 상태
   const [calendarPullStart, setCalendarPullStart] = useState<number | null>(null);
@@ -127,6 +129,15 @@ export default function HomePage() {
         cancelAnimationFrame(dragAnimationRef.current);
       }
     };
+  }, []);
+  
+  // 헤더 높이 측정
+  useEffect(() => {
+    if (headerRef.current) {
+      const height = headerRef.current.offsetHeight;
+      setHeaderHeight(height);
+      console.log('📏 헤더 높이 측정:', height);
+    }
   }, []);
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
@@ -919,6 +930,7 @@ export default function HomePage() {
     >
       {/* Fixed Header for all screens */}
       <div
+        ref={headerRef}
         className="flex-shrink-0 w-full z-30 border-b border-[#22262a]"
         style={{ backgroundColor: "var(--header-bg-color)" }}
       >
@@ -1008,10 +1020,10 @@ export default function HomePage() {
                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2))) 
               ? 'fixed' 
               : 'relative',
-            // top은 항상 0! (헤더는 이미 위에 있음)
+            // top은 헤더 높이만큼!
             top: (calendarMode === 'fullscreen' || 
                  (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
-              ? 0
+              ? `${headerHeight}px`
               : undefined,
             ...(console.log('📍 달력 position:', {
               isFixed: (calendarMode === 'fullscreen' || 
@@ -1022,8 +1034,9 @@ export default function HomePage() {
                 : 'relative',
               top: (calendarMode === 'fullscreen' || 
                    (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250))
-                ? 0
-                : undefined
+                ? `${headerHeight}px`
+                : undefined,
+              headerHeight
             }), {}),
             left: (calendarMode === 'fullscreen' || 
                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
