@@ -936,11 +936,20 @@ export default function HomePage() {
               <button
                 onClick={() => {
                   // 3단계 순환: collapsed → expanded → collapsed
-                  setCalendarMode(prev => 
-                    prev === 'collapsed' ? 'expanded' : 
-                    prev === 'fullscreen' ? 'expanded' : 
-                    'collapsed'
-                  );
+                  setCalendarMode(prev => {
+                    const nextMode = 
+                      prev === 'collapsed' ? 'expanded' : 
+                      prev === 'fullscreen' ? 'expanded' : 
+                      'collapsed';
+                    
+                    console.log('🔘 버튼 클릭:', {
+                      이전모드: prev,
+                      다음모드: nextMode,
+                      현재높이: calendarContentRef.current?.offsetHeight || 0
+                    });
+                    
+                    return nextMode;
+                  });
                 }}
                 // 중복된 배경색 클래스를 제거하고 buttonBgClass만 적용하여
                 // '이벤트 등록' 상태(달력 접힘)일 때 파란색 배경이 적용되도록 합니다.
