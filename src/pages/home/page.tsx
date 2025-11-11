@@ -866,7 +866,7 @@ export default function HomePage() {
       
       // 자석 효과 구간 조정
       const topMagneticZone = 80; // 최상단 자석 구간 (collapsed)
-      const bottomMagneticZone = 120; // 최하단 자석 구간 (fullscreen) - 더 넓게!
+      const bottomMagneticZone = 40; // 최하단 자석 구간 (fullscreen) - 살짝만 올려도 중간으로!
       
       // 구간 기반 스냅 (자석 효과 추가)
       let closestState: 'collapsed' | 'expanded' | 'fullscreen';
