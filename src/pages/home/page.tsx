@@ -683,6 +683,13 @@ export default function HomePage() {
   // 달력 끌어내림 제스처 핸들러
   const handleCalendarTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
+    console.log('📱 TOUCH START:', {
+      Y: touch.clientY,
+      mode: calendarMode,
+      isDragging: isDraggingCalendar,
+      target: e.target
+    });
+    
     setCalendarPullStart(touch.clientY);
     setCalendarPullDistance(0);
     setIsDraggingCalendar(true);
@@ -690,13 +697,13 @@ export default function HomePage() {
   };
   
   const handleCalendarTouchMove = (e: React.TouchEvent) => {
-    if (calendarPullStart === null) return;
+    if (calendarPullStart === null) {
+      console.log('⚠️ TOUCH MOVE: no start point');
+      return;
+    }
     
     const touch = e.touches[0];
     const distance = touch.clientY - calendarPullStart;
-    
-    // 모든 상태에서 제스처 감지 - 실시간 업데이트
-    setCalendarPullDistance(distance);
     
     const maxHeight = window.innerHeight - 200;
     const stateHeights = {
@@ -707,11 +714,21 @@ export default function HomePage() {
     let currentHeight = stateHeights[calendarMode] + distance;
     currentHeight = Math.max(0, Math.min(currentHeight, maxHeight));
     
+    console.log('👆 TOUCH MOVE:', {
+      distance: distance.toFixed(0),
+      currentHeight: currentHeight.toFixed(0),
+      mode: calendarMode,
+      isDragging: isDraggingCalendar
+    });
+    
+    // 모든 상태에서 제스처 감지 - 실시간 업데이트
+    setCalendarPullDistance(distance);
     setDebugInfo(`MOVE: dist=${distance.toFixed(0)}px, height=${currentHeight.toFixed(0)}px, mode=${calendarMode}`);
   };
   
   const handleCalendarTouchEnd = () => {
     if (calendarPullStart === null) {
+      console.log('⚠️ TOUCH END: no start point');
       setIsDraggingCalendar(false);
       setDebugInfo('END: no start');
       return;
@@ -746,6 +763,18 @@ export default function HomePage() {
     if (distances.fullscreen < minDistance) {
       closestState = 'fullscreen';
     }
+    
+    console.log('🏁 TOUCH END:', {
+      fromMode: calendarMode,
+      toMode: closestState,
+      finalHeight: finalHeight.toFixed(0),
+      pullDistance: calendarPullDistance.toFixed(0),
+      distances: {
+        toCollapsed: distances.collapsed.toFixed(0),
+        toExpanded: distances.expanded.toFixed(0),
+        toFullscreen: distances.fullscreen.toFixed(0)
+      }
+    });
     
     setDebugInfo(`END: ${calendarMode}→${closestState}, final=${finalHeight.toFixed(0)}px`);
     
