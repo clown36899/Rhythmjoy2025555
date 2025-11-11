@@ -698,6 +698,17 @@ export default function HomePage() {
             setSelectedDate(null);
             navigateWithCategory("all");
           }}
+          onResetToToday={() => {
+            // 이번달로 이동
+            const today = new Date();
+            setCurrentMonth(today);
+            // 날짜 선택 해제
+            setSelectedDate(null);
+            // 강제 리프레시 (랜덤 정렬 재실행)
+            setRefreshTrigger((prev) => prev + 1);
+            // 전체 모드로 전환
+            navigateWithCategory("all");
+          }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
           onBillboardSettingsOpen={handleBillboardSettingsOpen}
