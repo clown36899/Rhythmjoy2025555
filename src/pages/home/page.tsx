@@ -678,112 +678,116 @@ export default function HomePage() {
     return `${currentHeight}px`;
   };
   
-  // 달력 끌어내림 제스처 핸들러
-  const handleCalendarTouchStart = (e: React.TouchEvent) => {
-    e.stopPropagation(); // 이벤트 버블링 방지
-    const touch = e.touches[0];
-    console.log('📱 TOUCH START:', {
-      Y: touch.clientY,
-      mode: calendarMode,
-      isDragging: isDraggingCalendar,
-      target: (e.target as HTMLElement).className
-    });
-    
-    setCalendarPullStart(touch.clientY);
-    setCalendarPullDistance(0);
-    setIsDraggingCalendar(true);
-  };
-  
-  const handleCalendarTouchMove = (e: React.TouchEvent) => {
-    if (calendarPullStart === null) {
-      console.log('⚠️ TOUCH MOVE: no start point');
-      return;
-    }
-    
-    e.stopPropagation(); // 이벤트 버블링 방지
-    e.preventDefault(); // 기본 스크롤 동작 차단
-    const touch = e.touches[0];
-    const distance = touch.clientY - calendarPullStart;
-    
-    const maxHeight = window.innerHeight - 200;
-    const stateHeights = {
-      collapsed: 0,
-      expanded: 500,
-      fullscreen: maxHeight
+  // 네이티브 DOM 이벤트 리스너 등록 (passive: false 필수)
+  useEffect(() => {
+    const calendarElement = calendarRef.current;
+    if (!calendarElement) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      e.stopPropagation();
+      const touch = e.touches[0];
+      console.log('📱 TOUCH START:', {
+        Y: touch.clientY,
+        mode: calendarMode,
+        isDragging: isDraggingCalendar,
+        target: (e.target as HTMLElement).className
+      });
+      
+      setCalendarPullStart(touch.clientY);
+      setCalendarPullDistance(0);
+      setIsDraggingCalendar(true);
     };
-    let currentHeight = stateHeights[calendarMode] + distance;
-    currentHeight = Math.max(0, Math.min(currentHeight, maxHeight));
-    
-    console.log('👆 TOUCH MOVE:', {
-      distance: distance.toFixed(0),
-      currentHeight: currentHeight.toFixed(0),
-      mode: calendarMode,
-      isDragging: isDraggingCalendar
-    });
-    
-    // 모든 상태에서 제스처 감지 - 실시간 업데이트
-    setCalendarPullDistance(distance);
-  };
-  
-  const handleCalendarTouchEnd = (e?: React.TouchEvent) => {
-    if (e) e.stopPropagation(); // 이벤트 버블링 방지
-    
-    if (calendarPullStart === null) {
-      console.log('⚠️ TOUCH END: no start point');
-      setIsDraggingCalendar(false);
-      return;
-    }
-    
-    // 현재 실제 높이 계산
-    const maxHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
-    const stateHeights = {
-      collapsed: 0,
-      expanded: 500,
-      fullscreen: maxHeight
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (calendarPullStart === null) return;
+      
+      e.stopPropagation();
+      e.preventDefault(); // passive: false 덕분에 작동함
+      const touch = e.touches[0];
+      const distance = touch.clientY - calendarPullStart;
+      
+      const maxHeight = window.innerHeight - 200;
+      const stateHeights = {
+        collapsed: 0,
+        expanded: 500,
+        fullscreen: maxHeight
+      };
+      let currentHeight = stateHeights[calendarMode] + distance;
+      currentHeight = Math.max(0, Math.min(currentHeight, maxHeight));
+      
+      console.log('👆 TOUCH MOVE:', {
+        distance: distance.toFixed(0),
+        currentHeight: currentHeight.toFixed(0),
+        mode: calendarMode,
+        isDragging: isDraggingCalendar
+      });
+      
+      setCalendarPullDistance(distance);
     };
-    
-    let finalHeight = stateHeights[calendarMode] + calendarPullDistance;
-    finalHeight = Math.max(0, Math.min(finalHeight, maxHeight));
-    
-    // 가장 가까운 상태로 스냅
-    const distances = {
-      collapsed: Math.abs(finalHeight - 0),
-      expanded: Math.abs(finalHeight - 500),
-      fullscreen: Math.abs(finalHeight - maxHeight)
-    };
-    
-    // 가장 가까운 상태 찾기
-    let closestState: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
-    let minDistance = distances.collapsed;
-    
-    if (distances.expanded < minDistance) {
-      closestState = 'expanded';
-      minDistance = distances.expanded;
-    }
-    if (distances.fullscreen < minDistance) {
-      closestState = 'fullscreen';
-    }
-    
-    console.log('🏁 TOUCH END:', {
-      fromMode: calendarMode,
-      toMode: closestState,
-      finalHeight: finalHeight.toFixed(0),
-      pullDistance: calendarPullDistance.toFixed(0),
-      distances: {
-        toCollapsed: distances.collapsed.toFixed(0),
-        toExpanded: distances.expanded.toFixed(0),
-        toFullscreen: distances.fullscreen.toFixed(0)
+
+    const handleTouchEnd = () => {
+      if (calendarPullStart === null) {
+        console.log('⚠️ TOUCH END: no start point');
+        setIsDraggingCalendar(false);
+        return;
       }
-    });
-    
-    // 상태 변경
-    setCalendarMode(closestState);
-    
-    // 초기화
-    setCalendarPullStart(null);
-    setCalendarPullDistance(0);
-    setIsDraggingCalendar(false);
-  };
+      
+      const maxHeight = window.innerHeight - 200;
+      const stateHeights = {
+        collapsed: 0,
+        expanded: 500,
+        fullscreen: maxHeight
+      };
+      
+      let finalHeight = stateHeights[calendarMode] + calendarPullDistance;
+      finalHeight = Math.max(0, Math.min(finalHeight, maxHeight));
+      
+      const distances = {
+        collapsed: Math.abs(finalHeight - 0),
+        expanded: Math.abs(finalHeight - 500),
+        fullscreen: Math.abs(finalHeight - maxHeight)
+      };
+      
+      let closestState: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
+      let minDistance = distances.collapsed;
+      
+      if (distances.expanded < minDistance) {
+        closestState = 'expanded';
+        minDistance = distances.expanded;
+      }
+      if (distances.fullscreen < minDistance) {
+        closestState = 'fullscreen';
+      }
+      
+      console.log('🏁 TOUCH END:', {
+        fromMode: calendarMode,
+        toMode: closestState,
+        finalHeight: finalHeight.toFixed(0),
+        pullDistance: calendarPullDistance.toFixed(0),
+        distances: {
+          toCollapsed: distances.collapsed.toFixed(0),
+          toExpanded: distances.expanded.toFixed(0),
+          toFullscreen: distances.fullscreen.toFixed(0)
+        }
+      });
+      
+      setCalendarMode(closestState);
+      setCalendarPullStart(null);
+      setCalendarPullDistance(0);
+      setIsDraggingCalendar(false);
+    };
+
+    // passive: false로 등록 (preventDefault 가능하도록)
+    calendarElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+    calendarElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    calendarElement.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      calendarElement.removeEventListener('touchstart', handleTouchStart);
+      calendarElement.removeEventListener('touchmove', handleTouchMove);
+      calendarElement.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [calendarMode, calendarPullStart, isDraggingCalendar, calendarPullDistance]);
 
   return (
     <div
@@ -877,9 +881,6 @@ export default function HomePage() {
             backgroundColor: "var(--calendar-bg-color)",
             touchAction: "none"
           }}
-          onTouchStart={handleCalendarTouchStart}
-          onTouchMove={handleCalendarTouchMove}
-          onTouchEnd={handleCalendarTouchEnd}
         >
           {/* Calendar - Collapsible */}
           <div
@@ -916,9 +917,6 @@ export default function HomePage() {
               backgroundColor: "var(--calendar-bg-color)",
               touchAction: "none"
             }}
-            onTouchStart={handleCalendarTouchStart}
-            onTouchMove={handleCalendarTouchMove}
-            onTouchEnd={handleCalendarTouchEnd}
           >
             <div className="flex items-center gap-2 px-2 py-1">
               {/* 달력 접기/펴기 토글 버튼 */}
