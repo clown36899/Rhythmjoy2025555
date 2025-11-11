@@ -147,36 +147,18 @@ export function MobileShell() {
             }}
           >
             <div className="flex items-center gap-2">
-              {/* 강습 버튼 */}
+              {/* 행사 버튼 (앞으로 이동) */}
               <button
                 onClick={() => {
-                  if (category === 'class') {
-                    handleCategoryChange('event'); // 강습 끄고 행사만
+                  // 독립 토글: 행사 켜기/끄기
+                  if (category === 'all') {
+                    handleCategoryChange('class'); // 둘 다 켜짐 → 강습만
                   } else if (category === 'event') {
-                    handleCategoryChange('all'); // 둘 다 켜기
-                  } else {
-                    handleCategoryChange('event'); // all → 강습 끄기
-                  }
-                }}
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
-                  category === 'class' || category === 'all'
-                    ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                    : 'bg-gray-700/30 border-gray-600 text-gray-400'
-                }`}
-              >
-                <span>강습 {eventCounts.class}</span>
-                <i className={`${category === 'class' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
-              </button>
-              
-              {/* 행사 버튼 */}
-              <button
-                onClick={() => {
-                  if (category === 'event') {
-                    handleCategoryChange('class'); // 행사 끄고 강습만
+                    handleCategoryChange('none'); // 행사만 → 둘 다 끔
                   } else if (category === 'class') {
-                    handleCategoryChange('all'); // 둘 다 켜기
+                    handleCategoryChange('all'); // 강습만 → 둘 다 켬
                   } else {
-                    handleCategoryChange('class'); // all → 행사 끄기
+                    handleCategoryChange('event'); // 둘 다 꺼짐 → 행사만
                   }
                 }}
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
@@ -187,6 +169,30 @@ export function MobileShell() {
               >
                 <span>행사 {eventCounts.event}</span>
                 <i className={`${category === 'event' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
+              </button>
+              
+              {/* 강습 버튼 */}
+              <button
+                onClick={() => {
+                  // 독립 토글: 강습 켜기/끄기
+                  if (category === 'all') {
+                    handleCategoryChange('event'); // 둘 다 켜짐 → 행사만
+                  } else if (category === 'class') {
+                    handleCategoryChange('none'); // 강습만 → 둘 다 끔
+                  } else if (category === 'event') {
+                    handleCategoryChange('all'); // 행사만 → 둘 다 켬
+                  } else {
+                    handleCategoryChange('class'); // 둘 다 꺼짐 → 강습만
+                  }
+                }}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                  category === 'class' || category === 'all'
+                    ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                    : 'bg-gray-700/30 border-gray-600 text-gray-400'
+                }`}
+              >
+                <span>강습 {eventCounts.class}</span>
+                <i className={`${category === 'class' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
             </div>
             

@@ -623,9 +623,11 @@ export default function EventList({
   // 필터링된 이벤트 (useMemo로 캐싱하여 불필요한 재필터링 방지)
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
-      // 카테고리 필터
+      // 카테고리 필터 (none이면 모두 필터링하여 빈 리스트)
       const matchesCategory =
-        selectedCategory === "all" || event.category === selectedCategory;
+        selectedCategory === "none"
+          ? false
+          : selectedCategory === "all" || event.category === selectedCategory;
 
       // 검색어 필터
       const matchesSearch =
@@ -769,7 +771,9 @@ export default function EventList({
     const filterByMonth = (targetMonth: Date) => {
       return events.filter((event) => {
         const matchesCategory =
-          selectedCategory === "all" || event.category === selectedCategory;
+          selectedCategory === "none"
+            ? false
+            : selectedCategory === "all" || event.category === selectedCategory;
 
         const startDate = event.start_date || event.date;
         const endDate = event.end_date || event.date;
