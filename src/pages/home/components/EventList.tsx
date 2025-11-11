@@ -1622,7 +1622,7 @@ export default function EventList({
                                 src={finalThumbnailUrl}
                                 alt={event.title}
                                 loading="lazy"
-                                className="w-full aspect-[9/16] object-contain object-top bg-gray-900"
+                                className="w-full object-contain object-top bg-gray-900"
                               />
                             );
                           } else {
@@ -1848,7 +1848,7 @@ export default function EventList({
                                       src={finalThumbnailUrl}
                                       alt={event.title}
                                       loading="lazy"
-                                      className="w-full aspect-[9/16] object-contain object-top bg-gray-900"
+                                      className="w-full object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -2024,7 +2024,7 @@ export default function EventList({
                                       src={finalThumbnailUrl}
                                       alt={event.title}
                                       loading="lazy"
-                                      className="w-full aspect-[9/16] object-contain object-top bg-gray-900"
+                                      className="w-full object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -2183,7 +2183,7 @@ export default function EventList({
                                       src={finalThumbnailUrl}
                                       alt={event.title}
                                       loading="lazy"
-                                      className="w-full aspect-[9/16] object-contain object-top bg-gray-900"
+                                      className="w-full object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
