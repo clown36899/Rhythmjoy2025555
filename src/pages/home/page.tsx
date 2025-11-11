@@ -828,13 +828,18 @@ export default function HomePage() {
         const bottomMagneticZone = 40;
         const fullscreenZoneStart = fullscreenHeight - bottomMagneticZone;
         
-        let zone = '';
-        if (targetHeight < 30) zone = '🔵 collapsed 자석 구간';
-        else if (targetHeight > fullscreenZoneStart) zone = '🔴 fullscreen 자석 구간';
-        else if (targetHeight < expandedThreshold) zone = 'collapsed~expanded 사이';
-        else zone = 'expanded~fullscreen 사이';
+        const expandedMagneticZone = 50;
+        const expandedLowerBound = expandedThreshold - expandedMagneticZone;
+        const expandedUpperBound = expandedThreshold + expandedMagneticZone;
         
-        console.log(`📊 [${targetHeight.toFixed(0)}px] ${zone} | collapsed구간: 0~30px | fullscreen구간: ${fullscreenZoneStart}~${fullscreenHeight}px`);
+        let zone = '';
+        if (targetHeight < 30) zone = '🔵 collapsed 자석';
+        else if (targetHeight < expandedLowerBound) zone = '→ collapsed로 스냅';
+        else if (targetHeight <= expandedUpperBound) zone = '🟢 expanded 유지';
+        else if (targetHeight < fullscreenZoneStart) zone = '→ fullscreen으로 스냅';
+        else zone = '🔴 fullscreen 자석';
+        
+        console.log(`📊 [${targetHeight.toFixed(0)}px] ${zone} | 🔵0~30 🟢${expandedLowerBound}~${expandedUpperBound} 🔴${fullscreenZoneStart}~${fullscreenHeight}`);
         
         // DOM 직접 조작 (리렌더링 없음!)
         if (calendarContentRef.current) {
@@ -869,6 +874,7 @@ export default function HomePage() {
       // 자석 효과 구간 조정
       const topMagneticZone = 30; // 최상단 자석 구간 (collapsed) - 조금만 내려도 중간으로!
       const bottomMagneticZone = 40; // 최하단 자석 구간 (fullscreen) - 살짝만 올려도 중간으로!
+      const expandedMagneticZone = 50; // 중간 자석 구간 - 중간에서 조금만 벗어나도 위아래로!
       
       // 구간 기반 스냅 (자석 효과 추가)
       let closestState: 'collapsed' | 'expanded' | 'fullscreen';
@@ -881,19 +887,22 @@ export default function HomePage() {
       else if (finalHeight > targets.fullscreen - bottomMagneticZone) {
         closestState = 'fullscreen';
       }
-      // 일반 구간
+      // 일반 구간 (중간 자석 효과 적용)
       else {
-        // collapsed 자석 구간 바로 다음은 expanded로!
-        const boundary1 = topMagneticZone; // 30px
-        // fullscreen 자석 구간 밖은 모두 expanded로!
-        const boundary2 = targets.fullscreen - bottomMagneticZone; // 405px
+        // expanded 주변 자석 구간
+        const expandedLowerBound = targets.expanded - expandedMagneticZone; // 250 - 50 = 200px
+        const expandedUpperBound = targets.expanded + expandedMagneticZone; // 250 + 50 = 300px
         
-        if (finalHeight <= boundary1) {
-          closestState = 'collapsed'; // 30px 이하만 collapsed
-        } else if (finalHeight < boundary2) {
-          closestState = 'expanded'; // 31~404px는 모두 expanded!
+        if (finalHeight <= topMagneticZone) {
+          closestState = 'collapsed'; // 30px 이하
+        } else if (finalHeight < expandedLowerBound) {
+          closestState = 'collapsed'; // 31~199px → collapsed로!
+        } else if (finalHeight <= expandedUpperBound) {
+          closestState = 'expanded'; // 200~300px만 expanded
+        } else if (finalHeight < targets.fullscreen - bottomMagneticZone) {
+          closestState = 'fullscreen'; // 301~404px → fullscreen으로!
         } else {
-          closestState = 'fullscreen';
+          closestState = 'fullscreen'; // 405px 이상
         }
       }
       
