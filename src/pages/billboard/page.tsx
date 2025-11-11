@@ -656,6 +656,9 @@ export default function BillboardPage() {
   }, [loadBillboardData]);
 
   // 슬라이드 전환 시 이미지 타이머 설정 (영상은 playVideo()에서 타이머 시작)
+  // 현재 슬라이드의 영상 로드 상태만 추적 (전체 videoLoadedMap이 아님 → 불필요한 재실행 방지)
+  const currentVideoLoaded = !!videoLoadedMap[currentIndex];
+  
   useEffect(() => {
     if (!settings || events.length === 0) return;
     
@@ -670,7 +673,7 @@ export default function BillboardPage() {
       startSlideTimer(slideInterval);
     } else {
       // 영상 슬라이드: 이미 재생 중이면 타이머 재시작 (데이터 새로고침 후 타이머 손실 방지)
-      if (videoLoadedMap[currentIndex]) {
+      if (currentVideoLoaded) {
         const slideInterval = settings.video_play_duration || 10000;
         console.log(`[슬라이드 ${currentIndex}] 영상 이미 재생 중 - 타이머 재시작: ${slideInterval}ms`);
         startSlideTimer(slideInterval);
@@ -686,7 +689,7 @@ export default function BillboardPage() {
         slideTimerRef.current = null;
       }
     };
-  }, [events, settings, currentIndex, startSlideTimer, videoLoadedMap]);
+  }, [events, settings, currentIndex, startSlideTimer, currentVideoLoaded]);
 
   // 로딩/에러/빈 화면
   if (isLoading) {
