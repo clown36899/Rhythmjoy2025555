@@ -82,12 +82,15 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isRandomBlinking, setIsRandomBlinking] = useState(false);
   
-  // 달력 끌어내림 제스처 상태
-  const [calendarPullStart, setCalendarPullStart] = useState<number | null>(null);
-  const [calendarPullDistance, setCalendarPullDistance] = useState(0);
-  const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
-  const [dragStartHeight, setDragStartHeight] = useState(0); // 드래그 시작 시점의 높이
+  // 달력 끌어내림 제스처 상태 (ref로 최적화 - 리렌더링 방지)
   const calendarContentRef = useRef<HTMLDivElement>(null);
+  const dragStateRef = useRef({
+    isDragging: false,
+    startY: 0,
+    startHeight: 0,
+    currentTranslateY: 0,
+  });
+  const rafRef = useRef<number | null>(null);
   
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
