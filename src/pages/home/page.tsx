@@ -81,6 +81,7 @@ export default function HomePage() {
   //isCalendarCollapsed -> 달력 펼침상태 제어 true | false
   const [searchTerm, setSearchTerm] = useState("");
   const [randomBlinkNonce, setRandomBlinkNonce] = useState(0);
+  const [isRandomBlinking, setIsRandomBlinking] = useState(false);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
@@ -201,6 +202,18 @@ export default function HomePage() {
       window.removeEventListener("clearSelectedDate", handleClearDate);
     };
   }, []);
+
+  // 랜덤 버튼 깜빡임 효과 (이번달 버튼 클릭 시)
+  useEffect(() => {
+    if (randomBlinkNonce > 0) {
+      setIsRandomBlinking(true);
+      const timeout = setTimeout(() => {
+        setIsRandomBlinking(false);
+      }, 500);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [randomBlinkNonce]);
 
   // 검색 시작 시 호출되는 콜백
   const handleSearchStart = () => {
@@ -700,11 +713,7 @@ export default function HomePage() {
             navigateWithCategory("all");
           }}
           onTriggerRandomBlink={() => {
-            console.log('🟢 HomePage - randomBlinkNonce 증가 전:', randomBlinkNonce);
-            setRandomBlinkNonce((prev) => {
-              console.log('🟢 HomePage - randomBlinkNonce 증가:', prev, '→', prev + 1);
-              return prev + 1;
-            });
+            setRandomBlinkNonce((prev) => prev + 1);
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
@@ -785,9 +794,12 @@ export default function HomePage() {
               {/* 정렬 버튼 */}
               <button
                 onClick={() => setShowSortModal(true)}
-                className="flex items-center justify-center h-6 gap-1 px-2
-                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                className={`flex items-center justify-center h-6 gap-1 px-2
+                         rounded-lg transition-colors cursor-pointer flex-shrink-0 ${
+                           sortBy === "random" && isRandomBlinking
+                             ? "bg-blue-500 text-white animate-pulse"
+                             : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
+                         }`}
               >
                 <i
                   className={`${getSortIcon()} text-sm leading-none align-middle`}
@@ -851,7 +863,6 @@ export default function HomePage() {
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
-              randomBlinkNonce={randomBlinkNonce}
             />
           )}
 

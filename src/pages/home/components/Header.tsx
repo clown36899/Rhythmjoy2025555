@@ -128,7 +128,6 @@ export default function Header({
   const handleTodayClick = () => {
     const today = new Date();
     onDateChange?.(today);
-    console.log('🔵 이번달 버튼 클릭 - onTriggerRandomBlink 호출');
     onTriggerRandomBlink?.();
   };
 
