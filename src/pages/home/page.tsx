@@ -829,12 +829,12 @@ export default function HomePage() {
         const fullscreenZoneStart = fullscreenHeight - bottomMagneticZone;
         
         let zone = '';
-        if (targetHeight < 80) zone = 'collapsed 자석 구간';
+        if (targetHeight < 30) zone = '🔵 collapsed 자석 구간';
         else if (targetHeight > fullscreenZoneStart) zone = '🔴 fullscreen 자석 구간';
         else if (targetHeight < expandedThreshold) zone = 'collapsed~expanded 사이';
         else zone = 'expanded~fullscreen 사이';
         
-        console.log(`📊 [${targetHeight.toFixed(0)}px] ${zone} | fullscreen구간: ${fullscreenZoneStart}px~${fullscreenHeight}px`);
+        console.log(`📊 [${targetHeight.toFixed(0)}px] ${zone} | collapsed구간: 0~30px | fullscreen구간: ${fullscreenZoneStart}~${fullscreenHeight}px`);
         
         // DOM 직접 조작 (리렌더링 없음!)
         if (calendarContentRef.current) {
@@ -867,7 +867,7 @@ export default function HomePage() {
       };
       
       // 자석 효과 구간 조정
-      const topMagneticZone = 80; // 최상단 자석 구간 (collapsed)
+      const topMagneticZone = 30; // 최상단 자석 구간 (collapsed) - 조금만 내려도 중간으로!
       const bottomMagneticZone = 40; // 최하단 자석 구간 (fullscreen) - 살짝만 올려도 중간으로!
       
       // 구간 기반 스냅 (자석 효과 추가)
