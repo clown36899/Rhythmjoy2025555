@@ -786,11 +786,11 @@ export default function HomePage() {
           <div
             className="transition-all duration-300 ease-in-out overflow-hidden"
             style={{
-              height: calendarMode === 'fullscreen' ? "calc(100vh - 200px)" : "auto",
+              height: calendarMode === 'fullscreen' ? "calc(100dvh - 200px)" : "auto",
               maxHeight: calendarMode === 'collapsed' 
                 ? "0px" 
                 : calendarMode === 'fullscreen' 
-                  ? "calc(100vh - 200px)" 
+                  ? "calc(100dvh - 200px)" 
                   : "2000px",
             }}
           >
