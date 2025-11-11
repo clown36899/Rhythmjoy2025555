@@ -663,10 +663,9 @@ export default function HomePage() {
     const touch = e.touches[0];
     const distance = touch.clientY - calendarPullStart;
     
-    // 아래로 끌어내림만 감지 (distance > 0)
-    if (distance > 0) {
-      setCalendarPullDistance(distance);
-    }
+    // 펼쳐짐: 아래로 끌어내림 감지 (distance > 0)
+    // 전체화면: 위로 슬라이드 감지 (distance < 0)
+    setCalendarPullDistance(distance);
   };
   
   const handleCalendarTouchEnd = () => {
@@ -676,13 +675,13 @@ export default function HomePage() {
       return;
     }
     
-    // 50px 이상 끌어내리면 전환
-    if (calendarPullDistance > 50) {
-      if (calendarMode === 'expanded') {
-        setCalendarMode('fullscreen');
-      } else if (calendarMode === 'fullscreen') {
-        setCalendarMode('expanded');
-      }
+    // 펼쳐짐 → 전체화면: 50px 이상 아래로 끌어내리기
+    if (calendarMode === 'expanded' && calendarPullDistance > 50) {
+      setCalendarMode('fullscreen');
+    }
+    // 전체화면 → 펼쳐짐: 50px 이상 위로 슬라이드
+    else if (calendarMode === 'fullscreen' && calendarPullDistance < -50) {
+      setCalendarMode('expanded');
     }
     
     setCalendarPullStart(null);
