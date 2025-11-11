@@ -686,12 +686,27 @@ export default function HomePage() {
     const handleTouchStart = (e: TouchEvent) => {
       e.stopPropagation();
       const touch = e.touches[0];
+      const target = e.target as HTMLElement;
+      
+      // 버튼 클릭과 충돌 방지
+      const isButton = target.closest('button');
+      
       console.log('📱 TOUCH START:', {
         Y: touch.clientY,
         mode: calendarMode,
         isDragging: isDraggingCalendar,
-        target: (e.target as HTMLElement).className
+        target: target.className,
+        tagName: target.tagName,
+        isButton: !!isButton,
+        currentHeight: calendarContentRef.current?.offsetHeight || 0,
+        scrollHeight: calendarContentRef.current?.scrollHeight || 0
       });
+      
+      // 버튼 터치면 드래그 방지
+      if (isButton) {
+        console.log('🚫 버튼 터치 - 드래그 비활성화');
+        return;
+      }
       
       setCalendarPullStart(touch.clientY);
       setCalendarPullDistance(0);
@@ -706,11 +721,17 @@ export default function HomePage() {
       const touch = e.touches[0];
       const distance = touch.clientY - calendarPullStart;
       
-      // JS에서는 제한 없이, CSS가 maxHeight를 제한함
+      const currentHeight = calendarContentRef.current?.offsetHeight || 0;
+      const computedMaxHeight = getCalendarDragHeight();
+      
+      // 상세 로그
       console.log('👆 TOUCH MOVE:', {
         distance: distance.toFixed(0),
         mode: calendarMode,
-        isDragging: isDraggingCalendar
+        isDragging: isDraggingCalendar,
+        currentActualHeight: currentHeight,
+        computedMaxHeight: computedMaxHeight,
+        pullDistance: calendarPullDistance.toFixed(0)
       });
       
       setCalendarPullDistance(distance);
@@ -755,6 +776,9 @@ export default function HomePage() {
         toMode: closestState,
         finalHeight: finalHeight.toFixed(0),
         pullDistance: calendarPullDistance.toFixed(0),
+        fullscreenHeight: fullscreenHeight.toFixed(0),
+        windowInnerHeight: window.innerHeight,
+        actualContentHeight: calendarContentRef.current?.offsetHeight || 0,
         distances: {
           toCollapsed: distances.collapsed.toFixed(0),
           toExpanded: distances.expanded.toFixed(0),
