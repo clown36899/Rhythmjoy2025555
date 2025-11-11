@@ -874,14 +874,36 @@ export default function HomePage() {
       // 자석 효과 구간 조정 (3개 구간 모두 독립적!)
       const topMagneticZone = 30; // 최상단 자석: 0~30px만 collapsed
       const bottomMagneticZone = 40; // 최하단 자석: 405~445px만 fullscreen
-      const expandedMagneticZone = 10; // 중간 자석: 240~260px만 expanded (매우 좁게!)
+      
+      // 방향 기반 마그네틱! (시작 위치에 따라 다름)
+      const expandedNarrowZone = 10; // 중간에서 시작: 좁은 마그네틱 (쉽게 나감)
+      const expandedWideZone = 50; // 위/아래에서 시작: 넓은 마그네틱 (쉽게 들어옴)
+      
+      // 시작 위치 판단
+      const startState = dragStartHeight <= topMagneticZone ? 'collapsed' 
+                       : dragStartHeight >= targets.fullscreen - bottomMagneticZone ? 'fullscreen'
+                       : 'expanded';
+      
+      // 시작 위치에 따라 마그네틱 구간 조정
+      let expandedLowerBound, expandedUpperBound;
+      if (startState === 'collapsed') {
+        // 위에서 시작 → 아래쪽 마그네틱 넓게 (쉽게 들어옴)
+        expandedLowerBound = targets.expanded - expandedWideZone; // 250 - 50 = 200px
+        expandedUpperBound = targets.expanded + expandedNarrowZone; // 250 + 10 = 260px
+      } else if (startState === 'fullscreen') {
+        // 아래에서 시작 → 위쪽 마그네틱 넓게 (쉽게 들어옴)
+        expandedLowerBound = targets.expanded - expandedNarrowZone; // 250 - 10 = 240px
+        expandedUpperBound = targets.expanded + expandedWideZone; // 250 + 50 = 300px
+      } else {
+        // 중간에서 시작 → 좁은 마그네틱 (쉽게 나감!)
+        expandedLowerBound = targets.expanded - expandedNarrowZone; // 250 - 10 = 240px
+        expandedUpperBound = targets.expanded + expandedNarrowZone; // 250 + 10 = 260px
+      }
+      
+      const fullscreenLowerBound = targets.fullscreen - bottomMagneticZone; // 445 - 40 = 405px
       
       // 3개 구간 독립적으로 작동 (각자의 마그네틱 구간만!)
       let closestState: 'collapsed' | 'expanded' | 'fullscreen';
-      
-      const expandedLowerBound = targets.expanded - expandedMagneticZone; // 250 - 10 = 240px
-      const expandedUpperBound = targets.expanded + expandedMagneticZone; // 250 + 10 = 260px
-      const fullscreenLowerBound = targets.fullscreen - bottomMagneticZone; // 445 - 40 = 405px
       
       // 1. 최상단 자석: 0~30px → collapsed
       if (finalHeight <= topMagneticZone) {
