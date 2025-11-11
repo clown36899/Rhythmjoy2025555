@@ -89,6 +89,8 @@ export default function HomePage() {
   const [calendarPullDistance, setCalendarPullDistance] = useState(0);
   const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
   const [dragStartHeight, setDragStartHeight] = useState(0);
+  const [lastTouchY, setLastTouchY] = useState<number | null>(null);
+  const [lastTouchTime, setLastTouchTime] = useState<number | null>(null);
   const calendarContentRef = useRef<HTMLDivElement>(null);
   
   // Transform 기반 최적화용 ref
@@ -803,6 +805,8 @@ export default function HomePage() {
       setCalendarPullDistance(0);
       setDragStartHeight(currentActualHeight); // 시작 높이 저장!
       setIsDraggingCalendar(true);
+      setLastTouchY(touch.clientY);
+      setLastTouchTime(Date.now());
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -848,6 +852,8 @@ export default function HomePage() {
         
         // 최종 스냅을 위해 state는 유지
         setCalendarPullDistance(distance);
+        setLastTouchY(touch.clientY);
+        setLastTouchTime(Date.now());
       });
     };
 
@@ -871,65 +877,47 @@ export default function HomePage() {
         fullscreen: fullscreenHeight
       };
       
-      // 자석 효과 구간 조정 (3개 구간 모두 독립적!)
-      const topMagneticZone = 30; // 최상단 자석: 0~30px만 collapsed
-      const bottomMagneticZone = 40; // 최하단 자석: 405~445px만 fullscreen
+      // 🎯 Hysteresis 기반 상태 전환 로직 (현재 상태에 따라 다른 임계값!)
+      let nextState: 'collapsed' | 'expanded' | 'fullscreen';
       
-      // 방향 기반 마그네틱! (시작 위치에 따라 다름)
-      const expandedNarrowZone = 10; // 중간에서 시작: 좁은 마그네틱 (쉽게 나감)
-      const expandedWideZone = 50; // 위/아래에서 시작: 넓은 마그네틱 (쉽게 들어옴)
-      
-      // 시작 위치 판단
-      const startState = dragStartHeight <= topMagneticZone ? 'collapsed' 
-                       : dragStartHeight >= targets.fullscreen - bottomMagneticZone ? 'fullscreen'
-                       : 'expanded';
-      
-      // 시작 위치에 따라 마그네틱 구간 조정
-      let expandedLowerBound, expandedUpperBound;
-      if (startState === 'collapsed') {
-        // 위에서 시작 → 아래쪽 마그네틱 넓게 (쉽게 들어옴)
-        expandedLowerBound = targets.expanded - expandedWideZone; // 250 - 50 = 200px
-        expandedUpperBound = targets.expanded + expandedNarrowZone; // 250 + 10 = 260px
-      } else if (startState === 'fullscreen') {
-        // 아래에서 시작 → 위쪽 마그네틱 넓게 (쉽게 들어옴)
-        expandedLowerBound = targets.expanded - expandedNarrowZone; // 250 - 10 = 240px
-        expandedUpperBound = targets.expanded + expandedWideZone; // 250 + 50 = 300px
-      } else {
-        // 중간에서 시작 → 좁은 마그네틱 (쉽게 나감!)
-        expandedLowerBound = targets.expanded - expandedNarrowZone; // 250 - 10 = 240px
-        expandedUpperBound = targets.expanded + expandedNarrowZone; // 250 + 10 = 260px
+      // 현재 상태가 collapsed일 때
+      if (calendarMode === 'collapsed') {
+        if (finalHeight <= 35) {
+          nextState = 'collapsed'; // 0~35px: collapsed 유지
+        } else if (finalHeight <= 230) {
+          nextState = 'expanded'; // 36~230px: expanded 진입! (조금만 내려도!)
+        } else if (finalHeight <= 405) {
+          nextState = 'expanded'; // 231~405px: expanded
+        } else {
+          nextState = 'fullscreen'; // 406px~: fullscreen
+        }
       }
-      
-      const fullscreenLowerBound = targets.fullscreen - bottomMagneticZone; // 445 - 40 = 405px
-      
-      // 3개 구간 독립적으로 작동 (각자의 마그네틱 구간만!)
-      let closestState: 'collapsed' | 'expanded' | 'fullscreen';
-      
-      // 1. 최상단 자석: 0~30px → collapsed
-      if (finalHeight <= topMagneticZone) {
-        closestState = 'collapsed';
+      // 현재 상태가 expanded일 때
+      else if (calendarMode === 'expanded') {
+        if (finalHeight <= 230) {
+          nextState = 'collapsed'; // 0~230px: collapsed로 탈출! (조금만 올려도!)
+        } else if (finalHeight <= 265) {
+          nextState = 'expanded'; // 231~265px: expanded 유지 (좁은 구간!)
+        } else if (finalHeight <= 405) {
+          nextState = 'fullscreen'; // 266~405px: fullscreen으로 탈출! (조금만 내려도!)
+        } else {
+          nextState = 'fullscreen'; // 406px~: fullscreen
+        }
       }
-      // 2. 중간 자석: 240~260px → expanded (매우 좁음!)
-      else if (finalHeight >= expandedLowerBound && finalHeight <= expandedUpperBound) {
-        closestState = 'expanded';
-      }
-      // 3. 최하단 자석: 405~445px → fullscreen
-      else if (finalHeight >= fullscreenLowerBound) {
-        closestState = 'fullscreen';
-      }
-      // 4. 나머지 구간: 위아래 가까운 쪽으로!
-      else if (finalHeight < expandedLowerBound) {
-        // 31~239px → collapsed로 스냅 (collapsed가 더 가까움)
-        closestState = 'collapsed';
-      }
+      // 현재 상태가 fullscreen일 때
       else {
-        // 261~404px → fullscreen으로 스냅 (fullscreen이 더 가까움)
-        closestState = 'fullscreen';
+        if (finalHeight <= 230) {
+          nextState = 'collapsed'; // 0~230px: collapsed
+        } else if (finalHeight <= 405) {
+          nextState = 'expanded'; // 231~405px: expanded 진입! (조금만 올려도!)
+        } else {
+          nextState = 'fullscreen'; // 406px~: fullscreen 유지
+        }
       }
       
-      // 로그 제거 (드래그 중 로그가 더 유용함)
+      console.log(`🎯 [${finalHeight.toFixed(0)}px] ${calendarMode} → ${nextState}`);
       
-      setCalendarMode(closestState);
+      setCalendarMode(nextState);
       setCalendarPullStart(null);
       setCalendarPullDistance(0);
       setDragStartHeight(0);
