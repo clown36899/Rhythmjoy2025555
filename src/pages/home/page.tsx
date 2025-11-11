@@ -652,9 +652,8 @@ export default function HomePage() {
   
   // 실시간 달력 높이 계산 (간단 버전)
   const getCalendarDragHeight = () => {
-    // 최대 높이 (전체화면)
+    // 최대 높이 (전체화면) - 실제 화면 높이
     const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
-    const maxAllowedHeight = Math.max(500, fullscreenHeight); // expanded(500) 또는 fullscreen 중 큰 값
     
     if (!isDraggingCalendar) {
       // 드래그 중이 아니면 고정 상태
@@ -673,8 +672,8 @@ export default function HomePage() {
     // 실시간 높이 = 기준 높이 + 드래그한 만큼
     let currentHeight = stateHeights[calendarMode] + calendarPullDistance;
     
-    // 0 ~ 최대 높이 사이로 제한
-    currentHeight = Math.max(0, Math.min(currentHeight, maxAllowedHeight));
+    // 0 ~ fullscreen 높이까지 실시간으로 따라옴
+    currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
     
     return `${currentHeight}px`;
   };
@@ -708,14 +707,14 @@ export default function HomePage() {
       const distance = touch.clientY - calendarPullStart;
       
       const fullscreenHeight = window.innerHeight - 200;
-      const maxAllowedHeight = Math.max(500, fullscreenHeight); // expanded(500) 또는 fullscreen 중 큰 값
       const stateHeights = {
         collapsed: 0,
         expanded: 500,
         fullscreen: fullscreenHeight
       };
       let currentHeight = stateHeights[calendarMode] + distance;
-      currentHeight = Math.max(0, Math.min(currentHeight, maxAllowedHeight));
+      // 0부터 fullscreen 높이까지 실시간으로 따라옴
+      currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
       
       console.log('👆 TOUCH MOVE:', {
         distance: distance.toFixed(0),
