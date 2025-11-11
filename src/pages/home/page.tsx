@@ -649,34 +649,32 @@ export default function HomePage() {
   
   // 달력 끌어내림 제스처 핸들러
   const handleCalendarTouchStart = (e: React.TouchEvent) => {
-    // expanded 또는 fullscreen 상태일 때만 작동
-    if (calendarMode === 'collapsed') return;
-    
     const touch = e.touches[0];
     setCalendarPullStart(touch.clientY);
     setCalendarPullDistance(0);
   };
   
   const handleCalendarTouchMove = (e: React.TouchEvent) => {
-    if (calendarPullStart === null || calendarMode === 'collapsed') return;
+    if (calendarPullStart === null) return;
     
     const touch = e.touches[0];
     const distance = touch.clientY - calendarPullStart;
     
-    // 펼쳐짐: 아래로 끌어내림 감지 (distance > 0)
-    // 전체화면: 위로 슬라이드 감지 (distance < 0)
+    // 모든 상태에서 제스처 감지
     setCalendarPullDistance(distance);
   };
   
   const handleCalendarTouchEnd = () => {
-    if (calendarMode === 'collapsed') {
-      setCalendarPullStart(null);
-      setCalendarPullDistance(0);
+    if (calendarPullStart === null) {
       return;
     }
     
+    // 접힘 → 펼쳐짐: 30px 이상 아래로 끌어내리기
+    if (calendarMode === 'collapsed' && calendarPullDistance > 30) {
+      setCalendarMode('expanded');
+    }
     // 펼쳐짐 → 전체화면: 30px 이상 아래로 끌어내리기
-    if (calendarMode === 'expanded' && calendarPullDistance > 30) {
+    else if (calendarMode === 'expanded' && calendarPullDistance > 30) {
       setCalendarMode('fullscreen');
     }
     // 전체화면 → 펼쳐짐: 30px 이상 위로 슬라이드
