@@ -739,35 +739,25 @@ export default function HomePage() {
       let finalHeight = dragStartHeight + calendarPullDistance;
       finalHeight = Math.max(0, Math.min(finalHeight, fullscreenHeight));
       
-      // expanded 타겟은 실제 콘텐츠 높이로 (최대 500px)
-      const contentHeight = calendarContentRef.current?.scrollHeight || 0;
-      const expandedTarget = Math.min(contentHeight, 500);
-      
-      // 3개 타겟 높이 (동적 계산)
+      // 3단계 타겟 높이 (고정)
       const targets = {
         collapsed: 0,
-        expanded: expandedTarget, // 실제 콘텐츠 높이!
+        expanded: Math.min(250, fullscreenHeight / 2), // 중간 또는 250px
         fullscreen: fullscreenHeight
       };
       
-      // 각 타겟까지의 거리 계산
-      const distances = {
-        collapsed: Math.abs(finalHeight - targets.collapsed),
-        expanded: Math.abs(finalHeight - targets.expanded),
-        fullscreen: Math.abs(finalHeight - targets.fullscreen)
-      };
+      // 구간별 경계점 (각 타겟의 중간점)
+      const boundary1 = (targets.collapsed + targets.expanded) / 2; // 0과 expanded 중간
+      const boundary2 = (targets.expanded + targets.fullscreen) / 2; // expanded와 fullscreen 중간
       
-      // 가장 가까운 타겟 찾기
-      let closestState: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
-      let minDistance = distances.collapsed;
-      
-      if (distances.expanded < minDistance) {
+      // 구간 기반 스냅 (더 직관적)
+      let closestState: 'collapsed' | 'expanded' | 'fullscreen';
+      if (finalHeight < boundary1) {
+        closestState = 'collapsed';
+      } else if (finalHeight < boundary2) {
         closestState = 'expanded';
-        minDistance = distances.expanded;
-      }
-      if (distances.fullscreen < minDistance) {
+      } else {
         closestState = 'fullscreen';
-        minDistance = distances.fullscreen;
       }
       
       console.log('🏁 TOUCH END (스냅 결정):', {
@@ -777,16 +767,15 @@ export default function HomePage() {
         최종높이: finalHeight.toFixed(0),
         타겟높이: {
           collapsed: targets.collapsed,
-          expanded: targets.expanded + ' (콘텐츠높이)',
+          expanded: targets.expanded,
           fullscreen: targets.fullscreen
         },
-        각타겟까지거리: {
-          toCollapsed: distances.collapsed.toFixed(0) + 'px',
-          toExpanded: distances.expanded.toFixed(0) + 'px',
-          toFullscreen: distances.fullscreen.toFixed(0) + 'px'
+        구간경계: {
+          'collapsed/expanded': boundary1.toFixed(0) + 'px',
+          'expanded/fullscreen': boundary2.toFixed(0) + 'px'
         },
         선택된상태: closestState,
-        가장가까운거리: minDistance.toFixed(0) + 'px'
+        판단: finalHeight < boundary1 ? 'collapsed 구간' : finalHeight < boundary2 ? 'expanded 구간' : 'fullscreen 구간'
       });
       
       setCalendarMode(closestState);
