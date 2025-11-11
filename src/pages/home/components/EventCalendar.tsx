@@ -551,7 +551,7 @@ export default function EventCalendar({
               {day.getDate()}
             </span>
 
-            {/* 단일 이벤트 개수 표시 - 우상단 절대 위치 */}
+            {/* 단일 이벤트 표시 - 크기에 따라 숫자 또는 바 */}
             {singleDayEvents.length > 0 &&
               (() => {
                 // 호버된 이벤트가 이 날짜의 단일 이벤트인지 확인
@@ -560,26 +560,61 @@ export default function EventCalendar({
                   hoveredEventId !== null &&
                   singleDayEvents.some((e) => e.id === hoveredEventId);
 
-                return (
-                  <span
-                    className={`absolute top-0.5 right-0.5 rounded-full px-1 flex items-center justify-center font-medium transition-all duration-200 z-30 no-select ${
-                      isHoveredSingle
-                        ? "bg-blue-500 text-white transform scale-110"
-                        : "bg-gray-600 text-gray-300"
-                    }`}
-                    style={{
-                      fontSize: `${eventCountFontSize}px`,
-                      minWidth: `${eventCountFontSize * 1.7}px`,
-                      height: `${eventCountFontSize * 1.7}px`,
-                    }}
-                  >
-                    +{singleDayEvents.length}
-                  </span>
-                );
+                // 셀 높이가 크면 바로 표시, 작으면 숫자로 표시
+                const showAsBars = cellHeight > 55;
+
+                if (!showAsBars) {
+                  // 작을 때: 숫자로 표시 (기존 방식)
+                  return (
+                    <span
+                      className={`absolute top-0.5 right-0.5 rounded-full px-1 flex items-center justify-center font-medium transition-all duration-200 z-30 no-select ${
+                        isHoveredSingle
+                          ? "bg-blue-500 text-white transform scale-110"
+                          : "bg-gray-600 text-gray-300"
+                      }`}
+                      style={{
+                        fontSize: `${eventCountFontSize}px`,
+                        minWidth: `${eventCountFontSize * 1.7}px`,
+                        height: `${eventCountFontSize * 1.7}px`,
+                      }}
+                    >
+                      +{singleDayEvents.length}
+                    </span>
+                  );
+                } else {
+                  // 클 때: 바 형태로 표시 (아래 별도 렌더링)
+                  return null;
+                }
               })()}
           </div>
 
-          {/* 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 */}
+          {/* 단일 이벤트 바 표시 - 셀이 클 때만 */}
+          {cellHeight > 55 && singleDayEvents.length > 0 && (
+            <div className="absolute left-1 right-1 flex flex-col gap-0.5 pointer-events-none" style={{ top: '28px' }}>
+              {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event, idx) => {
+                const categoryColor = event.category === 'class' ? 'bg-green-500' : 'bg-blue-500';
+                const isHovered = viewMode === "month" && hoveredEventId === event.id;
+                
+                return (
+                  <div
+                    key={event.id}
+                    className={`rounded-full px-1.5 text-[10px] font-medium truncate transition-all duration-200 ${categoryColor} ${
+                      isHovered ? 'opacity-100 scale-105' : 'opacity-80'
+                    }`}
+                    style={{ 
+                      height: '14px',
+                      lineHeight: '14px',
+                      color: 'white'
+                    }}
+                  >
+                    {event.title}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 멀티데이 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 */}
           {eventBarsData.some((bar) => bar !== null) && (
             <div className="absolute bottom-0 left-0 right-0 h-5 pointer-events-none">
               {eventBarsData.map((bar, i) => {
