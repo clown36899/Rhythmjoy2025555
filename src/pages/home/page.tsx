@@ -757,15 +757,15 @@ export default function HomePage() {
     <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
   );
   
-  // 실시간 달력 높이 계산
-  const getCalendarDragHeight = () => {
+  // 실시간 달력 높이 계산 (숫자)
+  const getCalendarHeightPx = () => {
     const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
     
     if (!isDraggingCalendar) {
       // 드래그 중이 아니면 고정 상태
-      if (calendarMode === 'collapsed') return '0px';
-      if (calendarMode === 'fullscreen') return `${fullscreenHeight}px`;
-      return '500px'; // expanded - 고정 높이 (사용 안 함, auto로 감)
+      if (calendarMode === 'collapsed') return 0;
+      if (calendarMode === 'fullscreen') return fullscreenHeight;
+      return 250; // expanded
     }
     
     // 드래그 중: 시작 시점의 고정된 높이 + 드래그 거리
@@ -774,7 +774,12 @@ export default function HomePage() {
     // 0 이상, fullscreen 높이 이하로 제한
     currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
     
-    return `${currentHeight}px`;
+    return currentHeight;
+  };
+
+  // 실시간 달력 높이 계산 (문자열)
+  const getCalendarDragHeight = () => {
+    return `${getCalendarHeightPx()}px`;
   };
   
   // 네이티브 DOM 이벤트 리스너 등록 (passive: false 필수)
@@ -1095,6 +1100,7 @@ export default function HomePage() {
               onTouchEnd={onTouchEnd}
               dragOffset={dragOffset}
               isAnimating={isAnimating}
+              calendarHeightPx={getCalendarHeightPx()}
             />
           </div>
 

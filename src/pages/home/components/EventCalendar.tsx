@@ -20,6 +20,8 @@ interface EventCalendarProps {
   onTouchEnd?: () => void;
   dragOffset?: number;
   isAnimating?: boolean;
+  // 달력 확장 높이
+  calendarHeightPx?: number;
 }
 
 export default function EventCalendar({
@@ -37,6 +39,7 @@ export default function EventCalendar({
   onTouchEnd: externalOnTouchEnd,
   dragOffset: externalDragOffset = 0,
   isAnimating: externalIsAnimating = false,
+  calendarHeightPx,
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
@@ -47,6 +50,11 @@ export default function EventCalendar({
 
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
+
+  // 달력 셀 높이 계산 (전체 높이에서 헤더 높이를 빼고 6행으로 나눔)
+  const cellHeight = calendarHeightPx 
+    ? Math.max(30, (calendarHeightPx - 16) / 6) // 헤더 16px 제외, 최소 30px
+    : 50; // 기본 높이 50px
 
   // 외부 currentMonth가 변경되면 내부 상태도 업데이트
   useEffect(() => {
@@ -759,7 +767,13 @@ export default function EventCalendar({
                   className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
-                  <div className="grid grid-cols-7 gap-0 calendar-grid-container">
+                  <div 
+                    className="grid grid-cols-7 gap-0 calendar-grid-container"
+                    style={{ 
+                      gridAutoRows: `${cellHeight}px`,
+                      '--calendar-cell-height': `${cellHeight}px`
+                    } as React.CSSProperties}
+                  >
                     {renderCalendarGrid(prevDays, prevMonth)}
                   </div>
                 </div>
@@ -770,7 +784,13 @@ export default function EventCalendar({
                   className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
-                  <div className="grid grid-cols-7 gap-0 calendar-grid-container">
+                  <div 
+                    className="grid grid-cols-7 gap-0 calendar-grid-container"
+                    style={{ 
+                      gridAutoRows: `${cellHeight}px`,
+                      '--calendar-cell-height': `${cellHeight}px`
+                    } as React.CSSProperties}
+                  >
                     {renderCalendarGrid(currentDays, currentMonth)}
                   </div>
                 </div>
@@ -781,7 +801,13 @@ export default function EventCalendar({
                   className="pb-0 flex-shrink-0"
                   style={{ width: "100%" }}
                 >
-                  <div className="grid grid-cols-7 gap-0 calendar-grid-container">
+                  <div 
+                    className="grid grid-cols-7 gap-0 calendar-grid-container"
+                    style={{ 
+                      gridAutoRows: `${cellHeight}px`,
+                      '--calendar-cell-height': `${cellHeight}px`
+                    } as React.CSSProperties}
+                  >
                     {renderCalendarGrid(nextDays, nextMonth)}
                   </div>
                 </div>
