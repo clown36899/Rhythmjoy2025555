@@ -658,21 +658,25 @@ export default function HomePage() {
       // 드래그 중이 아니면 고정 상태
       if (calendarMode === 'collapsed') return '0px';
       if (calendarMode === 'fullscreen') return `${fullscreenHeight}px`;
-      return '500px'; // expanded - 고정 높이
+      return '500px'; // expanded - 고정 높이 (사용 안 함, auto로 감)
     }
     
-    // 드래그 중: 현재 상태의 높이 + 드래그 거리
-    const stateHeights = {
-      collapsed: 0,
-      expanded: 500,
-      fullscreen: fullscreenHeight
-    };
+    // 드래그 중: 현재 실제 높이를 기준으로 계산
+    // expanded 상태에서 auto였던 높이를 정확히 가져옴
+    const actualHeight = calendarContentRef.current?.offsetHeight || 0;
     
-    // 실시간 높이 = 기준 높이 + 드래그한 만큼
-    let currentHeight = stateHeights[calendarMode] + calendarPullDistance;
+    // 실시간 높이 = 실제 높이 + 드래그한 만큼
+    let currentHeight = actualHeight + calendarPullDistance;
     
     // 0 이상, fullscreen 높이 이하로 제한
     currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
+    
+    console.log('🎯 getCalendarDragHeight:', {
+      mode: calendarMode,
+      actualHeight,
+      pullDistance: calendarPullDistance.toFixed(0),
+      계산된높이: currentHeight.toFixed(0)
+    });
     
     return `${currentHeight}px`;
   };
@@ -690,15 +694,22 @@ export default function HomePage() {
       // 버튼 클릭과 충돌 방지
       const isButton = target.closest('button');
       
+      const currentActualHeight = calendarContentRef.current?.offsetHeight || 0;
+      const fullscreenHeight = window.innerHeight - 200;
+      
       console.log('📱 TOUCH START:', {
         Y: touch.clientY,
         mode: calendarMode,
         isDragging: isDraggingCalendar,
-        target: target.className,
+        target: target.className.substring(0, 50),
         tagName: target.tagName,
         isButton: !!isButton,
-        currentHeight: calendarContentRef.current?.offsetHeight || 0,
-        scrollHeight: calendarContentRef.current?.scrollHeight || 0
+        currentActualHeight: currentActualHeight,
+        scrollHeight: calendarContentRef.current?.scrollHeight || 0,
+        stateHeight_collapsed: 0,
+        stateHeight_expanded: 500,
+        stateHeight_fullscreen: fullscreenHeight,
+        문제: currentActualHeight !== 500 && calendarMode === 'expanded' ? '⚠️ expanded인데 500px 아님!' : '정상'
       });
       
       // 버튼 터치면 드래그 방지
