@@ -825,14 +825,16 @@ export default function HomePage() {
         targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
         
         const expandedThreshold = Math.min(250, fullscreenHeight / 2);
+        const bottomMagneticZone = 40;
+        const fullscreenZoneStart = fullscreenHeight - bottomMagneticZone;
         
-        console.log('🔍 드래그 중:', {
-          targetHeight,
-          expandedThreshold,
-          shouldBeFixed: targetHeight > expandedThreshold,
-          currentMode: calendarMode,
-          isDragging: isDraggingCalendar
-        });
+        let zone = '';
+        if (targetHeight < 80) zone = 'collapsed 자석 구간';
+        else if (targetHeight > fullscreenZoneStart) zone = '🔴 fullscreen 자석 구간';
+        else if (targetHeight < expandedThreshold) zone = 'collapsed~expanded 사이';
+        else zone = 'expanded~fullscreen 사이';
+        
+        console.log(`📊 [${targetHeight.toFixed(0)}px] ${zone} | fullscreen구간: ${fullscreenZoneStart}px~${fullscreenHeight}px`);
         
         // DOM 직접 조작 (리렌더링 없음!)
         if (calendarContentRef.current) {
@@ -893,15 +895,7 @@ export default function HomePage() {
         }
       }
       
-      console.log('🎬 스냅 완료:', {
-        finalHeight,
-        targets,
-        closestState,
-        topMagneticZone,
-        bottomMagneticZone,
-        fullscreenThreshold: targets.fullscreen - bottomMagneticZone,
-        expandedRange: `${targets.expanded} ~ ${targets.expanded + (targets.fullscreen - targets.expanded) * 0.5}`
-      });
+      // 로그 제거 (드래그 중 로그가 더 유용함)
       
       setCalendarMode(closestState);
       setCalendarPullStart(null);
@@ -1029,19 +1023,6 @@ export default function HomePage() {
                  (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
               ? `${headerHeight}px`
               : undefined,
-            ...(console.log('📍 달력 position:', {
-              isFixed: (calendarMode === 'fullscreen' || 
-                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250)),
-              position: (calendarMode === 'fullscreen' || 
-                        (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250))
-                ? 'fixed'
-                : 'relative',
-              top: (calendarMode === 'fullscreen' || 
-                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250))
-                ? `${headerHeight}px`
-                : undefined,
-              headerHeight
-            }), {}),
             left: (calendarMode === 'fullscreen' || 
                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
               ? '0' 
@@ -1188,19 +1169,6 @@ export default function HomePage() {
                        (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
               ? '250px' // 무조건 250px 고정!
               : undefined,
-            // 로그: 현재 상태 확인
-            ...(console.log('🎯 이벤트 리스트 렌더링:', {
-              calendarMode,
-              isDragging: isDraggingCalendar,
-              dragHeight: isDraggingCalendar ? dragStartHeight + calendarPullDistance : 'N/A',
-              threshold: 250,
-              isFixed: (calendarMode === 'fullscreen' || 
-                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250)),
-              marginTop: (calendarMode === 'fullscreen' || 
-                         (isDraggingCalendar && dragStartHeight + calendarPullDistance > 250))
-                ? '250px (완전 고정!)'
-                : 'none (같이 움직임)'
-            }), {})
           }}
         >
           {/* 이벤트 등록 안내 */}
