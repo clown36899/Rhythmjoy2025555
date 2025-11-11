@@ -295,7 +295,14 @@ export default function BillboardPage() {
     
     const startTime = Date.now();
     slideStartTimeRef.current = startTime;
-    console.log(`[타이머 시작] 슬라이드 ${currentIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
+    
+    // Ref로 정확한 슬라이드 번호 계산 (stale closure 방지)
+    const logIndex = currentEventIdRef.current 
+      ? eventsRef.current.findIndex(e => e.id === currentEventIdRef.current)
+      : 0;
+    const displayIndex = logIndex >= 0 ? logIndex : 0;
+    
+    console.log(`[타이머 시작] 슬라이드 ${displayIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
 
     // 슬라이드 전환 타이머
     slideTimerRef.current = setInterval(() => {
