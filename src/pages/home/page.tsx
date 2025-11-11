@@ -85,6 +85,7 @@ export default function HomePage() {
   // 달력 끌어내림 제스처 상태
   const [calendarPullStart, setCalendarPullStart] = useState<number | null>(null);
   const [calendarPullDistance, setCalendarPullDistance] = useState(0);
+  const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
@@ -647,11 +648,37 @@ export default function HomePage() {
     <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
   );
   
+  // 달력 높이 계산 (실시간 드래그 중)
+  const getCalendarHeight = () => {
+    if (!isDraggingCalendar) {
+      // 드래그 중이 아니면 고정 상태
+      if (calendarMode === 'collapsed') return '0px';
+      if (calendarMode === 'fullscreen') return 'calc(100dvh - 200px)';
+      return '2000px'; // expanded
+    }
+    
+    // 드래그 중 실시간 높이 계산
+    const baseHeights = {
+      collapsed: 0,
+      expanded: 500, // 대략적인 펼쳐진 높이
+      fullscreen: typeof window !== 'undefined' ? window.innerHeight - 200 : 600
+    };
+    
+    let currentHeight = baseHeights[calendarMode];
+    currentHeight += calendarPullDistance;
+    
+    // 최소/최대 제한
+    currentHeight = Math.max(0, Math.min(currentHeight, baseHeights.fullscreen));
+    
+    return `${currentHeight}px`;
+  };
+  
   // 달력 끌어내림 제스처 핸들러
   const handleCalendarTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
     setCalendarPullStart(touch.clientY);
     setCalendarPullDistance(0);
+    setIsDraggingCalendar(true);
   };
   
   const handleCalendarTouchMove = (e: React.TouchEvent) => {
@@ -660,12 +687,24 @@ export default function HomePage() {
     const touch = e.touches[0];
     const distance = touch.clientY - calendarPullStart;
     
-    // 모든 상태에서 제스처 감지
+    // 모든 상태에서 제스처 감지 - 실시간 업데이트
     setCalendarPullDistance(distance);
   };
   
   const handleCalendarTouchEnd = () => {
     if (calendarPullStart === null) {
+      setIsDraggingCalendar(false);
+      return;
+    }
+    
+    // 스냅: 가장 가까운 상태로 전환
+    const absDistance = Math.abs(calendarPullDistance);
+    
+    if (absDistance < 30) {
+      // 너무 작으면 현재 상태 유지
+      setIsDraggingCalendar(false);
+      setCalendarPullStart(null);
+      setCalendarPullDistance(0);
       return;
     }
     
@@ -689,6 +728,7 @@ export default function HomePage() {
       setCalendarMode('expanded');
     }
     
+    setIsDraggingCalendar(false);
     setCalendarPullStart(null);
     setCalendarPullDistance(0);
   };
@@ -788,14 +828,10 @@ export default function HomePage() {
         >
           {/* Calendar - Collapsible */}
           <div
-            className="transition-all duration-300 ease-in-out overflow-hidden"
+            className={isDraggingCalendar ? "overflow-hidden" : "transition-all duration-300 ease-in-out overflow-hidden"}
             style={{
-              height: calendarMode === 'fullscreen' ? "calc(100dvh - 200px)" : "auto",
-              maxHeight: calendarMode === 'collapsed' 
-                ? "0px" 
-                : calendarMode === 'fullscreen' 
-                  ? "calc(100dvh - 200px)" 
-                  : "2000px",
+              height: calendarMode === 'fullscreen' && !isDraggingCalendar ? "calc(100dvh - 200px)" : "auto",
+              maxHeight: getCalendarHeight(),
             }}
           >
             <EventCalendar
