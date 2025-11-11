@@ -341,7 +341,7 @@ export default function BillboardPage() {
         watchdogTimerRef.current = null;
       }
     };
-  }, [currentIndex, userId]);
+  }, [userId]); // 워치독은 한 번만 시작, Ref로 최신 값 추적
 
   // 슬라이드 타이머 시작 함수
   const startSlideTimer = useCallback((slideInterval: number) => {
