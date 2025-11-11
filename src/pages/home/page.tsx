@@ -701,6 +701,7 @@ export default function HomePage() {
     }
     
     e.stopPropagation(); // 이벤트 버블링 방지
+    e.preventDefault(); // 기본 스크롤 동작 차단
     const touch = e.touches[0];
     const distance = touch.clientY - calendarPullStart;
     
@@ -872,7 +873,10 @@ export default function HomePage() {
         <div
           ref={calendarRef}
           className="flex-shrink-0 w-full z-[15]"
-          style={{ backgroundColor: "var(--calendar-bg-color)" }}
+          style={{ 
+            backgroundColor: "var(--calendar-bg-color)",
+            touchAction: "none"
+          }}
           onTouchStart={handleCalendarTouchStart}
           onTouchMove={handleCalendarTouchMove}
           onTouchEnd={handleCalendarTouchEnd}
@@ -910,6 +914,7 @@ export default function HomePage() {
             className="w-full border-b border-[#22262a]"
             style={{
               backgroundColor: "var(--calendar-bg-color)",
+              touchAction: "none"
             }}
             onTouchStart={handleCalendarTouchStart}
             onTouchMove={handleCalendarTouchMove}
