@@ -653,12 +653,13 @@ export default function HomePage() {
   // 실시간 달력 높이 계산 (간단 버전)
   const getCalendarDragHeight = () => {
     // 최대 높이 (전체화면)
-    const maxHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
+    const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
+    const maxAllowedHeight = Math.max(500, fullscreenHeight); // expanded(500) 또는 fullscreen 중 큰 값
     
     if (!isDraggingCalendar) {
       // 드래그 중이 아니면 고정 상태
       if (calendarMode === 'collapsed') return '0px';
-      if (calendarMode === 'fullscreen') return `${maxHeight}px`;
+      if (calendarMode === 'fullscreen') return `${fullscreenHeight}px`;
       return '500px'; // expanded - 고정 높이
     }
     
@@ -666,14 +667,14 @@ export default function HomePage() {
     const stateHeights = {
       collapsed: 0,
       expanded: 500,
-      fullscreen: maxHeight
+      fullscreen: fullscreenHeight
     };
     
     // 실시간 높이 = 기준 높이 + 드래그한 만큼
     let currentHeight = stateHeights[calendarMode] + calendarPullDistance;
     
     // 0 ~ 최대 높이 사이로 제한
-    currentHeight = Math.max(0, Math.min(currentHeight, maxHeight));
+    currentHeight = Math.max(0, Math.min(currentHeight, maxAllowedHeight));
     
     return `${currentHeight}px`;
   };
@@ -706,14 +707,15 @@ export default function HomePage() {
       const touch = e.touches[0];
       const distance = touch.clientY - calendarPullStart;
       
-      const maxHeight = window.innerHeight - 200;
+      const fullscreenHeight = window.innerHeight - 200;
+      const maxAllowedHeight = Math.max(500, fullscreenHeight); // expanded(500) 또는 fullscreen 중 큰 값
       const stateHeights = {
         collapsed: 0,
         expanded: 500,
-        fullscreen: maxHeight
+        fullscreen: fullscreenHeight
       };
       let currentHeight = stateHeights[calendarMode] + distance;
-      currentHeight = Math.max(0, Math.min(currentHeight, maxHeight));
+      currentHeight = Math.max(0, Math.min(currentHeight, maxAllowedHeight));
       
       console.log('👆 TOUCH MOVE:', {
         distance: distance.toFixed(0),
