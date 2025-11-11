@@ -82,15 +82,16 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isRandomBlinking, setIsRandomBlinking] = useState(false);
   
-  // 달력 끌어내림 제스처 상태 (ref로 최적화 - 리렌더링 방지)
+  // 달력 끌어내림 제스처 상태
+  const [calendarPullStart, setCalendarPullStart] = useState<number | null>(null);
+  const [calendarPullDistance, setCalendarPullDistance] = useState(0);
+  const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
+  const [dragStartHeight, setDragStartHeight] = useState(0);
   const calendarContentRef = useRef<HTMLDivElement>(null);
-  const dragStateRef = useRef({
-    isDragging: false,
-    startY: 0,
-    startHeight: 0,
-    currentTranslateY: 0,
-  });
-  const rafRef = useRef<number | null>(null);
+  
+  // Transform 기반 최적화용 ref
+  const dragAnimationRef = useRef<number | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
   
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
@@ -708,13 +709,29 @@ export default function HomePage() {
       if (calendarPullStart === null) return;
       
       e.stopPropagation();
-      e.preventDefault(); // passive: false 덕분에 작동함
+      e.preventDefault();
+      
       const touch = e.touches[0];
       const distance = touch.clientY - calendarPullStart;
       
-      // 로그 제거 (성능 향상)
+      // requestAnimationFrame으로 60fps 보장
+      if (dragAnimationRef.current) {
+        cancelAnimationFrame(dragAnimationRef.current);
+      }
       
-      setCalendarPullDistance(distance);
+      dragAnimationRef.current = requestAnimationFrame(() => {
+        const fullscreenHeight = window.innerHeight - 200;
+        let targetHeight = dragStartHeight + distance;
+        targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
+        
+        // DOM 직접 조작 (리렌더링 없음!)
+        if (calendarContentRef.current) {
+          calendarContentRef.current.style.height = `${targetHeight}px`;
+        }
+        
+        // 최종 스냅을 위해 state는 유지
+        setCalendarPullDistance(distance);
+      });
     };
 
     const handleTouchEnd = () => {
@@ -770,8 +787,13 @@ export default function HomePage() {
       calendarElement.removeEventListener('touchstart', handleTouchStart);
       calendarElement.removeEventListener('touchmove', handleTouchMove);
       calendarElement.removeEventListener('touchend', handleTouchEnd);
+      
+      // cleanup
+      if (dragAnimationRef.current) {
+        cancelAnimationFrame(dragAnimationRef.current);
+      }
     };
-  }, [calendarMode, calendarPullStart, isDraggingCalendar, calendarPullDistance]);
+  }, [calendarMode, calendarPullStart, isDraggingCalendar, calendarPullDistance, dragStartHeight]);
 
   return (
     <div
@@ -869,14 +891,15 @@ export default function HomePage() {
           {/* Calendar - Collapsible */}
           <div
             ref={calendarContentRef}
-            className={isDraggingCalendar ? "overflow-hidden" : "overflow-hidden"}
+            className="overflow-hidden"
             style={{
               height: isDraggingCalendar || calendarMode === 'collapsed' || calendarMode === 'fullscreen'
                 ? getCalendarDragHeight()
                 : 'auto',
               maxHeight: calendarMode === 'expanded' && !isDraggingCalendar ? '500px' : undefined,
-              transition: isDraggingCalendar ? 'none' : 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              willChange: isDraggingCalendar ? 'height' : 'auto',
+              transition: isDraggingCalendar ? 'none' : 'height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)',
+              contain: 'layout style paint', // 레이아웃 격리
+              transform: 'translateZ(0)', // GPU 가속 강제
             }}
           >
             <EventCalendar
