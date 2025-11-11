@@ -680,12 +680,13 @@ export default function HomePage() {
   
   // 달력 끌어내림 제스처 핸들러
   const handleCalendarTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation(); // 이벤트 버블링 방지
     const touch = e.touches[0];
     console.log('📱 TOUCH START:', {
       Y: touch.clientY,
       mode: calendarMode,
       isDragging: isDraggingCalendar,
-      target: e.target
+      target: (e.target as HTMLElement).className
     });
     
     setCalendarPullStart(touch.clientY);
@@ -699,6 +700,7 @@ export default function HomePage() {
       return;
     }
     
+    e.stopPropagation(); // 이벤트 버블링 방지
     const touch = e.touches[0];
     const distance = touch.clientY - calendarPullStart;
     
@@ -722,7 +724,9 @@ export default function HomePage() {
     setCalendarPullDistance(distance);
   };
   
-  const handleCalendarTouchEnd = () => {
+  const handleCalendarTouchEnd = (e?: React.TouchEvent) => {
+    if (e) e.stopPropagation(); // 이벤트 버블링 방지
+    
     if (calendarPullStart === null) {
       console.log('⚠️ TOUCH END: no start point');
       setIsDraggingCalendar(false);
