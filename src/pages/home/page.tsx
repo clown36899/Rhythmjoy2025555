@@ -701,10 +701,10 @@ export default function HomePage() {
     const absDistance = Math.abs(calendarPullDistance);
     
     if (absDistance < 30) {
-      // 너무 작으면 현재 상태 유지
-      setIsDraggingCalendar(false);
+      // 너무 작으면 현재 상태 유지 - 상태 초기화는 먼저
       setCalendarPullStart(null);
       setCalendarPullDistance(0);
+      setIsDraggingCalendar(false);
       return;
     }
     
@@ -728,9 +728,10 @@ export default function HomePage() {
       setCalendarMode('expanded');
     }
     
-    setIsDraggingCalendar(false);
+    // 상태 초기화는 마지막에
     setCalendarPullStart(null);
     setCalendarPullDistance(0);
+    setIsDraggingCalendar(false);
   };
 
   return (
