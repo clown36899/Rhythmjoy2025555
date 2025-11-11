@@ -443,7 +443,7 @@ export default function Header({
                       : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
                   }`}
                 >
-                  오늘
+                  이번달
                 </button>
                 {onViewModeChange && (
                   <button
