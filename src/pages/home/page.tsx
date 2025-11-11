@@ -864,24 +864,25 @@ export default function HomePage() {
         fullscreen: fullscreenHeight
       };
       
-      // 자석 효과 구간 (최상단/최하단 근처에서 더 쉽게 스냅)
-      const magneticZone = 80; // 80px 이내면 자석처럼 스냅
+      // 자석 효과 구간 조정
+      const topMagneticZone = 80; // 최상단 자석 구간 (collapsed)
+      const bottomMagneticZone = 120; // 최하단 자석 구간 (fullscreen) - 더 넓게!
       
       // 구간 기반 스냅 (자석 효과 추가)
       let closestState: 'collapsed' | 'expanded' | 'fullscreen';
       
       // 최상단 자석 구간 (0-80px)
-      if (finalHeight < magneticZone) {
+      if (finalHeight < topMagneticZone) {
         closestState = 'collapsed';
       }
-      // 최하단 자석 구간 (fullscreen-80px ~ fullscreen)
-      else if (finalHeight > targets.fullscreen - magneticZone) {
+      // 최하단 자석 구간 (fullscreen-120px ~ fullscreen) - 조금만 올려도 expanded로!
+      else if (finalHeight > targets.fullscreen - bottomMagneticZone) {
         closestState = 'fullscreen';
       }
       // 일반 구간 (기존 로직)
       else {
         const boundary1 = (targets.collapsed + targets.expanded) / 2;
-        const boundary2 = targets.expanded + (targets.fullscreen - targets.expanded) * 0.3;
+        const boundary2 = targets.expanded + (targets.fullscreen - targets.expanded) * 0.5; // 30% → 50%로 확대
         
         if (finalHeight < boundary1) {
           closestState = 'collapsed';
@@ -896,7 +897,10 @@ export default function HomePage() {
         finalHeight,
         targets,
         closestState,
-        magneticZone
+        topMagneticZone,
+        bottomMagneticZone,
+        fullscreenThreshold: targets.fullscreen - bottomMagneticZone,
+        expandedRange: `${targets.expanded} ~ ${targets.expanded + (targets.fullscreen - targets.expanded) * 0.5}`
       });
       
       setCalendarMode(closestState);
