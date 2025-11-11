@@ -652,13 +652,13 @@ export default function HomePage() {
   
   // 실시간 달력 높이 계산 (간단 버전)
   const getCalendarDragHeight = () => {
-    // 최대 높이 (전체화면) - 실제 화면 높이
-    const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
+    // 최대 높이는 CSS calc(100dvh - 200px)에 맡기고, JS는 넉넉하게 설정
+    const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight : 1000;
     
     if (!isDraggingCalendar) {
       // 드래그 중이 아니면 고정 상태
       if (calendarMode === 'collapsed') return '0px';
-      if (calendarMode === 'fullscreen') return `${fullscreenHeight}px`;
+      if (calendarMode === 'fullscreen') return 'calc(100dvh - 200px)';
       return '500px'; // expanded - 고정 높이
     }
     
@@ -666,14 +666,14 @@ export default function HomePage() {
     const stateHeights = {
       collapsed: 0,
       expanded: 500,
-      fullscreen: fullscreenHeight
+      fullscreen: fullscreenHeight - 200 // 실제 fullscreen 높이
     };
     
     // 실시간 높이 = 기준 높이 + 드래그한 만큼
     let currentHeight = stateHeights[calendarMode] + calendarPullDistance;
     
-    // 0 ~ fullscreen 높이까지 실시간으로 따라옴
-    currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
+    // 0 이상, JS에서는 제한 없음 (CSS가 제한)
+    currentHeight = Math.max(0, currentHeight);
     
     return `${currentHeight}px`;
   };
@@ -706,19 +706,9 @@ export default function HomePage() {
       const touch = e.touches[0];
       const distance = touch.clientY - calendarPullStart;
       
-      const fullscreenHeight = window.innerHeight - 200;
-      const stateHeights = {
-        collapsed: 0,
-        expanded: 500,
-        fullscreen: fullscreenHeight
-      };
-      let currentHeight = stateHeights[calendarMode] + distance;
-      // 0부터 fullscreen 높이까지 실시간으로 따라옴
-      currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
-      
+      // JS에서는 제한 없이, CSS가 maxHeight를 제한함
       console.log('👆 TOUCH MOVE:', {
         distance: distance.toFixed(0),
-        currentHeight: currentHeight.toFixed(0),
         mode: calendarMode,
         isDragging: isDraggingCalendar
       });
@@ -733,20 +723,20 @@ export default function HomePage() {
         return;
       }
       
-      const maxHeight = window.innerHeight - 200;
+      const fullscreenHeight = window.innerHeight - 200;
       const stateHeights = {
         collapsed: 0,
         expanded: 500,
-        fullscreen: maxHeight
+        fullscreen: fullscreenHeight
       };
       
       let finalHeight = stateHeights[calendarMode] + calendarPullDistance;
-      finalHeight = Math.max(0, Math.min(finalHeight, maxHeight));
+      finalHeight = Math.max(0, finalHeight); // 음수 방지만
       
       const distances = {
         collapsed: Math.abs(finalHeight - 0),
         expanded: Math.abs(finalHeight - 500),
-        fullscreen: Math.abs(finalHeight - maxHeight)
+        fullscreen: Math.abs(finalHeight - fullscreenHeight)
       };
       
       let closestState: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
