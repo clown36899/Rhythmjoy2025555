@@ -813,6 +813,16 @@ export default function HomePage() {
         let targetHeight = dragStartHeight + distance;
         targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
         
+        const expandedThreshold = Math.min(250, fullscreenHeight / 2);
+        
+        console.log('🔍 드래그 중:', {
+          targetHeight,
+          expandedThreshold,
+          shouldBeFixed: targetHeight > expandedThreshold,
+          currentMode: calendarMode,
+          isDragging: isDraggingCalendar
+        });
+        
         // DOM 직접 조작 (리렌더링 없음!)
         if (calendarContentRef.current) {
           calendarContentRef.current.style.height = `${targetHeight}px`;
