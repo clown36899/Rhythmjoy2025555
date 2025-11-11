@@ -886,10 +886,10 @@ export default function HomePage() {
           nextState = 'collapsed'; // 0~35px: collapsed 유지
         } else if (finalHeight <= 230) {
           nextState = 'expanded'; // 36~230px: expanded 진입! (조금만 내려도!)
-        } else if (finalHeight <= 405) {
-          nextState = 'expanded'; // 231~405px: expanded
+        } else if (finalHeight <= 265) {
+          nextState = 'expanded'; // 231~265px: expanded 구간
         } else {
-          nextState = 'fullscreen'; // 406px~: fullscreen
+          nextState = 'fullscreen'; // 265px 넘으면: 중간을 통과! → fullscreen!
         }
       }
       // 현재 상태가 expanded일 때
