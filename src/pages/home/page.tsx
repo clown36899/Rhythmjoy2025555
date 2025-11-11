@@ -828,7 +828,7 @@ export default function HomePage() {
         const bottomMagneticZone = 40;
         const fullscreenZoneStart = fullscreenHeight - bottomMagneticZone;
         
-        const expandedMagneticZone = 15;
+        const expandedMagneticZone = 10;
         const expandedLowerBound = expandedThreshold - expandedMagneticZone;
         const expandedUpperBound = expandedThreshold + expandedMagneticZone;
         
@@ -871,40 +871,38 @@ export default function HomePage() {
         fullscreen: fullscreenHeight
       };
       
-      // 자석 효과 구간 조정
-      const topMagneticZone = 30; // 최상단 자석 구간 (collapsed) - 조금만 내려도 중간으로!
-      const bottomMagneticZone = 40; // 최하단 자석 구간 (fullscreen) - 살짝만 올려도 중간으로!
-      const expandedMagneticZone = 15; // 중간 자석 구간 - 매우 좁게! (조금만 벗어나도 위아래로 스냅)
+      // 자석 효과 구간 조정 (3개 구간 모두 독립적!)
+      const topMagneticZone = 30; // 최상단 자석: 0~30px만 collapsed
+      const bottomMagneticZone = 40; // 최하단 자석: 405~445px만 fullscreen
+      const expandedMagneticZone = 10; // 중간 자석: 240~260px만 expanded (매우 좁게!)
       
-      // 구간 기반 스냅 (자석 효과 추가)
+      // 3개 구간 독립적으로 작동 (각자의 마그네틱 구간만!)
       let closestState: 'collapsed' | 'expanded' | 'fullscreen';
       
-      // 최상단 자석 구간 (0-80px)
-      if (finalHeight < topMagneticZone) {
+      const expandedLowerBound = targets.expanded - expandedMagneticZone; // 250 - 10 = 240px
+      const expandedUpperBound = targets.expanded + expandedMagneticZone; // 250 + 10 = 260px
+      const fullscreenLowerBound = targets.fullscreen - bottomMagneticZone; // 445 - 40 = 405px
+      
+      // 1. 최상단 자석: 0~30px → collapsed
+      if (finalHeight <= topMagneticZone) {
         closestState = 'collapsed';
       }
-      // 최하단 자석 구간 (fullscreen-120px ~ fullscreen) - 조금만 올려도 expanded로!
-      else if (finalHeight > targets.fullscreen - bottomMagneticZone) {
+      // 2. 중간 자석: 240~260px → expanded (매우 좁음!)
+      else if (finalHeight >= expandedLowerBound && finalHeight <= expandedUpperBound) {
+        closestState = 'expanded';
+      }
+      // 3. 최하단 자석: 405~445px → fullscreen
+      else if (finalHeight >= fullscreenLowerBound) {
         closestState = 'fullscreen';
       }
-      // 일반 구간 - 중간 자석만 좁게, 나머지는 가장 가까운 곳으로!
+      // 4. 나머지 구간: 위아래 가까운 쪽으로!
+      else if (finalHeight < expandedLowerBound) {
+        // 31~239px → collapsed로 스냅 (collapsed가 더 가까움)
+        closestState = 'collapsed';
+      }
       else {
-        // expanded 중간 자석 구간 (매우 좁게!)
-        const expandedLowerBound = targets.expanded - expandedMagneticZone; // 250 - 15 = 235px
-        const expandedUpperBound = targets.expanded + expandedMagneticZone; // 250 + 15 = 265px
-        
-        // 중간 자석 구간 안이면 expanded 유지
-        if (finalHeight >= expandedLowerBound && finalHeight <= expandedUpperBound) {
-          closestState = 'expanded'; // 235~265px만 expanded!
-        }
-        // 중간 자석 아래쪽이면 collapsed로 스냅
-        else if (finalHeight < expandedLowerBound) {
-          closestState = 'collapsed'; // 31~234px → collapsed로!
-        }
-        // 중간 자석 위쪽이면 fullscreen으로 스냅
-        else {
-          closestState = 'fullscreen'; // 266~404px → fullscreen으로!
-        }
+        // 261~404px → fullscreen으로 스냅 (fullscreen이 더 가까움)
+        closestState = 'fullscreen';
       }
       
       // 로그 제거 (드래그 중 로그가 더 유용함)
