@@ -739,10 +739,14 @@ export default function HomePage() {
       let finalHeight = dragStartHeight + calendarPullDistance;
       finalHeight = Math.max(0, Math.min(finalHeight, fullscreenHeight));
       
-      // 3개 타겟 높이
+      // expanded 타겟은 실제 콘텐츠 높이로 (최대 500px)
+      const contentHeight = calendarContentRef.current?.scrollHeight || 0;
+      const expandedTarget = Math.min(contentHeight, 500);
+      
+      // 3개 타겟 높이 (동적 계산)
       const targets = {
         collapsed: 0,
-        expanded: 500,
+        expanded: expandedTarget, // 실제 콘텐츠 높이!
         fullscreen: fullscreenHeight
       };
       
@@ -773,7 +777,7 @@ export default function HomePage() {
         최종높이: finalHeight.toFixed(0),
         타겟높이: {
           collapsed: targets.collapsed,
-          expanded: targets.expanded,
+          expanded: targets.expanded + ' (콘텐츠높이)',
           fullscreen: targets.fullscreen
         },
         각타겟까지거리: {
