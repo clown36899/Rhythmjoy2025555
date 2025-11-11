@@ -1152,12 +1152,20 @@ export default function HomePage() {
         <div 
           className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20"
           style={{
+            // 달력이 fixed일 때 이벤트 리스트 위치 유지
+            marginTop: (calendarMode === 'fullscreen' || 
+                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+              ? `${isDraggingCalendar ? dragStartHeight + calendarPullDistance : (typeof window !== 'undefined' ? window.innerHeight - 200 : 700)}px`
+              : undefined,
             // 로그: 현재 상태 확인
             ...(console.log('🎯 이벤트 리스트 렌더링:', {
               calendarMode,
               isDragging: isDraggingCalendar,
               dragHeight: isDraggingCalendar ? dragStartHeight + calendarPullDistance : 'N/A',
-              shouldHide: calendarMode === 'fullscreen'
+              marginTop: (calendarMode === 'fullscreen' || 
+                         (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+                ? `${isDraggingCalendar ? dragStartHeight + calendarPullDistance : (typeof window !== 'undefined' ? window.innerHeight - 200 : 700)}px`
+                : 'none'
             }), {})
           }}
         >
