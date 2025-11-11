@@ -843,19 +843,32 @@ export default function HomePage() {
         fullscreen: fullscreenHeight
       };
       
-      // 구간별 경계점
-      const boundary1 = (targets.collapsed + targets.expanded) / 2; // 0과 expanded 중간
-      // fullscreen 경계를 낮춤 (expanded에서 30% 지점)
-      const boundary2 = targets.expanded + (targets.fullscreen - targets.expanded) * 0.3;
+      // 자석 효과 구간 (최상단/최하단 근처에서 더 쉽게 스냅)
+      const magneticZone = 80; // 80px 이내면 자석처럼 스냅
       
-      // 구간 기반 스냅 (더 직관적)
+      // 구간 기반 스냅 (자석 효과 추가)
       let closestState: 'collapsed' | 'expanded' | 'fullscreen';
-      if (finalHeight < boundary1) {
+      
+      // 최상단 자석 구간 (0-80px)
+      if (finalHeight < magneticZone) {
         closestState = 'collapsed';
-      } else if (finalHeight < boundary2) {
-        closestState = 'expanded';
-      } else {
+      }
+      // 최하단 자석 구간 (fullscreen-80px ~ fullscreen)
+      else if (finalHeight > targets.fullscreen - magneticZone) {
         closestState = 'fullscreen';
+      }
+      // 일반 구간 (기존 로직)
+      else {
+        const boundary1 = (targets.collapsed + targets.expanded) / 2;
+        const boundary2 = targets.expanded + (targets.fullscreen - targets.expanded) * 0.3;
+        
+        if (finalHeight < boundary1) {
+          closestState = 'collapsed';
+        } else if (finalHeight < boundary2) {
+          closestState = 'expanded';
+        } else {
+          closestState = 'fullscreen';
+        }
       }
       
       // 로그 제거 (성능 향상)
@@ -971,10 +984,11 @@ export default function HomePage() {
         {/* Calendar Section - Fixed (헤더 아래 고정) */}
         <div
           ref={calendarRef}
-          className="flex-shrink-0 w-full z-[15]"
+          className={`w-full ${calendarMode === 'fullscreen' ? 'fixed inset-0 z-[50]' : 'flex-shrink-0 z-[15]'}`}
           style={{ 
             backgroundColor: "var(--calendar-bg-color)",
-            touchAction: "none"
+            touchAction: "none",
+            top: calendarMode === 'fullscreen' ? 'var(--header-height, 60px)' : undefined,
           }}
         >
           {/* Calendar - Collapsible */}
