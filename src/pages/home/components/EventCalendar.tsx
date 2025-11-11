@@ -56,6 +56,10 @@ export default function EventCalendar({
     ? Math.max(30, (calendarHeightPx - 16) / 6) // 헤더 16px 제외, 최소 30px
     : 50; // 기본 높이 50px
 
+  // 날짜 폰트 크기 계산 (셀 높이에 비례)
+  const dateFontSize = Math.max(11, Math.min(28, cellHeight * 0.35)); // 30px일때 10.5px, 71px일때 24.85px
+  const eventCountFontSize = Math.max(7, Math.min(12, cellHeight * 0.17)); // 작은 폰트
+
   // 외부 currentMonth가 변경되면 내부 상태도 업데이트
   useEffect(() => {
     if (externalCurrentMonth) {
@@ -525,18 +529,23 @@ export default function EventCalendar({
 
               window.addEventListener("pointerup", handlePointerUp);
             }}
-            className={`w-full h-full flex flex-col items-center justify-center text-[13px] cursor-pointer relative overflow-visible no-select ${
+            className={`w-full h-full flex flex-col items-center justify-center cursor-pointer relative overflow-visible no-select ${
               isSelected ? "text-white z-10" : "text-gray-300"
             }`}
+            style={{ fontSize: `${dateFontSize}px` }}
           >
             {/* 날짜 숫자 - 중앙 정렬 유지 */}
             <span 
               className={`font-bold relative z-30 no-select ${
                 todayFlag 
-                  ? "w-6 h-6 flex items-center justify-center rounded-full bg-blue-500 text-white" 
+                  ? "flex items-center justify-center rounded-full bg-blue-500 text-white" 
                   : ""
               }`}
-              style={isOtherMonth ? { opacity: 0.15 } : undefined}
+              style={{
+                opacity: isOtherMonth ? 0.15 : undefined,
+                width: todayFlag ? `${dateFontSize * 1.8}px` : undefined,
+                height: todayFlag ? `${dateFontSize * 1.8}px` : undefined,
+              }}
             >
               {day.getDate()}
             </span>
@@ -552,11 +561,16 @@ export default function EventCalendar({
 
                 return (
                   <span
-                    className={`absolute top-0.5 right-0.5 text-[8px] rounded-full min-w-[14px] h-3.5 px-1 flex items-center justify-center font-medium transition-all duration-200 z-30 no-select ${
+                    className={`absolute top-0.5 right-0.5 rounded-full px-1 flex items-center justify-center font-medium transition-all duration-200 z-30 no-select ${
                       isHoveredSingle
                         ? "bg-blue-500 text-white transform scale-110"
                         : "bg-gray-600 text-gray-300"
                     }`}
+                    style={{
+                      fontSize: `${eventCountFontSize}px`,
+                      minWidth: `${eventCountFontSize * 1.7}px`,
+                      height: `${eventCountFontSize * 1.7}px`,
+                    }}
                   >
                     +{singleDayEvents.length}
                   </span>
