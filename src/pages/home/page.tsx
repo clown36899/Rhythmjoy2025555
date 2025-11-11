@@ -1008,14 +1008,19 @@ export default function HomePage() {
                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2))) 
               ? 'fixed' 
               : 'relative',
-            inset: (calendarMode === 'fullscreen' || 
-                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
-              ? '0' 
-              : undefined,
             top: (calendarMode === 'fullscreen' || 
                  (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
               ? 'var(--header-height, 60px)' 
               : undefined,
+            left: (calendarMode === 'fullscreen' || 
+                  (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+              ? '0' 
+              : undefined,
+            right: (calendarMode === 'fullscreen' || 
+                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+              ? '0' 
+              : undefined,
+            // bottom은 설정 안 함! (달력이 자연스럽게 높이만큼만 차지)
             zIndex: (calendarMode === 'fullscreen' || 
                     (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
               ? 50 
