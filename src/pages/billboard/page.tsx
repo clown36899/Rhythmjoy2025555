@@ -214,6 +214,8 @@ export default function BillboardPage() {
   const currentActiveIndexRef = useRef<number>(0); // 현재 활성 슬라이드 인덱스 (attemptPlay 취소용)
   const [youtubeApiReady, setYoutubeApiReady] = useState(false); // YouTube API 준비 상태
   const loadBillboardDataRef = useRef<(() => Promise<void>) | null>(null); // loadBillboardData 함수 ref
+  const lastSlideChangeTimeRef = useRef<number>(Date.now()); // 워치독: 마지막 슬라이드 전환 시간
+  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null); // 워치독 타이머
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -285,6 +287,62 @@ export default function BillboardPage() {
     }
   }, []);
 
+  // 🛡️ 워치독(Watchdog): 3분간 슬라이드 전환 없으면 자동 새로고침
+  useEffect(() => {
+    const WATCHDOG_INTERVAL = 30000; // 30초마다 체크
+    const STALL_THRESHOLD = 180000; // 3분(180초) 동안 변화 없으면 새로고침
+    
+    console.log('[워치독] 안전장치 시작 - 3분간 슬라이드 전환 없으면 자동 새로고침');
+    
+    watchdogTimerRef.current = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastChange = now - lastSlideChangeTimeRef.current;
+      const minutesStalled = Math.floor(timeSinceLastChange / 60000);
+      const secondsStalled = Math.floor((timeSinceLastChange % 60000) / 1000);
+      
+      if (timeSinceLastChange >= STALL_THRESHOLD) {
+        // 오류 로그 저장 (localStorage)
+        const errorLog = {
+          timestamp: new Date().toISOString(),
+          timeSinceLastChange: timeSinceLastChange,
+          currentIndex: currentIndex,
+          currentEventId: currentEventIdRef.current,
+          eventsCount: eventsRef.current.length,
+          currentEvent: eventsRef.current[currentIndex] ? {
+            id: eventsRef.current[currentIndex].id,
+            title: eventsRef.current[currentIndex].title,
+            hasVideo: !!eventsRef.current[currentIndex].video_url,
+          } : null,
+          billboardUserId: userId,
+          userAgent: navigator.userAgent,
+        };
+        
+        try {
+          // 최근 10개 로그만 저장 (메모리 절약)
+          const existingLogs = JSON.parse(localStorage.getItem('billboard_error_logs') || '[]');
+          const newLogs = [errorLog, ...existingLogs.slice(0, 9)];
+          localStorage.setItem('billboard_error_logs', JSON.stringify(newLogs));
+          console.error('[워치독] 오류 로그 저장:', errorLog);
+        } catch (err) {
+          console.error('[워치독] 로그 저장 실패:', err);
+        }
+        
+        console.error(`[워치독] 🚨 ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음! 자동 새로고침 실행`);
+        window.location.reload();
+      } else if (timeSinceLastChange >= 120000) {
+        // 2분 경과 시 경고 로그
+        console.warn(`[워치독] ⚠️ ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음 (1분 후 자동 새로고침)`);
+      }
+    }, WATCHDOG_INTERVAL);
+    
+    return () => {
+      if (watchdogTimerRef.current) {
+        clearInterval(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
+    };
+  }, [currentIndex, userId]);
+
   // 슬라이드 타이머 시작 함수
   const startSlideTimer = useCallback((slideInterval: number) => {
     // 기존 타이머 정리
@@ -295,6 +353,9 @@ export default function BillboardPage() {
     
     const startTime = Date.now();
     slideStartTimeRef.current = startTime;
+    
+    // 🛡️ 워치독: 타이머 시작 = 정상 작동 신호
+    lastSlideChangeTimeRef.current = startTime;
     
     // Ref로 정확한 슬라이드 번호 계산 (stale closure 방지)
     const logIndex = currentEventIdRef.current 
@@ -313,6 +374,9 @@ export default function BillboardPage() {
       const latestSettings = settingsRef.current;
       const latestPendingReload = pendingReloadRef.current;
       console.log(`[타이머 종료] - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
+      
+      // 🛡️ 워치독: 타이머 종료 = 정상 작동 신호 (이벤트 1개일 때도 업데이트)
+      lastSlideChangeTimeRef.current = Date.now();
       
       if (latestPendingReload) {
         setTimeout(() => window.location.reload(), 500);
@@ -391,6 +455,9 @@ export default function BillboardPage() {
   useEffect(() => {
     if (events[currentIndex]) {
       currentEventIdRef.current = events[currentIndex].id;
+      // 🛡️ 워치독: 슬라이드 인덱스 변경 시간 업데이트 (이벤트가 여러개일 때)
+      // 이벤트가 1개일 때는 startSlideTimer에서 업데이트
+      lastSlideChangeTimeRef.current = Date.now();
     }
   }, [currentIndex, events]);
 
