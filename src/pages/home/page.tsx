@@ -828,7 +828,7 @@ export default function HomePage() {
         const bottomMagneticZone = 40;
         const fullscreenZoneStart = fullscreenHeight - bottomMagneticZone;
         
-        const expandedMagneticZone = 50;
+        const expandedMagneticZone = 15;
         const expandedLowerBound = expandedThreshold - expandedMagneticZone;
         const expandedUpperBound = expandedThreshold + expandedMagneticZone;
         
@@ -874,7 +874,7 @@ export default function HomePage() {
       // 자석 효과 구간 조정
       const topMagneticZone = 30; // 최상단 자석 구간 (collapsed) - 조금만 내려도 중간으로!
       const bottomMagneticZone = 40; // 최하단 자석 구간 (fullscreen) - 살짝만 올려도 중간으로!
-      const expandedMagneticZone = 30; // 중간 자석 구간 - 중간에서 조금만 벗어나도 위아래로! (더 좁게!)
+      const expandedMagneticZone = 15; // 중간 자석 구간 - 매우 좁게! (조금만 벗어나도 위아래로 스냅)
       
       // 구간 기반 스냅 (자석 효과 추가)
       let closestState: 'collapsed' | 'expanded' | 'fullscreen';
