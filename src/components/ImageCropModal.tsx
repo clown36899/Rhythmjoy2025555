@@ -100,10 +100,10 @@ export default function ImageCropModal({
     height: 50,
   });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '9:16' | '1:1'>('free');
+  const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '3:4' | '1:1'>('free');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '9:16' ? 9 / 16 : 1;
+  const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '3:4' ? 3 / 4 : 1;
 
   // 모달이 열릴 때마다 크롭 영역 초기화
   useEffect(() => {
@@ -152,7 +152,7 @@ export default function ImageCropModal({
   };
 
   // 이미지 크기에 맞는 정확한 비율의 크롭 영역 계산
-  const calculateCropForAspect = (mode: 'free' | '9:16' | '1:1'): Crop => {
+  const calculateCropForAspect = (mode: 'free' | '3:4' | '1:1'): Crop => {
     const img = imgRef.current;
     if (!img) {
       // 이미지 로드 전 기본값
@@ -168,15 +168,15 @@ export default function ImageCropModal({
     }
 
     // 목표 aspect ratio 계산
-    const targetAspect = mode === '9:16' ? 9 / 16 : 1; // width/height
+    const targetAspect = mode === '3:4' ? 3 / 4 : 1; // width/height
 
     // 이미지 중앙에 목표 비율로 크롭 영역 생성
     let cropWidth: number;
     let cropHeight: number;
 
     // 이미지 크기의 70%를 차지하도록 설정
-    if (mode === '9:16') {
-      // 9:16 세로: height 기준
+    if (mode === '3:4') {
+      // 3:4 세로: height 기준
       cropHeight = imgHeight * 0.7;
       cropWidth = cropHeight * targetAspect;
       
@@ -207,7 +207,7 @@ export default function ImageCropModal({
   };
 
   // 비율 변경 시 크롭 영역 재설정
-  const handleAspectRatioChange = (mode: 'free' | '9:16' | '1:1') => {
+  const handleAspectRatioChange = (mode: 'free' | '3:4' | '1:1') => {
     setCompletedCrop(undefined);
     setAspectRatioMode(mode);
     
@@ -298,15 +298,15 @@ export default function ImageCropModal({
               자유
             </button>
             <button
-              onClick={() => handleAspectRatioChange('9:16')}
+              onClick={() => handleAspectRatioChange('3:4')}
               className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                aspectRatioMode === '9:16'
+                aspectRatioMode === '3:4'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
               disabled={isProcessing}
             >
-              9:16
+              3:4
             </button>
             <button
               onClick={() => handleAspectRatioChange('1:1')}
