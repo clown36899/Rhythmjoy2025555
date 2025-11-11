@@ -746,9 +746,10 @@ export default function HomePage() {
         fullscreen: fullscreenHeight
       };
       
-      // 구간별 경계점 (각 타겟의 중간점)
+      // 구간별 경계점
       const boundary1 = (targets.collapsed + targets.expanded) / 2; // 0과 expanded 중간
-      const boundary2 = (targets.expanded + targets.fullscreen) / 2; // expanded와 fullscreen 중간
+      // fullscreen 경계를 낮춤 (expanded에서 30% 지점)
+      const boundary2 = targets.expanded + (targets.fullscreen - targets.expanded) * 0.3;
       
       // 구간 기반 스냅 (더 직관적)
       let closestState: 'collapsed' | 'expanded' | 'fullscreen';
