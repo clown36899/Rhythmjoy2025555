@@ -10,6 +10,7 @@ import SwingBarsPage from "../pages/social/swing-bars/page";
 import SocialCalendarPage from "../pages/social/calendar/page";
 import InvitePage from "../pages/invite/page";
 import { MobileShell } from "../layouts/MobileShell";
+import { AuthProvider } from "../contexts/AuthContext";
 
 const routes: RouteObject[] = [
   {
@@ -22,7 +23,11 @@ const routes: RouteObject[] = [
   },
   {
     path: "/",
-    element: <MobileShell />,
+    element: (
+      <AuthProvider>
+        <MobileShell />
+      </AuthProvider>
+    ),
     children: [
       {
         index: true,

@@ -3,7 +3,6 @@ import './i18n'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { AuthProvider } from './contexts/AuthContext'
 
 function RootApp() {
   useEffect(() => {
@@ -11,11 +10,7 @@ function RootApp() {
     document.body.classList.add('loaded');
   }, []);
 
-  return (
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  );
+  return <App />;
 }
 
 createRoot(document.getElementById('root')!).render(
