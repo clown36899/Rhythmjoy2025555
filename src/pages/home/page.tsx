@@ -77,10 +77,14 @@ export default function HomePage() {
     id: number;
     nonce: number;
   } | null>(null);
-  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(true);
-  //isCalendarCollapsed -> 달력 펼침상태 제어 true | false
+  const [calendarMode, setCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen'>('collapsed');
+  // calendarMode -> 달력 3단계 상태: collapsed (접힘) / expanded (펼쳐짐) / fullscreen (전체화면)
   const [searchTerm, setSearchTerm] = useState("");
   const [isRandomBlinking, setIsRandomBlinking] = useState(false);
+  
+  // 달력 끌어내림 제스처 상태
+  const [calendarPullStart, setCalendarPullStart] = useState<number | null>(null);
+  const [calendarPullDistance, setCalendarPullDistance] = useState(0);
 
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
@@ -630,18 +634,60 @@ export default function HomePage() {
     console.log("@@@ handleViewModeChange 완료 @@@");
   };
   // 1. 달력 접기/펴기 버튼의 배경색/텍스트를 조건부로 설정하는 상수
-  const buttonBgClass = isCalendarCollapsed
+  const buttonBgClass = calendarMode === 'collapsed'
     ? "bg-blue-600 hover:bg-blue-700 text-white" // 달력 접힘 상태일 때 (이벤트 등록 버튼) -> 파란색 배경
-    : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"; // 달력 펼침 상태일 때 (달력 접기 버튼) -> 어두운 배경
+    : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"; // 달력 펼침/전체화면 상태일 때 (달력 접기 버튼) -> 어두운 배경
 
   // 2. 화살표 아이콘 및 색상 설정
-  const arrowIconContent = isCalendarCollapsed ? (
+  const arrowIconContent = calendarMode === 'collapsed' ? (
     // 달력 접힘 (true): 펼치라는 의미의 '위쪽' 화살표 + 파란색 배경 대비를 위한 흰색 텍스트
     <i className="ri-arrow-up-s-line text-sm leading-none align-middle text-white font-bold"></i>
   ) : (
     // 달력 펼침 (false): 접으라는 의미의 '아래쪽' 화살표 + 어두운 배경 대비를 위한 파란색 텍스트
     <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
   );
+  
+  // 달력 끌어내림 제스처 핸들러
+  const handleCalendarTouchStart = (e: React.TouchEvent) => {
+    // expanded 또는 fullscreen 상태일 때만 작동
+    if (calendarMode === 'collapsed') return;
+    
+    const touch = e.touches[0];
+    setCalendarPullStart(touch.clientY);
+    setCalendarPullDistance(0);
+  };
+  
+  const handleCalendarTouchMove = (e: React.TouchEvent) => {
+    if (calendarPullStart === null || calendarMode === 'collapsed') return;
+    
+    const touch = e.touches[0];
+    const distance = touch.clientY - calendarPullStart;
+    
+    // 아래로 끌어내림만 감지 (distance > 0)
+    if (distance > 0) {
+      setCalendarPullDistance(distance);
+    }
+  };
+  
+  const handleCalendarTouchEnd = () => {
+    if (calendarMode === 'collapsed') {
+      setCalendarPullStart(null);
+      setCalendarPullDistance(0);
+      return;
+    }
+    
+    // 50px 이상 끌어내리면 전환
+    if (calendarPullDistance > 50) {
+      if (calendarMode === 'expanded') {
+        setCalendarMode('fullscreen');
+      } else if (calendarMode === 'fullscreen') {
+        setCalendarMode('expanded');
+      }
+    }
+    
+    setCalendarPullStart(null);
+    setCalendarPullDistance(0);
+  };
 
   return (
     <div
@@ -732,12 +778,20 @@ export default function HomePage() {
           ref={calendarRef}
           className="flex-shrink-0 w-full z-[15]"
           style={{ backgroundColor: "var(--calendar-bg-color)" }}
+          onTouchStart={handleCalendarTouchStart}
+          onTouchMove={handleCalendarTouchMove}
+          onTouchEnd={handleCalendarTouchEnd}
         >
           {/* Calendar - Collapsible */}
           <div
             className="transition-all duration-300 ease-in-out overflow-hidden"
             style={{
-              maxHeight: isCalendarCollapsed ? "0px" : "2000px",
+              height: calendarMode === 'fullscreen' ? "calc(100vh - 120px)" : "auto",
+              maxHeight: calendarMode === 'collapsed' 
+                ? "0px" 
+                : calendarMode === 'fullscreen' 
+                  ? "calc(100vh - 120px)" 
+                  : "2000px",
             }}
           >
             <EventCalendar
@@ -769,20 +823,27 @@ export default function HomePage() {
             <div className="flex items-center gap-2 px-2 py-1">
               {/* 달력 접기/펴기 토글 버튼 */}
               <button
-                onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                onClick={() => {
+                  // 3단계 순환: collapsed → expanded → collapsed
+                  setCalendarMode(prev => 
+                    prev === 'collapsed' ? 'expanded' : 
+                    prev === 'fullscreen' ? 'expanded' : 
+                    'collapsed'
+                  );
+                }}
                 // 중복된 배경색 클래스를 제거하고 buttonBgClass만 적용하여
                 // '이벤트 등록' 상태(달력 접힘)일 때 파란색 배경이 적용되도록 합니다.
                 className={`flex items-center justify-center gap-1 h-6 px-2
                          ${buttonBgClass}
                          rounded-lg transition-colors cursor-pointer flex-shrink-0`}
-                aria-label={isCalendarCollapsed ? "달력 펴기" : "달력 접기:"}
+                aria-label={calendarMode === 'collapsed' ? "달력 펴기" : "달력 접기:"}
               >
                 <i
-                  className={`${isCalendarCollapsed ? "ri-calendar-line" : "ri-calendar-close-line"} text-sm leading-none align-middle`}
+                  className={`${calendarMode === 'collapsed' ? "ri-calendar-line" : "ri-calendar-close-line"} text-sm leading-none align-middle`}
                 ></i>
 
                 <span className="text-xs leading-none align-middle whitespace-nowrap">
-                  {isCalendarCollapsed ? "이벤트 등록" : "달력 접기"}
+                  {calendarMode === 'collapsed' ? "이벤트 등록" : calendarMode === 'fullscreen' ? "전체화면" : "달력 접기"}
                 </span>
 
                 {/* 화살표 아이콘 (상단에 정의된 arrowIconContent 사용) */}
@@ -823,8 +884,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Scrollable Content Area - Events and Footer (독립 스크롤) */}
-        <div className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20">
+        {/* Scrollable Content Area - Events and Footer (독립 스크롤) - fullscreen 모드에서는 숨김 */}
+        <div className={`flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20 ${calendarMode === 'fullscreen' ? 'hidden' : ''}`}>
           {/* 이벤트 등록 안내 */}
           <div className="p-0 bg-[#222] rounded-none no-select">
             <p className="text-gray-300 text-[13px] text-center no-select">
