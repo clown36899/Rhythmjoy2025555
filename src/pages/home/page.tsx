@@ -759,7 +759,8 @@ export default function HomePage() {
   
   // 실시간 달력 높이 계산 (숫자)
   const getCalendarHeightPx = () => {
-    const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 700;
+    // 헤더(60px) + 바텀메뉴(70px) + 여유(20px) = 150px
+    const fullscreenHeight = typeof window !== 'undefined' ? window.innerHeight - 150 : 700;
     
     if (!isDraggingCalendar) {
       // 드래그 중이 아니면 고정 상태
@@ -796,7 +797,7 @@ export default function HomePage() {
       const isButton = target.closest('button');
       
       const currentActualHeight = calendarContentRef.current?.offsetHeight || 0;
-      const fullscreenHeight = window.innerHeight - 200;
+      const fullscreenHeight = window.innerHeight - 150;
       
       // 로그 제거 (성능 향상)
       
@@ -829,7 +830,7 @@ export default function HomePage() {
       }
       
       dragAnimationRef.current = requestAnimationFrame(() => {
-        const fullscreenHeight = window.innerHeight - 200;
+        const fullscreenHeight = window.innerHeight - 150;
         let targetHeight = dragStartHeight + distance;
         targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
         
@@ -869,7 +870,7 @@ export default function HomePage() {
         return;
       }
       
-      const fullscreenHeight = window.innerHeight - 200;
+      const fullscreenHeight = window.innerHeight - 150;
       
       // 실제 최종 높이 계산 (시작높이 + 드래그 거리)
       let finalHeight = dragStartHeight + calendarPullDistance;
@@ -1040,29 +1041,29 @@ export default function HomePage() {
             touchAction: "none",
             // 드래그 중 실시간 position 적용
             position: (calendarMode === 'fullscreen' || 
-                      (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2))) 
+                      (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 150 : 700) / 2))) 
               ? 'fixed' 
               : 'relative',
             // top은 헤더 높이만큼!
             top: (calendarMode === 'fullscreen' || 
-                 (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+                 (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 150 : 700) / 2)))
               ? `${headerHeight}px`
               : undefined,
             left: (calendarMode === 'fullscreen' || 
-                  (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+                  (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 150 : 700) / 2)))
               ? '0' 
               : undefined,
             right: (calendarMode === 'fullscreen' || 
-                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+                   (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 150 : 700) / 2)))
               ? '0' 
               : undefined,
             // bottom은 설정 안 함! (달력이 자연스럽게 높이만큼만 차지)
             zIndex: (calendarMode === 'fullscreen' || 
-                    (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+                    (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 150 : 700) / 2)))
               ? 50 
               : 15,
             flexShrink: (calendarMode === 'fullscreen' || 
-                        (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+                        (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 150 : 700) / 2)))
               ? undefined 
               : 0,
           }}
@@ -1192,7 +1193,7 @@ export default function HomePage() {
             // 달력이 fixed일 때 이벤트 리스트 위치 유지
             // 중요: 250px로 완전 고정! (fullscreen이든 뭐든 250px 유지)
             marginTop: (calendarMode === 'fullscreen' || 
-                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 200 : 700) / 2)))
+                       (isDraggingCalendar && dragStartHeight + calendarPullDistance > Math.min(250, (typeof window !== 'undefined' ? window.innerHeight - 150 : 700) / 2)))
               ? '250px' // 무조건 250px 고정!
               : undefined,
           }}

@@ -626,10 +626,14 @@ export default function EventCalendar({
 
                 if (!bar) return null;
 
+                // 셀이 클 때는 제목 표시
+                const showTitle = cellHeight > 55 && bar.isStart;
+                const event = showTitle ? multiDayEvents.find(e => e.id === bar.eventId) : null;
+
                 return (
                   <div
                     key={i}
-                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 overflow-hidden ${
+                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 overflow-hidden flex items-center px-1.5 ${
                       bar.categoryColor
                     } ${
                       bar.isStart && bar.isEnd
@@ -644,9 +648,17 @@ export default function EventCalendar({
                         ? "opacity-20 h-1.5 z-0"
                         : isHovered
                           ? "opacity-100 h-5 z-10"
-                          : "opacity-60 h-1.5 z-0"
+                          : cellHeight > 55
+                            ? "opacity-80 h-3.5 z-0"
+                            : "opacity-60 h-1.5 z-0"
                     }`}
-                  />
+                  >
+                    {showTitle && event && (
+                      <span className="text-[10px] font-medium truncate text-white">
+                        {event.title}
+                      </span>
+                    )}
+                  </div>
                 );
               })}
             </div>
