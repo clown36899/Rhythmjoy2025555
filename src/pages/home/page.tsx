@@ -734,21 +734,26 @@ export default function HomePage() {
       }
       
       const fullscreenHeight = window.innerHeight - 200;
-      const stateHeights = {
+      
+      // 실제 최종 높이 계산 (시작높이 + 드래그 거리)
+      let finalHeight = dragStartHeight + calendarPullDistance;
+      finalHeight = Math.max(0, Math.min(finalHeight, fullscreenHeight));
+      
+      // 3개 타겟 높이
+      const targets = {
         collapsed: 0,
         expanded: 500,
         fullscreen: fullscreenHeight
       };
       
-      let finalHeight = stateHeights[calendarMode] + calendarPullDistance;
-      finalHeight = Math.max(0, finalHeight); // 음수 방지만
-      
+      // 각 타겟까지의 거리 계산
       const distances = {
-        collapsed: Math.abs(finalHeight - 0),
-        expanded: Math.abs(finalHeight - 500),
-        fullscreen: Math.abs(finalHeight - fullscreenHeight)
+        collapsed: Math.abs(finalHeight - targets.collapsed),
+        expanded: Math.abs(finalHeight - targets.expanded),
+        fullscreen: Math.abs(finalHeight - targets.fullscreen)
       };
       
+      // 가장 가까운 타겟 찾기
       let closestState: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
       let minDistance = distances.collapsed;
       
@@ -758,21 +763,26 @@ export default function HomePage() {
       }
       if (distances.fullscreen < minDistance) {
         closestState = 'fullscreen';
+        minDistance = distances.fullscreen;
       }
       
-      console.log('🏁 TOUCH END:', {
-        fromMode: calendarMode,
-        toMode: closestState,
-        finalHeight: finalHeight.toFixed(0),
-        pullDistance: calendarPullDistance.toFixed(0),
-        fullscreenHeight: fullscreenHeight.toFixed(0),
-        windowInnerHeight: window.innerHeight,
-        actualContentHeight: calendarContentRef.current?.offsetHeight || 0,
-        distances: {
-          toCollapsed: distances.collapsed.toFixed(0),
-          toExpanded: distances.expanded.toFixed(0),
-          toFullscreen: distances.fullscreen.toFixed(0)
-        }
+      console.log('🏁 TOUCH END (스냅 결정):', {
+        시작모드: calendarMode,
+        시작높이: dragStartHeight,
+        드래그거리: calendarPullDistance.toFixed(0),
+        최종높이: finalHeight.toFixed(0),
+        타겟높이: {
+          collapsed: targets.collapsed,
+          expanded: targets.expanded,
+          fullscreen: targets.fullscreen
+        },
+        각타겟까지거리: {
+          toCollapsed: distances.collapsed.toFixed(0) + 'px',
+          toExpanded: distances.expanded.toFixed(0) + 'px',
+          toFullscreen: distances.fullscreen.toFixed(0) + 'px'
+        },
+        선택된상태: closestState,
+        가장가까운거리: minDistance.toFixed(0) + 'px'
       });
       
       setCalendarMode(closestState);
