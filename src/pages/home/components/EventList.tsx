@@ -1622,14 +1622,14 @@ export default function EventList({
                                 src={finalThumbnailUrl}
                                 alt={event.title}
                                 loading="lazy"
-                                className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
+                                className="w-full aspect-[9/16] object-contain object-top bg-gray-900"
                               />
                             );
                           } else {
                             // 텍스트 fallback (이미지도 기본 썸네일도 없을 때)
                             return (
                               <div
-                                className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
+                                className="w-full aspect-[9/16] flex items-center justify-center bg-cover bg-center relative"
                                 style={{
                                   backgroundImage: "url(/grunge.png)",
                                 }}
@@ -1848,7 +1848,7 @@ export default function EventList({
                                       src={finalThumbnailUrl}
                                       alt={event.title}
                                       loading="lazy"
-                                      className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
+                                      className="w-full aspect-[9/16] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1863,7 +1863,7 @@ export default function EventList({
                                 );
                               } else {
                                 return (
-                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                  <div className="w-full aspect-[9/16] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
                                       {event.category === "class"
                                         ? "강습"
@@ -2024,7 +2024,7 @@ export default function EventList({
                                       src={finalThumbnailUrl}
                                       alt={event.title}
                                       loading="lazy"
-                                      className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
+                                      className="w-full aspect-[9/16] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -2039,7 +2039,7 @@ export default function EventList({
                                 );
                               } else {
                                 return (
-                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                  <div className="w-full aspect-[9/16] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
                                       {event.category === "class"
                                         ? "강습"
@@ -2183,7 +2183,7 @@ export default function EventList({
                                       src={finalThumbnailUrl}
                                       alt={event.title}
                                       loading="lazy"
-                                      className="w-full aspect-[3/4] object-contain object-top bg-gray-900"
+                                      className="w-full aspect-[9/16] object-contain object-top bg-gray-900"
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -2198,7 +2198,7 @@ export default function EventList({
                                 );
                               } else {
                                 return (
-                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
+                                  <div className="w-full aspect-[9/16] bg-[#000000] flex items-center justify-center">
                                     <span className="text-white/10 text-4xl font-bold relative">
                                       {event.category === "class"
                                         ? "강습"
