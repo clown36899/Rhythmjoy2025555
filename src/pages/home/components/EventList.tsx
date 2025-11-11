@@ -189,9 +189,12 @@ export default function EventList({
 
   // 랜덤 버튼 깜빡임 효과 (이번달 버튼 클릭 시)
   useEffect(() => {
+    console.log('🟡 EventList - randomBlinkNonce 변경:', randomBlinkNonce);
     if (randomBlinkNonce > 0) {
+      console.log('✅ EventList - 깜빡임 시작 (500ms)');
       setIsRandomBlinking(true);
       const timeout = setTimeout(() => {
+        console.log('✅ EventList - 깜빡임 종료');
         setIsRandomBlinking(false);
       }, 500); // 500ms 깜빡임
 

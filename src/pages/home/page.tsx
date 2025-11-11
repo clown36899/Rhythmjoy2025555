@@ -700,7 +700,11 @@ export default function HomePage() {
             navigateWithCategory("all");
           }}
           onTriggerRandomBlink={() => {
-            setRandomBlinkNonce((prev) => prev + 1);
+            console.log('🟢 HomePage - randomBlinkNonce 증가 전:', randomBlinkNonce);
+            setRandomBlinkNonce((prev) => {
+              console.log('🟢 HomePage - randomBlinkNonce 증가:', prev, '→', prev + 1);
+              return prev + 1;
+            });
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
