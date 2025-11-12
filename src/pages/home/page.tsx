@@ -333,7 +333,7 @@ export default function HomePage() {
         cancelAnimationFrame(swipeAnimationRef.current);
       }
     };
-  }, [containerRef, isAnimating, currentMonth, minSwipeDistance]);
+  }, [containerRef, isAnimating, currentMonth]);
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
   const [fromQR] = useState(() => {
