@@ -46,9 +46,6 @@ interface EventListProps {
   onHighlightComplete?: () => void;
   dragOffset?: number;
   isAnimating?: boolean;
-  onTouchStart?: (e: React.TouchEvent) => void;
-  onTouchMove?: (e: React.TouchEvent) => void;
-  onTouchEnd?: () => void;
   slideContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -74,9 +71,6 @@ export default function EventList({
   onHighlightComplete,
   dragOffset: externalDragOffset = 0,
   isAnimating: externalIsAnimating = false,
-  onTouchStart,
-  onTouchMove,
-  onTouchEnd,
   slideContainerRef,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
@@ -1570,9 +1564,6 @@ export default function EventList({
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
         >
           {sortedEvents.length > 0 ? (
             <>
@@ -1798,9 +1789,6 @@ export default function EventList({
               // transition: 'height 0.3s ease-out'
             }
           }
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
         >
           <div
             ref={slideContainerRef}

@@ -163,6 +163,178 @@ export default function HomePage() {
     isScrollExpandingRef,
   });
 
+  // 🎯 수평 스와이프 핸들러 (native event listener로 passive: false 설정)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let localTouchStart: { x: number; y: number } | null = null;
+    let localSwipeDirection: "horizontal" | "vertical" | null = null;
+    let localIsDragging = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (isAnimating) return;
+      const touch = e.touches[0];
+      localTouchStart = { x: touch.clientX, y: touch.clientY };
+      localIsDragging = true;
+      localSwipeDirection = null;
+      setDragOffset(0);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!localIsDragging || !localTouchStart) return;
+
+      const touch = e.touches[0];
+      const diffX = touch.clientX - localTouchStart.x;
+      const diffY = touch.clientY - localTouchStart.y;
+
+      // 방향 결정
+      if (localSwipeDirection === null) {
+        const absX = Math.abs(diffX);
+        const absY = Math.abs(diffY);
+
+        if (absX > 3 || absY > 3) {
+          if (absY > absX * 1.5) {
+            localSwipeDirection = "vertical";
+          } else if (absX > absY * 1.5) {
+            localSwipeDirection = "horizontal";
+            setSwipeDirection("horizontal");
+          }
+        }
+      }
+
+      // 수평 슬라이드 처리
+      if (localSwipeDirection === "horizontal") {
+        e.preventDefault(); // passive: false이므로 가능
+
+        if (swipeAnimationRef.current) {
+          cancelAnimationFrame(swipeAnimationRef.current);
+        }
+
+        swipeAnimationRef.current = requestAnimationFrame(() => {
+          swipeOffsetRef.current = diffX;
+
+          if (calendarElementRef.current) {
+            calendarElementRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
+          }
+          if (eventListSlideContainerRef.current) {
+            eventListSlideContainerRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
+          }
+        });
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (!localIsDragging || !localTouchStart) return;
+
+      if (swipeAnimationRef.current) {
+        cancelAnimationFrame(swipeAnimationRef.current);
+        swipeAnimationRef.current = null;
+      }
+
+      localIsDragging = false;
+
+      if (localSwipeDirection === "horizontal") {
+        const distance = swipeOffsetRef.current;
+        const threshold = minSwipeDistance;
+
+        if (Math.abs(distance) > threshold) {
+          setIsAnimating(true);
+
+          const screenWidth = window.innerWidth;
+          const direction = distance < 0 ? "next" : "prev";
+          const targetOffset = distance < 0 ? -screenWidth : screenWidth;
+
+          if (calendarElementRef.current) {
+            calendarElementRef.current.style.transition = "transform 0.3s ease-out";
+            calendarElementRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
+          }
+          if (eventListSlideContainerRef.current) {
+            eventListSlideContainerRef.current.style.transition = "transform 0.3s ease-out";
+            eventListSlideContainerRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
+          }
+
+          setDragOffset(targetOffset);
+
+          const newMonth = new Date(currentMonth);
+          newMonth.setDate(1);
+          if (direction === "prev") {
+            newMonth.setMonth(currentMonth.getMonth() - 1);
+          } else {
+            newMonth.setMonth(currentMonth.getMonth() + 1);
+          }
+
+          setTimeout(() => {
+            setCurrentMonth(newMonth);
+            setSelectedDate(null);
+
+            swipeOffsetRef.current = 0;
+            if (calendarElementRef.current) {
+              calendarElementRef.current.style.transition = "none";
+              calendarElementRef.current.style.transform = "translateZ(0)";
+            }
+            if (eventListSlideContainerRef.current) {
+              eventListSlideContainerRef.current.style.transition = "none";
+              eventListSlideContainerRef.current.style.transform = "translateZ(0)";
+            }
+
+            setDragOffset(0);
+            setIsAnimating(false);
+            setSwipeDirection(null);
+          }, 300);
+        } else {
+          setIsAnimating(true);
+
+          if (calendarElementRef.current) {
+            calendarElementRef.current.style.transition = "transform 0.3s ease-out";
+            calendarElementRef.current.style.transform = "translateZ(0)";
+          }
+          if (eventListSlideContainerRef.current) {
+            eventListSlideContainerRef.current.style.transition = "transform 0.3s ease-out";
+            eventListSlideContainerRef.current.style.transform = "translateZ(0)";
+          }
+
+          swipeOffsetRef.current = 0;
+          setDragOffset(0);
+
+          setTimeout(() => {
+            if (calendarElementRef.current) {
+              calendarElementRef.current.style.transition = "none";
+            }
+            if (eventListSlideContainerRef.current) {
+              eventListSlideContainerRef.current.style.transition = "none";
+            }
+
+            setIsAnimating(false);
+            setSwipeDirection(null);
+          }, 300);
+        }
+      } else {
+        swipeOffsetRef.current = 0;
+        setDragOffset(0);
+        setSwipeDirection(null);
+      }
+
+      localTouchStart = null;
+      localSwipeDirection = null;
+    };
+
+    // passive: false로 등록하여 preventDefault 가능하게
+    container.addEventListener("touchstart", handleTouchStart, { passive: false });
+    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+    container.addEventListener("touchend", handleTouchEnd, { passive: false });
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
+
+      if (swipeAnimationRef.current) {
+        cancelAnimationFrame(swipeAnimationRef.current);
+      }
+    };
+  }, [containerRef, isAnimating, currentMonth, minSwipeDistance]);
+
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
   const [fromQR] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -519,182 +691,8 @@ export default function HomePage() {
     console.log(">>> handleMonthChange 완료 <<<");
   };
 
-  // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
+  // 수평 스와이프 임계값
   const minSwipeDistance = 30;
-
-  // 터치 핸들러 - 좌우 슬라이드와 상하 스크롤 명확히 구분
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (isAnimating) return;
-    const touch = e.targetTouches[0];
-    setTouchStart({ x: touch.clientX, y: touch.clientY });
-    setIsDragging(true);
-    setDragOffset(0);
-    setSwipeDirection(null);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || touchStart === null) return;
-
-    const touch = e.targetTouches[0];
-    const diffX = touch.clientX - touchStart.x;
-    const diffY = touch.clientY - touchStart.y;
-
-    // 방향이 아직 결정되지 않았으면 결정
-    if (swipeDirection === null) {
-      const absX = Math.abs(diffX);
-      const absY = Math.abs(diffY);
-
-      // 임계값: 최소 3px 이동 후 방향 결정 (즉각 반응)
-      if (absX > 3 || absY > 3) {
-        // Y축 이동이 X축보다 1.5배 이상 크면 수직 스크롤
-        if (absY > absX * 1.5) {
-          setSwipeDirection("vertical");
-        }
-        // X축 이동이 Y축보다 1.5배 이상 크면 수평 슬라이드
-        else if (absX > absY * 1.5) {
-          setSwipeDirection("horizontal");
-        }
-      }
-    }
-
-    // 수평 슬라이드로 결정되었을 때만 dragOffset 업데이트
-    if (swipeDirection === "horizontal") {
-      // passive event listener 에러 방지
-      if (e.cancelable) {
-        e.preventDefault();
-      }
-
-      // requestAnimationFrame으로 60fps 보장
-      if (swipeAnimationRef.current) {
-        cancelAnimationFrame(swipeAnimationRef.current);
-      }
-
-      swipeAnimationRef.current = requestAnimationFrame(() => {
-        // ref에 저장 (리렌더링 없음!)
-        swipeOffsetRef.current = diffX;
-
-        // DOM 직접 조작 (GPU 가속)
-        if (calendarElementRef.current) {
-          calendarElementRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
-        }
-        if (eventListSlideContainerRef.current) {
-          eventListSlideContainerRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
-        }
-      });
-    } else if (swipeDirection === "vertical") {
-      // 수직 스크롤은 기본 동작 허용 (dragOffset 업데이트 안 함)
-      return;
-    }
-  };
-
-  const onTouchEnd = () => {
-    if (!isDragging || touchStart === null) return;
-
-    // animation cleanup
-    if (swipeAnimationRef.current) {
-      cancelAnimationFrame(swipeAnimationRef.current);
-      swipeAnimationRef.current = null;
-    }
-
-    setIsDragging(false);
-
-    // 수평 슬라이드로 인식된 경우만 월 변경
-    if (swipeDirection === "horizontal") {
-      const distance = swipeOffsetRef.current; // ref 사용!
-      const threshold = minSwipeDistance;
-
-      if (Math.abs(distance) > threshold) {
-        setIsAnimating(true);
-
-        const screenWidth = window.innerWidth;
-        const direction = distance < 0 ? "next" : "prev";
-        const targetOffset = distance < 0 ? -screenWidth : screenWidth;
-
-        // 스냅 애니메이션 (CSS transition 사용)
-        if (calendarElementRef.current) {
-          calendarElementRef.current.style.transition =
-            "transform 0.3s ease-out";
-          calendarElementRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
-        }
-        if (eventListSlideContainerRef.current) {
-          eventListSlideContainerRef.current.style.transition =
-            "transform 0.3s ease-out";
-          eventListSlideContainerRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
-        }
-
-        setDragOffset(targetOffset);
-
-        // 월 변경 계산 (날짜 오버플로우 방지 - 10월 31일 → 11월 문제 해결)
-        const newMonth = new Date(currentMonth);
-        newMonth.setDate(1); // 먼저 1일로 설정하여 오버플로우 방지
-        if (direction === "prev") {
-          newMonth.setMonth(currentMonth.getMonth() - 1);
-        } else {
-          newMonth.setMonth(currentMonth.getMonth() + 1);
-        }
-
-        // 애니메이션 종료 후 월 변경 및 상태 리셋
-        setTimeout(() => {
-          setCurrentMonth(newMonth);
-          setSelectedDate(null);
-
-          // 리셋
-          swipeOffsetRef.current = 0;
-          if (calendarElementRef.current) {
-            calendarElementRef.current.style.transition = "none";
-            calendarElementRef.current.style.transform = "translateZ(0)";
-          }
-          if (eventListSlideContainerRef.current) {
-            eventListSlideContainerRef.current.style.transition = "none";
-            eventListSlideContainerRef.current.style.transform = "translateZ(0)";
-          }
-
-          setDragOffset(0);
-          setIsAnimating(false);
-          setTouchStart(null);
-          setSwipeDirection(null);
-        }, 300);
-      } else {
-        // 스와이프 거리가 부족하면 원위치로 애니메이션
-        setIsAnimating(true);
-
-        // 원위치 애니메이션
-        if (calendarElementRef.current) {
-          calendarElementRef.current.style.transition =
-            "transform 0.3s ease-out";
-          calendarElementRef.current.style.transform = "translateZ(0)";
-        }
-        if (eventListElementRef.current) {
-          eventListElementRef.current.style.transition =
-            "transform 0.3s ease-out";
-          eventListElementRef.current.style.transform = "translateZ(0)";
-        }
-
-        swipeOffsetRef.current = 0;
-        setDragOffset(0);
-
-        setTimeout(() => {
-          // transition 리셋 (다음 제스처를 위해 필수!)
-          if (calendarElementRef.current) {
-            calendarElementRef.current.style.transition = "none";
-          }
-          if (eventListElementRef.current) {
-            eventListElementRef.current.style.transition = "none";
-          }
-
-          setIsAnimating(false);
-          setTouchStart(null);
-          setSwipeDirection(null);
-        }, 300);
-      }
-    } else {
-      // 수직 스크롤이거나 방향 미결정인 경우 상태만 리셋
-      swipeOffsetRef.current = 0;
-      setDragOffset(0);
-      setTouchStart(null);
-      setSwipeDirection(null);
-    }
-  };
 
   const handleEventsUpdate = async (createdDate?: Date) => {
     setRefreshTrigger((prev) => prev + 1);
@@ -1178,21 +1176,12 @@ export default function HomePage() {
               onHighlightComplete={handleHighlightComplete}
               dragOffset={dragOffset}
               isAnimating={isAnimating}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
               slideContainerRef={eventListSlideContainerRef}
             />
           )}
 
-          {/* Footer - 고정 (위치는 고정이지만 터치 슬라이드 인식) */}
-          <div
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
-            <Footer />
-          </div>
+          {/* Footer - 고정 */}
+          <Footer />
         </div>
       </div>
 
