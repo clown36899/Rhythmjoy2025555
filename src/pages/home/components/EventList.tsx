@@ -3333,7 +3333,7 @@ export default function EventList({
             </div>
             
             {/* 하단 고정 버튼 영역 */}
-            <div className="border-t border-gray-700 bg-gray-800 p-4 flex gap-3">
+            <div className="border-t border-gray-700 bg-gray-800 p-4 flex gap-3 justify-end">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -3349,11 +3349,10 @@ export default function EventList({
                   e.stopPropagation();
                   closeModal();
                 }}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2"
+                className="bg-gray-600 hover:bg-gray-700 text-white w-12 h-12 rounded-lg transition-all cursor-pointer shadow-lg flex items-center justify-center"
                 title="닫기"
               >
-                <i className="ri-close-line text-xl"></i>
-                <span>닫기</span>
+                <i className="ri-close-line text-2xl"></i>
               </button>
             </div>
           </div>
