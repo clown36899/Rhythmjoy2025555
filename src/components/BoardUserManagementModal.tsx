@@ -112,8 +112,8 @@ export default function BoardUserManagementModal({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
-      <div className="bg-gray-800 rounded-lg max-w-5xl w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[1000000]">
+      <div className="bg-gray-800 rounded-lg max-w-5xl w-full max-h-[90svh] relative z-[1000000] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-3">

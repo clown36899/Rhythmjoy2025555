@@ -29,6 +29,7 @@ export default function BoardPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [showUserManagementModal, setShowUserManagementModal] = useState(false);
+  const [showRegistrationPreview, setShowRegistrationPreview] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -49,10 +50,20 @@ export default function BoardPage() {
       setShowUserManagementModal(true);
     };
 
+    const handleOpenRegistrationPreview = () => {
+      if (!isAdmin) {
+        console.warn('관리자 권한이 필요합니다.');
+        return;
+      }
+      setShowRegistrationPreview(true);
+    };
+
     window.addEventListener('openBoardUserManagement', handleOpenUserManagement);
+    window.addEventListener('openRegistrationFormPreview', handleOpenRegistrationPreview);
 
     return () => {
       window.removeEventListener('openBoardUserManagement', handleOpenUserManagement);
+      window.removeEventListener('openRegistrationFormPreview', handleOpenRegistrationPreview);
     };
   }, [isAdmin]);
 
@@ -261,6 +272,17 @@ export default function BoardPage() {
         <BoardUserManagementModal
           isOpen={showUserManagementModal}
           onClose={() => setShowUserManagementModal(false)}
+        />
+      )}
+
+      {/* Registration Form Preview (Admin Only) */}
+      {showRegistrationPreview && isAdmin && (
+        <UserRegistrationModal
+          isOpen={showRegistrationPreview}
+          onClose={() => setShowRegistrationPreview(false)}
+          onRegistered={() => {}}
+          userId="preview"
+          previewMode={true}
         />
       )}
 

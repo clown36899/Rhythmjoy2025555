@@ -474,6 +474,19 @@ export function MobileShell() {
             <button
               onClick={() => {
                 setShowAdminPanel(false);
+                navigate('/board');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('openRegistrationFormPreview'));
+                }, 100);
+              }}
+              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+            >
+              <i className="ri-file-edit-line"></i>
+              회원가입 폼 미리보기
+            </button>
+            <button
+              onClick={() => {
+                setShowAdminPanel(false);
                 navigate('/');
                 setTimeout(() => {
                   window.dispatchEvent(new CustomEvent('openSettings'));

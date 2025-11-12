@@ -7,6 +7,7 @@ interface UserRegistrationModalProps {
   onClose: () => void;
   onRegistered: (userData: UserData) => void;
   userId: string;
+  previewMode?: boolean; // 관리자 미리보기 모드
 }
 
 export interface UserData {
@@ -20,7 +21,8 @@ export default function UserRegistrationModal({
   isOpen,
   onClose,
   onRegistered,
-  userId
+  userId,
+  previewMode = false
 }: UserRegistrationModalProps) {
   const [formData, setFormData] = useState<UserData>({
     nickname: '',
@@ -42,6 +44,12 @@ export default function UserRegistrationModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 미리보기 모드면 실제 저장하지 않음
+    if (previewMode) {
+      alert('미리보기 모드입니다. 실제 가입은 되지 않습니다.');
+      return;
+    }
 
     if (!formData.nickname.trim()) {
       alert('닉네임을 입력해주세요.');
@@ -94,10 +102,26 @@ export default function UserRegistrationModal({
       <div className="bg-gray-800 rounded-lg max-w-md w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
-          <h2 className="text-xl font-bold text-white text-center">
-            회원가입
-          </h2>
-          <p className="text-gray-400 text-sm text-center mt-2">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xl font-bold text-white flex-1 text-center">
+              {previewMode ? '회원가입 폼 미리보기' : '회원가입'}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <i className="ri-close-line text-2xl"></i>
+            </button>
+          </div>
+          {previewMode && (
+            <div className="bg-blue-900/30 border border-blue-500/50 rounded px-3 py-2 mb-2">
+              <p className="text-blue-300 text-xs">
+                <i className="ri-eye-line mr-1"></i>
+                관리자 미리보기 모드 - 실제 가입은 되지 않습니다
+              </p>
+            </div>
+          )}
+          <p className="text-gray-400 text-sm text-center">
             게시판 이용을 위해 정보를 입력해주세요
           </p>
         </div>
