@@ -65,76 +65,69 @@ export function useUnifiedGestureController({
       return velocity;
     };
     
-    // Helper: Calendar 스냅 수행
+    // Helper: Calendar 스냅 수행 (currentHeight 기준)
     const performCalendarSnap = (velocity: number, currentHeight: number, deltaY: number) => {
       const fullscreenHeight = window.innerHeight - 150;
-      const FLING_VELOCITY_THRESHOLD = 0.15; // Android TV 최적화 (0.25 → 0.15)
-      const FLING_DISTANCE_THRESHOLD = 5; // 짧은 거리도 반응 (10 → 5)
+      const FLING_VELOCITY_THRESHOLD = 0.15; // Android TV 최적화
+      const FLING_DISTANCE_THRESHOLD = 5;
       
       let finalHeight = 0;
       let targetMode: CalendarMode = 'collapsed';
       
-      // Fling 또는 느린 드래그 기반 스냅 결정
-      if (calendarMode === 'collapsed') {
-        const isFlickDown = deltaY > FLING_DISTANCE_THRESHOLD && velocity > FLING_VELOCITY_THRESHOLD;
-        
-        if (isFlickDown) {
+      // 🎯 currentHeight 기준 임계값 (연속 드래그 지원)
+      const midPoint = (250 + fullscreenHeight) / 2; // 250과 fullscreen 중간
+      
+      // Fling 우선 처리
+      const isFlickDown = deltaY > FLING_DISTANCE_THRESHOLD && velocity > FLING_VELOCITY_THRESHOLD;
+      const isFlickUp = deltaY < -FLING_DISTANCE_THRESHOLD && velocity < -FLING_VELOCITY_THRESHOLD;
+      
+      if (isFlickDown) {
+        // 빠르게 아래로
+        if (currentHeight < 125) {
           finalHeight = 250;
           targetMode = 'expanded';
-          console.log("⚡️ Fling: collapsed → expanded", velocity.toFixed(3));
-        } else if (deltaY > 5) {
-          // 아래로 5px 이상 당겼으면 무조건 확장 (사용자 요구: "이동거리가 나와야")
+          console.log("⚡️ Fling Down:", currentHeight.toFixed(0), "→ 250 expanded");
+        } else {
+          finalHeight = fullscreenHeight;
+          targetMode = 'fullscreen';
+          console.log("⚡️ Fling Down:", currentHeight.toFixed(0), "→", fullscreenHeight, "fullscreen");
+        }
+      } else if (isFlickUp) {
+        // 빠르게 위로
+        if (currentHeight > midPoint) {
           finalHeight = 250;
           targetMode = 'expanded';
-          console.log("✅ 거리 기반 확장:", deltaY.toFixed(1), "px");
+          console.log("⚡️ Fling Up:", currentHeight.toFixed(0), "→ 250 expanded");
         } else {
           finalHeight = 0;
           targetMode = 'collapsed';
           isScrollExpandingRef.current = false;
-        }
-      } else if (calendarMode === 'expanded') {
-        const isFlickUp = deltaY < -FLING_DISTANCE_THRESHOLD && velocity < -FLING_VELOCITY_THRESHOLD;
-        const isFlickDown = deltaY > FLING_DISTANCE_THRESHOLD && velocity > FLING_VELOCITY_THRESHOLD;
-        
-        if (isFlickUp) {
-          finalHeight = 0;
-          targetMode = 'collapsed';
-          console.log("⚡️ Fling: expanded → collapsed", velocity.toFixed(3));
-        } else if (isFlickDown) {
-          finalHeight = fullscreenHeight;
-          targetMode = 'fullscreen';
-          console.log("⚡️ Fling: expanded → fullscreen", velocity.toFixed(3));
-        } else if (velocity > 0) {
-          if (currentHeight > 280) {
-            finalHeight = fullscreenHeight;
-            targetMode = 'fullscreen';
-          } else {
-            finalHeight = 250;
-            targetMode = 'expanded';
-          }
-        } else {
-          if (currentHeight < 220) {
-            finalHeight = 0;
-            targetMode = 'collapsed';
-          } else {
-            finalHeight = 250;
-            targetMode = 'expanded';
-          }
+          console.log("⚡️ Fling Up:", currentHeight.toFixed(0), "→ 0 collapsed");
         }
       } else {
-        // fullscreen
-        const isFlickUp = Math.abs(deltaY) > 10 && velocity < -FLING_VELOCITY_THRESHOLD;
-        
-        if (isFlickUp) {
+        // 느린 드래그: 가장 가까운 스냅 포인트
+        if (currentHeight < 125) {
+          // 0 ~ 125: collapsed vs expanded
+          if (currentHeight > 60 || deltaY > 5) {
+            finalHeight = 250;
+            targetMode = 'expanded';
+            console.log("✅ 스냅:", currentHeight.toFixed(0), "→ 250 expanded");
+          } else {
+            finalHeight = 0;
+            targetMode = 'collapsed';
+            isScrollExpandingRef.current = false;
+            console.log("✅ 스냅:", currentHeight.toFixed(0), "→ 0 collapsed");
+          }
+        } else if (currentHeight < midPoint) {
+          // 125 ~ midPoint: expanded
           finalHeight = 250;
           targetMode = 'expanded';
-          console.log("⚡️ Fling: fullscreen → expanded", velocity.toFixed(3));
-        } else if (currentHeight < fullscreenHeight - 60) {
-          finalHeight = 250;
-          targetMode = 'expanded';
+          console.log("✅ 스냅:", currentHeight.toFixed(0), "→ 250 expanded");
         } else {
+          // midPoint ~ fullscreen: fullscreen
           finalHeight = fullscreenHeight;
           targetMode = 'fullscreen';
+          console.log("✅ 스냅:", currentHeight.toFixed(0), "→", fullscreenHeight, "fullscreen");
         }
       }
       
