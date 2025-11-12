@@ -159,6 +159,7 @@ export default function HomePage() {
     
     let lastScrollTop = 0;
     let touchStartY = 0;
+    let touchStartHeight = 0; // 터치 시작 시 달력 높이
     let isTouching = false;
 
     const handleScroll = () => {
@@ -189,10 +190,10 @@ export default function HomePage() {
       }
       
       touchStartY = e.touches[0].clientY;
+      touchStartHeight = calendarContentRef.current?.offsetHeight || 0; // 시작 높이 저장!
       isTouching = true;
       
-      const currentHeight = calendarContentRef.current?.offsetHeight || 0;
-      console.log('🟢 터치 시작:', touchStartY, '현재 달력 높이:', currentHeight);
+      console.log('🟢 터치 시작:', touchStartY, '시작 높이:', touchStartHeight);
     };
     
     const handleTouchMove = (e: TouchEvent) => {
@@ -209,15 +210,11 @@ export default function HomePage() {
       
       // 리스트가 최상단이고 아래로 당김 → 달력 확장
       if (isAtTop && isPullingDown && calendarMode !== 'fullscreen') {
-        console.log('✅ 달력 확장 조건 만족!');
         e.preventDefault();
         isScrollExpandingRef.current = true;
         
-        // 현재 달력 높이 가져오기
-        const currentHeight = calendarContentRef.current?.offsetHeight || 0;
-        
-        // 현재 높이 + 터치 거리
-        let targetHeight = currentHeight + (touchDelta * 1.2);
+        // 시작 높이 + 터치 거리 (실시간 반응!)
+        let targetHeight = touchStartHeight + (touchDelta * 1.2);
         
         requestAnimationFrame(() => {
           // 높이 제한 (실시간으로 따라감, 스냅 없음)
@@ -228,20 +225,15 @@ export default function HomePage() {
             calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
             calendarContentRef.current.style.setProperty('transition', 'none'); // 실시간이므로 transition 제거
           }
-          
-          console.log(`🔵 실시간 확장: current=${currentHeight.toFixed(0)}px + delta=${touchDelta.toFixed(0)}px → ${targetHeight.toFixed(0)}px`);
         });
       }
       
       // 달력이 확장 중이고 위로 밀기 → 달력 축소
       if (isAtTop && !isPullingDown && calendarMode !== 'collapsed') {
-        console.log('✅ 달력 축소 조건 만족!');
         e.preventDefault();
         
-        // 현재 달력 높이 가져오기
-        const currentHeight = calendarContentRef.current?.offsetHeight || 0;
-        // 터치 거리만큼 감소
-        let targetHeight = currentHeight + (touchDelta * 1.2); // touchDelta는 음수
+        // 시작 높이 + 터치 거리 (touchDelta는 음수)
+        let targetHeight = touchStartHeight + (touchDelta * 1.2);
         
         requestAnimationFrame(() => {
           targetHeight = Math.max(0, targetHeight);
@@ -251,8 +243,6 @@ export default function HomePage() {
             calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
             calendarContentRef.current.style.setProperty('transition', 'none'); // 실시간이므로 transition 제거
           }
-          
-          console.log(`🔴 실시간 축소: ${touchDelta.toFixed(0)}px → ${targetHeight.toFixed(0)}px`);
         });
       }
     };
@@ -299,6 +289,7 @@ export default function HomePage() {
       }
       
       touchStartY = 0;
+      touchStartHeight = 0;
       console.log(`🧲 자석 스냅: ${currentHeight.toFixed(0)}px → ${finalHeight}px [${targetMode}]`);
     };
 
