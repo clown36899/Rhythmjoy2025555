@@ -316,13 +316,27 @@ export function useUnifiedGestureController({
         if (Math.abs(deltaX) > threshold) {
           const direction = deltaX > 0 ? 'prev' : 'next';
           console.log(`🎯 월 변경: ${direction}`);
-          onMonthChange(direction);
           
-          // 월 변경 후 원위치로 스냅 (transition 후)
+          // 1단계: 목표 위치로 애니메이션 (왼쪽 스와이프 → 0%, 오른쪽 스와이프 → -200%)
+          const targetTransform = direction === 'prev' ? 'translateX(-200%)' : 'translateX(0%)';
+          if (calendarSlider) calendarSlider.style.transform = targetTransform;
+          if (eventListSlider) eventListSlider.style.transform = targetTransform;
+          
+          // 2단계: 애니메이션 완료 후 월 변경 + 즉시 원위치 (transition 없이)
           setTimeout(() => {
-            if (calendarSlider) calendarSlider.style.transform = 'translateX(-100%)';
-            if (eventListSlider) eventListSlider.style.transform = 'translateX(-100%)';
-          }, 0);
+            // transition 끄기
+            if (calendarSlider) calendarSlider.style.transition = 'none';
+            if (eventListSlider) eventListSlider.style.transition = 'none';
+            
+            // 월 변경 (React 리렌더링 발생)
+            onMonthChange(direction);
+            
+            // 즉시 원위치로 복원 (리렌더링과 동시에)
+            requestAnimationFrame(() => {
+              if (calendarSlider) calendarSlider.style.transform = 'translateX(-100%)';
+              if (eventListSlider) eventListSlider.style.transform = 'translateX(-100%)';
+            });
+          }, 250); // 애니메이션 duration과 동일
         } else {
           // threshold 미달 → 원위치 애니메이션
           console.log(`↩️ 스냅백 (threshold 미달)`);
