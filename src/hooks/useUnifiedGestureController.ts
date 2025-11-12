@@ -10,7 +10,7 @@ interface UseUnifiedGestureControllerProps {
   headerHeight: number;
   calendarMode: CalendarMode;
   setCalendarMode: (mode: CalendarMode) => void;
-  isScrollExpandingRef: RefObject<{ current: boolean }>;
+  isScrollExpandingRef: React.MutableRefObject<boolean>;
 }
 
 export function useUnifiedGestureController({
@@ -83,9 +83,7 @@ export function useUnifiedGestureController({
         } else {
           finalHeight = 0;
           targetMode = 'collapsed';
-          if (isScrollExpandingRef.current) {
-            isScrollExpandingRef.current.current = false;
-          }
+          isScrollExpandingRef.current = false;
         }
       } else if (calendarMode === 'expanded') {
         const isFlickUp = deltaY < -FLING_DISTANCE_THRESHOLD && velocity < -FLING_VELOCITY_THRESHOLD;
@@ -210,9 +208,7 @@ export function useUnifiedGestureController({
         const isPullingDown = deltaY > 0;
         
         if (isPullingDown && calendarMode !== 'fullscreen') {
-          if (isScrollExpandingRef.current) {
-            isScrollExpandingRef.current.current = true;
-          }
+          isScrollExpandingRef.current = true;
           
           let targetHeight = gestureStartHeight + deltaY * 1.2;
           const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
