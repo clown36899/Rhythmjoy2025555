@@ -12,9 +12,10 @@ interface UseUnifiedGestureControllerProps {
   isScrollExpandingRef: React.MutableRefObject<boolean>;
   // 월 변경 콜백
   onMonthChange: (direction: 'prev' | 'next') => void;
-  // 수평 스와이프용 슬라이더 ref (DOM 직접 조작)
-  calendarSliderRef: RefObject<HTMLElement>;
-  eventListSliderRef: RefObject<HTMLElement>;
+  // 수평 스와이프용 개별 월 ref (각 월을 따로 transform)
+  prevMonthRef: RefObject<HTMLElement>;
+  currentMonthRef: RefObject<HTMLElement>;
+  nextMonthRef: RefObject<HTMLElement>;
 }
 
 export function useUnifiedGestureController({
@@ -25,8 +26,9 @@ export function useUnifiedGestureController({
   calendarMode,
   setCalendarMode,
   onMonthChange,
-  calendarSliderRef,
-  eventListSliderRef,
+  prevMonthRef,
+  currentMonthRef,
+  nextMonthRef,
 }: UseUnifiedGestureControllerProps) {
   useEffect(() => {
     const containerElement = containerRef.current;
@@ -250,19 +252,24 @@ export function useUnifiedGestureController({
 
       // 수평 스와이프 (월 변경)
       if (gestureDirection === 'horizontal') {
-        // 시각적 피드백: DOM 직접 조작 (state 없이 ref 사용)
+        // 시각적 피드백: 각 월 div를 개별 transform (state 없이 ref 사용)
         requestAnimationFrame(() => {
-          const calendarSlider = calendarSliderRef.current;
-          const eventListSlider = eventListSliderRef.current;
+          const prev = prevMonthRef.current;
+          const current = currentMonthRef.current;
+          const next = nextMonthRef.current;
           
-          if (calendarSlider) {
-            calendarSlider.style.transform = `translateX(calc(-100% + ${deltaX}px))`;
-            calendarSlider.style.transition = 'none';
+          // 각 월을 손가락 따라 이동 (개별 transform)
+          if (prev) {
+            prev.style.transform = `translateX(${deltaX}px)`;
+            prev.style.transition = 'none';
           }
-          
-          if (eventListSlider) {
-            eventListSlider.style.transform = `translateX(calc(-100% + ${deltaX}px))`;
-            eventListSlider.style.transition = 'none';
+          if (current) {
+            current.style.transform = `translateX(${deltaX}px)`;
+            current.style.transition = 'none';
+          }
+          if (next) {
+            next.style.transform = `translateX(${deltaX}px)`;
+            next.style.transition = 'none';
           }
         });
         console.log(`↔️ 수평 드래그: ${deltaX.toFixed(0)}px`);
@@ -302,66 +309,67 @@ export function useUnifiedGestureController({
       // 수평 스와이프 완료 → 월 변경
       if (gestureDirection === 'horizontal') {
         const threshold = 50; // 50px 이상 스와이프
-        const calendarSlider = calendarSliderRef.current;
-        const eventListSlider = eventListSliderRef.current;
+        const prev = prevMonthRef.current;
+        const current = currentMonthRef.current;
+        const next = nextMonthRef.current;
         
         if (Math.abs(deltaX) > threshold) {
           const direction = deltaX > 0 ? 'prev' : 'next';
-          console.log(`🎯 슬라이드: ${direction}, deltaX: ${deltaX.toFixed(0)}px`);
+          console.log(`🎯 각 월 개별 슬라이드: ${direction}, deltaX: ${deltaX.toFixed(0)}px`);
           
-          // ⭐ 핵심: 애니메이션 먼저 → 완료 후 월 변경
-          // 목표 위치 (왼쪽 스와이프 → 0%, 오른쪽 스와이프 → -200%)
-          const targetTransform = direction === 'prev' ? 'translateX(-200%)' : 'translateX(0%)';
-          
+          // ⭐ 핵심: 각 월을 개별 애니메이션 → 완료 후 월 변경
           // transitionend 핸들러
           const handleTransitionEnd = () => {
-            console.log(`✅ 애니메이션 완료 → 이제 월 변경`);
+            console.log(`✅ 슬라이드 완료 → 월 변경`);
             
             // transition 제거
-            if (calendarSlider) {
-              calendarSlider.style.transition = 'none';
-              calendarSlider.removeEventListener('transitionend', handleTransitionEnd);
-            }
-            if (eventListSlider) {
-              eventListSlider.style.transition = 'none';
-              eventListSlider.removeEventListener('transitionend', handleTransitionEnd);
-            }
+            if (prev) prev.style.transition = 'none';
+            if (current) current.style.transition = 'none';
+            if (next) next.style.transition = 'none';
             
-            // 월 변경 (React 리렌더링)
+            // 월 변경 (React 리렌더링 → 새 HTML)
             onMonthChange(direction);
             console.log(`🎉 월 변경 완료: ${direction}`);
           };
           
-          // 이벤트 등록
-          if (calendarSlider) {
-            calendarSlider.addEventListener('transitionend', handleTransitionEnd, { once: true });
-            calendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          }
-          if (eventListSlider) {
-            eventListSlider.addEventListener('transitionend', handleTransitionEnd, { once: true });
-            eventListSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+          // 현재 달에 이벤트 등록 (한 번만)
+          if (current) {
+            current.addEventListener('transitionend', handleTransitionEnd, { once: true });
           }
           
-          // RAF로 한 프레임 대기 후 애니메이션 시작
+          // transition 설정
+          if (prev) prev.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+          if (current) current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+          if (next) next.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+          
+          // RAF로 한 프레임 대기 후 각 월 애니메이션
           requestAnimationFrame(() => {
-            if (calendarSlider) calendarSlider.style.transform = targetTransform;
-            if (eventListSlider) eventListSlider.style.transform = targetTransform;
-            console.log(`🎬 기존 돔 슬라이드: ${targetTransform}`);
+            if (direction === 'next') {
+              // 왼쪽 스와이프 → 다음 달로
+              if (prev) prev.style.transform = 'translateX(-100%)'; // 왼쪽으로 사라짐
+              if (current) current.style.transform = 'translateX(-100%)'; // 왼쪽으로 사라짐
+              if (next) next.style.transform = 'translateX(0)'; // 가운데로 옴
+              console.log(`🎬 왼쪽 스와이프: prev/current 왼쪽으로, next 가운데로`);
+            } else {
+              // 오른쪽 스와이프 → 이전 달로
+              if (prev) prev.style.transform = 'translateX(0)'; // 가운데로 옴
+              if (current) current.style.transform = 'translateX(100%)'; // 오른쪽으로 사라짐
+              if (next) next.style.transform = 'translateX(100%)'; // 오른쪽으로 사라짐
+              console.log(`🎬 오른쪽 스와이프: prev 가운데로, current/next 오른쪽으로`);
+            }
           });
         } else {
           // threshold 미달 → 원위치 애니메이션
           console.log(`↩️ 스냅백: ${deltaX.toFixed(0)}px`);
           
-          if (calendarSlider) {
-            calendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          }
-          if (eventListSlider) {
-            eventListSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          }
+          if (prev) prev.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+          if (current) current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+          if (next) next.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
           
           requestAnimationFrame(() => {
-            if (calendarSlider) calendarSlider.style.transform = 'translateX(-100%)';
-            if (eventListSlider) eventListSlider.style.transform = 'translateX(-100%)';
+            if (prev) prev.style.transform = 'translateX(0)';
+            if (current) current.style.transform = 'translateX(0)';
+            if (next) next.style.transform = 'translateX(0)';
           });
         }
         
@@ -423,7 +431,8 @@ export function useUnifiedGestureController({
     calendarMode,
     setCalendarMode,
     onMonthChange,
-    calendarSliderRef,
-    eventListSliderRef,
+    prevMonthRef,
+    currentMonthRef,
+    nextMonthRef,
   ]);
 }
