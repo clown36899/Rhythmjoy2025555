@@ -308,14 +308,17 @@ export function useUnifiedGestureController({
           const direction = deltaX > 0 ? 'prev' : 'next';
           console.log(`🎯 슬라이드: ${direction}, deltaX: ${deltaX.toFixed(0)}px`);
           
-          // ⭐ 핵심: 애니메이션 → 0 위치로 붙임 → 월 변경
-          // 목표: 왼쪽 스와이프 → 0%, 오른쪽 스와이프 → -200%
-          const targetTransform = direction === 'prev' ? 'translateX(-200%)' : 'translateX(0%)';
+          // ⭐ 핵심: 애니메이션 → -100%로 리셋 (transition 없이) → 월 변경
+          // 왼쪽 스와이프 (next): calc(-100% - 100%)
+          // 오른쪽 스와이프 (prev): calc(-100% + 100%)
+          const targetTransform = direction === 'prev' 
+            ? 'translateX(calc(-100% + 100%))' 
+            : 'translateX(calc(-100% - 100%))';
           
           const handleTransitionEnd = () => {
-            console.log(`✅ 애니메이션 완료 → -100%로 붙임`);
+            console.log(`✅ 애니메이션 완료 → -100%로 리셋 (transition 없이)`);
             
-            // 즉시 -100%로 이동 (transition 없이)
+            // 즉시 -100%로 리셋 (transition: none → 깜빡임 없음)
             if (calendarSlider) {
               calendarSlider.style.transition = 'none';
               calendarSlider.style.transform = 'translateX(-100%)';
