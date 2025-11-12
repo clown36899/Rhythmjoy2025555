@@ -119,13 +119,13 @@ export function useUnifiedGestureController({
             isScrollExpandingRef.current = false;
             console.log("✅ 스냅:", currentHeight.toFixed(0), "→ 0 collapsed");
           }
-        } else if (currentHeight < 320) {
-          // 125 ~ 320: expanded vs fullscreen (임계값 낮춤: midPoint → 320)
+        } else if (currentHeight < 280) {
+          // 125 ~ 280: expanded (임계값 낮춤: 320 → 280)
           finalHeight = 250;
           targetMode = 'expanded';
           console.log("✅ 스냅:", currentHeight.toFixed(0), "→ 250 expanded");
         } else {
-          // 320 ~ fullscreen: fullscreen
+          // 280 ~ fullscreen: fullscreen (쉽게 도달)
           finalHeight = fullscreenHeight;
           targetMode = 'fullscreen';
           console.log("✅ 스냅:", currentHeight.toFixed(0), "→", fullscreenHeight, "fullscreen");
