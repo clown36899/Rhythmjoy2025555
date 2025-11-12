@@ -213,11 +213,13 @@ export function useUnifiedGestureController({
         const scrollTop = eventListElement.scrollTop;
         const deltaY = e.clientY - gestureStartY;
         
-        // 스크롤 최상단 + 아래로 pull down → calendar-drag로 전환
-        if (scrollTop <= 0 && deltaY > 10) {
-          console.log("🔄 제스처 전환: scroll → calendar-drag (pull down 감지)");
+        // 스크롤 최상단 + 아래로 pull down → 즉시 calendar-drag로 전환
+        if (scrollTop <= 0 && deltaY > 3) {
+          console.log("🔄 제스처 전환: scroll → calendar-drag (pull down 감지, deltaY:", deltaY.toFixed(1), ")");
           activeGesture = 'calendar-drag';
-          e.preventDefault(); // 이제부터 스크롤 차단
+          // 즉시 preventDefault() 호출 → 스크롤 차단, 달력 제어 시작
+          e.preventDefault();
+          // 아래 calendar-drag 로직으로 넘어감 (return 안 함)
         } else {
           // 일반 스크롤 계속
           return;
