@@ -168,6 +168,7 @@ export default function HomePage() {
     let touchStartX = 0;
     let touchStartHeight = 0;
     let lastTouchDeltaY = 0; // 마지막 터치 이동 방향 저장
+    let lastTouchTime = 0; // 속도 계산용
     let isTouchOnCalendar = false;
     let isTouching = false;
     let isHorizontalScroll = false;
@@ -241,8 +242,9 @@ export default function HomePage() {
         return;
       }
 
-      // 터치 방향 저장
+      // 터치 방향 및 시간 저장
       lastTouchDeltaY = touchDeltaY;
+      lastTouchTime = Date.now();
 
       // 리스트가 최상단이고 아래로 당김 → 달력 확장
       if (isAtTop && isPullingDown && calendarMode !== "fullscreen") {
@@ -317,6 +319,19 @@ export default function HomePage() {
 
       isTouching = false;
 
+      // 🚀 속도 계산 (Fling 감지용)
+      const velocityY = (() => {
+        if (lastTouchTime === 0) return 0;
+        const touchEndTime = Date.now();
+        const timeElapsed = touchEndTime - lastTouchTime;
+
+        // 500ms 이상 걸리면 느린 움직임으로 간주
+        if (timeElapsed > 500) return 0;
+
+        // 속도 = 거리 / 시간 (px/ms)
+        return lastTouchDeltaY / timeElapsed;
+      })();
+
       const currentHeight = calendarContentRef.current?.offsetHeight || 0;
       const fullscreenHeight = window.innerHeight - 150;
       const isPullingDown = lastTouchDeltaY > 0;
@@ -327,16 +342,29 @@ export default function HomePage() {
         fullscreenHeight: fullscreenHeight.toFixed(0),
         isPullingDown,
         lastTouchDeltaY: lastTouchDeltaY.toFixed(0),
+        velocityY: velocityY.toFixed(2),
         threshold: (fullscreenHeight - 15).toFixed(0),
       });
+
+      // 🎯 Fling 임계값 설정
+      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.5 px/ms (500px/초)
+      const FLING_DISTANCE_THRESHOLD = 30; // 30px 이상 이동
 
       // 방향 기반 양방향 자석 스냅
       let finalHeight = 0;
       let targetMode: "collapsed" | "expanded" | "fullscreen" = "collapsed";
 
       if (calendarMode === "collapsed") {
-        // collapsed에서 시작 → 아주 조금만 내려도 expanded로 (15px)
-        if (isPullingDown && currentHeight > 15) {
+        // Fling 감지 (아래로 빠르게 당김)
+        const isFlickDown =
+          lastTouchDeltaY > FLING_DISTANCE_THRESHOLD &&
+          velocityY > FLING_VELOCITY_THRESHOLD;
+
+        if (isFlickDown) {
+          finalHeight = 250;
+          targetMode = "expanded";
+          console.log("⚡️ Fling 감지 (이벤트 리스트): collapsed → expanded");
+        } else if (isPullingDown && currentHeight > 15) {
           finalHeight = 250;
           targetMode = "expanded";
         } else {
@@ -345,8 +373,24 @@ export default function HomePage() {
           isScrollExpandingRef.current = false;
         }
       } else if (calendarMode === "expanded") {
-        // expanded에서 시작
-        if (isPullingDown) {
+        // Fling 감지 (위로 빠르게 밀기 / 아래로 빠르게 당기기)
+        const isFlickUp =
+          lastTouchDeltaY < -FLING_DISTANCE_THRESHOLD &&
+          velocityY < -FLING_VELOCITY_THRESHOLD;
+        const isFlickDown =
+          lastTouchDeltaY > FLING_DISTANCE_THRESHOLD &&
+          velocityY > FLING_VELOCITY_THRESHOLD;
+
+        if (isFlickUp) {
+          finalHeight = 0;
+          targetMode = "collapsed";
+          isScrollExpandingRef.current = false;
+          console.log("⚡️ Fling 감지 (이벤트 리스트): expanded → collapsed");
+        } else if (isFlickDown) {
+          finalHeight = fullscreenHeight;
+          targetMode = "fullscreen";
+          console.log("⚡️ Fling 감지 (이벤트 리스트): expanded → fullscreen");
+        } else if (isPullingDown) {
           // 아래로 당김 → 조금만 움직여도 fullscreen으로 (30px)
           if (currentHeight > 280) {
             finalHeight = fullscreenHeight;
@@ -367,8 +411,16 @@ export default function HomePage() {
           }
         }
       } else {
-        // fullscreen에서 시작 → 아주 조금만 올려도 expanded로 (60px threshold)
-        if (!isPullingDown && currentHeight < fullscreenHeight - 60) {
+        // Fling 감지 (위로 빠르게 밀기)
+        const isFlickUp =
+          lastTouchDeltaY < -FLING_DISTANCE_THRESHOLD &&
+          velocityY < -FLING_VELOCITY_THRESHOLD;
+
+        if (isFlickUp) {
+          finalHeight = 250;
+          targetMode = "expanded";
+          console.log("⚡️ Fling 감지 (이벤트 리스트): fullscreen → expanded");
+        } else if (!isPullingDown && currentHeight < fullscreenHeight - 60) {
           console.log("✅ fullscreen → expanded 스냅!");
           finalHeight = 250;
           targetMode = "expanded";
