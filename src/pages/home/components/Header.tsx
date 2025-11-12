@@ -431,11 +431,12 @@ export default function Header({
                 </button>
                 <button
                   onClick={handleDateModalOpen}
-                  className="text-sm font-bold text-white whitespace-nowrap hover:text-blue-400 transition-colors cursor-pointer no-select"
+                  className="font-bold text-white whitespace-nowrap hover:text-blue-400 transition-colors cursor-pointer no-select"
+                  style={{ fontSize: "1.4rem" }}
                 >
                   {viewMode === "year"
                     ? `${currentMonth.getFullYear().toString().slice(-2)}년 전체`
-                    : `${currentMonth.getFullYear().toString().slice(-2)}년 ${monthNames[currentMonth.getMonth()]}`}
+                    : monthNames[currentMonth.getMonth()]}
                 </button>
                 <button
                   onClick={handleTodayClick}
