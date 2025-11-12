@@ -46,16 +46,34 @@ export default function FullscreenDateEventsModal({
       try {
         const dateStr = selectedDate.toISOString().split("T")[0];
         
+        // 모든 이벤트를 가져온 후 클라이언트에서 필터링
         const { data, error } = await supabase
           .from("events")
           .select("*")
-          .or(
-            `and(start_date.lte.${dateStr},end_date.gte.${dateStr}),and(start_date.is.null,date.eq.${dateStr})`
-          )
           .order("time", { ascending: true });
 
         if (error) throw error;
-        setEvents(data || []);
+        
+        // 클라이언트에서 정확하게 필터링
+        const filteredEvents = (data || []).filter((event: any) => {
+          // event_dates 배열로 정의된 이벤트 체크
+          if (event.event_dates && event.event_dates.length > 0) {
+            return event.event_dates.includes(dateStr);
+          }
+          
+          // start_date/end_date 범위로 정의된 이벤트 체크
+          const startDate = event.start_date || event.date;
+          const endDate = event.end_date || event.start_date || event.date;
+          
+          return (
+            startDate &&
+            endDate &&
+            dateStr >= startDate &&
+            dateStr <= endDate
+          );
+        });
+        
+        setEvents(filteredEvents);
       } catch (error) {
         console.error("Error fetching events:", error);
         setEvents([]);

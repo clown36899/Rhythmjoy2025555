@@ -39,7 +39,6 @@ export default function EventCalendar({
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [clickedDate, setClickedDate] = useState<Date | null>(null);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
 
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
@@ -865,11 +864,11 @@ export default function EventCalendar({
       </div>
 
       {/* 이벤트 등록 모달 */}
-      {showRegistrationModal && clickedDate && (
+      {showRegistrationModal && selectedDate && (
         <EventRegistrationModal
           isOpen={showRegistrationModal}
           onClose={() => setShowRegistrationModal(false)}
-          selectedDate={clickedDate}
+          selectedDate={selectedDate}
           onEventCreated={handleEventCreated}
         />
       )}
