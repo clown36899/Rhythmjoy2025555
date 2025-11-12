@@ -504,7 +504,7 @@ export default function Header({
                     관리자 로그인
                   </h4>
                   <p className="text-gray-400 text-sm mb-6">
-                    카카오톡 계정으로 로그인하세요
+                    관리자만 로그인 가능합니다.
                   </p>
                   
                   <div className="space-y-3">
