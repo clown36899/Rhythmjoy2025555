@@ -680,10 +680,36 @@ export default function EventList({
         return matchesCategory && matchesSearch && matchesYearRange;
       }
 
-      // 날짜가 선택된 경우: 선택된 날짜의 월 기준으로 필터링
+      // 특정 날짜가 선택된 경우: 해당 날짜 이벤트만 필터링
+      if (selectedDate) {
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+        const day = String(selectedDate.getDate()).padStart(2, "0");
+        const selectedDateString = `${year}-${month}-${day}`;
+
+        // event_dates 배열이 있으면 그 중에서 찾기
+        if (event.event_dates && event.event_dates.length > 0) {
+          const matchesSelectedDate = event.event_dates.includes(selectedDateString);
+          return matchesCategory && matchesSelectedDate;
+        }
+
+        // 연속 기간으로 정의된 이벤트
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+
+        if (!startDate || !endDate) {
+          return false;
+        }
+
+        const matchesSelectedDate =
+          selectedDateString >= startDate && selectedDateString <= endDate;
+
+        return matchesCategory && matchesSelectedDate;
+      }
+
       // 날짜가 선택되지 않은 경우: 현재 달력 월 기준으로 필터링
       let matchesDate = true;
-      const filterMonth = selectedDate || currentMonth;
+      const filterMonth = currentMonth;
       if (filterMonth) {
         // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
         if (event.event_dates && event.event_dates.length > 0) {
