@@ -1260,8 +1260,8 @@ export default function HomePage() {
       };
 
       // 🎯 Fling 임계값 설정 (더 민감하게 조정)
-      const FLING_VELOCITY_THRESHOLD = 0.3; // 0.3 px/ms (300px/초) - 더 빠른 반응
-      const FLING_DISTANCE_THRESHOLD = 20; // 20px 이상 이동 - 더 짧은 거리
+      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.3 px/ms (300px/초) - 더 빠른 반응
+      const FLING_DISTANCE_THRESHOLD = 5; // 20px 이상 이동 - 더 짧은 거리
 
       // 🎯 Hysteresis 기반 상태 전환 로직 (현재 상태에 따라 다른 임계값!)
       let nextState: "collapsed" | "expanded" | "fullscreen";
@@ -1302,7 +1302,7 @@ export default function HomePage() {
         } else if (isFlickDown) {
           nextState = "fullscreen"; // Fling으로 즉시 fullscreen 전환!
           console.log("⚡️ Fling 감지: expanded → fullscreen");
-        } else if (finalHeight <= 250) {
+        } else if (finalHeight <= 230) {
           nextState = "collapsed"; // 0~230px: collapsed로 탈출! (조금만 올려도!)
         } else if (finalHeight <= 265) {
           nextState = "expanded"; // 231~265px: expanded 유지 (좁은 구간!)
