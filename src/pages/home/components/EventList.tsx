@@ -163,17 +163,24 @@ export default function EventList({
     [key: string]: Event[]; // key: "YYYY-MM-category-sortBy"
   }>({});
 
-  // 날짜 변경 감지 (1분마다 체크)
+  // 날짜 변경 감지 (자정에만 실행)
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newDay = new Date().toDateString();
-      if (newDay !== currentDay) {
-        setCurrentDay(newDay);
-      }
-    }, 60000); // 1분마다 체크
+    const scheduleNextMidnight = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setHours(24, 0, 0, 0); // 다음 자정
+      const msUntilMidnight = tomorrow.getTime() - now.getTime();
+      
+      return setTimeout(() => {
+        setCurrentDay(new Date().toDateString());
+        // 자정 이후 다음 자정을 위해 재귀적으로 스케줄링
+        scheduleNextMidnight();
+      }, msUntilMidnight);
+    };
 
-    return () => clearInterval(interval);
-  }, [currentDay]);
+    const timer = scheduleNextMidnight();
+    return () => clearTimeout(timer);
+  }, []);
 
   // 카테고리, 정렬 기준, 이벤트 배열, 날짜 변경 시 캐시 초기화
   useEffect(() => {
