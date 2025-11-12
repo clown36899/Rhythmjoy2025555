@@ -20,6 +20,8 @@ interface EventRegistrationModalProps {
   onClose: () => void;
   selectedDate: Date;
   onEventCreated: (createdDate: Date) => void;
+  fromBanner?: boolean;
+  bannerMonthBounds?: { min: string; max: string };
 }
 
 const formatDateForInput = (date: Date): string => {
@@ -34,6 +36,8 @@ export default function EventRegistrationModal({
   onClose,
   selectedDate,
   onEventCreated,
+  fromBanner = false,
+  bannerMonthBounds,
 }: EventRegistrationModalProps) {
   const { isAdmin } = useAuth();
   const [formData, setFormData] = useState({
@@ -55,7 +59,9 @@ export default function EventRegistrationModal({
     password: "",
     videoUrl: "",
   });
-  const [startDate, setStartDate] = useState<Date>(selectedDate);
+  const [startDateInput, setStartDateInput] = useState<string>(
+    fromBanner ? "" : formatDateForInput(selectedDate)
+  );
   const [endDate, setEndDate] = useState<Date>(selectedDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -82,12 +88,12 @@ export default function EventRegistrationModal({
   const [specificDates, setSpecificDates] = useState<Date[]>([selectedDate]);
   const [tempDateInput, setTempDateInput] = useState<string>(""); // 날짜 추가 전 임시 값
 
-  // selectedDate가 변경되면 startDate, endDate, specificDates도 업데이트
+  // selectedDate가 변경되면 startDateInput, endDate, specificDates도 업데이트
   useEffect(() => {
-    setStartDate(selectedDate);
+    setStartDateInput(fromBanner ? "" : formatDateForInput(selectedDate));
     setEndDate(selectedDate);
     setSpecificDates([selectedDate]);
-  }, [selectedDate]);
+  }, [selectedDate, fromBanner]);
 
   // 모달이 열릴 때 배경 스크롤 금지
   useEffect(() => {
@@ -430,16 +436,15 @@ export default function EventRegistrationModal({
         localDateString = eventDatesArray[0]; // 최소 날짜
         endDateString = eventDatesArray[eventDatesArray.length - 1]; // 최대 날짜
       } else {
-        // 연속 기간 모드: 기존 방식
-        const year = startDate.getFullYear();
-        const month = String(startDate.getMonth() + 1).padStart(2, "0");
-        const day = String(startDate.getDate()).padStart(2, "0");
-        localDateString = `${year}-${month}-${day}`;
-
-        const endYear = endDate.getFullYear();
-        const endMonth = String(endDate.getMonth() + 1).padStart(2, "0");
-        const endDay = String(endDate.getDate()).padStart(2, "0");
-        endDateString = `${endYear}-${endMonth}-${endDay}`;
+        // 연속 기간 모드: startDateInput 사용
+        if (!startDateInput) {
+          alert("시작 날짜를 선택해주세요.");
+          setIsSubmitting(false);
+          return;
+        }
+        
+        localDateString = startDateInput;
+        endDateString = formatDateForInput(endDate);
       }
 
       const eventData = {
@@ -618,16 +623,21 @@ export default function EventRegistrationModal({
                       </label>
                       <input
                         type="date"
-                        value={formatDateForInput(startDate)}
+                        value={startDateInput}
+                        min={bannerMonthBounds?.min}
+                        max={bannerMonthBounds?.max}
                         onChange={(e) => {
-                          const newStartDate = new Date(e.target.value + "T00:00:00");
-                          setStartDate(newStartDate);
-                          // endDate가 newStartDate보다 이전이면 조정
-                          if (endDate < newStartDate) {
-                            setEndDate(newStartDate);
+                          setStartDateInput(e.target.value);
+                          if (e.target.value) {
+                            const newStartDate = new Date(e.target.value + "T00:00:00");
+                            // endDate가 newStartDate보다 이전이면 조정
+                            if (endDate < newStartDate) {
+                              setEndDate(newStartDate);
+                            }
                           }
                         }}
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-gray-700 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' }}
                       />
                     </div>
                     <div>
@@ -637,11 +647,13 @@ export default function EventRegistrationModal({
                       <input
                         type="date"
                         value={formatDateForInput(endDate)}
-                        min={formatDateForInput(startDate)}
+                        min={startDateInput || (bannerMonthBounds?.min)}
+                        max={bannerMonthBounds?.max}
                         onChange={(e) =>
                           setEndDate(new Date(e.target.value + "T00:00:00"))
                         }
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-gray-700 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' }}
                       />
                     </div>
                   </div>
@@ -684,7 +696,10 @@ export default function EventRegistrationModal({
                       <input
                         type="date"
                         value={tempDateInput}
-                        className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min={bannerMonthBounds?.min}
+                        max={bannerMonthBounds?.max}
+                        className="flex-1 bg-gray-700 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' }}
                         onKeyDown={(e) => {
                           // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
                           if (

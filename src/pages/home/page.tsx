@@ -38,6 +38,8 @@ export default function HomePage() {
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [fromBanner, setFromBanner] = useState(false);
+  const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
   // isAdmin 상태에 따라 adminType 자동 동기화
@@ -753,11 +755,32 @@ export default function HomePage() {
       if (customEvent.detail?.source === 'banner' && customEvent.detail?.monthIso) {
         const firstDayOfMonth = new Date(customEvent.detail.monthIso);
         setSelectedDate(firstDayOfMonth);
+        setFromBanner(true);
+        
+        // 해당 달의 첫날과 마지막날 계산
+        const year = firstDayOfMonth.getFullYear();
+        const month = firstDayOfMonth.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        
+        const formatDate = (date: Date) => {
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        };
+        
+        setBannerMonthBounds({
+          min: formatDate(firstDay),
+          max: formatDate(lastDay)
+        });
       } else {
         // 하단 메뉴 버튼에서 온 경우: selectedDate가 없으면 오늘 날짜로 등록
         if (!selectedDate) {
           setSelectedDate(new Date());
         }
+        setFromBanner(false);
+        setBannerMonthBounds(null);
       }
       
       setShowRegistrationModal(true);
@@ -1191,13 +1214,21 @@ export default function HomePage() {
       {showRegistrationModal && selectedDate && (
         <EventRegistrationModal
           isOpen={showRegistrationModal}
-          onClose={() => setShowRegistrationModal(false)}
+          onClose={() => {
+            setShowRegistrationModal(false);
+            setFromBanner(false);
+            setBannerMonthBounds(null);
+          }}
           selectedDate={selectedDate}
           onEventCreated={(createdDate) => {
             // 이벤트 생성 후 새로고침
             setRefreshTrigger((prev) => prev + 1);
             setShowRegistrationModal(false);
+            setFromBanner(false);
+            setBannerMonthBounds(null);
           }}
+          fromBanner={fromBanner}
+          bannerMonthBounds={bannerMonthBounds ?? undefined}
         />
       )}
     </div>
