@@ -1222,6 +1222,26 @@ export default function HomePage() {
         `🎯 [${finalHeight.toFixed(0)}px] ${calendarMode} → ${nextState}`,
       );
 
+      // 부드러운 전환 애니메이션
+      const targetHeight =
+        nextState === "collapsed"
+          ? 0
+          : nextState === "fullscreen"
+            ? fullscreenHeight
+            : targets.expanded;
+
+      if (calendarContentRef.current) {
+        calendarContentRef.current.style.setProperty(
+          "transition",
+          "height 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        );
+        calendarContentRef.current.style.setProperty(
+          "height",
+          `${targetHeight}px`,
+        );
+        calendarContentRef.current.style.setProperty("transform", "scaleY(1)");
+      }
+
       setCalendarMode(nextState);
       setCalendarPullStart(null);
       setCalendarPullDistance(0);
