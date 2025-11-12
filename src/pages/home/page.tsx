@@ -200,13 +200,9 @@ export default function HomePage() {
 
         swipeAnimationRef.current = requestAnimationFrame(() => {
           swipeOffsetRef.current = diffX;
-
-          if (calendarElementRef.current) {
-            calendarElementRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
-          }
-          if (eventListSlideContainerRef.current) {
-            eventListSlideContainerRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
-          }
+          
+          // dragOffset state 업데이트 (EventCalendar와 EventList가 내부적으로 처리)
+          setDragOffset(diffX);
         });
       }
     };
@@ -232,15 +228,6 @@ export default function HomePage() {
           const direction = distance < 0 ? "next" : "prev";
           const targetOffset = distance < 0 ? -screenWidth : screenWidth;
 
-          if (calendarElementRef.current) {
-            calendarElementRef.current.style.transition = "transform 0.3s ease-out";
-            calendarElementRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
-          }
-          if (eventListSlideContainerRef.current) {
-            eventListSlideContainerRef.current.style.transition = "transform 0.3s ease-out";
-            eventListSlideContainerRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
-          }
-
           setDragOffset(targetOffset);
 
           const newMonth = new Date(currentMonth);
@@ -256,15 +243,6 @@ export default function HomePage() {
             setSelectedDate(null);
 
             swipeOffsetRef.current = 0;
-            if (calendarElementRef.current) {
-              calendarElementRef.current.style.transition = "none";
-              calendarElementRef.current.style.transform = "translateZ(0)";
-            }
-            if (eventListSlideContainerRef.current) {
-              eventListSlideContainerRef.current.style.transition = "none";
-              eventListSlideContainerRef.current.style.transform = "translateZ(0)";
-            }
-
             setDragOffset(0);
             setIsAnimating(false);
             setSwipeDirection(null);
@@ -272,26 +250,10 @@ export default function HomePage() {
         } else {
           setIsAnimating(true);
 
-          if (calendarElementRef.current) {
-            calendarElementRef.current.style.transition = "transform 0.3s ease-out";
-            calendarElementRef.current.style.transform = "translateZ(0)";
-          }
-          if (eventListSlideContainerRef.current) {
-            eventListSlideContainerRef.current.style.transition = "transform 0.3s ease-out";
-            eventListSlideContainerRef.current.style.transform = "translateZ(0)";
-          }
-
           swipeOffsetRef.current = 0;
           setDragOffset(0);
 
           setTimeout(() => {
-            if (calendarElementRef.current) {
-              calendarElementRef.current.style.transition = "none";
-            }
-            if (eventListSlideContainerRef.current) {
-              eventListSlideContainerRef.current.style.transition = "none";
-            }
-
             setIsAnimating(false);
             setSwipeDirection(null);
           }, 300);
