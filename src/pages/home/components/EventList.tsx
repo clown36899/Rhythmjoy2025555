@@ -1583,7 +1583,7 @@ export default function EventList({
   }
 
   return (
-    <div className="no-select">
+    <div className="no-select pb-24">
       {/* 검색 키워드 배너 (Compact Style) */}
       {searchTerm && (
         <div
