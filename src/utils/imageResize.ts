@@ -77,11 +77,11 @@ export async function resizeImage(
         );
       };
 
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => reject(new Error('이미지를 처리할 수 없습니다. 지원하는 형식: JPG, PNG, GIF, WebP'));
       img.src = e.target?.result as string;
     };
 
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다. 다른 이미지를 선택해주세요.'));
     reader.readAsDataURL(file);
   });
 }

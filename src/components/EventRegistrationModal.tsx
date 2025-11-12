@@ -160,23 +160,47 @@ export default function EventRegistrationModal({
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      // 원본 보관 (최초 선택 시만)
-      if (!originalImageFile) {
-        setOriginalImageFile(file);
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const preview = e.target?.result as string;
-        setImagePreview(preview);
-        // 원본 미리보기 보관 (최초 선택 시만)
-        if (!originalImagePreview) {
-          setOriginalImagePreview(preview);
-        }
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // 파일 형식 체크
+    const fileType = file.type.toLowerCase();
+    const fileName = file.name.toLowerCase();
+    
+    // HEIC 파일 감지
+    if (fileName.endsWith('.heic') || fileName.endsWith('.heif') || fileType === 'image/heic' || fileType === 'image/heif') {
+      alert('HEIC 형식은 지원하지 않습니다.\niPhone 사진은 설정 > 카메라 > 형식에서 "호환성 우선"으로 변경하거나,\n다른 앱에서 JPG/PNG로 변환 후 업로드해주세요.');
+      e.target.value = '';
+      return;
     }
+
+    // 지원되는 형식 체크
+    const supportedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!supportedFormats.includes(fileType) && !fileName.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+      alert('지원하는 이미지 형식: JPG, PNG, GIF, WebP\n현재 파일 형식은 지원하지 않습니다.');
+      e.target.value = '';
+      return;
+    }
+
+    setImageFile(file);
+    // 원본 보관 (최초 선택 시만)
+    if (!originalImageFile) {
+      setOriginalImageFile(file);
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const preview = e.target?.result as string;
+      setImagePreview(preview);
+      // 원본 미리보기 보관 (최초 선택 시만)
+      if (!originalImagePreview) {
+        setOriginalImagePreview(preview);
+      }
+    };
+    reader.onerror = () => {
+      alert('파일을 읽을 수 없습니다. 손상되었거나 지원하지 않는 형식일 수 있습니다.');
+      e.target.value = '';
+    };
+    reader.readAsDataURL(file);
   };
 
   // 파일 선택 이미지 편집
