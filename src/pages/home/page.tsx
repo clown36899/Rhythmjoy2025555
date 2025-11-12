@@ -327,13 +327,13 @@ export default function HomePage() {
           }
         }
       } else {
-        // fullscreen에서 시작 → 아주 조금만 올려도 expanded로 (15px)
-        if (!isPullingDown && currentHeight < fullscreenHeight - 15) {
+        // fullscreen에서 시작 → 아주 조금만 올려도 expanded로 (60px threshold)
+        if (!isPullingDown && currentHeight < fullscreenHeight - 60) {
           console.log('✅ fullscreen → expanded 스냅!');
           finalHeight = 250;
           targetMode = 'expanded';
         } else {
-          console.log('❌ fullscreen 유지:', currentHeight, '>=', fullscreenHeight - 15);
+          console.log('❌ fullscreen 유지:', currentHeight, '>=', fullscreenHeight - 60);
           finalHeight = fullscreenHeight;
           targetMode = 'fullscreen';
         }
