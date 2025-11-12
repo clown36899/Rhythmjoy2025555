@@ -88,31 +88,17 @@ export default function HomePage() {
   const headerRef = useRef<HTMLDivElement>(null);
 
   // 달력 끌어내림 제스처 상태
-  const [calendarPullStart, setCalendarPullStart] = useState<number | null>(
-    null,
-  );
-  const [calendarPullDistance, setCalendarPullDistance] = useState(0);
   const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
   const [dragStartHeight, setDragStartHeight] = useState(0);
-  const [lastTouchY, setLastTouchY] = useState<number | null>(null);
-  const [lastTouchTime, setLastTouchTime] = useState<number | null>(null);
+  const [calendarPullDistance, setCalendarPullDistance] = useState(0);
   const calendarContentRef = useRef<HTMLDivElement>(null);
 
   // 스크롤 기반 달력 확장용 상태
-  const scrollAccumulatorRef = useRef<number>(0);
   const isScrollExpandingRef = useRef<boolean>(false);
 
-  // Transform 기반 최적화용 ref
-  const dragAnimationRef = useRef<number | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
-
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
-    null,
-  );
   const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<
     "horizontal" | "vertical" | null
   >(null);
@@ -136,9 +122,6 @@ export default function HomePage() {
     return () => {
       if (swipeAnimationRef.current) {
         cancelAnimationFrame(swipeAnimationRef.current);
-      }
-      if (dragAnimationRef.current) {
-        cancelAnimationFrame(dragAnimationRef.current);
       }
     };
   }, []);

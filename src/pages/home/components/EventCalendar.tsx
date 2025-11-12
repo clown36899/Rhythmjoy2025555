@@ -14,13 +14,8 @@ interface EventCalendarProps {
   onViewModeChange?: (mode: "month" | "year") => void;
   hoveredEventId?: number | null;
   isAdminMode?: boolean;
-  // 공통 스와이프 상태
-  onTouchStart?: (e: React.TouchEvent) => void;
-  onTouchMove?: (e: React.TouchEvent) => void;
-  onTouchEnd?: () => void;
   dragOffset?: number;
   isAnimating?: boolean;
-  // 달력 확장 높이
   calendarHeightPx?: number;
 }
 
@@ -34,9 +29,6 @@ export default function EventCalendar({
   viewMode = "month",
   onViewModeChange,
   hoveredEventId,
-  onTouchStart: externalOnTouchStart,
-  onTouchMove: externalOnTouchMove,
-  onTouchEnd: externalOnTouchEnd,
   dragOffset: externalDragOffset = 0,
   isAnimating: externalIsAnimating = false,
   calendarHeightPx,
@@ -819,9 +811,6 @@ export default function EventCalendar({
                     ? "transform 0.3s ease-out"
                     : "none",
                 }}
-                onTouchStart={externalOnTouchStart}
-                onTouchMove={externalOnTouchMove}
-                onTouchEnd={externalOnTouchEnd}
               >
                 {/* 이전 달 */}
                 <div
