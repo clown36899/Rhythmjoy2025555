@@ -319,14 +319,14 @@ export default function HomePage() {
 
       isTouching = false;
 
-      // 🚀 속도 계산 (Fling 감지용)
+      // 🚀 속도 계산 (Fling 감지용 - 짧은 시간 동안의 움직임만 인정)
       const velocityY = (() => {
         if (lastTouchTime === 0) return 0;
         const touchEndTime = Date.now();
         const timeElapsed = touchEndTime - lastTouchTime;
 
-        // 500ms 이상 걸리면 느린 움직임으로 간주
-        if (timeElapsed > 500) return 0;
+        // ⚡ 100ms 이내의 짧은 움직임만 Fling으로 인정 (빠르게 "툭" 치는 동작)
+        if (timeElapsed === 0 || timeElapsed > 100) return 0;
 
         // 속도 = 거리 / 시간 (px/ms)
         return lastTouchDeltaY / timeElapsed;
@@ -346,9 +346,9 @@ export default function HomePage() {
         threshold: (fullscreenHeight - 15).toFixed(0),
       });
 
-      // 🎯 Fling 임계값 설정
-      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.5 px/ms (500px/초)
-      const FLING_DISTANCE_THRESHOLD = 30; // 30px 이상 이동
+      // 🎯 Fling 임계값 설정 (더 민감하게 조정)
+      const FLING_VELOCITY_THRESHOLD = 0.3; // 0.3 px/ms (300px/초) - 더 빠른 반응
+      const FLING_DISTANCE_THRESHOLD = 20; // 20px 이상 이동 - 더 짧은 거리
 
       // 방향 기반 양방향 자석 스냅
       let finalHeight = 0;
@@ -1232,14 +1232,14 @@ export default function HomePage() {
         return;
       }
 
-      // 🚀 속도 계산 (Fling 감지용)
+      // 🚀 속도 계산 (Fling 감지용 - 짧은 시간 동안의 움직임만 인정)
       const velocityY = (() => {
         if (lastTouchY === null || lastTouchTime === null) return 0;
         const touchEndTime = Date.now();
         const timeElapsed = touchEndTime - lastTouchTime;
 
-        // 500ms 이상 걸리면 느린 움직임으로 간주
-        if (timeElapsed > 500) return 0;
+        // ⚡ 100ms 이내의 짧은 움직임만 Fling으로 인정 (빠르게 "툭" 치는 동작)
+        if (timeElapsed === 0 || timeElapsed > 100) return 0;
 
         // 속도 = 거리 / 시간 (px/ms)
         const distance = calendarPullDistance;
@@ -1259,9 +1259,9 @@ export default function HomePage() {
         fullscreen: fullscreenHeight,
       };
 
-      // 🎯 Fling 임계값 설정 속도
-      const FLING_VELOCITY_THRESHOLD = 1; // 0.5 px/ms (500px/초)
-      const FLING_DISTANCE_THRESHOLD = 30; // 30px 이상 이동
+      // 🎯 Fling 임계값 설정 (더 민감하게 조정)
+      const FLING_VELOCITY_THRESHOLD = 0.3; // 0.3 px/ms (300px/초) - 더 빠른 반응
+      const FLING_DISTANCE_THRESHOLD = 20; // 20px 이상 이동 - 더 짧은 거리
 
       // 🎯 Hysteresis 기반 상태 전환 로직 (현재 상태에 따라 다른 임계값!)
       let nextState: "collapsed" | "expanded" | "fullscreen";
