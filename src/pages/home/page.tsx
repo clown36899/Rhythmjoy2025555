@@ -167,11 +167,12 @@ export default function HomePage() {
     let touchStartY = 0;
     let touchStartX = 0;
     let touchStartHeight = 0;
-    let lastTouchDeltaY = 0; // 마지막 터치 이동 방향 저장
-    let lastTouchTime = 0; // 속도 계산용
     let isTouchOnCalendar = false;
     let isTouching = false;
     let isHorizontalScroll = false;
+    
+    // 🚀 슬라이딩 윈도우 방식: 마지막 N개의 터치 포인트 저장 (웹 표준)
+    const touchHistory: Array<{ y: number; time: number }> = [];
 
     const handleScroll = () => {
       const scrollTop = eventListElement.scrollTop;
@@ -242,9 +243,14 @@ export default function HomePage() {
         return;
       }
 
-      // 터치 방향 및 시간 저장
-      lastTouchDeltaY = touchDeltaY;
-      lastTouchTime = Date.now();
+      // 🚀 터치 히스토리에 현재 포인트 저장 (슬라이딩 윈도우)
+      const now = Date.now();
+      touchHistory.push({ y: touchCurrentY, time: now });
+      
+      // 최근 150ms 이내의 포인트만 유지 (오래된 데이터 제거)
+      while (touchHistory.length > 0 && now - touchHistory[0].time > 150) {
+        touchHistory.shift();
+      }
 
       // 리스트가 최상단이고 아래로 당김 → 달력 확장
       if (isAtTop && isPullingDown && calendarMode !== "fullscreen") {
@@ -319,36 +325,54 @@ export default function HomePage() {
 
       isTouching = false;
 
-      // 🚀 속도 계산 (Fling 감지용 - 짧은 시간 동안의 움직임만 인정)
+      // 🚀 웹 표준 슬라이딩 윈도우 방식으로 속도 계산 (Fling 감지)
       const velocityY = (() => {
-        if (lastTouchTime === 0) return 0;
-        const touchEndTime = Date.now();
-        const timeElapsed = touchEndTime - lastTouchTime;
-
-        // ⚡ 100ms 이내의 짧은 움직임만 Fling으로 인정 (빠르게 "툭" 치는 동작)
-        if (timeElapsed === 0 || timeElapsed > 100) return 0;
-
-        // 속도 = 거리 / 시간 (px/ms)
-        return lastTouchDeltaY / timeElapsed;
+        if (touchHistory.length < 2) return 0;
+        
+        const now = Date.now();
+        // 최근 50ms 이내의 포인트들만 사용 (더 정확한 속도 측정)
+        const recentPoints = touchHistory.filter(p => now - p.time <= 50);
+        
+        if (recentPoints.length < 2) {
+          // 50ms 이내 포인트가 부족하면 100ms로 확장
+          const extendedPoints = touchHistory.filter(p => now - p.time <= 100);
+          if (extendedPoints.length < 2) return 0;
+          
+          const first = extendedPoints[0];
+          const last = extendedPoints[extendedPoints.length - 1];
+          const distance = last.y - first.y;
+          const time = last.time - first.time;
+          return time > 0 ? distance / time : 0;
+        }
+        
+        // 최근 50ms 동안의 평균 속도 계산
+        const first = recentPoints[0];
+        const last = recentPoints[recentPoints.length - 1];
+        const distance = last.y - first.y;
+        const time = last.time - first.time;
+        
+        return time > 0 ? distance / time : 0;
       })();
 
       const currentHeight = calendarContentRef.current?.offsetHeight || 0;
       const fullscreenHeight = window.innerHeight - 150;
-      const isPullingDown = lastTouchDeltaY > 0;
+      const touchDeltaY = touchHistory.length > 0 ? touchHistory[touchHistory.length - 1].y - touchStartY : 0;
+      const isPullingDown = touchDeltaY > 0;
 
       console.log("🔴 touchEnd:", {
         calendarMode,
         currentHeight: currentHeight.toFixed(0),
         fullscreenHeight: fullscreenHeight.toFixed(0),
         isPullingDown,
-        lastTouchDeltaY: lastTouchDeltaY.toFixed(0),
-        velocityY: velocityY.toFixed(2),
+        touchDeltaY: touchDeltaY.toFixed(0),
+        velocityY: velocityY.toFixed(3),
+        historyLength: touchHistory.length,
         threshold: (fullscreenHeight - 15).toFixed(0),
       });
 
-      // 🎯 Fling 임계값 설정 (더 민감하게 조정)
-      const FLING_VELOCITY_THRESHOLD = 0.3; // 0.3 px/ms (300px/초) - 더 빠른 반응
-      const FLING_DISTANCE_THRESHOLD = 20; // 20px 이상 이동 - 더 짧은 거리
+      // 🎯 Fling 임계값 설정 (웹 표준 권장값)
+      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.5 px/ms (500px/초)
+      const FLING_DISTANCE_THRESHOLD = 30; // 30px 이상 이동
 
       // 방향 기반 양방향 자석 스냅
       let finalHeight = 0;
@@ -357,13 +381,13 @@ export default function HomePage() {
       if (calendarMode === "collapsed") {
         // Fling 감지 (아래로 빠르게 당김)
         const isFlickDown =
-          lastTouchDeltaY > FLING_DISTANCE_THRESHOLD &&
+          touchDeltaY > FLING_DISTANCE_THRESHOLD &&
           velocityY > FLING_VELOCITY_THRESHOLD;
 
         if (isFlickDown) {
           finalHeight = 250;
           targetMode = "expanded";
-          console.log("⚡️ Fling 감지 (이벤트 리스트): collapsed → expanded");
+          console.log("⚡️ Fling 감지: collapsed → expanded", { velocityY: velocityY.toFixed(3) });
         } else if (isPullingDown && currentHeight > 15) {
           finalHeight = 250;
           targetMode = "expanded";
@@ -375,23 +399,22 @@ export default function HomePage() {
       } else if (calendarMode === "expanded") {
         // Fling 감지 (위로 빠르게 밀기 / 아래로 빠르게 당기기)
         const isFlickUp =
-          lastTouchDeltaY < -FLING_DISTANCE_THRESHOLD &&
+          touchDeltaY < -FLING_DISTANCE_THRESHOLD &&
           velocityY < -FLING_VELOCITY_THRESHOLD;
         const isFlickDown =
-          lastTouchDeltaY > FLING_DISTANCE_THRESHOLD &&
+          touchDeltaY > FLING_DISTANCE_THRESHOLD &&
           velocityY > FLING_VELOCITY_THRESHOLD;
 
         if (isFlickUp) {
           finalHeight = 0;
           targetMode = "collapsed";
           isScrollExpandingRef.current = false;
-          console.log("⚡️ Fling 감지 (이벤트 리스트): expanded → collapsed");
+          console.log("⚡️ Fling 감지: expanded → collapsed", { velocityY: velocityY.toFixed(3) });
         } else if (isFlickDown) {
           finalHeight = fullscreenHeight;
           targetMode = "fullscreen";
-          console.log("⚡️ Fling 감지 (이벤트 리스트): expanded → fullscreen");
+          console.log("⚡️ Fling 감지: expanded → fullscreen", { velocityY: velocityY.toFixed(3) });
         } else if (isPullingDown) {
-          // 아래로 당김 → 조금만 움직여도 fullscreen으로 (30px)
           if (currentHeight > 280) {
             finalHeight = fullscreenHeight;
             targetMode = "fullscreen";
@@ -400,7 +423,6 @@ export default function HomePage() {
             targetMode = "expanded";
           }
         } else {
-          // 위로 밀기 → 조금만 움직여도 collapsed로 (30px)
           if (currentHeight < 220) {
             finalHeight = 0;
             targetMode = "collapsed";
@@ -413,13 +435,13 @@ export default function HomePage() {
       } else {
         // Fling 감지 (위로 빠르게 밀기)
         const isFlickUp =
-          lastTouchDeltaY < -FLING_DISTANCE_THRESHOLD &&
+          touchDeltaY < -FLING_DISTANCE_THRESHOLD &&
           velocityY < -FLING_VELOCITY_THRESHOLD;
 
         if (isFlickUp) {
           finalHeight = 250;
           targetMode = "expanded";
-          console.log("⚡️ Fling 감지 (이벤트 리스트): fullscreen → expanded");
+          console.log("⚡️ Fling 감지: fullscreen → expanded", { velocityY: velocityY.toFixed(3) });
         } else if (!isPullingDown && currentHeight < fullscreenHeight - 60) {
           console.log("✅ fullscreen → expanded 스냅!");
           finalHeight = 250;
@@ -463,7 +485,7 @@ export default function HomePage() {
       touchStartY = 0;
       touchStartX = 0;
       touchStartHeight = 0;
-      lastTouchDeltaY = 0;
+      touchHistory.length = 0; // 터치 히스토리 초기화
       isTouchOnCalendar = false;
       isHorizontalScroll = false;
     };
