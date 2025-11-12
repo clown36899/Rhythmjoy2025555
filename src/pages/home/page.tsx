@@ -1066,10 +1066,8 @@ export default function HomePage() {
         targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
         
         const expandedThreshold = Math.min(250, fullscreenHeight / 2);
-        const bottomMagneticZone = 150; // 자석 구역 확대! (40 → 150)
+        const bottomMagneticZone = 50; // 자석 구역 축소 (조금만 움직여도 스냅!)
         const fullscreenZoneStart = fullscreenHeight - bottomMagneticZone;
-        
-        console.log(`🔧 DEBUG: fullscreenHeight=${fullscreenHeight}, bottomMagneticZone=${bottomMagneticZone}, fullscreenZoneStart=${fullscreenZoneStart}, targetHeight=${targetHeight.toFixed(0)}`);
         
         const expandedMagneticZone = 10;
         const expandedLowerBound = expandedThreshold - expandedMagneticZone;
@@ -1145,17 +1143,14 @@ export default function HomePage() {
       }
       // 현재 상태가 fullscreen일 때
       else {
-        const threshold = fullscreenHeight - 150;
-        console.log(`🔧 fullscreen 판단: finalHeight=${finalHeight.toFixed(0)}, threshold=${threshold.toFixed(0)}, fullscreenHeight=${fullscreenHeight}`);
+        const threshold = fullscreenHeight - 50; // 50px만 움직여도 스냅!
         
         if (finalHeight <= 230) {
           nextState = 'collapsed'; // 0~230px: collapsed
         } else if (finalHeight < threshold) {
-          console.log(`✅ expanded로 스냅! (${finalHeight.toFixed(0)} < ${threshold.toFixed(0)})`);
-          nextState = 'expanded'; // 231~(fullscreen-150)px: expanded 진입! (조금만 올려도!)
+          nextState = 'expanded'; // 231~(fullscreen-50)px: expanded 진입! (조금만 올려도!)
         } else {
-          console.log(`❌ fullscreen 유지 (${finalHeight.toFixed(0)} >= ${threshold.toFixed(0)})`);
-          nextState = 'fullscreen'; // (fullscreen-150)px~: fullscreen 유지
+          nextState = 'fullscreen'; // (fullscreen-50)px~: fullscreen 유지
         }
       }
       
