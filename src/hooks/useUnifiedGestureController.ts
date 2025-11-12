@@ -228,31 +228,29 @@ export function useUnifiedGestureController({
           let targetHeight = gestureStartHeight + deltaY * 1.2;
           const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
           
-          requestAnimationFrame(() => {
-            targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
-            
-            if (calendarContentRef.current) {
-              calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
-              calendarContentRef.current.style.setProperty('transition', 'none');
-              calendarContentRef.current.style.setProperty('transform', `scaleY(${scale})`);
-              calendarContentRef.current.style.setProperty('transform-origin', 'top center');
-              calendarContentRef.current.style.setProperty('--live-calendar-height', `${targetHeight}px`);
-            }
-          });
+          targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
+          
+          if (calendarContentRef.current) {
+            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+            calendarContentRef.current.style.setProperty('transition', 'none');
+            calendarContentRef.current.style.setProperty('transform', `scaleY(${scale})`);
+            calendarContentRef.current.style.setProperty('transform-origin', 'top center');
+            calendarContentRef.current.style.setProperty('--live-calendar-height', `${targetHeight}px`);
+            console.log("📏 실시간 높이 업데이트:", targetHeight.toFixed(0), "px");
+          }
         } else if (!isPullingDown && calendarMode !== 'collapsed') {
           let targetHeight = gestureStartHeight + deltaY * 1.2;
           const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
           
-          requestAnimationFrame(() => {
-            targetHeight = Math.max(0, targetHeight);
-            
-            if (calendarContentRef.current) {
-              calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
-              calendarContentRef.current.style.setProperty('transition', 'none');
-              calendarContentRef.current.style.setProperty('transform', `scaleY(${scale})`);
-              calendarContentRef.current.style.setProperty('transform-origin', 'top center');
-            }
-          });
+          targetHeight = Math.max(0, targetHeight);
+          
+          if (calendarContentRef.current) {
+            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+            calendarContentRef.current.style.setProperty('transition', 'none');
+            calendarContentRef.current.style.setProperty('transform', `scaleY(${scale})`);
+            calendarContentRef.current.style.setProperty('transform-origin', 'top center');
+            console.log("📏 실시간 높이 업데이트 (축소):", targetHeight.toFixed(0), "px");
+          }
         }
       }
     };
