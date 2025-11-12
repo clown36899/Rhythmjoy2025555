@@ -158,24 +158,15 @@ export default function EventRegistrationModal({
     }, 300);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 파일 크기 체크 (20MB 제한, 모바일은 10MB)
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const maxSize = isMobile ? 10 * 1024 * 1024 : 20 * 1024 * 1024; // 10MB or 20MB
-    
-    if (file.size > maxSize) {
-      const maxSizeMB = isMobile ? 10 : 20;
-      alert(`파일 크기가 너무 큽니다.\n최대 ${maxSizeMB}MB까지 업로드 가능합니다.\n\n현재 파일: ${(file.size / 1024 / 1024).toFixed(1)}MB\n\n이미지를 압축하거나 크기를 줄여주세요.`);
-      e.target.value = '';
-      return;
-    }
+    let processedFile = file;
 
     // 파일 형식 체크
-    const fileType = file.type.toLowerCase();
-    const fileName = file.name.toLowerCase();
+    const fileType = processedFile.type.toLowerCase();
+    const fileName = processedFile.name.toLowerCase();
     
     // HEIC 파일 감지
     if (fileName.endsWith('.heic') || fileName.endsWith('.heif') || fileType === 'image/heic' || fileType === 'image/heif') {
@@ -192,10 +183,37 @@ export default function EventRegistrationModal({
       return;
     }
 
-    setImageFile(file);
+    // 파일 크기 체크 및 자동 압축
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const maxSize = isMobile ? 10 * 1024 * 1024 : 20 * 1024 * 1024;
+    
+    if (processedFile.size > maxSize) {
+      try {
+        // 자동 압축 시도
+        const originalSizeMB = (processedFile.size / 1024 / 1024).toFixed(1);
+        const { resizeImage } = await import('../utils/imageResize');
+        
+        // 모바일: 더 작게, 데스크톱: 적당히
+        const targetWidth = isMobile ? 1920 : 2560;
+        const quality = isMobile ? 0.7 : 0.8;
+        
+        processedFile = await resizeImage(processedFile, targetWidth, quality);
+        const newSizeMB = (processedFile.size / 1024 / 1024).toFixed(1);
+        
+        alert(`파일이 너무 커서 자동으로 압축했습니다.\n\n원본: ${originalSizeMB}MB → 압축: ${newSizeMB}MB`);
+      } catch (error) {
+        console.error('Auto compression failed:', error);
+        const maxSizeMB = isMobile ? 10 : 20;
+        alert(`파일 크기가 너무 큽니다.\n최대 ${maxSizeMB}MB까지 업로드 가능합니다.\n\n현재 파일: ${(processedFile.size / 1024 / 1024).toFixed(1)}MB\n\n이미지를 압축하거나 크기를 줄여주세요.`);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    setImageFile(processedFile);
     // 원본 보관 (최초 선택 시만)
     if (!originalImageFile) {
-      setOriginalImageFile(file);
+      setOriginalImageFile(processedFile);
     }
     
     const reader = new FileReader();
@@ -208,15 +226,10 @@ export default function EventRegistrationModal({
       }
     };
     reader.onerror = () => {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        alert('파일을 읽을 수 없습니다.\n\n가능한 원인:\n- 파일이 너무 큼 (10MB 이하 권장)\n- 손상된 파일\n\n해결 방법:\n- 이미지 크기를 줄여주세요\n- 다른 이미지를 선택해주세요');
-      } else {
-        alert('파일을 읽을 수 없습니다. 손상되었거나 지원하지 않는 형식일 수 있습니다.');
-      }
+      alert('파일을 읽을 수 없습니다. 손상되었거나 지원하지 않는 형식일 수 있습니다.');
       e.target.value = '';
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(processedFile);
   };
 
   // 파일 선택 이미지 편집
