@@ -188,7 +188,12 @@ export function useUnifiedGestureController({
     
     // 🎯 PointerMove: 제스처 타입에 따라 처리
     const handlePointerMove = (e: PointerEvent) => {
-      if (activeGesture === 'none' || activeGesture === 'scroll') return;
+      console.log("🟢 PointerMove!", { activeGesture, clientY: e.clientY });
+      
+      if (activeGesture === 'none' || activeGesture === 'scroll') {
+        console.log("❌ PointerMove 무시 (activeGesture:", activeGesture, ")");
+        return;
+      }
       
       const currentY = e.clientY;
       const currentX = e.clientX;
@@ -250,7 +255,10 @@ export function useUnifiedGestureController({
     
     // 🎯 PointerUp: Fling 감지 및 스냅
     const handlePointerUp = (e: PointerEvent) => {
+      console.log("🔴 PointerUp!", { activeGesture, historyLength: gestureHistory.length });
+      
       if (activeGesture === 'none' || activeGesture === 'scroll') {
+        console.log("❌ PointerUp 무시 (activeGesture:", activeGesture, ")");
         activeGesture = 'none';
         return;
       }
