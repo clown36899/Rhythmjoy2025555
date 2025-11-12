@@ -309,10 +309,10 @@ export function useUnifiedGestureController({
           console.log(`🎯 슬라이드: ${direction}, deltaX: ${deltaX.toFixed(0)}px`);
           
           // ⭐ 핵심: 애니메이션 → -100%로 리셋 (transition 없이) → 월 변경
-          // 왼쪽 스와이프 (next): calc(-100% - 100%)
-          // 오른쪽 스와이프 (prev): calc(-100% + 100%)
+          // 왼쪽으로 스와이프 (next): calc(-100% - 100%)
+          // 오른쪽으로 스와이프 (prev): calc(-100% - -100%) = calc(-100% + 100%)
           const targetTransform = direction === 'prev' 
-            ? 'translateX(calc(-100% + 100%))' 
+            ? 'translateX(calc(-100% - -100%))' 
             : 'translateX(calc(-100% - 100%))';
           
           const handleTransitionEnd = () => {
