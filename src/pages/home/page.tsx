@@ -199,7 +199,7 @@ export default function HomePage() {
 
         swipeAnimationRef.current = requestAnimationFrame(() => {
           swipeOffsetRef.current = diffX;
-          
+
           // dragOffset state 업데이트 (EventCalendar와 EventList가 내부적으로 처리)
           setDragOffset(diffX);
         });
@@ -270,8 +270,12 @@ export default function HomePage() {
     };
 
     // passive: false로 등록하여 preventDefault 가능하게
-    container.addEventListener("touchstart", handleTouchStart, { passive: false });
-    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: false,
+    });
+    container.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    });
     container.addEventListener("touchend", handleTouchEnd, { passive: false });
 
     return () => {
@@ -283,7 +287,7 @@ export default function HomePage() {
         cancelAnimationFrame(swipeAnimationRef.current);
       }
     };
-    
+
     // 🎯 dependencies에서 currentMonth 제거 - 함수형 업데이트로 최신 값 사용
   }, [containerRef, isAnimating]);
 
@@ -748,18 +752,26 @@ export default function HomePage() {
       }
     };
 
-    window.addEventListener('createEventForDate', handleCreateEvent as EventListener);
-    
+    window.addEventListener(
+      "createEventForDate",
+      handleCreateEvent as EventListener,
+    );
+
     return () => {
-      window.removeEventListener('createEventForDate', handleCreateEvent as EventListener);
+      window.removeEventListener(
+        "createEventForDate",
+        handleCreateEvent as EventListener,
+      );
     };
   }, [selectedDate]);
 
   // selectedDate 변경 시 CustomEvent로 알림 (MobileShell에서 사용)
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('selectedDateChanged', { 
-      detail: selectedDate 
-    }));
+    window.dispatchEvent(
+      new CustomEvent("selectedDateChanged", {
+        detail: selectedDate,
+      }),
+    );
   }, [selectedDate]);
 
   // 네이티브 DOM 이벤트 리스너 등록 (passive: false 필수)
@@ -768,9 +780,9 @@ export default function HomePage() {
     <div
       ref={containerRef}
       className="h-screen flex flex-col overflow-hidden"
-      style={{ 
+      style={{
         backgroundColor: "var(--page-bg-color)",
-        touchAction: 'none' // PointerCancel 방지 - 모든 제스처를 JS로 제어
+        touchAction: "none", // PointerCancel 방지 - 모든 제스처를 JS로 제어
       }}
     >
       {/* Fixed Header for all screens */}
@@ -864,7 +876,9 @@ export default function HomePage() {
             position: (() => {
               const threshold = Math.min(
                 250,
-                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+                (typeof window !== "undefined"
+                  ? window.innerHeight - 150
+                  : 700) / 2,
               );
               return calendarMode === "fullscreen" ||
                 (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
@@ -875,7 +889,9 @@ export default function HomePage() {
             top: (() => {
               const threshold = Math.min(
                 250,
-                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+                (typeof window !== "undefined"
+                  ? window.innerHeight - 150
+                  : 700) / 2,
               );
               return calendarMode === "fullscreen" ||
                 (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
@@ -885,7 +901,9 @@ export default function HomePage() {
             left: (() => {
               const threshold = Math.min(
                 250,
-                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+                (typeof window !== "undefined"
+                  ? window.innerHeight - 150
+                  : 700) / 2,
               );
               return calendarMode === "fullscreen" ||
                 (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
@@ -895,7 +913,9 @@ export default function HomePage() {
             right: (() => {
               const threshold = Math.min(
                 250,
-                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+                (typeof window !== "undefined"
+                  ? window.innerHeight - 150
+                  : 700) / 2,
               );
               return calendarMode === "fullscreen" ||
                 (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
@@ -906,7 +926,9 @@ export default function HomePage() {
             zIndex: (() => {
               const threshold = Math.min(
                 250,
-                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+                (typeof window !== "undefined"
+                  ? window.innerHeight - 150
+                  : 700) / 2,
               );
               return calendarMode === "fullscreen" ||
                 (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
@@ -916,7 +938,9 @@ export default function HomePage() {
             flexShrink: (() => {
               const threshold = Math.min(
                 250,
-                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+                (typeof window !== "undefined"
+                  ? window.innerHeight - 150
+                  : 700) / 2,
               );
               return calendarMode === "fullscreen" ||
                 (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
@@ -1004,9 +1028,9 @@ export default function HomePage() {
 
                 <span className="text-xs leading-none align-middle whitespace-nowrap">
                   {calendarMode === "collapsed"
-                    ? "이벤트 등록"
+                    ? "이벤트 등록달력"
                     : calendarMode === "fullscreen"
-                      ? "전체화면"
+                      ? "달력 접기"
                       : "달력 접기"}
                 </span>
 
@@ -1058,7 +1082,9 @@ export default function HomePage() {
             marginTop: (() => {
               const threshold = Math.min(
                 250,
-                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+                (typeof window !== "undefined"
+                  ? window.innerHeight - 150
+                  : 700) / 2,
               );
               return calendarMode === "fullscreen" ||
                 (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
@@ -1066,14 +1092,14 @@ export default function HomePage() {
                 : undefined;
             })(),
             // 실제 모바일: pull-to-refresh 차단
-            overscrollBehavior: 'none',
+            overscrollBehavior: "none",
           }}
         >
           {/* 이벤트 등록 안내 */}
           <div className="p-0 bg-[#222] rounded-none no-select">
             <p className="text-gray-300 text-[13px] text-center no-select">
               <i className="ri-information-line mr-1"></i>
-              날짜를 두번 클릭하면 이벤트를 등록할 수 있습니다
+              날짜를 클릭하면 이벤트를 등록할 수 있습니다
             </p>
           </div>
 
