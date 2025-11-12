@@ -106,22 +106,9 @@ export default function HomePage() {
   const dragAnimationRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
 
-  // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
-    null,
-  );
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState<
-    "horizontal" | "vertical" | null
-  >(null);
-
-  // 스와이프 최적화용 ref
-  const swipeAnimationRef = useRef<number | null>(null);
+  // 제스처 컨트롤러용 ref
   const calendarElementRef = useRef<HTMLDivElement | null>(null);
   const eventListElementRef = useRef<HTMLDivElement | null>(null);
-  const swipeOffsetRef = useRef<number>(0); // 실제 드래그 offset (리렌더링 없음)
   const containerRef = useRef<HTMLDivElement>(null); // 통합 제스처 컨트롤러용 컨테이너
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
@@ -133,9 +120,6 @@ export default function HomePage() {
   // cleanup: 컴포넌트 언마운트 시 애니메이션 프레임 취소
   useEffect(() => {
     return () => {
-      if (swipeAnimationRef.current) {
-        cancelAnimationFrame(swipeAnimationRef.current);
-      }
       if (dragAnimationRef.current) {
         cancelAnimationFrame(dragAnimationRef.current);
       }
@@ -535,182 +519,6 @@ export default function HomePage() {
     console.log(">>> handleMonthChange 완료 <<<");
   };
 
-  // 공통 스와이프/드래그 핸들러 (달력과 이벤트 리스트가 함께 사용)
-  const minSwipeDistance = 30;
-
-  // 터치 핸들러 - 좌우 슬라이드와 상하 스크롤 명확히 구분
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (isAnimating) return;
-    const touch = e.targetTouches[0];
-    setTouchStart({ x: touch.clientX, y: touch.clientY });
-    setIsDragging(true);
-    setDragOffset(0);
-    setSwipeDirection(null);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || touchStart === null) return;
-
-    const touch = e.targetTouches[0];
-    const diffX = touch.clientX - touchStart.x;
-    const diffY = touch.clientY - touchStart.y;
-
-    // 방향이 아직 결정되지 않았으면 결정
-    if (swipeDirection === null) {
-      const absX = Math.abs(diffX);
-      const absY = Math.abs(diffY);
-
-      // 임계값: 최소 3px 이동 후 방향 결정 (즉각 반응)
-      if (absX > 3 || absY > 3) {
-        // Y축 이동이 X축보다 1.5배 이상 크면 수직 스크롤
-        if (absY > absX * 1.5) {
-          setSwipeDirection("vertical");
-        }
-        // X축 이동이 Y축보다 1.5배 이상 크면 수평 슬라이드
-        else if (absX > absY * 1.5) {
-          setSwipeDirection("horizontal");
-        }
-      }
-    }
-
-    // 수평 슬라이드로 결정되었을 때만 dragOffset 업데이트
-    if (swipeDirection === "horizontal") {
-      // passive event listener 에러 방지
-      if (e.cancelable) {
-        e.preventDefault();
-      }
-
-      // requestAnimationFrame으로 60fps 보장
-      if (swipeAnimationRef.current) {
-        cancelAnimationFrame(swipeAnimationRef.current);
-      }
-
-      swipeAnimationRef.current = requestAnimationFrame(() => {
-        // ref에 저장 (리렌더링 없음!)
-        swipeOffsetRef.current = diffX;
-
-        // DOM 직접 조작 (GPU 가속)
-        if (calendarElementRef.current) {
-          calendarElementRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
-        }
-        if (eventListElementRef.current) {
-          eventListElementRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
-        }
-      });
-    } else if (swipeDirection === "vertical") {
-      // 수직 스크롤은 기본 동작 허용 (dragOffset 업데이트 안 함)
-      return;
-    }
-  };
-
-  const onTouchEnd = () => {
-    if (!isDragging || touchStart === null) return;
-
-    // animation cleanup
-    if (swipeAnimationRef.current) {
-      cancelAnimationFrame(swipeAnimationRef.current);
-      swipeAnimationRef.current = null;
-    }
-
-    setIsDragging(false);
-
-    // 수평 슬라이드로 인식된 경우만 월 변경
-    if (swipeDirection === "horizontal") {
-      const distance = swipeOffsetRef.current; // ref 사용!
-      const threshold = minSwipeDistance;
-
-      if (Math.abs(distance) > threshold) {
-        setIsAnimating(true);
-
-        const screenWidth = window.innerWidth;
-        const direction = distance < 0 ? "next" : "prev";
-        const targetOffset = distance < 0 ? -screenWidth : screenWidth;
-
-        // 스냅 애니메이션 (CSS transition 사용)
-        if (calendarElementRef.current) {
-          calendarElementRef.current.style.transition =
-            "transform 0.3s ease-out";
-          calendarElementRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
-        }
-        if (eventListElementRef.current) {
-          eventListElementRef.current.style.transition =
-            "transform 0.3s ease-out";
-          eventListElementRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
-        }
-
-        setDragOffset(targetOffset);
-
-        // 월 변경 계산 (날짜 오버플로우 방지 - 10월 31일 → 11월 문제 해결)
-        const newMonth = new Date(currentMonth);
-        newMonth.setDate(1); // 먼저 1일로 설정하여 오버플로우 방지
-        if (direction === "prev") {
-          newMonth.setMonth(currentMonth.getMonth() - 1);
-        } else {
-          newMonth.setMonth(currentMonth.getMonth() + 1);
-        }
-
-        // 애니메이션 종료 후 월 변경 및 상태 리셋
-        setTimeout(() => {
-          setCurrentMonth(newMonth);
-          setSelectedDate(null);
-
-          // 리셋
-          swipeOffsetRef.current = 0;
-          if (calendarElementRef.current) {
-            calendarElementRef.current.style.transition = "none";
-            calendarElementRef.current.style.transform = "translateZ(0)";
-          }
-          if (eventListElementRef.current) {
-            eventListElementRef.current.style.transition = "none";
-            eventListElementRef.current.style.transform = "translateZ(0)";
-          }
-
-          setDragOffset(0);
-          setIsAnimating(false);
-          setTouchStart(null);
-          setSwipeDirection(null);
-        }, 300);
-      } else {
-        // 스와이프 거리가 부족하면 원위치로 애니메이션
-        setIsAnimating(true);
-
-        // 원위치 애니메이션
-        if (calendarElementRef.current) {
-          calendarElementRef.current.style.transition =
-            "transform 0.3s ease-out";
-          calendarElementRef.current.style.transform = "translateZ(0)";
-        }
-        if (eventListElementRef.current) {
-          eventListElementRef.current.style.transition =
-            "transform 0.3s ease-out";
-          eventListElementRef.current.style.transform = "translateZ(0)";
-        }
-
-        swipeOffsetRef.current = 0;
-        setDragOffset(0);
-
-        setTimeout(() => {
-          // transition 리셋 (다음 제스처를 위해 필수!)
-          if (calendarElementRef.current) {
-            calendarElementRef.current.style.transition = "none";
-          }
-          if (eventListElementRef.current) {
-            eventListElementRef.current.style.transition = "none";
-          }
-
-          setIsAnimating(false);
-          setTouchStart(null);
-          setSwipeDirection(null);
-        }, 300);
-      }
-    } else {
-      // 수직 스크롤이거나 방향 미결정인 경우 상태만 리셋
-      swipeOffsetRef.current = 0;
-      setDragOffset(0);
-      setTouchStart(null);
-      setSwipeDirection(null);
-    }
-  };
 
   const handleEventsUpdate = async (createdDate?: Date) => {
     setRefreshTrigger((prev) => prev + 1);
@@ -1038,11 +846,6 @@ export default function HomePage() {
               viewMode={viewMode}
               onViewModeChange={handleViewModeChange}
               hoveredEventId={hoveredEventId}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              dragOffset={dragOffset}
-              isAnimating={isAnimating}
               calendarHeightPx={getCalendarHeightPx()}
             />
           </div>
@@ -1192,20 +995,11 @@ export default function HomePage() {
               setSortBy={setSortBy}
               highlightEvent={highlightEvent}
               onHighlightComplete={handleHighlightComplete}
-              dragOffset={dragOffset}
-              isAnimating={isAnimating}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
             />
           )}
 
-          {/* Footer - 고정 (위치는 고정이지만 터치 슬라이드 인식) */}
-          <div
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
+          {/* Footer - 고정 */}
+          <div>
             <Footer />
           </div>
         </div>

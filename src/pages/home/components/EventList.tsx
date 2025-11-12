@@ -44,11 +44,6 @@ interface EventListProps {
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
   highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
-  dragOffset?: number;
-  isAnimating?: boolean;
-  onTouchStart?: (e: React.TouchEvent) => void;
-  onTouchMove?: (e: React.TouchEvent) => void;
-  onTouchEnd?: () => void;
 }
 
 export default function EventList({
@@ -71,11 +66,6 @@ export default function EventList({
   setSortBy: externalSetSortBy,
   highlightEvent,
   onHighlightComplete,
-  dragOffset: externalDragOffset = 0,
-  isAnimating: externalIsAnimating = false,
-  onTouchStart,
-  onTouchMove,
-  onTouchEnd,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -1568,9 +1558,6 @@ export default function EventList({
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
         >
           {sortedEvents.length > 0 ? (
             <>
@@ -1788,25 +1775,11 @@ export default function EventList({
         </div>
       ) : (
         // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
-        <div
-          className="overflow-hidden"
-          style={
-            {
-              // height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
-              // transition: 'height 0.3s ease-out'
-            }
-          }
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
+        <div className="overflow-hidden">
           <div
             className="flex items-start"
             style={{
-              transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
-              transition: externalIsAnimating
-                ? "transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1)"
-                : "none",
+              transform: "translateX(-100%)",
               willChange: "transform",
             }}
           >
@@ -1820,7 +1793,7 @@ export default function EventList({
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                {sortedPrevEvents.length > 0 || externalIsAnimating ? (
+                {sortedPrevEvents.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedPrevEvents.map((event) => {
                       return (
@@ -1976,7 +1949,7 @@ export default function EventList({
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
+                {sortedCurrentEvents.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedCurrentEvents.map((event) => {
                       const isHighlighted = highlightEvent?.id === event.id;
@@ -2155,7 +2128,7 @@ export default function EventList({
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                {sortedNextEvents.length > 0 || externalIsAnimating ? (
+                {sortedNextEvents.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedNextEvents.map((event) => {
                       return (

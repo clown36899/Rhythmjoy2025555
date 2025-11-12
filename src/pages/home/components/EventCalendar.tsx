@@ -14,12 +14,6 @@ interface EventCalendarProps {
   onViewModeChange?: (mode: "month" | "year") => void;
   hoveredEventId?: number | null;
   isAdminMode?: boolean;
-  // 공통 스와이프 상태
-  onTouchStart?: (e: React.TouchEvent) => void;
-  onTouchMove?: (e: React.TouchEvent) => void;
-  onTouchEnd?: () => void;
-  dragOffset?: number;
-  isAnimating?: boolean;
   // 달력 확장 높이
   calendarHeightPx?: number;
 }
@@ -32,13 +26,7 @@ export default function EventCalendar({
   currentMonth: externalCurrentMonth,
   onEventsUpdate,
   viewMode = "month",
-  onViewModeChange,
   hoveredEventId,
-  onTouchStart: externalOnTouchStart,
-  onTouchMove: externalOnTouchMove,
-  onTouchEnd: externalOnTouchEnd,
-  dragOffset: externalDragOffset = 0,
-  isAnimating: externalIsAnimating = false,
   calendarHeightPx,
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
@@ -261,8 +249,6 @@ export default function EventCalendar({
   }, [events, currentMonth]);
 
   const navigateMonth = (direction: "prev" | "next") => {
-    if (externalIsAnimating) return;
-
     const newMonth = new Date(currentMonth);
     if (viewMode === "year") {
       // 연간 보기: 년 단위로 이동
@@ -591,7 +577,7 @@ export default function EventCalendar({
           {/* 단일 이벤트 바 표시 - 셀이 클 때만 */}
           {cellHeight > 55 && singleDayEvents.length > 0 && (
             <div className="absolute left-1 right-1 flex flex-col gap-0.5 pointer-events-none" style={{ top: '28px' }}>
-              {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event, idx) => {
+              {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event) => {
                 const categoryColor = event.category === 'class' ? 'bg-green-500' : 'bg-blue-500';
                 const isHovered = viewMode === "month" && hoveredEventId === event.id;
                 
@@ -814,14 +800,8 @@ export default function EventCalendar({
               <div
                 className="flex"
                 style={{
-                  transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
-                  transition: externalIsAnimating
-                    ? "transform 0.3s ease-out"
-                    : "none",
+                  transform: "translateX(-100%)",
                 }}
-                onTouchStart={externalOnTouchStart}
-                onTouchMove={externalOnTouchMove}
-                onTouchEnd={externalOnTouchEnd}
               >
                 {/* 이전 달 */}
                 <div
