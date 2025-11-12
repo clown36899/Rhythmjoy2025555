@@ -23,6 +23,11 @@
 
 Preferred communication style: Simple, everyday language.
 
+### 작업 프로세스
+- **중요**: 모든 코드 수정 작업은 사전 승인 후 진행
+- 변경 사항 제안 시 사용자 승인을 받은 후에 실제 구현 시작
+- 긴급한 버그 수정의 경우에도 먼저 문제를 보고하고 승인 대기
+
 ### Secret Management
 - **중요**: Replit 사용자는 Secrets 패널을 직접 열 수 없음
 - Agent가 `ask_secrets` 도구를 사용하여 시크릿 입력 UI를 열어줘야 함
