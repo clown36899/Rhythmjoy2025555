@@ -1185,7 +1185,7 @@ export default function HomePage() {
       if (calendarMode === "collapsed") {
         if (finalHeight <= 35) {
           nextState = "collapsed"; // 0~35px: collapsed 유지
-        } else if (finalHeight <= 230) {
+        } else if (finalHeight <= 210) {
           nextState = "expanded"; // 36~230px: expanded 진입! (조금만 내려도!)
         } else if (finalHeight <= 265) {
           nextState = "expanded"; // 231~265px: expanded 구간
@@ -1195,7 +1195,7 @@ export default function HomePage() {
       }
       // 현재 상태가 expanded일 때
       else if (calendarMode === "expanded") {
-        if (finalHeight <= 230) {
+        if (finalHeight <= 250) {
           nextState = "collapsed"; // 0~230px: collapsed로 탈출! (조금만 올려도!)
         } else if (finalHeight <= 265) {
           nextState = "expanded"; // 231~265px: expanded 유지 (좁은 구간!)
@@ -1207,14 +1207,14 @@ export default function HomePage() {
       }
       // 현재 상태가 fullscreen일 때
       else {
-        const threshold = fullscreenHeight - 20; // damping 고려, 실제로는 40~50px 움직임
+        const threshold = fullscreenHeight - 5; // 50px만 움직여도 스냅!
 
         if (finalHeight <= 230) {
           nextState = "collapsed"; // 0~230px: collapsed
         } else if (finalHeight < threshold) {
-          nextState = "expanded"; // 231~(fullscreen-20)px: expanded 진입! (조금만 올려도!)
+          nextState = "expanded"; // 231~(fullscreen-50)px: expanded 진입! (조금만 올려도!)
         } else {
-          nextState = "fullscreen"; // (fullscreen-20)px~: fullscreen 유지
+          nextState = "fullscreen"; // (fullscreen-50)px~: fullscreen 유지
         }
       }
 
