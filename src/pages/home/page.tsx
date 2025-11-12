@@ -1258,6 +1258,16 @@ export default function HomePage() {
         return;
       }
 
+      // 🛑 터치 히스토리가 부족하면 아무것도 하지 않음 (이벤트 리스트 핸들러가 처리했을 가능성)
+      if (calendarTouchHistory.length < 2) {
+        console.log("⚠️ [달력] touchHistory 부족 - 스킵", calendarTouchHistory.length);
+        setCalendarPullStart(null);
+        setCalendarPullDistance(0);
+        setDragStartHeight(0);
+        setIsDraggingCalendar(false);
+        return;
+      }
+
       // 🚀 전체 제스처 속도 계산 (Android TV 최적화)
       const velocityY = (() => {
         if (calendarTouchHistory.length < 2) {
