@@ -342,7 +342,7 @@ export default function BoardPage() {
       </div>
 
       {/* Post List */}
-      <div className="px-4 py-4">
+      <div className="px-1 py-1">
         {loading ? (
           <div className="text-center py-12">
             <i className="ri-loader-4-line text-3xl text-blue-500 animate-spin"></i>
@@ -355,21 +355,21 @@ export default function BoardPage() {
           </div>
         ) : (
           <>
-            <div className="space-y-2">
+            <div className="space-y-1">
               {currentPosts.map((post) => (
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post)}
-                  className={`border rounded-lg p-3 hover:bg-gray-750 transition-colors cursor-pointer ${
+                  className={`border rounded p-1.5 hover:bg-gray-750 transition-colors cursor-pointer ${
                     post.is_notice 
                       ? 'bg-blue-900/20 border-blue-500/50' 
                       : 'bg-gray-800 border-gray-700'
                   }`}
                 >
-                  <div className="flex items-start gap-2 mb-1.5">
+                  <div className="flex items-start gap-1.5 mb-0.5">
                     {post.prefix && (
                       <span 
-                        className="text-white text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+                        className="text-white text-[10px] px-1 py-0.5 rounded font-medium flex-shrink-0"
                         style={{ backgroundColor: post.prefix.color }}
                       >
                         {post.prefix.name}
@@ -381,7 +381,7 @@ export default function BoardPage() {
                       {post.title}
                     </h3>
                   </div>
-                  <p className="text-gray-400 text-xs mb-2 line-clamp-1">
+                  <p className="text-gray-400 text-xs mb-1 line-clamp-1">
                     {post.content}
                   </p>
                   <div className="flex items-center justify-between text-[10px] text-gray-500">
@@ -403,11 +403,11 @@ export default function BoardPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-1 mt-6 pb-4">
+              <div className="flex justify-center items-center gap-1 mt-3 pb-2">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-2 py-1 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
+                  className="px-2 py-0.5 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
                 >
                   <i className="ri-arrow-left-s-line"></i>
                 </button>
@@ -416,7 +416,7 @@ export default function BoardPage() {
                   <button
                     key={page}
                     onClick={() => goToPage(page)}
-                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                    className={`px-2.5 py-0.5 rounded text-sm transition-colors ${
                       currentPage === page
                         ? 'bg-blue-600 text-white font-medium'
                         : 'text-gray-400 hover:bg-gray-700'
@@ -429,7 +429,7 @@ export default function BoardPage() {
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-2 py-1 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
+                  className="px-2 py-0.5 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
                 >
                   <i className="ri-arrow-right-s-line"></i>
                 </button>
