@@ -369,9 +369,9 @@ export default function HomePage() {
         historyLength: touchHistory.length,
       });
 
-      // 🎯 Fling 임계값 설정 (매우 민감하게)
-      const FLING_VELOCITY_THRESHOLD = 0.2; // 0.2 px/ms (200px/초)
-      const FLING_DISTANCE_THRESHOLD = 15; // 15px 이상 이동
+      // 🎯 Fling 임계값 설정 (통일된 값)
+      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.5 px/ms (500px/초)
+      const FLING_DISTANCE_THRESHOLD = 5; // 5px (짧은 거리에도 반응)
 
       // 방향 기반 양방향 자석 스냅
       let finalHeight = 0;
@@ -1304,9 +1304,9 @@ export default function HomePage() {
         fullscreen: fullscreenHeight,
       };
 
-      // 🎯 Fling 임계값 설정 (매우 민감하게)
-      const FLING_VELOCITY_THRESHOLD = 0.2; // 0.2 px/ms (200px/초)
-      const FLING_DISTANCE_THRESHOLD = 15; // 15px 이상 이동
+      // 🎯 Fling 임계값 설정 (통일된 값)
+      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.5 px/ms (500px/초)
+      const FLING_DISTANCE_THRESHOLD = 5; // 5px (짧은 거리에도 반응)
 
       // 🎯 Hysteresis 기반 상태 전환 로직 (현재 상태에 따라 다른 임계값!)
       let nextState: "collapsed" | "expanded" | "fullscreen";
