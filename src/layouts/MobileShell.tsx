@@ -237,16 +237,47 @@ export function MobileShell() {
         <div className="flex items-center justify-around px-2 py-2 border-t border-[#22262a] no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
           {/* 이벤트 달력 버튼 */}
           <button
-            onClick={() => {
+            onClick={(e) => {
               if (isEventsPage) {
-                // 이미 이벤트 달력 페이지면 새로고침
-                window.location.reload();
+                // 버튼 눌림 효과
+                const btn = e.currentTarget;
+                btn.style.transform = 'scale(0.95)';
+                btn.style.opacity = '0.7';
+                
+                // 로딩 오버레이 표시
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                  position: fixed;
+                  top: 0;
+                  left: 0;
+                  right: 0;
+                  bottom: 0;
+                  background: rgba(0, 0, 0, 0.8);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  z-index: 9999;
+                  max-width: 650px;
+                  margin: 0 auto;
+                `;
+                overlay.innerHTML = `
+                  <div style="text-align: center;">
+                    <i class="ri-loader-4-line" style="font-size: 48px; color: #3b82f6; animation: spin 1s linear infinite;"></i>
+                    <div style="color: white; margin-top: 16px; font-size: 14px;">새로고침 중...</div>
+                  </div>
+                `;
+                document.body.appendChild(overlay);
+                
+                // 약간의 딜레이 후 새로고침
+                setTimeout(() => {
+                  window.location.reload();
+                }, 150);
               } else {
                 // 다른 페이지면 이동
                 navigate('/');
               }
             }}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
+            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-all active:scale-95 flex-1 ${
               isEventsPage
                 ? "text-blue-500"
                 : "text-gray-300 hover:text-white"

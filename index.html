@@ -100,6 +100,12 @@
     /* CSS 로드 전 깨진 레이아웃 방지 */
     body { visibility: hidden; }
     body.loaded { visibility: visible; }
+    
+    /* 스피너 애니메이션 */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
   </style>
   </head>
   <body>
