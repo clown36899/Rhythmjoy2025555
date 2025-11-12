@@ -42,6 +42,8 @@ export default function BoardPage() {
   const [showPrefixManagementModal, setShowPrefixManagementModal] = useState(false);
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
   const [warningShown, setWarningShown] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const postsPerPage = 10;
 
   useEffect(() => {
     loadPosts();
@@ -230,6 +232,7 @@ export default function BoardPage() {
 
   const handlePostCreated = () => {
     loadPosts();
+    setCurrentPage(1); // 새 글 작성 시 첫 페이지로
   };
 
   const handlePostUpdated = () => {
@@ -239,6 +242,17 @@ export default function BoardPage() {
   const handlePostDeleted = () => {
     loadPosts();
     setShowDetailModal(false);
+  };
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(posts.length / postsPerPage);
+  const startIndex = (currentPage - 1) * postsPerPage;
+  const endIndex = startIndex + postsPerPage;
+  const currentPosts = posts.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLogout = async () => {
@@ -340,51 +354,88 @@ export default function BoardPage() {
             <p className="text-gray-400">첫 번째 게시글을 작성해보세요!</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                onClick={() => handlePostClick(post)}
-                className={`border rounded-lg p-4 hover:bg-gray-750 transition-colors cursor-pointer ${
-                  post.is_notice 
-                    ? 'bg-blue-900/20 border-blue-500/50' 
-                    : 'bg-gray-800 border-gray-700'
-                }`}
-              >
-                <div className="flex items-start gap-2 mb-2">
-                  {post.prefix && (
-                    <span 
-                      className="text-white text-xs px-2 py-0.5 rounded font-medium flex-shrink-0"
-                      style={{ backgroundColor: post.prefix.color }}
-                    >
-                      {post.prefix.name}
-                    </span>
-                  )}
-                  <h3 className={`font-medium line-clamp-1 flex-1 ${
-                    post.is_notice ? 'text-blue-300' : 'text-white'
-                  }`}>
-                    {post.title}
-                  </h3>
-                </div>
-                <p className="text-gray-400 text-sm mb-3 line-clamp-2">
-                  {post.content}
-                </p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <i className="ri-user-line"></i>
-                      {post.author_nickname || post.author_name}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <i className="ri-eye-line"></i>
-                      {post.views}
-                    </span>
+          <>
+            <div className="space-y-2">
+              {currentPosts.map((post) => (
+                <div
+                  key={post.id}
+                  onClick={() => handlePostClick(post)}
+                  className={`border rounded-lg p-3 hover:bg-gray-750 transition-colors cursor-pointer ${
+                    post.is_notice 
+                      ? 'bg-blue-900/20 border-blue-500/50' 
+                      : 'bg-gray-800 border-gray-700'
+                  }`}
+                >
+                  <div className="flex items-start gap-2 mb-1.5">
+                    {post.prefix && (
+                      <span 
+                        className="text-white text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+                        style={{ backgroundColor: post.prefix.color }}
+                      >
+                        {post.prefix.name}
+                      </span>
+                    )}
+                    <h3 className={`text-sm font-medium line-clamp-1 flex-1 ${
+                      post.is_notice ? 'text-blue-300' : 'text-white'
+                    }`}>
+                      {post.title}
+                    </h3>
                   </div>
-                  <span>{formatDate(post.created_at)}</span>
+                  <p className="text-gray-400 text-xs mb-2 line-clamp-1">
+                    {post.content}
+                  </p>
+                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-0.5">
+                        <i className="ri-user-line text-xs"></i>
+                        {post.author_nickname || post.author_name}
+                      </span>
+                      <span className="flex items-center gap-0.5">
+                        <i className="ri-eye-line text-xs"></i>
+                        {post.views}
+                      </span>
+                    </div>
+                    <span>{formatDate(post.created_at)}</span>
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-1 mt-6 pb-4">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-2 py-1 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
+                >
+                  <i className="ri-arrow-left-s-line"></i>
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      currentPage === page
+                        ? 'bg-blue-600 text-white font-medium'
+                        : 'text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-2 py-1 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
+                >
+                  <i className="ri-arrow-right-s-line"></i>
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
