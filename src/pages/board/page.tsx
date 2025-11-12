@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import PostEditorModal from './components/PostEditorModal';
 import PostDetailModal from './components/PostDetailModal';
 import UserRegistrationModal, { type UserData } from './components/UserRegistrationModal';
+import BoardUserManagementModal from '../../components/BoardUserManagementModal';
 
 export interface BoardPost {
   id: number;
@@ -27,6 +28,7 @@ export default function BoardPage() {
   const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [showUserManagementModal, setShowUserManagementModal] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -37,6 +39,18 @@ export default function BoardPage() {
       checkUserRegistration();
     }
   }, [user]);
+
+  useEffect(() => {
+    const handleOpenUserManagement = () => {
+      setShowUserManagementModal(true);
+    };
+
+    window.addEventListener('openBoardUserManagement', handleOpenUserManagement);
+
+    return () => {
+      window.removeEventListener('openBoardUserManagement', handleOpenUserManagement);
+    };
+  }, []);
 
   const checkUserRegistration = async () => {
     if (!user?.id) return;
@@ -230,6 +244,14 @@ export default function BoardPage() {
           onClose={() => setShowRegistrationModal(false)}
           onRegistered={handleUserRegistered}
           userId={user.id}
+        />
+      )}
+
+      {/* User Management Modal (Admin Only) */}
+      {showUserManagementModal && (
+        <BoardUserManagementModal
+          isOpen={showUserManagementModal}
+          onClose={() => setShowUserManagementModal(false)}
         />
       )}
 
