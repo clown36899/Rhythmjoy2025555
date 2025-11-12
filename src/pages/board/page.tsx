@@ -15,6 +15,7 @@ export interface BoardPost {
   password?: string;
   user_id?: string;
   views: number;
+  is_notice?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -118,7 +119,8 @@ export default function BoardPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('board_posts')
-        .select('id, title, content, author_name, author_nickname, user_id, views, created_at, updated_at')
+        .select('id, title, content, author_name, author_nickname, user_id, views, is_notice, created_at, updated_at')
+        .order('is_notice', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -243,11 +245,24 @@ export default function BoardPage() {
               <div
                 key={post.id}
                 onClick={() => handlePostClick(post)}
-                className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:bg-gray-750 transition-colors cursor-pointer"
+                className={`border rounded-lg p-4 hover:bg-gray-750 transition-colors cursor-pointer ${
+                  post.is_notice 
+                    ? 'bg-blue-900/20 border-blue-500/50' 
+                    : 'bg-gray-800 border-gray-700'
+                }`}
               >
-                <h3 className="text-white font-medium mb-2 line-clamp-1">
-                  {post.title}
-                </h3>
+                <div className="flex items-start gap-2 mb-2">
+                  {post.is_notice && (
+                    <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded font-medium flex-shrink-0">
+                      공지
+                    </span>
+                  )}
+                  <h3 className={`font-medium line-clamp-1 flex-1 ${
+                    post.is_notice ? 'text-blue-300' : 'text-white'
+                  }`}>
+                    {post.title}
+                  </h3>
+                </div>
                 <p className="text-gray-400 text-sm mb-3 line-clamp-2">
                   {post.content}
                 </p>

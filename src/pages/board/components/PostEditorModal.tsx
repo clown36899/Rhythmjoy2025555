@@ -23,7 +23,8 @@ export default function PostEditorModal({
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    author_name: ''
+    author_name: '',
+    is_notice: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -36,14 +37,16 @@ export default function PostEditorModal({
         setFormData({
           title: post.title,
           content: post.content,
-          author_name: post.author_name
+          author_name: post.author_name,
+          is_notice: post.is_notice || false
         });
       } else {
         // 새 글 작성 모드 - 로그인한 사용자 이름 자동 입력
         setFormData({
           title: '',
           content: '',
-          author_name: user?.user_metadata?.name || user?.email?.split('@')[0] || ''
+          author_name: user?.user_metadata?.name || user?.email?.split('@')[0] || '',
+          is_notice: false
         });
       }
     } else {
@@ -100,27 +103,25 @@ export default function PostEditorModal({
     try {
       if (post) {
         // 수정
-        const updateData: any = {
-          title: formData.title,
-          content: formData.content,
-          updated_at: new Date().toISOString()
-        };
-
-        const { error } = await supabase
-          .from('board_posts')
-          .update(updateData)
-          .eq('id', post.id);
+        const { error } = await supabase.rpc('update_board_post', {
+          p_post_id: post.id,
+          p_user_id: user.id,
+          p_title: formData.title,
+          p_content: formData.content,
+          p_is_notice: formData.is_notice
+        });
 
         if (error) throw error;
         alert('게시글이 수정되었습니다!');
       } else {
         // 새 글 작성
         const { error } = await supabase.rpc('create_board_post', {
+          p_user_id: user?.id,
           p_title: formData.title,
           p_content: formData.content,
           p_author_name: formData.author_name,
-          p_user_id: user?.id,
-          p_author_nickname: userNickname || null
+          p_author_nickname: userNickname || null,
+          p_is_notice: formData.is_notice
         });
 
         if (error) throw error;
@@ -208,6 +209,29 @@ export default function PostEditorModal({
                   placeholder="내용을 입력하세요"
                 />
               </div>
+
+              {/* 공지사항 (관리자만) */}
+              {isAdmin && (
+                <div className="bg-blue-900/20 border border-blue-500/50 rounded-lg p-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_notice}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        is_notice: e.target.checked
+                      }))}
+                      className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <div className="text-blue-300 font-medium">공지사항으로 등록</div>
+                      <div className="text-blue-400 text-xs mt-1">
+                        공지사항은 게시판 상단에 고정되어 표시됩니다
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              )}
 
             </>
           )}
