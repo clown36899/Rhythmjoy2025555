@@ -176,8 +176,8 @@ export function useUnifiedGestureController({
           gestureHistory.length = 0;
           gestureHistory.push({ y: e.clientY, time: Date.now() });
           
-          // 실제 모바일: 브라우저 기본 동작 방지 (pull-to-refresh 차단)
-          e.preventDefault();
+          // 모바일: preventDefault() 호출 안 함 → 스크롤 허용
+          // pull down 감지되면 PointerMove에서 preventDefault() 호출
           
           console.log("⏳ 스크롤 모드 (리스트 영역, 최상단 - pull down 감지 대기)");
           return;
