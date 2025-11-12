@@ -287,9 +287,9 @@ export default function BoardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-32">
+    <div className="min-h-screen bg-[#1a1a1a] pb-32">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-4 sticky top-0 z-10">
+      <div className="bg-[#242424] border-b border-gray-600 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">자유게시판</h1>
           
@@ -308,14 +308,14 @@ export default function BoardPage() {
                     글쓰기
                   </button>
                 ) : (
-                  <span className="bg-gray-600 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                  <span className="bg-[#242424] text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
                     <i className="ri-user-add-line"></i>
                     회원가입 중...
                   </span>
                 )}
                 <button
                   onClick={handleLogout}
-                  className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                  className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                 >
                   <i className="ri-logout-box-line"></i>
                   로그아웃
@@ -360,10 +360,10 @@ export default function BoardPage() {
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post)}
-                  className={`border rounded p-1.5 hover:bg-gray-750 transition-colors cursor-pointer ${
+                  className={`border rounded p-1.5 hover:bg-gray-600 transition-colors cursor-pointer ${
                     post.is_notice 
-                      ? 'bg-blue-900/20 border-blue-500/50' 
-                      : 'bg-gray-800 border-gray-700'
+                      ? 'bg-blue-500/20 border-blue-500/50' 
+                      : 'bg-[#242424] border-gray-600'
                   }`}
                 >
                   <div className="flex items-start gap-1.5 mb-0.5">
@@ -381,10 +381,10 @@ export default function BoardPage() {
                       {post.title}
                     </h3>
                   </div>
-                  <p className="text-gray-400 text-xs mb-1 line-clamp-1">
+                  <p className="text-gray-300 text-xs mb-1 line-clamp-1">
                     {post.content}
                   </p>
-                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                  <div className="flex items-center justify-between text-[10px] text-gray-400">
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-0.5">
                         <i className="ri-user-line text-xs"></i>
@@ -407,7 +407,7 @@ export default function BoardPage() {
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-2 py-0.5 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
+                  className="px-2 py-0.5 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
                 >
                   <i className="ri-arrow-left-s-line"></i>
                 </button>
@@ -419,7 +419,7 @@ export default function BoardPage() {
                     className={`px-2.5 py-0.5 rounded text-sm transition-colors ${
                       currentPage === page
                         ? 'bg-blue-600 text-white font-medium'
-                        : 'text-gray-400 hover:bg-gray-700'
+                        : 'text-gray-300 hover:bg-gray-600 hover:text-white'
                     }`}
                   >
                     {page}
@@ -429,7 +429,7 @@ export default function BoardPage() {
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-2 py-0.5 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
+                  className="px-2 py-0.5 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
                 >
                   <i className="ri-arrow-right-s-line"></i>
                 </button>
