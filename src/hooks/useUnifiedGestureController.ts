@@ -81,20 +81,27 @@ export function useUnifiedGestureController({
       const velocity = calculateVelocity();
       console.log(`🧲 스냅 시작: 현재=${currentHeight}px, 속도=${velocity.toFixed(3)}px/ms`);
 
+      const currentMode = heightToMode(currentHeight);
       let targetMode: CalendarMode;
 
-      // Fling 감지
+      // Fling 감지 - 가까운 모드로만 이동
       if (Math.abs(velocity) > 0.4) {
         if (velocity > 0) {
-          // 빠르게 아래로 → fullscreen
-          targetMode = 'fullscreen';
+          // 빠르게 아래로 → 다음 모드
+          if (currentMode === 'collapsed') targetMode = 'expanded';
+          else if (currentMode === 'expanded') targetMode = 'fullscreen';
+          else targetMode = 'fullscreen';
         } else {
-          // 빠르게 위로 → collapsed
-          targetMode = 'collapsed';
+          // 빠르게 위로 → 이전 모드
+          if (currentMode === 'fullscreen') targetMode = 'expanded';
+          else if (currentMode === 'expanded') targetMode = 'collapsed';
+          else targetMode = 'collapsed';
         }
+        console.log(`⚡ 플링: ${currentMode} → ${targetMode}`);
       } else {
-        // 느린 드래그 → 현재 높이 기준
+        // 느린 드래그 → 현재 높이 기준 가까운 곳
         targetMode = heightToMode(currentHeight);
+        console.log(`🐢 느린 드래그: ${targetMode}`);
       }
 
       const targetHeight = modeToHeight(targetMode);
@@ -191,6 +198,8 @@ export function useUnifiedGestureController({
       console.log("🔴 TouchEnd - 손 뗌!");
       
       isDragging = false;
+      
+      // 스크롤 복원 (중요!)
       eventListElement.style.overflow = '';
       
       // 여기서만 스냅!
@@ -204,7 +213,10 @@ export function useUnifiedGestureController({
       console.log("⚠️ TouchCancel");
       
       isDragging = false;
+      
+      // 스크롤 복원 (중요!)
       eventListElement.style.overflow = '';
+      
       velocityHistory = [];
     };
 
