@@ -31,11 +31,11 @@ export default function Header({
   onDateChange,
   onResetToToday,
   onAdminModeToggle,
-  onBillboardOpen,
+  onBillboardOpen: _onBillboardOpen,
   onBillboardSettingsOpen,
   viewMode = "month",
   onViewModeChange,
-  billboardEnabled = true,
+  billboardEnabled: _billboardEnabled = true,
 }: HeaderProps) {
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(

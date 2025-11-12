@@ -186,7 +186,6 @@ export default function HomePage() {
             localSwipeDirection = "vertical";
           } else if (absX > absY * 1.5) {
             localSwipeDirection = "horizontal";
-            setSwipeDirection("horizontal");
           }
         }
       }
@@ -248,7 +247,6 @@ export default function HomePage() {
             swipeOffsetRef.current = 0;
             setDragOffset(0);
             setIsAnimating(false);
-            setSwipeDirection(null);
           }, 300);
         } else {
           setIsAnimating(true);
@@ -258,13 +256,11 @@ export default function HomePage() {
 
           setTimeout(() => {
             setIsAnimating(false);
-            setSwipeDirection(null);
           }, 300);
         }
       } else {
         swipeOffsetRef.current = 0;
         setDragOffset(0);
-        setSwipeDirection(null);
       }
 
       localTouchStart = null;
