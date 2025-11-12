@@ -151,7 +151,7 @@ export default function HomePage() {
     }
   }, []);
 
-  // 🎯 통합 Pointer Events 컨트롤러
+  // 🎯 통합 제스처 컨트롤러 (수직 드래그 + 수평 스와이프)
   useUnifiedGestureController({
     containerRef,
     eventListRef: eventListElementRef,
@@ -160,6 +160,7 @@ export default function HomePage() {
     calendarMode,
     setCalendarMode,
     isScrollExpandingRef,
+    onMonthChange: handleMonthChange,
   });
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)

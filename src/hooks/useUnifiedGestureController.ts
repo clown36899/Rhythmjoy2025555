@@ -10,6 +10,8 @@ interface UseUnifiedGestureControllerProps {
   calendarMode: CalendarMode;
   setCalendarMode: (mode: CalendarMode) => void;
   isScrollExpandingRef: React.MutableRefObject<boolean>;
+  // 월 변경 콜백
+  onMonthChange: (direction: 'prev' | 'next') => void;
 }
 
 export function useUnifiedGestureController({
@@ -19,6 +21,7 @@ export function useUnifiedGestureController({
   headerHeight,
   calendarMode,
   setCalendarMode,
+  onMonthChange,
 }: UseUnifiedGestureControllerProps) {
   useEffect(() => {
     const containerElement = containerRef.current;
@@ -211,10 +214,13 @@ export function useUnifiedGestureController({
         const absDeltaX = Math.abs(deltaX);
 
         if (absDeltaX > absDeltaY * 1.5) {
-          // 수평 이동이 압도적으로 우세하면
+          // 수평 스와이프 시작!
           isPending = false;
-          console.log("🔓 수평 슬라이드 허용");
-          return; // 훅의 수직 드래그 로직을 건너뛰고, 상위 컴포넌트의 수평 로직을 실행하도록 허용
+          gestureDirection = 'horizontal';
+          isDragging = true;
+          console.log("↔️ 수평 스와이프 시작 (월 변경)");
+          e.preventDefault();
+          return;
         }
 
         if (deltaY > 0) {
@@ -235,14 +241,19 @@ export function useUnifiedGestureController({
 
       if (!isDragging) return;
 
-      // 달력에서 드래그 → 위/아래 모두 허용
       e.preventDefault();
 
-      // Velocity 샘플링
+      // 수평 스와이프 (월 변경)
+      if (gestureDirection === 'horizontal') {
+        // 시각적 피드백만 (실제 월 변경은 TouchEnd에서)
+        console.log(`↔️ 수평 드래그: ${deltaX.toFixed(0)}px`);
+        return;
+      }
+
+      // 수직 드래그 (달력 높이 조절)
       velocityHistory.push({ y: touch.clientY, time: Date.now() });
       if (velocityHistory.length > 5) velocityHistory.shift();
 
-      // 실시간 높이 업데이트 (스냅 없음!)
       const newHeight = startHeight + deltaY;
 
       if (rafId) cancelAnimationFrame(rafId);
@@ -255,9 +266,8 @@ export function useUnifiedGestureController({
     };
 
     // 🎯 TouchEnd
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e: TouchEvent) => {
       if (isPending) {
-        // Pending 상태에서 손 떼면 → 취소
         isPending = false;
         console.log("⏹️ Pending 취소");
         return;
@@ -267,14 +277,29 @@ export function useUnifiedGestureController({
 
       console.log("🔴 TouchEnd - 손 뗌!");
 
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - startX;
+
+      // 수평 스와이프 완료 → 월 변경
+      if (gestureDirection === 'horizontal') {
+        const threshold = 50; // 50px 이상 스와이프
+        if (Math.abs(deltaX) > threshold) {
+          const direction = deltaX > 0 ? 'prev' : 'next';
+          console.log(`🎯 월 변경: ${direction}`);
+          onMonthChange(direction);
+        }
+        
+        isDragging = false;
+        gestureDirection = null;
+        eventListElement.style.overflow = "";
+        return;
+      }
+
+      // 수직 드래그 완료 → 스냅
       isDragging = false;
-
-      // 스크롤 복원 (중요!)
+      gestureDirection = null;
       eventListElement.style.overflow = "";
-
-      // 여기서만 스냅!
       performSnap();
-
       velocityHistory = [];
     };
 
@@ -321,5 +346,6 @@ export function useUnifiedGestureController({
     headerHeight,
     calendarMode,
     setCalendarMode,
+    onMonthChange,
   ]);
 }
