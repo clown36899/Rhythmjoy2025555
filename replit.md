@@ -3,6 +3,21 @@
 ## Overview
 광고판 is a Korean event discovery and management platform for classes, events, and social venues. It offers a calendar-based interface for browsing, creating, and managing events, including practice room listings and venue schedule management. The platform emphasizes a modern, user-friendly experience with full Korean language support and free event posting to foster community engagement. Its vision is to become the leading platform for local event discovery in Korea, streamlining the experience for both organizers and participants.
 
+## Platform Target (중요!)
+
+**본 사이트 (Main Website)**: 웹 브라우저 환경
+- 대상: PC, 모바일, 태블릿 등 일반 웹 브라우저
+- 경로: `/` (홈), `/social` (소셜 장소) 등
+- 최적화: 표준 웹 성능, React 기본 렌더링 방식 사용
+- 제약 없음: 일반적인 웹 개발 방식 적용
+
+**빌보드만 (Billboard Only)**: 안드로이드 TV (1GB RAM) 최적화
+- 대상: 저사양 안드로이드 TV (1GB RAM)
+- 경로: `/billboard/:userId` 전용
+- 최적화: GPU 부담 최소화, React reconciliation 회피
+- 특수 기법: Buffer Rotation, ref 기반 애니메이션, React.memo 캐싱
+- 제약: GPU가 제한적이므로 CSS transform 중 React 리렌더링 금지
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
