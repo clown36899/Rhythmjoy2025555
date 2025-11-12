@@ -540,7 +540,7 @@ export default function EventCalendar({
                 todayFlag 
                   ? "flex items-center justify-center rounded-full bg-blue-500 text-white" 
                   : ""
-              } ${calendarMode === 'fullscreen' ? 'top-0 left-0.5' : 'top-1 left-2'}`}
+              } ${calendarMode === 'fullscreen' ? 'top-px left-0.5' : 'top-1 left-2'}`}
               style={{
                 opacity: isOtherMonth ? 0.15 : undefined,
                 fontSize: calendarMode === 'fullscreen' ? (todayFlag ? '9px' : '10px') : (todayFlag ? '11px' : `${dateFontSize}px`),
