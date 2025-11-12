@@ -133,13 +133,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // 달력 완전히 닫을 때 선택 날짜 리셋
-  useEffect(() => {
-    if (calendarMode === "collapsed") {
-      setSelectedDate(null);
-    }
-  }, [calendarMode]);
-
   // 🎯 통합 Pointer Events 컨트롤러
   useUnifiedGestureController({
     containerRef,
