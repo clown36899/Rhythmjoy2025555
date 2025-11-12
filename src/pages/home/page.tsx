@@ -260,6 +260,8 @@ export default function HomePage() {
               return newMonth;
             });
             setSelectedDate(null);
+            setFromBanner(false);
+            setBannerMonthBounds(null);
 
             swipeOffsetRef.current = 0;
             setDragOffset(0);
@@ -389,6 +391,8 @@ export default function HomePage() {
   useEffect(() => {
     const handleClearDate = () => {
       setSelectedDate(null);
+      setFromBanner(false);
+      setBannerMonthBounds(null);
     };
 
     window.addEventListener("clearSelectedDate", handleClearDate);
@@ -651,6 +655,8 @@ export default function HomePage() {
 
     // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
     setSelectedDate(null);
+    setFromBanner(false);
+    setBannerMonthBounds(null);
 
     // 년 모드가 아닐 때만 카테고리 변경 (년 모드에서는 뷰 유지)
     if (viewMode === "month") {
@@ -772,27 +778,34 @@ export default function HomePage() {
       
       // 등록 배너에서 온 경우: detail에 달 정보가 있음
       if (customEvent.detail?.source === 'banner' && customEvent.detail?.monthIso) {
-        const firstDayOfMonth = new Date(customEvent.detail.monthIso);
-        setSelectedDate(firstDayOfMonth);
-        setFromBanner(true);
-        
-        // 해당 달의 첫날과 마지막날 계산
-        const year = firstDayOfMonth.getFullYear();
-        const month = firstDayOfMonth.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        
-        const formatDate = (date: Date) => {
-          const y = date.getFullYear();
-          const m = String(date.getMonth() + 1).padStart(2, '0');
-          const d = String(date.getDate()).padStart(2, '0');
-          return `${y}-${m}-${d}`;
-        };
-        
-        setBannerMonthBounds({
-          min: formatDate(firstDay),
-          max: formatDate(lastDay)
-        });
+        // 이미 날짜가 선택되어 있으면 그 날짜를 사용
+        if (selectedDate) {
+          setFromBanner(false);
+          setBannerMonthBounds(null);
+        } else {
+          // 날짜가 선택되어 있지 않으면 빈 날짜로 시작
+          const firstDayOfMonth = new Date(customEvent.detail.monthIso);
+          setSelectedDate(firstDayOfMonth);
+          setFromBanner(true);
+          
+          // 해당 달의 첫날과 마지막날 계산
+          const year = firstDayOfMonth.getFullYear();
+          const month = firstDayOfMonth.getMonth();
+          const firstDay = new Date(year, month, 1);
+          const lastDay = new Date(year, month + 1, 0);
+          
+          const formatDate = (date: Date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+          };
+          
+          setBannerMonthBounds({
+            min: formatDate(firstDay),
+            max: formatDate(lastDay)
+          });
+        }
       } else {
         // 하단 메뉴 버튼에서 온 경우: selectedDate가 없으면 오늘 날짜로 등록
         if (!selectedDate) {
@@ -911,6 +924,8 @@ export default function HomePage() {
               setIsAnimating(false);
               // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
               setSelectedDate(null);
+              setFromBanner(false);
+              setBannerMonthBounds(null);
               navigateWithCategory("all");
             }, 300);
           }}
@@ -918,6 +933,8 @@ export default function HomePage() {
             setCurrentMonth(newMonth);
             // 날짜 변경 시 날짜 리셋하고 이벤트 리스트 표시
             setSelectedDate(null);
+            setFromBanner(false);
+            setBannerMonthBounds(null);
             navigateWithCategory("all");
           }}
           onAdminModeToggle={handleAdminModeToggle}
