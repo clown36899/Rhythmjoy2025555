@@ -128,18 +128,7 @@ export function useUnifiedGestureController({
       
       console.log(`🔵 TouchStart: y=${touch.clientY}, scrollTop=${scrollTop}, calendarMode=${calendarMode}, isTouchingCalendar=${isTouchingCalendar}`);
 
-      // 조건 1: 리스트 최상단 → pending 상태 (방향 확인 대기)
-      if (scrollTop === 0 && calendarMode === 'collapsed') {
-        isPending = true;
-        startY = touch.clientY;
-        startHeight = currentHeight;
-        velocityHistory = [{ y: touch.clientY, time: Date.now() }];
-        
-        console.log("⏳ pending 상태 (방향 확인 대기)");
-        return;
-      }
-      
-      // 조건 2: 달력 위를 터치 → 달력 컨트롤
+      // 조건 1: 달력 위를 터치 → 달력 컨트롤 (최우선)
       if (isTouchingCalendar && calendarMode !== 'collapsed') {
         isDragging = true;
         startY = touch.clientY;
@@ -152,6 +141,18 @@ export function useUnifiedGestureController({
         e.preventDefault();
         
         console.log("📅 달력 위에서 드래그 시작!");
+        return;
+      }
+      
+      // 조건 2: 리스트 최상단 → pending 상태 (calendarMode 관계없이!)
+      if (scrollTop === 0) {
+        isPending = true;
+        startY = touch.clientY;
+        startHeight = modeToHeight(calendarMode);
+        currentHeight = startHeight;
+        velocityHistory = [{ y: touch.clientY, time: Date.now() }];
+        
+        console.log(`⏳ pending 상태 (현재모드: ${calendarMode}, 높이: ${startHeight}px)`);
         return;
       }
     };
