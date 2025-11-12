@@ -145,15 +145,15 @@ export function useUnifiedGestureController({
 
       const targetHeight = modeToHeight(targetMode);
 
-      // 애니메이션으로 스냅
+      // 애니메이션으로 스냅 (부드러운 easing)
       calendarElement.style.transition =
-        "height 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)";
+        "height 0.35s cubic-bezier(0.25, 0.1, 0.25, 1.0)";
       updateCalendarHeight(targetHeight);
       setCalendarMode(targetMode);
 
       setTimeout(() => {
         calendarElement.style.transition = "";
-      }, 300);
+      }, 350);
     };
 
     // 🎯 TouchStart

@@ -932,7 +932,8 @@ export default function HomePage() {
                   ? "500px"
                   : undefined,
               contain: "layout style paint",
-              transform: "translateZ(0)", // ref로 제어
+              transform: "translateZ(0)",
+              willChange: isDraggingCalendar ? "height" : undefined, // GPU 가속
             }}
           >
             <EventCalendar
