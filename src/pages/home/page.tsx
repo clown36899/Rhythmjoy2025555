@@ -1052,18 +1052,16 @@ export default function HomePage() {
           style={{
             // 달력이 fixed일 때 이벤트 리스트 위치 유지
             // 중요: 250px로 완전 고정! (fullscreen이든 뭐든 250px 유지)
-            marginTop:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
+            marginTop: (() => {
+              const threshold = Math.min(
+                250,
+                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+              );
+              return calendarMode === "fullscreen" ||
+                (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
                 ? "250px" // 무조건 250px 고정!
-                : undefined,
+                : undefined;
+            })(),
             // 실제 모바일: pull-to-refresh 차단
             overscrollBehavior: 'none',
           }}
