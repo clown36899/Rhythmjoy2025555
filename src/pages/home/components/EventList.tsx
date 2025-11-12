@@ -180,6 +180,17 @@ export default function EventList({
     sortedEventsCache.current = {};
   }, [selectedCategory, sortBy, events, currentDay]);
 
+  // 모달이 열릴 때 배경 스크롤 막기
+  useEffect(() => {
+    if (selectedEvent || showFullscreenImage) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [selectedEvent, showFullscreenImage]);
 
   // 슬라이드 높이 측정 및 업데이트 (애니메이션과 동시에)
   // ⚠️ 높이 자동 조정 기능 비활성화 - 푸터가 올라오는 문제 해결
