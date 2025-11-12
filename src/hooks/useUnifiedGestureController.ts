@@ -305,5 +305,5 @@ export function useUnifiedGestureController({
       containerElement.removeEventListener('pointerup', handlePointerUp as EventListener);
       containerElement.removeEventListener('pointercancel', handlePointerCancel as EventListener);
     };
-  }, [containerRef, eventListRef, calendarContentRef, headerHeight, calendarMode, setCalendarMode, isScrollExpandingRef]);
+  }, [headerHeight, calendarMode, setCalendarMode]);
 }
