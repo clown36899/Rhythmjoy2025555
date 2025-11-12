@@ -307,28 +307,43 @@ export function useUnifiedGestureController({
         
         if (Math.abs(deltaX) > threshold) {
           const direction = deltaX > 0 ? 'prev' : 'next';
-          console.log(`🎯 슬라이드 방식 월 변경: ${direction}, deltaX: ${deltaX.toFixed(0)}px`);
+          const savedDeltaX = deltaX; // deltaX 저장 (리렌더링 후에도 사용)
+          console.log(`🎯 슬라이드 월 변경: ${direction}, deltaX: ${savedDeltaX.toFixed(0)}px`);
           
-          // ⭐ 핵심: 애니메이션 시작 **전에** 월 변경!
-          // 새 돔이 -100%에 배치됨 (예: 11월 → 12월이면 [11월, 12월, 1월])
+          // 1. 월 변경 (React 리렌더링 → 슬라이더 HTML 교체 → transform 초기화됨)
           onMonthChange(direction);
           
-          // 월 변경 직후 애니메이션 (현재 위치 → -100%)
-          // React 리렌더링이 완료될 때까지 한 프레임 대기
+          // 2. 리렌더링 후 즉시 이전 위치로 복원 (transition 없이)
           requestAnimationFrame(() => {
-            // transition 설정
-            if (calendarSlider) {
-              calendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-            }
-            if (eventListSlider) {
-              eventListSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-            }
+            const newCalendarSlider = calendarSliderRef.current;
+            const newEventListSlider = eventListSliderRef.current;
             
-            // 한 프레임 더 대기 후 -100%로 애니메이션
+            // 리렌더링으로 새 슬라이더가 생성됨
+            if (newCalendarSlider) {
+              newCalendarSlider.style.transition = 'none';
+              newCalendarSlider.style.transform = `translateX(calc(-100% + ${savedDeltaX}px))`;
+            }
+            if (newEventListSlider) {
+              newEventListSlider.style.transition = 'none';
+              newEventListSlider.style.transform = `translateX(calc(-100% + ${savedDeltaX}px))`;
+            }
+            console.log(`📍 이전 위치 복원: calc(-100% + ${savedDeltaX}px)`);
+            
+            // 3. 한 프레임 후 transition 추가 + -100%로 애니메이션
             requestAnimationFrame(() => {
-              if (calendarSlider) calendarSlider.style.transform = 'translateX(-100%)';
-              if (eventListSlider) eventListSlider.style.transform = 'translateX(-100%)';
-              console.log(`🎬 슬라이드 애니메이션: 현재 위치 → -100%`);
+              if (newCalendarSlider) {
+                newCalendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+              }
+              if (newEventListSlider) {
+                newEventListSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+              }
+              
+              // 한 프레임 더 대기 후 -100%로 애니메이션
+              requestAnimationFrame(() => {
+                if (newCalendarSlider) newCalendarSlider.style.transform = 'translateX(-100%)';
+                if (newEventListSlider) newEventListSlider.style.transform = 'translateX(-100%)';
+                console.log(`🎬 슬라이드 애니메이션: 끌려온 위치 → -100%`);
+              });
             });
           });
         } else {
