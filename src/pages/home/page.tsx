@@ -151,6 +151,22 @@ export default function HomePage() {
     }
   }, []);
 
+  // 월 변경 핸들러 (useCallback으로 메모이제이션)
+  const handleMonthSwipe = useCallback((direction: 'prev' | 'next') => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setDate(1); // 날짜 오버플로우 방지
+    
+    if (direction === 'prev') {
+      newMonth.setMonth(currentMonth.getMonth() - 1);
+    } else {
+      newMonth.setMonth(currentMonth.getMonth() + 1);
+    }
+    
+    setCurrentMonth(newMonth);
+    setSelectedDate(null);
+    console.log(`📅 월 변경: ${direction} → ${newMonth.toISOString()}`);
+  }, [currentMonth]);
+
   // 🎯 통합 제스처 컨트롤러 (수직 드래그 + 수평 스와이프)
   useUnifiedGestureController({
     containerRef,
@@ -160,7 +176,7 @@ export default function HomePage() {
     calendarMode,
     setCalendarMode,
     isScrollExpandingRef,
-    onMonthChange: handleMonthChange,
+    onMonthChange: handleMonthSwipe,
   });
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
