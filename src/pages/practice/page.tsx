@@ -65,7 +65,7 @@ export default function PracticeRoomsPage() {
       {/* Contact Modal (Non-Admin) */}
       {showContactModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-sm p-6">
+          <div className="bg-[#242424] rounded-lg w-full max-w-sm p-6">
             <h3 className="text-lg font-bold text-white mb-4 text-center">등록 문의</h3>
             <p className="text-gray-300 text-center mb-2">
               관리자에게 문의하세요
@@ -82,7 +82,7 @@ export default function PracticeRoomsPage() {
             </a>
             <button
               onClick={() => setShowContactModal(false)}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors cursor-pointer"
+              className="w-full bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white py-2 px-4 rounded-lg transition-colors cursor-pointer"
             >
               닫기
             </button>

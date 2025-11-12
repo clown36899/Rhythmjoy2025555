@@ -265,7 +265,7 @@ export default function PracticeRoomList({
             <div
               key={room.id}
               onClick={() => handleRoomClick(room)}
-              className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-750 transition-all animate-fadeIn flex items-center"
+              className="bg-[#242424] rounded-lg overflow-hidden cursor-pointer hover:bg-gray-600 transition-all animate-fadeIn flex items-center"
               style={{
                 animationDelay: `${index * 100}ms`
               }}
@@ -276,7 +276,7 @@ export default function PracticeRoomList({
                   {room.name}
                 </h3>
                 {room.address && (
-                  <p className="text-xs text-gray-400 mb-1 flex items-start gap-1.5 line-clamp-1">
+                  <p className="text-xs text-gray-300 mb-1 flex items-start gap-1.5 line-clamp-1">
                     <i className="ri-map-pin-line mt-0.5 flex-shrink-0"></i>
                     <span className="truncate">{room.address}</span>
                   </p>
@@ -322,7 +322,7 @@ export default function PracticeRoomList({
       {/* 검색 모달 */}
       {showSearchModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="bg-[#242424] rounded-lg w-full max-w-md">
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-white">연습실 검색</h3>
@@ -333,7 +333,7 @@ export default function PracticeRoomList({
                     setSearchSuggestions([]);
                     setShowSearchModal(false);
                   }}
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-300 hover:text-white"
                 >
                   <i className="ri-close-line text-xl"></i>
                 </button>
@@ -351,7 +351,7 @@ export default function PracticeRoomList({
                         handleSearchSubmit();
                       }
                     }}
-                    className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-[#242424] border border-gray-600 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="연습실 이름, 주소, 설명으로 검색..."
                     autoFocus
                   />
@@ -367,7 +367,7 @@ export default function PracticeRoomList({
                         <button
                           key={index}
                           onClick={() => handleSuggestionClick(suggestion)}
-                          className="w-full text-left bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                          className="w-full text-left bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
                         >
                           <i className="ri-search-line text-xs mr-2 text-gray-400"></i>
                           {suggestion}
@@ -386,7 +386,7 @@ export default function PracticeRoomList({
                       setSearchSuggestions([]);
                       setShowSearchModal(false);
                     }}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                    className="flex-1 bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
                   >
                     초기화
                   </button>
@@ -406,13 +406,13 @@ export default function PracticeRoomList({
       {/* 정렬 모달 */}
       {showSortModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="bg-[#242424] rounded-lg w-full max-w-md">
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-white">정렬 방식</h3>
                 <button
                   onClick={() => setShowSortModal(false)}
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-300 hover:text-white"
                 >
                   <i className="ri-close-line text-xl"></i>
                 </button>
@@ -427,7 +427,7 @@ export default function PracticeRoomList({
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                     sortBy === "random"
                       ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      : "bg-[#242424] text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <i className="ri-shuffle-line"></i>
@@ -442,7 +442,7 @@ export default function PracticeRoomList({
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                     sortBy === "title"
                       ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      : "bg-[#242424] text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <i className="ri-sort-alphabet-asc"></i>
@@ -457,7 +457,7 @@ export default function PracticeRoomList({
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                     sortBy === "newest"
                       ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      : "bg-[#242424] text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   <i className="ri-calendar-line"></i>
