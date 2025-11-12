@@ -19,7 +19,7 @@ interface EventRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: Date;
-  onEventCreated: (createdDate: Date) => void;
+  onEventCreated: (createdDate: Date, eventId?: number) => void;
   fromBanner?: boolean;
   bannerMonthBounds?: { min: string; max: string };
 }
@@ -533,12 +533,16 @@ export default function EventRegistrationModal({
         created_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from("events").insert([eventData]);
+      const { data: insertedData, error } = await supabase
+        .from("events")
+        .insert([eventData])
+        .select("id");
 
       if (error) {
         console.error("Error creating event:", error);
         alert("이벤트 등록 중 오류가 발생했습니다.");
       } else {
+        const newEventId = insertedData?.[0]?.id;
         alert("이벤트가 성공적으로 등록되었습니다!");
         setFormData({
           title: "",
@@ -562,7 +566,10 @@ export default function EventRegistrationModal({
         setImageFile(null);
         setImagePreview("");
         setVideoPreview({ provider: null, embedUrl: null });
-        onEventCreated(selectedDate);
+        
+        // 등록된 이벤트의 시작 날짜 전달
+        const createdDate = new Date(localDateString + "T00:00:00");
+        onEventCreated(createdDate, newEventId);
         onClose();
       }
     } catch (error) {

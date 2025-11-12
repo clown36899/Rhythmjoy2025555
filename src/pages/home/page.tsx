@@ -1212,12 +1212,25 @@ export default function HomePage() {
             setBannerMonthBounds(null);
           }}
           selectedDate={selectedDate}
-          onEventCreated={(createdDate) => {
+          onEventCreated={(createdDate, eventId) => {
             // 이벤트 생성 후 새로고침
             setRefreshTrigger((prev) => prev + 1);
             setShowRegistrationModal(false);
             setFromBanner(false);
             setBannerMonthBounds(null);
+            
+            // 등록된 달로 이동
+            setCurrentMonth(createdDate);
+            
+            // 등록된 이벤트 하이라이트
+            if (eventId) {
+              setTimeout(() => {
+                setHighlightEvent({
+                  id: eventId,
+                  nonce: Date.now(),
+                });
+              }, 300);
+            }
           }}
           fromBanner={fromBanner}
           bannerMonthBounds={bannerMonthBounds ?? undefined}
