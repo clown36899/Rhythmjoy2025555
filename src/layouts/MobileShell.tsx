@@ -237,7 +237,15 @@ export function MobileShell() {
         <div className="flex items-center justify-around px-2 py-2 border-t border-[#22262a] no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
           {/* 이벤트 달력 버튼 */}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              if (isEventsPage) {
+                // 이미 이벤트 달력 페이지면 새로고침
+                window.location.reload();
+              } else {
+                // 다른 페이지면 이동
+                navigate('/');
+              }
+            }}
             className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
               isEventsPage
                 ? "text-blue-500"
