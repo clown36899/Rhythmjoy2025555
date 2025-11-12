@@ -19,6 +19,115 @@
   - Android 브라우저에서 PWA(Progressive Web App)로 "홈 화면에 추가" 가능
   - Android APK 앱에서 웹뷰를 통해 빌보드 URL을 직접 로드하여 사용 (권장 방식)
 
+## 주요 코드 위치 가이드 (Code Location Guide)
+
+> 자주 수정하는 컴포넌트와 기능의 위치를 빠르게 찾기 위한 가이드
+> 
+> **마지막 업데이트: 2025-11-12**
+
+### UI 컴포넌트
+
+#### 헤더 (Header)
+- **파일**: `src/pages/home/components/Header.tsx`
+- **주요 기능**:
+  - 달 네비게이션 (이전/다음 버튼): ~426-470줄
+  - 날짜 표시 (월 표시): ~432-443줄
+  - 년/월 뷰 전환 버튼: ~444-465줄
+  - 설정 버튼: ~496-502줄
+  - 관리자 로그인 모달: ~508-570줄
+  - 테마 색상 설정: ~257-328줄
+
+#### 바텀 메뉴 / 카테고리 패널
+- **파일**: `src/layouts/MobileShell.tsx`
+- **주요 기능**:
+  - 카테고리 버튼 (행사/강습): ~154-240줄
+  - 오늘 버튼 (현재 월 아닐 때만 표시): ~191-202줄
+  - 등록 버튼 (날짜 선택 시): ~228-239줄
+  - 하단 네비게이션 (이벤트 달력/소셜/연습실/안내): ~264-358줄
+  - 관리자 패널: ~360-433줄
+
+#### 이벤트 리스트
+- **파일**: `src/pages/home/components/EventList.tsx` (3,484줄)
+- **주요 기능**:
+  - 이벤트 필터링 로직: ~677-780줄
+  - 이벤트 정렬 (랜덤/시간/제목/최신): ~259-320줄
+  - 검색 기능: ~1611-1643줄
+  - 슬라이딩 레이아웃 (3개월 뷰): ~1706-2000줄
+  - 이벤트 카드 그리드: ~1657-1690줄
+
+#### 이벤트 카드
+- **파일**: `src/pages/home/components/EventCard.tsx`
+- **주요 기능**:
+  - 카드 레이아웃 및 스타일
+  - 썸네일 표시
+  - 카테고리 배지
+
+#### 달력
+- **파일**: `src/pages/home/components/EventCalendar.tsx`
+- **주요 기능**:
+  - 월간/연간 뷰 전환
+  - 날짜 선택 및 다중 날짜 이벤트 표시
+  - 터치 제스처 (스와이프, 드래그)
+
+#### 모달 컴포넌트
+- **이벤트 등록 모달**: `src/components/EventRegistrationModal.tsx`
+- **이벤트 상세보기**: `src/pages/home/components/EventList.tsx` (~2785-3484줄)
+- **비밀번호 확인**: `src/pages/home/components/EventPasswordModal.tsx`
+- **빌보드 설정**: `src/components/AdminBillboardModal.tsx`
+
+### 주요 페이지
+
+#### 메인 페이지 (홈)
+- **파일**: `src/pages/home/page.tsx` (1,250줄)
+- **주요 기능**:
+  - 상태 관리 (currentMonth, selectedDate, 등): ~1-120줄
+  - URL 파라미터 처리: ~312-360줄
+  - 이벤트 리스너 (오늘 버튼, 날짜 선택 등): ~383-416줄
+  - 비활동 타이머 (광고판 자동 열기): ~432-471줄
+  - 제스처 컨트롤러: `src/hooks/useUnifiedGestureController.ts`
+
+#### 빌보드 페이지
+- **파일**: `src/pages/billboard/page.tsx`
+- **주요 기능**:
+  - 슬라이드쇼 로직
+  - YouTube 플레이어 통합
+  - 실시간 업데이트 (Supabase Realtime)
+
+### 스타일 & 테마
+
+#### 테마 색상
+- **설정 위치**: Supabase 데이터베이스 `theme_settings` 테이블
+- **적용 위치**:
+  - Header: `src/pages/home/components/Header.tsx` (~257-328줄)
+  - MobileShell: `src/layouts/MobileShell.tsx` (~99-126줄)
+  - CSS 변수: `src/index.css`
+
+#### Tailwind 설정
+- **파일**: `tailwind.config.js`
+- **글로벌 스타일**: `src/index.css`
+
+### 데이터베이스 & 인증
+
+#### Supabase 설정
+- **클라이언트**: `src/lib/supabase.ts`
+- **인증 컨텍스트**: `src/contexts/AuthContext.tsx`
+- **환경 변수**: `.env` (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_ADMIN_EMAIL)
+
+### 빌드 & 배포
+
+#### Vite 설정
+- **파일**: `vite.config.ts`
+- **주요 설정**: 
+  - 포트 5000
+  - allowedHosts: true (iframe 지원)
+  - @assets 별칭
+
+#### 워크플로우
+- **개발 서버**: `npm run dev` (포트 5000)
+- **빌드**: `npm run build`
+
+---
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -27,6 +136,7 @@ Preferred communication style: Simple, everyday language.
 - **중요**: 모든 코드 수정 작업은 사전 승인 후 진행
 - 변경 사항 제안 시 사용자 승인을 받은 후에 실제 구현 시작
 - 긴급한 버그 수정의 경우에도 먼저 문제를 보고하고 승인 대기
+- **코드 위치 가이드 갱신**: 주요 컴포넌트 수정 시 위 "주요 코드 위치 가이드" 섹션 업데이트
 
 ### Secret Management
 - **중요**: Replit 사용자는 Secrets 패널을 직접 열 수 없음
