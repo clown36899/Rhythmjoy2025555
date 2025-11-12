@@ -80,7 +80,7 @@ body, html {
 .calendar-day-cell {
   /* height는 grid-auto-rows로 제어됨 */
   min-height: 30px;
-  padding: 4px 2px;
+  padding: 1px 2px;
   border-right: 1px solid #15151575;
   border-bottom: 1px solid #15151575;
 }
@@ -90,7 +90,7 @@ body, html {
   .calendar-day-cell {
     /* height는 grid-auto-rows로 제어됨 */
     min-height: 30px;
-    padding: 2px;
+    padding: 1px;
     border-right: 1px solid #15151575;
     border-bottom: 1px solid #15151575;
   }
