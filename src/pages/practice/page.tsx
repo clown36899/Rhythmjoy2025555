@@ -33,19 +33,8 @@ export default function PracticeRoomsPage() {
         <SimpleHeader title="연습실" />
       </div>
 
-      {/* Register Button */}
-      <div className="fixed top-16 left-0 w-full z-20 px-4 py-3 border-b border-[#22262a]" style={{ backgroundColor: "var(--page-bg-color)" }}>
-        <button
-          onClick={handleRegisterClick}
-          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors cursor-pointer"
-        >
-          <i className="ri-add-line"></i>
-          <span>등록</span>
-        </button>
-      </div>
-
       {/* Practice Room List - 달력 없음 */}
-      <div className="pt-32 pb-16">
+      <div className="pt-16 pb-24">
         <PracticeRoomList
           adminType={null}
           showSearchModal={showSearchModal}
@@ -55,6 +44,17 @@ export default function PracticeRoomsPage() {
           sortBy={sortBy}
           setSortBy={setSortBy}
         />
+      </div>
+
+      {/* Register Button - 하단 고정 */}
+      <div className="fixed bottom-16 left-0 w-full z-20 px-4 pb-3">
+        <button
+          onClick={handleRegisterClick}
+          className="ml-auto w-20 h-20 bg-blue-600 text-white rounded-full hover:bg-blue-700 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer shadow-lg"
+        >
+          <i className="ri-add-line text-2xl"></i>
+          <span className="text-xs">등록</span>
+        </button>
       </div>
 
       {/* Register Modal (Admin Only) */}
