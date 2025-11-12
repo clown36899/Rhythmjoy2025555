@@ -532,7 +532,7 @@ export default function EventCalendar({
             }}
             className={`w-full h-full flex flex-col items-center justify-start cursor-pointer relative overflow-visible no-select ${
               isSelected ? "text-white z-10" : "text-gray-300"
-            } ${calendarMode === 'fullscreen' ? 'pt-0.5' : 'pt-1'}`}
+            } ${calendarMode === 'fullscreen' ? 'pt-0' : 'pt-1'}`}
             style={{ fontSize: `${dateFontSize}px` }}
           >
             {/* 날짜 숫자 - 최상단 정렬 */}
@@ -591,20 +591,25 @@ export default function EventCalendar({
 
           {/* 단일 이벤트 바 표시 - 셀이 클 때만 */}
           {cellHeight > 55 && singleDayEvents.length > 0 && (
-            <div className="absolute left-1 right-1 flex flex-col gap-0.5 pointer-events-none" style={{ top: '28px' }}>
-              {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event) => {
+            <div 
+              className={`absolute flex flex-col gap-0.5 pointer-events-none ${
+                calendarMode === 'fullscreen' ? 'left-0.5 right-0.5' : 'left-1 right-1'
+              }`} 
+              style={{ top: calendarMode === 'fullscreen' ? '16px' : '28px' }}
+            >
+              {singleDayEvents.slice(0, Math.floor((cellHeight - (calendarMode === 'fullscreen' ? 18 : 30)) / 16)).map((event) => {
                 const categoryColor = event.category === 'class' ? 'bg-green-500' : 'bg-blue-500';
                 const isHovered = viewMode === "month" && hoveredEventId === event.id;
                 
                 return (
                   <div
                     key={event.id}
-                    className={`rounded-full px-1.5 text-[10px] font-medium truncate transition-all duration-200 ${categoryColor} ${
+                    className={`rounded-full text-[10px] font-medium truncate transition-all duration-200 ${categoryColor} ${
                       isHovered ? 'opacity-100 scale-105' : 'opacity-80'
-                    }`}
+                    } ${calendarMode === 'fullscreen' ? 'px-1' : 'px-1.5'}`}
                     style={{ 
-                      height: '14px',
-                      lineHeight: '14px',
+                      height: calendarMode === 'fullscreen' ? '13px' : '14px',
+                      lineHeight: calendarMode === 'fullscreen' ? '13px' : '14px',
                       color: 'white'
                     }}
                   >
