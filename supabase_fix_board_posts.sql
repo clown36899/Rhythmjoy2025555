@@ -2,7 +2,7 @@
 
 -- 1. author_nickname 컬럼 추가 (작성자 닉네임)
 ALTER TABLE board_posts 
-ADD COLUMN IF NOT EXISTS author_nickname TEXT NOT NULL DEFAULT '';
+ADD COLUMN IF NOT EXISTS author_nickname TEㅌXT NOT NULL DEFAULT '';
 
 -- 2. is_notice 컬럼 추가 (공지 여부)
 ALTER TABLE board_posts 
