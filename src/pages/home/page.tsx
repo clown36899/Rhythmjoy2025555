@@ -947,9 +947,6 @@ export default function HomePage() {
                 calendarMode === "expanded" && !isDraggingCalendar
                   ? "500px"
                   : undefined,
-              transition: isDraggingCalendar
-                ? "none"
-                : "height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)",
               contain: "layout style paint",
               transform: "translateZ(0)", // ref로 제어
             }}
