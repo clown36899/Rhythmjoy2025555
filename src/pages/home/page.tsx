@@ -160,6 +160,7 @@ export default function HomePage() {
     let lastScrollTop = 0;
     let touchStartY = 0;
     let touchStartHeight = 0; // 터치 시작 시 달력 높이
+    let isTouchOnCalendar = false; // 터치가 달력 영역에서 시작했는지
     let isTouching = false;
 
     const handleScroll = () => {
@@ -189,11 +190,18 @@ export default function HomePage() {
         return;
       }
       
+      const currentCalendarHeight = calendarContentRef.current?.offsetHeight || 0;
+      const calendarBottomY = headerHeight + currentCalendarHeight; // 헤더 + 달력 높이
+      
       touchStartY = e.touches[0].clientY;
-      touchStartHeight = calendarContentRef.current?.offsetHeight || 0; // 시작 높이 저장!
+      touchStartHeight = currentCalendarHeight; // 시작 높이 저장!
+      
+      // 터치 위치가 달력 영역 내부인지 확인
+      isTouchOnCalendar = touchStartY <= calendarBottomY;
+      
       isTouching = true;
       
-      console.log('🟢 터치 시작:', touchStartY, '시작 높이:', touchStartHeight);
+      console.log('🟢 터치 시작:', touchStartY, '시작 높이:', touchStartHeight, '달력 영역:', isTouchOnCalendar, '달력 하단Y:', calendarBottomY);
     };
     
     const handleTouchMove = (e: TouchEvent) => {
@@ -228,9 +236,10 @@ export default function HomePage() {
         });
       }
       
-      // 달력이 확장 중이고 위로 밀기 → 달력 축소
-      if (isAtTop && !isPullingDown && calendarMode !== 'collapsed') {
+      // 달력이 확장 중이고 위로 밀기 → 달력 축소 (달력 영역에서 시작한 경우만!)
+      if (isAtTop && !isPullingDown && calendarMode !== 'collapsed' && isTouchOnCalendar) {
         e.preventDefault();
+        console.log('✅ 달력 축소 (달력 위에서 터치)');
         
         // 시작 높이 + 터치 거리 (touchDelta는 음수)
         let targetHeight = touchStartHeight + (touchDelta * 1.2);
@@ -244,6 +253,12 @@ export default function HomePage() {
             calendarContentRef.current.style.setProperty('transition', 'none'); // 실시간이므로 transition 제거
           }
         });
+      }
+      
+      // 이벤트 리스트 영역에서 위로 밀기 → 일반 스크롤 허용
+      if (isAtTop && !isPullingDown && !isTouchOnCalendar) {
+        console.log('✅ 이벤트 리스트 스크롤 (리스트 위에서 터치)');
+        // preventDefault 안 함 → 일반 스크롤 작동
       }
     };
     
@@ -290,6 +305,7 @@ export default function HomePage() {
       
       touchStartY = 0;
       touchStartHeight = 0;
+      isTouchOnCalendar = false;
       console.log(`🧲 자석 스냅: ${currentHeight.toFixed(0)}px → ${finalHeight}px [${targetMode}]`);
     };
 
