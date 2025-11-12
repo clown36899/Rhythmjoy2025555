@@ -55,6 +55,27 @@ export default function EventCalendar({
   const dateFontSize = 13; // 고정 크기로 작게
   const eventCountFontSize = Math.max(7, Math.min(10, cellHeight * 0.15)); // 작은 폰트
 
+  // 이벤트 ID 기반 색상 생성 함수 (전체화면 모드용)
+  const getEventColor = (eventId: number, category: string) => {
+    if (calendarMode !== 'fullscreen') {
+      // 일반 모드: 카테고리별 색상
+      return category === 'class' ? 'bg-green-500' : 'bg-blue-500';
+    }
+    
+    // 전체화면 모드: 이벤트마다 다른 색상
+    const colors = [
+      'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500',
+      'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500',
+      'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500',
+      'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500',
+      'bg-rose-500', 'bg-red-600', 'bg-orange-600', 'bg-amber-600'
+    ];
+    
+    // ID 기반 해시로 색상 선택 (같은 ID는 항상 같은 색상)
+    const index = eventId % colors.length;
+    return colors[index];
+  };
+
   // 카테고리에 따라 이벤트 필터링
   const filteredEvents = useMemo(() => {
     if (!selectedCategory || selectedCategory === 'all') {
@@ -240,31 +261,37 @@ export default function EventCalendar({
       // 레인을 할당받지 못한 경우 (3개 모두 사용 중) 처리하지 않음
       if (assignedLane === -1) return;
 
-      // 색상 할당: 카테고리에 따라 색상 결정
+      // 색상 할당
       let colorBg: string;
-      if (event.category === "class") {
-        // 강습: 보라색 계열
-        colorBg =
-          assignedLane === 0
-            ? "bg-purple-500"
-            : assignedLane === 1
-              ? "bg-purple-600"
-              : "bg-purple-400";
+      if (calendarMode === 'fullscreen') {
+        // 전체화면 모드: 이벤트 ID 기반 고유 색상
+        colorBg = getEventColor(event.id, event.category);
       } else {
-        // 행사: 파란색 계열
-        colorBg =
-          assignedLane === 0
-            ? "bg-blue-500"
-            : assignedLane === 1
-              ? "bg-blue-600"
-              : "bg-blue-400";
+        // 일반 모드: 카테고리와 레인에 따라 색상 결정
+        if (event.category === "class") {
+          // 강습: 보라색 계열
+          colorBg =
+            assignedLane === 0
+              ? "bg-purple-500"
+              : assignedLane === 1
+                ? "bg-purple-600"
+                : "bg-purple-400";
+        } else {
+          // 행사: 파란색 계열
+          colorBg =
+            assignedLane === 0
+              ? "bg-blue-500"
+              : assignedLane === 1
+                ? "bg-blue-600"
+                : "bg-blue-400";
+        }
       }
 
       map.set(event.id, { lane: assignedLane, color: colorBg });
     });
 
     return map;
-  }, [filteredEvents, currentMonth]);
+  }, [filteredEvents, currentMonth, calendarMode]);
 
   const navigateMonth = (direction: "prev" | "next") => {
     if (externalIsAnimating) return;
@@ -610,7 +637,7 @@ export default function EventCalendar({
               style={{ top: calendarMode === 'fullscreen' ? '16px' : '28px' }}
             >
               {singleDayEvents.slice(0, Math.floor((cellHeight - (calendarMode === 'fullscreen' ? 18 : 30)) / 16)).map((event) => {
-                const categoryColor = event.category === 'class' ? 'bg-green-500' : 'bg-blue-500';
+                const categoryColor = getEventColor(event.id, event.category);
                 const isHovered = viewMode === "month" && hoveredEventId === event.id;
                 
                 return (
