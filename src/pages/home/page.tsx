@@ -438,8 +438,16 @@ export default function HomePage() {
       "scroll",
     ];
 
+    // Throttle: 200ms마다 최대 1회만 실행 (성능 최적화)
+    let lastCallTime = 0;
+    const throttleDelay = 200;
+
     const handleUserActivity = () => {
-      resetInactivityTimer();
+      const now = Date.now();
+      if (now - lastCallTime >= throttleDelay) {
+        lastCallTime = now;
+        resetInactivityTimer();
+      }
     };
 
     // 초기 타이머 시작
