@@ -480,6 +480,11 @@ export default function HomePage() {
         setCalendarMode(targetMode);
       }
 
+      // 🛑 이벤트 리스트에서 처리했으니 달력 드래그 강제 취소
+      setIsDraggingCalendar(false);
+      setCalendarPullStart(null);
+      setCalendarPullDistance(0);
+
       touchStartY = 0;
       touchStartX = 0;
       touchStartHeight = 0;
