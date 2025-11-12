@@ -164,9 +164,9 @@ export default function EventRegistrationModal({
 
     let processedFile = file;
 
-    // 파일 형식 체크
-    const fileType = processedFile.type.toLowerCase();
-    const fileName = processedFile.name.toLowerCase();
+    // 파일 형식 체크 (원본 파일로 체크)
+    const fileType = file.type.toLowerCase();
+    const fileName = file.name.toLowerCase();
     
     // HEIC 파일 감지
     if (fileName.endsWith('.heic') || fileName.endsWith('.heif') || fileType === 'image/heic' || fileType === 'image/heif') {
@@ -187,24 +187,24 @@ export default function EventRegistrationModal({
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const maxSize = isMobile ? 10 * 1024 * 1024 : 20 * 1024 * 1024;
     
-    if (processedFile.size > maxSize) {
+    if (file.size > maxSize) {
       try {
         // 자동 압축 시도
-        const originalSizeMB = (processedFile.size / 1024 / 1024).toFixed(1);
+        const originalSizeMB = (file.size / 1024 / 1024).toFixed(1);
         const { resizeImage } = await import('../utils/imageResize');
         
         // 모바일: 더 작게, 데스크톱: 적당히
         const targetWidth = isMobile ? 1920 : 2560;
         const quality = isMobile ? 0.7 : 0.8;
         
-        processedFile = await resizeImage(processedFile, targetWidth, quality);
+        processedFile = await resizeImage(file, targetWidth, quality);
         const newSizeMB = (processedFile.size / 1024 / 1024).toFixed(1);
         
         alert(`파일이 너무 커서 자동으로 압축했습니다.\n\n원본: ${originalSizeMB}MB → 압축: ${newSizeMB}MB`);
       } catch (error) {
         console.error('Auto compression failed:', error);
-        const maxSizeMB = isMobile ? 10 : 20;
-        alert(`파일 크기가 너무 큽니다.\n최대 ${maxSizeMB}MB까지 업로드 가능합니다.\n\n현재 파일: ${(processedFile.size / 1024 / 1024).toFixed(1)}MB\n\n이미지를 압축하거나 크기를 줄여주세요.`);
+        const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+        alert(`파일 압축 중 오류가 발생했습니다.\n\n오류: ${errorMsg}\n\n다른 이미지를 선택하거나, 이미지 크기를 줄여서 다시 시도해주세요.`);
         e.target.value = '';
         return;
       }
