@@ -159,11 +159,12 @@ export default function HomePage() {
     
     let lastScrollTop = 0;
     let touchStartY = 0;
-    let touchStartX = 0; // 터치 시작 X 좌표
-    let touchStartHeight = 0; // 터치 시작 시 달력 높이
-    let isTouchOnCalendar = false; // 터치가 달력 영역에서 시작했는지
+    let touchStartX = 0;
+    let touchStartHeight = 0;
+    let lastTouchDeltaY = 0; // 마지막 터치 이동 방향 저장
+    let isTouchOnCalendar = false;
     let isTouching = false;
-    let isHorizontalScroll = false; // 수평 스크롤 감지
+    let isHorizontalScroll = false;
 
     const handleScroll = () => {
       const scrollTop = eventListElement.scrollTop;
@@ -228,6 +229,9 @@ export default function HomePage() {
         return;
       }
       
+      // 터치 방향 저장
+      lastTouchDeltaY = touchDeltaY;
+      
       // 리스트가 최상단이고 아래로 당김 → 달력 확장
       if (isAtTop && isPullingDown && calendarMode !== 'fullscreen') {
         e.preventDefault();
@@ -275,23 +279,53 @@ export default function HomePage() {
       
       const currentHeight = calendarContentRef.current?.offsetHeight || 0;
       const fullscreenHeight = window.innerHeight - 150;
+      const isPullingDown = lastTouchDeltaY > 0;
       
-      // 자석 효과 적용
+      // 방향 기반 양방향 자석 스냅
       let finalHeight = 0;
       let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
       
-      if (currentHeight < 100) {
-        finalHeight = 0;
-        targetMode = 'collapsed';
-        isScrollExpandingRef.current = false;
-      } else if (currentHeight >= 100 && currentHeight < fullscreenHeight - 100) {
-        // 중간 범위: expanded(250px)로 스냅 (fullscreen 근처는 제외)
-        finalHeight = 250;
-        targetMode = 'expanded';
+      if (calendarMode === 'collapsed') {
+        // collapsed에서 시작 → 조금만 내려도 expanded로
+        if (isPullingDown && currentHeight > 30) {
+          finalHeight = 250;
+          targetMode = 'expanded';
+        } else {
+          finalHeight = 0;
+          targetMode = 'collapsed';
+          isScrollExpandingRef.current = false;
+        }
+      } else if (calendarMode === 'expanded') {
+        // expanded에서 시작
+        if (isPullingDown) {
+          // 아래로 당김 → 조금만 움직여도 fullscreen으로
+          if (currentHeight > 280) {
+            finalHeight = fullscreenHeight;
+            targetMode = 'fullscreen';
+          } else {
+            finalHeight = 250;
+            targetMode = 'expanded';
+          }
+        } else {
+          // 위로 밀기 → 조금만 움직여도 collapsed로
+          if (currentHeight < 220) {
+            finalHeight = 0;
+            targetMode = 'collapsed';
+            isScrollExpandingRef.current = false;
+          } else {
+            finalHeight = 250;
+            targetMode = 'expanded';
+          }
+        }
       } else {
-        // fullscreen 근처: fullscreen으로 스냅
-        finalHeight = fullscreenHeight;
-        targetMode = 'fullscreen';
+        // fullscreen에서 시작 → 조금만 올려도 expanded로
+        if (!isPullingDown && currentHeight < fullscreenHeight - 30) {
+          finalHeight = 250;
+          targetMode = 'expanded';
+        } else {
+          finalHeight = fullscreenHeight;
+          targetMode = 'fullscreen';
+        }
       }
       
       // 스냅 애니메이션
@@ -308,6 +342,7 @@ export default function HomePage() {
       touchStartY = 0;
       touchStartX = 0;
       touchStartHeight = 0;
+      lastTouchDeltaY = 0;
       isTouchOnCalendar = false;
       isHorizontalScroll = false;
     };
