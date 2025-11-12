@@ -148,8 +148,14 @@ export default function HomePage() {
 
   // 스크롤 기반 달력 확장 로직
   useEffect(() => {
+    console.log('🔧 useEffect 실행 - eventListElementRef:', eventListElementRef.current);
     const eventListElement = eventListElementRef.current;
-    if (!eventListElement) return;
+    if (!eventListElement) {
+      console.log('❌ eventListElement가 null입니다!');
+      return;
+    }
+    
+    console.log('✅ wheel 이벤트 리스너 등록 완료!');
 
     const handleWheel = (e: WheelEvent) => {
       const scrollTop = eventListElement.scrollTop;
