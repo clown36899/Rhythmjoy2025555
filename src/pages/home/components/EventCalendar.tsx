@@ -808,8 +808,8 @@ export default function EventCalendar({
                 style={{
                   transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
                   transition: externalIsAnimating
-                    ? "transform 0.3s ease-out"
-                    : "none",
+                    ? "transform 0.3s ease-out, height 0.3s ease-out"
+                    : "height 0.3s ease-out",
                 }}
               >
                 {/* 이전 달 */}
