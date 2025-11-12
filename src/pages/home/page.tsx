@@ -263,7 +263,7 @@ export default function HomePage() {
             calendarContentRef.current.style.setProperty("transition", "none");
             calendarContentRef.current.style.setProperty(
               "transform",
-              `scale(${scale})`,
+              `scaleY(${scale})`,
             );
             calendarContentRef.current.style.setProperty(
               "transform-origin",
@@ -296,7 +296,7 @@ export default function HomePage() {
             calendarContentRef.current.style.setProperty("transition", "none");
             calendarContentRef.current.style.setProperty(
               "transform",
-              `scale(${scale})`,
+              `scaleY(${scale})`,
             );
             calendarContentRef.current.style.setProperty(
               "transform-origin",
@@ -391,7 +391,7 @@ export default function HomePage() {
           "transition",
           "height 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         );
-        calendarContentRef.current.style.setProperty("transform", "scale(1)");
+        calendarContentRef.current.style.setProperty("transform", "scaleY(1)");
       }
 
       if (targetMode !== calendarMode) {
