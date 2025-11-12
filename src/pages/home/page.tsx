@@ -247,14 +247,11 @@ export default function HomePage() {
         return;
       }
 
-      // 🚀 터치 히스토리에 현재 포인트 저장 (슬라이딩 윈도우)
+      // 🚀 터치 히스토리에 현재 포인트 저장
       const now = Date.now();
       touchHistory.push({ y: touchCurrentY, time: now });
       
-      // 최근 150ms 이내의 포인트만 유지 (오래된 데이터 제거)
-      while (touchHistory.length > 0 && now - touchHistory[0].time > 150) {
-        touchHistory.shift();
-      }
+      // Android TV 최적화: 전체 제스처 데이터 유지 (윈도우 제거)
 
       // 리스트가 최상단이고 아래로 당김 → 달력 확장
       if (isAtTop && isPullingDown && calendarMode !== "fullscreen") {
@@ -329,27 +326,24 @@ export default function HomePage() {
 
       isTouching = false;
 
-      // 🚀 최종 속도 계산: 마지막 몇 개 포인트 사용 (빠르게 "툭" 치는 동작 감지)
+      // 🚀 전체 제스처 속도 계산 (Android TV 최적화)
       const velocityY = (() => {
         if (touchHistory.length < 2) {
           console.log("❌ 속도 계산 실패: 포인트 부족", touchHistory.length);
           return 0;
         }
         
-        // 마지막 3-5개 포인트 사용 (최근 동작 감지)
-        const numPoints = Math.min(5, touchHistory.length);
-        const recentPoints = touchHistory.slice(-numPoints);
-        
-        const first = recentPoints[0];
-        const last = recentPoints[recentPoints.length - 1];
+        // 전체 제스처 데이터 사용 (150ms 윈도우 버림!)
+        const first = touchHistory[0];
+        const last = touchHistory[touchHistory.length - 1];
         
         const distance = last.y - first.y;
         const time = last.time - first.time;
         
-        if (time === 0 || time < 5) return 0;
+        if (time === 0 || time < 30) return 0; // 30ms 미만은 무시
         
         const velocity = distance / time;
-        console.log(`✅ 속도: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (최근 ${numPoints}개)`);
+        console.log(`✅ 전체 제스처 속도: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (${touchHistory.length}개 포인트)`);
         return velocity;
       })();
 
@@ -369,9 +363,9 @@ export default function HomePage() {
         historyLength: touchHistory.length,
       });
 
-      // 🎯 Fling 임계값 설정 (통일된 값)
-      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.5 px/ms (500px/초)
-      const FLING_DISTANCE_THRESHOLD = 5; // 5px (짧은 거리에도 반응)
+      // 🎯 Fling 임계값 설정 (전체 제스처 기준으로 재조정)
+      const FLING_VELOCITY_THRESHOLD = 0.25; // 0.25 px/ms (250px/초)
+      const FLING_DISTANCE_THRESHOLD = 10; // 10px 이상
 
       // 방향 기반 양방향 자석 스냅
       let finalHeight = 0;
@@ -1250,10 +1244,7 @@ export default function HomePage() {
         const now = Date.now();
         calendarTouchHistory.push({ y: touch.clientY, time: now });
         
-        // 최근 150ms 이내의 포인트만 유지
-        while (calendarTouchHistory.length > 0 && now - calendarTouchHistory[0].time > 150) {
-          calendarTouchHistory.shift();
-        }
+        // Android TV 최적화: 전체 제스처 데이터 유지 (윈도우 제거)
 
         // state 유지
         setCalendarPullDistance(distance);
@@ -1267,27 +1258,24 @@ export default function HomePage() {
         return;
       }
 
-      // 🚀 최종 속도 계산: 마지막 몇 개 포인트 사용 (빠르게 "툭" 치는 동작 감지)
+      // 🚀 전체 제스처 속도 계산 (Android TV 최적화)
       const velocityY = (() => {
         if (calendarTouchHistory.length < 2) {
           console.log("❌ [달력] 속도 계산 실패: 포인트 부족", calendarTouchHistory.length);
           return 0;
         }
         
-        // 마지막 3-5개 포인트 사용 (최근 동작 감지)
-        const numPoints = Math.min(5, calendarTouchHistory.length);
-        const recentPoints = calendarTouchHistory.slice(-numPoints);
-        
-        const first = recentPoints[0];
-        const last = recentPoints[recentPoints.length - 1];
+        // 전체 제스처 데이터 사용 (150ms 윈도우 버림!)
+        const first = calendarTouchHistory[0];
+        const last = calendarTouchHistory[calendarTouchHistory.length - 1];
         
         const distance = last.y - first.y;
         const time = last.time - first.time;
         
-        if (time === 0 || time < 5) return 0;
+        if (time === 0 || time < 30) return 0; // 30ms 미만은 무시
         
         const velocity = distance / time;
-        console.log(`✅ [달력] 속도: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (최근 ${numPoints}개)`);
+        console.log(`✅ [달력] 전체 제스처 속도: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (${calendarTouchHistory.length}개 포인트)`);
         return velocity;
       })();
 
@@ -1304,9 +1292,9 @@ export default function HomePage() {
         fullscreen: fullscreenHeight,
       };
 
-      // 🎯 Fling 임계값 설정 (통일된 값)
-      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.5 px/ms (500px/초)
-      const FLING_DISTANCE_THRESHOLD = 5; // 5px (짧은 거리에도 반응)
+      // 🎯 Fling 임계값 설정 (전체 제스처 기준으로 재조정)
+      const FLING_VELOCITY_THRESHOLD = 0.25; // 0.25 px/ms (250px/초)
+      const FLING_DISTANCE_THRESHOLD = 10; // 10px 이상
 
       // 🎯 Hysteresis 기반 상태 전환 로직 (현재 상태에 따라 다른 임계값!)
       let nextState: "collapsed" | "expanded" | "fullscreen";
