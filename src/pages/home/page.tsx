@@ -1211,6 +1211,10 @@ export default function HomePage() {
           isOpen={showRegistrationModal}
           onClose={() => {
             setShowRegistrationModal(false);
+            // 배너에서 열었던 경우 selectedDate도 리셋
+            if (fromBanner) {
+              setSelectedDate(null);
+            }
             setFromBanner(false);
             setBannerMonthBounds(null);
           }}
