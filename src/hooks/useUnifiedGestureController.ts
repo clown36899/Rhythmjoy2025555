@@ -147,52 +147,77 @@ export function useUnifiedGestureController({
       }
     };
     
-    // 🎯 PointerDown: 제스처 분류
+    // 🎯 PointerDown: 제스처 분류 (터치 위치 기준)
     const handlePointerDown = (e: PointerEvent) => {
       console.log("🔵 PointerDown 발생!", { pointerType: e.pointerType, clientY: e.clientY });
       
       const scrollTop = eventListElement.scrollTop;
       const isAtTop = scrollTop <= 0;
-      
-      console.log("🔍 ScrollTop 확인:", { scrollTop, isAtTop });
-      
-      if (!isAtTop) {
-        // 최상단 아니면 일반 스크롤
-        activeGesture = 'scroll';
-        console.log("❌ 스크롤 모드 (최상단 아님)");
-        return;
-      }
-      
-      // ✅ 최상단이면 무조건 calendar-drag로 시작 (이벤트 리스트에서 pull down도 처리)
-      activeGesture = 'calendar-drag';
-      // setPointerCapture 제거 - PointerUp 이벤트가 발생하지 않는 문제 해결
-      // (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      gesturePointerId = e.pointerId;
-      
       const currentCalendarHeight = calendarContentRef.current?.offsetHeight || 0;
       const calendarBottomY = headerHeight + currentCalendarHeight;
       
+      console.log("🔍 터치 위치 확인:", { scrollTop, isAtTop, clientY: e.clientY, calendarBottomY });
+      
+      // 터치 위치가 이벤트 리스트 영역 (달력 아래)
+      if (e.clientY > calendarBottomY) {
+        if (!isAtTop) {
+          // 스크롤 중간: 일반 스크롤
+          activeGesture = 'scroll';
+          console.log("❌ 스크롤 모드 (리스트 영역, 스크롤 중간)");
+          return;
+        } else {
+          // 스크롤 최상단: pull down 가능성 있음 → 일단 scroll로 시작
+          activeGesture = 'scroll';
+          gesturePointerId = e.pointerId;
+          gestureStartY = e.clientY;
+          gestureStartX = e.clientX;
+          gestureStartHeight = currentCalendarHeight;
+          isHorizontalGesture = false;
+          gestureHistory.length = 0;
+          gestureHistory.push({ y: e.clientY, time: Date.now() });
+          console.log("⏳ 스크롤 모드 (리스트 영역, 최상단 - pull down 감지 대기)");
+          return;
+        }
+      }
+      
+      // 터치 위치가 달력 영역: 무조건 calendar-drag
+      activeGesture = 'calendar-drag';
+      gesturePointerId = e.pointerId;
       gestureStartY = e.clientY;
       gestureStartX = e.clientX;
       gestureStartHeight = currentCalendarHeight;
       isHorizontalGesture = false;
-      
       gestureHistory.length = 0;
       gestureHistory.push({ y: e.clientY, time: Date.now() });
       
-      // 브라우저 기본 동작 방지 (스크롤 차단) - scrollTop === 0일 때만
+      // 브라우저 기본 동작 방지
       e.preventDefault();
       
-      console.log("🎯 제스처 시작: calendar-drag (isAtTop)", { clientY: e.clientY, calendarBottomY, currentCalendarHeight });
+      console.log("🎯 제스처 시작: calendar-drag (달력 영역)", { clientY: e.clientY, calendarBottomY, currentCalendarHeight });
     };
     
     // 🎯 PointerMove: 제스처 타입에 따라 처리
     const handlePointerMove = (e: PointerEvent) => {
       console.log("🟢 PointerMove!", { activeGesture, clientY: e.clientY });
       
-      if (activeGesture === 'none' || activeGesture === 'scroll') {
-        console.log("❌ PointerMove 무시 (activeGesture:", activeGesture, ")");
+      if (activeGesture === 'none') {
         return;
+      }
+      
+      // scroll 모드에서 pull down 감지
+      if (activeGesture === 'scroll') {
+        const scrollTop = eventListElement.scrollTop;
+        const deltaY = e.clientY - gestureStartY;
+        
+        // 스크롤 최상단 + 아래로 pull down → calendar-drag로 전환
+        if (scrollTop <= 0 && deltaY > 10) {
+          console.log("🔄 제스처 전환: scroll → calendar-drag (pull down 감지)");
+          activeGesture = 'calendar-drag';
+          e.preventDefault(); // 이제부터 스크롤 차단
+        } else {
+          // 일반 스크롤 계속
+          return;
+        }
       }
       
       const currentY = e.clientY;
