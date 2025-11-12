@@ -40,6 +40,12 @@ interface EventListProps {
   setShowSearchModal?: (show: boolean) => void;
   showSortModal?: boolean;
   setShowSortModal?: (show: boolean) => void;
+  // Double-Buffered Carousel용 영구 컨테이너 ref
+  monthRefs?: {
+    prev: React.RefObject<HTMLDivElement>;
+    current: React.RefObject<HTMLDivElement>;
+    next: React.RefObject<HTMLDivElement>;
+  };
   sortBy?: "random" | "time" | "title" | "newest";
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
   highlightEvent?: { id: number; nonce: number } | null;
@@ -69,6 +75,7 @@ export default function EventList({
   highlightEvent,
   onHighlightComplete,
   sliderRef,
+  monthRefs,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -151,9 +158,13 @@ export default function EventList({
 
   // 슬라이드 높이 동적 조정을 위한 상태 및 ref
   // const [slideContainerHeight, setSlideContainerHeight] = useState<number | null>(null);
-  const prevMonthRef = useRef<HTMLDivElement>(null);
-  const currentMonthRef = useRef<HTMLDivElement>(null);
-  const nextMonthRef = useRef<HTMLDivElement>(null);
+  // Double-Buffered Carousel: props로 받은 ref 사용 (없으면 내부 ref 사용)
+  const fallbackPrevRef = useRef<HTMLDivElement>(null);
+  const fallbackCurrentRef = useRef<HTMLDivElement>(null);
+  const fallbackNextRef = useRef<HTMLDivElement>(null);
+  const prevMonthRef = monthRefs?.prev || fallbackPrevRef;
+  const currentMonthRef = monthRefs?.current || fallbackCurrentRef;
+  const nextMonthRef = monthRefs?.next || fallbackNextRef;
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
@@ -1777,7 +1788,7 @@ export default function EventList({
           )}
         </div>
       ) : (
-        // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
+        // 일반 월간 뷰: 3개월 슬라이드 (영구 버퍼 - Double-Buffered Carousel)
         <div className="overflow-hidden">
           <div
             ref={sliderRef}
@@ -1787,11 +1798,14 @@ export default function EventList({
               willChange: "transform",
             }}
           >
-            {/* 이전 달 - 독립 컨테이너 */}
+            {/* 버퍼 0 - 영구 컨테이너 (React 절대 재생성 안 함) */}
             <div 
-              key={prevMonthKey}
               ref={prevMonthRef} 
               className="flex-shrink-0 w-full self-start"
+              style={{
+                contain: "paint layout",
+                willChange: "transform",
+              }}
             >
               <div
                 className="p-[0.4rem]"
@@ -1944,11 +1958,14 @@ export default function EventList({
               </div>
             </div>
 
-            {/* 현재 달 - 독립 컨테이너 */}
+            {/* 버퍼 1 - 영구 컨테이너 (React 절대 재생성 안 함) */}
             <div
-              key={currentMonthKey}
               ref={currentMonthRef}
               className="flex-shrink-0 w-full self-start"
+              style={{
+                contain: "paint layout",
+                willChange: "transform",
+              }}
             >
               <div
                 className="p-[0.4rem]"
@@ -2127,11 +2144,14 @@ export default function EventList({
               </div>
             </div>
 
-            {/* 다음 달 - 독립 컨테이너 */}
+            {/* 버퍼 2 - 영구 컨테이너 (React 절대 재생성 안 함) */}
             <div 
-              key={nextMonthKey}
               ref={nextMonthRef} 
               className="flex-shrink-0 w-full self-start"
+              style={{
+                contain: "paint layout",
+                willChange: "transform",
+              }}
             >
               <div
                 className="p-[0.4rem]"

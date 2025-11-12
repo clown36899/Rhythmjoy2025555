@@ -87,48 +87,26 @@ export default function HomePage() {
   const [headerHeight, setHeaderHeight] = useState(60); // 헤더 높이 (기본 60px)
   const headerRef = useRef<HTMLDivElement>(null);
 
-  // 달력 끌어내림 제스처 상태
-  const [calendarPullStart, setCalendarPullStart] = useState<number | null>(
-    null,
-  );
-  const [calendarPullDistance, setCalendarPullDistance] = useState(0);
-  const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
-  const [dragStartHeight, setDragStartHeight] = useState(0);
-  const [lastTouchY, setLastTouchY] = useState<number | null>(null);
-  const [lastTouchTime, setLastTouchTime] = useState<number | null>(null);
-  const calendarContentRef = useRef<HTMLDivElement>(null);
-
-  // 스크롤 기반 달력 확장용 상태
-  const scrollAccumulatorRef = useRef<number>(0);
-  const isScrollExpandingRef = useRef<boolean>(false);
-
-  // Transform 기반 최적화용 ref
-  const dragAnimationRef = useRef<number | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
-
   // 제스처 컨트롤러용 ref
-  const calendarElementRef = useRef<HTMLDivElement | null>(null);
-  const eventListElementRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null); // 통합 제스처 컨트롤러용 컨테이너
+  const calendarContentRef = useRef<HTMLDivElement>(null);
+  const isScrollExpandingRef = useRef<boolean>(false);
+  const eventListElementRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // 수평 스와이프용 슬라이더 ref (달력/이벤트리스트의 3개월 슬라이더)
-  const calendarSliderRef = useRef<HTMLElement | null>(null);
-  const eventListSliderRef = useRef<HTMLElement | null>(null);
+  // Double-Buffered Carousel: 3개 영구 컨테이너 ref
+  const eventListPrevMonthRef = useRef<HTMLDivElement>(null);
+  const eventListCurrentMonthRef = useRef<HTMLDivElement>(null);
+  const eventListNextMonthRef = useRef<HTMLDivElement>(null);
+
+  // EventCalendar 월 변경 애니메이션용 (레거시)
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // cleanup: 컴포넌트 언마운트 시 애니메이션 프레임 취소
-  useEffect(() => {
-    return () => {
-      if (dragAnimationRef.current) {
-        cancelAnimationFrame(dragAnimationRef.current);
-      }
-    };
-  }, []);
 
   // 헤더 높이 측정
   useEffect(() => {
@@ -155,7 +133,7 @@ export default function HomePage() {
     console.log(`📅 월 변경: ${direction} → ${newMonth.toISOString()}`);
   }, [currentMonth]);
 
-  // 🎯 통합 제스처 컨트롤러 (수직 드래그 + 수평 스와이프)
+  // 🎯 통합 제스처 컨트롤러 (수직 드래그 + 수평 스와이프 - Double-Buffered Carousel)
   useUnifiedGestureController({
     containerRef,
     eventListRef: eventListElementRef,
@@ -165,6 +143,11 @@ export default function HomePage() {
     setCalendarMode,
     isScrollExpandingRef,
     onMonthChange: handleMonthSwipe,
+    eventListMonthRefs: {
+      prev: eventListPrevMonthRef,
+      current: eventListCurrentMonthRef,
+      next: eventListNextMonthRef,
+    },
   });
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
@@ -612,26 +595,14 @@ export default function HomePage() {
       <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
     );
 
-  // 실시간 달력 높이 계산 (숫자)
+  // 실시간 달력 높이 계산 (숫자) - calendarMode에만 의존
   const getCalendarHeightPx = () => {
-    // 헤더(60px) + 바텀메뉴(70px) + 여유(20px) = 150px
     const fullscreenHeight =
       typeof window !== "undefined" ? window.innerHeight - 150 : 700;
 
-    if (!isDraggingCalendar) {
-      // 드래그 중이 아니면 고정 상태
-      if (calendarMode === "collapsed") return 0;
-      if (calendarMode === "fullscreen") return fullscreenHeight;
-      return 250; // expanded
-    }
-
-    // 드래그 중: 시작 시점의 고정된 높이 + 드래그 거리
-    let currentHeight = dragStartHeight + calendarPullDistance;
-
-    // 0 이상, fullscreen 높이 이하로 제한
-    currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
-
-    return currentHeight;
+    if (calendarMode === "collapsed") return 0;
+    if (calendarMode === "fullscreen") return fullscreenHeight;
+    return 250; // expanded
   };
 
   // 실시간 달력 높이 계산 (문자열)
@@ -719,7 +690,6 @@ export default function HomePage() {
             }
           }}
           onAdminModeToggle={handleAdminModeToggle}
-          onBillboardOpen={handleBillboardOpen}
           onBillboardSettingsOpen={handleBillboardSettingsOpen}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
@@ -737,106 +707,25 @@ export default function HomePage() {
           style={{
             backgroundColor: "var(--calendar-bg-color)",
             touchAction: "none",
-            // 드래그 중 실시간 position 적용
-            position:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
-                ? "fixed"
-                : "relative",
-            // top은 헤더 높이만큼!
-            top:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
-                ? `${headerHeight}px`
-                : undefined,
-            left:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
-                ? "0"
-                : undefined,
-            right:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
-                ? "0"
-                : undefined,
-            // bottom은 설정 안 함! (달력이 자연스럽게 높이만큼만 차지)
-            zIndex:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
-                ? 50
-                : 15,
-            flexShrink:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
-                ? undefined
-                : 0,
+            // calendarMode에만 의존하는 단순 스타일
+            position: calendarMode === "fullscreen" ? "fixed" : "relative",
+            top: calendarMode === "fullscreen" ? `${headerHeight}px` : undefined,
+            left: calendarMode === "fullscreen" ? "0" : undefined,
+            right: calendarMode === "fullscreen" ? "0" : undefined,
+            zIndex: calendarMode === "fullscreen" ? 50 : 15,
+            flexShrink: calendarMode === "fullscreen" ? undefined : 0,
           }}
         >
           {/* Calendar - Collapsible */}
           <div
-            ref={(el) => {
-              calendarContentRef.current = el;
-              calendarElementRef.current = el;
-            }}
+            ref={calendarContentRef}
             className="overflow-hidden"
             style={{
-              height:
-                isDraggingCalendar ||
-                calendarMode === "collapsed" ||
-                calendarMode === "fullscreen"
-                  ? getCalendarDragHeight()
-                  : "auto",
-              maxHeight:
-                calendarMode === "expanded" && !isDraggingCalendar
-                  ? "500px"
-                  : undefined,
-              transition: isDraggingCalendar
-                ? "none"
-                : "height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)",
+              height: getCalendarDragHeight(),
+              maxHeight: calendarMode === "expanded" ? "500px" : undefined,
+              transition: "height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)",
               contain: "layout style paint",
-              transform: "translateZ(0)", // ref로 제어
+              transform: "translateZ(0)",
             }}
           >
             <EventCalendar
@@ -851,7 +740,6 @@ export default function HomePage() {
               onViewModeChange={handleViewModeChange}
               hoveredEventId={hoveredEventId}
               calendarHeightPx={getCalendarHeightPx()}
-              sliderRef={calendarSliderRef}
             />
           </div>
 
@@ -949,20 +837,8 @@ export default function HomePage() {
           ref={eventListElementRef}
           className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20"
           style={{
-            // 달력이 fixed일 때 이벤트 리스트 위치 유지
-            // 중요: 250px로 완전 고정! (fullscreen이든 뭐든 250px 유지)
-            marginTop:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
-                ? "250px" // 무조건 250px 고정!
-                : undefined,
+            // 달력이 fullscreen일 때 이벤트 리스트 위치 유지
+            marginTop: calendarMode === "fullscreen" ? "250px" : undefined,
             // 실제 모바일: pull-to-refresh 차단
             overscrollBehavior: 'none',
           }}
@@ -996,11 +872,15 @@ export default function HomePage() {
               setShowSearchModal={setShowSearchModal}
               showSortModal={showSortModal}
               setShowSortModal={setShowSortModal}
+              monthRefs={{
+                prev: eventListPrevMonthRef,
+                current: eventListCurrentMonthRef,
+                next: eventListNextMonthRef,
+              }}
               sortBy={sortBy}
               setSortBy={setSortBy}
               highlightEvent={highlightEvent}
               onHighlightComplete={handleHighlightComplete}
-              sliderRef={eventListSliderRef}
             />
           )}
 
