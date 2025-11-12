@@ -155,6 +155,14 @@ export default function HomePage() {
     console.log(`📅 월 변경: ${direction} → ${newMonth.toISOString()}`);
   }, [currentMonth]);
 
+  // EventList/Calendar 월 ref (forwardRef로 노출 필요)
+  const eventListPrevMonthRef = useRef<HTMLElement>(null);
+  const eventListCurrentMonthRef = useRef<HTMLElement>(null);
+  const eventListNextMonthRef = useRef<HTMLElement>(null);
+  const calendarPrevMonthRef = useRef<HTMLElement>(null);
+  const calendarCurrentMonthRef = useRef<HTMLElement>(null);
+  const calendarNextMonthRef = useRef<HTMLElement>(null);
+
   // 🎯 통합 제스처 컨트롤러 (수직 드래그 + 수평 스와이프)
   useUnifiedGestureController({
     containerRef,
@@ -165,8 +173,12 @@ export default function HomePage() {
     setCalendarMode,
     isScrollExpandingRef,
     onMonthChange: handleMonthSwipe,
-    calendarSliderRef,
-    eventListSliderRef,
+    eventListPrevMonthRef,
+    eventListCurrentMonthRef,
+    eventListNextMonthRef,
+    calendarPrevMonthRef,
+    calendarCurrentMonthRef,
+    calendarNextMonthRef,
   });
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
