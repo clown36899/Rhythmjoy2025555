@@ -1260,8 +1260,8 @@ export default function HomePage() {
       };
 
       // 🎯 Fling 임계값 설정 속도
-      const FLING_VELOCITY_THRESHOLD = 0.1; // 0.5 px/ms (500px/초)
-      const FLING_DISTANCE_THRESHOLD = 10; // 30px 이상 이동
+      const FLING_VELOCITY_THRESHOLD = 1; // 0.5 px/ms (500px/초)
+      const FLING_DISTANCE_THRESHOLD = 30; // 30px 이상 이동
 
       // 🎯 Hysteresis 기반 상태 전환 로직 (현재 상태에 따라 다른 임계값!)
       let nextState: "collapsed" | "expanded" | "fullscreen";
@@ -1419,7 +1419,7 @@ export default function HomePage() {
               direction === "prev" ? screenWidth : -screenWidth;
             setDragOffset(targetOffset);
 
-            // 날짜 오버플로우 방지 (10월 31일 → 11월 문제 해결)
+            // 날짜 오버플로뚰 방지 (10월 31일 → 11월 문제 해결)
             const newMonth = new Date(currentMonth);
             newMonth.setDate(1); // 먼저 1일로 설정하여 오버플로우 방지
             if (viewMode === "year") {
