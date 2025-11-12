@@ -149,30 +149,29 @@ export default function HomePage() {
     }
   }, []);
 
-  // 스크롤 기반 달력 확장 로직 (scroll 이벤트 사용)
+  // 🎯 통합 Pointer Events 컨트롤러 (단일 제스처 상태 머신)
   useEffect(() => {
-    console.log(
-      "🔧 useEffect 실행 - eventListElementRef:",
-      eventListElementRef.current,
-    );
+    const containerElement = document.querySelector('.h-screen') as HTMLElement;
     const eventListElement = eventListElementRef.current;
-    if (!eventListElement) {
-      console.log("❌ eventListElement가 null입니다!");
+    
+    if (!containerElement || !eventListElement) {
+      console.log("❌ 컨테이너 요소를 찾을 수 없습니다!");
       return;
     }
 
-    console.log("✅ scroll 이벤트 리스너 등록 완료!");
+    console.log("✅ 통합 Pointer Events 컨트롤러 등록!");
 
-    let lastScrollTop = 0;
-    let touchStartY = 0;
-    let touchStartX = 0;
-    let touchStartHeight = 0;
-    let isTouchOnCalendar = false;
-    let isTouching = false;
-    let isHorizontalScroll = false;
+    // 제스처 상태
+    type GestureType = 'none' | 'scroll' | 'calendar-drag';
+    let activeGesture: GestureType = 'none';
+    let startY = 0;
+    let startX = 0;
+    let startHeight = 0;
+    let startScrollTop = 0;
+    let pointerId: number | null = null;
     
-    // 🚀 슬라이딩 윈도우 방식: 마지막 N개의 터치 포인트 저장 (웹 표준)
-    const touchHistory: Array<{ y: number; time: number }> = [];
+    // 🚀 통합 velocity history
+    const gestureHistory: Array<{ y: number; time: number }> = [];
 
     const handleScroll = () => {
       const scrollTop = eventListElement.scrollTop;
