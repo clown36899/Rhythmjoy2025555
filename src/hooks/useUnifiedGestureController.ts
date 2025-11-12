@@ -19,7 +19,6 @@ export function useUnifiedGestureController({
   headerHeight,
   calendarMode,
   setCalendarMode,
-  isScrollExpandingRef,
 }: UseUnifiedGestureControllerProps) {
   useEffect(() => {
     const containerElement = containerRef.current;
@@ -37,6 +36,7 @@ export function useUnifiedGestureController({
     let isDragging = false;
     let isPending = false; // pending 상태 추가
     let startY = 0;
+    let startX = 0;
     let startHeight = 0;
     let currentHeight = 0;
     let velocityHistory: Array<{ y: number; time: number }> = [];
@@ -87,10 +87,11 @@ export function useUnifiedGestureController({
         `🧲 스냅 시작: 현재=${currentHeight}px, 속도=${velocity.toFixed(3)}px/ms`,
       );
 
+      // 💥 중요: 최종 스냅은 이 currentMode를 기준으로 함
       const currentMode = heightToMode(currentHeight);
       let targetMode: CalendarMode;
 
-      // 🎯 [플링 전용] Collapsed에서 Fullscreen으로 건너뛸 최소 드래그 거리 (150px)
+      // 🎯 [플링 전용] Collapsed에서 Fullscreen으로 건너뛸 최소 드래그 거리 (300px로 조정)
       const FLING_SKIP_DISTANCE = 300;
       // 드래그 시작 높이(startHeight)와 현재 높이(currentHeight)의 차이가 총 드래그 거리(deltaY)입니다.
       const deltaY = currentHeight - startHeight;
@@ -100,23 +101,25 @@ export function useUnifiedGestureController({
         if (velocity > 0) {
           // 빠르게 아래로 (확장)
 
-          // 1. Collapsed 상태에서 Fling (Collapsed -> Expanded 또는 Fullscreen)
-          if (currentMode === "collapsed") {
-            // 💥 [플링 시 거리 조정]: Fling 속도 + 긴 거리(150px)를 만족하면 Expanded 건너뛰기
+          // 1. Collapsed 상태에서 Fling (Touched Started as Collapsed)
+          if (calendarMode === "collapsed") {
+            // 💥 TouchStart 시점의 모드(prop) 사용
+            // 💥 거리 우선 판단: 긴 거리(300px)를 만족하면 Expanded 건너뛰기
             if (deltaY > FLING_SKIP_DISTANCE) {
               targetMode = "fullscreen"; // ⚡️ Fullscreen으로 바로 건너뛰기
               console.log(
-                "⚡️ 초고속 플링: collapsed → fullscreen (거리 만족)",
+                "⚡️ 초고속 플링: collapsed(시작) → fullscreen (거리 만족)",
               );
             } else {
-              targetMode = "expanded"; // Expanded까지만 허용 (기본 동작)
+              targetMode = "expanded"; // Expanded까지만 허용
             }
           }
-          // 2. Expanded 상태에서 Fling (Expanded -> Fullscreen)
-          else if (currentMode === "expanded") {
+          // 2. Expanded 상태에서 Fling (Touched Started as Expanded)
+          else if (calendarMode === "expanded") {
+            // 💥 TouchStart 시점의 모드(prop) 사용
             targetMode = "fullscreen";
           }
-          // 3. Fullscreen 상태 (Fullscreen 유지)
+          // 3. Fullscreen 상태 (Touched Started as Fullscreen)
           else {
             targetMode = "fullscreen";
           }
@@ -126,14 +129,16 @@ export function useUnifiedGestureController({
           else if (currentMode === "expanded") targetMode = "collapsed";
           else targetMode = "collapsed";
         }
-        console.log(`⚡ 플링: ${currentMode} → ${targetMode}`);
+
+        console.log(`⚡ 플링: ${calendarMode} → ${targetMode}`);
       } else {
-        // 느린 드래그 → 현재 높이 기준 가까운 곳 (heightToMode 사용)
+        // 느린 드래그: 최종 높이(currentHeight)를 기준으로 가까운 곳으로 스냅
         targetMode = heightToMode(currentHeight);
         console.log(`🐢 느린 드래그: ${targetMode}`);
       }
 
       const targetHeight = modeToHeight(targetMode);
+      console.log(`🎯 타겟: ${targetMode} (${targetHeight}px)`);
 
       // 애니메이션으로 스냅
       calendarElement.style.transition =
@@ -162,6 +167,7 @@ export function useUnifiedGestureController({
       if (isTouchingCalendar && calendarMode !== "collapsed") {
         isDragging = true;
         startY = touch.clientY;
+        startX = touch.clientX;
         startHeight = calendarHeight;
         currentHeight = calendarHeight;
         velocityHistory = [{ y: touch.clientY, time: Date.now() }];
@@ -178,6 +184,7 @@ export function useUnifiedGestureController({
       if (scrollTop === 0) {
         isPending = true;
         startY = touch.clientY;
+        startX = touch.clientX;
         startHeight = modeToHeight(calendarMode);
         currentHeight = startHeight;
         velocityHistory = [{ y: touch.clientY, time: Date.now() }];
@@ -193,23 +200,36 @@ export function useUnifiedGestureController({
     const handleTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0];
       const deltaY = touch.clientY - startY;
+      const deltaX = touch.clientX - startX;
 
       // Pending 상태: 방향 확인
+      // Pending 상태: 방향 확인
       if (isPending) {
+        if (Math.abs(deltaY) < 5 && Math.abs(deltaX) < 5) return; // 미세 움직임 무시
+
+        const absDeltaY = Math.abs(deltaY);
+        const absDeltaX = Math.abs(deltaX);
+
+        if (absDeltaX > absDeltaY * 1.5) {
+          // 수평 이동이 압도적으로 우세하면
+          isPending = false;
+          console.log("🔓 수평 슬라이드 허용");
+          return; // 훅의 수직 드래그 로직을 건너뛰고, 상위 컴포넌트의 수평 로직을 실행하도록 허용
+        }
+
         if (deltaY > 0) {
-          // 아래로 드래그 → 달력 제스처 시작!
+          // 수직 아래로 우세 (달력 확장)
           isPending = false;
           isDragging = true;
           eventListElement.style.overflow = "hidden";
           console.log("✅ 달력 드래그 시작! (아래로)");
         } else if (deltaY < -5) {
-          // 위로 드래그 → 스크롤 허용
+          // 수직 위로 우세 (스크롤)
           isPending = false;
           console.log("🔓 스크롤 허용 (위로)");
           return;
         } else {
-          // 아직 방향 불명확 → 대기
-          return;
+          return; // 아직 방향 불명확 → 대기
         }
       }
 
@@ -235,7 +255,7 @@ export function useUnifiedGestureController({
     };
 
     // 🎯 TouchEnd
-    const handleTouchEnd = (e: TouchEvent) => {
+    const handleTouchEnd = () => {
       if (isPending) {
         // Pending 상태에서 손 떼면 → 취소
         isPending = false;
@@ -259,7 +279,7 @@ export function useUnifiedGestureController({
     };
 
     // 🎯 TouchCancel
-    const handleTouchCancel = (e: TouchEvent) => {
+    const handleTouchCancel = () => {
       console.log("⚠️ TouchCancel");
 
       isPending = false;
