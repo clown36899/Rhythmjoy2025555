@@ -1832,13 +1832,9 @@ export default function EventList({
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('createEventForDate'));
               }}
-              className="overflow-hidden transition-all cursor-pointer border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
-              style={{
-                backgroundColor: "transparent",
-                borderRadius: "0.3rem",
-              }}
+              className="cursor-pointer"
             >
-              <div className="relative aspect-[3/4]">
+              <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <i className="ri-add-line text-6xl text-gray-600"></i>
                 </div>
@@ -2030,13 +2026,9 @@ export default function EventList({
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('createEventForDate'));
                       }}
-                      className="overflow-hidden transition-all cursor-pointer border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
-                      style={{
-                        backgroundColor: "transparent",
-                        borderRadius: "0.3rem",
-                      }}
+                      className="cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4]">
+                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <i className="ri-add-line text-6xl text-gray-600"></i>
                         </div>
@@ -2224,13 +2216,9 @@ export default function EventList({
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('createEventForDate'));
                       }}
-                      className="overflow-hidden transition-all cursor-pointer border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
-                      style={{
-                        backgroundColor: "transparent",
-                        borderRadius: "0.3rem",
-                      }}
+                      className="cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4]">
+                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <i className="ri-add-line text-6xl text-gray-600"></i>
                         </div>
@@ -2401,13 +2389,9 @@ export default function EventList({
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('createEventForDate'));
                       }}
-                      className="overflow-hidden transition-all cursor-pointer border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
-                      style={{
-                        backgroundColor: "transparent",
-                        borderRadius: "0.3rem",
-                      }}
+                      className="cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4]">
+                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <i className="ri-add-line text-6xl text-gray-600"></i>
                         </div>
