@@ -42,6 +42,10 @@ export default function BoardPage() {
 
   useEffect(() => {
     const handleOpenUserManagement = () => {
+      if (!isAdmin) {
+        console.warn('관리자 권한이 필요합니다.');
+        return;
+      }
       setShowUserManagementModal(true);
     };
 
@@ -50,24 +54,29 @@ export default function BoardPage() {
     return () => {
       window.removeEventListener('openBoardUserManagement', handleOpenUserManagement);
     };
-  }, []);
+  }, [isAdmin]);
 
   const checkUserRegistration = async () => {
     if (!user?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('board_users')
-        .select('nickname, real_name, phone, gender')
-        .eq('user_id', user.id)
-        .single();
+      // RPC 함수로 본인 정보 조회
+      const { data, error } = await supabase.rpc('get_my_board_user', {
+        p_user_id: user.id
+      });
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error) {
+        console.error('회원 정보 조회 실패:', error);
+        return;
       }
 
       if (data) {
-        setUserData(data);
+        setUserData({
+          nickname: data.nickname,
+          real_name: data.real_name,
+          phone: data.phone,
+          gender: data.gender
+        });
       } else {
         setShowRegistrationModal(true);
       }
@@ -248,7 +257,7 @@ export default function BoardPage() {
       )}
 
       {/* User Management Modal (Admin Only) */}
-      {showUserManagementModal && (
+      {showUserManagementModal && isAdmin && (
         <BoardUserManagementModal
           isOpen={showUserManagementModal}
           onClose={() => setShowUserManagementModal(false)}

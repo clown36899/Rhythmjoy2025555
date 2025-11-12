@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface BoardUserManagementModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function BoardUserManagementModal({
   isOpen,
   onClose
 }: BoardUserManagementModalProps) {
+  const { isAdmin } = useAuth();
   const [users, setUsers] = useState<BoardUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<BoardUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,12 +46,18 @@ export default function BoardUserManagementModal({
   }, [searchTerm, users]);
 
   const loadUsers = async () => {
+    if (!isAdmin) {
+      console.error('관리자 권한이 필요합니다.');
+      alert('관리자만 접근할 수 있습니다.');
+      onClose();
+      return;
+    }
+
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('board_users')
-        .select('*')
-        .order('created_at', { ascending: false });
+      
+      // RPC 함수로 전체 회원 목록 조회
+      const { data, error } = await supabase.rpc('get_all_board_users');
 
       if (error) throw error;
       setUsers(data || []);
