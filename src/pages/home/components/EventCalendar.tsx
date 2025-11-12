@@ -530,23 +530,22 @@ export default function EventCalendar({
 
               window.addEventListener("pointerup", handlePointerUp);
             }}
-            className={`w-full h-full flex flex-col items-center justify-start cursor-pointer relative overflow-visible no-select ${
+            className={`w-full h-full cursor-pointer relative overflow-visible no-select ${
               isSelected ? "text-white z-10" : "text-gray-300"
-            } ${calendarMode === 'fullscreen' ? 'pt-0' : 'pt-1'}`}
-            style={{ fontSize: `${dateFontSize}px` }}
+            }`}
           >
-            {/* 날짜 숫자 - 최상단 정렬 */}
+            {/* 날짜 숫자 - 왼쪽 위로 완전히 붙임 */}
             <span 
-              className={`font-bold relative z-30 no-select ${
+              className={`absolute font-bold z-30 no-select ${
                 todayFlag 
                   ? "flex items-center justify-center rounded-full bg-blue-500 text-white" 
                   : ""
-              }`}
+              } ${calendarMode === 'fullscreen' ? 'top-0 left-0.5' : 'top-1 left-2'}`}
               style={{
                 opacity: isOtherMonth ? 0.15 : undefined,
-                width: todayFlag ? `22px` : undefined,
-                height: todayFlag ? `22px` : undefined,
-                fontSize: todayFlag ? '11px' : undefined,
+                fontSize: calendarMode === 'fullscreen' ? (todayFlag ? '9px' : '10px') : (todayFlag ? '11px' : `${dateFontSize}px`),
+                width: todayFlag ? (calendarMode === 'fullscreen' ? '16px' : '22px') : undefined,
+                height: todayFlag ? (calendarMode === 'fullscreen' ? '16px' : '22px') : undefined,
               }}
             >
               {day.getDate()}
