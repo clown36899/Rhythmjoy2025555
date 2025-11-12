@@ -184,10 +184,23 @@ export default function EventList({
   useEffect(() => {
     if (selectedEvent || showFullscreenImage) {
       const originalOverflow = document.body.style.overflow;
+      const originalPosition = document.body.style.position;
+      const originalTop = document.body.style.top;
+      const originalWidth = document.body.style.width;
+      const scrollY = window.scrollY;
+      
+      // 모바일 포함 모든 브라우저에서 스크롤 완전 차단
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       
       return () => {
         document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.top = originalTop;
+        document.body.style.width = originalWidth;
+        window.scrollTo(0, scrollY);
       };
     }
   }, [selectedEvent, showFullscreenImage]);
@@ -3327,8 +3340,8 @@ export default function EventList({
           onClick={(e) => {
             if (e.target === e.currentTarget) closeModal();
           }}
-          onWheel={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
         >
           <div
             className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border-2 relative flex flex-col"
