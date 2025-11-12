@@ -1066,7 +1066,7 @@ export default function HomePage() {
         targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
         
         const expandedThreshold = Math.min(250, fullscreenHeight / 2);
-        const bottomMagneticZone = 40;
+        const bottomMagneticZone = 150; // 자석 구역 확대! (40 → 150)
         const fullscreenZoneStart = fullscreenHeight - bottomMagneticZone;
         
         const expandedMagneticZone = 10;
