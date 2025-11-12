@@ -179,9 +179,20 @@ export default function HomePage() {
     };
     
     const handleTouchStart = (e: TouchEvent) => {
+      const scrollTop = eventListElement.scrollTop;
+      const isAtTop = scrollTop <= 0;
+      
+      // 최상단이 아니면 일반 스크롤
+      if (!isAtTop) {
+        isTouching = false;
+        return;
+      }
+      
       touchStartY = e.touches[0].clientY;
       isTouching = true;
-      console.log('🟢 터치 시작:', touchStartY);
+      
+      const currentHeight = calendarContentRef.current?.offsetHeight || 0;
+      console.log('🟢 터치 시작:', touchStartY, '현재 달력 높이:', currentHeight);
     };
     
     const handleTouchMove = (e: TouchEvent) => {
@@ -202,8 +213,11 @@ export default function HomePage() {
         e.preventDefault();
         isScrollExpandingRef.current = true;
         
-        // 터치 거리를 달력 높이로 직접 변환 (0 → 250 → fullscreen)
-        let targetHeight = touchDelta * 1.2; // 터치 거리 * 증폭 계수
+        // 현재 달력 높이 가져오기
+        const currentHeight = calendarContentRef.current?.offsetHeight || 0;
+        
+        // 현재 높이 + 터치 거리
+        let targetHeight = currentHeight + (touchDelta * 1.2);
         
         requestAnimationFrame(() => {
           // 높이 제한 (실시간으로 따라감, 스냅 없음)
@@ -215,7 +229,7 @@ export default function HomePage() {
             calendarContentRef.current.style.setProperty('transition', 'none'); // 실시간이므로 transition 제거
           }
           
-          console.log(`🔵 실시간 확장: ${touchDelta.toFixed(0)}px → ${targetHeight.toFixed(0)}px`);
+          console.log(`🔵 실시간 확장: current=${currentHeight.toFixed(0)}px + delta=${touchDelta.toFixed(0)}px → ${targetHeight.toFixed(0)}px`);
         });
       }
       
