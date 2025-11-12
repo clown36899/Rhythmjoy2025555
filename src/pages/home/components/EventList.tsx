@@ -2464,7 +2464,21 @@ export default function EventList({
 
       {/* Password Modal */}
       {showPasswordModal && eventToEdit && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-20 overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-20 overflow-y-auto"
+          onTouchStartCapture={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchMoveCapture={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
+          onTouchEndCapture={(e) => {
+            e.stopPropagation();
+          }}
+        >
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold text-white mb-4">이벤트 수정</h3>
             <p className="text-gray-300 mb-4">
@@ -2510,8 +2524,18 @@ export default function EventList({
       {showEditModal && eventToEdit && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-10 overflow-y-auto"
-          onWheel={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
+          onTouchStartCapture={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchMoveCapture={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
+          onTouchEndCapture={(e) => {
+            e.stopPropagation();
+          }}
         >
           <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] flex flex-col">
             {/* 헤더 */}
@@ -3770,6 +3794,18 @@ export default function EventList({
           <div
             className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
             onClick={() => setShowFullscreenImage(false)}
+            onTouchStartCapture={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchMoveCapture={(e) => {
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            onTouchEndCapture={(e) => {
+              e.stopPropagation();
+            }}
           >
             <button
               onClick={() => setShowFullscreenImage(false)}
