@@ -18,6 +18,7 @@ interface EventCalendarProps {
   isAnimating?: boolean;
   calendarHeightPx?: number;
   calendarMode?: "collapsed" | "expanded" | "fullscreen";
+  selectedCategory?: string;
 }
 
 export default function EventCalendar({
@@ -34,6 +35,7 @@ export default function EventCalendar({
   isAnimating: externalIsAnimating = false,
   calendarHeightPx,
   calendarMode = "expanded",
+  selectedCategory = "all",
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
@@ -52,6 +54,17 @@ export default function EventCalendar({
   // 날짜 폰트 크기 계산 (작게 고정)
   const dateFontSize = 13; // 고정 크기로 작게
   const eventCountFontSize = Math.max(7, Math.min(10, cellHeight * 0.15)); // 작은 폰트
+
+  // 카테고리에 따라 이벤트 필터링
+  const filteredEvents = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') {
+      return events;
+    }
+    if (selectedCategory === 'none') {
+      return [];
+    }
+    return events.filter(event => event.category === selectedCategory);
+  }, [events, selectedCategory]);
 
   // 외부 currentMonth가 변경되면 내부 상태도 업데이트
   useEffect(() => {
@@ -155,7 +168,7 @@ export default function EventCalendar({
     const day = String(date.getDate()).padStart(2, "0");
     const dateString = `${year}-${month}-${day}`;
 
-    return events.filter((event) => {
+    return filteredEvents.filter((event) => {
       // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
       if (event.event_dates && event.event_dates.length > 0) {
         return event.event_dates.includes(dateString);
@@ -182,7 +195,7 @@ export default function EventCalendar({
 
     // 현재 월의 멀티데이 이벤트만 필터링
     // 특정 날짜 모드(event_dates)는 불연속적이므로 레인 할당 제외
-    const multiDayEvents = events.filter((event) => {
+    const multiDayEvents = filteredEvents.filter((event) => {
       // 특정 날짜 모드는 개별 박스로 표시 (레인 할당 안 함)
       if (event.event_dates && event.event_dates.length > 0) {
         return false;
@@ -251,7 +264,7 @@ export default function EventCalendar({
     });
 
     return map;
-  }, [events, currentMonth]);
+  }, [filteredEvents, currentMonth]);
 
   const navigateMonth = (direction: "prev" | "next") => {
     if (externalIsAnimating) return;

@@ -1054,6 +1054,7 @@ export default function HomePage() {
               isAnimating={isAnimating}
               calendarHeightPx={getCalendarHeightPx()}
               calendarMode={calendarMode}
+              selectedCategory={selectedCategory}
             />
           </div>
 
@@ -1108,34 +1109,87 @@ export default function HomePage() {
 
               <div className="flex-1"></div>
 
-              {/* 정렬 버튼 */}
-              <button
-                onClick={() => setShowSortModal(true)}
-                className={`flex items-center justify-center h-6 gap-1 px-2
-                         rounded-lg transition-colors cursor-pointer flex-shrink-0 ${
-                           sortBy === "random" && isRandomBlinking
-                             ? "bg-blue-500 text-white animate-pulse"
-                             : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
-                         }`}
-              >
-                <i
-                  className={`${getSortIcon()} text-sm leading-none align-middle`}
-                ></i>
-                <span className="text-xs leading-none align-middle">
-                  {getSortLabel()}
-                </span>
-              </button>
+              {/* 전체화면 모드일 때: 분류 버튼 표시 */}
+              {calendarMode === "fullscreen" ? (
+                <>
+                  {/* 행사 버튼 */}
+                  <button
+                    onClick={() => {
+                      if (selectedCategory === 'all') {
+                        navigateWithCategory('class');
+                      } else if (selectedCategory === 'event') {
+                        navigateWithCategory();
+                      } else if (selectedCategory === 'class') {
+                        navigateWithCategory('all');
+                      } else {
+                        navigateWithCategory('event');
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 px-2 h-6 rounded-full text-xs font-medium border transition-colors ${
+                      selectedCategory === 'event' || selectedCategory === 'all'
+                        ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                        : 'bg-gray-700/30 border-gray-600 text-gray-400'
+                    }`}
+                  >
+                    <span>행사</span>
+                    <i className={`${selectedCategory === 'event' || selectedCategory === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
+                  </button>
 
-              {/* 검색 버튼 */}
-              <button
-                onClick={() => setShowSearchModal(true)}
-                className="flex items-center justify-center h-6 w-8
-                         bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
-                         rounded-lg transition-colors cursor-pointer flex-shrink-0"
-                aria-label="검색"
-              >
-                <i className="ri-search-line text-sm leading-none align-middle"></i>
-              </button>
+                  {/* 강습 버튼 */}
+                  <button
+                    onClick={() => {
+                      if (selectedCategory === 'all') {
+                        navigateWithCategory('event');
+                      } else if (selectedCategory === 'class') {
+                        navigateWithCategory();
+                      } else if (selectedCategory === 'event') {
+                        navigateWithCategory('all');
+                      } else {
+                        navigateWithCategory('class');
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 px-2 h-6 rounded-full text-xs font-medium border transition-colors ${
+                      selectedCategory === 'class' || selectedCategory === 'all'
+                        ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                        : 'bg-gray-700/30 border-gray-600 text-gray-400'
+                    }`}
+                  >
+                    <span>강습</span>
+                    <i className={`${selectedCategory === 'class' || selectedCategory === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* 정렬 버튼 */}
+                  <button
+                    onClick={() => setShowSortModal(true)}
+                    className={`flex items-center justify-center h-6 gap-1 px-2
+                             rounded-lg transition-colors cursor-pointer flex-shrink-0 ${
+                               sortBy === "random" && isRandomBlinking
+                                 ? "bg-blue-500 text-white animate-pulse"
+                                 : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
+                             }`}
+                  >
+                    <i
+                      className={`${getSortIcon()} text-sm leading-none align-middle`}
+                    ></i>
+                    <span className="text-xs leading-none align-middle">
+                      {getSortLabel()}
+                    </span>
+                  </button>
+
+                  {/* 검색 버튼 */}
+                  <button
+                    onClick={() => setShowSearchModal(true)}
+                    className="flex items-center justify-center h-6 w-8
+                             bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white
+                             rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                    aria-label="검색"
+                  >
+                    <i className="ri-search-line text-sm leading-none align-middle"></i>
+                  </button>
+                </>
+              )}
 
               {/* 달력 전체화면 버튼 */}
               <button
