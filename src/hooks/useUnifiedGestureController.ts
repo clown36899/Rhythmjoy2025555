@@ -309,7 +309,7 @@ export function useUnifiedGestureController({
     };
     
     // 이벤트 리스너 등록 (passive: false 필수!)
-    containerElement.addEventListener('pointerdown', handlePointerDown as EventListener);
+    containerElement.addEventListener('pointerdown', handlePointerDown as EventListener, { passive: false });
     containerElement.addEventListener('pointermove', handlePointerMove as EventListener, { passive: false });
     containerElement.addEventListener('pointerup', handlePointerUp as EventListener);
     containerElement.addEventListener('pointercancel', handlePointerCancel as EventListener);
