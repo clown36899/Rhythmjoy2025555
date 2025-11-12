@@ -816,7 +816,10 @@ export default function HomePage() {
     <div
       ref={containerRef}
       className="h-screen flex flex-col overflow-hidden"
-      style={{ backgroundColor: "var(--page-bg-color)" }}
+      style={{ 
+        backgroundColor: "var(--page-bg-color)",
+        touchAction: 'none' // PointerCancel 방지 - 모든 제스처를 JS로 제어
+      }}
     >
       {/* Fixed Header for all screens */}
       <div
