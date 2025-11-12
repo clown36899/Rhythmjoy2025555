@@ -747,9 +747,11 @@ export default function HomePage() {
   // 등록 버튼 클릭 이벤트 리스너
   useEffect(() => {
     const handleCreateEvent = () => {
-      if (selectedDate) {
-        setShowRegistrationModal(true);
+      // selectedDate가 없으면 오늘 날짜로 등록
+      if (!selectedDate) {
+        setSelectedDate(new Date());
       }
+      setShowRegistrationModal(true);
     };
 
     window.addEventListener(

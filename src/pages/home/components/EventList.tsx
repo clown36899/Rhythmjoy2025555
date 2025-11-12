@@ -1828,6 +1828,22 @@ export default function EventList({
                     </div>
                   );
                 })}
+
+                {/* 등록 버튼 배너 */}
+                <div
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('createEventForDate'));
+                  }}
+                  className="overflow-hidden transition-all cursor-pointer relative border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
+                  style={{
+                    backgroundColor: "transparent",
+                    borderRadius: "0.3rem",
+                  }}
+                >
+                  <div className="relative aspect-[3/4] flex items-center justify-center">
+                    <i className="ri-add-line text-6xl text-gray-600"></i>
+                  </div>
+                </div>
               </div>
             </>
           ) : (
@@ -2008,6 +2024,22 @@ export default function EventList({
                         </div>
                       );
                     })}
+
+                    {/* 등록 버튼 배너 */}
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('createEventForDate'));
+                      }}
+                      className="overflow-hidden transition-all cursor-pointer relative border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
+                      style={{
+                        backgroundColor: "transparent",
+                        borderRadius: "0.3rem",
+                      }}
+                    >
+                      <div className="relative aspect-[3/4] flex items-center justify-center">
+                        <i className="ri-add-line text-6xl text-gray-600"></i>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -2184,6 +2216,22 @@ export default function EventList({
                         </div>
                       );
                     })}
+
+                    {/* 등록 버튼 배너 */}
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('createEventForDate'));
+                      }}
+                      className="overflow-hidden transition-all cursor-pointer relative border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
+                      style={{
+                        backgroundColor: "transparent",
+                        borderRadius: "0.3rem",
+                      }}
+                    >
+                      <div className="relative aspect-[3/4] flex items-center justify-center">
+                        <i className="ri-add-line text-6xl text-gray-600"></i>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -2343,6 +2391,22 @@ export default function EventList({
                         </div>
                       );
                     })}
+
+                    {/* 등록 버튼 배너 */}
+                    <div
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('createEventForDate'));
+                      }}
+                      className="overflow-hidden transition-all cursor-pointer relative border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
+                      style={{
+                        backgroundColor: "transparent",
+                        borderRadius: "0.3rem",
+                      }}
+                    >
+                      <div className="relative aspect-[3/4] flex items-center justify-center">
+                        <i className="ri-add-line text-6xl text-gray-600"></i>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
