@@ -1328,6 +1328,7 @@ export default function HomePage() {
 
         {/* Scrollable Content Area - Events and Footer (독립 스크롤) */}
         <div 
+          ref={eventListElementRef}
           className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20"
           style={{
             // 달력이 fixed일 때 이벤트 리스트 위치 유지
