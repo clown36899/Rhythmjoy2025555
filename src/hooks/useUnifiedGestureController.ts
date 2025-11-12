@@ -114,10 +114,13 @@ export function useUnifiedGestureController({
     const handleTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
       const scrollTop = eventListElement.scrollTop;
+      const calendarHeight = modeToHeight(calendarMode);
+      const calendarBottomY = headerHeight + calendarHeight;
+      const isTouchingCalendar = touch.clientY < calendarBottomY;
       
-      console.log(`🔵 TouchStart: y=${touch.clientY}, scrollTop=${scrollTop}`);
+      console.log(`🔵 TouchStart: y=${touch.clientY}, scrollTop=${scrollTop}, calendarMode=${calendarMode}, isTouchingCalendar=${isTouchingCalendar}`);
 
-      // 리스트 최상단이고 달력 접힌 상태
+      // 조건 1: 리스트 최상단 + 아래로 드래그 → 달력 늘리기
       if (scrollTop === 0 && calendarMode === 'collapsed') {
         isDragging = true;
         startY = touch.clientY;
@@ -128,7 +131,24 @@ export function useUnifiedGestureController({
         eventListElement.style.overflow = 'hidden';
         e.preventDefault();
         
-        console.log("⏳ 드래그 시작 대기 (pending)");
+        console.log("⏳ 리스트에서 드래그 시작 (pending)");
+        return;
+      }
+      
+      // 조건 2: 달력 위를 터치 → 달력 컨트롤
+      if (isTouchingCalendar && calendarMode !== 'collapsed') {
+        isDragging = true;
+        startY = touch.clientY;
+        startHeight = calendarHeight;
+        currentHeight = calendarHeight;
+        velocityHistory = [{ y: touch.clientY, time: Date.now() }];
+        
+        // 스크롤 차단
+        eventListElement.style.overflow = 'hidden';
+        e.preventDefault();
+        
+        console.log("📅 달력 위에서 드래그 시작!");
+        return;
       }
     };
 
@@ -139,15 +159,15 @@ export function useUnifiedGestureController({
       const touch = e.touches[0];
       const deltaY = touch.clientY - startY;
       
-      // 위로 드래그 → 무시
-      if (deltaY < 0) {
-        console.log("🔓 위로 스크롤 허용");
+      // 리스트에서 시작한 경우 (startHeight = 0): 위로 드래그 → 스크롤 허용
+      if (startHeight === 0 && deltaY < 0) {
+        console.log("🔓 위로 스크롤 허용 (리스트에서 시작)");
         isDragging = false;
         eventListElement.style.overflow = '';
         return;
       }
 
-      // 아래로 드래그 → 달력 늘리기
+      // 달력에서 드래그 → 위/아래 모두 허용
       e.preventDefault();
       
       // Velocity 샘플링
