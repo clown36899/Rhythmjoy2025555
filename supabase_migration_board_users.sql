@@ -95,8 +95,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 7. RPC 함수: 관리자용 전체 회원 목록 조회
--- 참고: 이 함수는 프론트엔드에서 관리자 체크 후 호출됩니다.
--- 추가 보안을 위해 Supabase Auth와 연동하는 것을 권장합니다.
+-- 서버 측에서 관리자 이메일 확인 (VITE_ADMIN_EMAIL과 일치 필요)
 CREATE OR REPLACE FUNCTION get_all_board_users()
 RETURNS TABLE (
   id INTEGER,
@@ -107,7 +106,19 @@ RETURNS TABLE (
   gender VARCHAR,
   created_at TIMESTAMPTZ
 ) AS $$
+DECLARE
+  current_user_email TEXT;
 BEGIN
+  -- 현재 로그인한 사용자의 이메일 가져오기
+  current_user_email := auth.jwt() ->> 'email';
+  
+  -- 관리자 이메일이 아니면 에러 발생
+  -- 주의: 실제 관리자 이메일로 변경하세요 (예: clown313@naver.com)
+  IF current_user_email IS NULL OR current_user_email != 'clown313@naver.com' THEN
+    RAISE EXCEPTION '관리자 권한이 필요합니다. (current: %)', current_user_email;
+  END IF;
+  
+  -- 관리자 확인 완료 후 전체 회원 목록 반환
   RETURN QUERY
   SELECT 
     bu.id,

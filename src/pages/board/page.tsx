@@ -20,7 +20,7 @@ export interface BoardPost {
 }
 
 export default function BoardPage() {
-  const { user, signInWithKakao } = useAuth();
+  const { user, isAdmin, signInWithKakao } = useAuth();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditorModal, setShowEditorModal] = useState(false);
