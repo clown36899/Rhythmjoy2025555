@@ -342,7 +342,7 @@ export default function BoardPage() {
       </div>
 
       {/* Post List */}
-      <div className="px-1 py-1">
+      <div className="px-0 py-1">
         {loading ? (
           <div className="text-center py-12">
             <i className="ri-loader-4-line text-3xl text-blue-500 animate-spin"></i>
@@ -360,10 +360,10 @@ export default function BoardPage() {
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post)}
-                  className={`border rounded p-1.5 hover:bg-gray-600 transition-colors cursor-pointer ${
+                  className={`p-1.5 hover:bg-gray-600 transition-colors cursor-pointer ${
                     post.is_notice 
-                      ? 'bg-blue-500/20 border-blue-500/50' 
-                      : 'bg-[#242424] border-gray-600'
+                      ? 'bg-blue-500/20' 
+                      : 'bg-[#242424]'
                   }`}
                 >
                   <div className="flex items-start gap-1.5 mb-0.5">
