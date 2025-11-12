@@ -214,30 +214,26 @@ export function useUnifiedGestureController({
       }
       
       // scroll 모드에서 pull down 감지
-      if (activeGesture === 'scroll') {
-        const scrollTop = eventListElement.scrollTop;
+      if (activeGesture === 'scroll' && gesturePointerId !== null) {
         const deltaY = e.clientY - gestureStartY;
         
-        // 스크롤 최상단 + 아래로 당김 → 즉시 calendar-drag로 전환
-        if (scrollTop <= 0 && deltaY > 0) {
-          console.log("🔄 제스처 전환: scroll → calendar-drag (deltaY:", deltaY.toFixed(1), ")");
+        // 아래로 당김 (deltaY >= 0) → 즉시 calendar-drag로 전환
+        if (deltaY >= 0) {
+          console.log("🔄 제스처 전환: scroll → calendar-drag (즉시, deltaY:", deltaY.toFixed(1), ")");
           activeGesture = 'calendar-drag';
-          // 즉시 preventDefault() 호출
+          // 즉시 preventDefault() → 브라우저 스크롤 차단
           e.preventDefault();
+          // scrollTop을 0으로 고정 (브라우저가 스크롤했을 수도 있음)
+          eventListElement.scrollTop = 0;
           // 아래 calendar-drag 로직으로 넘어감
-        } else if (deltaY < 0) {
-          // 위로 밀기 → 스크롤 허용, Pointer 캡처 해제
-          if (gesturePointerId !== null) {
-            try {
-              (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
-              console.log("🔓 Pointer 캡처 해제 (위로 스크롤 허용)");
-            } catch (err) {
-              // Ignore
-            }
-          }
-          return;
         } else {
-          // deltaY === 0: 아직 움직임 없음
+          // 위로 밀기 (deltaY < 0) → 스크롤 허용, Pointer 캡처 해제
+          try {
+            (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
+            console.log("🔓 Pointer 캡처 해제 (위로 스크롤 허용)");
+          } catch (err) {
+            // Ignore
+          }
           return;
         }
       }
