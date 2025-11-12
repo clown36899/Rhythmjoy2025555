@@ -1,15 +1,15 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, type RefObject, type MutableRefObject } from "react";
 
 type CalendarMode = "collapsed" | "expanded" | "fullscreen";
 
 interface UseUnifiedGestureControllerProps {
-  containerRef: RefObject<HTMLElement>;
-  eventListRef: RefObject<HTMLElement>;
-  calendarContentRef: RefObject<HTMLElement>;
+  containerRef: RefObject<HTMLElement | null>;
+  eventListRef: RefObject<HTMLElement | null>;
+  calendarContentRef: RefObject<HTMLElement | null>;
   headerHeight: number;
   calendarMode: CalendarMode;
   setCalendarMode: (mode: CalendarMode) => void;
-  isScrollExpandingRef: React.MutableRefObject<boolean>;
+  isScrollExpandingRef: MutableRefObject<boolean>;
   onHeightChange?: (height: number) => void; // 실시간 높이 콜백
   onDraggingChange?: (isDragging: boolean) => void; // 드래그 상태 콜백
 }

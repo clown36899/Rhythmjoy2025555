@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, type RefObject } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
@@ -48,7 +48,7 @@ interface EventListProps {
   onHighlightComplete?: () => void;
   dragOffset?: number;
   isAnimating?: boolean;
-  slideContainerRef?: React.RefObject<HTMLDivElement | null>;
+  slideContainerRef?: RefObject<HTMLDivElement | null>;
   onMonthChange?: (date: Date) => void;
 }
 
