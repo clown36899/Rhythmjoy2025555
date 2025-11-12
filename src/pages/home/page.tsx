@@ -205,17 +205,21 @@ export default function HomePage() {
 
       const currentCalendarHeight =
         calendarContentRef.current?.offsetHeight || 0;
-      const calendarBottomY = headerHeight + currentCalendarHeight; // 헤더 + 달력 높이
+      const calendarBottomY = headerHeight + currentCalendarHeight;
 
       touchStartY = e.touches[0].clientY;
       touchStartX = e.touches[0].clientX;
-      touchStartHeight = currentCalendarHeight; // 시작 높이 저장!
+      touchStartHeight = currentCalendarHeight;
 
       // 터치 위치가 달력 영역 내부인지 확인
       isTouchOnCalendar = touchStartY <= calendarBottomY;
 
       isTouching = true;
       isHorizontalScroll = false;
+      
+      // 🚀 초기 포인트 추가 (중요!)
+      touchHistory.length = 0;
+      touchHistory.push({ y: e.touches[0].clientY, time: Date.now() });
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -361,15 +365,13 @@ export default function HomePage() {
       // 🎯 방향은 속도(velocityY)로 판단! (총 거리 아님)
       const isPullingDown = velocityY > 0; // 양수 = 아래로, 음수 = 위로
 
-      console.log("🔴 touchEnd:", {
+      console.log("🔴 [이벤트 리스트] touchEnd:", {
         calendarMode,
         currentHeight: currentHeight.toFixed(0),
-        fullscreenHeight: fullscreenHeight.toFixed(0),
+        velocityY: velocityY.toFixed(3),
         isPullingDown,
         touchDeltaY: touchDeltaY.toFixed(0),
-        velocityY: velocityY.toFixed(3),
         historyLength: touchHistory.length,
-        threshold: (fullscreenHeight - 15).toFixed(0),
       });
 
       // 🎯 Fling 임계값 설정 (웹 표준 권장값)
@@ -436,8 +438,10 @@ export default function HomePage() {
         }
       } else {
         // fullscreen 상태
-        // 🎯 Fling 감지: 속도만으로 판단 (거리 무시)
-        const isFlickUp = velocityY < -FLING_VELOCITY_THRESHOLD && Math.abs(velocityY) > FLING_VELOCITY_THRESHOLD;
+        // 🎯 Fling 감지: 속도 + 최소 거리 (사용자 피드백 반영)
+        const isFlickUp = 
+          Math.abs(touchDeltaY) > 10 && // 최소 10px 이동
+          velocityY < -FLING_VELOCITY_THRESHOLD;
 
         if (isFlickUp) {
           finalHeight = 250;
@@ -1364,8 +1368,10 @@ export default function HomePage() {
       else {
         const threshold = fullscreenHeight - 20;
 
-        // 🎯 Fling 감지: 속도만으로 판단 (거리 무시)
-        const isFlickUp = velocityY < -FLING_VELOCITY_THRESHOLD && Math.abs(velocityY) > FLING_VELOCITY_THRESHOLD;
+        // 🎯 Fling 감지: 속도 + 최소 거리 (사용자 피드백 반영)
+        const isFlickUp = 
+          Math.abs(calendarPullDistance) > 10 && // 최소 10px 이동
+          velocityY < -FLING_VELOCITY_THRESHOLD;
 
         if (isFlickUp) {
           nextState = "expanded";
@@ -1383,7 +1389,12 @@ export default function HomePage() {
       }
 
       console.log(
-        `🎯 [${finalHeight.toFixed(0)}px] ${calendarMode} → ${nextState}`,
+        `🎯 [달력] [${finalHeight.toFixed(0)}px] ${calendarMode} → ${nextState}`,
+        {
+          velocityY: velocityY.toFixed(3),
+          pullDistance: calendarPullDistance.toFixed(0),
+          historyLength: calendarTouchHistory.length
+        }
       );
 
       // 부드러운 전환 애니메이션
