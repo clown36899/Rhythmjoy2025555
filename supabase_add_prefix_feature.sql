@@ -79,11 +79,11 @@ CREATE OR REPLACE FUNCTION create_board_post(
 RETURNS JSON AS $$
 DECLARE
   v_result JSON;
-  v_is_admin BOOLEAN := FALSE;
-  v_prefix_admin_only BOOLEAN := FALSE;
+  v_is_admin BOOLEAN;
+  v_prefix_admin_only BOOLEAN;
 BEGIN
-  -- 관리자 여부 확인
-  SELECT COALESCE((auth.jwt()->>'app_metadata')::jsonb->>'is_admin' = 'true', FALSE) INTO v_is_admin;
+  -- 관리자 여부 확인 (기본값: FALSE)
+  v_is_admin := COALESCE((auth.jwt()->>'app_metadata')::jsonb->>'is_admin' = 'true', FALSE);
 
   -- prefix_id가 있으면 admin_only 여부 확인
   IF p_prefix_id IS NOT NULL THEN
@@ -92,7 +92,7 @@ BEGIN
     WHERE id = p_prefix_id;
 
     -- 관리자 전용 머릿말을 일반 사용자가 선택하려고 하면 에러
-    IF v_prefix_admin_only AND NOT v_is_admin THEN
+    IF COALESCE(v_prefix_admin_only, FALSE) = TRUE AND COALESCE(v_is_admin, FALSE) = FALSE THEN
       RAISE EXCEPTION '관리자 전용 머릿말입니다.';
     END IF;
   END IF;
@@ -127,16 +127,16 @@ CREATE OR REPLACE FUNCTION update_board_post(
 RETURNS JSON AS $$
 DECLARE
   v_result JSON;
-  v_is_admin BOOLEAN := FALSE;
-  v_prefix_admin_only BOOLEAN := FALSE;
+  v_is_admin BOOLEAN;
+  v_prefix_admin_only BOOLEAN;
 BEGIN
   -- 작성자 본인인지 확인
   IF NOT EXISTS (SELECT 1 FROM board_posts WHERE id = p_post_id AND user_id = p_user_id) THEN
     RAISE EXCEPTION '권한이 없습니다.';
   END IF;
 
-  -- 관리자 여부 확인
-  SELECT COALESCE((auth.jwt()->>'app_metadata')::jsonb->>'is_admin' = 'true', FALSE) INTO v_is_admin;
+  -- 관리자 여부 확인 (기본값: FALSE)
+  v_is_admin := COALESCE((auth.jwt()->>'app_metadata')::jsonb->>'is_admin' = 'true', FALSE);
 
   -- prefix_id가 있으면 admin_only 여부 확인
   IF p_prefix_id IS NOT NULL THEN
@@ -145,7 +145,7 @@ BEGIN
     WHERE id = p_prefix_id;
 
     -- 관리자 전용 머릿말을 일반 사용자가 선택하려고 하면 에러
-    IF v_prefix_admin_only AND NOT v_is_admin THEN
+    IF COALESCE(v_prefix_admin_only, FALSE) = TRUE AND COALESCE(v_is_admin, FALSE) = FALSE THEN
       RAISE EXCEPTION '관리자 전용 머릿말입니다.';
     END IF;
   END IF;
