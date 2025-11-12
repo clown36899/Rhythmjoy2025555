@@ -265,8 +265,11 @@ export function useUnifiedGestureController({
         
         const fullscreenHeight = window.innerHeight - 150;
         
-        // 배율: 웹 표준 1:1 (Material Design / iOS 표준)
-        let targetHeight = gestureStartHeight + deltaY * 1.0;
+        // 배율: 상태별 차등 적용
+        // collapsed (0) → expanded (250): 1.5배 (너무 빠르지 않게)
+        // expanded (250) → fullscreen: 3.0배 (빠르게 반응)
+        const multiplier = gestureStartHeight < 125 ? 1.5 : 3.0;
+        let targetHeight = gestureStartHeight + deltaY * multiplier;
         const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
         
         // 높이 제한: 0 ~ fullscreen
