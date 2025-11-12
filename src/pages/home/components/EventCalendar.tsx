@@ -530,9 +530,9 @@ export default function EventCalendar({
 
               window.addEventListener("pointerup", handlePointerUp);
             }}
-            className={`w-full h-full flex flex-col items-center justify-start pt-1 cursor-pointer relative overflow-visible no-select ${
+            className={`w-full h-full flex flex-col items-center justify-start cursor-pointer relative overflow-visible no-select ${
               isSelected ? "text-white z-10" : "text-gray-300"
-            }`}
+            } ${calendarMode === 'fullscreen' ? 'pt-0.5' : 'pt-1'}`}
             style={{ fontSize: `${dateFontSize}px` }}
           >
             {/* 날짜 숫자 - 최상단 정렬 */}
