@@ -40,11 +40,8 @@ export function useUnifiedGestureController({
     const calendarElement = calendarContentRef.current;
 
     if (!containerElement || !eventListElement || !calendarElement) {
-      console.log("❌ 필수 요소 없음");
       return;
     }
-
-    console.log("✅ Touch Events 컨트롤러 활성화!");
 
     // 제스처 상태
     let isDragging = false;
@@ -101,9 +98,6 @@ export function useUnifiedGestureController({
     // 스냅 수행 (손 뗄 때만!)
     const performSnap = () => {
       const velocity = calculateVelocity();
-      console.log(
-        `🧲 스냅 시작: 현재=${currentHeight}px, 속도=${velocity.toFixed(3)}px/ms`,
-      );
 
       // 💥 중요: 최종 스냅은 이 currentMode를 기준으로 함
       const currentMode = heightToMode(currentHeight);
@@ -125,9 +119,6 @@ export function useUnifiedGestureController({
             // 💥 거리 우선 판단: 긴 거리(300px)를 만족하면 Expanded 건너뛰기
             if (deltaY > FLING_SKIP_DISTANCE) {
               targetMode = "fullscreen"; // ⚡️ Fullscreen으로 바로 건너뛰기
-              console.log(
-                "⚡️ 초고속 플링: collapsed(시작) → fullscreen (거리 만족)",
-              );
             } else {
               targetMode = "expanded"; // Expanded까지만 허용
             }
@@ -147,16 +138,12 @@ export function useUnifiedGestureController({
           else if (currentMode === "expanded") targetMode = "collapsed";
           else targetMode = "collapsed";
         }
-
-        console.log(`⚡ 플링: ${calendarMode} → ${targetMode}`);
       } else {
         // 느린 드래그: 최종 높이(currentHeight)를 기준으로 가까운 곳으로 스냅
         targetMode = heightToMode(currentHeight);
-        console.log(`🐢 느린 드래그: ${targetMode}`);
       }
 
       const targetHeight = modeToHeight(targetMode);
-      console.log(`🎯 타겟: ${targetMode} (${targetHeight}px)`);
 
       // 애니메이션으로 스냅
       calendarElement.style.transition =
@@ -177,10 +164,6 @@ export function useUnifiedGestureController({
       const calendarBottomY = headerHeight + calendarHeight;
       const isTouchingCalendar = touch.clientY < calendarBottomY;
 
-      console.log(
-        `🔵 TouchStart: y=${touch.clientY}, scrollTop=${scrollTop}, calendarMode=${calendarMode}, isTouchingCalendar=${isTouchingCalendar}`,
-      );
-
       // 조건 1: 달력 위를 터치 → 달력 컨트롤 (최우선)
       if (isTouchingCalendar && calendarMode !== "collapsed") {
         isDragging = true;
@@ -199,7 +182,6 @@ export function useUnifiedGestureController({
           onDraggingChangeRef.current(true);
         }
 
-        console.log("📅 달력 위에서 드래그 시작!");
         return;
       }
 
@@ -212,9 +194,6 @@ export function useUnifiedGestureController({
         currentHeight = startHeight;
         velocityHistory = [{ y: touch.clientY, time: Date.now() }];
 
-        console.log(
-          `⏳ pending 상태 (현재모드: ${calendarMode}, 높이: ${startHeight}px)`,
-        );
         return;
       }
     };
@@ -236,7 +215,6 @@ export function useUnifiedGestureController({
         if (absDeltaX > absDeltaY * 1.5) {
           // 수평 이동이 압도적으로 우세하면
           isPending = false;
-          console.log("🔓 수평 슬라이드 허용");
           return; // 훅의 수직 드래그 로직을 건너뛰고, 상위 컴포넌트의 수평 로직을 실행하도록 허용
         }
 
@@ -249,11 +227,9 @@ export function useUnifiedGestureController({
           if (onDraggingChangeRef.current) {
             onDraggingChangeRef.current(true);
           }
-          console.log("✅ 달력 드래그 시작! (아래로)");
         } else if (deltaY < -5) {
           // 수직 위로 우세 (스크롤)
           isPending = false;
-          console.log("🔓 스크롤 허용 (위로)");
           return;
         } else {
           return; // 아직 방향 불명확 → 대기
@@ -275,9 +251,6 @@ export function useUnifiedGestureController({
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         updateCalendarHeight(newHeight);
-        console.log(
-          `📏 실시간: ${newHeight.toFixed(0)}px (deltaY: ${deltaY.toFixed(0)})`,
-        );
       });
     };
 
@@ -286,13 +259,10 @@ export function useUnifiedGestureController({
       if (isPending) {
         // Pending 상태에서 손 떼면 → 취소
         isPending = false;
-        console.log("⏹️ Pending 취소");
         return;
       }
 
       if (!isDragging) return;
-
-      console.log("🔴 TouchEnd - 손 뗌!");
 
       isDragging = false;
 
@@ -312,8 +282,6 @@ export function useUnifiedGestureController({
 
     // 🎯 TouchCancel
     const handleTouchCancel = () => {
-      console.log("⚠️ TouchCancel");
-
       isPending = false;
       isDragging = false;
 

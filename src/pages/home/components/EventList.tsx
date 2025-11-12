@@ -428,7 +428,6 @@ export default function EventList({
     try {
       setLoading(true);
       setLoadError(null);
-      console.log("[EventList] 데이터 로딩 시작");
 
       // 10초 timeout 설정
       const timeoutPromise = new Promise((_, reject) =>
@@ -470,7 +469,6 @@ export default function EventList({
         setLoadError(`DB 에러: ${error.message || "알 수 없는 오류"}`);
         setEvents([]);
       } else {
-        console.log("[EventList] 데이터 로딩 완료:", (data ?? []).length, "개");
         setEvents(data || []);
       }
     } catch (error: any) {
@@ -480,7 +478,6 @@ export default function EventList({
       setEvents([]);
     } finally {
       setLoading(false);
-      console.log("[EventList] 로딩 상태 해제");
     }
   }, [isAdminMode]);
 
@@ -775,8 +772,6 @@ export default function EventList({
 
     // 검색어가 있거나 날짜가 선택된 경우 또는 년 모드인 경우 현재 필터링된 전체 표시
     if (searchTerm.trim() || selectedDate || viewMode === "year") {
-      console.log("📋 년 모드/검색/날짜선택 - 전체 이벤트 표시");
-      console.log("filteredEvents 수:", filteredEvents.length);
       return {
         prevMonthEvents: [],
         currentMonthEvents: filteredEvents,

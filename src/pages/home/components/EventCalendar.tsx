@@ -27,7 +27,7 @@ export default function EventCalendar({
   currentMonth: externalCurrentMonth,
   onEventsUpdate,
   viewMode = "month",
-  onViewModeChange,
+  onViewModeChange: _onViewModeChange,
   hoveredEventId,
   dragOffset: externalDragOffset = 0,
   isAnimating: externalIsAnimating = false,
@@ -296,7 +296,6 @@ export default function EventCalendar({
     // 이미 선택된 날짜를 다시 클릭
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
       // 두 번째 클릭: 항상 등록 모달 열기 (누구나 등록 가능)
-      console.log("[달력] 두 번째 클릭 - 등록 모달 열기");
       setClickedDate(date);
       
       // 모바일 터치 이벤트 완전 종료 대기 후 모달 열기 (150ms)
@@ -583,7 +582,7 @@ export default function EventCalendar({
           {/* 단일 이벤트 바 표시 - 셀이 클 때만 */}
           {cellHeight > 55 && singleDayEvents.length > 0 && (
             <div className="absolute left-1 right-1 flex flex-col gap-0.5 pointer-events-none" style={{ top: '28px' }}>
-              {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event, idx) => {
+              {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event) => {
                 const categoryColor = event.category === 'class' ? 'bg-green-500' : 'bg-blue-500';
                 const isHovered = viewMode === "month" && hoveredEventId === event.id;
                 
@@ -675,30 +674,16 @@ export default function EventCalendar({
               <button
                 key={year}
                 onClick={() => {
-                  console.log("=== 년도 선택 클릭 ===");
-                  console.log("선택한 년도:", year);
-                  console.log("현재 viewMode:", viewMode);
-                  console.log("isSelected:", isSelected);
-
                   // 선택한 년도의 1월 1일로 설정
                   const newDate = new Date(year, 0, 1);
-                  console.log("새로운 날짜 객체:", newDate);
-                  console.log("새로운 날짜 문자열:", newDate.toISOString());
 
                   setInternalCurrentMonth(newDate);
-                  console.log("setInternalCurrentMonth 호출 완료");
 
                   if (onMonthChange) {
-                    console.log("onMonthChange 함수 존재 - 호출 시작");
                     onMonthChange(newDate);
-                    console.log("onMonthChange 호출 완료");
-                  } else {
-                    console.log("⚠️ onMonthChange 함수가 없음!");
                   }
 
                   onDateSelect(null);
-                  console.log("onDateSelect(null) 호출 완료");
-                  console.log("=== 년도 선택 처리 완료 ===");
                   // viewMode는 "year"로 유지되어 해당 년도의 모든 이벤트 표시
                 }}
                 className={`py-2 px-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${

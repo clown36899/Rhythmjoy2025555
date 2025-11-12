@@ -130,7 +130,6 @@ export default function HomePage() {
     if (headerRef.current) {
       const height = headerRef.current.offsetHeight;
       setHeaderHeight(height);
-      console.log("📏 헤더 높이 측정:", height);
     }
   }, []);
 
@@ -698,24 +697,16 @@ export default function HomePage() {
   };
 
   const handleViewModeChange = (mode: "month" | "year") => {
-    console.log("@@@ handleViewModeChange 시작 @@@");
-    console.log("이전 모드:", viewMode);
-    console.log("새 모드:", mode);
-
     if (mode === "year") {
-      console.log("년 모드로 전환 - 현재 월 저장");
       setSavedMonth(new Date(currentMonth));
     } else if (mode === "month" && savedMonth) {
-      console.log("월 모드로 복귀 - 저장된 월 복원");
       setCurrentMonth(new Date(savedMonth));
     }
 
     setViewMode(mode);
-    console.log("setViewMode 완료");
 
     // 뷰 모드 변경 시 이벤트 리스트 표시
     navigateWithCategory("all");
-    console.log("@@@ handleViewModeChange 완료 @@@");
   };
   // 1. 달력 접기/펴기 버튼의 배경색/텍스트를 조건부로 설정하는 상수
   const buttonBgClass =
@@ -981,12 +972,6 @@ export default function HomePage() {
                         : prev === "fullscreen"
                           ? "expanded"
                           : "collapsed";
-
-                    console.log("🔘 버튼 클릭:", {
-                      이전모드: prev,
-                      다음모드: nextMode,
-                      현재높이: calendarContentRef.current?.offsetHeight || 0,
-                    });
 
                     return nextMode;
                   });
