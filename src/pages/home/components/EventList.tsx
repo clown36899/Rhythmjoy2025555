@@ -1788,7 +1788,11 @@ export default function EventList({
             }}
           >
             {/* 이전 달 - 독립 컨테이너 */}
-            <div ref={prevMonthRef} className="flex-shrink-0 w-full self-start">
+            <div 
+              key={prevMonthKey}
+              ref={prevMonthRef} 
+              className="flex-shrink-0 w-full self-start"
+            >
               <div
                 className="p-[0.4rem]"
                 style={{
@@ -1942,6 +1946,7 @@ export default function EventList({
 
             {/* 현재 달 - 독립 컨테이너 */}
             <div
+              key={currentMonthKey}
               ref={currentMonthRef}
               className="flex-shrink-0 w-full self-start"
             >
@@ -2123,7 +2128,11 @@ export default function EventList({
             </div>
 
             {/* 다음 달 - 독립 컨테이너 */}
-            <div ref={nextMonthRef} className="flex-shrink-0 w-full self-start">
+            <div 
+              key={nextMonthKey}
+              ref={nextMonthRef} 
+              className="flex-shrink-0 w-full self-start"
+            >
               <div
                 className="p-[0.4rem]"
                 style={{
