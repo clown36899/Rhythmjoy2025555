@@ -12,6 +12,9 @@ interface UseUnifiedGestureControllerProps {
   isScrollExpandingRef: React.MutableRefObject<boolean>;
   // 월 변경 콜백
   onMonthChange: (direction: 'prev' | 'next') => void;
+  // 수평 스와이프용 슬라이더 ref (DOM 직접 조작)
+  calendarSliderRef: RefObject<HTMLElement>;
+  eventListSliderRef: RefObject<HTMLElement>;
 }
 
 export function useUnifiedGestureController({
@@ -22,6 +25,8 @@ export function useUnifiedGestureController({
   calendarMode,
   setCalendarMode,
   onMonthChange,
+  calendarSliderRef,
+  eventListSliderRef,
 }: UseUnifiedGestureControllerProps) {
   useEffect(() => {
     const containerElement = containerRef.current;
@@ -245,7 +250,21 @@ export function useUnifiedGestureController({
 
       // 수평 스와이프 (월 변경)
       if (gestureDirection === 'horizontal') {
-        // 시각적 피드백만 (실제 월 변경은 TouchEnd에서)
+        // 시각적 피드백: DOM 직접 조작 (state 없이 ref 사용)
+        requestAnimationFrame(() => {
+          const calendarSlider = calendarSliderRef.current;
+          const eventListSlider = eventListSliderRef.current;
+          
+          if (calendarSlider) {
+            calendarSlider.style.transform = `translateX(calc(-100% + ${deltaX}px))`;
+            calendarSlider.style.transition = 'none';
+          }
+          
+          if (eventListSlider) {
+            eventListSlider.style.transform = `translateX(calc(-100% + ${deltaX}px))`;
+            eventListSlider.style.transition = 'none';
+          }
+        });
         console.log(`↔️ 수평 드래그: ${deltaX.toFixed(0)}px`);
         return;
       }
@@ -283,10 +302,32 @@ export function useUnifiedGestureController({
       // 수평 스와이프 완료 → 월 변경
       if (gestureDirection === 'horizontal') {
         const threshold = 50; // 50px 이상 스와이프
+        const calendarSlider = calendarSliderRef.current;
+        const eventListSlider = eventListSliderRef.current;
+        
+        // 애니메이션 활성화
+        if (calendarSlider) {
+          calendarSlider.style.transition = 'transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1)';
+        }
+        if (eventListSlider) {
+          eventListSlider.style.transition = 'transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1)';
+        }
+        
         if (Math.abs(deltaX) > threshold) {
           const direction = deltaX > 0 ? 'prev' : 'next';
           console.log(`🎯 월 변경: ${direction}`);
           onMonthChange(direction);
+          
+          // 월 변경 후 원위치로 스냅 (transition 후)
+          setTimeout(() => {
+            if (calendarSlider) calendarSlider.style.transform = 'translateX(-100%)';
+            if (eventListSlider) eventListSlider.style.transform = 'translateX(-100%)';
+          }, 0);
+        } else {
+          // threshold 미달 → 원위치 애니메이션
+          console.log(`↩️ 스냅백 (threshold 미달)`);
+          if (calendarSlider) calendarSlider.style.transform = 'translateX(-100%)';
+          if (eventListSlider) eventListSlider.style.transform = 'translateX(-100%)';
         }
         
         isDragging = false;
@@ -347,5 +388,7 @@ export function useUnifiedGestureController({
     calendarMode,
     setCalendarMode,
     onMonthChange,
+    calendarSliderRef,
+    eventListSliderRef,
   ]);
 }

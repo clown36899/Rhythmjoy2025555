@@ -16,6 +16,8 @@ interface EventCalendarProps {
   isAdminMode?: boolean;
   // 달력 확장 높이
   calendarHeightPx?: number;
+  // 수평 스와이프용 슬라이더 ref
+  sliderRef?: React.RefObject<HTMLDivElement>;
 }
 
 export default function EventCalendar({
@@ -28,6 +30,7 @@ export default function EventCalendar({
   viewMode = "month",
   hoveredEventId,
   calendarHeightPx,
+  sliderRef,
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
@@ -798,6 +801,7 @@ export default function EventCalendar({
             {/* Calendar grid - 3개 달력 캐러셀 */}
             <div className="overflow-hidden flex-1">
               <div
+                ref={sliderRef}
                 className="flex"
                 style={{
                   transform: "translateX(-100%)",

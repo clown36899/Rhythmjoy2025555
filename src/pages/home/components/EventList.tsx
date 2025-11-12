@@ -44,6 +44,8 @@ interface EventListProps {
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
   highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
+  // 수평 스와이프용 슬라이더 ref
+  sliderRef?: React.RefObject<HTMLDivElement>;
 }
 
 export default function EventList({
@@ -66,6 +68,7 @@ export default function EventList({
   setSortBy: externalSetSortBy,
   highlightEvent,
   onHighlightComplete,
+  sliderRef,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -1777,6 +1780,7 @@ export default function EventList({
         // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
         <div className="overflow-hidden">
           <div
+            ref={sliderRef}
             className="flex items-start"
             style={{
               transform: "translateX(-100%)",
