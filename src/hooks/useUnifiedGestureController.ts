@@ -307,48 +307,50 @@ export function useUnifiedGestureController({
         
         if (Math.abs(deltaX) > threshold) {
           const direction = deltaX > 0 ? 'prev' : 'next';
-          const savedDeltaX = deltaX; // deltaX 저장 (리렌더링 후에도 사용)
-          console.log(`🎯 슬라이드 월 변경: ${direction}, deltaX: ${savedDeltaX.toFixed(0)}px`);
+          console.log(`🎯 슬라이드: ${direction}, deltaX: ${deltaX.toFixed(0)}px`);
           
-          // 1. 월 변경 (React 리렌더링 → 슬라이더 HTML 교체 → transform 초기화됨)
-          onMonthChange(direction);
+          // ⭐ 핵심: 애니메이션 먼저 → 완료 후 월 변경
+          // 목표 위치 (왼쪽 스와이프 → 0%, 오른쪽 스와이프 → -200%)
+          const targetTransform = direction === 'prev' ? 'translateX(-200%)' : 'translateX(0%)';
           
-          // 2. 리렌더링 후 즉시 이전 위치로 복원 (transition 없이)
+          // transitionend 핸들러
+          const handleTransitionEnd = () => {
+            console.log(`✅ 애니메이션 완료 → 이제 월 변경`);
+            
+            // transition 제거
+            if (calendarSlider) {
+              calendarSlider.style.transition = 'none';
+              calendarSlider.removeEventListener('transitionend', handleTransitionEnd);
+            }
+            if (eventListSlider) {
+              eventListSlider.style.transition = 'none';
+              eventListSlider.removeEventListener('transitionend', handleTransitionEnd);
+            }
+            
+            // 월 변경 (React 리렌더링)
+            onMonthChange(direction);
+            console.log(`🎉 월 변경 완료: ${direction}`);
+          };
+          
+          // 이벤트 등록
+          if (calendarSlider) {
+            calendarSlider.addEventListener('transitionend', handleTransitionEnd, { once: true });
+            calendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+          }
+          if (eventListSlider) {
+            eventListSlider.addEventListener('transitionend', handleTransitionEnd, { once: true });
+            eventListSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+          }
+          
+          // RAF로 한 프레임 대기 후 애니메이션 시작
           requestAnimationFrame(() => {
-            const newCalendarSlider = calendarSliderRef.current;
-            const newEventListSlider = eventListSliderRef.current;
-            
-            // 리렌더링으로 새 슬라이더가 생성됨
-            if (newCalendarSlider) {
-              newCalendarSlider.style.transition = 'none';
-              newCalendarSlider.style.transform = `translateX(calc(-100% + ${savedDeltaX}px))`;
-            }
-            if (newEventListSlider) {
-              newEventListSlider.style.transition = 'none';
-              newEventListSlider.style.transform = `translateX(calc(-100% + ${savedDeltaX}px))`;
-            }
-            console.log(`📍 이전 위치 복원: calc(-100% + ${savedDeltaX}px)`);
-            
-            // 3. 한 프레임 후 transition 추가 + -100%로 애니메이션
-            requestAnimationFrame(() => {
-              if (newCalendarSlider) {
-                newCalendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-              }
-              if (newEventListSlider) {
-                newEventListSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-              }
-              
-              // 한 프레임 더 대기 후 -100%로 애니메이션
-              requestAnimationFrame(() => {
-                if (newCalendarSlider) newCalendarSlider.style.transform = 'translateX(-100%)';
-                if (newEventListSlider) newEventListSlider.style.transform = 'translateX(-100%)';
-                console.log(`🎬 슬라이드 애니메이션: 끌려온 위치 → -100%`);
-              });
-            });
+            if (calendarSlider) calendarSlider.style.transform = targetTransform;
+            if (eventListSlider) eventListSlider.style.transform = targetTransform;
+            console.log(`🎬 기존 돔 슬라이드: ${targetTransform}`);
           });
         } else {
           // threshold 미달 → 원위치 애니메이션
-          console.log(`↩️ 스냅백 (threshold 미달): ${deltaX.toFixed(0)}px`);
+          console.log(`↩️ 스냅백: ${deltaX.toFixed(0)}px`);
           
           if (calendarSlider) {
             calendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
