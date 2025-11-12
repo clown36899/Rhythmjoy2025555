@@ -318,8 +318,8 @@ export default function HomePage() {
           }
         }
       } else {
-        // fullscreen에서 시작 → 조금만 올려도 expanded로
-        if (!isPullingDown && currentHeight < fullscreenHeight - 30) {
+        // fullscreen에서 시작 → 아주 조금만 올려도 expanded로 (15px)
+        if (!isPullingDown && currentHeight < fullscreenHeight - 15) {
           finalHeight = 250;
           targetMode = 'expanded';
         } else {
