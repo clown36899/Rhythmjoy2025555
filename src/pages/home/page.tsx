@@ -6,6 +6,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import FullscreenBillboard from "../../components/FullscreenBillboard";
 import AdminBillboardModal from "./components/AdminBillboardModal";
+import EventRegistrationModal from "../../components/EventRegistrationModal";
 import { supabase } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 import { useAuth } from "../../contexts/AuthContext";
@@ -36,6 +37,7 @@ export default function HomePage() {
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
   // isAdmin 상태에 따라 adminType 자동 동기화
@@ -742,8 +744,7 @@ export default function HomePage() {
   useEffect(() => {
     const handleCreateEvent = () => {
       if (selectedDate) {
-        setSelectedEvent(null);
-        setShowEventModal(true);
+        setShowRegistrationModal(true);
       }
     };
 
@@ -1148,6 +1149,20 @@ export default function HomePage() {
         billboardUserId={billboardUserId}
         billboardUserName={billboardUserName}
       />
+
+      {/* Event Registration Modal */}
+      {showRegistrationModal && selectedDate && (
+        <EventRegistrationModal
+          isOpen={showRegistrationModal}
+          onClose={() => setShowRegistrationModal(false)}
+          selectedDate={selectedDate}
+          onEventCreated={(createdDate) => {
+            // 이벤트 생성 후 새로고침
+            setRefreshTrigger((prev) => prev + 1);
+            setShowRegistrationModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
