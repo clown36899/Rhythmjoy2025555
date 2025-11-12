@@ -33,12 +33,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
     return localStorage.getItem('billboardUserId');
   });
   const [billboardUserName, setBillboardUserName] = useState<string | null>(() => {
     return localStorage.getItem('billboardUserName');
   });
+
+  // 관리자 권한 계산 헬퍼 함수
+  const computeIsAdmin = (currentUser: User | null): boolean => {
+    if (!currentUser) return false;
+    
+    // 1순위: app_metadata의 is_admin 플래그 확인
+    if (currentUser.app_metadata?.is_admin === true) {
+      return true;
+    }
+    
+    // 2순위: 이메일 비교 (fallback)
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+    return !!(currentUser.email && adminEmail && currentUser.email === adminEmail);
+  };
 
   useEffect(() => {
     // 로그아웃 직후라면 세션 체크 스킵 (캐시/세션 꼬임 방지)
@@ -59,14 +74,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         clearTimeout(timeoutId);
+        const currentUser = session?.user ?? null;
+        const adminStatus = computeIsAdmin(currentUser);
+        
         console.log('[AuthContext] 초기 세션:', {
           hasSession: !!session,
-          userEmail: session?.user?.email,
+          userEmail: currentUser?.email,
+          appMetadataIsAdmin: currentUser?.app_metadata?.is_admin,
+          isAdmin: adminStatus,
           adminEmail: import.meta.env.VITE_ADMIN_EMAIL,
           isProduction: import.meta.env.PROD
         });
+        
         setSession(session);
-        setUser(session?.user ?? null);
+        setUser(currentUser);
+        setIsAdmin(adminStatus);
         setLoading(false);
       })
       .catch((error) => {
@@ -78,10 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      const currentUser = session?.user ?? null;
+      const adminStatus = computeIsAdmin(currentUser);
+      
       console.log('[AuthContext] Auth state changed:', {
         event,
         hasSession: !!session,
-        userEmail: session?.user?.email,
+        userEmail: currentUser?.email,
+        appMetadataIsAdmin: currentUser?.app_metadata?.is_admin,
+        isAdmin: adminStatus,
         sessionExpiry: session?.expires_at
       });
       
@@ -90,15 +117,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('[AuthContext] 로그아웃 처리');
         setSession(null);
         setUser(null);
+        setIsAdmin(false);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        console.log('[AuthContext] 세션 설정:', session?.user?.email);
+        console.log('[AuthContext] 세션 설정:', currentUser?.email);
         setSession(session);
-        setUser(session?.user ?? null);
+        setUser(currentUser);
+        setIsAdmin(adminStatus);
       } else {
         // 기타 이벤트
         console.log('[AuthContext] 기타 이벤트 처리');
         setSession(session);
-        setUser(session?.user ?? null);
+        setUser(currentUser);
+        setIsAdmin(adminStatus);
       }
     });
 
@@ -268,19 +298,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[개발 프리패스] 활성화됨 - UI 전용 모드');
   } : undefined;
 
-  // 보안: user와 adminEmail이 모두 존재하고 일치할 때만 관리자
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-  const isAdmin = !!(user?.email && adminEmail && user.email === adminEmail);
-
   // 디버깅 로그 (상세)
   useEffect(() => {
     console.log('[AuthContext] 상태 업데이트:', {
       userEmail: user?.email,
+      appMetadataIsAdmin: user?.app_metadata?.is_admin,
       isAdmin,
       loading,
       hasSession: !!session,
-      adminEmail: import.meta.env.VITE_ADMIN_EMAIL,
-      comparison: user?.email === import.meta.env.VITE_ADMIN_EMAIL
+      adminEmail: import.meta.env.VITE_ADMIN_EMAIL
     });
   }, [user, isAdmin, loading, session]);
 

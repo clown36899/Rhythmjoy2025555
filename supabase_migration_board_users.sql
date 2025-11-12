@@ -1,6 +1,21 @@
 -- 게시판 회원 관리 시스템 마이그레이션
 -- Supabase SQL Editor에서 실행하세요
 
+-- 0. 설정 테이블 생성 (관리자 이메일 저장)
+CREATE TABLE IF NOT EXISTS system_settings (
+  id SERIAL PRIMARY KEY,
+  setting_key VARCHAR(100) NOT NULL UNIQUE,
+  setting_value TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 관리자 이메일 설정 삽입 (VITE_ADMIN_EMAIL과 동일하게)
+INSERT INTO system_settings (setting_key, setting_value)
+VALUES ('admin_email', 'clown313@naver.com')
+ON CONFLICT (setting_key) DO UPDATE
+SET setting_value = EXCLUDED.setting_value, updated_at = NOW();
+
 -- 1. board_users 테이블 생성
 CREATE TABLE IF NOT EXISTS board_users (
   id SERIAL PRIMARY KEY,
@@ -95,7 +110,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 7. RPC 함수: 관리자용 전체 회원 목록 조회
--- 서버 측에서 관리자 이메일 확인 (VITE_ADMIN_EMAIL과 일치 필요)
+-- 서버 측에서 관리자 이메일 확인 (system_settings 테이블에서 조회)
 CREATE OR REPLACE FUNCTION get_all_board_users()
 RETURNS TABLE (
   id INTEGER,
@@ -108,14 +123,19 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
   current_user_email TEXT;
+  admin_email TEXT;
 BEGIN
   -- 현재 로그인한 사용자의 이메일 가져오기
   current_user_email := auth.jwt() ->> 'email';
   
+  -- system_settings에서 관리자 이메일 가져오기
+  SELECT setting_value INTO admin_email
+  FROM system_settings
+  WHERE setting_key = 'admin_email';
+  
   -- 관리자 이메일이 아니면 에러 발생
-  -- 주의: 실제 관리자 이메일로 변경하세요 (예: clown313@naver.com)
-  IF current_user_email IS NULL OR current_user_email != 'clown313@naver.com' THEN
-    RAISE EXCEPTION '관리자 권한이 필요합니다. (current: %)', current_user_email;
+  IF current_user_email IS NULL OR current_user_email != admin_email THEN
+    RAISE EXCEPTION '관리자 권한이 필요합니다. (current: %, required: %)', current_user_email, admin_email;
   END IF;
   
   -- 관리자 확인 완료 후 전체 회원 목록 반환
