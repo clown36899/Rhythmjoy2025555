@@ -307,59 +307,34 @@ export function useUnifiedGestureController({
         
         if (Math.abs(deltaX) > threshold) {
           const direction = deltaX > 0 ? 'prev' : 'next';
-          console.log(`🎯 월 변경 준비: ${direction}, 현재 deltaX: ${deltaX.toFixed(0)}px`);
+          console.log(`🎯 슬라이드 방식 월 변경: ${direction}, deltaX: ${deltaX.toFixed(0)}px`);
           
-          // 애니메이션 목표 위치 (왼쪽 스와이프 → 0%, 오른쪽 스와이프 → -200%)
-          const targetTransform = direction === 'prev' ? 'translateX(-200%)' : 'translateX(0%)';
+          // ⭐ 핵심: 애니메이션 시작 **전에** 월 변경!
+          // 새 돔이 -100%에 배치됨 (예: 11월 → 12월이면 [11월, 12월, 1월])
+          onMonthChange(direction);
           
-          // transitionend 핸들러 (한 번만 실행)
-          const handleTransitionEnd = () => {
-            console.log(`✅ 애니메이션 완료 → 월 변경 시작`);
-            
-            // 1. transition 제거
+          // 월 변경 직후 애니메이션 (현재 위치 → -100%)
+          // React 리렌더링이 완료될 때까지 한 프레임 대기
+          requestAnimationFrame(() => {
+            // transition 설정
             if (calendarSlider) {
-              calendarSlider.style.transition = 'none';
-              calendarSlider.removeEventListener('transitionend', handleTransitionEnd);
+              calendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
             }
             if (eventListSlider) {
-              eventListSlider.style.transition = 'none';
-              eventListSlider.removeEventListener('transitionend', handleTransitionEnd);
+              eventListSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
             }
             
-            // 2. 원위치로 이동 (transition 없이)
+            // 한 프레임 더 대기 후 -100%로 애니메이션
             requestAnimationFrame(() => {
               if (calendarSlider) calendarSlider.style.transform = 'translateX(-100%)';
               if (eventListSlider) eventListSlider.style.transform = 'translateX(-100%)';
-              
-              // 3. 월 변경 (다음 프레임에서)
-              requestAnimationFrame(() => {
-                onMonthChange(direction);
-                console.log(`🎉 월 변경 완료: ${direction}`);
-              });
+              console.log(`🎬 슬라이드 애니메이션: 현재 위치 → -100%`);
             });
-          };
-          
-          // ⭐ 핵심: transition 설정 후 RAF로 한 프레임 대기 후 transform 변경
-          if (calendarSlider) {
-            calendarSlider.addEventListener('transitionend', handleTransitionEnd, { once: true });
-            calendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          }
-          if (eventListSlider) {
-            eventListSlider.addEventListener('transitionend', handleTransitionEnd, { once: true });
-            eventListSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          }
-          
-          // 한 프레임 대기 후 transform 변경 (업계 표준 패턴)
-          requestAnimationFrame(() => {
-            if (calendarSlider) calendarSlider.style.transform = targetTransform;
-            if (eventListSlider) eventListSlider.style.transform = targetTransform;
-            console.log(`🎬 애니메이션 시작: ${targetTransform}`);
           });
         } else {
           // threshold 미달 → 원위치 애니메이션
           console.log(`↩️ 스냅백 (threshold 미달): ${deltaX.toFixed(0)}px`);
           
-          // 같은 패턴: transition 설정 → RAF → transform 변경
           if (calendarSlider) {
             calendarSlider.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
           }
