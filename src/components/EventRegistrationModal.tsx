@@ -20,6 +20,7 @@ interface EventRegistrationModalProps {
   onClose: () => void;
   selectedDate: Date;
   onEventCreated: (createdDate: Date, eventId?: number) => void;
+  onMonthChange?: (date: Date) => void;
   fromBanner?: boolean;
   bannerMonthBounds?: { min: string; max: string };
 }
@@ -36,6 +37,7 @@ export default function EventRegistrationModal({
   onClose,
   selectedDate,
   onEventCreated,
+  onMonthChange,
   fromBanner = false,
   bannerMonthBounds,
 }: EventRegistrationModalProps) {
@@ -694,6 +696,10 @@ export default function EventRegistrationModal({
                             if (endDate < newStartDate) {
                               setEndDate(newStartDate);
                             }
+                            // 달력 이동
+                            if (onMonthChange) {
+                              onMonthChange(newStartDate);
+                            }
                           }
                         }}
                         className="w-full bg-gray-700 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -709,9 +715,14 @@ export default function EventRegistrationModal({
                         value={formatDateForInput(endDate)}
                         min={startDateInput || (bannerMonthBounds?.min)}
                         max={bannerMonthBounds?.max}
-                        onChange={(e) =>
-                          setEndDate(new Date(e.target.value + "T00:00:00"))
-                        }
+                        onChange={(e) => {
+                          const newEndDate = new Date(e.target.value + "T00:00:00");
+                          setEndDate(newEndDate);
+                          // 달력 이동
+                          if (onMonthChange) {
+                            onMonthChange(newEndDate);
+                          }
+                        }}
                         className="w-full bg-gray-700 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         style={{ fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' }}
                       />
@@ -772,6 +783,11 @@ export default function EventRegistrationModal({
                         }}
                         onChange={(e) => {
                           setTempDateInput(e.target.value);
+                          // 달력 이동
+                          if (e.target.value && onMonthChange) {
+                            const newDate = new Date(e.target.value + "T00:00:00");
+                            onMonthChange(newDate);
+                          }
                         }}
                       />
                       <button

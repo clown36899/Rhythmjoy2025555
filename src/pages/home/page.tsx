@@ -1212,6 +1212,9 @@ export default function HomePage() {
             setBannerMonthBounds(null);
           }}
           selectedDate={selectedDate}
+          onMonthChange={(date) => {
+            setCurrentMonth(date);
+          }}
           onEventCreated={(createdDate, eventId) => {
             // 이벤트 생성 후 새로고침
             setRefreshTrigger((prev) => prev + 1);
