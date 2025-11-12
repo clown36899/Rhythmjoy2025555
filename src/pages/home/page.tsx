@@ -93,6 +93,10 @@ export default function HomePage() {
   const [lastTouchTime, setLastTouchTime] = useState<number | null>(null);
   const calendarContentRef = useRef<HTMLDivElement>(null);
   
+  // 스크롤 기반 달력 확장용 상태
+  const scrollAccumulatorRef = useRef<number>(0);
+  const isScrollExpandingRef = useRef<boolean>(false);
+  
   // Transform 기반 최적화용 ref
   const dragAnimationRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
@@ -141,6 +145,134 @@ export default function HomePage() {
       console.log('📏 헤더 높이 측정:', height);
     }
   }, []);
+
+  // 스크롤 기반 달력 확장 로직
+  useEffect(() => {
+    const eventListElement = eventListElementRef.current;
+    if (!eventListElement) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      const scrollTop = eventListElement.scrollTop;
+      const isAtTop = scrollTop <= 0;
+      const isScrollingUp = e.deltaY < 0;
+      const fullscreenHeight = window.innerHeight - 150;
+
+      // 리스트가 최상단이고 위로 스크롤 → 달력 확장
+      if (isAtTop && isScrollingUp && calendarMode !== 'fullscreen') {
+        e.preventDefault();
+        e.stopPropagation();
+        isScrollExpandingRef.current = true;
+        
+        // 스크롤 누적 (위로 스크롤 = 음수, 누적은 양수로)
+        scrollAccumulatorRef.current += Math.abs(e.deltaY);
+        
+        // 누적 스크롤을 달력 높이로 변환 (0 → 250 → fullscreen)
+        const scrollToHeight = scrollAccumulatorRef.current * 1.5;
+        
+        requestAnimationFrame(() => {
+          let targetHeight = scrollToHeight;
+          let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
+          
+          // 히스테리시스 적용 (자석 효과)
+          if (targetHeight < 35) {
+            // collapsed 자석
+            targetHeight = 0;
+            targetMode = 'collapsed';
+            scrollAccumulatorRef.current = 0; // 리셋
+          } else if (targetHeight >= 35 && targetHeight < 265) {
+            // expanded 영역
+            if (targetHeight >= 230 && targetHeight < 270) {
+              // expanded 자석
+              targetHeight = 250;
+              targetMode = 'expanded';
+              scrollAccumulatorRef.current = 250 / 1.5; // 리셋
+            } else if (targetHeight < 230) {
+              targetMode = 'collapsed';
+            } else {
+              targetMode = 'expanded';
+            }
+          } else if (targetHeight >= 265) {
+            // fullscreen 영역으로 진행
+            if (targetHeight >= fullscreenHeight - 40) {
+              // fullscreen 자석
+              targetHeight = fullscreenHeight;
+              targetMode = 'fullscreen';
+              scrollAccumulatorRef.current = fullscreenHeight / 1.5; // 리셋
+            } else {
+              // 중간 영역: expanded 유지
+              targetMode = 'expanded';
+            }
+          }
+          
+          // CSS 변수로 높이 적용 (리렌더링 없음)
+          if (calendarContentRef.current) {
+            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+          }
+          
+          // 모드 업데이트
+          if (targetMode !== calendarMode) {
+            setCalendarMode(targetMode);
+          }
+        });
+      }
+      
+      // 달력이 확장 중이고 아래로 스크롤 → 달력 축소
+      if (calendarMode !== 'collapsed' && !isScrollingUp && isAtTop) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // 스크롤 누적 감소
+        scrollAccumulatorRef.current = Math.max(0, scrollAccumulatorRef.current - Math.abs(e.deltaY));
+        
+        const scrollToHeight = scrollAccumulatorRef.current * 1.5;
+        
+        requestAnimationFrame(() => {
+          let targetHeight = scrollToHeight;
+          let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'fullscreen';
+          
+          // 역방향 히스테리시스
+          if (targetHeight < 35) {
+            targetHeight = 0;
+            targetMode = 'collapsed';
+            scrollAccumulatorRef.current = 0; // 리셋
+            isScrollExpandingRef.current = false;
+          } else if (targetHeight >= 35 && targetHeight < 265) {
+            if (targetHeight >= 230 && targetHeight <= 270) {
+              targetHeight = 250;
+              targetMode = 'expanded';
+              scrollAccumulatorRef.current = 250 / 1.5; // 리셋
+            } else if (targetHeight < 230) {
+              targetMode = 'collapsed';
+            } else {
+              targetMode = 'expanded';
+            }
+          } else {
+            // fullscreen 영역
+            if (targetHeight >= fullscreenHeight - 40) {
+              targetMode = 'fullscreen';
+            } else {
+              // 중간: expanded
+              targetMode = 'expanded';
+            }
+          }
+          
+          if (calendarContentRef.current) {
+            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+          }
+          
+          if (targetMode !== calendarMode) {
+            setCalendarMode(targetMode);
+          }
+        });
+      }
+    };
+
+    eventListElement.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      eventListElement.removeEventListener('wheel', handleWheel);
+    };
+  }, [calendarMode]);
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
   const [fromQR] = useState(() => {
