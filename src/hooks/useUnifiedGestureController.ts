@@ -68,8 +68,9 @@ export function useUnifiedGestureController({
     // Helper: Calendar 스냅 수행 (currentHeight 기준)
     const performCalendarSnap = (velocity: number, currentHeight: number, deltaY: number) => {
       const fullscreenHeight = window.innerHeight - 150;
-      const FLING_VELOCITY_THRESHOLD = 0.15; // Android TV 최적화
-      const FLING_DISTANCE_THRESHOLD = 5;
+      // 웹 표준 임계값 (Material Design / iOS 기준)
+      const FLING_VELOCITY_THRESHOLD = 0.5; // 500px/초 (0.15 → 0.5)
+      const FLING_DISTANCE_THRESHOLD = 50; // 50px (5 → 50)
       
       let finalHeight = 0;
       let targetMode: CalendarMode = 'collapsed';
@@ -217,8 +218,8 @@ export function useUnifiedGestureController({
         
         const fullscreenHeight = window.innerHeight - 150;
         
-        // 배율: 모바일 표준 (1:1 ~ 2:1)
-        let targetHeight = gestureStartHeight + deltaY * 2.0;
+        // 배율: 웹 표준 1:1 (Material Design / iOS 표준)
+        let targetHeight = gestureStartHeight + deltaY * 1.0;
         const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
         
         // 높이 제한: 0 ~ fullscreen
