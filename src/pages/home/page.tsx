@@ -357,7 +357,9 @@ export default function HomePage() {
       const currentHeight = calendarContentRef.current?.offsetHeight || 0;
       const fullscreenHeight = window.innerHeight - 150;
       const touchDeltaY = touchHistory.length > 0 ? touchHistory[touchHistory.length - 1].y - touchStartY : 0;
-      const isPullingDown = touchDeltaY > 0;
+      
+      // 🎯 방향은 속도(velocityY)로 판단! (총 거리 아님)
+      const isPullingDown = velocityY > 0; // 양수 = 아래로, 음수 = 위로
 
       console.log("🔴 touchEnd:", {
         calendarMode,
@@ -433,16 +435,19 @@ export default function HomePage() {
           }
         }
       } else {
-        // Fling 감지 (위로 빠르게 밀기)
-        const isFlickUp =
-          touchDeltaY < -FLING_DISTANCE_THRESHOLD &&
-          velocityY < -FLING_VELOCITY_THRESHOLD;
+        // fullscreen 상태
+        // 🎯 Fling 감지: 속도만으로 판단 (거리 무시)
+        const isFlickUp = velocityY < -FLING_VELOCITY_THRESHOLD && Math.abs(velocityY) > FLING_VELOCITY_THRESHOLD;
 
         if (isFlickUp) {
           finalHeight = 250;
           targetMode = "expanded";
-          console.log("⚡️ Fling 감지: fullscreen → expanded", { velocityY: velocityY.toFixed(3) });
-        } else if (!isPullingDown && currentHeight < fullscreenHeight - 60) {
+          console.log("⚡️ Fling 감지: fullscreen → expanded", { 
+            velocityY: velocityY.toFixed(3), 
+            touchDeltaY: touchDeltaY.toFixed(0) 
+          });
+        } else if (currentHeight < fullscreenHeight - 60) {
+          // 천천히 올릴 때
           console.log("✅ fullscreen → expanded 스냅!");
           finalHeight = 250;
           targetMode = "expanded";
@@ -1357,22 +1362,23 @@ export default function HomePage() {
       }
       // 현재 상태가 fullscreen일 때
       else {
-        const threshold = fullscreenHeight - 20; // damping 고려
+        const threshold = fullscreenHeight - 20;
 
-        // Fling 감지 (위로 빠르게 밀기)
-        const isFlickUp =
-          calendarPullDistance < -FLING_DISTANCE_THRESHOLD &&
-          velocityY < -FLING_VELOCITY_THRESHOLD;
+        // 🎯 Fling 감지: 속도만으로 판단 (거리 무시)
+        const isFlickUp = velocityY < -FLING_VELOCITY_THRESHOLD && Math.abs(velocityY) > FLING_VELOCITY_THRESHOLD;
 
         if (isFlickUp) {
-          nextState = "expanded"; // Fling으로 즉시 expanded 전환!
-          console.log("⚡️ Fling 감지 (달력): fullscreen → expanded", { velocityY: velocityY.toFixed(3) });
+          nextState = "expanded";
+          console.log("⚡️ Fling 감지 (달력): fullscreen → expanded", { 
+            velocityY: velocityY.toFixed(3),
+            pullDistance: calendarPullDistance.toFixed(0)
+          });
         } else if (finalHeight <= 230) {
-          nextState = "collapsed"; // 0~230px: collapsed
+          nextState = "collapsed";
         } else if (finalHeight < threshold) {
-          nextState = "expanded"; // 231~(fullscreen-20)px: expanded 진입!
+          nextState = "expanded";
         } else {
-          nextState = "fullscreen"; // fullscreen 유지
+          nextState = "fullscreen";
         }
       }
 
