@@ -24,6 +24,25 @@ const formatDateForInput = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+// Buffer Rotation 유틸리티: 월 계산
+const getPrevMonth = (date: Date): Date => {
+  const prev = new Date(date);
+  prev.setDate(1); // 1일로 설정하여 오버플로우 방지
+  prev.setMonth(date.getMonth() - 1);
+  return prev;
+};
+
+const getNextMonth = (date: Date): Date => {
+  const next = new Date(date);
+  next.setDate(1);
+  next.setMonth(date.getMonth() + 1);
+  return next;
+};
+
+const getMonthKey = (date: Date): string => {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
 interface EventListProps {
   selectedDate: Date | null;
   selectedCategory: string;
@@ -165,6 +184,19 @@ export default function EventList({
   const prevMonthRef = monthRefs?.prev || fallbackPrevRef;
   const currentMonthRef = monthRefs?.current || fallbackCurrentRef;
   const nextMonthRef = monthRefs?.next || fallbackNextRef;
+
+  // 🎯 Buffer Rotation 상태: 어느 버퍼가 현재 화면에 보이는지 추적
+  const [activeBufferIndex, setActiveBufferIndex] = useState(1); // 0, 1, 2 (1 = 가운데)
+  
+  // 각 버퍼(0, 1, 2)에 어떤 월이 들어있는지 매핑
+  const [bufferMonthMap, setBufferMonthMap] = useState<{ [key: number]: Date }>(() => {
+    const current = currentMonth || new Date();
+    return {
+      0: getPrevMonth(current), // 버퍼 0 = 이전달
+      1: current,                 // 버퍼 1 = 현재달
+      2: getNextMonth(current),  // 버퍼 2 = 다음달
+    };
+  });
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
