@@ -124,6 +124,14 @@
 - **인증 컨텍스트**: `src/contexts/AuthContext.tsx`
 - **환경 변수**: `.env` (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_ADMIN_EMAIL)
 
+#### ⚠️ 중요: Supabase DB 작업 규칙
+**Agent는 Supabase DB를 직접 조회하거나 수정할 수 없습니다.**
+- ❌ `execute_sql_tool` 사용 금지 (로컬 개발 DB만 가능, Supabase는 불가)
+- ❌ DB 스키마 조회 시도 금지
+- ✅ SQL 파일만 생성하여 사용자에게 제공
+- ✅ 사용자가 Supabase SQL Editor에서 직접 실행
+- **이 규칙을 반드시 기억하여 두 번 실수하지 말 것**
+
 ### 빌드 & 배포
 
 #### Vite 설정
