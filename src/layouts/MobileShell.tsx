@@ -476,6 +476,19 @@ export function MobileShell() {
                 setShowAdminPanel(false);
                 navigate('/board');
                 setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('openPrefixManagement'));
+                }, 100);
+              }}
+              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+            >
+              <i className="ri-price-tag-3-line"></i>
+              머릿말 관리
+            </button>
+            <button
+              onClick={() => {
+                setShowAdminPanel(false);
+                navigate('/board');
+                setTimeout(() => {
                   window.dispatchEvent(new CustomEvent('openRegistrationFormPreview'));
                 }, 100);
               }}

@@ -5,6 +5,7 @@ import PostEditorModal from './components/PostEditorModal';
 import PostDetailModal from './components/PostDetailModal';
 import UserRegistrationModal, { type UserData } from './components/UserRegistrationModal';
 import BoardUserManagementModal from '../../components/BoardUserManagementModal';
+import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
 
 export interface BoardPost {
   id: number;
@@ -16,6 +17,13 @@ export interface BoardPost {
   user_id?: string;
   views: number;
   is_notice?: boolean;
+  prefix_id?: number;
+  prefix?: {
+    id: number;
+    name: string;
+    color: string;
+    admin_only: boolean;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +39,7 @@ export default function BoardPage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [showUserManagementModal, setShowUserManagementModal] = useState(false);
   const [showRegistrationPreview, setShowRegistrationPreview] = useState(false);
+  const [showPrefixManagementModal, setShowPrefixManagementModal] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -59,12 +68,22 @@ export default function BoardPage() {
       setShowRegistrationPreview(true);
     };
 
+    const handleOpenPrefixManagement = () => {
+      if (!isAdmin) {
+        console.warn('관리자 권한이 필요합니다.');
+        return;
+      }
+      setShowPrefixManagementModal(true);
+    };
+
     window.addEventListener('openBoardUserManagement', handleOpenUserManagement);
     window.addEventListener('openRegistrationFormPreview', handleOpenRegistrationPreview);
+    window.addEventListener('openPrefixManagement', handleOpenPrefixManagement);
 
     return () => {
       window.removeEventListener('openBoardUserManagement', handleOpenUserManagement);
       window.removeEventListener('openRegistrationFormPreview', handleOpenRegistrationPreview);
+      window.removeEventListener('openPrefixManagement', handleOpenPrefixManagement);
     };
   }, [isAdmin]);
 
@@ -119,7 +138,20 @@ export default function BoardPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('board_posts')
-        .select('id, title, content, author_name, author_nickname, user_id, views, is_notice, created_at, updated_at')
+        .select(`
+          id, 
+          title, 
+          content, 
+          author_name, 
+          author_nickname, 
+          user_id, 
+          views, 
+          is_notice, 
+          prefix_id,
+          prefix:board_prefixes(id, name, color, admin_only),
+          created_at, 
+          updated_at
+        `)
         .order('is_notice', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -252,9 +284,12 @@ export default function BoardPage() {
                 }`}
               >
                 <div className="flex items-start gap-2 mb-2">
-                  {post.is_notice && (
-                    <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded font-medium flex-shrink-0">
-                      공지
+                  {post.prefix && (
+                    <span 
+                      className="text-white text-xs px-2 py-0.5 rounded font-medium flex-shrink-0"
+                      style={{ backgroundColor: post.prefix.color }}
+                    >
+                      {post.prefix.name}
                     </span>
                   )}
                   <h3 className={`font-medium line-clamp-1 flex-1 ${
@@ -311,6 +346,14 @@ export default function BoardPage() {
           onRegistered={() => {}}
           userId="preview"
           previewMode={true}
+        />
+      )}
+
+      {/* Prefix Management Modal (Admin Only) */}
+      {showPrefixManagementModal && isAdmin && (
+        <BoardPrefixManagementModal
+          isOpen={showPrefixManagementModal}
+          onClose={() => setShowPrefixManagementModal(false)}
         />
       )}
 

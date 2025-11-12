@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardPost } from '../page';
+import type { BoardPrefix } from '../../../components/BoardPrefixManagementModal';
 
 interface PostEditorModalProps {
   isOpen: boolean;
@@ -24,13 +25,16 @@ export default function PostEditorModal({
     title: '',
     content: '',
     author_name: '',
-    is_notice: false
+    is_notice: false,
+    prefix_id: null as number | null
   });
+  const [prefixes, setPrefixes] = useState<BoardPrefix[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      loadPrefixes();
       
       if (post) {
         // 수정 모드
@@ -38,7 +42,8 @@ export default function PostEditorModal({
           title: post.title,
           content: post.content,
           author_name: post.author_name,
-          is_notice: post.is_notice || false
+          is_notice: post.is_notice || false,
+          prefix_id: post.prefix_id || null
         });
       } else {
         // 새 글 작성 모드 - 로그인한 사용자 이름 자동 입력
@@ -46,7 +51,8 @@ export default function PostEditorModal({
           title: '',
           content: '',
           author_name: user?.user_metadata?.name || user?.email?.split('@')[0] || '',
-          is_notice: false
+          is_notice: false,
+          prefix_id: null
         });
       }
     } else {
@@ -57,6 +63,20 @@ export default function PostEditorModal({
       document.body.style.overflow = '';
     };
   }, [isOpen, post, user]);
+
+  const loadPrefixes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('board_prefixes')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setPrefixes(data || []);
+    } catch (error) {
+      console.error('머릿말 로드 실패:', error);
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -108,7 +128,8 @@ export default function PostEditorModal({
           p_user_id: user.id,
           p_title: formData.title,
           p_content: formData.content,
-          p_is_notice: formData.is_notice
+          p_is_notice: formData.is_notice,
+          p_prefix_id: formData.prefix_id
         });
 
         if (error) throw error;
@@ -121,7 +142,8 @@ export default function PostEditorModal({
           p_content: formData.content,
           p_author_name: formData.author_name,
           p_author_nickname: userNickname || null,
-          p_is_notice: formData.is_notice
+          p_is_notice: formData.is_notice,
+          p_prefix_id: formData.prefix_id
         });
 
         if (error) throw error;
@@ -192,6 +214,31 @@ export default function PostEditorModal({
                   className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="제목을 입력하세요"
                 />
+              </div>
+
+              {/* 머릿말 선택 */}
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  머릿말
+                </label>
+                <select
+                  value={formData.prefix_id || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    prefix_id: e.target.value ? parseInt(e.target.value) : null
+                  }))}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">머릿말 없음</option>
+                  {prefixes
+                    .filter(prefix => !prefix.admin_only || isAdmin)
+                    .map(prefix => (
+                      <option key={prefix.id} value={prefix.id}>
+                        {prefix.name}
+                      </option>
+                    ))
+                  }
+                </select>
               </div>
 
               {/* 내용 */}
