@@ -35,6 +35,7 @@ export function useUnifiedGestureController({
     // 제스처 상태
     let isDragging = false;
     let isPending = false; // pending 상태 추가
+    let gestureDirection: 'vertical' | 'horizontal' | null = null; // 제스처 방향
     let startY = 0;
     let startX = 0;
     let startHeight = 0;
@@ -183,15 +184,14 @@ export function useUnifiedGestureController({
       // 조건 2: 리스트 최상단 → pending 상태 (calendarMode 관계없이!)
       if (scrollTop === 0) {
         isPending = true;
+        gestureDirection = null; // 방향 미정
         startY = touch.clientY;
         startX = touch.clientX;
         startHeight = modeToHeight(calendarMode);
         currentHeight = startHeight;
         velocityHistory = [{ y: touch.clientY, time: Date.now() }];
 
-        console.log(
-          `⏳ pending 상태 (현재모드: ${calendarMode}, 높이: ${startHeight}px)`,
-        );
+        console.log(`⏳ pending 상태 (방향 감지 대기)`);
         return;
       }
     };
