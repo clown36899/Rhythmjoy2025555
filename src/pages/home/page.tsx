@@ -1020,9 +1020,6 @@ export default function HomePage() {
               viewMode={viewMode}
               onViewModeChange={handleViewModeChange}
               hoveredEventId={hoveredEventId}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
               dragOffset={dragOffset}
               isAnimating={isAnimating}
               calendarHeightPx={getCalendarHeightPx()}
