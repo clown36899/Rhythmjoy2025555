@@ -3340,15 +3340,17 @@ export default function EventList({
           onClick={(e) => {
             if (e.target === e.currentTarget) closeModal();
           }}
-          onWheel={(e) => {
+          onTouchStartCapture={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchMoveCapture={(e) => {
             if (e.target === e.currentTarget) {
               e.preventDefault();
+              e.stopPropagation();
             }
           }}
-          onTouchMove={(e) => {
-            if (e.target === e.currentTarget) {
-              e.preventDefault();
-            }
+          onTouchEndCapture={(e) => {
+            e.stopPropagation();
           }}
         >
           <div
