@@ -1259,9 +1259,9 @@ export default function HomePage() {
         fullscreen: fullscreenHeight,
       };
 
-      // 🎯 Fling 임계값 설정
-      const FLING_VELOCITY_THRESHOLD = 0.5; // 0.5 px/ms (500px/초)
-      const FLING_DISTANCE_THRESHOLD = 30; // 30px 이상 이동
+      // 🎯 Fling 임계값 설정 속도
+      const FLING_VELOCITY_THRESHOLD = 0.1; // 0.5 px/ms (500px/초)
+      const FLING_DISTANCE_THRESHOLD = 10; // 30px 이상 이동
 
       // 🎯 Hysteresis 기반 상태 전환 로직 (현재 상태에 따라 다른 임계값!)
       let nextState: "collapsed" | "expanded" | "fullscreen";
