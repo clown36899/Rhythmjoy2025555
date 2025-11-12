@@ -21,11 +21,9 @@ export default function PostEditorModal({
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    author_name: '',
-    password: ''
+    author_name: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [passwordVerified, setPasswordVerified] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -36,19 +34,15 @@ export default function PostEditorModal({
         setFormData({
           title: post.title,
           content: post.content,
-          author_name: post.author_name,
-          password: ''
+          author_name: post.author_name
         });
-        setPasswordVerified(false);
       } else {
-        // 새 글 작성 모드 - 로그인한 사용자는 이름 자동 입력
+        // 새 글 작성 모드 - 로그인한 사용자 이름 자동 입력
         setFormData({
           title: '',
           content: '',
-          author_name: user?.user_metadata?.name || user?.email?.split('@')[0] || '',
-          password: ''
+          author_name: user?.user_metadata?.name || user?.email?.split('@')[0] || ''
         });
-        setPasswordVerified(false);
       }
     } else {
       document.body.style.overflow = '';
@@ -69,31 +63,6 @@ export default function PostEditorModal({
     }));
   };
 
-  const handleVerifyPassword = async () => {
-    if (!post || !formData.password) {
-      alert('비밀번호를 입력해주세요.');
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.rpc('verify_board_post_password', {
-        post_id: post.id,
-        input_password: formData.password
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        setPasswordVerified(true);
-      } else {
-        alert('비밀번호가 일치하지 않습니다.');
-        setFormData(prev => ({ ...prev, password: '' }));
-      }
-    } catch (error) {
-      console.error('비밀번호 검증 실패:', error);
-      alert('비밀번호 검증 중 오류가 발생했습니다.');
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,15 +82,14 @@ export default function PostEditorModal({
       return;
     }
 
-    // 비밀번호 검증: 로그인하지 않은 사용자는 비밀번호 필수
-    if (!post && !user && !formData.password) {
-      alert('비밀번호를 설정해주세요.');
+    if (!user) {
+      alert('로그인이 필요합니다.');
       return;
     }
 
-    // 수정 모드에서 비밀번호 검증 (관리자와 작성자 본인은 제외)
-    if (post && !isAdmin && !passwordVerified && post.user_id !== user?.id) {
-      alert('비밀번호를 먼저 확인해주세요.');
+    // 수정 모드: 본인 글이 아니면 수정 불가 (관리자는 제외)
+    if (post && !isAdmin && post.user_id !== user?.id) {
+      alert('본인이 작성한 글만 수정할 수 있습니다.');
       return;
     }
 
@@ -144,13 +112,12 @@ export default function PostEditorModal({
         if (error) throw error;
         alert('게시글이 수정되었습니다!');
       } else {
-        // 새 글 작성 - 비밀번호를 해시해서 저장 (로그인한 사용자는 user_id 함께 저장)
-        const { error } = await supabase.rpc('create_board_post_with_hash', {
+        // 새 글 작성
+        const { error } = await supabase.rpc('create_board_post', {
           p_title: formData.title,
           p_content: formData.content,
           p_author_name: formData.author_name,
-          p_password: formData.password || null,
-          p_user_id: user?.id || null
+          p_user_id: user?.id
         });
 
         if (error) throw error;
@@ -187,34 +154,7 @@ export default function PostEditorModal({
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {/* 수정 모드: 비밀번호 확인 (관리자는 제외) */}
-          {post && !isAdmin && !passwordVerified && (
-            <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
-              <p className="text-yellow-300 text-sm mb-3">
-                게시글을 수정하려면 비밀번호를 입력해주세요.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="비밀번호"
-                />
-                <button
-                  type="button"
-                  onClick={handleVerifyPassword}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  확인
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 새 글 작성 또는 비밀번호 확인 후 */}
-          {(!post || isAdmin || passwordVerified) && (
+          {(
             <>
               {/* 작성자 (새 글 작성 시에만) */}
               {!post && (
@@ -266,41 +206,12 @@ export default function PostEditorModal({
                 />
               </div>
 
-              {/* 비밀번호 (새 글 작성 시, 로그인하지 않은 사용자만) */}
-              {!post && !user && (
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    비밀번호
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="수정/삭제 시 필요한 비밀번호를 설정하세요"
-                  />
-                  <p className="text-gray-400 text-xs mt-1">
-                    게시글 수정/삭제 시 필요합니다. 잊지 마세요!
-                  </p>
-                </div>
-              )}
-              {/* 로그인 사용자 안내 */}
-              {!post && user && (
-                <div className="bg-green-900/30 border border-green-600 rounded-lg p-3">
-                  <p className="text-green-300 text-sm">
-                    <i className="ri-shield-check-line mr-1"></i>
-                    카카오 로그인으로 안전하게 글을 작성합니다. 비밀번호 없이 작성한 글을 수정/삭제할 수 있습니다.
-                  </p>
-                </div>
-              )}
             </>
           )}
         </form>
 
         {/* Footer */}
-        {(!post || isAdmin || passwordVerified) && (
+        {(
           <div className="px-4 py-4 border-t border-gray-700 flex-shrink-0 flex gap-2">
             <button
               type="button"

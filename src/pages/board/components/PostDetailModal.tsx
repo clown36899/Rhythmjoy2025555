@@ -21,10 +21,7 @@ export default function PostDetailModal({
   onDelete,
   onUpdate: _onUpdate
 }: PostDetailModalProps) {
-  const { isAdmin } = useAuth();
-  const [password, setPassword] = useState('');
-  const [showPasswordInput, setShowPasswordInput] = useState(false);
-  const [actionType, setActionType] = useState<'edit' | 'delete' | null>(null);
+  const { isAdmin, user } = useAuth();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -38,48 +35,16 @@ export default function PostDetailModal({
   };
 
   const handleActionClick = (type: 'edit' | 'delete') => {
-    if (isAdmin) {
-      // 관리자는 비밀번호 없이 바로 실행
-      if (type === 'edit') {
-        onEdit(post);
-      } else {
-        handleDelete();
-      }
-    } else {
-      // 일반 사용자는 비밀번호 입력
-      setActionType(type);
-      setShowPasswordInput(true);
-    }
-  };
-
-  const handlePasswordSubmit = async () => {
-    if (!password) {
-      alert('비밀번호를 입력해주세요.');
+    // 본인 글이거나 관리자만 수정/삭제 가능
+    if (!isAdmin && post.user_id !== user?.id) {
+      alert('본인이 작성한 글만 수정/삭제할 수 있습니다.');
       return;
     }
 
-    try {
-      const { data, error } = await supabase.rpc('verify_board_post_password', {
-        post_id: post.id,
-        input_password: password
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        // 비밀번호 일치
-        if (actionType === 'edit') {
-          onEdit(post);
-        } else if (actionType === 'delete') {
-          handleDelete();
-        }
-      } else {
-        alert('비밀번호가 일치하지 않습니다.');
-        setPassword('');
-      }
-    } catch (error) {
-      console.error('비밀번호 검증 실패:', error);
-      alert('비밀번호 검증 중 오류가 발생했습니다.');
+    if (type === 'edit') {
+      onEdit(post);
+    } else {
+      handleDelete();
     }
   };
 
@@ -144,46 +109,7 @@ export default function PostDetailModal({
 
         {/* Footer */}
         <div className="px-4 py-4 border-t border-gray-700 flex-shrink-0">
-          {showPasswordInput ? (
-            <div className="space-y-3">
-              <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-3">
-                <p className="text-yellow-300 text-sm mb-2">
-                  {actionType === 'edit' ? '수정' : '삭제'}하려면 비밀번호를 입력해주세요.
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handlePasswordSubmit();
-                      }
-                    }}
-                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="비밀번호"
-                    autoFocus
-                  />
-                  <button
-                    onClick={handlePasswordSubmit}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    확인
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowPasswordInput(false);
-                      setPassword('');
-                      setActionType(null);
-                    }}
-                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    취소
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
+          {(
             <div className="flex gap-2">
               <button
                 onClick={onClose}
@@ -191,20 +117,24 @@ export default function PostDetailModal({
               >
                 닫기
               </button>
-              <button
-                onClick={() => handleActionClick('edit')}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
-              >
-                <i className="ri-edit-line mr-1"></i>
-                수정
-              </button>
-              <button
-                onClick={() => handleActionClick('delete')}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition-colors"
-              >
-                <i className="ri-delete-bin-line mr-1"></i>
-                삭제
-              </button>
+              {(isAdmin || post.user_id === user?.id) && (
+                <>
+                  <button
+                    onClick={() => handleActionClick('edit')}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
+                  >
+                    <i className="ri-edit-line mr-1"></i>
+                    수정
+                  </button>
+                  <button
+                    onClick={() => handleActionClick('delete')}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition-colors"
+                  >
+                    <i className="ri-delete-bin-line mr-1"></i>
+                    삭제
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
