@@ -713,23 +713,23 @@ export default function EventCalendar({
 
                 if (!bar) return null;
 
-                // 셀이 클 때는 제목 표시
-                const showTitle = cellHeight > 55 && bar.isStart;
+                // 셀이 클 때는 제목 표시 (모든 날짜에 표시하여 긴 제목이 여러 칸에 걸쳐 보이도록)
+                const showTitle = cellHeight > 55;
                 const event = showTitle ? multiDayEvents.find(e => e.id === bar.eventId) : null;
 
                 return (
                   <div
                     key={i}
-                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 overflow-hidden flex items-center px-1.5 ${
+                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 overflow-visible flex items-center ${
                       bar.categoryColor
                     } ${
                       bar.isStart && bar.isEnd
-                        ? "rounded-full"
+                        ? "rounded-full px-1.5"
                         : bar.isStart
-                          ? "rounded-l-full"
+                          ? "rounded-l-full pl-1.5 pr-0"
                           : bar.isEnd
-                            ? "rounded-r-full"
-                            : ""
+                            ? "rounded-r-full pr-1.5 pl-0"
+                            : "px-0"
                     } ${
                       bar.isFaded
                         ? "opacity-20 h-1.5 z-0"
@@ -741,7 +741,10 @@ export default function EventCalendar({
                     }`}
                   >
                     {showTitle && event && (
-                      <span className="text-[10px] font-medium truncate text-white">
+                      <span className="text-[10px] font-medium whitespace-nowrap text-white" style={{
+                        overflow: 'visible',
+                        textOverflow: 'clip'
+                      }}>
                         {event.title}
                       </span>
                     )}
