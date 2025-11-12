@@ -146,7 +146,7 @@ export default function HomePage() {
     }
   }, []);
 
-  // 스크롤 기반 달력 확장 로직
+  // 스크롤 기반 달력 확장 로직 (scroll 이벤트 사용)
   useEffect(() => {
     console.log('🔧 useEffect 실행 - eventListElementRef:', eventListElementRef.current);
     const eventListElement = eventListElementRef.current;
@@ -155,25 +155,55 @@ export default function HomePage() {
       return;
     }
     
-    console.log('✅ wheel 이벤트 리스너 등록 완료!');
+    console.log('✅ scroll 이벤트 리스너 등록 완료!');
+    
+    let lastScrollTop = 0;
+    let touchStartY = 0;
+    let isTouching = false;
 
-    const handleWheel = (e: WheelEvent) => {
+    const handleScroll = () => {
       const scrollTop = eventListElement.scrollTop;
       const isAtTop = scrollTop <= 0;
-      const isScrollingUp = e.deltaY < 0;
+      const scrollDelta = lastScrollTop - scrollTop; // 양수 = 위로, 음수 = 아래로
+      const isScrollingUp = scrollDelta > 0;
       const fullscreenHeight = window.innerHeight - 150;
 
-      console.log(`🔍 wheel: scrollTop=${scrollTop.toFixed(1)}, deltaY=${e.deltaY.toFixed(1)}, isAtTop=${isAtTop}, isScrollingUp=${isScrollingUp}, calendarMode=${calendarMode}`);
+      console.log(`🔍 scroll: scrollTop=${scrollTop.toFixed(1)}, delta=${scrollDelta.toFixed(1)}, isAtTop=${isAtTop}, isScrollingUp=${isScrollingUp}, calendarMode=${calendarMode}`);
+      
+      lastScrollTop = scrollTop;
 
-      // 리스트가 최상단이고 위로 스크롤 → 달력 확장
-      if (isAtTop && isScrollingUp && calendarMode !== 'fullscreen') {
+      // 리스트가 최상단일 때만 처리
+      if (!isAtTop) return;
+      
+      console.log('✅ 최상단 도달!');
+    };
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+      isTouching = true;
+      console.log('🟢 터치 시작:', touchStartY);
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isTouching) return;
+      
+      const scrollTop = eventListElement.scrollTop;
+      const isAtTop = scrollTop <= 0;
+      const touchCurrentY = e.touches[0].clientY;
+      const touchDelta = touchCurrentY - touchStartY;
+      const isPullingDown = touchDelta > 0; // 아래로 당김 (위로 스크롤)
+      const fullscreenHeight = window.innerHeight - 150;
+      
+      console.log(`🔍 touch: scrollTop=${scrollTop.toFixed(1)}, touchDelta=${touchDelta.toFixed(1)}, isAtTop=${isAtTop}, isPullingDown=${isPullingDown}, calendarMode=${calendarMode}`);
+      
+      // 리스트가 최상단이고 아래로 당김 → 달력 확장
+      if (isAtTop && isPullingDown && calendarMode !== 'fullscreen') {
         console.log('✅ 달력 확장 조건 만족!');
         e.preventDefault();
-        e.stopPropagation();
         isScrollExpandingRef.current = true;
         
-        // 스크롤 누적 (위로 스크롤 = 음수, 누적은 양수로)
-        scrollAccumulatorRef.current += Math.abs(e.deltaY);
+        // 터치 거리를 누적
+        scrollAccumulatorRef.current += touchDelta * 0.5;
         
         // 누적 스크롤을 달력 높이로 변환 (0 → 250 → fullscreen)
         const scrollToHeight = scrollAccumulatorRef.current * 1.5;
@@ -227,14 +257,13 @@ export default function HomePage() {
         });
       }
       
-      // 달력이 확장 중이고 아래로 스크롤 → 달력 축소
-      if (calendarMode !== 'collapsed' && !isScrollingUp && isAtTop) {
+      // 달력이 확장 중이고 위로 밀기 → 달력 축소
+      if (isAtTop && !isPullingDown && calendarMode !== 'collapsed') {
         console.log('✅ 달력 축소 조건 만족!');
         e.preventDefault();
-        e.stopPropagation();
         
         // 스크롤 누적 감소
-        scrollAccumulatorRef.current = Math.max(0, scrollAccumulatorRef.current - Math.abs(e.deltaY));
+        scrollAccumulatorRef.current = Math.max(0, scrollAccumulatorRef.current + touchDelta * 0.5);
         
         const scrollToHeight = scrollAccumulatorRef.current * 1.5;
         
@@ -280,11 +309,23 @@ export default function HomePage() {
         });
       }
     };
+    
+    const handleTouchEnd = () => {
+      isTouching = false;
+      touchStartY = 0;
+      console.log('🔴 터치 종료');
+    };
 
-    eventListElement.addEventListener('wheel', handleWheel, { passive: false });
+    eventListElement.addEventListener('scroll', handleScroll, { passive: true });
+    eventListElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+    eventListElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    eventListElement.addEventListener('touchend', handleTouchEnd, { passive: true });
     
     return () => {
-      eventListElement.removeEventListener('wheel', handleWheel);
+      eventListElement.removeEventListener('scroll', handleScroll);
+      eventListElement.removeEventListener('touchstart', handleTouchStart);
+      eventListElement.removeEventListener('touchmove', handleTouchMove);
+      eventListElement.removeEventListener('touchend', handleTouchEnd);
     };
   }, [calendarMode]);
 
