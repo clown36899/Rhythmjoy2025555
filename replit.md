@@ -11,10 +11,13 @@
 - **접근 경로**: 메인 URL (`/`)을 통한 이벤트 캘린더, 소셜 장소, 연습실 등 모든 기능 이용 가능
 
 ### 빌보드 시스템 (Billboard System)
-- **Android 전용**: 빌보드 기능은 Android 기기에서만 PWA(Progressive Web App)로 설치 및 실행 가능
+- **플랫폼 지원**: 웹과 모바일(iOS, Android) 브라우저에서 모두 작동
+- **주요 타겟**: Android APK 앱에서 웹뷰(WebView)로 빌보드 웹 주소를 로드하여 표시하도록 설계
 - **접근 경로**: `/billboard/:userId` 전용 URL을 통한 전체 화면 이벤트 슬라이드쇼 디스플레이
 - **최적화**: 세로 방향(portrait) 디스플레이에 최적화, CSS 회전으로 가로 모니터 지원
-- **설치 방법**: Android 브라우저에서 빌보드 URL 접속 후 "홈 화면에 추가"를 통해 독립 앱처럼 설치
+- **설치 옵션**: 
+  - Android 브라우저에서 PWA(Progressive Web App)로 "홈 화면에 추가" 가능
+  - Android APK 앱에서 웹뷰를 통해 빌보드 URL을 직접 로드하여 사용 (권장 방식)
 
 ## User Preferences
 
