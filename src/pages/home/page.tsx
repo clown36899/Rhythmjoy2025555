@@ -133,6 +133,13 @@ export default function HomePage() {
     }
   }, []);
 
+  // 달력 완전히 닫을 때 선택 날짜 리셋
+  useEffect(() => {
+    if (calendarMode === "collapsed") {
+      setSelectedDate(null);
+    }
+  }, [calendarMode]);
+
   // 🎯 통합 Pointer Events 컨트롤러
   useUnifiedGestureController({
     containerRef,
@@ -618,27 +625,15 @@ export default function HomePage() {
   };
 
   const handleMonthChange = (month: Date) => {
-    console.log(">>> handleMonthChange 시작 <<<");
-    console.log("받은 month:", month);
-    console.log("month.toISOString():", month.toISOString());
-    console.log("현재 viewMode:", viewMode);
-    console.log("현재 currentMonth:", currentMonth);
-
     setCurrentMonth(month);
-    console.log("setCurrentMonth 완료");
 
     // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
     setSelectedDate(null);
-    console.log("setSelectedDate(null) 완료");
 
     // 년 모드가 아닐 때만 카테고리 변경 (년 모드에서는 뷰 유지)
     if (viewMode === "month") {
-      console.log("월 모드 - navigateWithCategory 호출");
       navigateWithCategory("all");
-    } else {
-      console.log("년 모드 - navigateWithCategory 생략");
     }
-    console.log(">>> handleMonthChange 완료 <<<");
   };
 
   // 수평 스와이프 임계값
