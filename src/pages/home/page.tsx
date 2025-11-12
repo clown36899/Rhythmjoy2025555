@@ -329,24 +329,27 @@ export default function HomePage() {
 
       isTouching = false;
 
-      // 🚀 개선된 속도 계산: 전체 히스토리 평균 사용 (안정적)
+      // 🚀 최종 속도 계산: 마지막 몇 개 포인트 사용 (빠르게 "툭" 치는 동작 감지)
       const velocityY = (() => {
         if (touchHistory.length < 2) {
           console.log("❌ 속도 계산 실패: 포인트 부족", touchHistory.length);
           return 0;
         }
         
-        // 전체 드래그 거리와 시간으로 평균 속도 계산
-        const first = touchHistory[0];
-        const last = touchHistory[touchHistory.length - 1];
+        // 마지막 3-5개 포인트 사용 (최근 동작 감지)
+        const numPoints = Math.min(5, touchHistory.length);
+        const recentPoints = touchHistory.slice(-numPoints);
+        
+        const first = recentPoints[0];
+        const last = recentPoints[recentPoints.length - 1];
         
         const distance = last.y - first.y;
         const time = last.time - first.time;
         
-        if (time === 0 || time < 10) return 0; // 너무 짧은 시간은 무시
+        if (time === 0 || time < 5) return 0;
         
         const velocity = distance / time;
-        console.log(`✅ 속도 계산: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (${touchHistory.length}개 포인트)`);
+        console.log(`✅ 속도: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (최근 ${numPoints}개)`);
         return velocity;
       })();
 
@@ -366,9 +369,9 @@ export default function HomePage() {
         historyLength: touchHistory.length,
       });
 
-      // 🎯 Fling 임계값 설정 (더 낮게 조정)
-      const FLING_VELOCITY_THRESHOLD = 0.3; // 0.3 px/ms (300px/초)
-      const FLING_DISTANCE_THRESHOLD = 20; // 20px 이상 이동
+      // 🎯 Fling 임계값 설정 (매우 민감하게)
+      const FLING_VELOCITY_THRESHOLD = 0.2; // 0.2 px/ms (200px/초)
+      const FLING_DISTANCE_THRESHOLD = 15; // 15px 이상 이동
 
       // 방향 기반 양방향 자석 스냅
       let finalHeight = 0;
@@ -1264,24 +1267,27 @@ export default function HomePage() {
         return;
       }
 
-      // 🚀 개선된 속도 계산: 전체 히스토리 평균 사용 (안정적)
+      // 🚀 최종 속도 계산: 마지막 몇 개 포인트 사용 (빠르게 "툭" 치는 동작 감지)
       const velocityY = (() => {
         if (calendarTouchHistory.length < 2) {
           console.log("❌ [달력] 속도 계산 실패: 포인트 부족", calendarTouchHistory.length);
           return 0;
         }
         
-        // 전체 드래그 거리와 시간으로 평균 속도 계산
-        const first = calendarTouchHistory[0];
-        const last = calendarTouchHistory[calendarTouchHistory.length - 1];
+        // 마지막 3-5개 포인트 사용 (최근 동작 감지)
+        const numPoints = Math.min(5, calendarTouchHistory.length);
+        const recentPoints = calendarTouchHistory.slice(-numPoints);
+        
+        const first = recentPoints[0];
+        const last = recentPoints[recentPoints.length - 1];
         
         const distance = last.y - first.y;
         const time = last.time - first.time;
         
-        if (time === 0 || time < 10) return 0; // 너무 짧은 시간은 무시
+        if (time === 0 || time < 5) return 0;
         
         const velocity = distance / time;
-        console.log(`✅ [달력] 속도 계산: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (${calendarTouchHistory.length}개 포인트)`);
+        console.log(`✅ [달력] 속도: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (최근 ${numPoints}개)`);
         return velocity;
       })();
 
@@ -1298,9 +1304,9 @@ export default function HomePage() {
         fullscreen: fullscreenHeight,
       };
 
-      // 🎯 Fling 임계값 설정 (더 낮게 조정)
-      const FLING_VELOCITY_THRESHOLD = 0.3; // 0.3 px/ms (300px/초)
-      const FLING_DISTANCE_THRESHOLD = 20; // 20px 이상 이동
+      // 🎯 Fling 임계값 설정 (매우 민감하게)
+      const FLING_VELOCITY_THRESHOLD = 0.2; // 0.2 px/ms (200px/초)
+      const FLING_DISTANCE_THRESHOLD = 15; // 15px 이상 이동
 
       // 🎯 Hysteresis 기반 상태 전환 로직 (현재 상태에 따라 다른 임계값!)
       let nextState: "collapsed" | "expanded" | "fullscreen";
