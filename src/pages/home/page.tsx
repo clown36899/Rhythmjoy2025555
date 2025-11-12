@@ -286,8 +286,8 @@ export default function HomePage() {
       let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
       
       if (calendarMode === 'collapsed') {
-        // collapsed에서 시작 → 조금만 내려도 expanded로
-        if (isPullingDown && currentHeight > 30) {
+        // collapsed에서 시작 → 아주 조금만 내려도 expanded로 (15px)
+        if (isPullingDown && currentHeight > 15) {
           finalHeight = 250;
           targetMode = 'expanded';
         } else {
@@ -298,7 +298,7 @@ export default function HomePage() {
       } else if (calendarMode === 'expanded') {
         // expanded에서 시작
         if (isPullingDown) {
-          // 아래로 당김 → 조금만 움직여도 fullscreen으로
+          // 아래로 당김 → 조금만 움직여도 fullscreen으로 (30px)
           if (currentHeight > 280) {
             finalHeight = fullscreenHeight;
             targetMode = 'fullscreen';
@@ -307,7 +307,7 @@ export default function HomePage() {
             targetMode = 'expanded';
           }
         } else {
-          // 위로 밀기 → 조금만 움직여도 collapsed로
+          // 위로 밀기 → 조금만 움직여도 collapsed로 (30px)
           if (currentHeight < 220) {
             finalHeight = 0;
             targetMode = 'collapsed';
