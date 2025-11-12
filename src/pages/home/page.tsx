@@ -269,6 +269,11 @@ export default function HomePage() {
               "transform-origin",
               "top center",
             );
+            // CSS variable로 실시간 달력 높이 전달
+            calendarContentRef.current.style.setProperty(
+              "--live-calendar-height",
+              `${targetHeight}px`,
+            );
           }
         });
       }
@@ -392,6 +397,11 @@ export default function HomePage() {
           "height 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         );
         calendarContentRef.current.style.setProperty("transform", "scaleY(1)");
+        // CSS variable로 최종 높이 전달 (달력 셀 크기 업데이트)
+        calendarContentRef.current.style.setProperty(
+          "--live-calendar-height",
+          `${finalHeight}px`,
+        );
       }
 
       if (targetMode !== calendarMode) {
