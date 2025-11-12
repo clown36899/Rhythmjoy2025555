@@ -35,6 +35,7 @@ export function useUnifiedGestureController({
 
     // 제스처 상태
     let isDragging = false;
+    let isPending = false; // pending 상태 추가
     let startY = 0;
     let startHeight = 0;
     let currentHeight = 0;
@@ -127,18 +128,14 @@ export function useUnifiedGestureController({
       
       console.log(`🔵 TouchStart: y=${touch.clientY}, scrollTop=${scrollTop}, calendarMode=${calendarMode}, isTouchingCalendar=${isTouchingCalendar}`);
 
-      // 조건 1: 리스트 최상단 + 아래로 드래그 → 달력 늘리기
+      // 조건 1: 리스트 최상단 → pending 상태 (방향 확인 대기)
       if (scrollTop === 0 && calendarMode === 'collapsed') {
-        isDragging = true;
+        isPending = true;
         startY = touch.clientY;
         startHeight = currentHeight;
         velocityHistory = [{ y: touch.clientY, time: Date.now() }];
         
-        // 스크롤 차단
-        eventListElement.style.overflow = 'hidden';
-        e.preventDefault();
-        
-        console.log("⏳ 리스트에서 드래그 시작 (pending)");
+        console.log("⏳ pending 상태 (방향 확인 대기)");
         return;
       }
       
@@ -161,18 +158,29 @@ export function useUnifiedGestureController({
 
     // 🎯 TouchMove
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isDragging) return;
-
       const touch = e.touches[0];
       const deltaY = touch.clientY - startY;
       
-      // 리스트에서 시작한 경우 (startHeight = 0): 위로 드래그 → 스크롤 허용
-      if (startHeight === 0 && deltaY < 0) {
-        console.log("🔓 위로 스크롤 허용 (리스트에서 시작)");
-        isDragging = false;
-        eventListElement.style.overflow = '';
-        return;
+      // Pending 상태: 방향 확인
+      if (isPending) {
+        if (deltaY > 0) {
+          // 아래로 드래그 → 달력 제스처 시작!
+          isPending = false;
+          isDragging = true;
+          eventListElement.style.overflow = 'hidden';
+          console.log("✅ 달력 드래그 시작! (아래로)");
+        } else if (deltaY < -5) {
+          // 위로 드래그 → 스크롤 허용
+          isPending = false;
+          console.log("🔓 스크롤 허용 (위로)");
+          return;
+        } else {
+          // 아직 방향 불명확 → 대기
+          return;
+        }
       }
+      
+      if (!isDragging) return;
 
       // 달력에서 드래그 → 위/아래 모두 허용
       e.preventDefault();
@@ -193,6 +201,13 @@ export function useUnifiedGestureController({
 
     // 🎯 TouchEnd
     const handleTouchEnd = (e: TouchEvent) => {
+      if (isPending) {
+        // Pending 상태에서 손 떼면 → 취소
+        isPending = false;
+        console.log("⏹️ Pending 취소");
+        return;
+      }
+      
       if (!isDragging) return;
 
       console.log("🔴 TouchEnd - 손 뗌!");
@@ -212,6 +227,7 @@ export function useUnifiedGestureController({
     const handleTouchCancel = (e: TouchEvent) => {
       console.log("⚠️ TouchCancel");
       
+      isPending = false;
       isDragging = false;
       
       // 스크롤 복원 (중요!)
