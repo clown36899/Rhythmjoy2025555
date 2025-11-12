@@ -1,4 +1,4 @@
-import { Event } from "../../../types/event";
+import type { Event } from "../../../lib/supabase";
 
 interface EventPasswordModalProps {
   event: Event;

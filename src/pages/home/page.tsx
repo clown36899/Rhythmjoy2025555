@@ -102,9 +102,9 @@ export default function HomePage() {
   // 공통 스와이프 상태 (달력과 이벤트 리스트 동기화)
   const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState<
-    "horizontal" | "vertical" | null
-  >(null);
+  // const [swipeDirection, setSwipeDirection] = useState<
+  //   "horizontal" | "vertical" | null
+  // >(null);
 
   // 스와이프 최적화용 ref
   const swipeAnimationRef = useRef<number | null>(null);
@@ -642,7 +642,7 @@ export default function HomePage() {
   };
 
   const handleAdminModeToggle = (
-    adminMode: boolean,
+    _adminMode: boolean,
     type: "super" | "sub" | null = null,
     userId: string | null = null,
     userName: string = "",
