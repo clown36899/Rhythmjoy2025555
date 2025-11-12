@@ -44,7 +44,11 @@ export default function FullscreenDateEventsModal({
     const fetchEvents = async () => {
       setLoading(true);
       try {
-        const dateStr = selectedDate.toISOString().split("T")[0];
+        // 로컬 시간대로 날짜 문자열 생성 (UTC 변환 방지)
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         
         // 모든 이벤트를 가져온 후 클라이언트에서 필터링
         const { data, error } = await supabase
