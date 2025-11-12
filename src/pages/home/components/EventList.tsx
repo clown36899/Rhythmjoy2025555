@@ -3340,15 +3340,30 @@ export default function EventList({
           onClick={(e) => {
             if (e.target === e.currentTarget) closeModal();
           }}
-          onWheel={(e) => e.preventDefault()}
-          onTouchMove={(e) => e.preventDefault()}
+          onWheel={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
         >
           <div
             className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border-2 relative flex flex-col"
             style={{ borderColor: "rgb(255 191 19)" }}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* 스크롤 가능한 전체 영역 */}
-            <div className="overflow-y-auto flex-1">
+            <div 
+              className="overflow-y-auto flex-1"
+              style={{ 
+                overscrollBehavior: 'contain',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
               {/* 이미지 영역 (스크롤과 함께 사라짐) */}
               <div
                 className={`relative w-full ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
