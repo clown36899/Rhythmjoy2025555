@@ -2048,9 +2048,26 @@ export default function EventList({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
-                    <p className="text-gray-400">이벤트가 없습니다</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                    {/* 등록 버튼 배너만 표시 */}
+                    <div
+                      onClick={() => {
+                        const monthDate = currentMonth || new Date();
+                        const prevMonth = new Date(monthDate);
+                        prevMonth.setMonth(prevMonth.getMonth() - 1);
+                        const firstDayOfMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1);
+                        window.dispatchEvent(new CustomEvent('createEventForDate', {
+                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                        }));
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2243,15 +2260,24 @@ export default function EventList({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
-                    <p className="text-gray-400">
-                      {selectedCategory === "class"
-                        ? "강습이 없습니다"
-                        : selectedCategory === "event"
-                          ? "행사가 없습니다"
-                          : "이벤트가 없습니다"}
-                    </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                    {/* 등록 버튼 배너만 표시 */}
+                    <div
+                      onClick={() => {
+                        const monthDate = currentMonth || new Date();
+                        const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+                        window.dispatchEvent(new CustomEvent('createEventForDate', {
+                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                        }));
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2423,9 +2449,26 @@ export default function EventList({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
-                    <p className="text-gray-400">이벤트가 없습니다</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                    {/* 등록 버튼 배너만 표시 */}
+                    <div
+                      onClick={() => {
+                        const monthDate = currentMonth || new Date();
+                        const nextMonth = new Date(monthDate);
+                        nextMonth.setMonth(nextMonth.getMonth() + 1);
+                        const firstDayOfMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1);
+                        window.dispatchEvent(new CustomEvent('createEventForDate', {
+                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                        }));
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
