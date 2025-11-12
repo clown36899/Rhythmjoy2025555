@@ -224,8 +224,8 @@ export function useUnifiedGestureController({
         
         const fullscreenHeight = window.innerHeight - 150;
         
-        // 배율: 손가락 움직임에 달력이 크게 반응
-        let targetHeight = gestureStartHeight + deltaY * 10.0;
+        // 배율: 모바일 표준 (1:1 ~ 2:1)
+        let targetHeight = gestureStartHeight + deltaY * 2.0;
         const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
         
         // 높이 제한: 0 ~ fullscreen
