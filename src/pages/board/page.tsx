@@ -32,7 +32,7 @@ export default function BoardPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('board_posts')
-        .select('*')
+        .select('id, title, content, author_name, views, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

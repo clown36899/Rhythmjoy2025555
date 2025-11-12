@@ -131,15 +131,13 @@ export default function PostEditorModal({
         if (error) throw error;
         alert('게시글이 수정되었습니다!');
       } else {
-        // 새 글 작성
-        const { error } = await supabase
-          .from('board_posts')
-          .insert([{
-            title: formData.title,
-            content: formData.content,
-            author_name: formData.author_name,
-            password: formData.password
-          }]);
+        // 새 글 작성 - 비밀번호를 해시해서 저장
+        const { error } = await supabase.rpc('create_board_post_with_hash', {
+          p_title: formData.title,
+          p_content: formData.content,
+          p_author_name: formData.author_name,
+          p_password: formData.password
+        });
 
         if (error) throw error;
         alert('게시글이 등록되었습니다!');
