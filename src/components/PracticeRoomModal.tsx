@@ -525,9 +525,18 @@ export default function PracticeRoomModal({
   if (selectedRoom) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90svh] overflow-hidden mx-4 flex flex-col">
+        <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90svh] overflow-hidden mx-4 flex flex-col relative">
+          {/* 닫기 버튼 - 우측 상단 고정 */}
+          <button
+            onClick={handleCloseDetails}
+            className="absolute top-2 right-2 z-10 flex items-center justify-center w-10 h-10 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors cursor-pointer shadow-lg"
+            title="닫기"
+          >
+            <i className="ri-close-line text-xl"></i>
+          </button>
+          
           {/* Header with navigation buttons */}
-          <div className="flex-shrink-0 flex items-center justify-between p-2 border-b border-gray-200">
+          <div className="flex-shrink-0 flex items-center justify-between p-2 pr-14 border-b border-gray-200">
             {/* 관리자 버튼 */}
             <div className="flex items-center gap-2">
               {isAdminMode && (
@@ -552,13 +561,6 @@ export default function PracticeRoomModal({
             <h2 className="text-xl font-bold text-gray-900">
               {selectedRoom.name}
             </h2>
-            <button
-              onClick={handleCloseDetails}
-              className="flex items-center justify-center w-8 h-8 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded-lg transition-colors cursor-pointer"
-              title="닫기"
-            >
-              <i className="ri-close-line text-lg"></i>
-            </button>
           </div>
 
           {/* Gallery & info */}
