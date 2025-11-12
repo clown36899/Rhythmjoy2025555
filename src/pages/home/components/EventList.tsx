@@ -214,6 +214,15 @@ export default function EventList({
     return `${year}-${month}-${day}`;
   };
 
+  // Seeded Random 함수 (currentMonth 기반)
+  const seededRandom = (seed: number) => {
+    let value = seed;
+    return () => {
+      value = (value * 9301 + 49297) % 233280;
+      return value / 233280;
+    };
+  };
+
   // 이벤트 정렬 함수
   const sortEvents = (eventsToSort: Event[], sortType: string) => {
     const eventsCopy = [...eventsToSort];
@@ -236,10 +245,15 @@ export default function EventList({
     const sortGroup = (group: Event[]) => {
       switch (sortType) {
         case "random":
-          // 랜덤 정렬 - Fisher-Yates 알고리즘 사용
+          // 랜덤 정렬 - currentMonth 기반 고정 seed 사용
+          const seed = currentMonth ? 
+            currentMonth.getFullYear() * 12 + currentMonth.getMonth() : 
+            new Date().getFullYear() * 12 + new Date().getMonth();
+          const random = seededRandom(seed);
+          
           const shuffled = [...group];
           for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
+            const j = Math.floor(random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
           }
           return shuffled;
