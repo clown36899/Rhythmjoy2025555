@@ -16,6 +16,7 @@ import {
 } from "../../../utils/contactLink";
 import { QRCodeSVG } from "qrcode.react";
 import ImageCropModal from "../../../components/ImageCropModal";
+import { EventCard } from "./EventCard";
 
 const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
@@ -1640,202 +1641,20 @@ export default function EventList({
         >
           {/* Grid layout with 3 columns - poster ratio */}
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-            {sortedEvents.map((event) => {
-                  const isHighlighted = highlightEvent?.id === event.id;
-                  const highlightBorderColor =
-                    event.category === "class" ? "#9333ea" : "#2563eb"; // purple-600 : blue-600
-
-                  return (
-                    <div
-                      key={event.id}
-                      data-event-id={event.id}
-                      onClick={() => handleEventClick(event)}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor =
-                          highlightBorderColor;
-                        if (viewMode === "month" && onEventHover)
-                          onEventHover(event.id);
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "var(--event-list-bg-color)";
-                        e.currentTarget.style.borderColor = "#000000";
-                        if (viewMode === "month" && onEventHover)
-                          onEventHover(null);
-                      }}
-                      className={`overflow-hidden transition-all cursor-pointer relative border ${
-                        isHighlighted ? "" : "border-[#000000]"
-                      }`}
-                      style={{
-                        backgroundColor: "var(--event-list-bg-color)",
-                        borderColor: isHighlighted
-                          ? highlightBorderColor
-                          : undefined,
-                        borderRadius: "0.3rem",
-                      }}
-                    >
-                      {/* 이미지와 제목 오버레이 */}
-                      <div className="relative aspect-[3/4]">
-                        {(() => {
-                          // getEventThumbnail 유틸리티 함수로 최종 썸네일 URL 결정
-                          const finalThumbnailUrl = getEventThumbnail(
-                            event,
-                            defaultThumbnailClass,
-                            defaultThumbnailEvent,
-                          );
-
-                          if (finalThumbnailUrl) {
-                            // 최종 썸네일 (이벤트 이미지 또는 기본 이미지)
-                            return (
-                              <img
-                                src={finalThumbnailUrl}
-                                alt={event.title}
-                                loading="lazy"
-                                className="w-full object-cover object-center bg-gray-900"
-                                style={{ height: '-webkit-fill-available' }}
-                              />
-                            );
-                          } else {
-                            // 텍스트 fallback (이미지도 기본 썸네일도 없을 때)
-                            return (
-                              <div
-                                className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
-                                style={{
-                                  backgroundImage: "url(/grunge.png)",
-                                }}
-                              >
-                                <div
-                                  className={`absolute inset-0 ${event.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
-                                ></div>
-                                <span className="text-white/10 text-4xl font-bold relative">
-                                  {event.category === "class" ? "강습" : "행사"}
-                                </span>
-                              </div>
-                            );
-                          }
-                        })()}
-                        {/* 왼쪽 상단 카테고리 배지 */}
-                        <div
-                          className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
-                            // 지난 행사인지 확인
-                            const endDate = event.end_date || event.date;
-                            if (endDate) {
-                              const today = getLocalDateString();
-                              const isPast = endDate < today;
-                              if (isPast) return "bg-gray-500/80";
-                            }
-                            return event.category === "class"
-                              ? "bg-purple-600/80"
-                              : "bg-blue-600/80";
-                          })()}`}
-                        >
-                          {(() => {
-                            const endDate = event.end_date || event.date;
-                            if (endDate) {
-                              const today = getLocalDateString();
-                              const isPast = endDate < today;
-                              if (isPast) return "종료";
-                            }
-                            return event.category === "class" ? "강습" : "행사";
-                          })()}
-                        </div>
-                        {/* 하단 그라데이션 오버레이 */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
-                          <h3
-                            className="text-white font-bold leading-tight line-clamp-2"
-                            style={{ fontSize: "0.8rem" }}
-                          >
-                            {event.title}
-                          </h3>
-                        </div>
-                      </div>
-
-                      <div className="p-1 h-7 flex items-center justify-center">
-                        <p className="text-xs text-gray-300 text-center flex items-center justify-center gap-1">
-                          {(() => {
-                            // 선택된 날짜에 해당하는 이벤트인지 확인
-                            let isOnSelectedDate = false;
-                            if (selectedDate) {
-                              const year = selectedDate.getFullYear();
-                              const month = String(
-                                selectedDate.getMonth() + 1,
-                              ).padStart(2, "0");
-                              const day = String(
-                                selectedDate.getDate(),
-                              ).padStart(2, "0");
-                              const selectedDateString = `${year}-${month}-${day}`;
-
-                              if (
-                                event.event_dates &&
-                                event.event_dates.length > 0
-                              ) {
-                                isOnSelectedDate =
-                                  event.event_dates.includes(
-                                    selectedDateString,
-                                  );
-                              } else {
-                                const eventStartDate =
-                                  event.start_date || event.date;
-                                const eventEndDate =
-                                  event.end_date || event.date;
-                                isOnSelectedDate = !!(
-                                  eventStartDate &&
-                                  eventEndDate &&
-                                  selectedDateString >= eventStartDate &&
-                                  selectedDateString <= eventEndDate
-                                );
-                              }
-                            }
-
-                            // 날짜 텍스트 생성
-                            let dateText = "";
-                            // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                            if (
-                              event.event_dates &&
-                              event.event_dates.length > 0
-                            ) {
-                              const formatDate = (dateStr: string) => {
-                                const date = new Date(dateStr);
-                                return `${date.getMonth() + 1}/${date.getDate()}`;
-                              };
-                              dateText = event.event_dates
-                                .map(formatDate)
-                                .join(", ");
-                            } else {
-                              // 연속 기간 모드
-                              const startDate = event.start_date || event.date;
-                              const endDate = event.end_date || event.date;
-
-                              if (!startDate) {
-                                dateText = "날짜 미정";
-                              } else {
-                                const formatDate = (dateStr: string) => {
-                                  const date = new Date(dateStr);
-                                  return `${date.getMonth() + 1}/${date.getDate()}`;
-                                };
-
-                                if (startDate !== endDate) {
-                                  dateText = `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
-                                } else {
-                                  dateText = formatDate(startDate);
-                                }
-                              }
-                            }
-
-                            return (
-                              <>
-                                {isOnSelectedDate && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
-                                )}
-                                <span>{dateText}</span>
-                              </>
-                            );
-                          })()}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+            {sortedEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                onClick={() => handleEventClick(event)}
+                onMouseEnter={onEventHover}
+                onMouseLeave={() => onEventHover?.(null)}
+                isHighlighted={highlightEvent?.id === event.id}
+                selectedDate={selectedDate}
+                defaultThumbnailClass={defaultThumbnailClass}
+                defaultThumbnailEvent={defaultThumbnailEvent}
+                viewMode={viewMode}
+              />
+            ))}
 
             {/* 등록 버튼 배너 - 항상 표시 */}
             <div
@@ -2097,16 +1916,11 @@ export default function EventList({
               >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-                    {sortedCurrentEvents.map((event) => {
-                      const isHighlighted = highlightEvent?.id === event.id;
-                      const highlightBorderColor =
-                        event.category === "class" ? "#9333ea" : "#2563eb";
-
-                      return (
-                        <div
-                          key={event.id}
-                          data-event-id={event.id}
-                          onClick={() => handleEventClick(event)}
+                    {sortedCurrentEvents.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => handleEventClick(event)}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor =
                               highlightBorderColor;
