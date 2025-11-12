@@ -329,12 +329,24 @@ export function useUnifiedGestureController({
       gestureHistory.length = 0;
     };
     
-    // PointerCancel 처리 - PointerUp과 동일하게 스냅 수행
+    // PointerCancel 처리 - 제스처만 취소, 스냅하지 않음
     const handlePointerCancel = (e: PointerEvent) => {
-      console.log("⚠️ PointerCancel! - PointerUp처럼 처리", { activeGesture, gesturePointerId });
+      console.log("⚠️ PointerCancel! - 제스처 취소 (스냅 없음)", { activeGesture, gesturePointerId });
       
-      // PointerUp과 동일하게 처리
-      handlePointerUp(e);
+      // Pointer 캡처 해제
+      if (gesturePointerId !== null) {
+        try {
+          (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
+        } catch (err) {
+          // Ignore
+        }
+      }
+      
+      // 제스처만 리셋 (스냅하지 않음!)
+      activeGesture = 'none';
+      gesturePointerId = null;
+      isHorizontalGesture = false;
+      gestureHistory.length = 0;
     };
     
     // 이벤트 리스너 등록 (passive: false 필수!)
