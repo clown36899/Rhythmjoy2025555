@@ -156,7 +156,6 @@ export default function HomePage() {
     let localIsDragging = false;
 
     const handleTouchStart = (e: TouchEvent) => {
-      console.log("🟢 [HomePage] TouchStart - 수평 핸들러");
       if (isAnimating) return;
       const touch = e.touches[0];
       localTouchStart = { x: touch.clientX, y: touch.clientY };
@@ -180,18 +179,15 @@ export default function HomePage() {
         if (absX > 3 || absY > 3) {
           if (absY > absX * 1.5) {
             localSwipeDirection = "vertical";
-            console.log("🔵 [HomePage] 방향 결정: 수직");
           } else if (absX > absY * 1.5) {
             localSwipeDirection = "horizontal";
             setSwipeDirection("horizontal");
-            console.log("🔵 [HomePage] 방향 결정: 수평");
           }
         }
       }
 
       // 수평 슬라이드 처리
       if (localSwipeDirection === "horizontal") {
-        console.log("🟢 [HomePage] 수평 슬라이드 처리:", diffX);
         e.preventDefault(); // passive: false이므로 가능
 
         if (swipeAnimationRef.current) {
