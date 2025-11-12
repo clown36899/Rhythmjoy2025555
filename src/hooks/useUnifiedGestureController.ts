@@ -176,13 +176,8 @@ export function useUnifiedGestureController({
           gestureHistory.length = 0;
           gestureHistory.push({ y: e.clientY, time: Date.now() });
           
-          // ⚠️ 모바일 핵심: 즉시 Pointer 캡처 (native scroll 차단)
-          try {
-            (e.target as HTMLElement).setPointerCapture(e.pointerId);
-            console.log("🔒 Pointer 캡처 완료 (모바일 native scroll 차단)");
-          } catch (err) {
-            console.log("⚠️ Pointer 캡처 실패:", err);
-          }
+          // setPointerCapture 제거 - PointerCancel 유발
+          // 대신 PointerMove에서 preventDefault()로 제어
           
           console.log("⏳ pending-calendar 모드 (리스트 최상단 - 아래로 당기면 달력)");
           return;
@@ -199,7 +194,7 @@ export function useUnifiedGestureController({
       gestureHistory.length = 0;
       gestureHistory.push({ y: e.clientY, time: Date.now() });
       
-      // 브라우저 기본 동작 방지
+      // 브라우저 기본 동작 방지 (하지만 setPointerCapture 제거)
       e.preventDefault();
       
       console.log("🎯 제스처 시작: calendar-drag (달력 영역)", { clientY: e.clientY, calendarBottomY, currentCalendarHeight });
@@ -227,13 +222,8 @@ export function useUnifiedGestureController({
           eventListElement.scrollTop = 0;
           // 아래 calendar-drag 로직으로 넘어감
         } else {
-          // 위로 밀기 (deltaY < 0) → 스크롤 허용, Pointer 캡처 해제
-          try {
-            (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
-            console.log("🔓 Pointer 캡처 해제 (위로 스크롤 허용)");
-          } catch (err) {
-            // Ignore
-          }
+          // 위로 밀기 (deltaY < 0) → 스크롤 허용
+          console.log("🔓 위로 스크롤 허용 (deltaY < 0)");
           return;
         }
       }
@@ -329,24 +319,10 @@ export function useUnifiedGestureController({
       gestureHistory.length = 0;
     };
     
-    // PointerCancel 처리 - 제스처만 취소, 스냅하지 않음
+    // PointerCancel 처리 - 무시 (setPointerCapture 사용 안 함)
     const handlePointerCancel = (e: PointerEvent) => {
-      console.log("⚠️ PointerCancel! - 제스처 취소 (스냅 없음)", { activeGesture, gesturePointerId });
-      
-      // Pointer 캡처 해제
-      if (gesturePointerId !== null) {
-        try {
-          (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
-        } catch (err) {
-          // Ignore
-        }
-      }
-      
-      // 제스처만 리셋 (스냅하지 않음!)
-      activeGesture = 'none';
-      gesturePointerId = null;
-      isHorizontalGesture = false;
-      gestureHistory.length = 0;
+      console.log("⚠️ PointerCancel! - 무시 (계속 진행)", { activeGesture, gesturePointerId });
+      // 아무것도 하지 않음 - 제스처 계속 진행
     };
     
     // 이벤트 리스너 등록 (passive: false 필수!)
