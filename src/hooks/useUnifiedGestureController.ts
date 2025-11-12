@@ -175,6 +175,10 @@ export function useUnifiedGestureController({
           isHorizontalGesture = false;
           gestureHistory.length = 0;
           gestureHistory.push({ y: e.clientY, time: Date.now() });
+          
+          // 실제 모바일: 브라우저 기본 동작 방지 (pull-to-refresh 차단)
+          e.preventDefault();
+          
           console.log("⏳ 스크롤 모드 (리스트 영역, 최상단 - pull down 감지 대기)");
           return;
         }

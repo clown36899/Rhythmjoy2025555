@@ -13,6 +13,8 @@ html, body {
   touch-action: pan-y;
   /* 모바일 끌어내림 새로고침 비활성화 */
   overscroll-behavior-y: contain;
+  /* iOS Safari pull-to-refresh 완전 차단 */
+  overscroll-behavior: none;
 }
 
 #root {

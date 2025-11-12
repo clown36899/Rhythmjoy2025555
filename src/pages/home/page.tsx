@@ -1135,6 +1135,8 @@ export default function HomePage() {
                   ))
                 ? "250px" // 무조건 250px 고정!
                 : undefined,
+            // 실제 모바일: pull-to-refresh 차단
+            overscrollBehavior: 'none',
           }}
         >
           {/* 이벤트 등록 안내 */}
