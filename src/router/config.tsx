@@ -8,6 +8,7 @@ import GuidePage from "../pages/guide/page";
 import ClubsPage from "../pages/social/clubs/page";
 import SwingBarsPage from "../pages/social/swing-bars/page";
 import SocialCalendarPage from "../pages/social/calendar/page";
+import BoardPage from "../pages/board/page";
 import InvitePage from "../pages/invite/page";
 import { MobileShell } from "../layouts/MobileShell";
 import { AuthProvider } from "../contexts/AuthContext";
@@ -52,6 +53,10 @@ const routes: RouteObject[] = [
       {
         path: "practice",
         element: <PracticeRoomsPage />,
+      },
+      {
+        path: "board",
+        element: <BoardPage />,
       },
       {
         path: "guide",
