@@ -1103,6 +1103,24 @@ export default function HomePage() {
               >
                 <i className="ri-search-line text-sm leading-none align-middle"></i>
               </button>
+
+              {/* 달력 전체화면 버튼 */}
+              <button
+                onClick={() => {
+                  setCalendarMode(prev => 
+                    prev === "fullscreen" ? "expanded" : "fullscreen"
+                  );
+                }}
+                className={`flex items-center justify-center h-6 w-8
+                         rounded-lg transition-colors cursor-pointer flex-shrink-0 ${
+                           calendarMode === "fullscreen"
+                             ? "bg-blue-600 text-white"
+                             : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
+                         }`}
+                aria-label="달력 전체화면"
+              >
+                <i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} text-sm leading-none align-middle`}></i>
+              </button>
             </div>
           </div>
         </div>
