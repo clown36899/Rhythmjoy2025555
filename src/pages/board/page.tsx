@@ -16,7 +16,7 @@ export interface BoardPost {
 }
 
 export default function BoardPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin: _isAdmin } = useAuth();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditorModal, setShowEditorModal] = useState(false);

@@ -130,6 +130,7 @@ export function MobileShell() {
   const isEventsPage = location.pathname === '/';
   const isSocialPage = location.pathname.startsWith('/social');
   const isPracticePage = location.pathname === '/practice';
+  const isBoardPage = location.pathname === '/board';
   const isGuidePage = location.pathname === '/guide';
   const category = searchParams.get('category') || 'all';
 
@@ -260,6 +261,7 @@ export function MobileShell() {
             <span className="text-gray-400 font-medium no-select" style={{ fontSize: '12px', lineHeight: '1.2' }}>
               {isSocialPage && '소셜 장소'}
               {isPracticePage && '연습실'}
+              {isBoardPage && '자유게시판'}
               {isGuidePage && '안내'}
             </span>
             <div className="flex items-center gap-2">
@@ -360,7 +362,7 @@ export function MobileShell() {
           {/* 연습실 버튼 */}
           <button
             onClick={() => navigate('/practice')}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
+            className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors flex-1 ${
               isPracticePage
                 ? "text-blue-500"
                 : "text-gray-300 hover:text-white"
@@ -370,10 +372,23 @@ export function MobileShell() {
             <span className="text-xs">연습실</span>
           </button>
 
+          {/* 게시판 버튼 */}
+          <button
+            onClick={() => navigate('/board')}
+            className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors flex-1 ${
+              isBoardPage
+                ? "text-purple-500"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            <i className="ri-chat-3-line text-xl mb-0.5"></i>
+            <span className="text-xs">게시판</span>
+          </button>
+
           {/* 안내 버튼 */}
           <button
             onClick={() => navigate('/guide')}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 ${
+            className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors flex-1 ${
               isGuidePage
                 ? "text-blue-500"
                 : "text-gray-300 hover:text-white"

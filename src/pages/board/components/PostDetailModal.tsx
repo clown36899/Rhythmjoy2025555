@@ -19,7 +19,7 @@ export default function PostDetailModal({
   post,
   onEdit,
   onDelete,
-  onUpdate
+  onUpdate: _onUpdate
 }: PostDetailModalProps) {
   const { isAdmin } = useAuth();
   const [password, setPassword] = useState('');
