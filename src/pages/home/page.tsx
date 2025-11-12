@@ -1145,10 +1145,10 @@ export default function HomePage() {
       else {
         if (finalHeight <= 230) {
           nextState = 'collapsed'; // 0~230px: collapsed
-        } else if (finalHeight <= 405) {
-          nextState = 'expanded'; // 231~405px: expanded 진입! (조금만 올려도!)
+        } else if (finalHeight <= fullscreenHeight - 60) {
+          nextState = 'expanded'; // 231~(fullscreen-60)px: expanded 진입! (조금만 올려도!)
         } else {
-          nextState = 'fullscreen'; // 406px~: fullscreen 유지
+          nextState = 'fullscreen'; // (fullscreen-60)px~: fullscreen 유지
         }
       }
       
