@@ -1682,7 +1682,7 @@ export default function EventList({
                                 src={finalThumbnailUrl}
                                 alt={event.title}
                                 loading="lazy"
-                                className="w-full h-full object-contain object-center bg-gray-900"
+                                className="w-full h-full object-cover object-center bg-gray-900"
                               />
                             );
                           } else {
@@ -1740,7 +1740,7 @@ export default function EventList({
                         </div>
                       </div>
 
-                      <div className="p-1">
+                      <div className="p-1 h-7 flex items-center justify-center">
                         <p className="text-xs text-gray-300 text-center flex items-center justify-center gap-1">
                           {(() => {
                             // 선택된 날짜에 해당하는 이벤트인지 확인
@@ -1980,7 +1980,7 @@ export default function EventList({
                               </h3>
                             </div>
                           </div>
-                          <div className="p-1">
+                          <div className="p-1 h-7 flex items-center justify-center">
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
                                 // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
@@ -2170,7 +2170,7 @@ export default function EventList({
                               </h3>
                             </div>
                           </div>
-                          <div className="p-1">
+                          <div className="p-1 h-7 flex items-center justify-center">
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
                                 // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
@@ -2343,7 +2343,7 @@ export default function EventList({
                               </h3>
                             </div>
                           </div>
-                          <div className="p-1">
+                          <div className="p-1 h-7 flex items-center justify-center">
                             <p className="text-xs text-gray-300 text-center">
                               {(() => {
                                 // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
