@@ -1245,6 +1245,11 @@ export default function HomePage() {
           `${targetHeight}px`,
         );
         calendarContentRef.current.style.setProperty("transform", "scaleY(1)");
+        // CSS variable로 최종 높이 전달 (달력 셀 크기 업데이트)
+        calendarContentRef.current.style.setProperty(
+          "--live-calendar-height",
+          `${targetHeight}px`,
+        );
       }
 
       setCalendarMode(nextState);
