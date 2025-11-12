@@ -281,6 +281,15 @@ export default function HomePage() {
       const fullscreenHeight = window.innerHeight - 150;
       const isPullingDown = lastTouchDeltaY > 0;
       
+      console.log('🔴 touchEnd:', {
+        calendarMode,
+        currentHeight: currentHeight.toFixed(0),
+        fullscreenHeight: fullscreenHeight.toFixed(0),
+        isPullingDown,
+        lastTouchDeltaY: lastTouchDeltaY.toFixed(0),
+        threshold: (fullscreenHeight - 15).toFixed(0)
+      });
+      
       // 방향 기반 양방향 자석 스냅
       let finalHeight = 0;
       let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
@@ -320,13 +329,17 @@ export default function HomePage() {
       } else {
         // fullscreen에서 시작 → 아주 조금만 올려도 expanded로 (15px)
         if (!isPullingDown && currentHeight < fullscreenHeight - 15) {
+          console.log('✅ fullscreen → expanded 스냅!');
           finalHeight = 250;
           targetMode = 'expanded';
         } else {
+          console.log('❌ fullscreen 유지:', currentHeight, '>=', fullscreenHeight - 15);
           finalHeight = fullscreenHeight;
           targetMode = 'fullscreen';
         }
       }
+      
+      console.log('🧲 최종 스냅:', finalHeight, targetMode);
       
       // 스냅 애니메이션
       if (calendarContentRef.current) {
