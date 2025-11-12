@@ -815,7 +815,11 @@ export default function HomePage() {
       <div
         ref={headerRef}
         className="flex-shrink-0 w-full z-30 border-b border-[#22262a]"
-        style={{ backgroundColor: "var(--header-bg-color)" }}
+        style={{ 
+          backgroundColor: "var(--header-bg-color)",
+          touchAction: "auto",
+          pointerEvents: "auto"
+        }}
       >
         <Header
           currentMonth={currentMonth}

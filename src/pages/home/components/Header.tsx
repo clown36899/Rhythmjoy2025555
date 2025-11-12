@@ -18,9 +18,11 @@ interface HeaderProps {
     userId?: string | null,
     userName?: string,
   ) => void;
+  onBillboardOpen?: () => void;
   onBillboardSettingsOpen?: () => void;
   viewMode?: "month" | "year";
   onViewModeChange?: (mode: "month" | "year") => void;
+  billboardEnabled?: boolean;
 }
 
 export default function Header({
