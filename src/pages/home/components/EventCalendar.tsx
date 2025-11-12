@@ -55,27 +55,6 @@ export default function EventCalendar({
   const dateFontSize = 13; // 고정 크기로 작게
   const eventCountFontSize = Math.max(7, Math.min(10, cellHeight * 0.15)); // 작은 폰트
 
-  // 이벤트 ID 기반 색상 생성 함수 (전체화면 모드용)
-  const getEventColor = (eventId: number, category: string) => {
-    if (calendarMode !== 'fullscreen') {
-      // 일반 모드: 카테고리별 색상
-      return category === 'class' ? 'bg-green-500' : 'bg-blue-500';
-    }
-    
-    // 전체화면 모드: 이벤트마다 다른 색상
-    const colors = [
-      'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500',
-      'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500',
-      'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500',
-      'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500',
-      'bg-rose-500', 'bg-red-600', 'bg-orange-600', 'bg-amber-600'
-    ];
-    
-    // ID 기반 해시로 색상 선택 (같은 ID는 항상 같은 색상)
-    const index = eventId % colors.length;
-    return colors[index];
-  };
-
   // 카테고리에 따라 이벤트 필터링
   const filteredEvents = useMemo(() => {
     if (!selectedCategory || selectedCategory === 'all') {
@@ -86,6 +65,69 @@ export default function EventCalendar({
     }
     return events.filter(event => event.category === selectedCategory);
   }, [events, selectedCategory]);
+
+  // 현재 달의 이벤트별 색상 맵 생성 (전체화면 모드용)
+  const eventColorMap = useMemo(() => {
+    if (calendarMode !== 'fullscreen') {
+      return new Map<number, string>();
+    }
+
+    const colors = [
+      'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500',
+      'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500',
+      'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500',
+      'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500',
+      'bg-rose-500', 'bg-red-600', 'bg-orange-600', 'bg-amber-600',
+      'bg-yellow-600', 'bg-lime-600', 'bg-green-600', 'bg-emerald-600',
+      'bg-teal-600', 'bg-cyan-600', 'bg-sky-600', 'bg-indigo-600',
+      'bg-violet-600', 'bg-purple-600', 'bg-fuchsia-600', 'bg-pink-600'
+    ];
+
+    const map = new Map<number, string>();
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    // 현재 달에 표시되는 모든 이벤트 수집
+    const currentMonthEvents = filteredEvents.filter(event => {
+      // event_dates 배열 체크
+      if (event.event_dates && event.event_dates.length > 0) {
+        return event.event_dates.some(dateStr => dateStr.startsWith(monthStr));
+      }
+      
+      // start_date/end_date 체크
+      const startDate = event.start_date || event.date || '';
+      const endDate = event.end_date || event.date || '';
+      
+      if (!startDate || !endDate) return false;
+      
+      const monthStart = `${monthStr}-01`;
+      const monthEnd = `${monthStr}-31`;
+      
+      return (startDate <= monthEnd && endDate >= monthStart);
+    });
+
+    // ID 순으로 정렬하여 일관성 유지
+    currentMonthEvents.sort((a, b) => a.id - b.id);
+
+    // 각 이벤트에 순차적으로 다른 색상 할당
+    currentMonthEvents.forEach((event, index) => {
+      map.set(event.id, colors[index % colors.length]);
+    });
+
+    return map;
+  }, [filteredEvents, currentMonth, calendarMode]);
+
+  // 이벤트 색상 가져오기 함수
+  const getEventColor = (eventId: number, category: string) => {
+    if (calendarMode !== 'fullscreen') {
+      // 일반 모드: 카테고리별 색상
+      return category === 'class' ? 'bg-green-500' : 'bg-blue-500';
+    }
+    
+    // 전체화면 모드: 맵에서 색상 가져오기
+    return eventColorMap.get(eventId) || 'bg-gray-500';
+  };
 
   // 외부 currentMonth가 변경되면 내부 상태도 업데이트
   useEffect(() => {
