@@ -190,7 +190,7 @@ export default function HomePage() {
       const scrollTop = eventListElement.scrollTop;
       const isAtTop = scrollTop <= 0;
       const touchCurrentY = e.touches[0].clientY;
-      const touchDelta = touchCurrentY - touchStartY;
+      const touchDelta = touchCurrentY - touchStartY; // 시작점부터의 총 거리
       const isPullingDown = touchDelta > 0; // 아래로 당김 (위로 스크롤)
       const fullscreenHeight = window.innerHeight - 150;
       
@@ -202,50 +202,42 @@ export default function HomePage() {
         e.preventDefault();
         isScrollExpandingRef.current = true;
         
-        // 터치 거리를 누적
-        scrollAccumulatorRef.current += touchDelta * 0.5;
-        
-        // 누적 스크롤을 달력 높이로 변환 (0 → 250 → fullscreen)
-        const scrollToHeight = scrollAccumulatorRef.current * 1.5;
+        // 터치 거리를 달력 높이로 직접 변환 (0 → 250 → fullscreen)
+        let targetHeight = touchDelta * 1.2; // 터치 거리 * 증폭 계수
         
         requestAnimationFrame(() => {
-          let targetHeight = scrollToHeight;
+          // 높이 제한
+          targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
+          
+          let finalHeight = targetHeight;
           let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
           
-          // 히스테리시스 적용 (자석 효과)
-          if (targetHeight < 35) {
-            // collapsed 자석
-            targetHeight = 0;
+          // 단계별 자석 효과
+          if (targetHeight < 100) {
+            // 100px 이하: collapsed
+            finalHeight = 0;
             targetMode = 'collapsed';
-            scrollAccumulatorRef.current = 0; // 리셋
-          } else if (targetHeight >= 35 && targetHeight < 265) {
-            // expanded 영역
-            if (targetHeight >= 230 && targetHeight < 270) {
-              // expanded 자석
-              targetHeight = 250;
-              targetMode = 'expanded';
-              scrollAccumulatorRef.current = 250 / 1.5; // 리셋
-            } else if (targetHeight < 230) {
-              targetMode = 'collapsed';
-            } else {
-              targetMode = 'expanded';
-            }
-          } else if (targetHeight >= 265) {
-            // fullscreen 영역으로 진행
-            if (targetHeight >= fullscreenHeight - 40) {
-              // fullscreen 자석
-              targetHeight = fullscreenHeight;
+          } else if (targetHeight >= 100 && targetHeight < 400) {
+            // 100~400px: expanded 자석 (250px에 고정)
+            finalHeight = 250;
+            targetMode = 'expanded';
+          } else if (targetHeight >= 400) {
+            // 400px 이상: fullscreen으로 진행
+            if (targetHeight >= fullscreenHeight * 0.8) {
+              // 80% 이상이면 fullscreen 자석
+              finalHeight = fullscreenHeight;
               targetMode = 'fullscreen';
-              scrollAccumulatorRef.current = fullscreenHeight / 1.5; // 리셋
             } else {
-              // 중간 영역: expanded 유지
+              // 중간: expanded 유지
+              finalHeight = 250;
               targetMode = 'expanded';
             }
           }
           
           // CSS 변수로 높이 적용 (리렌더링 없음)
           if (calendarContentRef.current) {
-            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+            calendarContentRef.current.style.setProperty('height', `${finalHeight}px`);
+            calendarContentRef.current.style.setProperty('transition', 'height 0.1s ease-out');
           }
           
           // 모드 업데이트
@@ -253,7 +245,7 @@ export default function HomePage() {
             setCalendarMode(targetMode);
           }
           
-          console.log(`🔵 스크롤 확장: ${targetHeight.toFixed(0)}px → ${targetMode}, accumulator=${scrollAccumulatorRef.current.toFixed(0)}`);
+          console.log(`🔵 스크롤 확장: ${touchDelta.toFixed(0)}px → ${finalHeight.toFixed(0)}px [${targetMode}]`);
         });
       }
       
@@ -262,50 +254,40 @@ export default function HomePage() {
         console.log('✅ 달력 축소 조건 만족!');
         e.preventDefault();
         
-        // 스크롤 누적 감소
-        scrollAccumulatorRef.current = Math.max(0, scrollAccumulatorRef.current + touchDelta * 0.5);
-        
-        const scrollToHeight = scrollAccumulatorRef.current * 1.5;
+        // 현재 달력 높이 가져오기
+        const currentHeight = calendarContentRef.current?.offsetHeight || 0;
+        // 터치 거리만큼 감소
+        let targetHeight = currentHeight + (touchDelta * 1.2); // touchDelta는 음수
         
         requestAnimationFrame(() => {
-          let targetHeight = scrollToHeight;
-          let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'fullscreen';
+          targetHeight = Math.max(0, targetHeight);
           
-          // 역방향 히스테리시스
-          if (targetHeight < 35) {
-            targetHeight = 0;
+          let finalHeight = targetHeight;
+          let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = calendarMode;
+          
+          // 역방향 자석 효과
+          if (targetHeight < 100) {
+            finalHeight = 0;
             targetMode = 'collapsed';
-            scrollAccumulatorRef.current = 0; // 리셋
             isScrollExpandingRef.current = false;
-          } else if (targetHeight >= 35 && targetHeight < 265) {
-            if (targetHeight >= 230 && targetHeight <= 270) {
-              targetHeight = 250;
-              targetMode = 'expanded';
-              scrollAccumulatorRef.current = 250 / 1.5; // 리셋
-            } else if (targetHeight < 230) {
-              targetMode = 'collapsed';
-            } else {
-              targetMode = 'expanded';
-            }
+          } else if (targetHeight >= 100 && targetHeight < 400) {
+            finalHeight = 250;
+            targetMode = 'expanded';
           } else {
-            // fullscreen 영역
-            if (targetHeight >= fullscreenHeight - 40) {
-              targetMode = 'fullscreen';
-            } else {
-              // 중간: expanded
-              targetMode = 'expanded';
-            }
+            finalHeight = fullscreenHeight;
+            targetMode = 'fullscreen';
           }
           
           if (calendarContentRef.current) {
-            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+            calendarContentRef.current.style.setProperty('height', `${finalHeight}px`);
+            calendarContentRef.current.style.setProperty('transition', 'height 0.1s ease-out');
           }
           
           if (targetMode !== calendarMode) {
             setCalendarMode(targetMode);
           }
           
-          console.log(`🔴 스크롤 축소: ${targetHeight.toFixed(0)}px → ${targetMode}, accumulator=${scrollAccumulatorRef.current.toFixed(0)}`);
+          console.log(`🔴 스크롤 축소: ${touchDelta.toFixed(0)}px → ${finalHeight.toFixed(0)}px [${targetMode}]`);
         });
       }
     };
