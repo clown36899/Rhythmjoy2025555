@@ -157,8 +157,11 @@ export default function HomePage() {
       const isScrollingUp = e.deltaY < 0;
       const fullscreenHeight = window.innerHeight - 150;
 
+      console.log(`🔍 wheel: scrollTop=${scrollTop.toFixed(1)}, deltaY=${e.deltaY.toFixed(1)}, isAtTop=${isAtTop}, isScrollingUp=${isScrollingUp}, calendarMode=${calendarMode}`);
+
       // 리스트가 최상단이고 위로 스크롤 → 달력 확장
       if (isAtTop && isScrollingUp && calendarMode !== 'fullscreen') {
+        console.log('✅ 달력 확장 조건 만족!');
         e.preventDefault();
         e.stopPropagation();
         isScrollExpandingRef.current = true;
@@ -213,11 +216,14 @@ export default function HomePage() {
           if (targetMode !== calendarMode) {
             setCalendarMode(targetMode);
           }
+          
+          console.log(`🔵 스크롤 확장: ${targetHeight.toFixed(0)}px → ${targetMode}, accumulator=${scrollAccumulatorRef.current.toFixed(0)}`);
         });
       }
       
       // 달력이 확장 중이고 아래로 스크롤 → 달력 축소
       if (calendarMode !== 'collapsed' && !isScrollingUp && isAtTop) {
+        console.log('✅ 달력 축소 조건 만족!');
         e.preventDefault();
         e.stopPropagation();
         
@@ -263,6 +269,8 @@ export default function HomePage() {
           if (targetMode !== calendarMode) {
             setCalendarMode(targetMode);
           }
+          
+          console.log(`🔴 스크롤 축소: ${targetHeight.toFixed(0)}px → ${targetMode}, accumulator=${scrollAccumulatorRef.current.toFixed(0)}`);
         });
       }
     };
