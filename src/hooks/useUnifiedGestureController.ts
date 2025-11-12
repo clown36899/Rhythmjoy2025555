@@ -1,4 +1,4 @@
-import { useEffect, RefObject } from 'react';
+import { useEffect, type RefObject } from 'react';
 
 type GestureType = 'none' | 'scroll' | 'calendar-drag';
 type CalendarMode = 'collapsed' | 'expanded' | 'fullscreen';
@@ -157,19 +157,13 @@ export function useUnifiedGestureController({
         return;
       }
       
+      // ✅ 최상단이면 무조건 calendar-drag로 시작 (이벤트 리스트에서 pull down도 처리)
+      activeGesture = 'calendar-drag';
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      gesturePointerId = e.pointerId;
+      
       const currentCalendarHeight = calendarContentRef.current?.offsetHeight || 0;
       const calendarBottomY = headerHeight + currentCalendarHeight;
-      
-      // 제스처 타입 분류 (한 번만!)
-      if (e.clientY <= calendarBottomY) {
-        activeGesture = 'calendar-drag';
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        gesturePointerId = e.pointerId;
-        
-        console.log("🎯 제스처 시작: calendar-drag");
-      } else {
-        activeGesture = 'scroll';
-      }
       
       gestureStartY = e.clientY;
       gestureStartX = e.clientX;
@@ -178,6 +172,8 @@ export function useUnifiedGestureController({
       
       gestureHistory.length = 0;
       gestureHistory.push({ y: e.clientY, time: Date.now() });
+      
+      console.log("🎯 제스처 시작: calendar-drag (isAtTop)", { clientY: e.clientY, calendarBottomY });
     };
     
     // 🎯 PointerMove: 제스처 타입에 따라 처리
