@@ -78,7 +78,7 @@ CREATE OR REPLACE FUNCTION create_board_post(
 )
 RETURNS JSON AS $$
 DECLARE
-  v_result JSON;
+  v_result JSONB;
   v_is_admin BOOLEAN;
   v_prefix_admin_only BOOLEAN;
 BEGIN
@@ -111,7 +111,7 @@ BEGIN
     'created_at', created_at
   ) INTO v_result;
 
-  RETURN v_result;
+  RETURN v_result::JSON;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -126,7 +126,7 @@ CREATE OR REPLACE FUNCTION update_board_post(
 )
 RETURNS JSON AS $$
 DECLARE
-  v_result JSON;
+  v_result JSONB;
   v_is_admin BOOLEAN;
   v_prefix_admin_only BOOLEAN;
 BEGIN
@@ -167,6 +167,6 @@ BEGIN
     'updated_at', updated_at
   ) INTO v_result;
 
-  RETURN v_result;
+  RETURN v_result::JSON;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
