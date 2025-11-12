@@ -1831,7 +1831,11 @@ export default function EventList({
             {/* 등록 버튼 배너 - 항상 표시 */}
             <div
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('createEventForDate'));
+                const monthDate = currentMonth || new Date();
+                const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+                window.dispatchEvent(new CustomEvent('createEventForDate', {
+                  detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                }));
               }}
               className="cursor-pointer"
             >
@@ -2026,7 +2030,13 @@ export default function EventList({
                     {/* 등록 버튼 배너 */}
                     <div
                       onClick={() => {
-                        window.dispatchEvent(new CustomEvent('createEventForDate'));
+                        const monthDate = currentMonth || new Date();
+                        const prevMonth = new Date(monthDate);
+                        prevMonth.setMonth(prevMonth.getMonth() - 1);
+                        const firstDayOfMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1);
+                        window.dispatchEvent(new CustomEvent('createEventForDate', {
+                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                        }));
                       }}
                       className="cursor-pointer"
                     >
@@ -2217,7 +2227,11 @@ export default function EventList({
                     {/* 등록 버튼 배너 */}
                     <div
                       onClick={() => {
-                        window.dispatchEvent(new CustomEvent('createEventForDate'));
+                        const monthDate = currentMonth || new Date();
+                        const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+                        window.dispatchEvent(new CustomEvent('createEventForDate', {
+                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                        }));
                       }}
                       className="cursor-pointer"
                     >
@@ -2391,7 +2405,13 @@ export default function EventList({
                     {/* 등록 버튼 배너 */}
                     <div
                       onClick={() => {
-                        window.dispatchEvent(new CustomEvent('createEventForDate'));
+                        const monthDate = currentMonth || new Date();
+                        const nextMonth = new Date(monthDate);
+                        nextMonth.setMonth(nextMonth.getMonth() + 1);
+                        const firstDayOfMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1);
+                        window.dispatchEvent(new CustomEvent('createEventForDate', {
+                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                        }));
                       }}
                       className="cursor-pointer"
                     >

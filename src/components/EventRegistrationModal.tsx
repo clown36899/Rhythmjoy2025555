@@ -55,6 +55,7 @@ export default function EventRegistrationModal({
     password: "",
     videoUrl: "",
   });
+  const [startDate, setStartDate] = useState<Date>(selectedDate);
   const [endDate, setEndDate] = useState<Date>(selectedDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -81,8 +82,9 @@ export default function EventRegistrationModal({
   const [specificDates, setSpecificDates] = useState<Date[]>([selectedDate]);
   const [tempDateInput, setTempDateInput] = useState<string>(""); // 날짜 추가 전 임시 값
 
-  // selectedDate가 변경되면 endDate와 specificDates도 업데이트
+  // selectedDate가 변경되면 startDate, endDate, specificDates도 업데이트
   useEffect(() => {
+    setStartDate(selectedDate);
     setEndDate(selectedDate);
     setSpecificDates([selectedDate]);
   }, [selectedDate]);
@@ -429,9 +431,9 @@ export default function EventRegistrationModal({
         endDateString = eventDatesArray[eventDatesArray.length - 1]; // 최대 날짜
       } else {
         // 연속 기간 모드: 기존 방식
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-        const day = String(selectedDate.getDate()).padStart(2, "0");
+        const year = startDate.getFullYear();
+        const month = String(startDate.getMonth() + 1).padStart(2, "0");
+        const day = String(startDate.getDate()).padStart(2, "0");
         localDateString = `${year}-${month}-${day}`;
 
         const endYear = endDate.getFullYear();
@@ -612,23 +614,30 @@ export default function EventRegistrationModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-gray-300 text-sm font-medium mb-1">
-                        시작일
+                        시작
                       </label>
                       <input
                         type="date"
-                        value={formatDateForInput(selectedDate)}
-                        disabled
-                        className="w-full bg-gray-600 text-gray-300 rounded-lg px-3 py-2 cursor-not-allowed"
+                        value={formatDateForInput(startDate)}
+                        onChange={(e) => {
+                          const newStartDate = new Date(e.target.value + "T00:00:00");
+                          setStartDate(newStartDate);
+                          // endDate가 newStartDate보다 이전이면 조정
+                          if (endDate < newStartDate) {
+                            setEndDate(newStartDate);
+                          }
+                        }}
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div>
                       <label className="block text-gray-300 text-sm font-medium mb-1">
-                        종료일
+                        종료
                       </label>
                       <input
                         type="date"
                         value={formatDateForInput(endDate)}
-                        min={formatDateForInput(selectedDate)}
+                        min={formatDateForInput(startDate)}
                         onChange={(e) =>
                           setEndDate(new Date(e.target.value + "T00:00:00"))
                         }

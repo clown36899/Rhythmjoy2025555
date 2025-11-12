@@ -746,11 +746,20 @@ export default function HomePage() {
 
   // 등록 버튼 클릭 이벤트 리스너
   useEffect(() => {
-    const handleCreateEvent = () => {
-      // selectedDate가 없으면 오늘 날짜로 등록
-      if (!selectedDate) {
-        setSelectedDate(new Date());
+    const handleCreateEvent = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      
+      // 등록 배너에서 온 경우: detail에 달 정보가 있음
+      if (customEvent.detail?.source === 'banner' && customEvent.detail?.monthIso) {
+        const firstDayOfMonth = new Date(customEvent.detail.monthIso);
+        setSelectedDate(firstDayOfMonth);
+      } else {
+        // 하단 메뉴 버튼에서 온 경우: selectedDate가 없으면 오늘 날짜로 등록
+        if (!selectedDate) {
+          setSelectedDate(new Date());
+        }
       }
+      
       setShowRegistrationModal(true);
     };
 
