@@ -1157,6 +1157,7 @@ export default function HomePage() {
               dragOffset={dragOffset}
               isAnimating={isAnimating}
               slideContainerRef={eventListSlideContainerRef}
+              onMonthChange={(date) => setCurrentMonth(date)}
             />
           )}
 

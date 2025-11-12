@@ -47,6 +47,7 @@ interface EventListProps {
   dragOffset?: number;
   isAnimating?: boolean;
   slideContainerRef?: React.RefObject<HTMLDivElement | null>;
+  onMonthChange?: (date: Date) => void;
 }
 
 export default function EventList({
@@ -72,6 +73,7 @@ export default function EventList({
   dragOffset: externalDragOffset = 0,
   isAnimating: externalIsAnimating = false,
   slideContainerRef,
+  onMonthChange,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -2940,6 +2942,11 @@ export default function EventList({
                           }}
                           onChange={(e) => {
                             setTempDateInput(e.target.value);
+                            // 달력 이동
+                            if (e.target.value && onMonthChange) {
+                              const newDate = new Date(e.target.value + "T00:00:00");
+                              onMonthChange(newDate);
+                            }
                           }}
                         />
                         <button
@@ -3480,6 +3487,10 @@ export default function EventList({
                                 ...prev,
                                 end_date: dateStr,
                               }));
+                            }
+                            // 달력 이동
+                            if (onMonthChange) {
+                              onMonthChange(date);
                             }
                             setShowDatePickerModal(null);
                           }
