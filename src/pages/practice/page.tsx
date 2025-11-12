@@ -70,8 +70,11 @@ export default function PracticeRoomsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg w-full max-w-sm p-6">
             <h3 className="text-lg font-bold text-white mb-4 text-center">등록 문의</h3>
-            <p className="text-gray-300 text-center mb-6">
+            <p className="text-gray-300 text-center mb-2">
               관리자에게 문의하세요
+            </p>
+            <p className="text-gray-400 text-sm text-center mb-6">
+              시설 상태와 평판등 다양한 기준으로 등록됩니다.
             </p>
             <a
               href="tel:010-4801-7180"
