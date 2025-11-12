@@ -70,9 +70,15 @@ export default function BoardPage() {
   const checkUserRegistration = async () => {
     if (!user?.id) return;
     
-    // 관리자는 회원가입 체크 스킵
+    // 관리자는 회원가입 없이 바로 사용 가능
     if (isAdmin) {
-      console.log('[게시판] 관리자는 회원가입 불필요');
+      console.log('[게시판] 관리자 모드 - 회원가입 불필요');
+      setUserData({
+        nickname: '관리자',
+        real_name: '관리자',
+        phone: '',
+        gender: 'other'
+      });
       return;
     }
 
