@@ -704,8 +704,8 @@ export default function EventCalendar({
           {/* 멀티데이 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 */}
           {eventBarsData.some((bar) => bar !== null) && (
             <div className="absolute bottom-0 left-0 right-0 h-5 pointer-events-none">
+              {/* 색상 바 레이어 */}
               {eventBarsData.map((bar, i) => {
-                // 호버된 이벤트인지 확인 (월간 보기일 때만)
                 const isHovered =
                   viewMode === "month" &&
                   hoveredEventId !== null &&
@@ -713,14 +713,10 @@ export default function EventCalendar({
 
                 if (!bar) return null;
 
-                // 셀이 클 때는 시작일에만 제목 표시 (긴 제목이 여러 칸에 걸쳐 보이도록)
-                const showTitle = cellHeight > 55 && bar.isStart;
-                const event = showTitle ? multiDayEvents.find(e => e.id === bar.eventId) : null;
-
                 return (
                   <div
                     key={i}
-                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 flex items-center ${
+                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 ${
                       bar.categoryColor
                     } ${
                       bar.isStart && bar.isEnd
@@ -740,22 +736,47 @@ export default function EventCalendar({
                             : "opacity-60 h-1.5 z-0"
                     }`}
                     style={{
-                      overflow: showTitle ? 'visible' : 'hidden',
                       paddingLeft: (bar.isStart || (bar.isStart && bar.isEnd)) ? '6px' : '0',
                       paddingRight: (bar.isEnd && !bar.isStart) ? '6px' : '0'
                     }}
+                  />
+                );
+              })}
+              
+              {/* 제목 레이어 - 색상 바 위에 표시 */}
+              {eventBarsData.map((bar, i) => {
+                if (!bar || !bar.isStart || cellHeight <= 55) return null;
+                
+                const event = multiDayEvents.find(e => e.id === bar.eventId);
+                if (!event) return null;
+                
+                // 이 주에서 이벤트가 차지하는 칸 수 계산
+                let spanCount = 1;
+                for (let j = i + 1; j < eventBarsData.length; j++) {
+                  if (eventBarsData[j]?.eventId === bar.eventId) {
+                    spanCount++;
+                  } else {
+                    break;
+                  }
+                }
+                
+                return (
+                  <div
+                    key={`title-${i}`}
+                    className="absolute bottom-0 flex items-center pointer-events-none"
+                    style={{
+                      left: 0,
+                      height: cellHeight > 55 ? '14px' : '6px',
+                      width: `${spanCount * 100}%`,
+                      paddingLeft: '6px',
+                      paddingRight: '6px',
+                      zIndex: 20,
+                      overflow: 'hidden'
+                    }}
                   >
-                    {showTitle && event && (
-                      <span 
-                        className="text-[10px] font-medium whitespace-nowrap text-white"
-                        style={{
-                          maxWidth: 'none',
-                          overflow: 'visible'
-                        }}
-                      >
-                        {event.title}
-                      </span>
-                    )}
+                    <span className="text-[10px] font-medium text-white truncate">
+                      {event.title}
+                    </span>
                   </div>
                 );
               })}
