@@ -1722,138 +1722,21 @@ export default function EventList({
               >
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-                    {sortedPrevEvents.map((event) => {
-                      return (
-                        <div
-                          key={event.id}
-                          data-event-id={event.id}
-                          onClick={() => handleEventClick(event)}
-                          className="overflow-hidden transition-all cursor-pointer relative border border-[#000000]"
-                          style={{
-                            backgroundColor: "var(--event-list-bg-color)",
-                            borderRadius: "0.3rem",
-                          }}
-                        >
-                          <div className="relative aspect-[3/4]">
-                            {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(
-                                event,
-                                defaultThumbnailClass,
-                                defaultThumbnailEvent,
-                              );
-                              const isDefaultThumbnail =
-                                !event?.image &&
-                                !event?.image_thumbnail &&
-                                finalThumbnailUrl;
-
-                              if (finalThumbnailUrl) {
-                                return (
-                                  <>
-                                    <img
-                                      src={finalThumbnailUrl}
-                                      alt={event.title}
-                                      loading="lazy"
-                                      className="w-full object-cover object-center bg-gray-900"
-                                      style={{ height: '-webkit-fill-available' }}
-                                    />
-                                    {isDefaultThumbnail && (
-                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <span className="text-white/50 text-4xl font-bold">
-                                          {event.category === "class"
-                                            ? "강습"
-                                            : "행사"}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              } else {
-                                return (
-                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
-                                    <span className="text-white/10 text-4xl font-bold relative">
-                                      {event.category === "class"
-                                        ? "강습"
-                                        : "행사"}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                            })()}
-                            <div
-                              className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
-                                // 지난 행사인지 확인
-                                const endDate = event.end_date || event.date;
-                                if (endDate) {
-                                  const today = getLocalDateString();
-                                  const isPast = endDate < today;
-                                  if (isPast) return "bg-gray-500/80";
-                                }
-                                return event.category === "class"
-                                  ? "bg-purple-600/80"
-                                  : "bg-blue-600/80";
-                              })()}`}
-                            >
-                              {(() => {
-                                const endDate = event.end_date || event.date;
-                                if (endDate) {
-                                  const today = getLocalDateString();
-                                  const isPast = endDate < today;
-                                  if (isPast) return "종료";
-                                }
-                                return event.category === "class"
-                                  ? "강습"
-                                  : "행사";
-                              })()}
-                            </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3
-                                className="text-white font-bold leading-tight line-clamp-4"
-                                style={{ fontSize: "0.8rem" }}
-                              >
-                                {event.title}
-                              </h3>
-                            </div>
-                          </div>
-                          <div className="p-1 h-7 flex items-center justify-center">
-                            <p className="text-xs text-gray-300 text-center">
-                              {(() => {
-                                // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                                if (
-                                  event.event_dates &&
-                                  event.event_dates.length > 0
-                                ) {
-                                  const formatDate = (dateStr: string) => {
-                                    const date = new Date(dateStr);
-                                    return `${date.getMonth() + 1}/${date.getDate()}`;
-                                  };
-
-                                  // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
-                                  if (event.event_dates.length === 1) {
-                                    return formatDate(event.event_dates[0]);
-                                  } else {
-                                    return `${formatDate(event.event_dates[0])} ~ 시작`;
-                                  }
-                                }
-
-                                // 연속 기간 모드 (그대로 유지)
-                                const startDate =
-                                  event.start_date || event.date;
-                                const endDate = event.end_date || event.date;
-                                if (!startDate) return "날짜 미정";
-                                const formatDate = (dateStr: string) => {
-                                  const date = new Date(dateStr);
-                                  return `${date.getMonth() + 1}/${date.getDate()}`;
-                                };
-                                if (startDate !== endDate) {
-                                  return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
-                                }
-                                return formatDate(startDate);
-                              })()}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {sortedPrevEvents.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => handleEventClick(event)}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={null}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        viewMode={viewMode}
+                        variant="sliding"
+                      />
+                    ))}
 
                     {/* 등록 버튼 배너 */}
                     <div
@@ -1921,148 +1804,16 @@ export default function EventList({
                         key={event.id}
                         event={event}
                         onClick={() => handleEventClick(event)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor =
-                              highlightBorderColor;
-                            if (viewMode === "month" && onEventHover)
-                              onEventHover(event.id);
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              "var(--event-list-bg-color)";
-                            e.currentTarget.style.borderColor = "#000000";
-                            if (viewMode === "month" && onEventHover)
-                              onEventHover(null);
-                          }}
-                          className={`overflow-hidden transition-all cursor-pointer relative border ${isHighlighted ? "" : "border-[#000000]"}`}
-                          style={{
-                            backgroundColor: "var(--event-list-bg-color)",
-                            borderColor: isHighlighted
-                              ? highlightBorderColor
-                              : undefined,
-                            borderRadius: "0.3rem",
-                          }}
-                        >
-                          <div className="relative aspect-[3/4]">
-                            {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(
-                                event,
-                                defaultThumbnailClass,
-                                defaultThumbnailEvent,
-                              );
-                              const isDefaultThumbnail =
-                                !event?.image &&
-                                !event?.image_thumbnail &&
-                                finalThumbnailUrl;
-
-                              if (finalThumbnailUrl) {
-                                return (
-                                  <>
-                                    <img
-                                      src={finalThumbnailUrl}
-                                      alt={event.title}
-                                      loading="lazy"
-                                      className="w-full object-cover object-center bg-gray-900"
-                                      style={{ height: '-webkit-fill-available' }}
-                                    />
-                                    {isDefaultThumbnail && (
-                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <span className="text-white/50 text-4xl font-bold">
-                                          {event.category === "class"
-                                            ? "강습"
-                                            : "행사"}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              } else {
-                                return (
-                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
-                                    <span className="text-white/10 text-4xl font-bold relative">
-                                      {event.category === "class"
-                                        ? "강습"
-                                        : "행사"}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                            })()}
-                            <div
-                              className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
-                                // 지난 행사인지 확인
-                                const endDate = event.end_date || event.date;
-                                if (endDate) {
-                                  const today = getLocalDateString();
-                                  const isPast = endDate < today;
-                                  if (isPast) return "bg-gray-500/80";
-                                }
-                                return event.category === "class"
-                                  ? "bg-purple-600/80"
-                                  : "bg-blue-600/80";
-                              })()}`}
-                            >
-                              {(() => {
-                                const endDate = event.end_date || event.date;
-                                if (endDate) {
-                                  const today = getLocalDateString();
-                                  const isPast = endDate < today;
-                                  if (isPast) return "종료";
-                                }
-                                return event.category === "class"
-                                  ? "강습"
-                                  : "행사";
-                              })()}
-                            </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3
-                                className="text-white font-bold leading-tight line-clamp-4"
-                                style={{ fontSize: "0.8rem" }}
-                              >
-                                {event.title}
-                              </h3>
-                            </div>
-                          </div>
-                          <div className="p-1 h-7 flex items-center justify-center">
-                            <p className="text-xs text-gray-300 text-center">
-                              {(() => {
-                                // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                                if (
-                                  event.event_dates &&
-                                  event.event_dates.length > 0
-                                ) {
-                                  const formatDate = (dateStr: string) => {
-                                    const date = new Date(dateStr);
-                                    return `${date.getMonth() + 1}/${date.getDate()}`;
-                                  };
-
-                                  // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
-                                  if (event.event_dates.length === 1) {
-                                    return formatDate(event.event_dates[0]);
-                                  } else {
-                                    return `${formatDate(event.event_dates[0])} ~ 시작`;
-                                  }
-                                }
-
-                                // 연속 기간 모드 (그대로 유지)
-                                const startDate =
-                                  event.start_date || event.date;
-                                const endDate = event.end_date || event.date;
-                                if (!startDate) return "날짜 미정";
-                                const formatDate = (dateStr: string) => {
-                                  const date = new Date(dateStr);
-                                  return `${date.getMonth() + 1}/${date.getDate()}`;
-                                };
-                                if (startDate !== endDate) {
-                                  return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
-                                }
-                                return formatDate(startDate);
-                              })()}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={null}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        viewMode={viewMode}
+                        variant="sliding"
+                      />
+                    ))}
 
                     {/* 등록 버튼 배너 */}
                     <div
@@ -2118,138 +1869,21 @@ export default function EventList({
               >
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-                    {sortedNextEvents.map((event) => {
-                      return (
-                        <div
-                          key={event.id}
-                          data-event-id={event.id}
-                          onClick={() => handleEventClick(event)}
-                          className="overflow-hidden transition-all cursor-pointer relative border border-[#000000]"
-                          style={{
-                            backgroundColor: "var(--event-list-bg-color)",
-                            borderRadius: "0.3rem",
-                          }}
-                        >
-                          <div className="relative aspect-[3/4]">
-                            {(() => {
-                              const finalThumbnailUrl = getEventThumbnail(
-                                event,
-                                defaultThumbnailClass,
-                                defaultThumbnailEvent,
-                              );
-                              const isDefaultThumbnail =
-                                !event?.image &&
-                                !event?.image_thumbnail &&
-                                finalThumbnailUrl;
-
-                              if (finalThumbnailUrl) {
-                                return (
-                                  <>
-                                    <img
-                                      src={finalThumbnailUrl}
-                                      alt={event.title}
-                                      loading="lazy"
-                                      className="w-full object-cover object-center bg-gray-900"
-                                      style={{ height: '-webkit-fill-available' }}
-                                    />
-                                    {isDefaultThumbnail && (
-                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <span className="text-white/50 text-4xl font-bold">
-                                          {event.category === "class"
-                                            ? "강습"
-                                            : "행사"}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              } else {
-                                return (
-                                  <div className="w-full aspect-[3/4] bg-[#000000] flex items-center justify-center">
-                                    <span className="text-white/10 text-4xl font-bold relative">
-                                      {event.category === "class"
-                                        ? "강습"
-                                        : "행사"}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                            })()}
-                            <div
-                              className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
-                                // 지난 행사인지 확인
-                                const endDate = event.end_date || event.date;
-                                if (endDate) {
-                                  const today = getLocalDateString();
-                                  const isPast = endDate < today;
-                                  if (isPast) return "bg-gray-500/80";
-                                }
-                                return event.category === "class"
-                                  ? "bg-purple-600/80"
-                                  : "bg-blue-600/80";
-                              })()}`}
-                            >
-                              {(() => {
-                                const endDate = event.end_date || event.date;
-                                if (endDate) {
-                                  const today = getLocalDateString();
-                                  const isPast = endDate < today;
-                                  if (isPast) return "종료";
-                                }
-                                return event.category === "class"
-                                  ? "강습"
-                                  : "행사";
-                              })()}
-                            </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-10">
-                              <h3
-                                className="text-white font-bold leading-tight line-clamp-4"
-                                style={{ fontSize: "0.8rem" }}
-                              >
-                                {event.title}
-                              </h3>
-                            </div>
-                          </div>
-                          <div className="p-1 h-7 flex items-center justify-center">
-                            <p className="text-xs text-gray-300 text-center">
-                              {(() => {
-                                // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                                if (
-                                  event.event_dates &&
-                                  event.event_dates.length > 0
-                                ) {
-                                  const formatDate = (dateStr: string) => {
-                                    const date = new Date(dateStr);
-                                    return `${date.getMonth() + 1}/${date.getDate()}`;
-                                  };
-
-                                  // 처음 1개만 표시하고 나머지는 "~ 시작"으로 표시
-                                  if (event.event_dates.length === 1) {
-                                    return formatDate(event.event_dates[0]);
-                                  } else {
-                                    return `${formatDate(event.event_dates[0])} ~ 시작`;
-                                  }
-                                }
-
-                                // 연속 기간 모드 (그대로 유지)
-                                const startDate =
-                                  event.start_date || event.date;
-                                const endDate = event.end_date || event.date;
-                                if (!startDate) return "날짜 미정";
-                                const formatDate = (dateStr: string) => {
-                                  const date = new Date(dateStr);
-                                  return `${date.getMonth() + 1}/${date.getDate()}`;
-                                };
-                                if (startDate !== endDate) {
-                                  return `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
-                                }
-                                return formatDate(startDate);
-                              })()}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {sortedNextEvents.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => handleEventClick(event)}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={null}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        viewMode={viewMode}
+                        variant="sliding"
+                      />
+                    ))}
 
                     {/* 등록 버튼 배너 */}
                     <div
