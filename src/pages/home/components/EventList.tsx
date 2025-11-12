@@ -1682,7 +1682,8 @@ export default function EventList({
                                 src={finalThumbnailUrl}
                                 alt={event.title}
                                 loading="lazy"
-                                className="w-full h-full object-cover object-center bg-gray-900"
+                                className="w-full object-cover object-center bg-gray-900"
+                                style={{ height: '-webkit-fill-available' }}
                               />
                             );
                           } else {
@@ -1921,6 +1922,7 @@ export default function EventList({
                                       alt={event.title}
                                       loading="lazy"
                                       className="w-full object-cover object-center bg-gray-900"
+                                      style={{ height: '-webkit-fill-available' }}
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -2111,6 +2113,7 @@ export default function EventList({
                                       alt={event.title}
                                       loading="lazy"
                                       className="w-full object-cover object-center bg-gray-900"
+                                      style={{ height: '-webkit-fill-available' }}
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -2284,6 +2287,7 @@ export default function EventList({
                                       alt={event.title}
                                       loading="lazy"
                                       className="w-full object-cover object-center bg-gray-900"
+                                      style={{ height: '-webkit-fill-available' }}
                                     />
                                     {isDefaultThumbnail && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
