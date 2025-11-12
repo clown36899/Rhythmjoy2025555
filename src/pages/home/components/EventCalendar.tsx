@@ -713,23 +713,23 @@ export default function EventCalendar({
 
                 if (!bar) return null;
 
-                // 셀이 클 때는 제목 표시 (모든 날짜에 표시하여 긴 제목이 여러 칸에 걸쳐 보이도록)
-                const showTitle = cellHeight > 55;
+                // 셀이 클 때는 시작일에만 제목 표시 (긴 제목이 여러 칸에 걸쳐 보이도록)
+                const showTitle = cellHeight > 55 && bar.isStart;
                 const event = showTitle ? multiDayEvents.find(e => e.id === bar.eventId) : null;
 
                 return (
                   <div
                     key={i}
-                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 overflow-visible flex items-center ${
+                    className={`absolute bottom-0 left-0 right-0 transition-all duration-200 flex items-center ${
                       bar.categoryColor
                     } ${
                       bar.isStart && bar.isEnd
-                        ? "rounded-full px-1.5"
+                        ? "rounded-full"
                         : bar.isStart
-                          ? "rounded-l-full pl-1.5 pr-0"
+                          ? "rounded-l-full"
                           : bar.isEnd
-                            ? "rounded-r-full pr-1.5 pl-0"
-                            : "px-0"
+                            ? "rounded-r-full"
+                            : ""
                     } ${
                       bar.isFaded
                         ? "opacity-20 h-1.5 z-0"
@@ -739,12 +739,20 @@ export default function EventCalendar({
                             ? "opacity-80 h-3.5 z-0"
                             : "opacity-60 h-1.5 z-0"
                     }`}
+                    style={{
+                      overflow: showTitle ? 'visible' : 'hidden',
+                      paddingLeft: (bar.isStart || (bar.isStart && bar.isEnd)) ? '6px' : '0',
+                      paddingRight: (bar.isEnd && !bar.isStart) ? '6px' : '0'
+                    }}
                   >
                     {showTitle && event && (
-                      <span className="text-[10px] font-medium whitespace-nowrap text-white" style={{
-                        overflow: 'visible',
-                        textOverflow: 'clip'
-                      }}>
+                      <span 
+                        className="text-[10px] font-medium whitespace-nowrap text-white"
+                        style={{
+                          maxWidth: 'none',
+                          overflow: 'visible'
+                        }}
+                      >
                         {event.title}
                       </span>
                     )}
