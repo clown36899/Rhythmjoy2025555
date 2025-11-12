@@ -169,7 +169,8 @@ export function useUnifiedGestureController({
       
       // ✅ 최상단이면 무조건 calendar-drag로 시작 (이벤트 리스트에서 pull down도 처리)
       activeGesture = 'calendar-drag';
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      // setPointerCapture 제거 - PointerUp 이벤트가 발생하지 않는 문제 해결
+      // (e.target as HTMLElement).setPointerCapture(e.pointerId);
       gesturePointerId = e.pointerId;
       
       const currentCalendarHeight = calendarContentRef.current?.offsetHeight || 0;
@@ -263,15 +264,16 @@ export function useUnifiedGestureController({
         return;
       }
       
-      // Pointer capture 해제
-      if (gesturePointerId !== null) {
-        try {
-          (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
-        } catch (err) {
-          // Ignore
-        }
-        gesturePointerId = null;
-      }
+      // Pointer capture 해제 (제거됨)
+      // if (gesturePointerId !== null) {
+      //   try {
+      //     (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
+      //   } catch (err) {
+      //     // Ignore
+      //   }
+      //   gesturePointerId = null;
+      // }
+      gesturePointerId = null;
       
       if (activeGesture === 'calendar-drag') {
         const velocity = calculateVelocity();
@@ -296,9 +298,11 @@ export function useUnifiedGestureController({
     
     // PointerCancel 처리
     const handlePointerCancel = (e: PointerEvent) => {
+      console.log("⚠️ PointerCancel!", { activeGesture, gesturePointerId });
+      
       if (gesturePointerId !== null) {
         try {
-          (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
+          // (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
         } catch (err) {
           // Ignore
         }
