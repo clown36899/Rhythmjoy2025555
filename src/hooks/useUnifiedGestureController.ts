@@ -12,6 +12,9 @@ interface UseUnifiedGestureControllerProps {
   isScrollExpandingRef: React.MutableRefObject<boolean>;
   // 월 변경 콜백
   onMonthChange: (direction: 'prev' | 'next') => void;
+  // Buffer Rotation 콜백 (optional)
+  onSwipeStart?: (direction: 'prev' | 'next') => void;
+  onSwipeComplete?: (direction: 'prev' | 'next') => void;
   // Double-Buffered Carousel: 영구 컨테이너 ref
   eventListMonthRefs: {
     prev: RefObject<HTMLDivElement>;
@@ -28,6 +31,8 @@ export function useUnifiedGestureController({
   calendarMode,
   setCalendarMode,
   onMonthChange,
+  onSwipeStart,
+  onSwipeComplete,
   eventListMonthRefs,
 }: UseUnifiedGestureControllerProps) {
   useEffect(() => {
@@ -52,6 +57,10 @@ export function useUnifiedGestureController({
     let currentHeight = 0;
     let velocityHistory: Array<{ y: number; time: number }> = [];
     let rafId: number | null = null;
+    
+    // Buffer Rotation: 스와이프 방향 및 콜백 상태
+    let activeSwipeDirection: 'prev' | 'next' | null = null;
+    let hasFiredSwipeStart = false;
 
     // 높이 → 모드 변환
     const heightToMode = (height: number): CalendarMode => {
@@ -225,6 +234,15 @@ export function useUnifiedGestureController({
           isPending = false;
           gestureDirection = 'horizontal';
           isDragging = true;
+          
+          // Buffer Rotation: 방향 계산 및 onSwipeStart 호출
+          if (!hasFiredSwipeStart && Math.abs(deltaX) > 0) {
+            activeSwipeDirection = deltaX > 0 ? 'prev' : 'next';
+            hasFiredSwipeStart = true;
+            console.log(`🚀 Buffer Rotation: onSwipeStart(${activeSwipeDirection})`);
+            onSwipeStart?.(activeSwipeDirection);
+          }
+          
           console.log("↔️ 수평 스와이프 시작 (월 변경)");
           e.preventDefault();
           return;
@@ -339,7 +357,13 @@ export function useUnifiedGestureController({
             return;
           }
           
-          const handleTransitionEnd = () => {
+          const handleTransitionEnd = (event: TransitionEvent) => {
+            // event.target === current 확인 (single-fire 보장)
+            if (event.target !== current) {
+              console.log('⏭️ transitionend 무시 (target !== current)');
+              return;
+            }
+            
             console.log(`✅ 애니메이션 완료 → transform 리셋`);
             
             // 모든 월 transform 리셋 (transition 없이)
@@ -350,9 +374,19 @@ export function useUnifiedGestureController({
             current.style.transform = 'translateX(0)';
             next.style.transform = 'translateX(0)';
             
+            // Buffer Rotation: onSwipeComplete 호출 (rotateBuffers 실행)
+            if (activeSwipeDirection) {
+              console.log(`🏁 Buffer Rotation: onSwipeComplete(${activeSwipeDirection})`);
+              onSwipeComplete?.(activeSwipeDirection);
+            }
+            
             // 월 변경 (React 리렌더링 → 비활성 버퍼만 업데이트)
             onMonthChange(direction);
             console.log(`🎉 월 변경: ${direction} (Double-Buffered)`);
+            
+            // Buffer Rotation flags 리셋
+            activeSwipeDirection = null;
+            hasFiredSwipeStart = false;
           };
           
           // transition 설정
@@ -396,6 +430,10 @@ export function useUnifiedGestureController({
             if (current) current.style.transform = 'translateX(0)';
             if (next) next.style.transform = 'translateX(0)';
           });
+          
+          // Buffer Rotation flags 리셋 (스냅백 시)
+          activeSwipeDirection = null;
+          hasFiredSwipeStart = false;
         }
         
         isDragging = false;
@@ -418,9 +456,14 @@ export function useUnifiedGestureController({
 
       isPending = false;
       isDragging = false;
+      gestureDirection = null;
 
       // 스크롤 복원 (중요!)
       eventListElement.style.overflow = "";
+
+      // Buffer Rotation flags 리셋
+      activeSwipeDirection = null;
+      hasFiredSwipeStart = false;
 
       velocityHistory = [];
     };

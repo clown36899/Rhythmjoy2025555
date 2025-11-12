@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import EventCalendar from "./components/EventCalendar";
-import EventList from "./components/EventList";
+import EventList, { type EventListHandle } from "./components/EventList";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import FullscreenBillboard from "../../components/FullscreenBillboard";
@@ -93,6 +93,9 @@ export default function HomePage() {
   const eventListElementRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
+  // Buffer Rotation: EventList imperative handle ref
+  const eventListControllerRef = useRef<EventListHandle>(null);
+  
   // Double-Buffered Carousel: 3개 영구 컨테이너 ref
   const eventListPrevMonthRef = useRef<HTMLDivElement>(null);
   const eventListCurrentMonthRef = useRef<HTMLDivElement>(null);
@@ -133,7 +136,7 @@ export default function HomePage() {
     console.log(`📅 월 변경: ${direction} → ${newMonth.toISOString()}`);
   }, [currentMonth]);
 
-  // 🎯 통합 제스처 컨트롤러 (수직 드래그 + 수평 스와이프 - Double-Buffered Carousel)
+  // 🎯 통합 제스처 컨트롤러 (수직 드래그 + 수평 스와이프 - Double-Buffered Carousel + Buffer Rotation)
   useUnifiedGestureController({
     containerRef,
     eventListRef: eventListElementRef,
@@ -143,6 +146,15 @@ export default function HomePage() {
     setCalendarMode,
     isScrollExpandingRef,
     onMonthChange: handleMonthSwipe,
+    // Buffer Rotation: EventList imperative handle 연결
+    onSwipeStart: (direction) => {
+      console.log(`[HomePage] onSwipeStart: ${direction}`);
+      eventListControllerRef.current?.handleSwipeStart(direction);
+    },
+    onSwipeComplete: (direction) => {
+      console.log(`[HomePage] onSwipeComplete: ${direction}`);
+      eventListControllerRef.current?.handleSwipeComplete(direction);
+    },
     eventListMonthRefs: {
       prev: eventListPrevMonthRef,
       current: eventListCurrentMonthRef,
@@ -857,6 +869,7 @@ export default function HomePage() {
             </div>
           ) : (
             <EventList
+              ref={eventListControllerRef}
               selectedDate={selectedDate}
               selectedCategory={selectedCategory}
               currentMonth={currentMonth}
