@@ -188,6 +188,7 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
   // 슬라이드 높이 동적 조정을 위한 상태 및 ref
   // const [slideContainerHeight, setSlideContainerHeight] = useState<number | null>(null);
   // Double-Buffered Carousel: props로 받은 ref 사용 (없으면 내부 ref 사용)
+  const sliderRef = useRef<HTMLDivElement>(null);
   const fallbackPrevRef = useRef<HTMLDivElement>(null);
   const fallbackCurrentRef = useRef<HTMLDivElement>(null);
   const fallbackNextRef = useRef<HTMLDivElement>(null);
