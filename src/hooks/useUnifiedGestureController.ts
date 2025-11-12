@@ -381,8 +381,11 @@ export function useUnifiedGestureController({
             }
             
             // 월 변경 (React 리렌더링 → 비활성 버퍼만 업데이트)
-            onMonthChange(direction);
-            console.log(`🎉 월 변경: ${direction} (Double-Buffered)`);
+            // RAF로 다음 프레임에 실행하여 깜빡임 방지
+            requestAnimationFrame(() => {
+              onMonthChange(direction);
+              console.log(`🎉 월 변경: ${direction} (Double-Buffered)`);
+            });
             
             // Buffer Rotation flags 리셋
             activeSwipeDirection = null;
