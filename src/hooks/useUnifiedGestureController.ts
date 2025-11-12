@@ -223,39 +223,26 @@ export function useUnifiedGestureController({
         e.preventDefault();
         
         const fullscreenHeight = window.innerHeight - 150;
-        const isPullingDown = deltaY > 0;
         
-        if (isPullingDown && calendarMode !== 'fullscreen') {
+        // 배율: 손가락 움직임에 달력이 크게 반응
+        let targetHeight = gestureStartHeight + deltaY * 10.0;
+        const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
+        
+        // 높이 제한: 0 ~ fullscreen
+        targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
+        
+        // 확장 중 플래그
+        if (deltaY > 0) {
           isScrollExpandingRef.current = true;
-          
-          // 배율 증가: 손가락 움직임에 달력이 더 크게 반응 (1.2 → 10.0)
-          let targetHeight = gestureStartHeight + deltaY * 10.0;
-          const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
-          
-          targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
-          
-          if (calendarContentRef.current) {
-            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
-            calendarContentRef.current.style.setProperty('transition', 'none');
-            calendarContentRef.current.style.setProperty('transform', `scaleY(${scale})`);
-            calendarContentRef.current.style.setProperty('transform-origin', 'top center');
-            calendarContentRef.current.style.setProperty('--live-calendar-height', `${targetHeight}px`);
-            console.log("📏 실시간 높이 업데이트:", targetHeight.toFixed(0), "px");
-          }
-        } else if (!isPullingDown && calendarMode !== 'collapsed') {
-          // 배율 증가: 위로 밀 때도 빠르게 반응 (1.2 → 10.0)
-          let targetHeight = gestureStartHeight + deltaY * 10.0;
-          const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
-          
-          targetHeight = Math.max(0, targetHeight);
-          
-          if (calendarContentRef.current) {
-            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
-            calendarContentRef.current.style.setProperty('transition', 'none');
-            calendarContentRef.current.style.setProperty('transform', `scaleY(${scale})`);
-            calendarContentRef.current.style.setProperty('transform-origin', 'top center');
-            console.log("📏 실시간 높이 업데이트 (축소):", targetHeight.toFixed(0), "px");
-          }
+        }
+        
+        if (calendarContentRef.current) {
+          calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+          calendarContentRef.current.style.setProperty('transition', 'none');
+          calendarContentRef.current.style.setProperty('transform', `scaleY(${scale})`);
+          calendarContentRef.current.style.setProperty('transform-origin', 'top center');
+          calendarContentRef.current.style.setProperty('--live-calendar-height', `${targetHeight}px`);
+          console.log("📏 실시간 높이:", targetHeight.toFixed(0), "px (deltaY:", deltaY.toFixed(1), ")");
         }
       }
     };
