@@ -68,8 +68,8 @@ export function useUnifiedGestureController({
     // Helper: Calendar 스냅 수행
     const performCalendarSnap = (velocity: number, currentHeight: number, deltaY: number) => {
       const fullscreenHeight = window.innerHeight - 150;
-      const FLING_VELOCITY_THRESHOLD = 0.25;
-      const FLING_DISTANCE_THRESHOLD = 10;
+      const FLING_VELOCITY_THRESHOLD = 0.15; // Android TV 최적화 (0.25 → 0.15)
+      const FLING_DISTANCE_THRESHOLD = 5; // 짧은 거리도 반응 (10 → 5)
       
       let finalHeight = 0;
       let targetMode: CalendarMode = 'collapsed';
@@ -82,9 +82,11 @@ export function useUnifiedGestureController({
           finalHeight = 250;
           targetMode = 'expanded';
           console.log("⚡️ Fling: collapsed → expanded", velocity.toFixed(3));
-        } else if (velocity > 0 && currentHeight > 15) {
+        } else if (deltaY > 5) {
+          // 아래로 5px 이상 당겼으면 무조건 확장 (사용자 요구: "이동거리가 나와야")
           finalHeight = 250;
           targetMode = 'expanded';
+          console.log("✅ 거리 기반 확장:", deltaY.toFixed(1), "px");
         } else {
           finalHeight = 0;
           targetMode = 'collapsed';
