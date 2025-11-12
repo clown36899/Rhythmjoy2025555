@@ -214,6 +214,7 @@ export function useUnifiedGestureController({
       
       // Calendar drag 처리
       if (activeGesture === 'calendar-drag') {
+        // 브라우저 기본 동작 방지 (스크롤, 제스처 등)
         e.preventDefault();
         
         const fullscreenHeight = window.innerHeight - 150;
@@ -296,19 +297,12 @@ export function useUnifiedGestureController({
       gestureHistory.length = 0;
     };
     
-    // PointerCancel 처리
+    // PointerCancel 처리 - PointerUp과 동일하게 스냅 수행
     const handlePointerCancel = (e: PointerEvent) => {
-      console.log("⚠️ PointerCancel!", { activeGesture, gesturePointerId });
+      console.log("⚠️ PointerCancel! - PointerUp처럼 처리", { activeGesture, gesturePointerId });
       
-      if (gesturePointerId !== null) {
-        try {
-          // (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
-        } catch (err) {
-          // Ignore
-        }
-      }
-      activeGesture = 'none';
-      gesturePointerId = null;
+      // PointerUp과 동일하게 처리
+      handlePointerUp(e);
     };
     
     // 이벤트 리스너 등록 (passive: false 필수!)
