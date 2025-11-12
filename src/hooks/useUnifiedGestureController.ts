@@ -166,8 +166,8 @@ export function useUnifiedGestureController({
           console.log("❌ 스크롤 모드 (리스트 영역, 스크롤 중간)");
           return;
         } else {
-          // 스크롤 최상단: pull down 가능성 있음 → 일단 scroll로 시작
-          activeGesture = 'scroll';
+          // 스크롤 최상단: pending-calendar 모드 (아래로 당기면 즉시 달력 제어)
+          activeGesture = 'scroll'; // 일단 scroll
           gesturePointerId = e.pointerId;
           gestureStartY = e.clientY;
           gestureStartX = e.clientX;
@@ -176,10 +176,15 @@ export function useUnifiedGestureController({
           gestureHistory.length = 0;
           gestureHistory.push({ y: e.clientY, time: Date.now() });
           
-          // 모바일: preventDefault() 호출 안 함 → 스크롤 허용
-          // pull down 감지되면 PointerMove에서 preventDefault() 호출
+          // ⚠️ 모바일 핵심: 즉시 Pointer 캡처 (native scroll 차단)
+          try {
+            (e.target as HTMLElement).setPointerCapture(e.pointerId);
+            console.log("🔒 Pointer 캡처 완료 (모바일 native scroll 차단)");
+          } catch (err) {
+            console.log("⚠️ Pointer 캡처 실패:", err);
+          }
           
-          console.log("⏳ 스크롤 모드 (리스트 영역, 최상단 - pull down 감지 대기)");
+          console.log("⏳ pending-calendar 모드 (리스트 최상단 - 아래로 당기면 달력)");
           return;
         }
       }
@@ -213,15 +218,26 @@ export function useUnifiedGestureController({
         const scrollTop = eventListElement.scrollTop;
         const deltaY = e.clientY - gestureStartY;
         
-        // 스크롤 최상단 + 아래로 pull down → 즉시 calendar-drag로 전환
-        if (scrollTop <= 0 && deltaY > 3) {
-          console.log("🔄 제스처 전환: scroll → calendar-drag (pull down 감지, deltaY:", deltaY.toFixed(1), ")");
+        // 스크롤 최상단 + 아래로 당김 → 즉시 calendar-drag로 전환
+        if (scrollTop <= 0 && deltaY > 0) {
+          console.log("🔄 제스처 전환: scroll → calendar-drag (deltaY:", deltaY.toFixed(1), ")");
           activeGesture = 'calendar-drag';
-          // 즉시 preventDefault() 호출 → 스크롤 차단, 달력 제어 시작
+          // 즉시 preventDefault() 호출
           e.preventDefault();
-          // 아래 calendar-drag 로직으로 넘어감 (return 안 함)
+          // 아래 calendar-drag 로직으로 넘어감
+        } else if (deltaY < 0) {
+          // 위로 밀기 → 스크롤 허용, Pointer 캡처 해제
+          if (gesturePointerId !== null) {
+            try {
+              (e.target as HTMLElement).releasePointerCapture(gesturePointerId);
+              console.log("🔓 Pointer 캡처 해제 (위로 스크롤 허용)");
+            } catch (err) {
+              // Ignore
+            }
+          }
+          return;
         } else {
-          // 일반 스크롤 계속
+          // deltaY === 0: 아직 움직임 없음
           return;
         }
       }
