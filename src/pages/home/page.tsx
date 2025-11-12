@@ -1207,14 +1207,14 @@ export default function HomePage() {
       }
       // 현재 상태가 fullscreen일 때
       else {
-        const threshold = fullscreenHeight - 50; // 50px만 움직여도 스냅!
+        const threshold = fullscreenHeight - 20; // damping 고려, 실제로는 40~50px 움직임
 
         if (finalHeight <= 230) {
           nextState = "collapsed"; // 0~230px: collapsed
         } else if (finalHeight < threshold) {
-          nextState = "expanded"; // 231~(fullscreen-50)px: expanded 진입! (조금만 올려도!)
+          nextState = "expanded"; // 231~(fullscreen-20)px: expanded 진입! (조금만 올려도!)
         } else {
-          nextState = "fullscreen"; // (fullscreen-50)px~: fullscreen 유지
+          nextState = "fullscreen"; // (fullscreen-20)px~: fullscreen 유지
         }
       }
 
