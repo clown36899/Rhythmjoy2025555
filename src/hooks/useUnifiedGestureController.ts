@@ -68,9 +68,9 @@ export function useUnifiedGestureController({
     // Helper: Calendar 스냅 수행 (currentHeight 기준)
     const performCalendarSnap = (velocity: number, currentHeight: number, deltaY: number) => {
       const fullscreenHeight = window.innerHeight - 150;
-      // 웹 표준 임계값 (Material Design / iOS 기준)
-      const FLING_VELOCITY_THRESHOLD = 0.5; // 500px/초 (0.15 → 0.5)
-      const FLING_DISTANCE_THRESHOLD = 50; // 50px (5 → 50)
+      // 웹 표준 임계값 (Material Design / iOS 기준, 모바일 최적화)
+      const FLING_VELOCITY_THRESHOLD = 0.4; // 400px/초 (달성 가능하게 조정)
+      const FLING_DISTANCE_THRESHOLD = 40; // 40px (모바일에서 달성 가능)
       
       let finalHeight = 0;
       let targetMode: CalendarMode = 'collapsed';
@@ -119,13 +119,13 @@ export function useUnifiedGestureController({
             isScrollExpandingRef.current = false;
             console.log("✅ 스냅:", currentHeight.toFixed(0), "→ 0 collapsed");
           }
-        } else if (currentHeight < midPoint) {
-          // 125 ~ midPoint: expanded
+        } else if (currentHeight < 320) {
+          // 125 ~ 320: expanded vs fullscreen (임계값 낮춤: midPoint → 320)
           finalHeight = 250;
           targetMode = 'expanded';
           console.log("✅ 스냅:", currentHeight.toFixed(0), "→ 250 expanded");
         } else {
-          // midPoint ~ fullscreen: fullscreen
+          // 320 ~ fullscreen: fullscreen
           finalHeight = fullscreenHeight;
           targetMode = 'fullscreen';
           console.log("✅ 스냅:", currentHeight.toFixed(0), "→", fullscreenHeight, "fullscreen");
