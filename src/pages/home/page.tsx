@@ -478,20 +478,31 @@ export default function HomePage() {
       try {
         const today = new Date();
 
-        const { data: events } = await supabase
+        // DB 레벨에서 필터링 (성능 최적화)
+        let query = supabase
           .from("events")
           .select(
             "id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at",
-          )
-          .order("date", { ascending: true });
+          );
+
+        // 이미지 또는 영상이 있는 것만 조회
+        query = query.or("image_full.not.is.null,image.not.is.null,video_url.not.is.null");
+
+        // 날짜 범위 필터
+        if (settings.dateRangeStart) {
+          query = query.gte("start_date", settings.dateRangeStart);
+        }
+        if (settings.dateRangeEnd) {
+          query = query.lte("start_date", settings.dateRangeEnd);
+        }
+
+        query = query.order("date", { ascending: true });
+
+        const { data: events } = await query;
 
         if (events && events.length > 0) {
+          // JavaScript에서 요일/ID 제외만 처리
           const filteredEvents = events.filter((event) => {
-            // 이미지 또는 영상이 있는지 확인
-            if (!event?.image_full && !event?.image && !event?.video_url) {
-              return false;
-            }
-
             const endDate = event.end_date || event.start_date || event.date;
             if (!endDate) {
               return false;
@@ -513,25 +524,6 @@ export default function HomePage() {
               const eventDate = new Date(event.start_date || event.date);
               const dayOfWeek = eventDate.getDay();
               if (settings.excludedWeekdays.includes(dayOfWeek)) {
-                return false;
-              }
-            }
-
-            // 날짜 범위 필터 적용 (시작 날짜만 체크)
-            if (settings.dateRangeStart || settings.dateRangeEnd) {
-              const eventStartDate = event.start_date || event.date;
-
-              if (
-                settings.dateRangeStart &&
-                eventStartDate < settings.dateRangeStart
-              ) {
-                return false;
-              }
-
-              if (
-                settings.dateRangeEnd &&
-                eventStartDate > settings.dateRangeEnd
-              ) {
                 return false;
               }
             }
