@@ -557,7 +557,6 @@ export default function HomePage() {
     settings.excludedWeekdays,
     settings.excludedEventIds,
     fromQR,
-    refreshTrigger,
   ]);
 
   const handleBillboardClose = () => {
