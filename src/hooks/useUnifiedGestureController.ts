@@ -304,7 +304,19 @@ export function useUnifiedGestureController({
         const calendarSlider = calendarSliderRef.current;
         const eventListSlider = eventListSliderRef.current;
         
-        if (Math.abs(deltaX) > threshold) {
+        // 빠른 스와이프 감지 (velocity 기반)
+        let velocityX = 0;
+        if (velocityHistory.length >= 2) {
+          const first = velocityHistory[0];
+          const last = velocityHistory[velocityHistory.length - 1];
+          const timeDiff = last.time - first.time;
+          if (timeDiff > 0) {
+            velocityX = (touch.clientX - startX) / timeDiff;
+          }
+        }
+        const isQuickSwipe = Math.abs(velocityX) > 0.3; // 빠른 스와이프
+        
+        if (Math.abs(deltaX) > threshold || isQuickSwipe) {
           const direction = deltaX > 0 ? 'prev' : 'next';
           console.log(`🎯 슬라이드: ${direction}, deltaX: ${deltaX.toFixed(0)}px`);
           
