@@ -161,35 +161,32 @@ export default function HomePage() {
 
     console.log("✅ 통합 Pointer Events 컨트롤러 등록!");
 
-    // 제스처 상태
+    // 🎯 제스처 상태 머신
     type GestureType = 'none' | 'scroll' | 'calendar-drag';
     let activeGesture: GestureType = 'none';
-    let startY = 0;
-    let startX = 0;
-    let startHeight = 0;
-    let startScrollTop = 0;
-    let pointerId: number | null = null;
+    let gestureStartY = 0;
+    let gestureStartX = 0;
+    let gestureStartHeight = 0;
+    let gesturePointerId: number | null = null;
+    let isHorizontalGesture = false;
     
-    // 🚀 통합 velocity history
+    // 🚀 통합 velocity history (전체 제스처 데이터)
     const gestureHistory: Array<{ y: number; time: number }> = [];
-
-    const handleScroll = () => {
-      const scrollTop = eventListElement.scrollTop;
-      const isAtTop = scrollTop <= 0;
-      const scrollDelta = lastScrollTop - scrollTop; // 양수 = 위로, 음수 = 아래로
-      const isScrollingUp = scrollDelta > 0;
-      const fullscreenHeight = window.innerHeight - 150;
-
-      console.log(
-        `🔍 scroll: scrollTop=${scrollTop.toFixed(1)}, delta=${scrollDelta.toFixed(1)}, isAtTop=${isAtTop}, isScrollingUp=${isScrollingUp}, calendarMode=${calendarMode}`,
-      );
-
-      lastScrollTop = scrollTop;
-
-      // 리스트가 최상단일 때만 처리
-      if (!isAtTop) return;
-
-      console.log("✅ 최상단 도달!");
+    
+    // Helper: Velocity 계산 (Android TV 최적화)
+    const calculateVelocity = (): number => {
+      if (gestureHistory.length < 2) return 0;
+      
+      const first = gestureHistory[0];
+      const last = gestureHistory[gestureHistory.length - 1];
+      const distance = last.y - first.y;
+      const time = last.time - first.time;
+      
+      if (time === 0 || time < 30) return 0;
+      
+      const velocity = distance / time;
+      console.log(`✅ 제스처 속도: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms (${gestureHistory.length}개)`);
+      return velocity;
     };
 
     const handleTouchStart = (e: TouchEvent) => {
