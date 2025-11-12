@@ -1629,11 +1629,9 @@ export default function EventList({
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
         >
-          {sortedEvents.length > 0 ? (
-            <>
-              {/* Grid layout with 3 columns - poster ratio */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-                {sortedEvents.map((event) => {
+          {/* Grid layout with 3 columns - poster ratio */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+            {sortedEvents.map((event) => {
                   const isHighlighted = highlightEvent?.id === event.id;
                   const highlightBorderColor =
                     event.category === "class" ? "#9333ea" : "#2563eb"; // purple-600 : blue-600
@@ -1829,27 +1827,27 @@ export default function EventList({
                   );
                 })}
 
-                {/* 등록 버튼 배너 */}
-                <div
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('createEventForDate'));
-                  }}
-                  className="overflow-hidden transition-all cursor-pointer relative border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
-                  style={{
-                    backgroundColor: "transparent",
-                    borderRadius: "0.3rem",
-                  }}
-                >
-                  <div className="relative aspect-[3/4] flex items-center justify-center">
-                    <i className="ri-add-line text-6xl text-gray-600"></i>
-                  </div>
-                </div>
+            {/* 등록 버튼 배너 - 항상 표시 */}
+            <div
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('createEventForDate'));
+              }}
+              className="overflow-hidden transition-all cursor-pointer relative border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
+              style={{
+                backgroundColor: "transparent",
+                borderRadius: "0.3rem",
+              }}
+            >
+              <div className="relative aspect-[3/4] flex items-center justify-center">
+                <i className="ri-add-line text-6xl text-gray-600"></i>
               </div>
-            </>
-          ) : (
-            <div className="text-center py-8">
-              <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
-              <p className="text-gray-400">
+            </div>
+          </div>
+
+          {/* 이벤트 없음 메시지 */}
+          {sortedEvents.length === 0 && (
+            <div className="text-center py-4 mt-2">
+              <p className="text-gray-500 text-sm">
                 {selectedDate && selectedCategory === "class"
                   ? "강습이 없습니다"
                   : selectedDate && selectedCategory === "event"
