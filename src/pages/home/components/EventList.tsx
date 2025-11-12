@@ -1629,44 +1629,46 @@ export default function EventList({
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
         >
-          {/* Grid layout with 3 columns - poster ratio */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-            {sortedEvents.map((event) => {
-              const isHighlighted = highlightEvent?.id === event.id;
-              const highlightBorderColor =
-                event.category === "class" ? "#9333ea" : "#2563eb"; // purple-600 : blue-600
+          {sortedEvents.length > 0 ? (
+            <>
+              {/* Grid layout with 3 columns - poster ratio */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                {sortedEvents.map((event) => {
+                  const isHighlighted = highlightEvent?.id === event.id;
+                  const highlightBorderColor =
+                    event.category === "class" ? "#9333ea" : "#2563eb"; // purple-600 : blue-600
 
-              return (
-                <div
-                  key={event.id}
-                  data-event-id={event.id}
-                  onClick={() => handleEventClick(event)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor =
-                      highlightBorderColor;
-                    if (viewMode === "month" && onEventHover)
-                      onEventHover(event.id);
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--event-list-bg-color)";
-                    e.currentTarget.style.borderColor = "#000000";
-                    if (viewMode === "month" && onEventHover)
-                      onEventHover(null);
-                  }}
-                  className={`overflow-hidden transition-all cursor-pointer relative border ${
-                    isHighlighted ? "" : "border-[#000000]"
-                  }`}
-                  style={{
-                    backgroundColor: "var(--event-list-bg-color)",
-                    borderColor: isHighlighted
-                      ? highlightBorderColor
-                      : undefined,
-                    borderRadius: "0.3rem",
-                  }}
-                >
-                  {/* 이미지와 제목 오버레이 */}
-                  <div className="relative aspect-[3/4]">
+                  return (
+                    <div
+                      key={event.id}
+                      data-event-id={event.id}
+                      onClick={() => handleEventClick(event)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor =
+                          highlightBorderColor;
+                        if (viewMode === "month" && onEventHover)
+                          onEventHover(event.id);
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "var(--event-list-bg-color)";
+                        e.currentTarget.style.borderColor = "#000000";
+                        if (viewMode === "month" && onEventHover)
+                          onEventHover(null);
+                      }}
+                      className={`overflow-hidden transition-all cursor-pointer relative border ${
+                        isHighlighted ? "" : "border-[#000000]"
+                      }`}
+                      style={{
+                        backgroundColor: "var(--event-list-bg-color)",
+                        borderColor: isHighlighted
+                          ? highlightBorderColor
+                          : undefined,
+                        borderRadius: "0.3rem",
+                      }}
+                    >
+                      {/* 이미지와 제목 오버레이 */}
+                      <div className="relative aspect-[3/4]">
                         {(() => {
                           // getEventThumbnail 유틸리티 함수로 최종 썸네일 URL 결정
                           const finalThumbnailUrl = getEventThumbnail(
@@ -1703,9 +1705,9 @@ export default function EventList({
                               </div>
                             );
                           }
-                    })()}
-                    {/* 왼쪽 상단 카테고리 배지 */}
-                    <div
+                        })()}
+                        {/* 왼쪽 상단 카테고리 배지 */}
+                        <div
                           className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${(() => {
                             // 지난 행사인지 확인
                             const endDate = event.end_date || event.date;
@@ -1727,20 +1729,20 @@ export default function EventList({
                               if (isPast) return "종료";
                             }
                             return event.category === "class" ? "강습" : "행사";
-                      })()}
-                    </div>
-                    {/* 하단 그라데이션 오버레이 */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
+                          })()}
+                        </div>
+                        {/* 하단 그라데이션 오버레이 */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
                           <h3
                             className="text-white font-bold leading-tight line-clamp-2"
                             style={{ fontSize: "0.8rem" }}
                           >
-                        {event.title}
-                      </h3>
-                    </div>
-                  </div>
+                            {event.title}
+                          </h3>
+                        </div>
+                      </div>
 
-                  <div className="p-1">
+                      <div className="p-1">
                         <p className="text-xs text-gray-300 text-center flex items-center justify-center gap-1">
                           {(() => {
                             // 선택된 날짜에 해당하는 이벤트인지 확인
@@ -1820,29 +1822,42 @@ export default function EventList({
                                 <span>{dateText}</span>
                               </>
                             );
-                      })()}
-                    </p>
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* 등록 버튼 배너 */}
+                <div
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('createEventForDate'));
+                  }}
+                  className="overflow-hidden transition-all cursor-pointer relative border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
+                  style={{
+                    backgroundColor: "transparent",
+                    borderRadius: "0.3rem",
+                  }}
+                >
+                  <div className="relative aspect-[3/4] flex items-center justify-center">
+                    <i className="ri-add-line text-6xl text-gray-600"></i>
                   </div>
                 </div>
-              );
-            })}
-
-            {/* 등록 버튼 배너 */}
-            <div
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('createEventForDate'));
-              }}
-              className="overflow-hidden transition-all cursor-pointer relative border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5"
-              style={{
-                backgroundColor: "transparent",
-                borderRadius: "0.3rem",
-              }}
-            >
-              <div className="relative aspect-[3/4] flex items-center justify-center">
-                <i className="ri-add-line text-6xl text-gray-600"></i>
               </div>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
+              <p className="text-gray-400">
+                {selectedDate && selectedCategory === "class"
+                  ? "강습이 없습니다"
+                  : selectedDate && selectedCategory === "event"
+                    ? "행사가 없습니다"
+                    : "해당 조건에 맞는 이벤트가 없습니다"}
+              </p>
             </div>
-          </div>
+          )}
         </div>
       ) : (
         // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
@@ -1876,8 +1891,9 @@ export default function EventList({
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-                  {sortedPrevEvents.map((event) => {
+                {sortedPrevEvents.length > 0 || externalIsAnimating ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                    {sortedPrevEvents.map((event) => {
                       return (
                         <div
                           key={event.id}
@@ -2025,7 +2041,12 @@ export default function EventList({
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
+                    <p className="text-gray-400">이벤트가 없습니다</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2042,8 +2063,9 @@ export default function EventList({
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-                  {sortedCurrentEvents.map((event) => {
+                {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                    {sortedCurrentEvents.map((event) => {
                       const isHighlighted = highlightEvent?.id === event.id;
                       const highlightBorderColor =
                         event.category === "class" ? "#9333ea" : "#2563eb";
@@ -2211,7 +2233,18 @@ export default function EventList({
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
+                    <p className="text-gray-400">
+                      {selectedCategory === "class"
+                        ? "강습이 없습니다"
+                        : selectedCategory === "event"
+                          ? "행사가 없습니다"
+                          : "이벤트가 없습니다"}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2225,8 +2258,9 @@ export default function EventList({
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
-                  {sortedNextEvents.map((event) => {
+                {sortedNextEvents.length > 0 || externalIsAnimating ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                    {sortedNextEvents.map((event) => {
                       return (
                         <div
                           key={event.id}
@@ -2374,7 +2408,12 @@ export default function EventList({
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <i className="ri-calendar-line text-4xl text-gray-500 mb-4"></i>
+                    <p className="text-gray-400">이벤트가 없습니다</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
