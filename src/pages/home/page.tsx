@@ -7,6 +7,7 @@ import Footer from "./components/Footer";
 import FullscreenBillboard from "../../components/FullscreenBillboard";
 import AdminBillboardModal from "./components/AdminBillboardModal";
 import EventRegistrationModal from "../../components/EventRegistrationModal";
+import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
 import { supabase } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 import { useAuth } from "../../contexts/AuthContext";
@@ -119,6 +120,11 @@ export default function HomePage() {
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 전체화면 날짜 모달 상태
+  const [isFullscreenDateModalOpen, setIsFullscreenDateModalOpen] = useState(false);
+  const [fullscreenSelectedDate, setFullscreenSelectedDate] = useState<Date | null>(null);
+  const [fullscreenClickPosition, setFullscreenClickPosition] = useState<{ x: number; y: number } | undefined>(undefined);
 
   // cleanup: 컴포넌트 언마운트 시 애니메이션 프레임 취소
   useEffect(() => {
@@ -821,6 +827,32 @@ export default function HomePage() {
     );
   }, [selectedDate]);
 
+  // 전체화면 달력 날짜 클릭 이벤트 리스너
+  useEffect(() => {
+    const handleFullscreenDateClick = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        date: Date;
+        clickPosition?: { x: number; y: number };
+      }>;
+
+      setFullscreenSelectedDate(customEvent.detail.date);
+      setFullscreenClickPosition(customEvent.detail.clickPosition);
+      setIsFullscreenDateModalOpen(true);
+    };
+
+    window.addEventListener(
+      "fullscreenDateClick",
+      handleFullscreenDateClick as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "fullscreenDateClick",
+        handleFullscreenDateClick as EventListener
+      );
+    };
+  }, []);
+
   // 네이티브 DOM 이벤트 리스너 등록 (passive: false 필수)
 
   return (
@@ -1021,6 +1053,7 @@ export default function HomePage() {
               dragOffset={dragOffset}
               isAnimating={isAnimating}
               calendarHeightPx={getCalendarHeightPx()}
+              calendarMode={calendarMode}
             />
           </div>
 
@@ -1266,6 +1299,24 @@ export default function HomePage() {
           }}
           fromBanner={fromBanner}
           bannerMonthBounds={bannerMonthBounds ?? undefined}
+        />
+      )}
+
+      {/* Fullscreen Date Events Modal */}
+      {isFullscreenDateModalOpen && fullscreenSelectedDate && (
+        <FullscreenDateEventsModal
+          isOpen={isFullscreenDateModalOpen}
+          onClose={() => {
+            setIsFullscreenDateModalOpen(false);
+            setFullscreenSelectedDate(null);
+            setFullscreenClickPosition(undefined);
+          }}
+          selectedDate={fullscreenSelectedDate}
+          clickPosition={fullscreenClickPosition}
+          onEventClick={(event) => {
+            // 이벤트 상세보기를 위해 하이라이트 설정
+            setHighlightEvent({ id: event.id, nonce: Date.now() });
+          }}
         />
       )}
     </div>

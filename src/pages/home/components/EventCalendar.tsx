@@ -17,6 +17,7 @@ interface EventCalendarProps {
   dragOffset?: number;
   isAnimating?: boolean;
   calendarHeightPx?: number;
+  calendarMode?: "collapsed" | "expanded" | "fullscreen";
 }
 
 export default function EventCalendar({
@@ -32,6 +33,7 @@ export default function EventCalendar({
   dragOffset: externalDragOffset = 0,
   isAnimating: externalIsAnimating = false,
   calendarHeightPx,
+  calendarMode = "expanded",
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
@@ -292,7 +294,21 @@ export default function EventCalendar({
     setShowMonthDropdown(!showMonthDropdown);
   };
 
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = (date: Date, clickEvent?: PointerEvent) => {
+    // 전체화면 모드일 때는 모달을 띄우는 이벤트 발생
+    if (calendarMode === "fullscreen") {
+      const clickPosition = clickEvent
+        ? { x: clickEvent.clientX, y: clickEvent.clientY }
+        : undefined;
+      
+      window.dispatchEvent(
+        new CustomEvent("fullscreenDateClick", {
+          detail: { date, clickPosition },
+        })
+      );
+      return;
+    }
+
     // 이미 선택된 날짜를 다시 클릭
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
       // 두 번째 클릭: 선택 해제 (전체 일정 보이기)
@@ -507,7 +523,7 @@ export default function EventCalendar({
 
                 // 200ms 이내이고 10px 이내 이동만 클릭으로 간주
                 if (duration < 200 && distance < 10) {
-                  handleDateClick(day);
+                  handleDateClick(day, upEvent);
                 }
 
                 window.removeEventListener("pointerup", handlePointerUp);
