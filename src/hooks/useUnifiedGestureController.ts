@@ -31,7 +31,12 @@ export function useUnifiedGestureController({
       return;
     }
 
-    console.log("✅ 통합 Pointer Events 컨트롤러 활성화!");
+    console.log("✅ 통합 Pointer Events 컨트롤러 활성화!", { 
+      containerElement: containerElement.tagName,
+      eventListElement: eventListElement.tagName,
+      supportsPointer: 'PointerEvent' in window,
+      supportsTouch: 'TouchEvent' in window
+    });
 
     // 🎯 제스처 상태 머신
     let activeGesture: GestureType = 'none';
@@ -148,12 +153,17 @@ export function useUnifiedGestureController({
     
     // 🎯 PointerDown: 제스처 분류
     const handlePointerDown = (e: PointerEvent) => {
+      console.log("🔵 PointerDown 발생!", { pointerType: e.pointerType, clientY: e.clientY });
+      
       const scrollTop = eventListElement.scrollTop;
       const isAtTop = scrollTop <= 0;
+      
+      console.log("🔍 ScrollTop 확인:", { scrollTop, isAtTop });
       
       if (!isAtTop) {
         // 최상단 아니면 일반 스크롤
         activeGesture = 'scroll';
+        console.log("❌ 스크롤 모드 (최상단 아님)");
         return;
       }
       
@@ -173,7 +183,7 @@ export function useUnifiedGestureController({
       gestureHistory.length = 0;
       gestureHistory.push({ y: e.clientY, time: Date.now() });
       
-      console.log("🎯 제스처 시작: calendar-drag (isAtTop)", { clientY: e.clientY, calendarBottomY });
+      console.log("🎯 제스처 시작: calendar-drag (isAtTop)", { clientY: e.clientY, calendarBottomY, currentCalendarHeight });
     };
     
     // 🎯 PointerMove: 제스처 타입에 따라 처리
