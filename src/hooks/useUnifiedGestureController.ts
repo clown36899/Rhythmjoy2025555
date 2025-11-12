@@ -10,6 +10,7 @@ interface UseUnifiedGestureControllerProps {
   calendarMode: CalendarMode;
   setCalendarMode: (mode: CalendarMode) => void;
   isScrollExpandingRef: MutableRefObject<boolean>;
+  gestureDirectionRef?: MutableRefObject<"horizontal" | "vertical" | null>; // 🎯 제스처 방향 공유
   onHeightChange?: (height: number) => void; // 실시간 높이 콜백
   onDraggingChange?: (isDragging: boolean) => void; // 드래그 상태 콜백
 }
@@ -21,6 +22,7 @@ export function useUnifiedGestureController({
   headerHeight,
   calendarMode,
   setCalendarMode,
+  gestureDirectionRef,
   onHeightChange,
   onDraggingChange,
 }: UseUnifiedGestureControllerProps) {
@@ -205,9 +207,15 @@ export function useUnifiedGestureController({
       const deltaX = touch.clientX - startX;
 
       // Pending 상태: 방향 확인
-      // Pending 상태: 방향 확인
       if (isPending) {
         if (Math.abs(deltaY) < 5 && Math.abs(deltaX) < 5) return; // 미세 움직임 무시
+
+        // 🎯 이미 다른 핸들러가 방향을 정했는지 확인
+        if (gestureDirectionRef?.current === "horizontal") {
+          // 수평 스와이프가 이미 시작됨 → 수직 드래그 차단
+          isPending = false;
+          return;
+        }
 
         const absDeltaY = Math.abs(deltaY);
         const absDeltaX = Math.abs(deltaX);
@@ -215,6 +223,9 @@ export function useUnifiedGestureController({
         if (absDeltaX > absDeltaY * 1.5) {
           // 수평 이동이 압도적으로 우세하면
           isPending = false;
+          if (gestureDirectionRef) {
+            gestureDirectionRef.current = "horizontal"; // 🎯 방향 공유
+          }
           return; // 훅의 수직 드래그 로직을 건너뛰고, 상위 컴포넌트의 수평 로직을 실행하도록 허용
         }
 
@@ -222,6 +233,9 @@ export function useUnifiedGestureController({
           // 수직 아래로 우세 (달력 확장)
           isPending = false;
           isDragging = true;
+          if (gestureDirectionRef) {
+            gestureDirectionRef.current = "vertical"; // 🎯 방향 공유
+          }
           eventListElement.style.overflow = "hidden";
           // 🎯 드래그 시작 알림 (ref 사용)
           if (onDraggingChangeRef.current) {

@@ -111,6 +111,7 @@ export default function HomePage() {
   const eventListElementRef = useRef<HTMLDivElement | null>(null);
   const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null); // 이벤트 리스트 슬라이드 컨테이너 (3개월 애니메이션용)
   const swipeOffsetRef = useRef<number>(0); // 실제 드래그 offset (리렌더링 없음)
+  const gestureDirectionRef = useRef<"horizontal" | "vertical" | null>(null); // 🎯 제스처 방향 공유
   const containerRef = useRef<HTMLDivElement>(null); // 통합 제스처 컨트롤러용 컨테이너
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
@@ -145,6 +146,7 @@ export default function HomePage() {
     calendarMode,
     setCalendarMode,
     isScrollExpandingRef,
+    gestureDirectionRef, // 🎯 제스처 방향 공유
     onHeightChange: setLiveCalendarHeight, // 실시간 높이 업데이트
     onDraggingChange: setIsDraggingCalendar, // 드래그 상태 업데이트
   });
@@ -165,6 +167,7 @@ export default function HomePage() {
       localTouchStart = { x: touch.clientX, y: touch.clientY };
       localIsDragging = true;
       localSwipeDirection = null;
+      gestureDirectionRef.current = null; // 🎯 방향 초기화
       setDragOffset(0);
     };
 
@@ -177,14 +180,23 @@ export default function HomePage() {
 
       // 방향 결정
       if (localSwipeDirection === null) {
+        // 🎯 이미 다른 핸들러가 방향을 정했는지 확인
+        if (gestureDirectionRef.current === "vertical") {
+          // 수직 드래그가 이미 시작됨 → 수평 스와이프 차단
+          localIsDragging = false;
+          return;
+        }
+
         const absX = Math.abs(diffX);
         const absY = Math.abs(diffY);
 
         if (absX > 3 || absY > 3) {
           if (absY > absX * 1.5) {
             localSwipeDirection = "vertical";
+            gestureDirectionRef.current = "vertical"; // 🎯 방향 공유
           } else if (absX > absY * 1.5) {
             localSwipeDirection = "horizontal";
+            gestureDirectionRef.current = "horizontal"; // 🎯 방향 공유
           }
         }
       }
