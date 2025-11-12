@@ -3,24 +3,13 @@ import { useEffect, type RefObject } from "react";
 type CalendarMode = "collapsed" | "expanded" | "fullscreen";
 
 interface UseUnifiedGestureControllerProps {
-  containerRef: RefObject<HTMLDivElement>;
-  eventListRef: RefObject<HTMLDivElement>;
-  calendarContentRef: RefObject<HTMLDivElement>;
+  containerRef: RefObject<HTMLElement>;
+  eventListRef: RefObject<HTMLElement>;
+  calendarContentRef: RefObject<HTMLElement>;
   headerHeight: number;
   calendarMode: CalendarMode;
   setCalendarMode: (mode: CalendarMode) => void;
   isScrollExpandingRef: React.MutableRefObject<boolean>;
-  // 월 변경 콜백
-  onMonthChange: (direction: 'prev' | 'next') => void;
-  // Buffer Rotation 콜백 (optional)
-  onSwipeStart?: (direction: 'prev' | 'next') => void;
-  onSwipeComplete?: (direction: 'prev' | 'next') => void;
-  // Double-Buffered Carousel: 영구 컨테이너 ref
-  eventListMonthRefs: {
-    prev: RefObject<HTMLDivElement>;
-    current: RefObject<HTMLDivElement>;
-    next: RefObject<HTMLDivElement>;
-  };
 }
 
 export function useUnifiedGestureController({
@@ -30,10 +19,6 @@ export function useUnifiedGestureController({
   headerHeight,
   calendarMode,
   setCalendarMode,
-  onMonthChange,
-  onSwipeStart,
-  onSwipeComplete,
-  eventListMonthRefs,
 }: UseUnifiedGestureControllerProps) {
   useEffect(() => {
     const containerElement = containerRef.current;
@@ -50,17 +35,12 @@ export function useUnifiedGestureController({
     // 제스처 상태
     let isDragging = false;
     let isPending = false; // pending 상태 추가
-    let gestureDirection: 'vertical' | 'horizontal' | null = null; // 제스처 방향
     let startY = 0;
     let startX = 0;
     let startHeight = 0;
     let currentHeight = 0;
     let velocityHistory: Array<{ y: number; time: number }> = [];
     let rafId: number | null = null;
-    
-    // Buffer Rotation: 스와이프 방향 및 콜백 상태
-    let activeSwipeDirection: 'prev' | 'next' | null = null;
-    let hasFiredSwipeStart = false;
 
     // 높이 → 모드 변환
     const heightToMode = (height: number): CalendarMode => {
@@ -203,14 +183,15 @@ export function useUnifiedGestureController({
       // 조건 2: 리스트 최상단 → pending 상태 (calendarMode 관계없이!)
       if (scrollTop === 0) {
         isPending = true;
-        gestureDirection = null; // 방향 미정
         startY = touch.clientY;
         startX = touch.clientX;
         startHeight = modeToHeight(calendarMode);
         currentHeight = startHeight;
         velocityHistory = [{ y: touch.clientY, time: Date.now() }];
 
-        console.log(`⏳ pending 상태 (방향 감지 대기)`);
+        console.log(
+          `⏳ pending 상태 (현재모드: ${calendarMode}, 높이: ${startHeight}px)`,
+        );
         return;
       }
     };
@@ -230,22 +211,10 @@ export function useUnifiedGestureController({
         const absDeltaX = Math.abs(deltaX);
 
         if (absDeltaX > absDeltaY * 1.5) {
-          // 수평 스와이프 시작!
+          // 수평 이동이 압도적으로 우세하면
           isPending = false;
-          gestureDirection = 'horizontal';
-          isDragging = true;
-          
-          // Buffer Rotation: 방향 계산 및 onSwipeStart 호출
-          if (!hasFiredSwipeStart && Math.abs(deltaX) > 0) {
-            activeSwipeDirection = deltaX > 0 ? 'prev' : 'next';
-            hasFiredSwipeStart = true;
-            console.log(`🚀 Buffer Rotation: onSwipeStart(${activeSwipeDirection})`);
-            onSwipeStart?.(activeSwipeDirection);
-          }
-          
-          console.log("↔️ 수평 스와이프 시작 (월 변경)");
-          e.preventDefault();
-          return;
+          console.log("🔓 수평 슬라이드 허용");
+          return; // 훅의 수직 드래그 로직을 건너뛰고, 상위 컴포넌트의 수평 로직을 실행하도록 허용
         }
 
         if (deltaY > 0) {
@@ -266,38 +235,14 @@ export function useUnifiedGestureController({
 
       if (!isDragging) return;
 
+      // 달력에서 드래그 → 위/아래 모두 허용
       e.preventDefault();
 
-      // 수평 스와이프 (월 변경)
-      if (gestureDirection === 'horizontal') {
-        // 시각적 피드백: ref로 각 월 div에 직접 접근해서 개별 transform
-        requestAnimationFrame(() => {
-          const prev = eventListMonthRefs.prev.current;
-          const current = eventListMonthRefs.current.current;
-          const next = eventListMonthRefs.next.current;
-          
-          // 각 월을 손가락 따라 이동 (React 개입 없이 순수 DOM 조작)
-          if (prev) {
-            prev.style.transform = `translateX(${deltaX}px)`;
-            prev.style.transition = 'none';
-          }
-          if (current) {
-            current.style.transform = `translateX(${deltaX}px)`;
-            current.style.transition = 'none';
-          }
-          if (next) {
-            next.style.transform = `translateX(${deltaX}px)`;
-            next.style.transition = 'none';
-          }
-        });
-        console.log(`↔️ 수평 드래그 (RAF): ${deltaX.toFixed(0)}px`);
-        return;
-      }
-
-      // 수직 드래그 (달력 높이 조절)
+      // Velocity 샘플링
       velocityHistory.push({ y: touch.clientY, time: Date.now() });
       if (velocityHistory.length > 5) velocityHistory.shift();
 
+      // 실시간 높이 업데이트 (스냅 없음!)
       const newHeight = startHeight + deltaY;
 
       if (rafId) cancelAnimationFrame(rafId);
@@ -310,8 +255,9 @@ export function useUnifiedGestureController({
     };
 
     // 🎯 TouchEnd
-    const handleTouchEnd = (e: TouchEvent) => {
+    const handleTouchEnd = () => {
       if (isPending) {
+        // Pending 상태에서 손 떼면 → 취소
         isPending = false;
         console.log("⏹️ Pending 취소");
         return;
@@ -321,135 +267,14 @@ export function useUnifiedGestureController({
 
       console.log("🔴 TouchEnd - 손 뗌!");
 
-      const touch = e.changedTouches[0];
-      const deltaX = touch.clientX - startX;
-
-      // 수평 스와이프 완료 → 월 변경
-      if (gestureDirection === 'horizontal') {
-        const threshold = 50; // 50px 이상 스와이프
-        
-        // 빠른 스와이프 감지 (velocity 기반)
-        let velocityX = 0;
-        if (velocityHistory.length >= 2) {
-          const first = velocityHistory[0];
-          const last = velocityHistory[velocityHistory.length - 1];
-          const timeDiff = last.time - first.time;
-          if (timeDiff > 0) {
-            velocityX = (touch.clientX - startX) / timeDiff;
-          }
-        }
-        const isQuickSwipe = Math.abs(velocityX) > 0.3; // 빠른 스와이프
-        
-        if (Math.abs(deltaX) > threshold || isQuickSwipe) {
-          const direction = deltaX > 0 ? 'prev' : 'next';
-          console.log(`🎯 Double-Buffered 슬라이드: ${direction}, deltaX: ${deltaX.toFixed(0)}px, velocity: ${velocityX.toFixed(2)}`);
-          
-          // ref로 직접 월 컨테이너 접근
-          const prev = eventListMonthRefs.prev.current;
-          const current = eventListMonthRefs.current.current;
-          const next = eventListMonthRefs.next.current;
-          
-          if (!prev || !current || !next) {
-            console.warn('⚠️ 월 ref를 찾을 수 없음');
-            isDragging = false;
-            gestureDirection = null;
-            eventListElement.style.overflow = "";
-            return;
-          }
-          
-          const handleTransitionEnd = (event: TransitionEvent) => {
-            // event.target === current 확인 (single-fire 보장)
-            if (event.target !== current) {
-              console.log('⏭️ transitionend 무시 (target !== current)');
-              return;
-            }
-            
-            console.log(`✅ 애니메이션 완료 → transform 리셋`);
-            
-            // 모든 월 transform 리셋 (transition 없이)
-            prev.style.transition = 'none';
-            current.style.transition = 'none';
-            next.style.transition = 'none';
-            prev.style.transform = 'translateX(0)';
-            current.style.transform = 'translateX(0)';
-            next.style.transform = 'translateX(0)';
-            
-            // Buffer Rotation: onSwipeComplete 호출 (rotateBuffers 실행)
-            if (activeSwipeDirection) {
-              console.log(`🏁 Buffer Rotation: onSwipeComplete(${activeSwipeDirection})`);
-              onSwipeComplete?.(activeSwipeDirection);
-            }
-            
-            // 월 변경 (React 리렌더링 → 비활성 버퍼만 업데이트)
-            // RAF로 다음 프레임에 실행하여 깜빡임 방지
-            requestAnimationFrame(() => {
-              onMonthChange(direction);
-              console.log(`🎉 월 변경: ${direction} (Double-Buffered)`);
-            });
-            
-            // Buffer Rotation flags 리셋
-            activeSwipeDirection = null;
-            hasFiredSwipeStart = false;
-          };
-          
-          // transition 설정
-          prev.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          next.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          
-          // 현재 달(가운데)에 이벤트 등록
-          current.addEventListener('transitionend', handleTransitionEnd, { once: true });
-          
-          // RAF로 한 프레임 대기 후 애니메이션 시작
-          requestAnimationFrame(() => {
-            if (direction === 'next') {
-              // 왼쪽 스와이프 → 모든 월이 왼쪽으로
-              prev.style.transform = 'translateX(-100%)';
-              current.style.transform = 'translateX(-100%)';
-              next.style.transform = 'translateX(-100%)';
-              console.log(`🎬 왼쪽 스와이프: 모든 월 왼쪽으로 (RAF)`);
-            } else {
-              // 오른쪽 스와이프 → 모든 월이 오른쪽으로
-              prev.style.transform = 'translateX(100%)';
-              current.style.transform = 'translateX(100%)';
-              next.style.transform = 'translateX(100%)';
-              console.log(`🎬 오른쪽 스와이프: 모든 월 오른쪽으로 (RAF)`);
-            }
-          });
-        } else {
-          // threshold 미달 → 원위치 애니메이션
-          console.log(`↩️ 스냅백: ${deltaX.toFixed(0)}px`);
-          
-          const prev = eventListMonthRefs.prev.current;
-          const current = eventListMonthRefs.current.current;
-          const next = eventListMonthRefs.next.current;
-          
-          if (prev) prev.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          if (current) current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          if (next) next.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-          
-          requestAnimationFrame(() => {
-            if (prev) prev.style.transform = 'translateX(0)';
-            if (current) current.style.transform = 'translateX(0)';
-            if (next) next.style.transform = 'translateX(0)';
-          });
-          
-          // Buffer Rotation flags 리셋 (스냅백 시)
-          activeSwipeDirection = null;
-          hasFiredSwipeStart = false;
-        }
-        
-        isDragging = false;
-        gestureDirection = null;
-        eventListElement.style.overflow = "";
-        return;
-      }
-
-      // 수직 드래그 완료 → 스냅
       isDragging = false;
-      gestureDirection = null;
+
+      // 스크롤 복원 (중요!)
       eventListElement.style.overflow = "";
+
+      // 여기서만 스냅!
       performSnap();
+
       velocityHistory = [];
     };
 
@@ -459,14 +284,9 @@ export function useUnifiedGestureController({
 
       isPending = false;
       isDragging = false;
-      gestureDirection = null;
 
       // 스크롤 복원 (중요!)
       eventListElement.style.overflow = "";
-
-      // Buffer Rotation flags 리셋
-      activeSwipeDirection = null;
-      hasFiredSwipeStart = false;
 
       velocityHistory = [];
     };
@@ -501,7 +321,5 @@ export function useUnifiedGestureController({
     headerHeight,
     calendarMode,
     setCalendarMode,
-    onMonthChange,
-    eventListMonthRefs,
   ]);
 }

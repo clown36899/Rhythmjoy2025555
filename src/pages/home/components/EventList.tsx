@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
@@ -24,31 +24,6 @@ const formatDateForInput = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-// Buffer Rotation 유틸리티: 월 계산
-const getPrevMonth = (date: Date): Date => {
-  const prev = new Date(date);
-  prev.setDate(1); // 1일로 설정하여 오버플로우 방지
-  prev.setMonth(date.getMonth() - 1);
-  return prev;
-};
-
-const getNextMonth = (date: Date): Date => {
-  const next = new Date(date);
-  next.setDate(1);
-  next.setMonth(date.getMonth() + 1);
-  return next;
-};
-
-const getMonthKey = (date: Date): string => {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-};
-
-// EventList의 imperative handle (Buffer Rotation용)
-export interface EventListHandle {
-  handleSwipeStart: (direction: 'prev' | 'next') => void;
-  handleSwipeComplete: (direction: 'prev' | 'next') => void;
-}
-
 interface EventListProps {
   selectedDate: Date | null;
   selectedCategory: string;
@@ -65,47 +40,43 @@ interface EventListProps {
   setShowSearchModal?: (show: boolean) => void;
   showSortModal?: boolean;
   setShowSortModal?: (show: boolean) => void;
-  // Double-Buffered Carousel용 영구 컨테이너 ref
-  monthRefs?: {
-    prev: React.RefObject<HTMLDivElement>;
-    current: React.RefObject<HTMLDivElement>;
-    next: React.RefObject<HTMLDivElement>;
-  };
   sortBy?: "random" | "time" | "title" | "newest";
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
   highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
-  // Buffer Rotation 콜백
-  onSwipeStart?: (direction: 'prev' | 'next') => void;
-  onSwipeComplete?: (direction: 'prev' | 'next') => void;
+  dragOffset?: number;
+  isAnimating?: boolean;
+  onTouchStart?: (e: React.TouchEvent) => void;
+  onTouchMove?: (e: React.TouchEvent) => void;
+  onTouchEnd?: () => void;
 }
 
-const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
-  // Props destructuring
-  const {
-    selectedDate,
-    selectedCategory,
-    currentMonth,
-    refreshTrigger,
-    isAdminMode = false,
-    adminType = null,
-    viewMode = "month",
-    onEventHover,
-    searchTerm: externalSearchTerm,
-    setSearchTerm: externalSetSearchTerm,
-    onSearchStart,
-    showSearchModal: externalShowSearchModal,
-    setShowSearchModal: externalSetShowSearchModal,
-    showSortModal: externalShowSortModal,
-    setShowSortModal: externalSetShowSortModal,
-    sortBy: externalSortBy,
-    setSortBy: externalSetSortBy,
-    highlightEvent,
-    onHighlightComplete,
-    monthRefs,
-    onSwipeStart,
-    onSwipeComplete,
-  } = props;
+export default function EventList({
+  selectedDate,
+  selectedCategory,
+  currentMonth,
+  refreshTrigger,
+  isAdminMode = false,
+  adminType = null,
+  viewMode = "month",
+  onEventHover,
+  searchTerm: externalSearchTerm,
+  setSearchTerm: externalSetSearchTerm,
+  onSearchStart,
+  showSearchModal: externalShowSearchModal,
+  setShowSearchModal: externalSetShowSearchModal,
+  showSortModal: externalShowSortModal,
+  setShowSortModal: externalSetShowSortModal,
+  sortBy: externalSortBy,
+  setSortBy: externalSetSortBy,
+  highlightEvent,
+  onHighlightComplete,
+  dragOffset: externalDragOffset = 0,
+  isAnimating: externalIsAnimating = false,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
+}: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
   const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
@@ -187,126 +158,9 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
 
   // 슬라이드 높이 동적 조정을 위한 상태 및 ref
   // const [slideContainerHeight, setSlideContainerHeight] = useState<number | null>(null);
-  // Double-Buffered Carousel: props로 받은 ref 사용 (없으면 내부 ref 사용)
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const fallbackPrevRef = useRef<HTMLDivElement>(null);
-  const fallbackCurrentRef = useRef<HTMLDivElement>(null);
-  const fallbackNextRef = useRef<HTMLDivElement>(null);
-  const prevMonthRef = monthRefs?.prev || fallbackPrevRef;
-  const currentMonthRef = monthRefs?.current || fallbackCurrentRef;
-  const nextMonthRef = monthRefs?.next || fallbackNextRef;
-
-  // 🎯 Buffer Rotation 상태: 어느 버퍼가 현재 화면에 보이는지 추적
-  const [activeBufferIndex, setActiveBufferIndex] = useState(1); // 0, 1, 2 (1 = 가운데)
-  
-  // 각 버퍼(0, 1, 2)에 어떤 월이 들어있는지 매핑 (Date 복사본 사용)
-  const [bufferMonthMap, setBufferMonthMap] = useState<{ [key: number]: Date }>(() => {
-    const current = new Date(currentMonth || new Date());
-    return {
-      0: getPrevMonth(current), // 버퍼 0 = 이전달
-      1: new Date(current),      // 버퍼 1 = 현재달 (복사본)
-      2: getNextMonth(current),  // 버퍼 2 = 다음달
-    };
-  });
-
-  // 스와이프 방향 추적 (rotation 계산용)
-  const pendingDirectionRef = useRef<'prev' | 'next' | null>(null);
-  
-  // activeBufferIndex를 ref로도 추적 (rotation handler에서 stale closure 방지)
-  const activeBufferIndexRef = useRef(activeBufferIndex);
-  useEffect(() => {
-    activeBufferIndexRef.current = activeBufferIndex;
-  }, [activeBufferIndex]);
-
-  // 🎯 Buffer Rotation Handler: 스와이프 완료 후 inactive buffer만 업데이트
-  const rotateBuffers = useCallback((direction: 'prev' | 'next') => {
-    console.log(`🔄 Buffer Rotation 시작: ${direction}`);
-    
-    const currentActive = activeBufferIndexRef.current;
-    
-    // 새로운 activeBufferIndex 계산 (modulo 3 rotation)
-    const newActive = direction === 'next' 
-      ? (currentActive + 1) % 3  // next: 1→2, 2→0, 0→1
-      : (currentActive + 2) % 3; // prev: 1→0, 0→2, 2→1
-    
-    // 재사용할 버퍼 인덱스 (화면 밖으로 나간 버퍼)
-    const recycleIndex = direction === 'next'
-      ? (newActive + 1) % 3  // next: 왼쪽으로 나간 버퍼 재사용
-      : (newActive + 2) % 3; // prev: 오른쪽으로 나간 버퍼 재사용
-    
-    // 새로운 중심 월 계산
-    const newCenterMonth = bufferMonthMap[newActive];
-    
-    // 재사용 버퍼에 새 월 할당
-    const newMonth = direction === 'next'
-      ? getNextMonth(newCenterMonth)  // 다음 달을 재사용 버퍼에
-      : getPrevMonth(newCenterMonth); // 이전 달을 재사용 버퍼에
-    
-    console.log(`📊 Rotation 상세:
-  - currentActive: ${currentActive}
-  - newActive: ${newActive}
-  - recycleIndex: ${recycleIndex}
-  - newCenterMonth: ${getMonthKey(newCenterMonth)}
-  - recycled month: ${getMonthKey(newMonth)}`);
-    
-    // bufferMonthMap 업데이트 (inactive buffer만)
-    setBufferMonthMap((prev) => ({
-      ...prev,
-      [recycleIndex]: new Date(newMonth),
-    }));
-    
-    // activeBufferIndex 업데이트
-    setActiveBufferIndex(newActive);
-    
-    // pendingDirection 클리어
-    pendingDirectionRef.current = null;
-    
-    console.log(`✅ Buffer Rotation 완료: activeBufferIndex ${currentActive} → ${newActive}`);
-  }, [bufferMonthMap]);
-
-  // Buffer Rotation 실행 함수를 외부로 노출 (HomePage/useUnifiedGestureController에서 호출)
-  const handleSwipeStart = useCallback((direction: 'prev' | 'next') => {
-    console.log(`🚀 Swipe Start: ${direction}`);
-    pendingDirectionRef.current = direction;
-    onSwipeStart?.(direction);
-  }, [onSwipeStart]);
-
-  const handleSwipeComplete = useCallback((direction: 'prev' | 'next') => {
-    console.log(`🏁 Swipe Complete: ${direction}`);
-    
-    // Buffer Rotation 실행 (inactive buffer만 업데이트)
-    if (pendingDirectionRef.current === direction) {
-      rotateBuffers(direction);
-    }
-    
-    // 부모 콜백 호출
-    onSwipeComplete?.(direction);
-  }, [rotateBuffers, onSwipeComplete]);
-
-  // useImperativeHandle: HomePage가 handleSwipeStart/Complete에 접근할 수 있도록 export
-  useImperativeHandle(ref, () => ({
-    handleSwipeStart,
-    handleSwipeComplete,
-  }), [handleSwipeStart, handleSwipeComplete]);
-
-  // currentMonth가 외부에서 변경될 때 bufferMonthMap 동기화 (검색/리셋 등)
-  useEffect(() => {
-    const current = new Date(currentMonth || new Date());
-    const currentKey = getMonthKey(current);
-    const activeMonth = bufferMonthMap[activeBufferIndex];
-    
-    // 현재 active buffer의 월과 다르면 전체 재설정 (검색/리셋/직접 이동)
-    if (getMonthKey(activeMonth) !== currentKey) {
-      console.log(`🔄 Buffer 재설정: ${getMonthKey(activeMonth)} → ${currentKey}`);
-      setBufferMonthMap({
-        0: getPrevMonth(current),
-        1: new Date(current),
-        2: getNextMonth(current),
-      });
-      setActiveBufferIndex(1); // 가운데로 리셋
-      pendingDirectionRef.current = null;
-    }
-  }, [currentMonth, activeBufferIndex, bufferMonthMap]);
+  const prevMonthRef = useRef<HTMLDivElement>(null);
+  const currentMonthRef = useRef<HTMLDivElement>(null);
+  const nextMonthRef = useRef<HTMLDivElement>(null);
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
@@ -866,28 +720,54 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
     viewMode,
   ]);
 
-  // 🎯 Buffer Rotation: 3개 버퍼의 이벤트 데이터 계산
-  const bufferDescriptors = useMemo(() => {
+  // 3개월치 이벤트 데이터 계산 (이전/현재/다음 달)
+  const {
+    prevMonthEvents,
+    currentMonthEvents,
+    nextMonthEvents,
+    prevMonthKey,
+    currentMonthKey,
+    nextMonthKey,
+  } = useMemo(() => {
     if (!currentMonth) {
-      return [
-        { events: [], monthKey: "" },
-        { events: filteredEvents, monthKey: "" },
-        { events: [], monthKey: "" },
-      ];
+      return {
+        prevMonthEvents: [],
+        currentMonthEvents: filteredEvents,
+        nextMonthEvents: [],
+        prevMonthKey: "",
+        currentMonthKey: "",
+        nextMonthKey: "",
+      };
     }
 
     // 검색어가 있거나 날짜가 선택된 경우 또는 년 모드인 경우 현재 필터링된 전체 표시
     if (searchTerm.trim() || selectedDate || viewMode === "year") {
       console.log("📋 년 모드/검색/날짜선택 - 전체 이벤트 표시");
       console.log("filteredEvents 수:", filteredEvents.length);
-      return [
-        { events: [], monthKey: "" },
-        { events: filteredEvents, monthKey: "" },
-        { events: [], monthKey: "" },
-      ];
+      return {
+        prevMonthEvents: [],
+        currentMonthEvents: filteredEvents,
+        nextMonthEvents: [],
+        prevMonthKey: "",
+        currentMonthKey: "",
+        nextMonthKey: "",
+      };
     }
 
-    // 각 달의 이벤트 필터링 함수 (재사용)
+    // 이전 달
+    const prevMonth = new Date(currentMonth);
+    prevMonth.setMonth(prevMonth.getMonth() - 1);
+
+    // 다음 달
+    const nextMonth = new Date(currentMonth);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    // 캐시 키 생성
+    const prevKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth() + 1}-${selectedCategory}`;
+    const currKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${selectedCategory}`;
+    const nextKey = `${nextMonth.getFullYear()}-${nextMonth.getMonth() + 1}-${selectedCategory}`;
+
+    // 각 달의 이벤트 필터링 함수
     const filterByMonth = (targetMonth: Date) => {
       return events.filter((event) => {
         const matchesCategory =
@@ -911,13 +791,14 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
       });
     };
 
-    // 버퍼 0, 1, 2의 데이터를 bufferMonthMap 기준으로 계산
-    return [0, 1, 2].map((index) => {
-      const targetMonth = bufferMonthMap[index];
-      const monthKey = `${targetMonth.getFullYear()}-${targetMonth.getMonth() + 1}-${selectedCategory}`;
-      const events = filterByMonth(targetMonth);
-      return { events, monthKey };
-    });
+    return {
+      prevMonthEvents: filterByMonth(prevMonth),
+      currentMonthEvents: filterByMonth(currentMonth),
+      nextMonthEvents: filterByMonth(nextMonth),
+      prevMonthKey: prevKey,
+      currentMonthKey: currKey,
+      nextMonthKey: nextKey,
+    };
   }, [
     events,
     currentMonth,
@@ -925,42 +806,44 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
     searchTerm,
     selectedDate,
     filteredEvents,
-    bufferMonthMap,
   ]);
 
-  // 레거시 호환성: 기존 코드가 prevMonthEvents 등을 사용하는 경우를 위한 alias
-  const prevMonthEvents = bufferDescriptors[0].events;
-  const currentMonthEvents = bufferDescriptors[1].events;
-  const nextMonthEvents = bufferDescriptors[2].events;
-  const prevMonthKey = bufferDescriptors[0].monthKey;
-  const currentMonthKey = bufferDescriptors[1].monthKey;
-  const nextMonthKey = bufferDescriptors[2].monthKey;
+  // 필터링된 이벤트를 정렬 (캐싱으로 슬라이드 시 재정렬 방지 및 랜덤 순서 유지)
+  const sortedPrevEvents = useMemo(() => {
+    if (!prevMonthKey) return [];
+    const cacheKey = `${prevMonthKey}-${sortBy}`;
+    if (sortedEventsCache.current[cacheKey]) {
+      return sortedEventsCache.current[cacheKey];
+    }
+    const sorted = sortEvents(prevMonthEvents, sortBy);
+    sortedEventsCache.current[cacheKey] = sorted;
+    return sorted;
+  }, [prevMonthEvents, sortBy, prevMonthKey]);
 
-  // 🎯 Buffer Rotation: 3개 버퍼의 정렬된 이벤트 (통합 버전)
-  const sortedBufferEvents = useMemo(() => {
-    return bufferDescriptors.map((descriptor, index) => {
-      const { events: bufferEvents, monthKey } = descriptor;
-      
-      if (!monthKey) {
-        // 검색/날짜 선택/년 모드: 캐시하지 않고 바로 정렬
-        return sortEvents(bufferEvents, sortBy);
-      }
-      
-      const cacheKey = `${monthKey}-${sortBy}`;
-      if (sortedEventsCache.current[cacheKey]) {
-        return sortedEventsCache.current[cacheKey];
-      }
-      
-      const sorted = sortEvents(bufferEvents, sortBy);
-      sortedEventsCache.current[cacheKey] = sorted;
-      return sorted;
-    });
-  }, [bufferDescriptors, sortBy]);
+  const sortedCurrentEvents = useMemo(() => {
+    if (!currentMonthKey) {
+      // 검색/날짜 선택 시: 정렬하되 캐시하지 않음 (검색 결과는 매번 다를 수 있음)
+      return sortEvents(currentMonthEvents, sortBy);
+    }
+    const cacheKey = `${currentMonthKey}-${sortBy}`;
+    if (sortedEventsCache.current[cacheKey]) {
+      return sortedEventsCache.current[cacheKey];
+    }
+    const sorted = sortEvents(currentMonthEvents, sortBy);
+    sortedEventsCache.current[cacheKey] = sorted;
+    return sorted;
+  }, [currentMonthEvents, sortBy, currentMonthKey]);
 
-  // 레거시 호환성: 기존 코드가 sortedPrevEvents 등을 사용하는 경우를 위한 alias
-  const sortedPrevEvents = sortedBufferEvents[0];
-  const sortedCurrentEvents = sortedBufferEvents[1];
-  const sortedNextEvents = sortedBufferEvents[2];
+  const sortedNextEvents = useMemo(() => {
+    if (!nextMonthKey) return [];
+    const cacheKey = `${nextMonthKey}-${sortBy}`;
+    if (sortedEventsCache.current[cacheKey]) {
+      return sortedEventsCache.current[cacheKey];
+    }
+    const sorted = sortEvents(nextMonthEvents, sortBy);
+    sortedEventsCache.current[cacheKey] = sorted;
+    return sorted;
+  }, [nextMonthEvents, sortBy, nextMonthKey]);
 
   // 레거시 호환을 위해 sortedEvents는 현재 달 이벤트를 가리킴
   // 날짜 선택 시 해당 날짜 이벤트를 상단에 배치
@@ -1685,6 +1568,9 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         >
           {sortedEvents.length > 0 ? (
             <>
@@ -1901,25 +1787,31 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
           )}
         </div>
       ) : (
-        // 일반 월간 뷰: 3개월 슬라이드 (영구 버퍼 - Double-Buffered Carousel)
-        <div className="overflow-hidden">
+        // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
+        <div
+          className="overflow-hidden"
+          style={
+            {
+              // height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
+              // transition: 'height 0.3s ease-out'
+            }
+          }
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           <div
-            ref={sliderRef}
             className="flex items-start"
             style={{
-              transform: "translateX(-100%)",
+              transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
+              transition: externalIsAnimating
+                ? "transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1)"
+                : "none",
               willChange: "transform",
             }}
           >
-            {/* 버퍼 0 - 영구 컨테이너 (React 절대 재생성 안 함) */}
-            <div 
-              ref={prevMonthRef} 
-              className="flex-shrink-0 w-full self-start"
-              style={{
-                contain: "paint layout",
-                willChange: "transform",
-              }}
-            >
+            {/* 이전 달 - 독립 컨테이너 */}
+            <div ref={prevMonthRef} className="flex-shrink-0 w-full self-start">
               <div
                 className="p-[0.4rem]"
                 style={{
@@ -1928,7 +1820,7 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                {sortedPrevEvents.length > 0 ? (
+                {sortedPrevEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedPrevEvents.map((event) => {
                       return (
@@ -2071,14 +1963,10 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
               </div>
             </div>
 
-            {/* 버퍼 1 - 영구 컨테이너 (React 절대 재생성 안 함) */}
+            {/* 현재 달 - 독립 컨테이너 */}
             <div
               ref={currentMonthRef}
               className="flex-shrink-0 w-full self-start"
-              style={{
-                contain: "paint layout",
-                willChange: "transform",
-              }}
             >
               <div
                 className="p-[0.4rem]"
@@ -2088,7 +1976,7 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                {sortedCurrentEvents.length > 0 ? (
+                {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedCurrentEvents.map((event) => {
                       const isHighlighted = highlightEvent?.id === event.id;
@@ -2257,15 +2145,8 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
               </div>
             </div>
 
-            {/* 버퍼 2 - 영구 컨테이너 (React 절대 재생성 안 함) */}
-            <div 
-              ref={nextMonthRef} 
-              className="flex-shrink-0 w-full self-start"
-              style={{
-                contain: "paint layout",
-                willChange: "transform",
-              }}
-            >
+            {/* 다음 달 - 독립 컨테이너 */}
+            <div ref={nextMonthRef} className="flex-shrink-0 w-full self-start">
               <div
                 className="p-[0.4rem]"
                 style={{
@@ -2274,7 +2155,7 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
-                {sortedNextEvents.length > 0 ? (
+                {sortedNextEvents.length > 0 || externalIsAnimating ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
                     {sortedNextEvents.map((event) => {
                       return (
@@ -3933,6 +3814,4 @@ const EventList = forwardRef<EventListHandle, EventListProps>((props, ref) => {
       )}
     </div>
   );
-});
-
-export default EventList;
+}
