@@ -473,6 +473,152 @@ export default function EventCalendar({
     "12월",
   ];
 
+  // 주 레벨 장기일정 제목 오버레이 렌더링
+  const renderMultiDayTitlesOverlay = (days: Date[], monthDate: Date) => {
+    if (cellHeight <= 55) return null; // 셀이 작으면 제목 표시 안 함
+
+    const titleSegments: Array<{
+      eventId: number;
+      title: string;
+      lane: number;
+      weekRow: number;
+      startCol: number;
+      span: number;
+      color: string;
+      isFaded: boolean;
+      isHovered: boolean;
+    }> = [];
+
+    // 각 주(0-5)에 대해 처리
+    for (let weekRow = 0; weekRow < 6; weekRow++) {
+      const weekStart = weekRow * 7;
+      const weekEnd = Math.min(weekStart + 7, days.length);
+      const weekDays = days.slice(weekStart, weekEnd);
+
+      // 이 주에서 시작하는 장기일정 찾기
+      const processedEvents = new Set<number>();
+
+      for (let dayIndex = 0; dayIndex < weekDays.length; dayIndex++) {
+        const day = weekDays[dayIndex];
+        const year = day.getFullYear();
+        const month = String(day.getMonth() + 1).padStart(2, "0");
+        const dayNum = String(day.getDate()).padStart(2, "0");
+        const dateString = `${year}-${month}-${dayNum}`;
+
+        const dayEvents = getEventsForDate(day);
+        const multiDayEvents = dayEvents.filter((event) => {
+          if (event.event_dates && event.event_dates.length > 0) return false;
+          const startDate = event.start_date || event.date || "";
+          const endDate = event.end_date || event.date || "";
+          return startDate !== endDate;
+        });
+
+        multiDayEvents.forEach((event) => {
+          const laneInfo = eventLaneMap.get(event.id);
+          if (!laneInfo || laneInfo.lane >= 3 || processedEvents.has(event.id)) return;
+
+          const startDate = event.start_date || event.date || "";
+          const endDate = event.end_date || event.date || "";
+          const isStart = dateString === startDate;
+
+          // 이 주에서 시작하는 이벤트만 처리
+          if (!isStart) return;
+
+          processedEvents.add(event.id);
+
+          // 이 주에서 이벤트가 차지하는 칸 수 계산
+          let span = 1;
+          for (let j = dayIndex + 1; j < weekDays.length; j++) {
+            const checkDay = weekDays[j];
+            const checkYear = checkDay.getFullYear();
+            const checkMonth = String(checkDay.getMonth() + 1).padStart(2, "0");
+            const checkDayNum = String(checkDay.getDate()).padStart(2, "0");
+            const checkDateString = `${checkYear}-${checkMonth}-${checkDayNum}`;
+
+            if (checkDateString <= endDate) {
+              span++;
+            } else {
+              break;
+            }
+          }
+
+          const selectedDateEventIds = selectedDate
+            ? new Set(
+                getEventsForDate(selectedDate)
+                  .filter((e) => {
+                    if (e.event_dates && e.event_dates.length > 0) return false;
+                    const sd = e.start_date || e.date || "";
+                    const ed = e.end_date || e.date || "";
+                    return sd !== ed;
+                  })
+                  .map((e) => e.id),
+              )
+            : null;
+
+          const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
+          const isHovered = viewMode === "month" && hoveredEventId === event.id;
+
+          titleSegments.push({
+            eventId: event.id,
+            title: event.title || '',
+            lane: laneInfo.lane,
+            weekRow,
+            startCol: dayIndex,
+            span,
+            color: laneInfo.color,
+            isFaded,
+            isHovered,
+          });
+        });
+      }
+    }
+
+    return (
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gridTemplateRows: 'repeat(6, 1fr)',
+        }}
+      >
+        {titleSegments.map((segment, idx) => {
+          const barHeight = segment.isHovered ? 20 : 14;
+          const laneOffset = segment.lane * (barHeight + 2); // 레인별 간격
+
+          return (
+            <div
+              key={`${segment.eventId}-${segment.weekRow}-${idx}`}
+              className="flex items-center"
+              style={{
+                gridColumn: `${segment.startCol + 1} / span ${segment.span}`,
+                gridRow: segment.weekRow + 1,
+                alignSelf: 'end',
+                marginBottom: `${laneOffset}px`,
+                height: `${barHeight}px`,
+                paddingLeft: '6px',
+                paddingRight: '6px',
+                opacity: segment.isFaded ? 0.2 : segment.isHovered ? 1 : 0.8,
+                zIndex: segment.isHovered ? 30 : 20,
+                overflow: 'hidden',
+                transition: 'all 0.2s',
+              }}
+            >
+              <span
+                className="text-[10px] font-medium text-white truncate"
+                style={{
+                  lineHeight: `${barHeight}px`,
+                }}
+              >
+                {segment.title}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   // 달력 렌더링 함수
   const renderCalendarGrid = (days: Date[], monthDate: Date) => {
     return days.map((day, index) => {
@@ -704,7 +850,6 @@ export default function EventCalendar({
           {/* 멀티데이 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 */}
           {eventBarsData.some((bar) => bar !== null) && (
             <div className="absolute bottom-0 left-0 right-0 h-5 pointer-events-none">
-              {/* 색상 바 레이어 */}
               {eventBarsData.map((bar, i) => {
                 const isHovered =
                   viewMode === "month" &&
@@ -739,45 +884,9 @@ export default function EventCalendar({
                       paddingLeft: (bar.isStart || (bar.isStart && bar.isEnd)) ? '6px' : '0',
                       paddingRight: (bar.isEnd && !bar.isStart) ? '6px' : '0'
                     }}
+                    data-event-id={bar.eventId}
+                    data-lane={i}
                   />
-                );
-              })}
-              
-              {/* 제목 레이어 - 색상 바 위에 표시 */}
-              {eventBarsData.map((bar, i) => {
-                if (!bar || !bar.isStart || cellHeight <= 55) return null;
-                
-                const event = multiDayEvents.find(e => e.id === bar.eventId);
-                if (!event) return null;
-                
-                // 이 주에서 이벤트가 차지하는 칸 수 계산
-                let spanCount = 1;
-                for (let j = i + 1; j < eventBarsData.length; j++) {
-                  if (eventBarsData[j]?.eventId === bar.eventId) {
-                    spanCount++;
-                  } else {
-                    break;
-                  }
-                }
-                
-                return (
-                  <div
-                    key={`title-${i}`}
-                    className="absolute bottom-0 flex items-center pointer-events-none"
-                    style={{
-                      left: 0,
-                      height: cellHeight > 55 ? '14px' : '6px',
-                      width: `${spanCount * 100}%`,
-                      paddingLeft: '6px',
-                      paddingRight: '6px',
-                      zIndex: 20,
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <span className="text-[10px] font-medium text-white truncate">
-                      {event.title}
-                    </span>
-                  </div>
                 );
               })}
             </div>
@@ -928,7 +1037,7 @@ export default function EventCalendar({
                 {/* 이전 달 */}
                 <div
                   key={`${prevMonth.getFullYear()}-${prevMonth.getMonth()}`}
-                  className="pb-0 flex-shrink-0"
+                  className="pb-0 flex-shrink-0 relative"
                   style={{ width: "100%" }}
                 >
                   <div 
@@ -940,12 +1049,13 @@ export default function EventCalendar({
                   >
                     {renderCalendarGrid(prevDays, prevMonth)}
                   </div>
+                  {renderMultiDayTitlesOverlay(prevDays, prevMonth)}
                 </div>
 
                 {/* 현재 달 */}
                 <div
                   key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
-                  className="pb-0 flex-shrink-0"
+                  className="pb-0 flex-shrink-0 relative"
                   style={{ width: "100%" }}
                 >
                   <div 
@@ -957,12 +1067,13 @@ export default function EventCalendar({
                   >
                     {renderCalendarGrid(currentDays, currentMonth)}
                   </div>
+                  {renderMultiDayTitlesOverlay(currentDays, currentMonth)}
                 </div>
 
                 {/* 다음 달 */}
                 <div
                   key={`${nextMonth.getFullYear()}-${nextMonth.getMonth()}`}
-                  className="pb-0 flex-shrink-0"
+                  className="pb-0 flex-shrink-0 relative"
                   style={{ width: "100%" }}
                 >
                   <div 
@@ -974,6 +1085,7 @@ export default function EventCalendar({
                   >
                     {renderCalendarGrid(nextDays, nextMonth)}
                   </div>
+                  {renderMultiDayTitlesOverlay(nextDays, nextMonth)}
                 </div>
               </div>
             </div>
