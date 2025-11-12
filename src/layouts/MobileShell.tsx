@@ -251,10 +251,10 @@ export function MobileShell() {
         {/* 관리자 상태 표시 - 모든 페이지 공통 */}
         {!isEventsPage && (
           <div 
-            className="border-t border-[#22262a] flex items-center justify-between px-3 no-select"
+            className="border-t border-[#22262a] flex items-center justify-between px-3 py-1.5 no-select"
             style={{ 
               backgroundColor: "var(--header-bg-color)",
-              height: '20px'
+              minHeight: '32px'
             }}
           >
             <span className="text-gray-400 font-medium no-select" style={{ fontSize: '12px', lineHeight: '1.2' }}>
