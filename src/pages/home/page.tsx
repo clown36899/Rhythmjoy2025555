@@ -738,6 +738,29 @@ export default function HomePage() {
     return `${getCalendarHeightPx()}px`;
   };
 
+  // 등록 버튼 클릭 이벤트 리스너
+  useEffect(() => {
+    const handleCreateEvent = () => {
+      if (selectedDate) {
+        setSelectedEvent(null);
+        setShowEventModal(true);
+      }
+    };
+
+    window.addEventListener('createEventForDate', handleCreateEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('createEventForDate', handleCreateEvent as EventListener);
+    };
+  }, [selectedDate]);
+
+  // selectedDate 변경 시 CustomEvent로 알림 (MobileShell에서 사용)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('selectedDateChanged', { 
+      detail: selectedDate 
+    }));
+  }, [selectedDate]);
+
   // 네이티브 DOM 이벤트 리스너 등록 (passive: false 필수)
 
   return (

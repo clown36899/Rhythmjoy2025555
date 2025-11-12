@@ -295,14 +295,9 @@ export default function EventCalendar({
   const handleDateClick = (date: Date) => {
     // 이미 선택된 날짜를 다시 클릭
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
-      // 두 번째 클릭: 항상 등록 모달 열기 (누구나 등록 가능)
-      setClickedDate(date);
-      
-      // 모바일 터치 이벤트 완전 종료 대기 후 모달 열기 (150ms)
-      // 이렇게 하지 않으면 마지막 터치 위치의 모달 내부 요소가 자동 클릭됨
-      setTimeout(() => {
-        setShowRegistrationModal(true);
-      }, 150);
+      // 두 번째 클릭: 선택 해제 (전체 일정 보이기)
+      onDateSelect(null);
+      return;
     } else {
       // 새로운 날짜 선택 - 이벤트 유무 확인
       const year = date.getFullYear();

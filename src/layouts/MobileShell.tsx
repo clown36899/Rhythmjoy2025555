@@ -10,6 +10,7 @@ export function MobileShell() {
   const { isAdmin } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [calendarView, setCalendarView] = useState<{ year: number; month: number; viewMode: 'month' | 'year' }>({
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
@@ -26,6 +27,19 @@ export function MobileShell() {
     
     return () => {
       window.removeEventListener('calendarMonthChanged', handleCalendarMonthChanged as EventListener);
+    };
+  }, []);
+
+  // selectedDate 변경 감지
+  useEffect(() => {
+    const handleSelectedDateChanged = (e: CustomEvent) => {
+      setSelectedDate(e.detail);
+    };
+
+    window.addEventListener('selectedDateChanged', handleSelectedDateChanged as EventListener);
+    
+    return () => {
+      window.removeEventListener('selectedDateChanged', handleSelectedDateChanged as EventListener);
     };
   }, []);
 
@@ -146,7 +160,7 @@ export function MobileShell() {
               minHeight: '32px'
             }}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1">
               {/* 행사 버튼 (앞으로 이동) */}
               <button
                 onClick={() => {
@@ -194,6 +208,19 @@ export function MobileShell() {
                 <span>강습 {eventCounts.class}</span>
                 <i className={`${category === 'class' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
+
+              {/* 등록 버튼 - 날짜 선택 시에만 표시 */}
+              {selectedDate && (
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('createEventForDate'));
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all bg-blue-600 border-blue-500 text-white hover:bg-blue-700 ml-auto"
+                >
+                  <i className="ri-add-line text-sm"></i>
+                  <span>등록</span>
+                </button>
+              )}
             </div>
             
             {isAdmin && (
