@@ -228,7 +228,8 @@ export function useUnifiedGestureController({
         if (isPullingDown && calendarMode !== 'fullscreen') {
           isScrollExpandingRef.current = true;
           
-          let targetHeight = gestureStartHeight + deltaY * 1.2;
+          // 배율 증가: 손가락 움직임에 달력이 더 크게 반응 (1.2 → 10.0)
+          let targetHeight = gestureStartHeight + deltaY * 10.0;
           const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
           
           targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
@@ -242,7 +243,8 @@ export function useUnifiedGestureController({
             console.log("📏 실시간 높이 업데이트:", targetHeight.toFixed(0), "px");
           }
         } else if (!isPullingDown && calendarMode !== 'collapsed') {
-          let targetHeight = gestureStartHeight + deltaY * 1.2;
+          // 배율 증가: 위로 밀 때도 빠르게 반응 (1.2 → 10.0)
+          let targetHeight = gestureStartHeight + deltaY * 10.0;
           const scale = Math.min(1, 0.6 + (targetHeight / 150) * 0.4);
           
           targetHeight = Math.max(0, targetHeight);
