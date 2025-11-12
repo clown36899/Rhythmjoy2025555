@@ -392,6 +392,26 @@ export default function HomePage() {
     };
   }, []);
 
+  // 오늘 버튼 클릭 시 오늘 날짜로 이동
+  useEffect(() => {
+    const handleResetToToday = () => {
+      const today = new Date();
+      setCurrentMonth(today);
+      setSelectedDate(null);
+      navigateWithCategory("all");
+      if (sortBy === "random") {
+        setIsRandomBlinking(true);
+        setTimeout(() => setIsRandomBlinking(false), 500);
+      }
+    };
+
+    window.addEventListener("resetToToday", handleResetToToday);
+
+    return () => {
+      window.removeEventListener("resetToToday", handleResetToToday);
+    };
+  }, [navigateWithCategory, sortBy]);
+
   // 검색 시작 시 호출되는 콜백
   const handleSearchStart = () => {
     // 전체 모드로 전환
@@ -867,20 +887,6 @@ export default function HomePage() {
             // 날짜 변경 시 날짜 리셋하고 이벤트 리스트 표시
             setSelectedDate(null);
             navigateWithCategory("all");
-          }}
-          onResetToToday={() => {
-            // 이번달로 이동
-            const today = new Date();
-            setCurrentMonth(today);
-            // 날짜 선택 해제
-            setSelectedDate(null);
-            // 전체 모드로 전환
-            navigateWithCategory("all");
-            // 랜덤 버튼 깜빡임 (랜덤 정렬일 때만)
-            if (sortBy === "random") {
-              setIsRandomBlinking(true);
-              setTimeout(() => setIsRandomBlinking(false), 500);
-            }
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}

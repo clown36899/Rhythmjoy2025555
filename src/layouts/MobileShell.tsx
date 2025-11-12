@@ -160,7 +160,7 @@ export function MobileShell() {
               minHeight: '32px'
             }}
           >
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex items-center gap-2 flex-1 justify-center">
               {/* 행사 버튼 (앞으로 이동) */}
               <button
                 onClick={() => {
@@ -184,6 +184,19 @@ export function MobileShell() {
                 <span>행사 {eventCounts.event}</span>
                 <i className={`${category === 'event' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
+              
+              {/* 오늘 버튼 - 현재 월이 아닐 때만 표시 */}
+              {!(calendarView.year === new Date().getFullYear() && calendarView.month === new Date().getMonth()) && (
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('resetToToday'));
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all bg-green-600 border-green-500 text-white hover:bg-green-700"
+                >
+                  <i className="ri-calendar-todo-line text-sm"></i>
+                  <span>오늘</span>
+                </button>
+              )}
               
               {/* 강습 버튼 */}
               <button

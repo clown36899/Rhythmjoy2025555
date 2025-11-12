@@ -11,7 +11,6 @@ interface HeaderProps {
   currentMonth?: Date;
   onNavigateMonth?: (direction: "prev" | "next") => void;
   onDateChange?: (date: Date) => void;
-  onResetToToday?: () => void;
   onAdminModeToggle?: (
     isAdmin: boolean,
     type?: "super" | "sub" | null,
@@ -29,7 +28,6 @@ export default function Header({
   currentMonth,
   onNavigateMonth,
   onDateChange,
-  onResetToToday,
   onAdminModeToggle,
   onBillboardOpen: _onBillboardOpen,
   onBillboardSettingsOpen,
@@ -127,9 +125,6 @@ export default function Header({
     onNavigateMonth?.(direction);
   };
 
-  const handleTodayClick = () => {
-    onResetToToday?.();
-  };
 
   const handleSettingsClick = () => {
     setShowSettingsModal(true);
@@ -437,17 +432,6 @@ export default function Header({
                   {viewMode === "year"
                     ? `${currentMonth.getFullYear().toString().slice(-2)}년 전체`
                     : monthNames[currentMonth.getMonth()]}
-                </button>
-                <button
-                  onClick={handleTodayClick}
-                  className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${
-                    currentMonth.getFullYear() === new Date().getFullYear() &&
-                    currentMonth.getMonth() === new Date().getMonth()
-                      ? "bg-blue-500 hover:bg-blue-600 text-white"
-                      : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
-                  }`}
-                >
-                  이번달
                 </button>
                 {onViewModeChange && (
                   <button
