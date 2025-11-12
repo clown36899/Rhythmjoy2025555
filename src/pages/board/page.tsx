@@ -204,6 +204,13 @@ export default function BoardPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      // 정렬 결과 확인용 로그
+      console.log('=== 게시글 로딩 결과 ===');
+      data?.forEach((post, index) => {
+        console.log(`${index + 1}. [${post.is_notice ? '공지' : '일반'}] ${post.title} (ID: ${post.id}, 작성: ${post.created_at})`);
+      });
+      
       setPosts(data || []);
     } catch (error) {
       console.error('게시글 로딩 실패:', error);
