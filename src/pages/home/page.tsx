@@ -121,6 +121,7 @@ export default function HomePage() {
   const swipeAnimationRef = useRef<number | null>(null);
   const calendarElementRef = useRef<HTMLDivElement | null>(null);
   const eventListElementRef = useRef<HTMLDivElement | null>(null);
+  const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null); // 이벤트 리스트 슬라이드 컨테이너 (3개월 애니메이션용)
   const swipeOffsetRef = useRef<number>(0); // 실제 드래그 offset (리렌더링 없음)
   const containerRef = useRef<HTMLDivElement>(null); // 통합 제스처 컨트롤러용 컨테이너
 
@@ -576,8 +577,8 @@ export default function HomePage() {
         if (calendarElementRef.current) {
           calendarElementRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
         }
-        if (eventListElementRef.current) {
-          eventListElementRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
+        if (eventListSlideContainerRef.current) {
+          eventListSlideContainerRef.current.style.transform = `translateX(${diffX}px) translateZ(0)`;
         }
       });
     } else if (swipeDirection === "vertical") {
@@ -615,10 +616,10 @@ export default function HomePage() {
             "transform 0.3s ease-out";
           calendarElementRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
         }
-        if (eventListElementRef.current) {
-          eventListElementRef.current.style.transition =
+        if (eventListSlideContainerRef.current) {
+          eventListSlideContainerRef.current.style.transition =
             "transform 0.3s ease-out";
-          eventListElementRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
+          eventListSlideContainerRef.current.style.transform = `translateX(${targetOffset}px) translateZ(0)`;
         }
 
         setDragOffset(targetOffset);
@@ -643,9 +644,9 @@ export default function HomePage() {
             calendarElementRef.current.style.transition = "none";
             calendarElementRef.current.style.transform = "translateZ(0)";
           }
-          if (eventListElementRef.current) {
-            eventListElementRef.current.style.transition = "none";
-            eventListElementRef.current.style.transform = "translateZ(0)";
+          if (eventListSlideContainerRef.current) {
+            eventListSlideContainerRef.current.style.transition = "none";
+            eventListSlideContainerRef.current.style.transform = "translateZ(0)";
           }
 
           setDragOffset(0);
@@ -1180,6 +1181,7 @@ export default function HomePage() {
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
+              slideContainerRef={eventListSlideContainerRef}
             />
           )}
 

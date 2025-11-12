@@ -49,6 +49,7 @@ interface EventListProps {
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: () => void;
+  slideContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function EventList({
@@ -76,6 +77,7 @@ export default function EventList({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
+  slideContainerRef,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -1801,6 +1803,7 @@ export default function EventList({
           onTouchEnd={onTouchEnd}
         >
           <div
+            ref={slideContainerRef}
             className="flex items-start"
             style={{
               transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
