@@ -191,10 +191,10 @@ export function MobileShell() {
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('resetToToday'));
                   }}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all bg-green-600 border-green-500 text-white hover:bg-green-700"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors bg-green-500/20 border-green-500 text-green-300 hover:bg-green-500/30"
                 >
-                  <i className="ri-calendar-todo-line text-sm"></i>
                   <span>오늘</span>
+                  <i className="ri-calendar-check-line text-sm"></i>
                 </button>
               )}
               
