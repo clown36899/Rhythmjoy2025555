@@ -112,8 +112,8 @@ export default function HomePage() {
   const containerRef = useRef<HTMLDivElement>(null); // 통합 제스처 컨트롤러용 컨테이너
   
   // 수평 스와이프용 슬라이더 ref (달력/이벤트리스트의 3개월 슬라이더)
-  const calendarSliderRef = useRef<HTMLDivElement | null>(null);
-  const eventListSliderRef = useRef<HTMLDivElement | null>(null);
+  const calendarSliderRef = useRef<HTMLElement | null>(null);
+  const eventListSliderRef = useRef<HTMLElement | null>(null);
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
