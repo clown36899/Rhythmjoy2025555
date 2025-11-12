@@ -9,13 +9,15 @@ interface PostEditorModalProps {
   onClose: () => void;
   onPostCreated: () => void;
   post?: BoardPost | null;
+  userNickname?: string;
 }
 
 export default function PostEditorModal({
   isOpen,
   onClose,
   onPostCreated,
-  post
+  post,
+  userNickname
 }: PostEditorModalProps) {
   const { isAdmin, user } = useAuth();
   const [formData, setFormData] = useState({
@@ -117,7 +119,8 @@ export default function PostEditorModal({
           p_title: formData.title,
           p_content: formData.content,
           p_author_name: formData.author_name,
-          p_user_id: user?.id
+          p_user_id: user?.id,
+          p_author_nickname: userNickname || null
         });
 
         if (error) throw error;

@@ -3,12 +3,14 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import PostEditorModal from './components/PostEditorModal';
 import PostDetailModal from './components/PostDetailModal';
+import UserRegistrationModal, { type UserData } from './components/UserRegistrationModal';
 
 export interface BoardPost {
   id: number;
   title: string;
   content: string;
   author_name: string;
+  author_nickname?: string;
   password?: string;
   user_id?: string;
   views: number;
@@ -23,17 +25,53 @@ export default function BoardPage() {
   const [showEditorModal, setShowEditorModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
 
   useEffect(() => {
     loadPosts();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      checkUserRegistration();
+    }
+  }, [user]);
+
+  const checkUserRegistration = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('board_users')
+        .select('nickname, real_name, phone, gender')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setUserData(data);
+      } else {
+        setShowRegistrationModal(true);
+      }
+    } catch (error) {
+      console.error('회원 정보 확인 실패:', error);
+    }
+  };
+
+  const handleUserRegistered = (newUserData: UserData) => {
+    setUserData(newUserData);
+  };
 
   const loadPosts = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('board_posts')
-        .select('id, title, content, author_name, user_id, views, created_at, updated_at')
+        .select('id, title, content, author_name, author_nickname, user_id, views, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -102,7 +140,7 @@ export default function BoardPage() {
       <div className="bg-gray-800 border-b border-gray-700 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">자유게시판</h1>
-          {user ? (
+          {user && userData ? (
             <button
               onClick={() => {
                 setSelectedPost(null);
@@ -113,7 +151,7 @@ export default function BoardPage() {
               <i className="ri-add-line"></i>
               글쓰기
             </button>
-          ) : (
+          ) : !user ? (
             <button
               onClick={async () => {
                 try {
@@ -127,6 +165,14 @@ export default function BoardPage() {
             >
               <i className="ri-kakao-talk-fill"></i>
               카카오 로그인
+            </button>
+          ) : (
+            <button
+              disabled
+              className="bg-gray-600 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 cursor-not-allowed"
+            >
+              <i className="ri-add-line"></i>
+              회원가입 중...
             </button>
           )}
         </div>
@@ -162,7 +208,7 @@ export default function BoardPage() {
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
                       <i className="ri-user-line"></i>
-                      {post.author_name}
+                      {post.author_nickname || post.author_name}
                     </span>
                     <span className="flex items-center gap-1">
                       <i className="ri-eye-line"></i>
@@ -177,13 +223,24 @@ export default function BoardPage() {
         )}
       </div>
 
+      {/* Registration Modal */}
+      {showRegistrationModal && user && (
+        <UserRegistrationModal
+          isOpen={showRegistrationModal}
+          onClose={() => setShowRegistrationModal(false)}
+          onRegistered={handleUserRegistered}
+          userId={user.id}
+        />
+      )}
+
       {/* Editor Modal */}
-      {showEditorModal && (
+      {showEditorModal && userData && (
         <PostEditorModal
           isOpen={showEditorModal}
           onClose={() => setShowEditorModal(false)}
           onPostCreated={handlePostCreated}
           post={selectedPost}
+          userNickname={userData.nickname}
         />
       )}
 

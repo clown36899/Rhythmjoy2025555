@@ -82,7 +82,7 @@ export default function PostDetailModal({
             <div className="flex items-center gap-4 text-sm text-gray-400">
               <span className="flex items-center gap-1">
                 <i className="ri-user-line"></i>
-                {post.author_name}
+                {post.author_nickname || post.author_name}
               </span>
               <span className="flex items-center gap-1">
                 <i className="ri-eye-line"></i>
