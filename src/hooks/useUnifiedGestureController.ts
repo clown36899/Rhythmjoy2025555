@@ -12,13 +12,6 @@ interface UseUnifiedGestureControllerProps {
   isScrollExpandingRef: React.MutableRefObject<boolean>;
   // 월 변경 콜백
   onMonthChange: (direction: 'prev' | 'next') => void;
-  // 수평 스와이프용 개별 월 ref (각 월을 독립적으로 transform)
-  eventListPrevMonthRef: RefObject<HTMLElement>;
-  eventListCurrentMonthRef: RefObject<HTMLElement>;
-  eventListNextMonthRef: RefObject<HTMLElement>;
-  calendarPrevMonthRef: RefObject<HTMLElement>;
-  calendarCurrentMonthRef: RefObject<HTMLElement>;
-  calendarNextMonthRef: RefObject<HTMLElement>;
 }
 
 export function useUnifiedGestureController({
@@ -29,12 +22,6 @@ export function useUnifiedGestureController({
   calendarMode,
   setCalendarMode,
   onMonthChange,
-  eventListPrevMonthRef,
-  eventListCurrentMonthRef,
-  eventListNextMonthRef,
-  calendarPrevMonthRef,
-  calendarCurrentMonthRef,
-  calendarNextMonthRef,
 }: UseUnifiedGestureControllerProps) {
   useEffect(() => {
     const containerElement = containerRef.current;
@@ -258,21 +245,14 @@ export function useUnifiedGestureController({
 
       // 수평 스와이프 (월 변경)
       if (gestureDirection === 'horizontal') {
-        // 시각적 피드백: 각 월을 개별 transform (state 없이 ref 사용)
+        // 시각적 피드백: querySelector로 각 월 div 찾아서 개별 transform
         requestAnimationFrame(() => {
-          // EventList 월들
-          const ePrev = eventListPrevMonthRef.current;
-          const eCurr = eventListCurrentMonthRef.current;
-          const eNext = eventListNextMonthRef.current;
-          
-          // Calendar 월들
-          const cPrev = calendarPrevMonthRef.current;
-          const cCurr = calendarCurrentMonthRef.current;
-          const cNext = calendarNextMonthRef.current;
+          const eventListSlider = eventListElement.querySelector('.flex.items-start');
+          const monthDivs = eventListSlider?.querySelectorAll('.flex-shrink-0.w-full.self-start');
           
           // 각 월을 손가락 따라 이동
-          [ePrev, eCurr, eNext, cPrev, cCurr, cNext].forEach(el => {
-            if (el) {
+          monthDivs?.forEach(el => {
+            if (el instanceof HTMLElement) {
               el.style.transform = `translateX(${deltaX}px)`;
               el.style.transition = 'none';
             }
@@ -332,84 +312,78 @@ export function useUnifiedGestureController({
           const direction = deltaX > 0 ? 'prev' : 'next';
           console.log(`🎯 개별 월 슬라이드: ${direction}, deltaX: ${deltaX.toFixed(0)}px, velocity: ${velocityX.toFixed(2)}`);
           
-          // 6개 월 ref
-          const ePrev = eventListPrevMonthRef.current;
-          const eCurr = eventListCurrentMonthRef.current;
-          const eNext = eventListNextMonthRef.current;
-          const cPrev = calendarPrevMonthRef.current;
-          const cCurr = calendarCurrentMonthRef.current;
-          const cNext = calendarNextMonthRef.current;
+          // querySelector로 모든 월 div 찾기
+          const eventListSlider = eventListElement.querySelector('.flex.items-start');
+          const monthDivs = eventListSlider?.querySelectorAll('.flex-shrink-0.w-full.self-start');
           
-          const allMonths = [ePrev, eCurr, eNext, cPrev, cCurr, cNext];
+          if (!monthDivs || monthDivs.length === 0) {
+            console.warn('⚠️ 월 div를 찾을 수 없음');
+            isDragging = false;
+            gestureDirection = null;
+            eventListElement.style.overflow = "";
+            return;
+          }
+          
+          const monthElements = Array.from(monthDivs) as HTMLElement[];
           
           const handleTransitionEnd = () => {
-            console.log(`✅ 애니메이션 완료 → 초기 위치로 리셋`);
+            console.log(`✅ 애니메이션 완료 → 사라진 월 display:none`);
             
-            // 모든 월을 초기 위치로 리셋 (transition: none)
-            allMonths.forEach(el => {
-              if (el) {
-                el.style.transition = 'none';
-                el.style.transform = 'translateX(0)';
-              }
-            });
+            // 사라진 월들 숨기기
+            if (direction === 'next') {
+              // 왼쪽 스와이프: 이전/현재 달 숨김
+              monthElements[0]?.style.setProperty('display', 'none');
+              monthElements[1]?.style.setProperty('display', 'none');
+            } else {
+              // 오른쪽 스와이프: 현재/다음 달 숨김
+              monthElements[1]?.style.setProperty('display', 'none');
+              monthElements[2]?.style.setProperty('display', 'none');
+            }
             
-            // 한 프레임 후 월 변경 (리렌더링)
-            requestAnimationFrame(() => {
-              onMonthChange(direction);
-              console.log(`🎉 월 변경: ${direction} (깜빡임 없음)`);
-            });
+            // 월 변경 (리렌더링 → 새로운 달 자동 로드)
+            onMonthChange(direction);
+            console.log(`🎉 월 변경: ${direction} (깜빡임 없음)`);
           };
           
           // transition 설정
-          allMonths.forEach(el => {
-            if (el) {
-              el.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-            }
+          monthElements.forEach(el => {
+            el.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
           });
           
-          // 현재 달에 이벤트 등록
-          if (eCurr) {
-            eCurr.addEventListener('transitionend', handleTransitionEnd, { once: true });
-          }
+          // 현재 달(가운데)에 이벤트 등록
+          monthElements[1]?.addEventListener('transitionend', handleTransitionEnd, { once: true });
           
           // RAF로 한 프레임 대기 후 애니메이션 시작
           requestAnimationFrame(() => {
-            if (direction === 'next') {
-              // 왼쪽 스와이프 → 모든 월이 왼쪽으로
-              allMonths.forEach(el => {
-                if (el) el.style.transform = 'translateX(-100%)';
-              });
-              console.log(`🎬 왼쪽 스와이프: 모든 월 왼쪽으로`);
-            } else {
-              // 오른쪽 스와이프 → 모든 월이 오른쪽으로
-              allMonths.forEach(el => {
-                if (el) el.style.transform = 'translateX(100%)';
-              });
-              console.log(`🎬 오른쪽 스와이프: 모든 월 오른쪽으로`);
-            }
+            monthElements.forEach(el => {
+              if (direction === 'next') {
+                // 왼쪽 스와이프 → 모든 월이 왼쪽으로
+                el.style.transform = 'translateX(-100%)';
+              } else {
+                // 오른쪽 스와이프 → 모든 월이 오른쪽으로
+                el.style.transform = 'translateX(100%)';
+              }
+            });
+            console.log(`🎬 ${direction === 'next' ? '왼쪽' : '오른쪽'} 스와이프: 모든 월 이동`);
           });
         } else {
           // threshold 미달 → 원위치 애니메이션
           console.log(`↩️ 스냅백: ${deltaX.toFixed(0)}px`);
           
-          const allMonths = [
-            eventListPrevMonthRef.current,
-            eventListCurrentMonthRef.current,
-            eventListNextMonthRef.current,
-            calendarPrevMonthRef.current,
-            calendarCurrentMonthRef.current,
-            calendarNextMonthRef.current,
-          ];
+          const eventListSlider = eventListElement.querySelector('.flex.items-start');
+          const monthDivs = eventListSlider?.querySelectorAll('.flex-shrink-0.w-full.self-start');
           
-          allMonths.forEach(el => {
-            if (el) {
+          monthDivs?.forEach(el => {
+            if (el instanceof HTMLElement) {
               el.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
             }
           });
           
           requestAnimationFrame(() => {
-            allMonths.forEach(el => {
-              if (el) el.style.transform = 'translateX(0)';
+            monthDivs?.forEach(el => {
+              if (el instanceof HTMLElement) {
+                el.style.transform = 'translateX(0)';
+              }
             });
           });
         }
@@ -472,11 +446,5 @@ export function useUnifiedGestureController({
     calendarMode,
     setCalendarMode,
     onMonthChange,
-    eventListPrevMonthRef,
-    eventListCurrentMonthRef,
-    eventListNextMonthRef,
-    calendarPrevMonthRef,
-    calendarCurrentMonthRef,
-    calendarNextMonthRef,
   ]);
 }
