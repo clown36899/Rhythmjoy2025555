@@ -832,8 +832,8 @@ export default function EventCalendar({
                   <div 
                     className="grid grid-cols-7 gap-0 calendar-grid-container"
                     style={{ 
-                      gridAutoRows: `${cellHeight}px`,
-                      '--calendar-cell-height': `${cellHeight}px`
+                      gridAutoRows: `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                      '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
                     } as React.CSSProperties}
                   >
                     {renderCalendarGrid(prevDays, prevMonth)}
@@ -849,8 +849,8 @@ export default function EventCalendar({
                   <div 
                     className="grid grid-cols-7 gap-0 calendar-grid-container"
                     style={{ 
-                      gridAutoRows: `${cellHeight}px`,
-                      '--calendar-cell-height': `${cellHeight}px`
+                      gridAutoRows: `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                      '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
                     } as React.CSSProperties}
                   >
                     {renderCalendarGrid(currentDays, currentMonth)}
@@ -866,8 +866,8 @@ export default function EventCalendar({
                   <div 
                     className="grid grid-cols-7 gap-0 calendar-grid-container"
                     style={{ 
-                      gridAutoRows: `${cellHeight}px`,
-                      '--calendar-cell-height': `${cellHeight}px`
+                      gridAutoRows: `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                      '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
                     } as React.CSSProperties}
                   >
                     {renderCalendarGrid(nextDays, nextMonth)}

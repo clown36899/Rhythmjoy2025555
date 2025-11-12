@@ -1149,6 +1149,11 @@ export default function HomePage() {
         // DOM 직접 조작 (리렌더링 없음!)
         if (calendarContentRef.current) {
           calendarContentRef.current.style.height = `${targetHeight}px`;
+          // CSS variable로 실시간 달력 높이 전달
+          calendarContentRef.current.style.setProperty(
+            "--live-calendar-height",
+            `${targetHeight}px`,
+          );
         }
 
         // 최종 스냅을 위해 state는 유지
