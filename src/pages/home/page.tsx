@@ -329,33 +329,25 @@ export default function HomePage() {
 
       isTouching = false;
 
-      // 🚀 웹 표준 슬라이딩 윈도우 방식으로 속도 계산 (Fling 감지)
+      // 🚀 단순화된 속도 계산: 마지막 2-3개 포인트 사용
       const velocityY = (() => {
-        if (touchHistory.length < 2) return 0;
-        
-        const now = Date.now();
-        // 최근 50ms 이내의 포인트들만 사용 (더 정확한 속도 측정)
-        const recentPoints = touchHistory.filter(p => now - p.time <= 50);
-        
-        if (recentPoints.length < 2) {
-          // 50ms 이내 포인트가 부족하면 100ms로 확장
-          const extendedPoints = touchHistory.filter(p => now - p.time <= 100);
-          if (extendedPoints.length < 2) return 0;
-          
-          const first = extendedPoints[0];
-          const last = extendedPoints[extendedPoints.length - 1];
-          const distance = last.y - first.y;
-          const time = last.time - first.time;
-          return time > 0 ? distance / time : 0;
+        if (touchHistory.length < 2) {
+          console.log("❌ 속도 계산 실패: 포인트 부족", touchHistory.length);
+          return 0;
         }
         
-        // 최근 50ms 동안의 평균 속도 계산
-        const first = recentPoints[0];
-        const last = recentPoints[recentPoints.length - 1];
-        const distance = last.y - first.y;
-        const time = last.time - first.time;
+        // 마지막 포인트와 그 직전 포인트 사용
+        const last = touchHistory[touchHistory.length - 1];
+        const prev = touchHistory[touchHistory.length - 2];
         
-        return time > 0 ? distance / time : 0;
+        const distance = last.y - prev.y;
+        const time = last.time - prev.time;
+        
+        if (time === 0) return 0;
+        
+        const velocity = distance / time;
+        console.log(`✅ 속도 계산: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms`);
+        return velocity;
       })();
 
       const currentHeight = calendarContentRef.current?.offsetHeight || 0;
@@ -1272,30 +1264,25 @@ export default function HomePage() {
         return;
       }
 
-      // 🚀 웹 표준 슬라이딩 윈도우 방식으로 속도 계산
+      // 🚀 단순화된 속도 계산: 마지막 2-3개 포인트 사용
       const velocityY = (() => {
-        if (calendarTouchHistory.length < 2) return 0;
-        
-        const now = Date.now();
-        const recentPoints = calendarTouchHistory.filter(p => now - p.time <= 50);
-        
-        if (recentPoints.length < 2) {
-          const extendedPoints = calendarTouchHistory.filter(p => now - p.time <= 100);
-          if (extendedPoints.length < 2) return 0;
-          
-          const first = extendedPoints[0];
-          const last = extendedPoints[extendedPoints.length - 1];
-          const distance = last.y - first.y;
-          const time = last.time - first.time;
-          return time > 0 ? distance / time : 0;
+        if (calendarTouchHistory.length < 2) {
+          console.log("❌ [달력] 속도 계산 실패: 포인트 부족", calendarTouchHistory.length);
+          return 0;
         }
         
-        const first = recentPoints[0];
-        const last = recentPoints[recentPoints.length - 1];
-        const distance = last.y - first.y;
-        const time = last.time - first.time;
+        // 마지막 포인트와 그 직전 포인트 사용
+        const last = calendarTouchHistory[calendarTouchHistory.length - 1];
+        const prev = calendarTouchHistory[calendarTouchHistory.length - 2];
         
-        return time > 0 ? distance / time : 0;
+        const distance = last.y - prev.y;
+        const time = last.time - prev.time;
+        
+        if (time === 0) return 0;
+        
+        const velocity = distance / time;
+        console.log(`✅ [달력] 속도 계산: ${distance.toFixed(0)}px / ${time}ms = ${velocity.toFixed(3)} px/ms`);
+        return velocity;
       })();
 
       const fullscreenHeight = window.innerHeight - 150;
