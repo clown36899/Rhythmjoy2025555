@@ -206,46 +206,16 @@ export default function HomePage() {
         let targetHeight = touchDelta * 1.2; // 터치 거리 * 증폭 계수
         
         requestAnimationFrame(() => {
-          // 높이 제한
+          // 높이 제한 (실시간으로 따라감, 스냅 없음)
           targetHeight = Math.max(0, Math.min(targetHeight, fullscreenHeight));
           
-          let finalHeight = targetHeight;
-          let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
-          
-          // 단계별 자석 효과
-          if (targetHeight < 100) {
-            // 100px 이하: collapsed
-            finalHeight = 0;
-            targetMode = 'collapsed';
-          } else if (targetHeight >= 100 && targetHeight < 400) {
-            // 100~400px: expanded 자석 (250px에 고정)
-            finalHeight = 250;
-            targetMode = 'expanded';
-          } else if (targetHeight >= 400) {
-            // 400px 이상: fullscreen으로 진행
-            if (targetHeight >= fullscreenHeight * 0.8) {
-              // 80% 이상이면 fullscreen 자석
-              finalHeight = fullscreenHeight;
-              targetMode = 'fullscreen';
-            } else {
-              // 중간: expanded 유지
-              finalHeight = 250;
-              targetMode = 'expanded';
-            }
-          }
-          
-          // CSS 변수로 높이 적용 (리렌더링 없음)
+          // CSS 변수로 높이 적용 (실시간 업데이트, 스냅 없음)
           if (calendarContentRef.current) {
-            calendarContentRef.current.style.setProperty('height', `${finalHeight}px`);
-            calendarContentRef.current.style.setProperty('transition', 'height 0.1s ease-out');
+            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+            calendarContentRef.current.style.setProperty('transition', 'none'); // 실시간이므로 transition 제거
           }
           
-          // 모드 업데이트
-          if (targetMode !== calendarMode) {
-            setCalendarMode(targetMode);
-          }
-          
-          console.log(`🔵 스크롤 확장: ${touchDelta.toFixed(0)}px → ${finalHeight.toFixed(0)}px [${targetMode}]`);
+          console.log(`🔵 실시간 확장: ${touchDelta.toFixed(0)}px → ${targetHeight.toFixed(0)}px`);
         });
       }
       
@@ -262,40 +232,60 @@ export default function HomePage() {
         requestAnimationFrame(() => {
           targetHeight = Math.max(0, targetHeight);
           
-          let finalHeight = targetHeight;
-          let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = calendarMode;
-          
-          // 역방향 자석 효과
-          if (targetHeight < 100) {
-            finalHeight = 0;
-            targetMode = 'collapsed';
-            isScrollExpandingRef.current = false;
-          } else if (targetHeight >= 100 && targetHeight < 400) {
-            finalHeight = 250;
-            targetMode = 'expanded';
-          } else {
-            finalHeight = fullscreenHeight;
-            targetMode = 'fullscreen';
-          }
-          
+          // 실시간으로 따라감 (스냅 없음)
           if (calendarContentRef.current) {
-            calendarContentRef.current.style.setProperty('height', `${finalHeight}px`);
-            calendarContentRef.current.style.setProperty('transition', 'height 0.1s ease-out');
+            calendarContentRef.current.style.setProperty('height', `${targetHeight}px`);
+            calendarContentRef.current.style.setProperty('transition', 'none'); // 실시간이므로 transition 제거
           }
           
-          if (targetMode !== calendarMode) {
-            setCalendarMode(targetMode);
-          }
-          
-          console.log(`🔴 스크롤 축소: ${touchDelta.toFixed(0)}px → ${finalHeight.toFixed(0)}px [${targetMode}]`);
+          console.log(`🔴 실시간 축소: ${touchDelta.toFixed(0)}px → ${targetHeight.toFixed(0)}px`);
         });
       }
     };
     
     const handleTouchEnd = () => {
+      if (!isTouching) return;
+      
       isTouching = false;
+      
+      // 현재 달력 높이 가져오기
+      const currentHeight = calendarContentRef.current?.offsetHeight || 0;
+      const fullscreenHeight = window.innerHeight - 150;
+      
+      console.log('🔴 터치 종료 - 현재 높이:', currentHeight);
+      
+      // 자석 효과 적용 (가까운 단계로 스냅)
+      let finalHeight = 0;
+      let targetMode: 'collapsed' | 'expanded' | 'fullscreen' = 'collapsed';
+      
+      if (currentHeight < 100) {
+        // 100px 이하: collapsed로 스냅
+        finalHeight = 0;
+        targetMode = 'collapsed';
+        isScrollExpandingRef.current = false;
+      } else if (currentHeight >= 100 && currentHeight < 350) {
+        // 100~350px: expanded(250px)로 스냅
+        finalHeight = 250;
+        targetMode = 'expanded';
+      } else {
+        // 350px 이상: fullscreen으로 스냅
+        finalHeight = fullscreenHeight;
+        targetMode = 'fullscreen';
+      }
+      
+      // 부드러운 스냅 애니메이션
+      if (calendarContentRef.current) {
+        calendarContentRef.current.style.setProperty('height', `${finalHeight}px`);
+        calendarContentRef.current.style.setProperty('transition', 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)');
+      }
+      
+      // 모드 업데이트
+      if (targetMode !== calendarMode) {
+        setCalendarMode(targetMode);
+      }
+      
       touchStartY = 0;
-      console.log('🔴 터치 종료');
+      console.log(`🧲 자석 스냅: ${currentHeight.toFixed(0)}px → ${finalHeight}px [${targetMode}]`);
     };
 
     eventListElement.addEventListener('scroll', handleScroll, { passive: true });
