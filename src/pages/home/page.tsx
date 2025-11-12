@@ -157,6 +157,7 @@ export default function HomePage() {
     let localIsDragging = false;
 
     const handleTouchStart = (e: TouchEvent) => {
+      // 🎯 ref 사용하여 최신 상태 체크
       if (isAnimating) return;
       const touch = e.touches[0];
       localTouchStart = { x: touch.clientX, y: touch.clientY };
@@ -227,16 +228,18 @@ export default function HomePage() {
 
           setDragOffset(targetOffset);
 
-          const newMonth = new Date(currentMonth);
-          newMonth.setDate(1);
-          if (direction === "prev") {
-            newMonth.setMonth(currentMonth.getMonth() - 1);
-          } else {
-            newMonth.setMonth(currentMonth.getMonth() + 1);
-          }
-
+          // 🎯 월 변경 로직을 setTimeout 내부로 이동하여 최신 currentMonth 사용
           setTimeout(() => {
-            setCurrentMonth(newMonth);
+            setCurrentMonth((prevMonth) => {
+              const newMonth = new Date(prevMonth);
+              newMonth.setDate(1);
+              if (direction === "prev") {
+                newMonth.setMonth(prevMonth.getMonth() - 1);
+              } else {
+                newMonth.setMonth(prevMonth.getMonth() + 1);
+              }
+              return newMonth;
+            });
             setSelectedDate(null);
 
             swipeOffsetRef.current = 0;
@@ -279,7 +282,9 @@ export default function HomePage() {
         cancelAnimationFrame(swipeAnimationRef.current);
       }
     };
-  }, [containerRef, isAnimating, currentMonth]);
+    
+    // 🎯 dependencies에서 currentMonth 제거 - 함수형 업데이트로 최신 값 사용
+  }, [containerRef, isAnimating]);
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
   const [fromQR] = useState(() => {

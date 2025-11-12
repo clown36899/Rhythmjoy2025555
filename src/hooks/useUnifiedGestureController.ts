@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 type CalendarMode = "collapsed" | "expanded" | "fullscreen";
 
@@ -24,6 +24,16 @@ export function useUnifiedGestureController({
   onHeightChange,
   onDraggingChange,
 }: UseUnifiedGestureControllerProps) {
+  // 🎯 Callback refs - 매번 재등록하지 않고 최신 콜백 유지
+  const onHeightChangeRef = useRef(onHeightChange);
+  const onDraggingChangeRef = useRef(onDraggingChange);
+
+  // 콜백 업데이트
+  useEffect(() => {
+    onHeightChangeRef.current = onHeightChange;
+    onDraggingChangeRef.current = onDraggingChange;
+  });
+
   useEffect(() => {
     const containerElement = containerRef.current;
     const eventListElement = eventListRef.current;
@@ -68,9 +78,9 @@ export function useUnifiedGestureController({
       );
       calendarElement.style.height = `${clampedHeight}px`;
       currentHeight = clampedHeight;
-      // 🎯 실시간 높이를 React state로 전달
-      if (onHeightChange) {
-        onHeightChange(clampedHeight);
+      // 🎯 실시간 높이를 React state로 전달 (ref 사용)
+      if (onHeightChangeRef.current) {
+        onHeightChangeRef.current(clampedHeight);
       }
     };
 
@@ -184,9 +194,9 @@ export function useUnifiedGestureController({
         eventListElement.style.overflow = "hidden";
         e.preventDefault();
 
-        // 🎯 드래그 시작 알림
-        if (onDraggingChange) {
-          onDraggingChange(true);
+        // 🎯 드래그 시작 알림 (ref 사용)
+        if (onDraggingChangeRef.current) {
+          onDraggingChangeRef.current(true);
         }
 
         console.log("📅 달력 위에서 드래그 시작!");
@@ -235,9 +245,9 @@ export function useUnifiedGestureController({
           isPending = false;
           isDragging = true;
           eventListElement.style.overflow = "hidden";
-          // 🎯 드래그 시작 알림
-          if (onDraggingChange) {
-            onDraggingChange(true);
+          // 🎯 드래그 시작 알림 (ref 사용)
+          if (onDraggingChangeRef.current) {
+            onDraggingChangeRef.current(true);
           }
           console.log("✅ 달력 드래그 시작! (아래로)");
         } else if (deltaY < -5) {
@@ -289,9 +299,9 @@ export function useUnifiedGestureController({
       // 스크롤 복원 (중요!)
       eventListElement.style.overflow = "";
 
-      // 🎯 드래그 종료 알림
-      if (onDraggingChange) {
-        onDraggingChange(false);
+      // 🎯 드래그 종료 알림 (ref 사용)
+      if (onDraggingChangeRef.current) {
+        onDraggingChangeRef.current(false);
       }
 
       // 여기서만 스냅!
@@ -310,9 +320,9 @@ export function useUnifiedGestureController({
       // 스크롤 복원 (중요!)
       eventListElement.style.overflow = "";
 
-      // 🎯 드래그 취소 알림
-      if (onDraggingChange) {
-        onDraggingChange(false);
+      // 🎯 드래그 취소 알림 (ref 사용)
+      if (onDraggingChangeRef.current) {
+        onDraggingChangeRef.current(false);
       }
 
       velocityHistory = [];
