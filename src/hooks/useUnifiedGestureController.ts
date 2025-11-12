@@ -10,6 +10,8 @@ interface UseUnifiedGestureControllerProps {
   calendarMode: CalendarMode;
   setCalendarMode: (mode: CalendarMode) => void;
   isScrollExpandingRef: React.MutableRefObject<boolean>;
+  onHeightChange?: (height: number) => void; // 실시간 높이 콜백
+  onDraggingChange?: (isDragging: boolean) => void; // 드래그 상태 콜백
 }
 
 export function useUnifiedGestureController({
@@ -19,6 +21,8 @@ export function useUnifiedGestureController({
   headerHeight,
   calendarMode,
   setCalendarMode,
+  onHeightChange,
+  onDraggingChange,
 }: UseUnifiedGestureControllerProps) {
   useEffect(() => {
     const containerElement = containerRef.current;
@@ -64,6 +68,10 @@ export function useUnifiedGestureController({
       );
       calendarElement.style.height = `${clampedHeight}px`;
       currentHeight = clampedHeight;
+      // 🎯 실시간 높이를 React state로 전달
+      if (onHeightChange) {
+        onHeightChange(clampedHeight);
+      }
     };
 
     // Velocity 계산
@@ -176,6 +184,11 @@ export function useUnifiedGestureController({
         eventListElement.style.overflow = "hidden";
         e.preventDefault();
 
+        // 🎯 드래그 시작 알림
+        if (onDraggingChange) {
+          onDraggingChange(true);
+        }
+
         console.log("📅 달력 위에서 드래그 시작!");
         return;
       }
@@ -222,6 +235,10 @@ export function useUnifiedGestureController({
           isPending = false;
           isDragging = true;
           eventListElement.style.overflow = "hidden";
+          // 🎯 드래그 시작 알림
+          if (onDraggingChange) {
+            onDraggingChange(true);
+          }
           console.log("✅ 달력 드래그 시작! (아래로)");
         } else if (deltaY < -5) {
           // 수직 위로 우세 (스크롤)
@@ -272,6 +289,11 @@ export function useUnifiedGestureController({
       // 스크롤 복원 (중요!)
       eventListElement.style.overflow = "";
 
+      // 🎯 드래그 종료 알림
+      if (onDraggingChange) {
+        onDraggingChange(false);
+      }
+
       // 여기서만 스냅!
       performSnap();
 
@@ -287,6 +309,11 @@ export function useUnifiedGestureController({
 
       // 스크롤 복원 (중요!)
       eventListElement.style.overflow = "";
+
+      // 🎯 드래그 취소 알림
+      if (onDraggingChange) {
+        onDraggingChange(false);
+      }
 
       velocityHistory = [];
     };

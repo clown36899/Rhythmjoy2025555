@@ -89,8 +89,7 @@ export default function HomePage() {
 
   // 달력 끌어내림 제스처 상태
   const [isDraggingCalendar, setIsDraggingCalendar] = useState(false);
-  const [dragStartHeight, setDragStartHeight] = useState(0);
-  const [calendarPullDistance, setCalendarPullDistance] = useState(0);
+  const [liveCalendarHeight, setLiveCalendarHeight] = useState(0); // 🎯 실시간 달력 높이
   const calendarContentRef = useRef<HTMLDivElement>(null);
 
   // 스크롤 기반 달력 확장용 상태
@@ -144,6 +143,8 @@ export default function HomePage() {
     calendarMode,
     setCalendarMode,
     isScrollExpandingRef,
+    onHeightChange: setLiveCalendarHeight, // 실시간 높이 업데이트
+    onDraggingChange: setIsDraggingCalendar, // 드래그 상태 업데이트
   });
 
   // 🎯 수평 스와이프 핸들러 (native event listener로 passive: false 설정)
@@ -727,26 +728,25 @@ export default function HomePage() {
       <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>
     );
 
-  // 실시간 달력 높이 계산 (숫자)
-  const getCalendarHeightPx = () => {
-    // 헤더(60px) + 바텀메뉴(70px) + 여유(20px) = 150px
+  // 🎯 효과적인 달력 높이 계산 헬퍼
+  const getEffectiveCalendarHeight = () => {
     const fullscreenHeight =
       typeof window !== "undefined" ? window.innerHeight - 150 : 700;
 
-    if (!isDraggingCalendar) {
-      // 드래그 중이 아니면 고정 상태
-      if (calendarMode === "collapsed") return 0;
-      if (calendarMode === "fullscreen") return fullscreenHeight;
-      return 250; // expanded
+    if (isDraggingCalendar && liveCalendarHeight > 0) {
+      // 드래그 중이면 훅에서 전달받은 실시간 높이
+      return liveCalendarHeight;
     }
 
-    // 드래그 중: 시작 시점의 고정된 높이 + 드래그 거리
-    let currentHeight = dragStartHeight + calendarPullDistance;
+    // 드래그 중이 아니면 모드 기반 고정 높이
+    if (calendarMode === "collapsed") return 0;
+    if (calendarMode === "fullscreen") return fullscreenHeight;
+    return 250; // expanded
+  };
 
-    // 0 이상, fullscreen 높이 이하로 제한
-    currentHeight = Math.max(0, Math.min(currentHeight, fullscreenHeight));
-
-    return currentHeight;
+  // 실시간 달력 높이 계산 (숫자) - EventCalendar prop용
+  const getCalendarHeightPx = () => {
+    return getEffectiveCalendarHeight();
   };
 
   // 실시간 달력 높이 계산 (문자열)
@@ -852,81 +852,69 @@ export default function HomePage() {
           style={{
             backgroundColor: "var(--calendar-bg-color)",
             touchAction: "none",
-            // 드래그 중 실시간 position 적용
-            position:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
+            // 🎯 드래그 중 실시간 position 적용
+            position: (() => {
+              const threshold = Math.min(
+                250,
+                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+              );
+              return calendarMode === "fullscreen" ||
+                (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
                 ? "fixed"
-                : "relative",
+                : "relative";
+            })(),
             // top은 헤더 높이만큼!
-            top:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
+            top: (() => {
+              const threshold = Math.min(
+                250,
+                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+              );
+              return calendarMode === "fullscreen" ||
+                (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
                 ? `${headerHeight}px`
-                : undefined,
-            left:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
+                : undefined;
+            })(),
+            left: (() => {
+              const threshold = Math.min(
+                250,
+                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+              );
+              return calendarMode === "fullscreen" ||
+                (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
                 ? "0"
-                : undefined,
-            right:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
+                : undefined;
+            })(),
+            right: (() => {
+              const threshold = Math.min(
+                250,
+                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+              );
+              return calendarMode === "fullscreen" ||
+                (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
                 ? "0"
-                : undefined,
+                : undefined;
+            })(),
             // bottom은 설정 안 함! (달력이 자연스럽게 높이만큼만 차지)
-            zIndex:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
+            zIndex: (() => {
+              const threshold = Math.min(
+                250,
+                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+              );
+              return calendarMode === "fullscreen" ||
+                (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
                 ? 50
-                : 15,
-            flexShrink:
-              calendarMode === "fullscreen" ||
-              (isDraggingCalendar &&
-                dragStartHeight + calendarPullDistance >
-                  Math.min(
-                    250,
-                    (typeof window !== "undefined"
-                      ? window.innerHeight - 150
-                      : 700) / 2,
-                  ))
+                : 15;
+            })(),
+            flexShrink: (() => {
+              const threshold = Math.min(
+                250,
+                (typeof window !== "undefined" ? window.innerHeight - 150 : 700) / 2
+              );
+              return calendarMode === "fullscreen" ||
+                (isDraggingCalendar && getEffectiveCalendarHeight() > threshold)
                 ? undefined
-                : 0,
+                : 0;
+            })(),
           }}
         >
           {/* Calendar - Collapsible */}
