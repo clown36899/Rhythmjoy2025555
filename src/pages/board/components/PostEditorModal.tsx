@@ -231,7 +231,7 @@ export default function PostEditorModal({
                 >
                   <option value="">머릿말 없음</option>
                   {prefixes
-                    .filter(prefix => !prefix.admin_only || isAdmin)
+                    .filter(prefix => !prefix.admin_only)
                     .map(prefix => (
                       <option key={prefix.id} value={prefix.id}>
                         {prefix.name}
