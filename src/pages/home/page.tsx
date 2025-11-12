@@ -1210,11 +1210,9 @@ export default function HomePage() {
         <EventRegistrationModal
           isOpen={showRegistrationModal}
           onClose={() => {
-            console.log('[EventRegistration] onClose - fromBanner:', fromBanner, 'selectedDate:', selectedDate);
             setShowRegistrationModal(false);
             // 배너에서 열었던 경우 selectedDate도 리셋
             if (fromBanner) {
-              console.log('[EventRegistration] 배너에서 열었으므로 selectedDate를 null로 리셋');
               setSelectedDate(null);
             }
             setFromBanner(false);
