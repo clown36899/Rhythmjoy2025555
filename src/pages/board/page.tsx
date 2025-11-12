@@ -69,6 +69,12 @@ export default function BoardPage() {
 
   const checkUserRegistration = async () => {
     if (!user?.id) return;
+    
+    // 관리자는 회원가입 체크 스킵
+    if (isAdmin) {
+      console.log('[게시판] 관리자는 회원가입 불필요');
+      return;
+    }
 
     try {
       // RPC 함수로 본인 정보 조회
@@ -89,6 +95,7 @@ export default function BoardPage() {
           gender: data.gender
         });
       } else {
+        // 일반 사용자만 회원가입 모달 표시
         setShowRegistrationModal(true);
       }
     } catch (error) {
