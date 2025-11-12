@@ -214,7 +214,7 @@ export default function EventList({
     return `${year}-${month}-${day}`;
   };
 
-  // Seeded Random 함수 (currentMonth 기반)
+  // Seeded Random 함수
   const seededRandom = (seed: number) => {
     let value = seed;
     return () => {
@@ -223,8 +223,8 @@ export default function EventList({
     };
   };
 
-  // 이벤트 정렬 함수
-  const sortEvents = (eventsToSort: Event[], sortType: string) => {
+  // 이벤트 정렬 함수 (targetMonth를 명시적으로 받음)
+  const sortEvents = (eventsToSort: Event[], sortType: string, targetMonth?: Date) => {
     const eventsCopy = [...eventsToSort];
     const today = getLocalDateString();
 
@@ -245,10 +245,9 @@ export default function EventList({
     const sortGroup = (group: Event[]) => {
       switch (sortType) {
         case "random":
-          // 랜덤 정렬 - currentMonth 기반 고정 seed 사용
-          const seed = currentMonth ? 
-            currentMonth.getFullYear() * 12 + currentMonth.getMonth() : 
-            new Date().getFullYear() * 12 + new Date().getMonth();
+          // 랜덤 정렬 - targetMonth 기반 고정 seed 사용
+          const monthToUse = targetMonth || currentMonth || new Date();
+          const seed = monthToUse.getFullYear() * 12 + monthToUse.getMonth();
           const random = seededRandom(seed);
           
           const shuffled = [...group];
@@ -820,40 +819,46 @@ export default function EventList({
 
   // 필터링된 이벤트를 정렬 (캐싱으로 슬라이드 시 재정렬 방지 및 랜덤 순서 유지)
   const sortedPrevEvents = useMemo(() => {
-    if (!prevMonthKey) return [];
+    if (!prevMonthKey || !currentMonth) return [];
     const cacheKey = `${prevMonthKey}-${sortBy}`;
     if (sortedEventsCache.current[cacheKey]) {
       return sortedEventsCache.current[cacheKey];
     }
-    const sorted = sortEvents(prevMonthEvents, sortBy);
+    // 이전 달의 Date 객체 생성
+    const prevMonth = new Date(currentMonth.getTime());
+    prevMonth.setMonth(currentMonth.getMonth() - 1);
+    const sorted = sortEvents(prevMonthEvents, sortBy, prevMonth);
     sortedEventsCache.current[cacheKey] = sorted;
     return sorted;
-  }, [prevMonthEvents, sortBy, prevMonthKey]);
+  }, [prevMonthEvents, sortBy, prevMonthKey, currentMonth]);
 
   const sortedCurrentEvents = useMemo(() => {
     if (!currentMonthKey) {
       // 검색/날짜 선택 시: 정렬하되 캐시하지 않음 (검색 결과는 매번 다를 수 있음)
-      return sortEvents(currentMonthEvents, sortBy);
+      return sortEvents(currentMonthEvents, sortBy, currentMonth);
     }
     const cacheKey = `${currentMonthKey}-${sortBy}`;
     if (sortedEventsCache.current[cacheKey]) {
       return sortedEventsCache.current[cacheKey];
     }
-    const sorted = sortEvents(currentMonthEvents, sortBy);
+    const sorted = sortEvents(currentMonthEvents, sortBy, currentMonth);
     sortedEventsCache.current[cacheKey] = sorted;
     return sorted;
-  }, [currentMonthEvents, sortBy, currentMonthKey]);
+  }, [currentMonthEvents, sortBy, currentMonthKey, currentMonth]);
 
   const sortedNextEvents = useMemo(() => {
-    if (!nextMonthKey) return [];
+    if (!nextMonthKey || !currentMonth) return [];
     const cacheKey = `${nextMonthKey}-${sortBy}`;
     if (sortedEventsCache.current[cacheKey]) {
       return sortedEventsCache.current[cacheKey];
     }
-    const sorted = sortEvents(nextMonthEvents, sortBy);
+    // 다음 달의 Date 객체 생성
+    const nextMonth = new Date(currentMonth.getTime());
+    nextMonth.setMonth(currentMonth.getMonth() + 1);
+    const sorted = sortEvents(nextMonthEvents, sortBy, nextMonth);
     sortedEventsCache.current[cacheKey] = sorted;
     return sorted;
-  }, [nextMonthEvents, sortBy, nextMonthKey]);
+  }, [nextMonthEvents, sortBy, nextMonthKey, currentMonth]);
 
   // 레거시 호환을 위해 sortedEvents는 현재 달 이벤트를 가리킴
   // 날짜 선택 시 해당 날짜 이벤트를 상단에 배치
