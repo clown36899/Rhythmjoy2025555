@@ -30,7 +30,6 @@ interface EventListProps {
   selectedDate: Date | null;
   selectedCategory: string;
   currentMonth?: Date;
-  refreshTrigger?: number;
   isAdminMode?: boolean;
   adminType?: "super" | "sub" | null;
   viewMode?: "month" | "year";
@@ -56,7 +55,6 @@ export default function EventList({
   selectedDate,
   selectedCategory,
   currentMonth,
-  refreshTrigger,
   isAdminMode = false,
   adminType = null,
   viewMode = "month",
@@ -495,7 +493,22 @@ export default function EventList({
   // 이벤트 데이터 로드
   useEffect(() => {
     fetchEvents();
-  }, [fetchEvents, refreshTrigger]);
+  }, [fetchEvents]);
+
+  // 이벤트 업데이트/삭제 감지 (refreshTrigger 대체)
+  useEffect(() => {
+    const handleEventUpdate = () => {
+      fetchEvents();
+    };
+
+    window.addEventListener("eventDeleted", handleEventUpdate);
+    window.addEventListener("eventUpdated", handleEventUpdate);
+
+    return () => {
+      window.removeEventListener("eventDeleted", handleEventUpdate);
+      window.removeEventListener("eventUpdated", handleEventUpdate);
+    };
+  }, [fetchEvents]);
 
   // 달 변경 및 카테고리 변경 시 스크롤 위치 리셋
   // 슬라이드 또는 강습/행사 버튼 클릭 시 스크롤을 맨 위로 올림

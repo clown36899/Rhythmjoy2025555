@@ -32,7 +32,6 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [qrLoading, setQrLoading] = useState(false);
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
@@ -366,18 +365,7 @@ export default function HomePage() {
     }
   }, [selectedDate]);
 
-  // 이벤트 삭제/수정 시 빌보드 재로딩
-  useEffect(() => {
-    const handleEventUpdate = () => {
-      setRefreshTrigger((prev) => prev + 1);
-    };
-
-    window.addEventListener("eventDeleted", handleEventUpdate);
-
-    return () => {
-      window.removeEventListener("eventDeleted", handleEventUpdate);
-    };
-  }, []);
+  // 이벤트 삭제/수정 감지는 EventList 컴포넌트에서 직접 처리
 
   // 전체 버튼 클릭 시 날짜 선택 해제
   useEffect(() => {
@@ -637,8 +625,6 @@ export default function HomePage() {
   const minSwipeDistance = 30;
 
   const handleEventsUpdate = async (createdDate?: Date) => {
-    setRefreshTrigger((prev) => prev + 1);
-
     // 이벤트 등록 후 날짜가 전달되었을 때, 그 날짜를 선택 (handleDateSelect가 자동으로 카테고리 감지)
     if (createdDate) {
       await handleDateSelect(createdDate);
@@ -877,8 +863,6 @@ export default function HomePage() {
             setCurrentMonth(today);
             // 날짜 선택 해제
             setSelectedDate(null);
-            // 강제 리프레시 (랜덤 정렬 재실행)
-            setRefreshTrigger((prev) => prev + 1);
             // 전체 모드로 전환
             navigateWithCategory("all");
             // 랜덤 버튼 깜빡임 (랜덤 정렬일 때만)
@@ -1146,7 +1130,6 @@ export default function HomePage() {
               selectedDate={selectedDate}
               selectedCategory={selectedCategory}
               currentMonth={currentMonth}
-              refreshTrigger={refreshTrigger}
               isAdminMode={isAdmin}
               adminType={adminType}
               viewMode={viewMode}
@@ -1225,8 +1208,6 @@ export default function HomePage() {
             setCurrentMonth(date);
           }}
           onEventCreated={(createdDate, eventId) => {
-            // 이벤트 생성 후 새로고침
-            setRefreshTrigger((prev) => prev + 1);
             setShowRegistrationModal(false);
             setFromBanner(false);
             setBannerMonthBounds(null);
