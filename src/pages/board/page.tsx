@@ -9,14 +9,15 @@ export interface BoardPost {
   title: string;
   content: string;
   author_name: string;
-  password: string;
+  password?: string;
+  user_id?: string;
   views: number;
   created_at: string;
   updated_at: string;
 }
 
 export default function BoardPage() {
-  const { isAdmin: _isAdmin } = useAuth();
+  const { isAdmin, user, signInWithKakao } = useAuth();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditorModal, setShowEditorModal] = useState(false);
@@ -32,7 +33,7 @@ export default function BoardPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('board_posts')
-        .select('id, title, content, author_name, views, created_at, updated_at')
+        .select('id, title, content, author_name, user_id, views, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -101,16 +102,33 @@ export default function BoardPage() {
       <div className="bg-gray-800 border-b border-gray-700 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">자유게시판</h1>
-          <button
-            onClick={() => {
-              setSelectedPost(null);
-              setShowEditorModal(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-          >
-            <i className="ri-add-line"></i>
-            글쓰기
-          </button>
+          {user ? (
+            <button
+              onClick={() => {
+                setSelectedPost(null);
+                setShowEditorModal(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            >
+              <i className="ri-add-line"></i>
+              글쓰기
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                try {
+                  await signInWithKakao();
+                } catch (error) {
+                  console.error('로그인 실패:', error);
+                  alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                }
+              }}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            >
+              <i className="ri-kakao-talk-fill"></i>
+              카카오 로그인
+            </button>
+          )}
         </div>
       </div>
 

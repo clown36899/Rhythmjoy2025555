@@ -52,23 +52,34 @@ export default function PostDetailModal({
     }
   };
 
-  const handlePasswordSubmit = () => {
+  const handlePasswordSubmit = async () => {
     if (!password) {
       alert('비밀번호를 입력해주세요.');
       return;
     }
 
-    if (password !== post.password) {
-      alert('비밀번호가 일치하지 않습니다.');
-      setPassword('');
-      return;
-    }
+    try {
+      const { data, error } = await supabase.rpc('verify_board_post_password', {
+        post_id: post.id,
+        input_password: password
+      });
 
-    // 비밀번호 일치
-    if (actionType === 'edit') {
-      onEdit(post);
-    } else if (actionType === 'delete') {
-      handleDelete();
+      if (error) throw error;
+
+      if (data) {
+        // 비밀번호 일치
+        if (actionType === 'edit') {
+          onEdit(post);
+        } else if (actionType === 'delete') {
+          handleDelete();
+        }
+      } else {
+        alert('비밀번호가 일치하지 않습니다.');
+        setPassword('');
+      }
+    } catch (error) {
+      console.error('비밀번호 검증 실패:', error);
+      alert('비밀번호 검증 중 오류가 발생했습니다.');
     }
   };
 

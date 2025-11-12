@@ -17,7 +17,7 @@ export default function PostEditorModal({
   onPostCreated,
   post
 }: PostEditorModalProps) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -41,11 +41,11 @@ export default function PostEditorModal({
         });
         setPasswordVerified(false);
       } else {
-        // 새 글 작성 모드
+        // 새 글 작성 모드 - 로그인한 사용자는 이름 자동 입력
         setFormData({
           title: '',
           content: '',
-          author_name: '',
+          author_name: user?.user_metadata?.name || user?.email?.split('@')[0] || '',
           password: ''
         });
         setPasswordVerified(false);
@@ -57,7 +57,7 @@ export default function PostEditorModal({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, post]);
+  }, [isOpen, post, user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -75,11 +75,23 @@ export default function PostEditorModal({
       return;
     }
 
-    if (formData.password === post.password) {
-      setPasswordVerified(true);
-    } else {
-      alert('비밀번호가 일치하지 않습니다.');
-      setFormData(prev => ({ ...prev, password: '' }));
+    try {
+      const { data, error } = await supabase.rpc('verify_board_post_password', {
+        post_id: post.id,
+        input_password: formData.password
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        setPasswordVerified(true);
+      } else {
+        alert('비밀번호가 일치하지 않습니다.');
+        setFormData(prev => ({ ...prev, password: '' }));
+      }
+    } catch (error) {
+      console.error('비밀번호 검증 실패:', error);
+      alert('비밀번호 검증 중 오류가 발생했습니다.');
     }
   };
 
@@ -101,13 +113,14 @@ export default function PostEditorModal({
       return;
     }
 
-    if (!post && !formData.password) {
+    // 비밀번호 검증: 로그인하지 않은 사용자는 비밀번호 필수
+    if (!post && !user && !formData.password) {
       alert('비밀번호를 설정해주세요.');
       return;
     }
 
-    // 수정 모드에서 비밀번호 검증 (관리자는 제외)
-    if (post && !isAdmin && !passwordVerified) {
+    // 수정 모드에서 비밀번호 검증 (관리자와 작성자 본인은 제외)
+    if (post && !isAdmin && !passwordVerified && post.user_id !== user?.id) {
       alert('비밀번호를 먼저 확인해주세요.');
       return;
     }
@@ -131,12 +144,13 @@ export default function PostEditorModal({
         if (error) throw error;
         alert('게시글이 수정되었습니다!');
       } else {
-        // 새 글 작성 - 비밀번호를 해시해서 저장
+        // 새 글 작성 - 비밀번호를 해시해서 저장 (로그인한 사용자는 user_id 함께 저장)
         const { error } = await supabase.rpc('create_board_post_with_hash', {
           p_title: formData.title,
           p_content: formData.content,
           p_author_name: formData.author_name,
-          p_password: formData.password
+          p_password: formData.password || null,
+          p_user_id: user?.id || null
         });
 
         if (error) throw error;
@@ -252,8 +266,8 @@ export default function PostEditorModal({
                 />
               </div>
 
-              {/* 비밀번호 (새 글 작성 시에만) */}
-              {!post && (
+              {/* 비밀번호 (새 글 작성 시, 로그인하지 않은 사용자만) */}
+              {!post && !user && (
                 <div>
                   <label className="block text-gray-300 text-sm font-medium mb-2">
                     비밀번호
@@ -269,6 +283,15 @@ export default function PostEditorModal({
                   />
                   <p className="text-gray-400 text-xs mt-1">
                     게시글 수정/삭제 시 필요합니다. 잊지 마세요!
+                  </p>
+                </div>
+              )}
+              {/* 로그인 사용자 안내 */}
+              {!post && user && (
+                <div className="bg-green-900/30 border border-green-600 rounded-lg p-3">
+                  <p className="text-green-300 text-sm">
+                    <i className="ri-shield-check-line mr-1"></i>
+                    카카오 로그인으로 안전하게 글을 작성합니다. 비밀번호 없이 작성한 글을 수정/삭제할 수 있습니다.
                   </p>
                 </div>
               )}
