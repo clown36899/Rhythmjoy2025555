@@ -262,15 +262,29 @@ export function MobileShell() {
               {isPracticePage && '연습실'}
               {isGuidePage && '안내'}
             </span>
-            {isAdmin && (
-              <button
-                onClick={() => setShowAdminPanel(!showAdminPanel)}
-                className="text-red-400 hover:text-red-300 transition-colors"
-                style={{ fontSize: '12px', lineHeight: '1.2' }}
-              >
-                <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} text-sm`}></i>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {isPracticePage && (
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('practiceRoomRegister'));
+                  }}
+                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                  style={{ fontSize: '12px', lineHeight: '1.2' }}
+                >
+                  <i className="ri-add-line text-sm mr-0.5"></i>
+                  <span>등록</span>
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={() => setShowAdminPanel(!showAdminPanel)}
+                  className="text-red-400 hover:text-red-300 transition-colors"
+                  style={{ fontSize: '12px', lineHeight: '1.2' }}
+                >
+                  <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} text-sm`}></i>
+                </button>
+              )}
+            </div>
           </div>
         )}
         
