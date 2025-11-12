@@ -29,7 +29,7 @@ export interface BoardPost {
 }
 
 export default function BoardPage() {
-  const { user, isAdmin, signInWithKakao } = useAuth();
+  const { user, isAdmin, signInWithKakao, signOut } = useAuth();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditorModal, setShowEditorModal] = useState(false);
@@ -40,10 +40,56 @@ export default function BoardPage() {
   const [showUserManagementModal, setShowUserManagementModal] = useState(false);
   const [showRegistrationPreview, setShowRegistrationPreview] = useState(false);
   const [showPrefixManagementModal, setShowPrefixManagementModal] = useState(false);
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  const [warningShown, setWarningShown] = useState(false);
 
   useEffect(() => {
     loadPosts();
   }, []);
+
+  // 세션 타임아웃 및 활동 추적
+  useEffect(() => {
+    if (!user) return;
+
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30분
+    const WARNING_TIME = 5 * 60 * 1000; // 5분 전 경고
+
+    // 활동 감지 함수
+    const updateActivity = () => {
+      setLastActivityTime(Date.now());
+      setWarningShown(false); // 활동 시 경고 플래그 리셋
+    };
+
+    // 이벤트 리스너 등록
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => {
+      document.addEventListener(event, updateActivity);
+    });
+
+    // 타임아웃 체크
+    const checkTimeout = setInterval(() => {
+      const inactiveTime = Date.now() - lastActivityTime;
+
+      // 25분 후 경고 (5분 남음) - 한 번만 표시
+      if (inactiveTime >= SESSION_TIMEOUT - WARNING_TIME && !warningShown) {
+        setWarningShown(true);
+        alert('5분 후 자동 로그아웃됩니다. 활동하시면 연장됩니다.');
+      }
+
+      // 30분 후 자동 로그아웃
+      if (inactiveTime >= SESSION_TIMEOUT) {
+        alert('30분 동안 활동이 없어 자동 로그아웃됩니다.');
+        handleLogout();
+      }
+    }, 1000);
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, updateActivity);
+      });
+      clearInterval(checkTimeout);
+    };
+  }, [user, lastActivityTime, warningShown]);
 
   useEffect(() => {
     if (user) {
@@ -195,6 +241,17 @@ export default function BoardPage() {
     setShowDetailModal(false);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setUserData(null);
+      alert('로그아웃되었습니다.');
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+      alert('로그아웃 중 오류가 발생했습니다.');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -221,41 +278,52 @@ export default function BoardPage() {
       <div className="bg-gray-800 border-b border-gray-700 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">자유게시판</h1>
-          {user && userData ? (
-            <button
-              onClick={() => {
-                setSelectedPost(null);
-                setShowEditorModal(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-            >
-              <i className="ri-add-line"></i>
-              글쓰기
-            </button>
-          ) : !user ? (
-            <button
-              onClick={async () => {
-                try {
-                  await signInWithKakao();
-                } catch (error) {
-                  console.error('로그인 실패:', error);
-                  alert('로그인에 실패했습니다. 다시 시도해주세요.');
-                }
-              }}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-            >
-              <i className="ri-kakao-talk-fill"></i>
-              카카오 로그인
-            </button>
-          ) : (
-            <button
-              disabled
-              className="bg-gray-600 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 cursor-not-allowed"
-            >
-              <i className="ri-add-line"></i>
-              회원가입 중...
-            </button>
-          )}
+          
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                {userData ? (
+                  <button
+                    onClick={() => {
+                      setSelectedPost(null);
+                      setShowEditorModal(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                  >
+                    <i className="ri-add-line"></i>
+                    글쓰기
+                  </button>
+                ) : (
+                  <span className="bg-gray-600 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <i className="ri-user-add-line"></i>
+                    회원가입 중...
+                  </span>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                >
+                  <i className="ri-logout-box-line"></i>
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={async () => {
+                  try {
+                    await signInWithKakao();
+                  } catch (error) {
+                    console.error('로그인 실패:', error);
+                    alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                  }
+                }}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+              >
+                <i className="ri-kakao-talk-fill"></i>
+                카카오 로그인
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
