@@ -186,6 +186,9 @@ export function useUnifiedGestureController({
       gestureHistory.length = 0;
       gestureHistory.push({ y: e.clientY, time: Date.now() });
       
+      // 브라우저 기본 동작 방지 (스크롤 차단) - scrollTop === 0일 때만
+      e.preventDefault();
+      
       console.log("🎯 제스처 시작: calendar-drag (isAtTop)", { clientY: e.clientY, calendarBottomY, currentCalendarHeight });
     };
     
