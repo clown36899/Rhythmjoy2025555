@@ -822,8 +822,6 @@ export default function EventRegistrationModal({
                             }
                           }
                         }}
-                        startDate={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
-                        endDate={endDate}
                         minDate={new Date()}
                         locale="ko"
                         shouldCloseOnSelect={false}
@@ -872,8 +870,6 @@ export default function EventRegistrationModal({
                             }
                           }
                         }}
-                        startDate={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
-                        endDate={endDate}
                         minDate={startDateInput ? new Date(startDateInput + "T00:00:00") : undefined}
                         locale="ko"
                         shouldCloseOnSelect={false}

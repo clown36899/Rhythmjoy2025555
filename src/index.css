@@ -133,12 +133,14 @@ body, html {
   background-color: #1d4ed8 !important;
   color: white !important;
   font-weight: 600 !important;
+  border-radius: 0 !important;
 }
 
 /* 범위 내 날짜 - 연한 색상 */
 .react-datepicker__day--in-range {
   background-color: #93c5fd !important;
   color: #1e3a8a !important;
+  border-radius: 0 !important;
 }
 
 /* 범위 시작 - 진한 색상 */
@@ -178,11 +180,14 @@ body, html {
   width: 2.2rem !important;
   line-height: 2.2rem !important;
   margin: 0 !important;
+  padding: 0 !important;
   border: none !important;
+  border-radius: 0 !important;
 }
 
 .react-datepicker__week {
   display: flex !important;
+  gap: 0 !important;
 }
 
 .react-datepicker__current-month {
