@@ -1182,6 +1182,10 @@ export default function BillboardPage() {
         // ✅ playerRefsRef 배열 정리 (이벤트 0개)
         console.log('[💾 메모리 관리] 이벤트 0개 → playerRefsRef 배열 완전 비우기');
         playerRefsRef.current.length = 0;
+        
+        // ✅ videoLoadedMap 정리 (이벤트 0개)
+        console.log('[💾 메모리 관리] 이벤트 0개 → videoLoadedMap 완전 비우기');
+        setVideoLoadedMap({});
       } else {
         setEvents(filteredEvents);
         const safeIndex = currentIndex >= filteredEvents.length ? 0 : currentIndex;
@@ -1208,6 +1212,21 @@ export default function BillboardPage() {
           playerRefsRef.current.length = newLength;
           
           console.log('[💾 메모리 관리] ✅ 남는 Player 참조 제거 완료');
+          
+          // ✅ videoLoadedMap도 정리 (남는 항목 제거)
+          setVideoLoadedMap(prev => {
+            const newMap: Record<number, boolean> = {};
+            for (let i = 0; i < newLength; i++) {
+              if (prev[i]) {
+                newMap[i] = prev[i];
+              }
+            }
+            const removedCount = Object.keys(prev).length - Object.keys(newMap).length;
+            if (removedCount > 0) {
+              console.log(`[💾 메모리 관리] videoLoadedMap 정리: ${removedCount}개 항목 제거`);
+            }
+            return newMap;
+          });
         } else if (oldLength < newLength) {
           console.log(`[💾 메모리 관리] playerRefsRef 배열 확장: ${oldLength} → ${newLength} (새 슬라이드 추가됨)`);
         }
