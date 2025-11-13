@@ -106,6 +106,17 @@
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
+    
+    /* DatePicker Portal 스타일 - 화면의 80% 이하로 제한 */
+    .react-datepicker-popper {
+      max-width: 80vw !important;
+      z-index: 9999 !important;
+    }
+    
+    .react-datepicker {
+      max-width: 100% !important;
+      width: auto !important;
+    }
   </style>
   </head>
   <body>
