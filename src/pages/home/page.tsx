@@ -1288,6 +1288,7 @@ export default function HomePage() {
             </div>
           ) : (
             <EventList
+              key={`${currentMonth.toISOString()}-${highlightEvent?.nonce || 0}`}
               selectedDate={selectedDate}
               selectedCategory={selectedCategory}
               currentMonth={currentMonth}
@@ -1390,24 +1391,12 @@ export default function HomePage() {
             });
             setCurrentMonth(createdDate);
             
-            // 이벤트 목록 새로고침 (즉시 + 지연 2회 발생으로 확실히 반영)
-            console.log('[🏠 홈페이지] 이벤트 목록 강제 새로고침');
-            window.dispatchEvent(new CustomEvent('eventCreated'));
-            setTimeout(() => {
-              console.log('[🏠 홈페이지] 이벤트 목록 재새로고침 (달 이동 후)');
-              window.dispatchEvent(new CustomEvent('eventCreated'));
-            }, 100);
-            
-            // 등록된 이벤트 하이라이트
-            if (eventId) {
-              setTimeout(() => {
-                console.log('[🏠 홈페이지] 이벤트 하이라이트 설정:', eventId);
-                setHighlightEvent({
-                  id: eventId,
-                  nonce: Date.now(),
-                });
-              }, 300);
-            }
+            // 이벤트 목록 새로고침 & 하이라이트 (nonce 변경으로 key가 변경되어 리렌더링)
+            console.log('[🏠 홈페이지] 이벤트 하이라이트 설정 및 목록 새로고침');
+            setHighlightEvent({
+              id: eventId || 0,
+              nonce: Date.now(),
+            });
           }}
           fromBanner={fromBanner}
           bannerMonthBounds={bannerMonthBounds ?? undefined}
