@@ -659,7 +659,7 @@ export default function BillboardPage() {
         if (calculatedNextIndex !== null && calculatedNextIndex < latestEvents.length) {
           const nextEvent = latestEvents[calculatedNextIndex];
           const hasVideo = !!nextEvent?.video_url;
-          const videoId = hasVideo ? nextEvent.video_url.split('v=')[1]?.split('&')[0] : null;
+          const videoId = hasVideo ? nextEvent.video_url?.split('v=')[1]?.split('&')[0] : null;
           
           console.log(`[🔜 미리 로드] 슬라이드 ${displayIndex} → 다음 슬라이드 ${calculatedNextIndex} 미리 준비 (${preloadDelay}ms 후)`);
           console.log(`[🔜 미리 로드] ⭐ setNextSlideIndex(${calculatedNextIndex}) 호출`, {
@@ -1247,7 +1247,7 @@ export default function BillboardPage() {
         {videoInfo?.videoId ? (
           <>
             {/* 썸네일 (로딩 중에만 표시) - 커스텀 이미지 우선, 없으면 YouTube 기본 */}
-            {thumbnailUrl && (
+            {thumbnailUrl && !videoLoaded && (
               <img
                 src={thumbnailUrl}
                 alt={event.title}
@@ -1258,7 +1258,7 @@ export default function BillboardPage() {
                   top: 0,
                   left: 0,
                   zIndex: 1,
-                  opacity: videoLoaded ? 0 : 1,
+                  opacity: 1,
                   transition: "opacity 0.8s ease-in-out",
                 }}
               />
@@ -1289,13 +1289,15 @@ export default function BillboardPage() {
           </>
         ) : (
           /* === 일반 이미지 === */
-          <img
-            src={imageUrl}
-            alt={event.title}
-            className="w-full h-full object-contain"
-            style={{ backgroundColor: "#000" }}
-            loading="lazy"
-          />
+          imageUrl && (
+            <img
+              src={imageUrl}
+              alt={event.title}
+              className="w-full h-full object-contain"
+              style={{ backgroundColor: "#000" }}
+              loading="lazy"
+            />
+          )
         )}
 
         {/* === 정보 레이어 === */}
