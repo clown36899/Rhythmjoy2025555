@@ -105,17 +105,11 @@ export default function BillboardUserManagementModal({
         const weekday = eventDate.getDay();
         if (excludedWeekdays.includes(weekday)) return false;
         
-        // 시작날짜와 종료날짜 설정 (장기 일정 지원)
+        // 시작날짜 기준으로 필터링 (지난 이벤트 제외)
         const eventStartDate = new Date(event.start_date || event.date || "");
         eventStartDate.setHours(0, 0, 0, 0);
         
-        // 장기 일정의 경우 종료일 사용, 아니면 시작일 사용
-        const eventEndDate = event.end_date 
-          ? new Date(event.end_date)
-          : new Date(event.start_date || event.date || "");
-        eventEndDate.setHours(0, 0, 0, 0);
-        
-        // 관리자 설정 날짜 범위 필터 (시작일 기준)
+        // 관리자 설정 날짜 범위 필터
         if (dateFilterStart) {
           const filterStart = new Date(dateFilterStart);
           filterStart.setHours(0, 0, 0, 0);
@@ -127,13 +121,21 @@ export default function BillboardUserManagementModal({
           if (eventStartDate > filterEnd) return false;
         }
         
-        // 기본 필터: 장기 일정은 종료일 기준, 단일 일정은 시작일 기준
+        // 기본 필터: 시작일이 오늘 이전이면 제외 (시작일 >= 오늘만 노출)
         if (!dateFilterStart && !dateFilterEnd) {
-          if (eventEndDate < koreaTime) return false;
+          if (eventStartDate < koreaTime) return false;
         }
         return true;
       });
 
+      console.log('[제외목록] 필터링 완료:', {
+        전체이벤트: data?.length || 0,
+        필터링후: filteredEvents.length,
+        날짜필터시작: dateFilterStart || 'null',
+        날짜필터종료: dateFilterEnd || 'null',
+        제외요일: excludedWeekdays
+      });
+      
       setEvents(filteredEvents);
     } catch (error) {
       console.error('이벤트 로드 실패:', error);
