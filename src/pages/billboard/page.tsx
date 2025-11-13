@@ -9,8 +9,8 @@ import type {
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
 
-// ✅ 빌보드 로그 제어 (디버깅을 위해 임시 활성화)
-const ENABLE_BILLBOARD_LOGS = true; // 슬라이드 전환 문제 디버깅을 위해 임시 활성화
+// ✅ 빌보드 로그 제어 (프로덕션 환경에서 비활성화)
+const ENABLE_BILLBOARD_LOGS = false; // CPU 과부하 방지를 위해 비활성화
 
 // 로그 래퍼 함수 (프로덕션에서는 자동으로 비활성화)
 const log = (...args: any[]) => {
