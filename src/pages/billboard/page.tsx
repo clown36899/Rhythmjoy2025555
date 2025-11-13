@@ -1224,6 +1224,40 @@ export default function BillboardPage() {
     
     // 썸네일: 사용자 업로드 이미지 우선, 없으면 YouTube 기본 썸네일
     const thumbnailUrl = imageUrl || videoInfo?.thumbnailUrl;
+    
+    // 🖼️ 이미지 메모리 관리 로그
+    useEffect(() => {
+      if (videoInfo?.videoId) {
+        // 영상 슬라이드
+        if (thumbnailUrl && !videoLoaded) {
+          console.log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - 썸네일 로드 (메모리 할당)`, {
+            videoId: videoInfo.videoId,
+            thumbnailUrl: thumbnailUrl.substring(0, 50) + '...'
+          });
+        } else if (videoLoaded) {
+          console.log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - ✅ 썸네일 DOM 제거 (메모리 해제)`, {
+            videoId: videoInfo.videoId,
+            설명: '비디오 로드 완료, 썸네일 디코딩 버퍼 해제'
+          });
+        }
+      } else if (imageUrl) {
+        // 이미지 슬라이드
+        console.log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - 이미지 로드 (메모리 할당)`, {
+          imageUrl: imageUrl.substring(0, 50) + '...',
+          타입: '일반 이미지'
+        });
+      }
+      
+      // cleanup: 슬라이드 언마운트 시
+      return () => {
+        if (videoInfo?.videoId || imageUrl) {
+          console.log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - 언마운트 (메모리 해제 예정)`, {
+            타입: videoInfo?.videoId ? '영상' : '이미지',
+            설명: 'React cleanup, WebView GC 대기'
+          });
+        }
+      };
+    }, [slideIndex, videoLoaded, thumbnailUrl, imageUrl, videoInfo?.videoId]);
 
     return (
       <div
