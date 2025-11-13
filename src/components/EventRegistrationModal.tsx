@@ -14,6 +14,9 @@ import {
 } from "../utils/videoThumbnail";
 import { useAuth } from "../contexts/AuthContext";
 import ImageCropModal from "./ImageCropModal";
+import DatePicker, { registerLocale } from "react-datepicker";
+import { ko } from "date-fns/locale/ko";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface EventRegistrationModalProps {
   isOpen: boolean;
@@ -31,6 +34,9 @@ const formatDateForInput = (date: Date): string => {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
+
+// 한국어 locale 등록
+registerLocale("ko", ko);
 
 export default function EventRegistrationModal({
   isOpen,
@@ -712,48 +718,53 @@ export default function EventRegistrationModal({
                       <label className="block text-gray-300 text-sm font-medium mb-1">
                         시작
                       </label>
-                      <input
-                        type="date"
-                        value={startDateInput}
-                        min={bannerMonthBounds?.min}
-                        max={bannerMonthBounds?.max}
-                        onChange={(e) => {
-                          setStartDateInput(e.target.value);
-                          if (e.target.value) {
-                            const newStartDate = new Date(e.target.value + "T00:00:00");
+                      <DatePicker
+                        selected={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
+                        onChange={(date) => {
+                          if (date) {
+                            const dateStr = formatDateForInput(date);
+                            setStartDateInput(dateStr);
                             // endDate가 newStartDate보다 이전이면 조정
-                            if (endDate < newStartDate) {
-                              setEndDate(newStartDate);
+                            if (endDate < date) {
+                              setEndDate(date);
                             }
                             // 달력 이동
                             if (onMonthChange) {
-                              onMonthChange(newStartDate);
+                              onMonthChange(date);
                             }
                           }
                         }}
-                        className="w-full bg-gray-700 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        style={{ fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' }}
+                        minDate={bannerMonthBounds?.min ? new Date(bannerMonthBounds.min + "T00:00:00") : undefined}
+                        maxDate={bannerMonthBounds?.max ? new Date(bannerMonthBounds.max + "T00:00:00") : undefined}
+                        dateFormat="yyyy-MM-dd"
+                        locale="ko"
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        calendarClassName="bg-gray-800"
+                        placeholderText="날짜 선택"
                       />
                     </div>
                     <div>
                       <label className="block text-gray-300 text-sm font-medium mb-1">
                         종료
                       </label>
-                      <input
-                        type="date"
-                        value={formatDateForInput(endDate)}
-                        min={startDateInput || (bannerMonthBounds?.min)}
-                        max={bannerMonthBounds?.max}
-                        onChange={(e) => {
-                          const newEndDate = new Date(e.target.value + "T00:00:00");
-                          setEndDate(newEndDate);
-                          // 달력 이동
-                          if (onMonthChange) {
-                            onMonthChange(newEndDate);
+                      <DatePicker
+                        selected={endDate}
+                        onChange={(date) => {
+                          if (date) {
+                            setEndDate(date);
+                            // 달력 이동
+                            if (onMonthChange) {
+                              onMonthChange(date);
+                            }
                           }
                         }}
-                        className="w-full bg-gray-700 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        style={{ fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' }}
+                        minDate={startDateInput ? new Date(startDateInput + "T00:00:00") : (bannerMonthBounds?.min ? new Date(bannerMonthBounds.min + "T00:00:00") : undefined)}
+                        maxDate={bannerMonthBounds?.max ? new Date(bannerMonthBounds.max + "T00:00:00") : undefined}
+                        dateFormat="yyyy-MM-dd"
+                        locale="ko"
+                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        calendarClassName="bg-gray-800"
+                        placeholderText="날짜 선택"
                       />
                     </div>
                   </div>
@@ -793,31 +804,25 @@ export default function EventRegistrationModal({
                         ))}
                     </div>
                     <div className="flex gap-2 mb-2">
-                      <input
-                        type="date"
-                        value={tempDateInput}
-                        min={bannerMonthBounds?.min}
-                        max={bannerMonthBounds?.max}
-                        className="flex-1 bg-gray-700 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        style={{ fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' }}
-                        onKeyDown={(e) => {
-                          // 키보드 입력 방지 (화살표 키와 탭 키는 허용)
-                          if (
-                            e.key !== "Tab" &&
-                            e.key !== "ArrowLeft" &&
-                            e.key !== "ArrowRight"
-                          ) {
-                            e.preventDefault();
+                      <DatePicker
+                        selected={tempDateInput ? new Date(tempDateInput + "T00:00:00") : null}
+                        onChange={(date) => {
+                          if (date) {
+                            const dateStr = formatDateForInput(date);
+                            setTempDateInput(dateStr);
+                            // 달력 이동
+                            if (onMonthChange) {
+                              onMonthChange(date);
+                            }
                           }
                         }}
-                        onChange={(e) => {
-                          setTempDateInput(e.target.value);
-                          // 달력 이동
-                          if (e.target.value && onMonthChange) {
-                            const newDate = new Date(e.target.value + "T00:00:00");
-                            onMonthChange(newDate);
-                          }
-                        }}
+                        minDate={bannerMonthBounds?.min ? new Date(bannerMonthBounds.min + "T00:00:00") : undefined}
+                        maxDate={bannerMonthBounds?.max ? new Date(bannerMonthBounds.max + "T00:00:00") : undefined}
+                        dateFormat="yyyy-MM-dd"
+                        locale="ko"
+                        className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        calendarClassName="bg-gray-800"
+                        placeholderText="날짜 선택"
                       />
                       <button
                         type="button"
