@@ -42,6 +42,7 @@ interface EventListProps {
   showSortModal?: boolean;
   setShowSortModal?: (show: boolean) => void;
   sortBy?: "random" | "time" | "title" | "newest";
+  refreshTrigger?: number;
   setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
   highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
@@ -68,6 +69,7 @@ export default function EventList({
   setShowSortModal: externalSetShowSortModal,
   sortBy: externalSortBy,
   setSortBy: externalSetSortBy,
+  refreshTrigger,
   highlightEvent,
   onHighlightComplete,
   dragOffset: externalDragOffset = 0,
@@ -523,6 +525,14 @@ export default function EventList({
       window.removeEventListener("eventUpdated", handleEventUpdate);
     };
   }, [fetchEvents]);
+
+  // refreshTrigger 변경 시 데이터 새로고침
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      console.log('[📋 이벤트 목록] refreshTrigger 변경 감지 - 데이터 새로고침');
+      fetchEvents();
+    }
+  }, [refreshTrigger, fetchEvents]);
 
   // 달 변경 및 카테고리 변경 시 스크롤 위치 리셋
   // 슬라이드 또는 강습/행사 버튼 클릭 시 스크롤을 맨 위로 올림

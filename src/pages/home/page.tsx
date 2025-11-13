@@ -1288,12 +1288,12 @@ export default function HomePage() {
             </div>
           ) : (
             <EventList
-              key={`${currentMonth.toISOString()}-${highlightEvent?.nonce || 0}`}
               selectedDate={selectedDate}
               selectedCategory={selectedCategory}
               currentMonth={currentMonth}
               isAdminMode={effectiveIsAdmin}
               adminType={adminType}
+              refreshTrigger={highlightEvent?.nonce}
               viewMode={viewMode}
               onEventHover={setHoveredEventId}
               searchTerm={searchTerm}
