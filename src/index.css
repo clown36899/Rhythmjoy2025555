@@ -108,3 +108,53 @@ body, html {
   border-left: 1px solid #15151575;
   border-top: 1px solid #15151575;
 }
+
+/* react-datepicker 모바일 터치 반응성 개선 */
+.react-datepicker__day:active,
+.react-datepicker__day:focus {
+  background-color: #2563eb !important;
+  color: white !important;
+  outline: none;
+}
+
+.react-datepicker__day--keyboard-selected:active {
+  background-color: #2563eb !important;
+}
+
+/* 터치 하이라이트 제거 - 우리가 직접 제어 */
+.react-datepicker__day {
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.05s ease, color 0.05s ease;
+}
+
+/* 선택된 날짜 */
+.react-datepicker__day--selected {
+  background-color: #2563eb !important;
+  color: white !important;
+}
+
+/* 범위 내 날짜 */
+.react-datepicker__day--in-range {
+  background-color: #1e40af !important;
+  color: white !important;
+}
+
+/* 범위 시작 */
+.react-datepicker__day--range-start {
+  background-color: #2563eb !important;
+  color: white !important;
+  border-radius: 0.3rem 0 0 0.3rem !important;
+}
+
+/* 범위 종료 */
+.react-datepicker__day--range-end {
+  background-color: #2563eb !important;
+  color: white !important;
+  border-radius: 0 0.3rem 0.3rem 0 !important;
+}
+
+/* hover 반응 */
+.react-datepicker__day:hover {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
