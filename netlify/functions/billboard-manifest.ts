@@ -16,7 +16,7 @@ export const handler: Handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/manifest+json'
   };
 
   if (event.httpMethod === 'OPTIONS') {

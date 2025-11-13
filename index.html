@@ -64,7 +64,7 @@
           ]
         };
         
-        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
         const manifestURL = URL.createObjectURL(manifestBlob);
         document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
       })();
