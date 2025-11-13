@@ -808,6 +808,7 @@ export default function EventRegistrationModal({
                             }
                           }
                         }}
+                        minDate={startDateInput ? new Date(startDateInput + "T00:00:00") : undefined}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
                         className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
