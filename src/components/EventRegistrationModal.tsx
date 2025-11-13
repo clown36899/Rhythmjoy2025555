@@ -806,7 +806,6 @@ export default function EventRegistrationModal({
                         minDate={new Date()}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
-                        shouldCloseOnSelect={true}
                         customInput={
                           <button
                             type="button"
@@ -861,7 +860,6 @@ export default function EventRegistrationModal({
                         minDate={startDateInput ? new Date(startDateInput + "T00:00:00") : undefined}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
-                        shouldCloseOnSelect={true}
                         customInput={
                           <button
                             type="button"
@@ -929,7 +927,6 @@ export default function EventRegistrationModal({
                         }}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
-                        shouldCloseOnSelect={true}
                         customInput={
                           <button
                             type="button"
