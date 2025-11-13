@@ -649,8 +649,12 @@ export default function BillboardPage() {
     allEvents: Event[],
     settings: BillboardUserSettings,
   ): Event[] => {
+    // 한국 시간 기준 오늘 날짜 (KST = UTC+9)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const koreaOffset = 9 * 60;
+    const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
+    koreaTime.setHours(0, 0, 0, 0);
+    
     return allEvents.filter((event) => {
       if (!event?.image_full && !event?.image && !event?.video_url) return false;
       if (settings.excluded_event_ids.includes(event.id)) return false;
@@ -658,16 +662,25 @@ export default function BillboardPage() {
       const weekday = eventDate.getDay();
       if (settings.excluded_weekdays.includes(weekday)) return false;
       
-      // 종료날짜 기준으로 필터링
-      const eventEndDate = new Date(
-        event.end_date || event.start_date || event.date || "",
-      );
-      if (settings.date_filter_start && eventEndDate < new Date(settings.date_filter_start))
-        return false;
-      if (settings.date_filter_end && eventEndDate > new Date(settings.date_filter_end))
-        return false;
+      // 시작날짜 기준으로 필터링 (지난 이벤트 제외)
+      const eventStartDate = new Date(event.start_date || event.date || "");
+      eventStartDate.setHours(0, 0, 0, 0);
+      
+      // 관리자 설정 날짜 범위 필터
+      if (settings.date_filter_start) {
+        const filterStart = new Date(settings.date_filter_start);
+        filterStart.setHours(0, 0, 0, 0);
+        if (eventStartDate < filterStart) return false;
+      }
+      if (settings.date_filter_end) {
+        const filterEnd = new Date(settings.date_filter_end);
+        filterEnd.setHours(0, 0, 0, 0);
+        if (eventStartDate > filterEnd) return false;
+      }
+      
+      // 기본 필터: 시작일이 오늘 이전이면 제외 (시작일 >= 오늘만 노출)
       if (!settings.date_filter_start && !settings.date_filter_end) {
-        if (eventEndDate < today) return false;
+        if (eventStartDate < koreaTime) return false;
       }
       return true;
     });
