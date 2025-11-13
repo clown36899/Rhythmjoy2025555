@@ -657,8 +657,17 @@ export default function BillboardPage() {
         }
         
         if (calculatedNextIndex !== null && calculatedNextIndex < latestEvents.length) {
+          const nextEvent = latestEvents[calculatedNextIndex];
+          const hasVideo = !!nextEvent?.video_url;
+          const videoId = hasVideo ? nextEvent.video_url.split('v=')[1]?.split('&')[0] : null;
+          
           console.log(`[🔜 미리 로드] 슬라이드 ${displayIndex} → 다음 슬라이드 ${calculatedNextIndex} 미리 준비 (${preloadDelay}ms 후)`);
-          console.log(`[🔜 미리 로드] ⭐ setNextSlideIndex(${calculatedNextIndex}) 호출 - 2개 플레이어 로드 시작`);
+          console.log(`[🔜 미리 로드] ⭐ setNextSlideIndex(${calculatedNextIndex}) 호출`, {
+            타입: hasVideo ? '영상' : '이미지',
+            videoId: videoId || 'N/A',
+            제목: nextEvent?.title || 'N/A',
+            플레이어생성: hasVideo ? '예정' : '없음 (이미지는 플레이어 불필요)'
+          });
           setNextSlideIndex(calculatedNextIndex);
         } else {
           console.warn(`[🔜 미리 로드] ⚠️ 잘못된 인덱스: ${calculatedNextIndex}, events: ${latestEvents.length}`);
