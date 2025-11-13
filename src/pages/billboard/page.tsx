@@ -709,6 +709,10 @@ export default function BillboardPage() {
         auto_slide_interval: userSettings.auto_slide_interval,
         video_play_duration: userSettings.video_play_duration,
         auto_slide_interval_video: userSettings.auto_slide_interval_video,
+        date_filter_start: userSettings.date_filter_start,
+        date_filter_end: userSettings.date_filter_end,
+        excluded_weekdays: userSettings.excluded_weekdays,
+        excluded_event_ids: userSettings.excluded_event_ids?.length || 0,
       });
       setSettings(userSettings);
 
@@ -719,7 +723,12 @@ export default function BillboardPage() {
       if (eventsError) throw eventsError;
 
       const filteredEvents = filterEvents(allEvents || [], userSettings);
-      console.log("[빌보드] 필터링 완료:", filteredEvents.length, "개");
+      console.log("[빌보드] 필터링 완료:", {
+        전체이벤트: allEvents?.length || 0,
+        필터링후: filteredEvents.length,
+        날짜필터시작: userSettings.date_filter_start || 'null',
+        날짜필터종료: userSettings.date_filter_end || 'null',
+      });
 
       if (filteredEvents.length === 0) {
         setEvents([]);
