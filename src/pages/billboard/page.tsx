@@ -15,13 +15,13 @@ const ENABLE_BILLBOARD_LOGS = true; // 슬라이드 전환 문제 디버깅을 �
 // 로그 래퍼 함수 (프로덕션에서는 자동으로 비활성화)
 const log = (...args: any[]) => {
   if (ENABLE_BILLBOARD_LOGS) {
-    log(...args);
+    console.log(...args);
   }
 };
 
 const warn = (...args: any[]) => {
   if (ENABLE_BILLBOARD_LOGS) {
-    warn(...args);
+    console.warn(...args);
   }
 };
 
