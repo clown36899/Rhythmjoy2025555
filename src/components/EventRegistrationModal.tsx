@@ -782,103 +782,80 @@ export default function EventRegistrationModal({
 
                 {/* 연속 기간 모드 */}
                 {dateMode === "range" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-gray-300 text-sm font-medium mb-1">
-                        시작
-                      </label>
-                      <DatePicker
-                        selected={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
-                        onChange={(date) => {
-                          if (date) {
-                            const dateStr = formatDateForInput(date);
-                            setStartDateInput(dateStr);
-                            if (endDate < date) {
-                              setEndDate(date);
-                            }
-                            if (onMonthChange) {
-                              onMonthChange(date);
-                            }
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1">
+                      기간 선택
+                    </label>
+                    <DatePicker
+                      selectsRange={true}
+                      startDate={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
+                      endDate={endDate}
+                      onChange={(dates) => {
+                        const [start, end] = dates;
+                        if (start) {
+                          const startStr = formatDateForInput(start);
+                          setStartDateInput(startStr);
+                          if (onMonthChange) {
+                            onMonthChange(start);
                           }
-                        }}
-                        startDate={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
-                        endDate={endDate}
-                        minDate={new Date()}
-                        dateFormat="yyyy-MM-dd"
-                        locale="ko"
-                        shouldCloseOnSelect={false}
-                        customInput={
-                          <button
-                            type="button"
-                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
-                          >
-                            {startDateInput
-                              ? new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
-                                  month: "long",
-                                  day: "numeric",
-                                })
-                              : "날짜 선택"}
-                          </button>
                         }
-                        calendarClassName="bg-gray-800"
-                        withPortal
-                        portalId="root-portal"
-                        renderCustomHeader={(props) => (
-                          <CustomDatePickerHeader
-                            {...props}
-                            onTodayClick={() => {
-                              const today = new Date();
-                              props.changeMonth(today.getMonth());
-                              props.changeYear(today.getFullYear());
-                              setStartDateInput(formatDateForInput(today));
-                              if (endDate < today) {
-                                setEndDate(today);
-                              }
-                              if (onMonthChange) {
-                                onMonthChange(today);
-                              }
-                            }}
-                          />
-                        )}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-300 text-sm font-medium mb-1">
-                        종료
-                      </label>
-                      <DatePicker
-                        selected={endDate}
-                        onChange={(date) => {
-                          if (date) {
-                            setEndDate(date);
-                            if (onMonthChange) {
-                              onMonthChange(date);
-                            }
+                        if (end) {
+                          setEndDate(end);
+                          if (onMonthChange) {
+                            onMonthChange(end);
                           }
-                        }}
-                        startDate={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
-                        endDate={endDate}
-                        minDate={startDateInput ? new Date(startDateInput + "T00:00:00") : undefined}
-                        dateFormat="yyyy-MM-dd"
-                        locale="ko"
-                        shouldCloseOnSelect={false}
-                        customInput={
-                          <button
-                            type="button"
-                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
-                          >
-                            {endDate.toLocaleDateString("ko-KR", {
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </button>
+                        } else if (start) {
+                          setEndDate(start);
                         }
-                        calendarClassName="bg-gray-800"
-                        withPortal
-                        portalId="root-portal"
-                        renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
-                      />
-                    </div>
+                      }}
+                      minDate={new Date()}
+                      dateFormat="yyyy-MM-dd"
+                      locale="ko"
+                      monthsShown={2}
+                      shouldCloseOnSelect={false}
+                      customInput={
+                        <button
+                          type="button"
+                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
+                        >
+                          {startDateInput && endDate
+                            ? `${new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
+                                month: "long",
+                                day: "numeric",
+                              })} - ${endDate.toLocaleDateString("ko-KR", {
+                                month: "long",
+                                day: "numeric",
+                              })}`
+                            : startDateInput
+                            ? `${new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
+                                month: "long",
+                                day: "numeric",
+                              })} - 종료일 선택`
+                            : "날짜 선택"}
+                        </button>
+                      }
+                      calendarClassName="bg-gray-800"
+                      withPortal
+                      portalId="root-portal"
+                      renderCustomHeader={(props) => (
+                        <CustomDatePickerHeader
+                          {...props}
+                          onTodayClick={() => {
+                            const today = new Date();
+                            props.changeMonth(today.getMonth());
+                            props.changeYear(today.getFullYear());
+                            setStartDateInput(formatDateForInput(today));
+                            setEndDate(today);
+                            if (onMonthChange) {
+                              onMonthChange(today);
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      시작일 클릭 → 종료일 클릭으로 기간 선택
+                    </p>
                   </div>
                 )}
 
