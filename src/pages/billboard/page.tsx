@@ -83,14 +83,15 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   useEffect(() => {
     if (!isVisible && playerRef.current) {
       try {
-        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 메모리 해제 시작 (화면 밖으로 나감)`, {
+        console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 메모리 해제 시작 (화면 밖으로 나감)`, {
           videoId,
           isVisible,
           playerExists: !!playerRef.current,
           wasReady: playerReady.current
         });
+        console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} isVisible=false → 즉시 destroy (메모리 최적화)`);
         playerRef.current.destroy();
-        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ✅ 메모리 해제 완료`, videoId);
+        console.log(`[🎮 플레이어] ✅ PLAYER ${slideIndex} 메모리 해제 완료`, videoId);
       } catch (err) {
         console.error('[YouTube] Player destroy 실패:', err);
       }
@@ -98,7 +99,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       playerReady.current = false;
       hasCalledOnPlaying.current = false;
     } else if (!isVisible) {
-      console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 화면 밖 (Player 인스턴스 없음)`, videoId);
+      console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 화면 밖 (Player 인스턴스 없음)`, videoId);
     }
   }, [isVisible, videoId, slideIndex]);
 
@@ -125,12 +126,13 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     }
 
     const playerId = `yt-player-${slideIndex}`;
-    console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🔧 생성 시작`, {
+    console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 🔧 생성 시작`, {
       playerId,
       videoId,
       isVisible,
       apiReady
     });
+    console.log(`[🎮 플레이어] ⚠️ PLAYER ${slideIndex} 인스턴스 생성 중 (메모리 할당)`);
     
     const timer = setTimeout(() => {
       const element = document.getElementById(playerId);
@@ -244,7 +246,8 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
             },
           },
         });
-        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - Player 객체 생성 완료 (초기화 대기 중...)`);
+        console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - Player 객체 생성 완료 (초기화 대기 중...)`);
+        console.log(`[🎮 플레이어] ✅ PLAYER ${slideIndex} 메모리에 로드됨 (YouTube iframe 활성화)`);
       } catch (err) {
         console.error('[YouTube] Player 생성 실패:', err);
       }
@@ -260,9 +263,10 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       // ✅ Player 메모리 해제 (Android TV 안정성 확보)
       if (playerRef.current?.destroy) {
         try {
-          console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🗑️ cleanup: 메모리 해제 시작`, videoId);
+          console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 🗑️ cleanup: 메모리 해제 시작`, videoId);
+          console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} 메모리에서 제거 중 (destroy 호출)`);
           playerRef.current.destroy();
-          console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🗑️ cleanup: 메모리 해제 완료`, videoId);
+          console.log(`[🎮 플레이어] ✅ PLAYER ${slideIndex} 메모리 해제 완료`, videoId);
         } catch (err) {
           console.error('[YouTube] Player destroy 실패:', err);
         }
@@ -505,10 +509,11 @@ export default function BillboardPage() {
       : 0;
     const displayIndex = logIndex >= 0 ? logIndex : 0;
     
-    console.log(`[타이머 시작] 슬라이드 ${displayIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
+    console.log(`[⏱️ 타이머] 슬라이드 ${displayIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
     
     // ✅ 다음 슬라이드 미리 로드 (종료 5초 전, 최소 2초는 보장)
     const preloadDelay = Math.max(slideInterval - 5000, Math.min(slideInterval / 2, 2000));
+    console.log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (총 ${slideInterval}ms 중 ${slideInterval - preloadDelay}ms는 1개 플레이어만)`);
     if (preloadDelay > 0 && preloadDelay < slideInterval) {
       preloadTimerRef.current = setTimeout(() => {
         const latestEvents = eventsRef.current;
