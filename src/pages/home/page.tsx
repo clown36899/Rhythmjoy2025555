@@ -94,6 +94,7 @@ export default function HomePage() {
     id: number;
     nonce: number;
   } | null>(null);
+  const [eventJustCreated, setEventJustCreated] = useState<number>(0); // 이벤트 생성 시에만 변경
   const [calendarMode, setCalendarMode] = useState<
     "collapsed" | "expanded" | "fullscreen"
   >("collapsed");
@@ -1288,12 +1289,12 @@ export default function HomePage() {
             </div>
           ) : (
             <EventList
+              key={eventJustCreated || undefined}
               selectedDate={selectedDate}
               selectedCategory={selectedCategory}
               currentMonth={currentMonth}
               isAdminMode={effectiveIsAdmin}
               adminType={adminType}
-              refreshTrigger={highlightEvent?.nonce}
               viewMode={viewMode}
               onEventHover={setHoveredEventId}
               searchTerm={searchTerm}
@@ -1391,8 +1392,11 @@ export default function HomePage() {
             });
             setCurrentMonth(createdDate);
             
-            // 이벤트 목록 새로고침 & 하이라이트 (nonce 변경으로 key가 변경되어 리렌더링)
-            console.log('[🏠 홈페이지] 이벤트 하이라이트 설정 및 목록 새로고침');
+            // EventList 강제 리마운트 (이벤트 생성 시에만)
+            console.log('[🏠 홈페이지] 이벤트 생성 - EventList 리마운트');
+            setEventJustCreated(Date.now());
+            
+            // 하이라이트 설정
             setHighlightEvent({
               id: eventId || 0,
               nonce: Date.now(),
