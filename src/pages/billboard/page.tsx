@@ -486,6 +486,7 @@ export default function BillboardPage() {
   const transitionTimersRef = useRef<NodeJS.Timeout[]>([]); // 슬라이드 전환 시 사용되는 모든 setTimeout
   const reloadTimerRef = useRef<NodeJS.Timeout | null>(null); // 실시간 업데이트용 setTimeout
   const playRetryTimerRef = useRef<NodeJS.Timeout | null>(null); // Player 재생 재시도용 setTimeout
+  const videoEventFallbackTimerRef = useRef<NodeJS.Timeout | null>(null); // YouTube onStateChange fallback용 setTimeout
   // ✅ Supabase 채널 ref (메모리 누수 방지 - 중복 구독 방지)
   const eventsChannelRef = useRef<any>(null);
   const settingsChannelRef = useRef<any>(null);
@@ -670,6 +671,13 @@ export default function BillboardPage() {
       clearTimeout(playRetryTimerRef.current);
       playRetryTimerRef.current = null;
       log('[🧹 타이머 정리] playRetryTimer 정리 완료');
+    }
+    
+    // 비디오 이벤트 fallback 타이머 (setTimeout)
+    if (videoEventFallbackTimerRef.current) {
+      clearTimeout(videoEventFallbackTimerRef.current);
+      videoEventFallbackTimerRef.current = null;
+      log('[🧹 타이머 정리] videoEventFallbackTimer 정리 완료');
     }
     
     log('[🧹 타이머 정리] ✅ 슬라이드 타이머 정리 완료 (watchdog은 계속 실행 중)');
