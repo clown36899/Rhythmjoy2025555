@@ -84,12 +84,8 @@ export default function BillboardUserManagementModal({
 
   const loadEvents = async () => {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0];
-
       // 날짜 필터 적용 (종료날짜 기준)
-      const startDate = dateFilterStart || todayStr;
+      const startDate = dateFilterStart || todayKST;
       const endDate = dateFilterEnd;
 
       let query = supabase
@@ -156,7 +152,7 @@ export default function BillboardUserManagementModal({
           video_play_duration: 10000,
           transition_duration: 500,
           play_order: 'sequential',
-          date_filter_start: null,
+          date_filter_start: todayKST,
           date_filter_end: null,
         });
 
@@ -185,18 +181,13 @@ export default function BillboardUserManagementModal({
 
       if (error) throw error;
 
-      // 날짜 초기값 계산
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0];
-
       setSelectedSettings(data);
       setExcludedWeekdays(data.excluded_weekdays || []);
       setExcludedEventIds(data.excluded_event_ids || []);
       setAutoSlideInterval(data.auto_slide_interval);
       setVideoPlayDuration(data.video_play_duration || 10000);
       setPlayOrder(data.play_order);
-      setDateFilterStart(data.date_filter_start || todayStr);
+      setDateFilterStart(data.date_filter_start || todayKST);
       // null이면 빈 문자열로 설정 (종료 날짜 제한 없음)
       setDateFilterEnd(data.date_filter_end || '');
       

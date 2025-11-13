@@ -203,17 +203,12 @@ export default function AdminBillboardModal({
         throw error;
       }
 
-      // 초기 날짜 설정값 계산
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0];
-
       const settings = data || {
         id: billboardUserId,
         billboard_user_id: billboardUserId,
         excluded_weekdays: [],
         excluded_event_ids: [],
-        date_filter_start: todayStr,
+        date_filter_start: todayKST,
         date_filter_end: null, // 종료 날짜는 선택 사항
         auto_slide_interval: 5000,
         play_order: 'sequential',
