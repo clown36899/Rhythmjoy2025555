@@ -626,7 +626,7 @@ export default function EventRegistrationModal({
           {/* Header - 상단 고정 */}
           <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
             <h2 className="text-xl font-bold text-white">
-              {selectedDate.toLocaleDateString("ko-KR", {
+              {(startDateInput ? new Date(startDateInput + "T00:00:00") : selectedDate).toLocaleDateString("ko-KR", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
