@@ -617,12 +617,12 @@ export default function BillboardPage() {
     
     console.log(`[⏱️ 타이머] 슬라이드 ${displayIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
     
-    // ✅ 다음 슬라이드 미리 로드 (종료 5초 전, 최소 2초는 보장)
-    const preloadDelay = Math.max(slideInterval - 5000, Math.min(slideInterval / 2, 2000));
+    // ✅ 다음 슬라이드 미리 로드 (재생 시작 5초 후, 슬라이드가 5초보다 짧으면 중간)
+    const preloadDelay = Math.min(5000, slideInterval / 2);
     
     // preload 타이머가 없을 때만 설정 (중복 방지)
     if (!preloadTimerRef.current && preloadDelay > 0 && preloadDelay < slideInterval) {
-      console.log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (총 ${slideInterval}ms 중 ${slideInterval - preloadDelay}ms는 1개 플레이어만)`);
+      console.log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (재생 시작 후 ${preloadDelay/1000}초, 메모리 절약)`);
       preloadTimerRef.current = setTimeout(() => {
         const latestEvents = eventsRef.current;
         const latestSettings = settingsRef.current;
