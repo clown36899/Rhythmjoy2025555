@@ -1055,6 +1055,7 @@ export default function EventList({
         setShowEditModal(false); // 수정 모달 닫기
         setShowPasswordModal(false); // 비밀번호 모달 닫기
         setEventToEdit(null); // 수정 이벤트 초기화
+        setEditVideoPreview({ provider: null, embedUrl: null }); // YouTube iframe 메모리 해제
       }
     } else {
       // 일반 모드에서는 비밀번호 확인 후 삭제
@@ -1066,6 +1067,7 @@ export default function EventList({
           setShowEditModal(false); // 수정 모달 닫기
           setShowPasswordModal(false); // 비밀번호 모달 닫기
           setEventToEdit(null); // 수정 이벤트 초기화
+          setEditVideoPreview({ provider: null, embedUrl: null }); // YouTube iframe 메모리 해제
         }
       } else if (password) {
         alert("비밀번호가 올바르지 않습니다.");
@@ -2116,6 +2118,7 @@ export default function EventList({
                   onClick={() => {
                     setShowEditModal(false);
                     setEventToEdit(null);
+                    setEditVideoPreview({ provider: null, embedUrl: null });
                   }}
                   className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 >
@@ -2783,6 +2786,7 @@ export default function EventList({
                     onClick={() => {
                       setShowEditModal(false);
                       setEventToEdit(null);
+                      setEditVideoPreview({ provider: null, embedUrl: null });
                     }}
                     className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
                   >

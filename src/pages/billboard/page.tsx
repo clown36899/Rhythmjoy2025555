@@ -59,8 +59,28 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     isReady: () => playerReady.current,  // 준비 상태 확인 메서드
   }));
 
-  // Player 생성
+  // isVisible이 false가 되면 Player 즉시 destroy (메모리 최적화)
   useEffect(() => {
+    if (!isVisible && playerRef.current) {
+      try {
+        playerRef.current.destroy();
+        console.log('[YouTube 메모리 최적화] 화면 밖 Player 해제:', videoId);
+      } catch (err) {
+        console.error('[YouTube] Player destroy 실패:', err);
+      }
+      playerRef.current = null;
+      playerReady.current = false;
+      hasCalledOnPlaying.current = false;
+    }
+  }, [isVisible, videoId]);
+
+  // Player 생성 (isVisible이 true일 때만 생성, 메모리 최적화)
+  useEffect(() => {
+    // isVisible이 false이면 Player 생성 스킵
+    if (!isVisible) {
+      return;
+    }
+
     if (!apiReady || !videoId || playerRef.current) {
       if (playerRef.current) {
         console.log(`[YouTube 캐시] Player 이미 존재, 재생성 스킵: ${videoId}`);
@@ -160,14 +180,15 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       hasCalledOnPlaying.current = false;
       playerReady.current = false;
     };
-  }, [apiReady, videoId, onPlayingCallback]);  // ✅ slideIndex 제거 - videoId만 의존
+  }, [apiReady, videoId, onPlayingCallback, isVisible]);  // ✅ isVisible 추가 - 화면 표시 시 재생성
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
 }), (prevProps, nextProps) => {
-  // ✅ videoId만 비교 - 같은 영상이면 slideIndex 달라도 Player 재사용
+  // ✅ videoId, apiReady, isVisible 비교 - isVisible 변경 시 재렌더링하여 메모리 최적화
   // slideIndex는 표시 목적이므로 캐싱과 무관
   const shouldSkipRender = prevProps.videoId === nextProps.videoId && 
-                           prevProps.apiReady === nextProps.apiReady;
+                           prevProps.apiReady === nextProps.apiReady &&
+                           prevProps.isVisible === nextProps.isVisible;
   
   if (shouldSkipRender && prevProps.slideIndex !== nextProps.slideIndex) {
     console.log(`[YouTube 캐시] videoId ${prevProps.videoId} 재사용 (슬라이드 ${prevProps.slideIndex} → ${nextProps.slideIndex})`);
