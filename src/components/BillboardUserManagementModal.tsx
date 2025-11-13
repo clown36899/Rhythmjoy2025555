@@ -46,7 +46,7 @@ export default function BillboardUserManagementModal({
   const [autoSlideInterval, setAutoSlideInterval] = useState(5000);
   const [videoPlayDuration, setVideoPlayDuration] = useState(10000);
   const [playOrder, setPlayOrder] = useState<'sequential' | 'random'>('sequential');
-  const [dateFilterStart, setDateFilterStart] = useState(getTodayKST());
+  const [dateFilterStart, setDateFilterStart] = useState('');
   const [dateFilterEnd, setDateFilterEnd] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -152,7 +152,7 @@ export default function BillboardUserManagementModal({
           video_play_duration: 10000,
           transition_duration: 500,
           play_order: 'sequential',
-          date_filter_start: todayKST,
+          date_filter_start: null,
           date_filter_end: null,
         });
 
@@ -187,7 +187,7 @@ export default function BillboardUserManagementModal({
       setAutoSlideInterval(data.auto_slide_interval);
       setVideoPlayDuration(data.video_play_duration || 10000);
       setPlayOrder(data.play_order);
-      setDateFilterStart(data.date_filter_start || todayKST);
+      setDateFilterStart(data.date_filter_start || '');
       // null이면 빈 문자열로 설정 (종료 날짜 제한 없음)
       setDateFilterEnd(data.date_filter_end || '');
       
@@ -701,14 +701,23 @@ export default function BillboardUserManagementModal({
                     📆 날짜 범위 필터
                   </label>
                   <div className="space-y-2">
-                    <input
-                      type="date"
-                      value={dateFilterStart}
-                      min={todayKST}
-                      onChange={(e) => setDateFilterStart(e.target.value)}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="시작 날짜"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={dateFilterStart || todayKST}
+                        min={todayKST}
+                        onChange={(e) => setDateFilterStart(e.target.value)}
+                        className="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="시작 날짜"
+                      />
+                      <button
+                        onClick={() => setDateFilterStart('')}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                        title="지정 안함 (기본값: 오늘)"
+                      >
+                        지정 안 함
+                      </button>
+                    </div>
                     <div className="space-y-1">
                       <div className="flex gap-2">
                         <input

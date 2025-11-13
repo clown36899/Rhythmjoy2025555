@@ -203,16 +203,13 @@ export default function AdminBillboardModal({
         throw error;
       }
 
-      // DB에서 로드된 데이터가 있으면 date_filter_start null을 오늘로 교체
-      const settings = data ? {
-        ...data,
-        date_filter_start: data.date_filter_start || todayKST
-      } : {
+      // DB에서 로드 (null 유지, UI에서만 오늘 표시)
+      const settings = data || {
         id: billboardUserId,
         billboard_user_id: billboardUserId,
         excluded_weekdays: [],
         excluded_event_ids: [],
-        date_filter_start: todayKST,
+        date_filter_start: null,
         date_filter_end: null,
         auto_slide_interval: 5000,
         play_order: 'sequential',
