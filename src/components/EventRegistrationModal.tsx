@@ -741,6 +741,8 @@ export default function EventRegistrationModal({
                         className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         calendarClassName="bg-gray-800"
                         placeholderText="날짜 선택"
+                        withPortal
+                        portalId="root-portal"
                       />
                     </div>
                     <div>
@@ -765,6 +767,8 @@ export default function EventRegistrationModal({
                         className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         calendarClassName="bg-gray-800"
                         placeholderText="날짜 선택"
+                        withPortal
+                        portalId="root-portal"
                       />
                     </div>
                   </div>
@@ -823,6 +827,8 @@ export default function EventRegistrationModal({
                         className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         calendarClassName="bg-gray-800"
                         placeholderText="날짜 선택"
+                        withPortal
+                        portalId="root-portal"
                       />
                       <button
                         type="button"
