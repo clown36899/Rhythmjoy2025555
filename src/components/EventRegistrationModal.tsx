@@ -807,18 +807,14 @@ export default function EventRegistrationModal({
                         customInput={
                           <button
                             type="button"
-                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
                           >
-                            <span>
-                              {startDateInput
-                                ? new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                  })
-                                : "날짜 선택"}
-                            </span>
-                            <i className="ri-calendar-line"></i>
+                            {startDateInput
+                              ? new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
+                                  month: "long",
+                                  day: "numeric",
+                                })
+                              : "날짜 선택"}
                           </button>
                         }
                         calendarClassName="bg-gray-800"
@@ -863,16 +859,12 @@ export default function EventRegistrationModal({
                         customInput={
                           <button
                             type="button"
-                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
                           >
-                            <span>
-                              {endDate.toLocaleDateString("ko-KR", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </span>
-                            <i className="ri-calendar-line"></i>
+                            {endDate.toLocaleDateString("ko-KR", {
+                              month: "long",
+                              day: "numeric",
+                            })}
                           </button>
                         }
                         calendarClassName="bg-gray-800"
@@ -934,18 +926,14 @@ export default function EventRegistrationModal({
                         customInput={
                           <button
                             type="button"
-                            className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                            className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
                           >
-                            <span>
-                              {tempDateInput
-                                ? new Date(tempDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                  })
-                                : "날짜 선택"}
-                            </span>
-                            <i className="ri-calendar-line"></i>
+                            {tempDateInput
+                              ? new Date(tempDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
+                                  month: "long",
+                                  day: "numeric",
+                                })
+                              : "날짜 선택"}
                           </button>
                         }
                         calendarClassName="bg-gray-800"
