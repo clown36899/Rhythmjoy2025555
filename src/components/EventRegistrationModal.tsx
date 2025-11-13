@@ -831,10 +831,7 @@ export default function EventRegistrationModal({
                           <CustomDateInput
                             value={
                               startDateInput
-                                ? new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
-                                    month: "long",
-                                    day: "numeric",
-                                  })
+                                ? `${new Date(startDateInput + "T00:00:00").getMonth() + 1}.${new Date(startDateInput + "T00:00:00").getDate()}`
                                 : undefined
                             }
                           />
@@ -882,10 +879,7 @@ export default function EventRegistrationModal({
                         shouldCloseOnSelect={false}
                         customInput={
                           <CustomDateInput
-                            value={endDate.toLocaleDateString("ko-KR", {
-                              month: "long",
-                              day: "numeric",
-                            })}
+                            value={`${endDate.getMonth() + 1}.${endDate.getDate()}`}
                           />
                         }
                         calendarClassName="bg-gray-800"
