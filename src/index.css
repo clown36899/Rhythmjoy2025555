@@ -125,21 +125,17 @@ body, html {
 .react-datepicker__day {
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.05s ease, color 0.05s ease, border 0.05s ease;
-}
-
-/* 기본 날짜 - 테두리 없음 */
-.react-datepicker__day:not(.react-datepicker__day--today) {
   border: none !important;
+  border-radius: 0 !important;
 }
 
 /* 오늘 날짜 - 동그라미 외곽선 (최우선 순위) */
-.react-datepicker__day--today {
+.react-datepicker__day.react-datepicker__day--today {
   border: 2px solid #4169aa !important;
   border-radius: 50% !important;
   background-color: transparent !important;
   color: white !important;
   font-weight: 500 !important;
-  box-sizing: border-box !important;
 }
 
 /* 선택된 날짜 - 채도 낮춤 */
@@ -207,8 +203,6 @@ body, html {
   line-height: 2.2rem !important;
   margin: 0 !important;
   padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
 }
 
 .react-datepicker__week {
