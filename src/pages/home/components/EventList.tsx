@@ -2882,7 +2882,6 @@ export default function EventList({
               }
               inline
               locale="ko"
-              calendarClassName="bg-gray-800"
               renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
             />
           </div>
