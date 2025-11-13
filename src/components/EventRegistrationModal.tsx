@@ -692,7 +692,7 @@ export default function EventRegistrationModal({
   const modalContent = (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
-        <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden">
+        <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden border border-gray-600">
           {/* 업로드 진행률 오버레이 */}
           {isSubmitting && (
             <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[1000000] rounded-lg">
