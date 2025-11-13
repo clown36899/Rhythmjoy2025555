@@ -734,8 +734,6 @@ export default function EventRegistrationModal({
                             }
                           }
                         }}
-                        minDate={bannerMonthBounds?.min ? new Date(bannerMonthBounds.min + "T00:00:00") : undefined}
-                        maxDate={bannerMonthBounds?.max ? new Date(bannerMonthBounds.max + "T00:00:00") : undefined}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
                         className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -920,8 +918,6 @@ export default function EventRegistrationModal({
                             }
                           }
                         }}
-                        minDate={bannerMonthBounds?.min ? new Date(bannerMonthBounds.min + "T00:00:00") : undefined}
-                        maxDate={bannerMonthBounds?.max ? new Date(bannerMonthBounds.max + "T00:00:00") : undefined}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
                         className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
