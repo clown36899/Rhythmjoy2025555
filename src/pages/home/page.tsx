@@ -1373,16 +1373,27 @@ export default function HomePage() {
             setCurrentMonth(date);
           }}
           onEventCreated={(createdDate, eventId) => {
+            console.log('[🏠 홈페이지] onEventCreated 수신', {
+              createdDate: createdDate.toISOString(),
+              eventId,
+              fromBanner
+            });
+            
             setShowRegistrationModal(false);
             setFromBanner(false);
             setBannerMonthBounds(null);
             
             // 등록된 달로 이동
+            console.log('[🏠 홈페이지] 캘린더 월 이동:', {
+              from: currentMonth.toISOString(),
+              to: createdDate.toISOString()
+            });
             setCurrentMonth(createdDate);
             
             // 등록된 이벤트 하이라이트
             if (eventId) {
               setTimeout(() => {
+                console.log('[🏠 홈페이지] 이벤트 하이라이트 설정:', eventId);
                 setHighlightEvent({
                   id: eventId,
                   nonce: Date.now(),

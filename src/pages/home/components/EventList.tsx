@@ -435,6 +435,7 @@ export default function EventList({
 
   const fetchEvents = useCallback(async () => {
     try {
+      console.log('[📋 이벤트 목록] 데이터 로딩 시작...');
       setLoading(true);
       setLoadError(null);
 
@@ -474,14 +475,24 @@ export default function EventList({
       await Promise.race([fetchPromise, timeoutPromise]);
 
       if (error) {
-        console.error("[EventList] Supabase 에러:", error);
+        console.error("[📋 이벤트 목록] ❌ Supabase 에러:", error);
         setLoadError(`DB 에러: ${error.message || "알 수 없는 오류"}`);
         setEvents([]);
       } else {
-        setEvents(data || []);
+        const eventList = data || [];
+        console.log('[📋 이벤트 목록] ✅ 데이터 로딩 완료:', {
+          총개수: eventList.length,
+          최근3개: eventList.slice(-3).map((e: Event) => ({
+            id: e.id,
+            title: e.title,
+            image_thumbnail: e.image_thumbnail,
+            image: e.image
+          }))
+        });
+        setEvents(eventList);
       }
     } catch (error: any) {
-      console.error("[EventList] 데이터 로딩 실패:", error.message);
+      console.error("[📋 이벤트 목록] ❌ 데이터 로딩 실패:", error.message);
       setLoadError(`로딩 실패: ${error.message || "알 수 없는 오류"}`);
       // 타임아웃이나 에러 발생 시 빈 배열로 설정 (무한 로딩 방지)
       setEvents([]);

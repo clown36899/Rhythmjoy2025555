@@ -335,9 +335,18 @@ export default function EventRegistrationModal({
     full: string;
   }> => {
     try {
+      console.log('[📤 이미지 업로드] 시작', { fileName: file.name, fileSize: file.size });
+      
       const resizedImages = await createResizedImages(file);
       const timestamp = Date.now();
       const baseFileName = sanitizeFileName(file.name);
+      
+      console.log('[📤 이미지 업로드] 리사이즈 완료', { 
+        baseFileName,
+        thumbnailSize: resizedImages.thumbnail.size,
+        mediumSize: resizedImages.medium.size,
+        fullSize: resizedImages.full.size
+      });
       
       // 리사이즈된 이미지의 실제 확장자 추출 (WebP 또는 JPEG)
       const getExtension = (fileName: string) => {
@@ -378,16 +387,21 @@ export default function EventRegistrationModal({
           }
 
           const { data } = supabase.storage.from("images").getPublicUrl(path);
+          console.log(`[📤 이미지 업로드] ${key} 업로드 성공:`, data.publicUrl);
 
           return { key, url: data.publicUrl };
         }),
       );
 
-      return {
+      const finalUrls = {
         thumbnail: results.find((r) => r.key === "thumbnail")?.url || "",
         medium: results.find((r) => r.key === "medium")?.url || "",
         full: results.find((r) => r.key === "full")?.url || "",
       };
+      
+      console.log('[📤 이미지 업로드] ✅ 완료', finalUrls);
+      
+      return finalUrls;
     } catch (error) {
       console.error("Image upload failed:", error);
       const errorMessage =
@@ -535,16 +549,26 @@ export default function EventRegistrationModal({
         created_at: new Date().toISOString(),
       };
 
+      console.log('[💾 이벤트 등록] DB 저장 데이터', {
+        title: eventData.title,
+        image: eventData.image,
+        image_thumbnail: eventData.image_thumbnail,
+        image_medium: eventData.image_medium,
+        image_full: eventData.image_full,
+        video_url: eventData.video_url,
+      });
+
       const { data: insertedData, error } = await supabase
         .from("events")
         .insert([eventData])
         .select("id");
 
       if (error) {
-        console.error("Error creating event:", error);
+        console.error("[💾 이벤트 등록] ❌ 실패:", error);
         alert("이벤트 등록 중 오류가 발생했습니다.");
       } else {
         const newEventId = insertedData?.[0]?.id;
+        console.log('[💾 이벤트 등록] ✅ 성공', { eventId: newEventId });
         alert("이벤트가 성공적으로 등록되었습니다!");
         setFormData({
           title: "",
@@ -571,6 +595,11 @@ export default function EventRegistrationModal({
         
         // 등록된 이벤트의 시작 날짜 전달
         const createdDate = new Date(localDateString + "T00:00:00");
+        console.log('[🔔 이벤트 등록] onEventCreated 호출', {
+          createdDate: createdDate.toISOString(),
+          eventId: newEventId,
+          fromBanner: fromBanner
+        });
         onEventCreated(createdDate, newEventId);
         onClose();
       }
