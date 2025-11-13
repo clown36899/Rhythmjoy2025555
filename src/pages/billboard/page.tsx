@@ -47,49 +47,89 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     pauseVideo: () => {
       if (playerRef.current?.pauseVideo) {
         playerRef.current.pauseVideo();
-        console.log('[YouTube] 일시정지:', slideIndex);
+        console.log(`[플레이어 제어] 슬라이드 ${slideIndex} - ⏸️ 일시정지 명령 실행`, {
+          videoId,
+          playerExists: !!playerRef.current,
+          isReady: playerReady.current
+        });
+      } else {
+        console.warn(`[플레이어 제어] 슬라이드 ${slideIndex} - ⚠️ 일시정지 실패: Player 없음`);
       }
     },
     playVideo: () => {
       if (playerRef.current?.playVideo) {
         playerRef.current.playVideo();
-        console.log('[YouTube] 재생:', slideIndex);
+        console.log(`[플레이어 제어] 슬라이드 ${slideIndex} - ▶️ 재생 명령 실행`, {
+          videoId,
+          playerExists: !!playerRef.current,
+          isReady: playerReady.current
+        });
+      } else {
+        console.warn(`[플레이어 제어] 슬라이드 ${slideIndex} - ⚠️ 재생 실패: Player 없음`);
       }
     },
-    isReady: () => playerReady.current,  // 준비 상태 확인 메서드
+    isReady: () => {
+      const ready = playerReady.current;
+      console.log(`[플레이어 제어] 슬라이드 ${slideIndex} - 준비 상태 확인: ${ready ? '✅ 준비됨' : '⏳ 준비 안됨'}`, {
+        videoId,
+        playerExists: !!playerRef.current
+      });
+      return ready;
+    },
   }));
 
   // isVisible이 false가 되면 Player 즉시 destroy (메모리 최적화)
   useEffect(() => {
     if (!isVisible && playerRef.current) {
       try {
+        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 메모리 해제 시작 (화면 밖으로 나감)`, {
+          videoId,
+          isVisible,
+          playerExists: !!playerRef.current,
+          wasReady: playerReady.current
+        });
         playerRef.current.destroy();
-        console.log('[YouTube 메모리 최적화] 화면 밖 Player 해제:', videoId);
+        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ✅ 메모리 해제 완료`, videoId);
       } catch (err) {
         console.error('[YouTube] Player destroy 실패:', err);
       }
       playerRef.current = null;
       playerReady.current = false;
       hasCalledOnPlaying.current = false;
+    } else if (!isVisible) {
+      console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 화면 밖 (Player 인스턴스 없음)`, videoId);
     }
-  }, [isVisible, videoId]);
+  }, [isVisible, videoId, slideIndex]);
 
   // Player 생성 (isVisible이 true일 때만 생성, 메모리 최적화)
   useEffect(() => {
     // isVisible이 false이면 Player 생성 스킵
     if (!isVisible) {
+      console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 생성 스킵 (화면에 표시 안됨)`, videoId);
       return;
     }
 
     if (!apiReady || !videoId || playerRef.current) {
       if (playerRef.current) {
-        console.log(`[YouTube 캐시] Player 이미 존재, 재생성 스킵: ${videoId}`);
+        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ♻️ 기존 인스턴스 유지 중 (재생성 스킵)`, {
+          videoId,
+          ready: playerReady.current,
+          hasPlayed: hasCalledOnPlaying.current
+        });
+      }
+      if (!apiReady) {
+        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - YouTube API 대기 중...`);
       }
       return;
     }
 
     const playerId = `yt-player-${slideIndex}`;
-    console.log('[YouTube] Player 생성 시작:', playerId, 'videoId:', videoId);
+    console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🔧 생성 시작`, {
+      playerId,
+      videoId,
+      isVisible,
+      apiReady
+    });
     
     const timer = setTimeout(() => {
       const element = document.getElementById(playerId);
@@ -121,23 +161,47 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
           },
           events: {
             onReady: (_event: any) => {
-              console.log('[YouTube] Player 준비 완료:', slideIndex);
               playerReady.current = true;  // 준비 상태 플래그 설정
+              console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ✅ 준비 완료 (READY)`, {
+                videoId,
+                canPlay: true,
+                isVisible
+              });
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
               // 부모 컴포넌트에서 명시적으로 playVideo 호출할 예정
             },
             onStateChange: (event: any) => {
+              // 상태 코드를 문자열로 변환
+              const stateNames: Record<number, string> = {
+                '-1': 'UNSTARTED',
+                '0': 'ENDED',
+                '1': 'PLAYING',
+                '2': 'PAUSED',
+                '3': 'BUFFERING',
+                '5': 'CUED'
+              };
+              const stateName = stateNames[event.data] || `UNKNOWN(${event.data})`;
+              
+              console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 상태 변경: ${stateName}`, {
+                videoId,
+                stateCode: event.data,
+                isVisible,
+                hasPlayed: hasCalledOnPlaying.current
+              });
+
               // 재생 시작 감지 (YT.PlayerState.PLAYING = 1)
               if (event.data === 1) {
                 if (!hasCalledOnPlaying.current) {
-                  console.log('[YouTube] 재생 시작 감지 (첫 재생):', slideIndex);
+                  console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ▶️ 첫 재생 시작됨`);
                   hasCalledOnPlaying.current = true;
                   onPlayingCallback(slideIndex);
+                } else {
+                  console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ▶️ 재생 중...`);
                 }
               }
               // 종료 감지 (YT.PlayerState.ENDED = 0) → 0초로 돌아가서 루프 재생 (현재 표시 중일 때만)
               else if (event.data === 0 && isVisible) {
-                console.log('[YouTube] 재생 종료 감지 → 0초로 돌아가서 다시 재생:', slideIndex);
+                console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🔁 재생 종료 → 0초로 돌아가서 다시 재생`);
                 if (playerRef.current?.seekTo && playerRef.current?.playVideo) {
                   playerRef.current.seekTo(0, true); // 0초로 이동
                   setTimeout(() => {
@@ -148,17 +212,32 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               }
               // 일시정지 감지 (YT.PlayerState.PAUSED = 2)
               else if (event.data === 2) {
-                console.log('[YouTube] 일시정지 감지:', slideIndex);
+                console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ⏸️ 일시정지됨`);
                 // 다음 재생을 위해 플래그 리셋
                 hasCalledOnPlaying.current = false;
               }
+              // 버퍼링 감지 (YT.PlayerState.BUFFERING = 3)
+              else if (event.data === 3) {
+                console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ⏳ 버퍼링 중...`);
+              }
             },
             onError: (event: any) => {
-              console.error('[YouTube] Player 에러:', event.data);
+              const errorCodes: Record<number, string> = {
+                2: '잘못된 요청 파라미터',
+                5: 'HTML5 플레이어 오류',
+                100: '비디오를 찾을 수 없음',
+                101: '임베드 허용 안됨',
+                150: '임베드 허용 안됨'
+              };
+              const errorMsg = errorCodes[event.data] || `알 수 없는 오류 (코드: ${event.data})`;
+              console.error(`[플레이어 상태] 슬라이드 ${slideIndex} - ❌ 오류 발생: ${errorMsg}`, {
+                videoId,
+                errorCode: event.data
+              });
             },
           },
         });
-        console.log('[YouTube] Player 객체 생성 완료');
+        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - Player 객체 생성 완료 (초기화 대기 중...)`);
       } catch (err) {
         console.error('[YouTube] Player 생성 실패:', err);
       }
@@ -169,8 +248,9 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       // ✅ Player 메모리 해제 (Android TV 안정성 확보)
       if (playerRef.current?.destroy) {
         try {
+          console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🗑️ cleanup: 메모리 해제 시작`, videoId);
           playerRef.current.destroy();
-          console.log('[YouTube] Player 메모리 해제 완료:', videoId);
+          console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🗑️ cleanup: 메모리 해제 완료`, videoId);
         } catch (err) {
           console.error('[YouTube] Player destroy 실패:', err);
         }
@@ -180,7 +260,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       hasCalledOnPlaying.current = false;
       playerReady.current = false;
     };
-  }, [apiReady, videoId, onPlayingCallback, isVisible]);  // ✅ isVisible 추가 - 화면 표시 시 재생성
+  }, [apiReady, videoId, onPlayingCallback, isVisible, slideIndex]);  // ✅ isVisible 추가 - 화면 표시 시 재생성
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
 }), (prevProps, nextProps) => {
