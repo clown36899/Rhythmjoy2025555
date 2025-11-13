@@ -50,18 +50,21 @@ export default function HomePage() {
 
   // isAdmin 상태에 따라 adminType 자동 동기화
   useEffect(() => {
-    if (effectiveIsAdmin) {
-      if (adminType !== "sub") {
+    if (effectiveIsAdmin && !billboardUserId) {
+      // 슈퍼 관리자 모드 (빌보드 사용자가 아닐 때만)
+      if (adminType !== "super") {
         setAdminType("super");
         console.log("[HomePage] 슈퍼 관리자 모드 활성화");
       }
-    } else if (!billboardUserId) {
+    } else if (!effectiveIsAdmin && !billboardUserId) {
       // 빌보드 사용자도 아니고 슈퍼 관리자도 아니면 null
-      setAdminType(null);
-      setIsAdminModeOverride(false);
-      console.log("[HomePage] 관리자 모드 비활성화");
+      if (adminType !== null) {
+        setAdminType(null);
+        setIsAdminModeOverride(false);
+        console.log("[HomePage] 관리자 모드 비활성화");
+      }
     }
-  }, [effectiveIsAdmin, billboardUserId, adminType]);
+  }, [effectiveIsAdmin, billboardUserId]);
 
   // MobileShell에 현재 월 정보 전달
   useEffect(() => {
