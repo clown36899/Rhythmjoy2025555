@@ -743,6 +743,37 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
+                        showMonthDropdown
+                        dropdownMode="select"
+                        renderCustomHeader={({
+                          date,
+                          decreaseMonth,
+                          increaseMonth,
+                          prevMonthButtonDisabled,
+                          nextMonthButtonDisabled,
+                        }) => (
+                          <div className="flex items-center justify-between px-2 py-2">
+                            <button
+                              onClick={decreaseMonth}
+                              disabled={prevMonthButtonDisabled}
+                              type="button"
+                              className="text-white hover:bg-gray-700 p-1 rounded disabled:opacity-50"
+                            >
+                              <i className="ri-arrow-left-s-line text-xl"></i>
+                            </button>
+                            <span className="text-white font-medium">
+                              {date.getMonth() + 1}월
+                            </span>
+                            <button
+                              onClick={increaseMonth}
+                              disabled={nextMonthButtonDisabled}
+                              type="button"
+                              className="text-white hover:bg-gray-700 p-1 rounded disabled:opacity-50"
+                            >
+                              <i className="ri-arrow-right-s-line text-xl"></i>
+                            </button>
+                          </div>
+                        )}
                       />
                     </div>
                     <div>
@@ -769,6 +800,37 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
+                        showMonthDropdown
+                        dropdownMode="select"
+                        renderCustomHeader={({
+                          date,
+                          decreaseMonth,
+                          increaseMonth,
+                          prevMonthButtonDisabled,
+                          nextMonthButtonDisabled,
+                        }) => (
+                          <div className="flex items-center justify-between px-2 py-2">
+                            <button
+                              onClick={decreaseMonth}
+                              disabled={prevMonthButtonDisabled}
+                              type="button"
+                              className="text-white hover:bg-gray-700 p-1 rounded disabled:opacity-50"
+                            >
+                              <i className="ri-arrow-left-s-line text-xl"></i>
+                            </button>
+                            <span className="text-white font-medium">
+                              {date.getMonth() + 1}월
+                            </span>
+                            <button
+                              onClick={increaseMonth}
+                              disabled={nextMonthButtonDisabled}
+                              type="button"
+                              className="text-white hover:bg-gray-700 p-1 rounded disabled:opacity-50"
+                            >
+                              <i className="ri-arrow-right-s-line text-xl"></i>
+                            </button>
+                          </div>
+                        )}
                       />
                     </div>
                   </div>
@@ -829,6 +891,37 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
+                        showMonthDropdown
+                        dropdownMode="select"
+                        renderCustomHeader={({
+                          date,
+                          decreaseMonth,
+                          increaseMonth,
+                          prevMonthButtonDisabled,
+                          nextMonthButtonDisabled,
+                        }) => (
+                          <div className="flex items-center justify-between px-2 py-2">
+                            <button
+                              onClick={decreaseMonth}
+                              disabled={prevMonthButtonDisabled}
+                              type="button"
+                              className="text-white hover:bg-gray-700 p-1 rounded disabled:opacity-50"
+                            >
+                              <i className="ri-arrow-left-s-line text-xl"></i>
+                            </button>
+                            <span className="text-white font-medium">
+                              {date.getMonth() + 1}월
+                            </span>
+                            <button
+                              onClick={increaseMonth}
+                              disabled={nextMonthButtonDisabled}
+                              type="button"
+                              className="text-white hover:bg-gray-700 p-1 rounded disabled:opacity-50"
+                            >
+                              <i className="ri-arrow-right-s-line text-xl"></i>
+                            </button>
+                          </div>
+                        )}
                       />
                       <button
                         type="button"
