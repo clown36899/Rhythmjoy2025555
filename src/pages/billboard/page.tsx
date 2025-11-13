@@ -520,10 +520,13 @@ export default function BillboardPage() {
       return;
     }
 
-    window.onYouTubeIframeAPIReady = () => {
+    // ✅ 콜백 함수를 변수로 저장 (cleanup에서 제거하기 위함)
+    const apiReadyCallback = () => {
       console.log('[YouTube API] 준비 완료');
       setYoutubeApiReady(true);
     };
+    
+    window.onYouTubeIframeAPIReady = apiReadyCallback;
 
     if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
       console.log('[YouTube API] 스크립트 로드 시작');
@@ -532,6 +535,15 @@ export default function BillboardPage() {
       const firstScript = document.getElementsByTagName('script')[0];
       firstScript.parentNode?.insertBefore(tag, firstScript);
     }
+    
+    // ✅ Cleanup: 콜백 제거 (메모리 누수 + stale closure 방지)
+    return () => {
+      if (window.onYouTubeIframeAPIReady === apiReadyCallback) {
+        console.log('[YouTube API] 콜백 cleanup (메모리 누수 방지)');
+        // @ts-ignore - noop 함수로 교체
+        window.onYouTubeIframeAPIReady = () => {};
+      }
+    };
   }, []);
 
   // 🛡️ 워치독(Watchdog): 3분간 슬라이드 전환 없으면 자동 새로고침
