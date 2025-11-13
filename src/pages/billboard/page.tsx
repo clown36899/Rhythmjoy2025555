@@ -330,6 +330,14 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                   재생품질: quality,
                   데이터로딩: '진행중'
                 });
+                
+                // ✅ APK WebView 호환성: BUFFERING 시에도 타이머 시작 (PLAYING 이벤트가 안 올 수 있음)
+                // 첫 버퍼링에서만 실행 (이미 재생 중이면 스킵)
+                if (!hasCalledOnPlaying.current) {
+                  log(`[🔧 APK 호환] 슬라이드 ${slideIndex} - BUFFERING 감지, 타이머 시작 (PLAYING 이벤트 대체)`);
+                  hasCalledOnPlaying.current = true;
+                  onPlayingCallback(slideIndex);
+                }
               }
             },
             onError: (event: any) => {
