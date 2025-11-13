@@ -991,6 +991,8 @@ export default function EventList({
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
     
+    console.log('handleEditClick - isAdminMode:', isAdminMode, 'adminType:', adminType);
+    
     if (isAdminMode) {
       // 개발자 모드(관리자 모드)에서는 비밀번호 없이 바로 수정 모달 열기
       setEventToEdit(event);
