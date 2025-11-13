@@ -41,18 +41,27 @@ export default function HomePage() {
   const [fromBanner, setFromBanner] = useState(false);
   const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+  
+  // 개발자 프리패스용 로컬 관리자 모드 상태
+  const [isAdminModeOverride, setIsAdminModeOverride] = useState(false);
+  
+  // 실제 관리자 모드 여부 (AuthContext의 isAdmin + 개발자 프리패스)
+  const effectiveIsAdmin = isAdmin || isAdminModeOverride;
 
   // isAdmin 상태에 따라 adminType 자동 동기화
   useEffect(() => {
-    if (isAdmin) {
-      setAdminType("super");
-      console.log("[HomePage] 슈퍼 관리자 모드 활성화");
+    if (effectiveIsAdmin) {
+      if (adminType !== "sub") {
+        setAdminType("super");
+        console.log("[HomePage] 슈퍼 관리자 모드 활성화");
+      }
     } else if (!billboardUserId) {
       // 빌보드 사용자도 아니고 슈퍼 관리자도 아니면 null
       setAdminType(null);
+      setIsAdminModeOverride(false);
       console.log("[HomePage] 관리자 모드 비활성화");
     }
-  }, [isAdmin, billboardUserId]);
+  }, [effectiveIsAdmin, billboardUserId, adminType]);
 
   // MobileShell에 현재 월 정보 전달
   useEffect(() => {
@@ -675,13 +684,23 @@ export default function HomePage() {
   };
 
   const handleAdminModeToggle = (
-    _adminMode: boolean,
+    adminMode: boolean,
     type: "super" | "sub" | null = null,
     userId: string | null = null,
     userName: string = "",
   ) => {
-    // AuthContext에서 관리하므로 isAdminMode state는 제거
-    // 빌보드 사용자 정보만 저장
+    // 개발자 프리패스용 로컬 상태 업데이트
+    if (adminMode && type === "super" && !userId) {
+      // 개발자 프리패스 활성화
+      setIsAdminModeOverride(true);
+      console.log('[HomePage] 개발자 프리패스 모드 활성화');
+    } else if (!adminMode) {
+      // 로그아웃 시 프리패스 비활성화
+      setIsAdminModeOverride(false);
+      console.log('[HomePage] 개발자 프리패스 모드 비활성화');
+    }
+    
+    // 빌보드 사용자 정보 저장
     setAdminType(type);
     setBillboardUserId(userId);
     setBillboardUserName(userName);
@@ -1060,7 +1079,7 @@ export default function HomePage() {
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
               onMonthChange={handleMonthChange}
-              isAdminMode={isAdmin}
+              isAdminMode={effectiveIsAdmin}
               showHeader={false}
               currentMonth={currentMonth}
               onEventsUpdate={handleEventsUpdate}
@@ -1269,7 +1288,7 @@ export default function HomePage() {
               selectedDate={selectedDate}
               selectedCategory={selectedCategory}
               currentMonth={currentMonth}
-              isAdminMode={isAdmin}
+              isAdminMode={effectiveIsAdmin}
               adminType={adminType}
               viewMode={viewMode}
               onEventHover={setHoveredEventId}
