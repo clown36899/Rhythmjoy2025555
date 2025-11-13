@@ -884,16 +884,11 @@ export default function AdminBillboardModal({
                   <div className="flex-1 relative">
                     <input
                       type="date"
-                      value={settings.dateRangeStart || ''}
+                      value={settings.dateRangeStart || todayKST}
+                      min={todayKST}
                       onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
                       className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
-                      style={!settings.dateRangeStart ? { color: 'transparent' } : {}}
                     />
-                    {!settings.dateRangeStart && (
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                        지정안함
-                      </span>
-                    )}
                   </div>
                   <button
                     onClick={() => onUpdateSettings({ dateRangeStart: null })}
