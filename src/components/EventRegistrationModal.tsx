@@ -774,12 +774,12 @@ export default function EventRegistrationModal({
                                 }}
                                 disabled={prevMonthButtonDisabled}
                                 type="button"
-                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
                               >
                                 <i className="ri-arrow-left-s-line text-xl"></i>
                               </button>
                               <div className="flex items-center gap-2">
-                                <span className="text-black font-medium">
+                                <span className="text-white font-medium">
                                   {date.getMonth() + 1}월
                                 </span>
                                 <button
@@ -789,7 +789,7 @@ export default function EventRegistrationModal({
                                     goToToday();
                                   }}
                                   type="button"
-                                  className="text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded text-sm font-medium"
+                                  className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
                                 >
                                   오늘
                                 </button>
@@ -802,7 +802,7 @@ export default function EventRegistrationModal({
                                 }}
                                 disabled={nextMonthButtonDisabled}
                                 type="button"
-                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
                               >
                                 <i className="ri-arrow-right-s-line text-xl"></i>
                               </button>
@@ -859,12 +859,12 @@ export default function EventRegistrationModal({
                                 }}
                                 disabled={prevMonthButtonDisabled}
                                 type="button"
-                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
                               >
                                 <i className="ri-arrow-left-s-line text-xl"></i>
                               </button>
                               <div className="flex items-center gap-2">
-                                <span className="text-black font-medium">
+                                <span className="text-white font-medium">
                                   {date.getMonth() + 1}월
                                 </span>
                                 <button
@@ -874,7 +874,7 @@ export default function EventRegistrationModal({
                                     goToToday();
                                   }}
                                   type="button"
-                                  className="text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded text-sm font-medium"
+                                  className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
                                 >
                                   오늘
                                 </button>
@@ -887,7 +887,7 @@ export default function EventRegistrationModal({
                                 }}
                                 disabled={nextMonthButtonDisabled}
                                 type="button"
-                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
                               >
                                 <i className="ri-arrow-right-s-line text-xl"></i>
                               </button>
@@ -977,12 +977,12 @@ export default function EventRegistrationModal({
                                 }}
                                 disabled={prevMonthButtonDisabled}
                                 type="button"
-                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
                               >
                                 <i className="ri-arrow-left-s-line text-xl"></i>
                               </button>
                               <div className="flex items-center gap-2">
-                                <span className="text-black font-medium">
+                                <span className="text-white font-medium">
                                   {date.getMonth() + 1}월
                                 </span>
                                 <button
@@ -992,7 +992,7 @@ export default function EventRegistrationModal({
                                     goToToday();
                                   }}
                                   type="button"
-                                  className="text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded text-sm font-medium"
+                                  className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
                                 >
                                   오늘
                                 </button>
@@ -1005,7 +1005,7 @@ export default function EventRegistrationModal({
                                 }}
                                 disabled={nextMonthButtonDisabled}
                                 type="button"
-                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
                               >
                                 <i className="ri-arrow-right-s-line text-xl"></i>
                               </button>
