@@ -59,28 +59,8 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     isReady: () => playerReady.current,  // 준비 상태 확인 메서드
   }));
 
-  // isVisible이 false가 되면 Player 즉시 destroy (메모리 최적화)
+  // Player 생성
   useEffect(() => {
-    if (!isVisible && playerRef.current) {
-      try {
-        playerRef.current.destroy();
-        console.log('[YouTube 메모리 최적화] 화면 밖 Player 해제:', videoId);
-      } catch (err) {
-        console.error('[YouTube] Player destroy 실패:', err);
-      }
-      playerRef.current = null;
-      playerReady.current = false;
-      hasCalledOnPlaying.current = false;
-    }
-  }, [isVisible, videoId]);
-
-  // Player 생성 (isVisible이 true일 때만 생성, 메모리 최적화)
-  useEffect(() => {
-    // isVisible이 false이면 Player 생성 스킵
-    if (!isVisible) {
-      return;
-    }
-
     if (!apiReady || !videoId || playerRef.current) {
       if (playerRef.current) {
         console.log(`[YouTube 캐시] Player 이미 존재, 재생성 스킵: ${videoId}`);
@@ -180,15 +160,14 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       hasCalledOnPlaying.current = false;
       playerReady.current = false;
     };
-  }, [apiReady, videoId, onPlayingCallback, isVisible]);  // ✅ isVisible 추가 - 화면 표시 시 재생성
+  }, [apiReady, videoId, onPlayingCallback]);  // ✅ slideIndex 제거 - videoId만 의존
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
 }), (prevProps, nextProps) => {
-  // ✅ videoId, apiReady, isVisible 비교 - isVisible 변경 시 재렌더링하여 메모리 최적화
+  // ✅ videoId만 비교 - 같은 영상이면 slideIndex 달라도 Player 재사용
   // slideIndex는 표시 목적이므로 캐싱과 무관
   const shouldSkipRender = prevProps.videoId === nextProps.videoId && 
-                           prevProps.apiReady === nextProps.apiReady &&
-                           prevProps.isVisible === nextProps.isVisible;
+                           prevProps.apiReady === nextProps.apiReady;
   
   if (shouldSkipRender && prevProps.slideIndex !== nextProps.slideIndex) {
     console.log(`[YouTube 캐시] videoId ${prevProps.videoId} 재사용 (슬라이드 ${prevProps.slideIndex} → ${nextProps.slideIndex})`);
@@ -871,7 +850,7 @@ export default function BillboardPage() {
   };
 
   // 슬라이드 렌더링
-  const renderSlide = (event: any, isVisible: boolean, slideIndex: number, isCurrentSlide: boolean) => {
+  const renderSlide = (event: any, isVisible: boolean, slideIndex: number) => {
     // full 우선 사용 (새 이미지: 1280px, 기존 이미지: 2160px)
     const imageUrl = event?.image_full || event?.image;
     const videoUrl = event?.video_url;
@@ -950,8 +929,8 @@ export default function BillboardPage() {
           />
         )}
 
-        {/* === 정보 레이어 (현재 슬라이드만 표시) === */}
-        {isCurrentSlide && (
+        {/* === 정보 레이어 === */}
+        {isVisible && (
           <>
             <div
               className="absolute"
@@ -1302,9 +1281,6 @@ export default function BillboardPage() {
           
           if (!shouldRender) return null;
           
-          // 현재 + 다음 슬라이드 모두 isVisible=true (YouTube Player 미리 로드)
-          const isVisibleForPlayer = index === currentIndex || index === nextIndex;
-          
           return (
             <div
               key={`slide-${event.id}-${index}`}
@@ -1315,13 +1291,12 @@ export default function BillboardPage() {
                 width: '100%',
                 height: '100%',
                 opacity: index === currentIndex ? 1 : 0,
-                visibility: index === currentIndex ? 'visible' : 'hidden',
                 zIndex: index === currentIndex ? 10 : 1,
                 pointerEvents: index === currentIndex ? 'auto' : 'none',
-                transition: index === currentIndex ? `opacity ${settings?.transition_duration ?? 500}ms ease-in-out` : 'none',
+                transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
               }}
             >
-              {renderSlide(event, isVisibleForPlayer, index, index === currentIndex)}
+              {renderSlide(event, index === currentIndex, index)}
             </div>
           );
         })}
