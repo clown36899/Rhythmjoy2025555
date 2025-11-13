@@ -203,20 +203,25 @@ export default function AdminBillboardModal({
         throw error;
       }
 
-      const settings = data || {
+      // DB에서 로드된 데이터가 있으면 date_filter_start null을 오늘로 교체
+      const settings = data ? {
+        ...data,
+        date_filter_start: data.date_filter_start || todayKST
+      } : {
         id: billboardUserId,
         billboard_user_id: billboardUserId,
         excluded_weekdays: [],
         excluded_event_ids: [],
         date_filter_start: todayKST,
-        date_filter_end: null, // 종료 날짜는 선택 사항
+        date_filter_end: null,
         auto_slide_interval: 5000,
         play_order: 'sequential',
       };
       
       console.log('[서브관리자 설정] 로드 완료:', {
         excluded_event_ids: settings.excluded_event_ids || [],
-        count: (settings.excluded_event_ids || []).length
+        count: (settings.excluded_event_ids || []).length,
+        date_filter_start: settings.date_filter_start
       });
       
       setUserSettings(settings);
