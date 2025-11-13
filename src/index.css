@@ -158,3 +158,33 @@ body, html {
   background-color: #3b82f6 !important;
   color: white !important;
 }
+
+/* 달력 크기 조정 (모바일) */
+.react-datepicker {
+  font-size: 0.85rem !important;
+}
+
+.react-datepicker__month-container {
+  width: 280px !important;
+}
+
+.react-datepicker__day-name,
+.react-datepicker__day {
+  width: 2rem !important;
+  line-height: 2rem !important;
+  margin: 0.15rem !important;
+}
+
+.react-datepicker__current-month {
+  font-size: 0.9rem !important;
+  padding: 0.5rem !important;
+}
+
+.react-datepicker__header {
+  padding-top: 0.5rem !important;
+}
+
+/* 2개월 표시 시 간격 조정 */
+.react-datepicker__month-container + .react-datepicker__month-container {
+  margin-left: 0.5rem !important;
+}

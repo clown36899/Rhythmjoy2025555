@@ -787,32 +787,38 @@ export default function EventRegistrationModal({
                       기간 선택
                     </label>
                     <DatePicker
-                      selectsRange={true}
-                      startDate={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
-                      endDate={endDate}
-                      onChange={(dates) => {
-                        const [start, end] = dates;
-                        if (start) {
-                          const startStr = formatDateForInput(start);
-                          setStartDateInput(startStr);
-                          if (onMonthChange) {
-                            onMonthChange(start);
+                      selectsRange
+                      startDate={startDateInput ? new Date(startDateInput + "T00:00:00") : undefined}
+                      endDate={endDate || undefined}
+                      onChange={(update) => {
+                        if (Array.isArray(update)) {
+                          const [start, end] = update;
+                          console.log('[📅 범위 선택]', { start, end });
+                          
+                          if (start) {
+                            const startStr = formatDateForInput(start);
+                            setStartDateInput(startStr);
+                            if (onMonthChange) {
+                              onMonthChange(start);
+                            }
                           }
-                        }
-                        if (end) {
-                          setEndDate(end);
-                          if (onMonthChange) {
-                            onMonthChange(end);
+                          
+                          if (end) {
+                            setEndDate(end);
+                            if (onMonthChange) {
+                              onMonthChange(end);
+                            }
+                          } else if (start) {
+                            // 시작일만 선택된 경우
+                            setEndDate(start);
                           }
-                        } else if (start) {
-                          setEndDate(start);
                         }
                       }}
                       minDate={new Date()}
-                      dateFormat="yyyy-MM-dd"
                       locale="ko"
                       monthsShown={2}
                       shouldCloseOnSelect={false}
+                      inline={false}
                       customInput={
                         <button
                           type="button"
