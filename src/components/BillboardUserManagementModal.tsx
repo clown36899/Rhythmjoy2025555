@@ -704,16 +704,15 @@ export default function BillboardUserManagementModal({
                     <div className="flex gap-2">
                       <input
                         type="date"
-                        value={dateFilterStart || todayKST}
+                        value={dateFilterStart}
                         min={todayKST}
                         onChange={(e) => setDateFilterStart(e.target.value)}
                         className="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="시작 날짜"
+                        placeholder="지정 안함"
                       />
                       <button
                         onClick={() => setDateFilterStart('')}
                         className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                        title="지정 안함 (기본값: 오늘)"
                       >
                         지정 안 함
                       </button>
