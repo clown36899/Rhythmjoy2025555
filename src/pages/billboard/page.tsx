@@ -851,8 +851,8 @@ export default function BillboardPage() {
 
   // 슬라이드 렌더링
   const renderSlide = (event: any, isVisible: boolean, slideIndex: number) => {
-    // 720p HD TV 최적화: medium (1080px) 우선, 없으면 full (1280px 또는 기존 2160px)
-    const imageUrl = event?.image_medium || event?.image_full || event?.image;
+    // full 우선 사용 (새 이미지: 1280px, 기존 이미지: 2160px)
+    const imageUrl = event?.image_full || event?.image;
     const videoUrl = event?.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
     const videoLoaded = videoLoadedMap[slideIndex] || false;
