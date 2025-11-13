@@ -83,15 +83,14 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   useEffect(() => {
     if (!isVisible && playerRef.current) {
       try {
-        console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 메모리 해제 시작 (화면 밖으로 나감)`, {
+        console.log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - isVisible=false 감지, 메모리 해제 시작`, {
           videoId,
-          isVisible,
           playerExists: !!playerRef.current,
           wasReady: playerReady.current
         });
-        console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} isVisible=false → 즉시 destroy (메모리 최적화)`);
+        console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} 메모리에서 제거 중 (destroy 호출) - videoId: ${videoId}`);
         playerRef.current.destroy();
-        console.log(`[🎮 플레이어] ✅ PLAYER ${slideIndex} 메모리 해제 완료`, videoId);
+        console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} 메모리 해제 완료 - RAM에서 제거됨`);
       } catch (err) {
         console.error('[YouTube] Player destroy 실패:', err);
       }
@@ -171,6 +170,11 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               const playerState = event.target.getPlayerState?.() ?? -1;
               const duration = event.target.getDuration?.() ?? 0;
               const currentTime = event.target.getCurrentTime?.() ?? 0;
+              const loadedFraction = event.target.getVideoLoadedFraction?.() ?? 0;
+              const quality = event.target.getPlaybackQuality?.() ?? 'unknown';
+              const availableQualities = event.target.getAvailableQualityLevels?.() ?? [];
+              const volume = event.target.getVolume?.() ?? 0;
+              
               console.log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ✅ 준비 완료 (READY)`, {
                 videoId,
                 canPlay: true,
@@ -178,6 +182,10 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                 playerState,
                 duration: `${duration.toFixed(1)}s`,
                 currentTime: `${currentTime.toFixed(1)}s`,
+                버퍼링진행도: `${(loadedFraction * 100).toFixed(1)}%`,
+                재생품질: quality,
+                사용가능품질: availableQualities.join(', '),
+                볼륨: volume,
                 메모리상태: '로드됨'
               });
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
@@ -205,7 +213,16 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               // 재생 시작 감지 (YT.PlayerState.PLAYING = 1)
               if (event.data === 1) {
                 if (!hasCalledOnPlaying.current) {
-                  console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ▶️ 첫 재생 시작됨`);
+                  const loadedFraction = playerRef.current?.getVideoLoadedFraction?.() ?? 0;
+                  const quality = playerRef.current?.getPlaybackQuality?.() ?? 'unknown';
+                  const currentTime = playerRef.current?.getCurrentTime?.() ?? 0;
+                  console.log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ▶️ 첫 재생 시작됨`, {
+                    videoId,
+                    현재시간: `${currentTime.toFixed(1)}s`,
+                    버퍼링진행도: `${(loadedFraction * 100).toFixed(1)}%`,
+                    재생품질: quality,
+                    데이터로딩: '완료'
+                  });
                   hasCalledOnPlaying.current = true;
                   onPlayingCallback(slideIndex);
                 } else {
@@ -234,7 +251,14 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               }
               // 버퍼링 감지 (YT.PlayerState.BUFFERING = 3)
               else if (event.data === 3) {
-                console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ⏳ 버퍼링 중...`);
+                const loadedFraction = playerRef.current?.getVideoLoadedFraction?.() ?? 0;
+                const quality = playerRef.current?.getPlaybackQuality?.() ?? 'unknown';
+                console.log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ⏳ 버퍼링 중...`, {
+                  videoId,
+                  버퍼링진행도: `${(loadedFraction * 100).toFixed(1)}%`,
+                  재생품질: quality,
+                  데이터로딩: '진행중'
+                });
               }
             },
             onError: (event: any) => {
@@ -270,10 +294,10 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       // ✅ Player 메모리 해제 (Android TV 안정성 확보)
       if (playerRef.current?.destroy) {
         try {
-          console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 🗑️ cleanup: 메모리 해제 시작`, videoId);
+          console.log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - cleanup 함수 실행, 메모리 해제 시작`, videoId);
           console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} 메모리에서 제거 중 (destroy 호출)`);
           playerRef.current.destroy();
-          console.log(`[🎮 플레이어] ✅ PLAYER ${slideIndex} 메모리 해제 완료`, videoId);
+          console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} cleanup 완료 - RAM에서 제거됨`);
         } catch (err) {
           console.error('[YouTube] Player destroy 실패:', err);
         }
@@ -599,6 +623,8 @@ export default function BillboardPage() {
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
         
+        console.log(`[💾 메모리 관리] 슬라이드 전환 시작 - 이전: ${previousIndex}, 메모리 해제 예정`);
+        
         // 🎯 변경사항 감지 시 데이터만 새로고침 (React.memo가 Player 캐시 보존)
         if (pendingChangesRef.current.length > 0) {
           const changeCount = pendingChangesRef.current.length;
@@ -639,12 +665,14 @@ export default function BillboardPage() {
           } else {
             playlistIndexRef.current = next;
             const nextIndex = latestShuffledPlaylist[next] ?? 0;
+            console.log(`[💾 메모리 관리] 슬라이드 ${nextIndex}로 전환 → 슬라이드 ${previousIndex} 메모리 해제됨 (React 자동)`);
             setCurrentIndex(nextIndex);
             currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
           }
         } else {
           setCurrentIndex((prev) => {
             const nextIndex = (prev + 1) % latestEvents.length;
+            console.log(`[💾 메모리 관리] 슬라이드 ${nextIndex}로 전환 → 슬라이드 ${previousIndex} 메모리 해제됨 (React 자동)`);
             currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
             return nextIndex;
           });
