@@ -166,12 +166,19 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
             fs: 0,  // 전체화면 버튼 비활성화
           },
           events: {
-            onReady: (_event: any) => {
+            onReady: (event: any) => {
               playerReady.current = true;  // 준비 상태 플래그 설정
-              console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ✅ 준비 완료 (READY)`, {
+              const playerState = event.target.getPlayerState?.() ?? -1;
+              const duration = event.target.getDuration?.() ?? 0;
+              const currentTime = event.target.getCurrentTime?.() ?? 0;
+              console.log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ✅ 준비 완료 (READY)`, {
                 videoId,
                 canPlay: true,
-                isVisible
+                isVisible,
+                playerState,
+                duration: `${duration.toFixed(1)}s`,
+                currentTime: `${currentTime.toFixed(1)}s`,
+                메모리상태: '로드됨'
               });
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
               // 부모 컴포넌트에서 명시적으로 playVideo 호출할 예정
@@ -1546,7 +1553,7 @@ export default function BillboardPage() {
                 transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
               }}
             >
-              {renderSlide(event, index === currentIndex, index)}
+              {renderSlide(event, index === currentIndex || index === nextSlideIndex, index)}
             </div>
           );
         })}
