@@ -41,7 +41,6 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   const playerRef = useRef<any>(null);
   const hasCalledOnPlaying = useRef(false);
   const playerReady = useRef(false);  // YouTube Player 준비 상태
-  const prevVideoIdRef = useRef<string | null>(null);  // 이전 videoId 추적
 
   // 외부에서 제어 가능하도록 함수 노출
   useImperativeHandle(ref, () => ({
@@ -75,12 +74,9 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     }
   }, [isVisible, videoId]);
 
-  // Player 생성
+  // Player 생성 (isVisible이 true일 때만 생성, 메모리 최적화)
   useEffect(() => {
-    // cleanup에서 비교할 이전 videoId 캡처
-    const prevVideoId = prevVideoIdRef.current;
-
-    // isVisible이 false이면 생성 스킵
+    // isVisible이 false이면 Player 생성 스킵
     if (!isVisible) {
       return;
     }
@@ -168,31 +164,28 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       }
     }, 100);
 
-    // 이전 videoId 저장
-    prevVideoIdRef.current = videoId;
-
     return () => {
       clearTimeout(timer);
-      // ✅ cleanup: videoId 변경 또는 unmount 시에만 destroy
-      // isVisible 변경은 별도 watcher에서 처리
-      const videoIdChanged = prevVideoId !== videoId;
-      if (playerRef.current && videoIdChanged) {
+      // ✅ Player 메모리 해제 (Android TV 안정성 확보)
+      if (playerRef.current?.destroy) {
         try {
           playerRef.current.destroy();
-          console.log('[YouTube] videoId 변경으로 Player 해제:', prevVideoId, '→', videoId);
+          console.log('[YouTube] Player 메모리 해제 완료:', videoId);
         } catch (err) {
           console.error('[YouTube] Player destroy 실패:', err);
         }
         playerRef.current = null;
-        playerReady.current = false;
       }
+      // hasCalledOnPlaying 리셋하여 재진입 시 다시 재생 가능
       hasCalledOnPlaying.current = false;
+      playerReady.current = false;
     };
   }, [apiReady, videoId, onPlayingCallback, isVisible]);  // ✅ isVisible 추가 - 화면 표시 시 재생성
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
 }), (prevProps, nextProps) => {
-  // ✅ videoId, isVisible 비교 - isVisible 변경 시 destroy/재생성
+  // ✅ videoId, apiReady, isVisible 비교 - isVisible 변경 시 재렌더링하여 메모리 최적화
+  // slideIndex는 표시 목적이므로 캐싱과 무관
   const shouldSkipRender = prevProps.videoId === nextProps.videoId && 
                            prevProps.apiReady === nextProps.apiReady &&
                            prevProps.isVisible === nextProps.isVisible;
@@ -900,6 +893,10 @@ export default function BillboardPage() {
           transform: needsRotation 
             ? `translate(-50%, -50%) rotate(90deg)`
             : `translate(-50%, -50%)`,
+          opacity: isVisible ? 1 : 0,
+          pointerEvents: isVisible ? "auto" : "none",
+          transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
+          zIndex: isVisible ? 2 : 1,
         }}
       >
         {/* === 유튜브 영상 + 썸네일 === */}
