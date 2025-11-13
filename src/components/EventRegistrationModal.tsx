@@ -14,6 +14,7 @@ import {
 } from "../utils/videoThumbnail";
 import { useAuth } from "../contexts/AuthContext";
 import ImageCropModal from "./ImageCropModal";
+import CustomDatePickerHeader from "./CustomDatePickerHeader";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
@@ -724,11 +725,9 @@ export default function EventRegistrationModal({
                           if (date) {
                             const dateStr = formatDateForInput(date);
                             setStartDateInput(dateStr);
-                            // endDate가 newStartDate보다 이전이면 조정
                             if (endDate < date) {
                               setEndDate(date);
                             }
-                            // 달력 이동
                             if (onMonthChange) {
                               onMonthChange(date);
                             }
@@ -742,73 +741,23 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        renderCustomHeader={({
-                          date,
-                          changeMonth,
-                          changeYear,
-                          decreaseMonth,
-                          increaseMonth,
-                          prevMonthButtonDisabled,
-                          nextMonthButtonDisabled,
-                        }) => {
-                          const goToToday = () => {
-                            const today = new Date();
-                            changeMonth(today.getMonth());
-                            changeYear(today.getFullYear());
-                            setStartDateInput(formatDateForInput(today));
-                            if (endDate < today) {
-                              setEndDate(today);
-                            }
-                            if (onMonthChange) {
-                              onMonthChange(today);
-                            }
-                          };
-
-                          return (
-                            <div className="flex items-center justify-between px-2 py-2">
-                              <button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  decreaseMonth();
-                                }}
-                                disabled={prevMonthButtonDisabled}
-                                type="button"
-                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
-                              >
-                                <i className="ri-arrow-left-s-line text-xl"></i>
-                              </button>
-                              <div className="flex items-center gap-2">
-                                <span className="text-white font-medium">
-                                  {date.getMonth() + 1}월
-                                </span>
-                                <button
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    goToToday();
-                                  }}
-                                  type="button"
-                                  className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
-                                >
-                                  오늘
-                                </button>
-                              </div>
-                              <button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  increaseMonth();
-                                }}
-                                disabled={nextMonthButtonDisabled}
-                                type="button"
-                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
-                              >
-                                <i className="ri-arrow-right-s-line text-xl"></i>
-                              </button>
-                            </div>
-                          );
-                        }}
+                        renderCustomHeader={(props) => (
+                          <CustomDatePickerHeader
+                            {...props}
+                            onTodayClick={() => {
+                              const today = new Date();
+                              props.changeMonth(today.getMonth());
+                              props.changeYear(today.getFullYear());
+                              setStartDateInput(formatDateForInput(today));
+                              if (endDate < today) {
+                                setEndDate(today);
+                              }
+                              if (onMonthChange) {
+                                onMonthChange(today);
+                              }
+                            }}
+                          />
+                        )}
                       />
                     </div>
                     <div>
@@ -820,7 +769,6 @@ export default function EventRegistrationModal({
                         onChange={(date) => {
                           if (date) {
                             setEndDate(date);
-                            // 달력 이동
                             if (onMonthChange) {
                               onMonthChange(date);
                             }
@@ -834,66 +782,7 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        renderCustomHeader={({
-                          date,
-                          changeMonth,
-                          changeYear,
-                          decreaseMonth,
-                          increaseMonth,
-                          prevMonthButtonDisabled,
-                          nextMonthButtonDisabled,
-                        }) => {
-                          const goToToday = () => {
-                            const today = new Date();
-                            changeMonth(today.getMonth());
-                            changeYear(today.getFullYear());
-                          };
-
-                          return (
-                            <div className="flex items-center justify-between px-2 py-2">
-                              <button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  decreaseMonth();
-                                }}
-                                disabled={prevMonthButtonDisabled}
-                                type="button"
-                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
-                              >
-                                <i className="ri-arrow-left-s-line text-xl"></i>
-                              </button>
-                              <div className="flex items-center gap-2">
-                                <span className="text-white font-medium">
-                                  {date.getMonth() + 1}월
-                                </span>
-                                <button
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    goToToday();
-                                  }}
-                                  type="button"
-                                  className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
-                                >
-                                  오늘
-                                </button>
-                              </div>
-                              <button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  increaseMonth();
-                                }}
-                                disabled={nextMonthButtonDisabled}
-                                type="button"
-                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
-                              >
-                                <i className="ri-arrow-right-s-line text-xl"></i>
-                              </button>
-                            </div>
-                          );
-                        }}
+                        renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
                       />
                     </div>
                   </div>
@@ -939,7 +828,6 @@ export default function EventRegistrationModal({
                           if (date) {
                             const dateStr = formatDateForInput(date);
                             setTempDateInput(dateStr);
-                            // 달력 이동
                             if (onMonthChange) {
                               onMonthChange(date);
                             }
@@ -952,66 +840,7 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        renderCustomHeader={({
-                          date,
-                          changeMonth,
-                          changeYear,
-                          decreaseMonth,
-                          increaseMonth,
-                          prevMonthButtonDisabled,
-                          nextMonthButtonDisabled,
-                        }) => {
-                          const goToToday = () => {
-                            const today = new Date();
-                            changeMonth(today.getMonth());
-                            changeYear(today.getFullYear());
-                          };
-
-                          return (
-                            <div className="flex items-center justify-between px-2 py-2">
-                              <button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  decreaseMonth();
-                                }}
-                                disabled={prevMonthButtonDisabled}
-                                type="button"
-                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
-                              >
-                                <i className="ri-arrow-left-s-line text-xl"></i>
-                              </button>
-                              <div className="flex items-center gap-2">
-                                <span className="text-white font-medium">
-                                  {date.getMonth() + 1}월
-                                </span>
-                                <button
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    goToToday();
-                                  }}
-                                  type="button"
-                                  className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
-                                >
-                                  오늘
-                                </button>
-                              </div>
-                              <button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  increaseMonth();
-                                }}
-                                disabled={nextMonthButtonDisabled}
-                                type="button"
-                                className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
-                              >
-                                <i className="ri-arrow-right-s-line text-xl"></i>
-                              </button>
-                            </div>
-                          );
-                        }}
+                        renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
                       />
                       <button
                         type="button"
