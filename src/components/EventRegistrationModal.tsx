@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import { createResizedImages } from "../utils/imageResize";
@@ -38,6 +38,27 @@ const formatDateForInput = (date: Date): string => {
 
 // 한국어 locale 등록
 registerLocale("ko", ko);
+
+// ForwardRef 커스텀 입력 컴포넌트
+interface CustomInputProps {
+  value?: string;
+  onClick?: () => void;
+}
+
+const CustomDateInput = forwardRef<HTMLButtonElement, CustomInputProps>(
+  ({ value, onClick }, ref) => (
+    <button
+      type="button"
+      ref={ref}
+      onClick={onClick}
+      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
+    >
+      {value || "날짜 선택"}
+    </button>
+  )
+);
+
+CustomDateInput.displayName = "CustomDateInput";
 
 export default function EventRegistrationModal({
   isOpen,
@@ -818,27 +839,25 @@ export default function EventRegistrationModal({
                       locale="ko"
                       monthsShown={2}
                       shouldCloseOnSelect={false}
-                      inline={false}
                       customInput={
-                        <button
-                          type="button"
-                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
-                        >
-                          {startDateInput && endDate
-                            ? `${new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
-                                month: "long",
-                                day: "numeric",
-                              })} - ${endDate.toLocaleDateString("ko-KR", {
-                                month: "long",
-                                day: "numeric",
-                              })}`
-                            : startDateInput
-                            ? `${new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
-                                month: "long",
-                                day: "numeric",
-                              })} - 종료일 선택`
-                            : "날짜 선택"}
-                        </button>
+                        <CustomDateInput
+                          value={
+                            startDateInput && endDate
+                              ? `${new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
+                                  month: "long",
+                                  day: "numeric",
+                                })} - ${endDate.toLocaleDateString("ko-KR", {
+                                  month: "long",
+                                  day: "numeric",
+                                })}`
+                              : startDateInput
+                              ? `${new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
+                                  month: "long",
+                                  day: "numeric",
+                                })} - 종료일 선택`
+                              : undefined
+                          }
+                        />
                       }
                       calendarClassName="bg-gray-800"
                       withPortal
