@@ -752,8 +752,9 @@ export default function EventRegistrationModal({
                         }) => (
                           <div className="flex items-center justify-between px-2 py-2">
                             <button
-                              onClick={(e) => {
+                              onMouseDown={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 decreaseMonth();
                               }}
                               disabled={prevMonthButtonDisabled}
@@ -766,8 +767,9 @@ export default function EventRegistrationModal({
                               {date.getMonth() + 1}월
                             </span>
                             <button
-                              onClick={(e) => {
+                              onMouseDown={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 increaseMonth();
                               }}
                               disabled={nextMonthButtonDisabled}
@@ -813,8 +815,9 @@ export default function EventRegistrationModal({
                         }) => (
                           <div className="flex items-center justify-between px-2 py-2">
                             <button
-                              onClick={(e) => {
+                              onMouseDown={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 decreaseMonth();
                               }}
                               disabled={prevMonthButtonDisabled}
@@ -827,8 +830,9 @@ export default function EventRegistrationModal({
                               {date.getMonth() + 1}월
                             </span>
                             <button
-                              onClick={(e) => {
+                              onMouseDown={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 increaseMonth();
                               }}
                               disabled={nextMonthButtonDisabled}
@@ -908,8 +912,9 @@ export default function EventRegistrationModal({
                         }) => (
                           <div className="flex items-center justify-between px-2 py-2">
                             <button
-                              onClick={(e) => {
+                              onMouseDown={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 decreaseMonth();
                               }}
                               disabled={prevMonthButtonDisabled}
@@ -922,8 +927,9 @@ export default function EventRegistrationModal({
                               {date.getMonth() + 1}월
                             </span>
                             <button
-                              onClick={(e) => {
+                              onMouseDown={(e) => {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 increaseMonth();
                               }}
                               disabled={nextMonthButtonDisabled}
