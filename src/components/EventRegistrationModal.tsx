@@ -743,8 +743,6 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        showMonthDropdown
-                        dropdownMode="select"
                         renderCustomHeader={({
                           date,
                           decreaseMonth,
@@ -800,8 +798,6 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        showMonthDropdown
-                        dropdownMode="select"
                         renderCustomHeader={({
                           date,
                           decreaseMonth,
@@ -891,8 +887,6 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        showMonthDropdown
-                        dropdownMode="select"
                         renderCustomHeader={({
                           date,
                           decreaseMonth,
