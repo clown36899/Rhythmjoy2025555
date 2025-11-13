@@ -1245,12 +1245,11 @@ export default function BillboardPage() {
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
       <div className="billboard-page">
-        {/* 현재 + 이전/다음 슬라이드만 DOM에 유지 (Player 개수 제한으로 Android 재생 차단 방지) */}
+        {/* 현재 + 다음 슬라이드만 DOM에 유지 (YouTube 프리로드, 메모리 최적화) */}
         {events.map((event, index) => {
-          // 현재 슬라이드 ± 1 범위만 렌더링 (순환)
-          const prevIndex = currentIndex === 0 ? events.length - 1 : currentIndex - 1;
+          // 현재 + 다음만 렌더링 (자동 슬라이드쇼는 앞으로만 진행)
           const nextIndex = currentIndex === events.length - 1 ? 0 : currentIndex + 1;
-          const shouldRender = index === currentIndex || index === prevIndex || index === nextIndex;
+          const shouldRender = index === currentIndex || index === nextIndex;
           
           if (!shouldRender) return null;
           
