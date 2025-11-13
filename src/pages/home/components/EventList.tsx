@@ -991,10 +991,7 @@ export default function EventList({
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
     
-    console.log('[EventList] handleEditClick - isAdminMode:', isAdminMode, 'adminType:', adminType, 'event:', event.title);
-    
     if (isAdminMode) {
-      console.log('[EventList] 개발자 모드로 수정 모달 열기');
       // 개발자 모드(관리자 모드)에서는 비밀번호 없이 바로 수정 모달 열기
       setEventToEdit(event);
       // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
@@ -1457,32 +1454,9 @@ export default function EventList({
       }
       // 주의: 영상 URL이 있어도 추출 썸네일은 유지됨 (image 필드 사용)
 
-      // 이미지를 URL에서 다운로드해서 File 객체로 변환하는 헬퍼 함수
-      const downloadImageAsFile = async (imageUrl: string): Promise<File | null> => {
-        try {
-          const response = await fetch(imageUrl);
-          if (!response.ok) return null;
-          
-          const blob = await response.blob();
-          const fileName = `resized_${Date.now()}.jpg`;
-          return new File([blob], fileName, { type: blob.type });
-        } catch (error) {
-          console.error('이미지 다운로드 실패:', error);
-          return null;
-        }
-      };
-
-      // 새 이미지가 업로드되었거나, 기존 이미지를 다시 리사이즈해야 하는 경우
-      let imageFileToResize: File | null = editImageFile;
-      
-      // 임시: 새 이미지가 없지만 기존 이미지가 있으면 다운로드해서 리사이즈
-      if (!editImageFile && editImagePreview && editFormData.image) {
-        console.log('기존 이미지 다시 리사이즈 중...');
-        imageFileToResize = await downloadImageAsFile(editFormData.image);
-      }
-
-      if (imageFileToResize) {
-        const resizedImages = await createResizedImages(imageFileToResize);
+      // 새 이미지가 업로드되었으면 Supabase Storage에 3가지 크기로 업로드
+      if (editImageFile) {
+        const resizedImages = await createResizedImages(editImageFile);
         const timestamp = Date.now();
 
         // 파일명 정규화 (전각 문자 및 특수문자 제거)
@@ -1506,7 +1480,7 @@ export default function EventList({
           return normalized || "image";
         };
 
-        const baseFileName = sanitizeFileName(imageFileToResize.name);
+        const baseFileName = sanitizeFileName(editImageFile.name);
         
         // 리사이즈된 이미지의 실제 확장자 추출 (WebP 또는 JPEG)
         const getExtension = (fileName: string) => {
