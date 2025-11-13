@@ -125,43 +125,48 @@ body, html {
 .react-datepicker__day {
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.05s ease, color 0.05s ease;
+  border: none !important;
 }
 
-/* 선택된 날짜 */
+/* 선택된 날짜 - 더 진한 색상 */
 .react-datepicker__day--selected {
-  background-color: #2563eb !important;
+  background-color: #1d4ed8 !important;
   color: white !important;
+  font-weight: 600 !important;
 }
 
-/* 범위 내 날짜 */
+/* 범위 내 날짜 - 연한 색상 */
 .react-datepicker__day--in-range {
-  background-color: #1e40af !important;
-  color: white !important;
+  background-color: #93c5fd !important;
+  color: #1e3a8a !important;
 }
 
-/* 범위 시작 */
+/* 범위 시작 - 진한 색상 */
 .react-datepicker__day--range-start {
-  background-color: #2563eb !important;
+  background-color: #1d4ed8 !important;
   color: white !important;
-  border-radius: 0.3rem 0 0 0.3rem !important;
+  font-weight: 600 !important;
+  border-radius: 0 !important;
 }
 
-/* 범위 종료 */
+/* 범위 종료 - 진한 색상 */
 .react-datepicker__day--range-end {
-  background-color: #2563eb !important;
+  background-color: #1d4ed8 !important;
   color: white !important;
-  border-radius: 0 0.3rem 0.3rem 0 !important;
+  font-weight: 600 !important;
+  border-radius: 0 !important;
 }
 
 /* hover 반응 */
 .react-datepicker__day:hover {
-  background-color: #3b82f6 !important;
+  background-color: #60a5fa !important;
   color: white !important;
 }
 
 /* 달력 크기 조정 (모바일) */
 .react-datepicker {
   font-size: 0.85rem !important;
+  border: none !important;
 }
 
 .react-datepicker__month-container {
@@ -170,9 +175,14 @@ body, html {
 
 .react-datepicker__day-name,
 .react-datepicker__day {
-  width: 2rem !important;
-  line-height: 2rem !important;
-  margin: 0.15rem !important;
+  width: 2.2rem !important;
+  line-height: 2.2rem !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+.react-datepicker__week {
+  display: flex !important;
 }
 
 .react-datepicker__current-month {
@@ -182,6 +192,7 @@ body, html {
 
 .react-datepicker__header {
   padding-top: 0.5rem !important;
+  border: none !important;
 }
 
 /* 2개월 표시 시 간격 조정 */
