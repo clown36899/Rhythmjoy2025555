@@ -158,6 +158,9 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
             playsinline: 1,
             rel: 0,
             iv_load_policy: 3,
+            vq: 'medium',  // 화질 제한 (360p) - 메모리 절약 (40MB → 25-30MB)
+            disablekb: 1,  // 키보드 컨트롤 비활성화
+            fs: 0,  // 전체화면 버튼 비활성화
           },
           events: {
             onReady: (_event: any) => {
