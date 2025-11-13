@@ -51,7 +51,7 @@ const CustomDateInput = forwardRef<HTMLButtonElement, CustomInputProps>(
       type="button"
       ref={ref}
       onClick={onClick}
-      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
+      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
     >
       {value || "날짜 선택"}
     </button>
@@ -932,21 +932,16 @@ export default function EventRegistrationModal({
                             }
                           }
                         }}
-                        dateFormat="yyyy-MM-dd"
                         locale="ko"
                         shouldCloseOnSelect={false}
                         customInput={
-                          <button
-                            type="button"
-                            className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
-                          >
-                            {tempDateInput
-                              ? new Date(tempDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
-                                  month: "long",
-                                  day: "numeric",
-                                })
-                              : "날짜 선택"}
-                          </button>
+                          <CustomDateInput
+                            value={
+                              tempDateInput
+                                ? `${new Date(tempDateInput + "T00:00:00").getMonth() + 1}.${new Date(tempDateInput + "T00:00:00").getDate()}`
+                                : undefined
+                            }
+                          />
                         }
                         calendarClassName="bg-gray-800"
                         withPortal
