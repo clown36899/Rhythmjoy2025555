@@ -871,7 +871,7 @@ export default function BillboardPage() {
   };
 
   // 슬라이드 렌더링
-  const renderSlide = (event: any, isVisible: boolean, slideIndex: number) => {
+  const renderSlide = (event: any, isVisible: boolean, slideIndex: number, isCurrentSlide: boolean) => {
     // full 우선 사용 (새 이미지: 1280px, 기존 이미지: 2160px)
     const imageUrl = event?.image_full || event?.image;
     const videoUrl = event?.video_url;
@@ -893,10 +893,6 @@ export default function BillboardPage() {
           transform: needsRotation 
             ? `translate(-50%, -50%) rotate(90deg)`
             : `translate(-50%, -50%)`,
-          opacity: isVisible ? 1 : 0,
-          pointerEvents: isVisible ? "auto" : "none",
-          transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
-          zIndex: isVisible ? 2 : 1,
         }}
       >
         {/* === 유튜브 영상 + 썸네일 === */}
@@ -954,8 +950,8 @@ export default function BillboardPage() {
           />
         )}
 
-        {/* === 정보 레이어 === */}
-        {isVisible && (
+        {/* === 정보 레이어 (현재 슬라이드만 표시) === */}
+        {isCurrentSlide && (
           <>
             <div
               className="absolute"
@@ -1306,6 +1302,9 @@ export default function BillboardPage() {
           
           if (!shouldRender) return null;
           
+          // 현재 + 다음 슬라이드 모두 isVisible=true (YouTube Player 미리 로드)
+          const isVisibleForPlayer = index === currentIndex || index === nextIndex;
+          
           return (
             <div
               key={`slide-${event.id}-${index}`}
@@ -1316,12 +1315,13 @@ export default function BillboardPage() {
                 width: '100%',
                 height: '100%',
                 opacity: index === currentIndex ? 1 : 0,
+                visibility: index === currentIndex ? 'visible' : 'hidden',
                 zIndex: index === currentIndex ? 10 : 1,
                 pointerEvents: index === currentIndex ? 'auto' : 'none',
-                transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
+                transition: index === currentIndex ? `opacity ${settings?.transition_duration ?? 500}ms ease-in-out` : 'none',
               }}
             >
-              {renderSlide(event, index === currentIndex, index)}
+              {renderSlide(event, isVisibleForPlayer, index, index === currentIndex)}
             </div>
           );
         })}
