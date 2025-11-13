@@ -129,7 +129,10 @@ export async function resizeImage(
   });
 }
 
-export async function createResizedImages(file: File): Promise<ResizedImages> {
+export async function createResizedImages(
+  file: File,
+  onProgress?: (progress: number, step: string) => void
+): Promise<ResizedImages> {
   console.log('[🎨 이미지 리사이즈] 시작', {
     fileName: file.name,
     fileSize: file.size,
@@ -137,11 +140,20 @@ export async function createResizedImages(file: File): Promise<ResizedImages> {
   });
   
   try {
-    const [thumbnail, medium, full] = await Promise.all([
-      resizeImage(file, 400, 0.82),  // 썸네일: 400px (리스트용)
-      resizeImage(file, 1080, 0.9),  // 미디엄: 1080px (일반 상세보기용)
-      resizeImage(file, 1280, 0.92), // 풀사이즈: 1280px (720p HD TV 빌보드 최적화)
-    ]);
+    // 순차 처리 (모바일 호환성)
+    onProgress?.(0, '썸네일 생성 중...');
+    const thumbnail = await resizeImage(file, 400, 0.82);
+    console.log('[🎨 이미지 리사이즈] ✅ 썸네일 완료', { size: thumbnail.size });
+    
+    onProgress?.(33, '미디엄 생성 중...');
+    const medium = await resizeImage(file, 1080, 0.9);
+    console.log('[🎨 이미지 리사이즈] ✅ 미디엄 완료', { size: medium.size });
+    
+    onProgress?.(66, '풀사이즈 생성 중...');
+    const full = await resizeImage(file, 1280, 0.92);
+    console.log('[🎨 이미지 리사이즈] ✅ 풀사이즈 완료', { size: full.size });
+    
+    onProgress?.(100, '완료');
 
     console.log('[🎨 이미지 리사이즈] ✅ 모든 크기 생성 완료', {
       thumbnailSize: thumbnail.size,

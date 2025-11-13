@@ -73,6 +73,8 @@ export default function EventRegistrationModal({
   );
   const [endDate, setEndDate] = useState<Date>(selectedDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStep, setUploadStep] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [videoPreview, setVideoPreview] = useState<{
@@ -344,7 +346,15 @@ export default function EventRegistrationModal({
     try {
       console.log('[📤 이미지 업로드] 시작', { fileName: file.name, fileSize: file.size });
       
-      const resizedImages = await createResizedImages(file);
+      setUploadStep('이미지 리사이즈 중...');
+      const resizedImages = await createResizedImages(file, (progress, step) => {
+        setUploadProgress(progress);
+        setUploadStep(step);
+        console.log(`[📤 진행률] ${progress}% - ${step}`);
+      });
+      
+      console.log('[📤 이미지 업로드] 리사이즈 완료, 업로드 시작');
+      setUploadStep('서버에 업로드 중...');
       const timestamp = Date.now();
       const baseFileName = sanitizeFileName(file.name);
       
@@ -485,7 +495,15 @@ export default function EventRegistrationModal({
       return;
     }
 
+    console.log('[🚀 이벤트 등록] 시작', { 
+      title: formData.title, 
+      dateMode,
+      hasImage: !!imageFile 
+    });
+    
     setIsSubmitting(true);
+    setUploadProgress(0);
+    setUploadStep('준비 중...');
 
     try {
       let imageUrls = {
@@ -495,10 +513,15 @@ export default function EventRegistrationModal({
       };
 
       if (imageFile) {
+        console.log('[🚀 이벤트 등록] 이미지 업로드 시작');
         imageUrls = await uploadImages(imageFile);
+        console.log('[🚀 이벤트 등록] 이미지 업로드 완료');
       }
 
       // 날짜 데이터 준비
+      console.log('[🚀 이벤트 등록] 날짜 데이터 준비 중');
+      setUploadStep('이벤트 데이터 준비 중...');
+      
       let localDateString: string;
       let endDateString: string;
       let eventDatesArray: string[] | null = null;
@@ -511,6 +534,7 @@ export default function EventRegistrationModal({
         eventDatesArray = sortedDates.map((date) => formatDateForInput(date));
         localDateString = eventDatesArray[0]; // 최소 날짜
         endDateString = eventDatesArray[eventDatesArray.length - 1]; // 최대 날짜
+        console.log('[🚀 이벤트 등록] 특정 날짜 모드', { 날짜수: eventDatesArray.length });
       } else {
         // 연속 기간 모드: startDateInput 사용
         if (!startDateInput) {
@@ -521,6 +545,7 @@ export default function EventRegistrationModal({
         
         localDateString = startDateInput;
         endDateString = formatDateForInput(endDate);
+        console.log('[🚀 이벤트 등록] 연속 기간 모드', { 시작일: localDateString, 종료일: endDateString });
       }
 
       const eventData = {
@@ -556,6 +581,9 @@ export default function EventRegistrationModal({
         created_at: new Date().toISOString(),
       };
 
+      console.log('[💾 이벤트 등록] DB 저장 시작');
+      setUploadStep('데이터베이스 저장 중...');
+      
       console.log('[💾 이벤트 등록] DB 저장 데이터', {
         title: eventData.title,
         image: eventData.image,
@@ -624,6 +652,26 @@ export default function EventRegistrationModal({
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
         <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden">
+          {/* 업로드 진행률 오버레이 */}
+          {isSubmitting && (
+            <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[1000000] rounded-lg">
+              <div className="bg-gray-900 rounded-lg p-6 max-w-sm w-full mx-4">
+                <div className="text-center mb-4">
+                  <div className="text-5xl font-bold text-blue-500 mb-2">
+                    {uploadProgress}%
+                  </div>
+                  <div className="text-gray-300 text-sm">{uploadStep}</div>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-blue-500 h-full transition-all duration-300 ease-out rounded-full"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Header - 상단 고정 */}
           <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
             <h2 className="text-xl font-bold text-white">
