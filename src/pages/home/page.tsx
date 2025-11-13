@@ -1390,9 +1390,13 @@ export default function HomePage() {
             });
             setCurrentMonth(createdDate);
             
-            // 이벤트 목록 새로고침을 위한 이벤트 발생
-            console.log('[🏠 홈페이지] eventCreated 이벤트 발생');
+            // 이벤트 목록 새로고침 (즉시 + 지연 2회 발생으로 확실히 반영)
+            console.log('[🏠 홈페이지] 이벤트 목록 강제 새로고침');
             window.dispatchEvent(new CustomEvent('eventCreated'));
+            setTimeout(() => {
+              console.log('[🏠 홈페이지] 이벤트 목록 재새로고침 (달 이동 후)');
+              window.dispatchEvent(new CustomEvent('eventCreated'));
+            }, 100);
             
             // 등록된 이벤트 하이라이트
             if (eventId) {
