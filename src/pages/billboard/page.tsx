@@ -49,12 +49,14 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   slideIndex: number;
   isVisible: boolean;  // 현재 표시 중인지 여부
   onPlayingCallback: (index: number) => void;
+  onEndedCallback: (index: number) => void;  // 영상 종료 콜백 추가
   apiReady: boolean;  // 부모로부터 API 준비 상태 받기
 }>(({
   videoId,
   slideIndex,
   isVisible,  // props로 받기
   onPlayingCallback,
+  onEndedCallback,  // props로 받기
   apiReady,  // props로 받기
 }, ref) => {
   const playerRef = useRef<any>(null);
@@ -300,19 +302,11 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                   log(`[플레이어 상태] 슬라이드 ${slideIndex} - ▶️ 재생 중...`);
                 }
               }
-              // 종료 감지 (YT.PlayerState.ENDED = 0) → 0초로 돌아가서 루프 재생 (현재 표시 중일 때만)
+              // 종료 감지 (YT.PlayerState.ENDED = 0) → 다음 슬라이드로 전환 (현재 표시 중일 때만)
               else if (event.data === 0 && isVisible) {
-                log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🔁 재생 종료 → 0초로 돌아가서 다시 재생`);
-                if (playerRef.current?.seekTo && playerRef.current?.playVideo) {
-                  playerRef.current.seekTo(0, true); // 0초로 이동
-                  // ✅ 기존 타이머 정리 (메모리 누수 방지)
-                  if (loopTimerRef.current) clearTimeout(loopTimerRef.current);
-                  loopTimerRef.current = setTimeout(() => {
-                    playerRef.current?.playVideo(); // 다시 재생
-                    loopTimerRef.current = null;
-                  }, 100);
-                }
+                log(`[플레이어 상태] 슬라이드 ${slideIndex} - ✅ 영상 종료 → 다음 슬라이드로 전환`);
                 hasCalledOnPlaying.current = false; // 플래그 리셋
+                onEndedCallback(slideIndex);  // 부모에게 알림
               }
               // 일시정지 감지 (YT.PlayerState.PAUSED = 2)
               else if (event.data === 2) {
@@ -330,14 +324,6 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                   재생품질: quality,
                   데이터로딩: '진행중'
                 });
-                
-                // ✅ APK WebView 호환성: BUFFERING 시에도 타이머 시작 (PLAYING 이벤트가 안 올 수 있음)
-                // 첫 버퍼링에서만 실행 (이미 재생 중이면 스킵)
-                if (!hasCalledOnPlaying.current) {
-                  log(`[🔧 APK 호환] 슬라이드 ${slideIndex} - BUFFERING 감지, 타이머 시작 (PLAYING 이벤트 대체)`);
-                  hasCalledOnPlaying.current = true;
-                  onPlayingCallback(slideIndex);
-                }
               }
             },
             onError: (event: any) => {
@@ -486,7 +472,6 @@ export default function BillboardPage() {
   const transitionTimersRef = useRef<NodeJS.Timeout[]>([]); // 슬라이드 전환 시 사용되는 모든 setTimeout
   const reloadTimerRef = useRef<NodeJS.Timeout | null>(null); // 실시간 업데이트용 setTimeout
   const playRetryTimerRef = useRef<NodeJS.Timeout | null>(null); // Player 재생 재시도용 setTimeout
-  const videoEventFallbackTimerRef = useRef<NodeJS.Timeout | null>(null); // YouTube onStateChange fallback용 setTimeout
   // ✅ Supabase 채널 ref (메모리 누수 방지 - 중복 구독 방지)
   const eventsChannelRef = useRef<any>(null);
   const settingsChannelRef = useRef<any>(null);
@@ -671,13 +656,6 @@ export default function BillboardPage() {
       clearTimeout(playRetryTimerRef.current);
       playRetryTimerRef.current = null;
       log('[🧹 타이머 정리] playRetryTimer 정리 완료');
-    }
-    
-    // 비디오 이벤트 fallback 타이머 (setTimeout)
-    if (videoEventFallbackTimerRef.current) {
-      clearTimeout(videoEventFallbackTimerRef.current);
-      videoEventFallbackTimerRef.current = null;
-      log('[🧹 타이머 정리] videoEventFallbackTimer 정리 완료');
     }
     
     log('[🧹 타이머 정리] ✅ 슬라이드 타이머 정리 완료 (watchdog은 계속 실행 중)');
@@ -986,6 +964,53 @@ export default function BillboardPage() {
       }
     }
   }, [startSlideTimer]);
+
+  // YouTube 종료 콜백 (영상이 끝나면 즉시 다음 슬라이드로 전환)
+  const handleVideoEnded = useCallback((slideIndex: number) => {
+    log('[빌보드] 영상 종료 감지, 슬라이드:', slideIndex);
+    const currentActiveIndex = currentActiveIndexRef.current;
+    
+    // 현재 활성 슬라이드의 영상만 처리
+    if (slideIndex === currentActiveIndex) {
+      log('[🔄 강제 전환] 영상 종료 → 즉시 다음 슬라이드로 전환');
+      // 타이머 정리 후 즉시 다음 슬라이드로 전환
+      clearAllTimers();
+      
+      // 500ms 후 다음 슬라이드로 전환 (부드러운 전환을 위해)
+      const transitionTimer = setTimeout(() => {
+        const latestEvents = eventsRef.current;
+        const latestSettings = settingsRef.current;
+        const latestShuffledPlaylist = shuffledPlaylistRef.current;
+        
+        if (latestSettings?.play_order === "random") {
+          const nextPlaylistIndex = playlistIndexRef.current + 1;
+          if (nextPlaylistIndex >= latestShuffledPlaylist.length) {
+            // 플레이리스트 끝: 새 shuffle (precomputed가 있으면 사용)
+            const newShuffled = (precomputedShuffleRef.current && precomputedShuffleRef.current.length > 0)
+              ? precomputedShuffleRef.current
+              : shuffleArray(Array.from({ length: latestEvents.length }, (_, i) => i));
+            shuffledPlaylistRef.current = newShuffled;
+            setShuffledPlaylist(newShuffled);
+            playlistIndexRef.current = 0;
+            const targetIndex = newShuffled[0];
+            log(`[🔄 슬라이드 전환] 랜덤 모드: 플레이리스트 끝 → 새 shuffle, 다음: ${targetIndex}`);
+            setCurrentIndex(targetIndex);
+            precomputedShuffleRef.current = [];
+          } else {
+            playlistIndexRef.current = nextPlaylistIndex;
+            const targetIndex = latestShuffledPlaylist[nextPlaylistIndex];
+            log(`[🔄 슬라이드 전환] 랜덤 모드: ${currentActiveIndex} → ${targetIndex}`);
+            setCurrentIndex(targetIndex);
+          }
+        } else {
+          const nextIdx = (currentActiveIndex + 1) % latestEvents.length;
+          log(`[🔄 슬라이드 전환] 순차 모드: ${currentActiveIndex} → ${nextIdx}`);
+          setCurrentIndex(nextIdx);
+        }
+      }, 500);
+      transitionTimersRef.current.push(transitionTimer);
+    }
+  }, [clearAllTimers]);
 
 
   // 문서 제목 설정
@@ -1459,6 +1484,7 @@ export default function BillboardPage() {
                 isVisible={isVisible}
                 apiReady={youtubeApiReady}
                 onPlayingCallback={handleVideoPlaying}
+                onEndedCallback={handleVideoEnded}
               />
             </div>
           </>
