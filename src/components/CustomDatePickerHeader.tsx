@@ -6,6 +6,8 @@ interface CustomDatePickerHeaderProps extends ReactDatePickerCustomHeaderProps {
 
 export default function CustomDatePickerHeader({
   date,
+  changeMonth,
+  changeYear,
   decreaseMonth,
   increaseMonth,
   prevMonthButtonDisabled,
@@ -13,6 +15,9 @@ export default function CustomDatePickerHeader({
   onTodayClick,
 }: CustomDatePickerHeaderProps) {
   const handleTodayClick = () => {
+    const today = new Date();
+    changeMonth(today.getMonth());
+    changeYear(today.getFullYear());
     if (onTodayClick) {
       onTodayClick();
     }
@@ -36,19 +41,17 @@ export default function CustomDatePickerHeader({
         <span className="text-white font-medium">
           {date.getMonth() + 1}월
         </span>
-        {onTodayClick && (
-          <button
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTodayClick();
-            }}
-            type="button"
-            className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
-          >
-            오늘
-          </button>
-        )}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleTodayClick();
+          }}
+          type="button"
+          className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
+        >
+          오늘
+        </button>
       </div>
       <button
         onMouseDown={(e) => {
