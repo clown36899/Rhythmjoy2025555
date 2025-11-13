@@ -991,8 +991,8 @@ export default function EventList({
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
     
-    if (adminType === "super") {
-      // 슈퍼 관리자는 비밀번호 없이 바로 수정 모달 열기
+    if (isAdminMode) {
+      // 개발자 모드(관리자 모드)에서는 비밀번호 없이 바로 수정 모달 열기
       setEventToEdit(event);
       // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
       const hasEventDates = event.event_dates && event.event_dates.length > 0;
