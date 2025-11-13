@@ -1378,11 +1378,10 @@ export default function BillboardPage() {
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
       <div className="billboard-page">
-        {/* 현재 + 다음 슬라이드만 DOM에 유지 (YouTube 프리로드, 메모리 최적화) */}
+        {/* 현재 슬라이드만 DOM에 유지 (메모리 최적화 - 83MB → 40MB) */}
         {events.map((event, index) => {
-          // 현재 + 다음만 렌더링 (자동 슬라이드쇼는 앞으로만 진행)
-          const nextIndex = currentIndex === events.length - 1 ? 0 : currentIndex + 1;
-          const shouldRender = index === currentIndex || index === nextIndex;
+          // 현재 슬라이드만 렌더링 (메모리 절약)
+          const shouldRender = index === currentIndex;
           
           if (!shouldRender) return null;
           
