@@ -44,6 +44,15 @@ export default function BillboardUserManagementModal({
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  
+  // 한국 시간 기준 오늘 날짜 (KST = UTC+9)
+  const getTodayKST = () => {
+    const today = new Date();
+    const koreaOffset = 9 * 60;
+    const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
+    return koreaTime.toISOString().split('T')[0];
+  };
+  const todayKST = getTodayKST();
 
   useEffect(() => {
     if (isOpen) {
@@ -704,6 +713,7 @@ export default function BillboardUserManagementModal({
                     <input
                       type="date"
                       value={dateFilterStart}
+                      min={todayKST}
                       onChange={(e) => setDateFilterStart(e.target.value)}
                       className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="시작 날짜"

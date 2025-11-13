@@ -48,6 +48,15 @@ export default function AdminBillboardModal({
   const [mainBillboardEvents, setMainBillboardEvents] = useState<SimpleEvent[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // 한국 시간 기준 오늘 날짜 (KST = UTC+9)
+  const getTodayKST = () => {
+    const today = new Date();
+    const koreaOffset = 9 * 60;
+    const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
+    return koreaTime.toISOString().split('T')[0];
+  };
+  const todayKST = getTodayKST();
 
   // 서브 관리자의 설정 불러오기
   useEffect(() => {
@@ -473,6 +482,7 @@ export default function AdminBillboardModal({
                       <input
                         type="date"
                         value={userSettings.date_filter_start || ""}
+                        min={todayKST}
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_start: e.target.value || null })
                         }
