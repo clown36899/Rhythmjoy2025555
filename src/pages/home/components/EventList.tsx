@@ -95,10 +95,6 @@ export default function EventList({
   const [eventPassword, setEventPassword] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [internalShowSearchModal, setInternalShowSearchModal] = useState(false);
-  const [showDatePickerModal, setShowDatePickerModal] = useState<
-    "start" | "end" | null
-  >(null);
-  const [datePickerMonth, setDatePickerMonth] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [internalSortBy, setInternalSortBy] = useState<
@@ -2271,61 +2267,59 @@ export default function EventList({
                         <label className="block text-gray-300 text-xs font-medium mb-1">
                           시작일
                         </label>
-                        <div
-                          onClick={() => {
-                            setDatePickerMonth(
-                              editFormData.start_date
-                                ? new Date(editFormData.start_date)
-                                : new Date(),
-                            );
-                            setShowDatePickerModal("start");
+                        <DatePicker
+                          selected={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
+                          onChange={(date) => {
+                            if (date) {
+                              const dateStr = formatDateForInput(date);
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                start_date: dateStr,
+                                end_date: !prev.end_date || prev.end_date < dateStr ? dateStr : prev.end_date,
+                              }));
+                              if (onMonthChange) {
+                                onMonthChange(date);
+                              }
+                            }
                           }}
-                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
-                        >
-                          <span>
-                            {editFormData.start_date
-                              ? new Date(
-                                  editFormData.start_date,
-                                ).toLocaleDateString("ko-KR", {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                })
-                              : "날짜 선택"}
-                          </span>
-                          <i className="ri-calendar-line"></i>
-                        </div>
+                          dateFormat="yyyy-MM-dd"
+                          locale="ko"
+                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          calendarClassName="bg-gray-800"
+                          placeholderText="날짜 선택"
+                          withPortal
+                          portalId="root-portal"
+                          renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
+                        />
                       </div>
                       <div>
                         <label className="block text-gray-300 text-xs font-medium mb-1">
                           종료일
                         </label>
-                        <div
-                          onClick={() => {
-                            setDatePickerMonth(
-                              editFormData.end_date
-                                ? new Date(editFormData.end_date)
-                                : editFormData.start_date
-                                  ? new Date(editFormData.start_date)
-                                  : new Date(),
-                            );
-                            setShowDatePickerModal("end");
+                        <DatePicker
+                          selected={editFormData.end_date ? new Date(editFormData.end_date + "T00:00:00") : null}
+                          onChange={(date) => {
+                            if (date) {
+                              const dateStr = formatDateForInput(date);
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                end_date: dateStr,
+                              }));
+                              if (onMonthChange) {
+                                onMonthChange(date);
+                              }
+                            }
                           }}
-                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer hover:bg-gray-600 transition-colors flex items-center justify-between"
-                        >
-                          <span>
-                            {editFormData.end_date
-                              ? new Date(
-                                  editFormData.end_date,
-                                ).toLocaleDateString("ko-KR", {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                })
-                              : "날짜 선택"}
-                          </span>
-                          <i className="ri-calendar-line"></i>
-                        </div>
+                          minDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : undefined}
+                          dateFormat="yyyy-MM-dd"
+                          locale="ko"
+                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          calendarClassName="bg-gray-800"
+                          placeholderText="날짜 선택"
+                          withPortal
+                          portalId="root-portal"
+                          renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
+                        />
                       </div>
                     </div>
                   ) : (
@@ -2820,70 +2814,6 @@ export default function EventList({
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Date Picker Modal */}
-      {showDatePickerModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
-          <div className="bg-gray-800 rounded-lg max-w-md w-full p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">
-                {showDatePickerModal === "start"
-                  ? "시작일 선택"
-                  : "종료일 선택"}
-              </h3>
-              <button
-                onClick={() => setShowDatePickerModal(null)}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <i className="ri-close-line text-xl"></i>
-              </button>
-            </div>
-            <DatePicker
-              selected={
-                showDatePickerModal === "start"
-                  ? editFormData.start_date
-                    ? new Date(editFormData.start_date + "T00:00:00")
-                    : null
-                  : editFormData.end_date
-                    ? new Date(editFormData.end_date + "T00:00:00")
-                    : null
-              }
-              onChange={(date) => {
-                if (date) {
-                  const dateStr = formatDateForInput(date);
-                  if (showDatePickerModal === "start") {
-                    setEditFormData((prev) => ({
-                      ...prev,
-                      start_date: dateStr,
-                      end_date:
-                        !prev.end_date || prev.end_date < dateStr
-                          ? dateStr
-                          : prev.end_date,
-                    }));
-                  } else {
-                    setEditFormData((prev) => ({
-                      ...prev,
-                      end_date: dateStr,
-                    }));
-                  }
-                  if (onMonthChange) {
-                    onMonthChange(date);
-                  }
-                  setShowDatePickerModal(null);
-                }
-              }}
-              minDate={
-                showDatePickerModal === "end" && editFormData.start_date
-                  ? new Date(editFormData.start_date + "T00:00:00")
-                  : undefined
-              }
-              inline
-              locale="ko"
-              renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
-            />
           </div>
         </div>
       )}
