@@ -83,29 +83,55 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   useEffect(() => {
     if (!isVisible && playerRef.current) {
       try {
-        // 메모리 측정 (제거 전)
+        // 메모리 측정 (제거 전) - WebView에서는 0 표시됨
         const memBeforeDestroy = (performance as any).memory?.usedJSHeapSize ?? 0;
         const memBeforeDestroyMB = (memBeforeDestroy / 1024 / 1024).toFixed(1);
+        const isWebView = /wv/.test(navigator.userAgent);
         
         console.log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - isVisible=false 감지, 메모리 해제 시작`, {
           videoId,
           playerExists: !!playerRef.current,
-          wasReady: playerReady.current
+          wasReady: playerReady.current,
+          환경: isWebView ? 'WebView' : '웹브라우저'
         });
-        console.log(`[💾 메모리] PLAYER ${slideIndex} 제거 전 - 현재 메모리: ${memBeforeDestroyMB}MB`);
-        console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} 메모리에서 제거 중 (destroy 호출) - videoId: ${videoId}`);
         
+        if (!isWebView && memBeforeDestroy > 0) {
+          console.log(`[💾 메모리] PLAYER ${slideIndex} 제거 전 - 현재 메모리: ${memBeforeDestroyMB}MB`);
+        }
+        
+        // ✅ 1단계: 비디오 버퍼 플러시 (APK WebView 메모리 누적 방지)
+        console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 1단계: 비디오 버퍼 플러시`);
+        if (playerRef.current.stopVideo) {
+          playerRef.current.stopVideo();
+        }
+        if (playerRef.current.clearVideo) {
+          playerRef.current.clearVideo();
+        }
+        
+        // ✅ 2단계: Player 인스턴스 제거
+        console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 2단계: destroy() 호출`);
         playerRef.current.destroy();
         
-        // 메모리 측정 (제거 후) - GC가 즉시 실행되지 않을 수 있음
-        setTimeout(() => {
-          const memAfterDestroy = (performance as any).memory?.usedJSHeapSize ?? 0;
-          const memAfterDestroyMB = (memAfterDestroy / 1024 / 1024).toFixed(1);
-          const memFreed = ((memBeforeDestroy - memAfterDestroy) / 1024 / 1024).toFixed(1);
-          console.log(`[💾 메모리] PLAYER ${slideIndex} 제거 후 - 현재: ${memAfterDestroyMB}MB (감소: ${memFreed}MB, GC 대기중일 수 있음)`);
-        }, 100);
+        // ✅ 3단계: iframe DOM 요소 직접 제거 (WebView 리소스 해제 보장)
+        const playerId = `yt-player-${slideIndex}`;
+        const iframeElement = document.getElementById(playerId);
+        if (iframeElement) {
+          console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 3단계: iframe DOM 제거`);
+          iframeElement.innerHTML = ''; // 내부 정리
+          iframeElement.remove(); // DOM 제거
+        }
         
-        console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} 메모리 해제 완료 - RAM에서 제거됨`);
+        // 메모리 측정 (제거 후) - GC가 즉시 실행되지 않을 수 있음
+        if (!isWebView && memBeforeDestroy > 0) {
+          setTimeout(() => {
+            const memAfterDestroy = (performance as any).memory?.usedJSHeapSize ?? 0;
+            const memAfterDestroyMB = (memAfterDestroy / 1024 / 1024).toFixed(1);
+            const memFreed = ((memBeforeDestroy - memAfterDestroy) / 1024 / 1024).toFixed(1);
+            console.log(`[💾 메모리] PLAYER ${slideIndex} 제거 후 - 현재: ${memAfterDestroyMB}MB (감소: ${memFreed}MB, GC 대기중)`);
+          }, 100);
+        }
+        
+        console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} 완전 제거 완료 (버퍼+destroy+DOM)`);
       } catch (err) {
         console.error('[YouTube] Player destroy 실패:', err);
       }
@@ -327,9 +353,30 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       if (playerRef.current?.destroy) {
         try {
           console.log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - cleanup 함수 실행, 메모리 해제 시작`, videoId);
-          console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} 메모리에서 제거 중 (destroy 호출)`);
+          
+          // ✅ 1단계: 비디오 버퍼 플러시 (APK WebView 메모리 누적 방지)
+          console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 1단계: 비디오 버퍼 플러시`);
+          if (playerRef.current.stopVideo) {
+            playerRef.current.stopVideo();
+          }
+          if (playerRef.current.clearVideo) {
+            playerRef.current.clearVideo();
+          }
+          
+          // ✅ 2단계: Player 인스턴스 제거
+          console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 2단계: destroy() 호출`);
           playerRef.current.destroy();
-          console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} cleanup 완료 - RAM에서 제거됨`);
+          
+          // ✅ 3단계: iframe DOM 요소 직접 제거 (WebView 리소스 해제 보장)
+          const playerId = `yt-player-${slideIndex}`;
+          const iframeElement = document.getElementById(playerId);
+          if (iframeElement) {
+            console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 3단계: iframe DOM 제거`);
+            iframeElement.innerHTML = ''; // 내부 정리
+            iframeElement.remove(); // DOM 제거
+          }
+          
+          console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} cleanup 완료 - 완전 제거됨`);
         } catch (err) {
           console.error('[YouTube] Player destroy 실패:', err);
         }
