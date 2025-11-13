@@ -491,11 +491,7 @@ export default function BillboardPage() {
       clearTimeout(reloadTimerRef.current);
       reloadTimerRef.current = null;
     }
-    // ✅ preload 타이머 정리
-    if (preloadTimerRef.current) {
-      clearTimeout(preloadTimerRef.current);
-      preloadTimerRef.current = null;
-    }
+    // ✅ preload 타이머는 정리하지 않음 (10초 대기 중 startSlideTimer 재호출되어도 유지)
     
     const startTime = Date.now();
     slideStartTimeRef.current = startTime;
@@ -581,6 +577,15 @@ export default function BillboardPage() {
       
       // ✅ 슬라이드 전환 타이머 저장 (메모리 누수 방지)
       const transitionTimer = setTimeout(() => {
+        // ✅ Preload 타이머 정리 및 nextSlideIndex 리셋 (전환 완료)
+        if (preloadTimerRef.current) {
+          clearTimeout(preloadTimerRef.current);
+          preloadTimerRef.current = null;
+          console.log(`[🔄 슬라이드 전환] preload 타이머 정리 (전환 완료)`);
+        }
+        setNextSlideIndex(null);
+        console.log(`[🔄 슬라이드 전환] nextSlideIndex 리셋 → null`);
+        
         // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
