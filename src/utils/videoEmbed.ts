@@ -43,7 +43,7 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   return {
     provider: "youtube",
     embedUrl: `https://www.youtube.com/embed/${videoId}`, // ← 자동 재생용
-    thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+    thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
     videoId,
     nativeUrl: trimmed, // ← 클릭 시 네이티브 재생용 (옵션)
   };
