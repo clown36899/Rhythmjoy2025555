@@ -41,17 +41,19 @@ export default function CustomDatePickerHeader({
         <span className="text-white font-medium">
           {date.getMonth() + 1}월
         </span>
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleTodayClick();
-          }}
-          type="button"
-          className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
-        >
-          오늘
-        </button>
+        {onTodayClick && (
+          <button
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTodayClick();
+            }}
+            type="button"
+            className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
+          >
+            오늘
+          </button>
+        )}
       </div>
       <button
         onMouseDown={(e) => {
