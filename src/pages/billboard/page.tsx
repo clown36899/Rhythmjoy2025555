@@ -1158,6 +1158,10 @@ export default function BillboardPage() {
         setEvents([]);
         setCurrentIndex(0);
         setShuffledPlaylist([]);
+        
+        // ✅ playerRefsRef 배열 정리 (이벤트 0개)
+        console.log('[💾 메모리 관리] 이벤트 0개 → playerRefsRef 배열 완전 비우기');
+        playerRefsRef.current.length = 0;
       } else {
         setEvents(filteredEvents);
         const safeIndex = currentIndex >= filteredEvents.length ? 0 : currentIndex;
@@ -1169,6 +1173,23 @@ export default function BillboardPage() {
           setCurrentIndex(shuffled[0] || 0);
         } else {
           setCurrentIndex(safeIndex);
+        }
+        
+        // ✅ playerRefsRef 배열 크기 조정 (메모리 누수 방지)
+        const oldLength = playerRefsRef.current.length;
+        const newLength = filteredEvents.length;
+        
+        if (oldLength > newLength) {
+          // 배열이 줄어들 때: 남는 Player 참조 제거
+          console.log(`[💾 메모리 관리] playerRefsRef 배열 축소: ${oldLength} → ${newLength}`);
+          
+          // 남는 슬롯의 Player는 이미 isVisible=false로 destroy됨
+          // 배열 크기만 조정하여 참조 제거
+          playerRefsRef.current.length = newLength;
+          
+          console.log('[💾 메모리 관리] ✅ 남는 Player 참조 제거 완료');
+        } else if (oldLength < newLength) {
+          console.log(`[💾 메모리 관리] playerRefsRef 배열 확장: ${oldLength} → ${newLength} (새 슬라이드 추가됨)`);
         }
       }
       setIsLoading(false);
@@ -1336,7 +1357,13 @@ export default function BillboardPage() {
             >
               <YouTubePlayer
                 ref={(el) => {
-                  playerRefsRef.current[slideIndex] = el;
+                  if (el) {
+                    playerRefsRef.current[slideIndex] = el;
+                    console.log(`[💾 메모리 관리] playerRefsRef[${slideIndex}] = Player 참조 저장`);
+                  } else {
+                    playerRefsRef.current[slideIndex] = null;
+                    console.log(`[💾 메모리 관리] playerRefsRef[${slideIndex}] = null (참조 해제)`);
+                  }
                 }}
                 videoId={videoInfo.videoId}
                 slideIndex={slideIndex}
