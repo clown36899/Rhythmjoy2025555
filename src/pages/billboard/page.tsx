@@ -829,12 +829,26 @@ export default function BillboardPage() {
           });
         }
         
-        // 슬라이드 전환 후 이전 슬라이드의 비디오 로딩 상태 초기화
+        // 슬라이드 전환 후 비디오 로딩 상태 초기화
         // ✅ 비디오 로딩 상태 초기화 타이머 저장 (메모리 누수 방지)
         const videoLoadedTimer = setTimeout(() => {
           setVideoLoadedMap(prev => {
+            const latestEvents = eventsRef.current;
+            const latestShuffledPlaylist = shuffledPlaylistRef.current;
+            const latestSettings = settingsRef.current;
+            
+            // 다음 슬라이드 인덱스 계산
+            let nextSlideIndex: number;
+            if (latestSettings?.play_order === 'random') {
+              const playlistIdx = playlistIndexRef.current;
+              nextSlideIndex = latestShuffledPlaylist[playlistIdx] ?? 0;
+            } else {
+              nextSlideIndex = (previousIndex + 1) % latestEvents.length;
+            }
+            
             const newMap = { ...prev };
-            delete newMap[previousIndex];
+            delete newMap[previousIndex]; // 이전 슬라이드 초기화
+            delete newMap[nextSlideIndex]; // 다음 슬라이드 초기화 (썸네일 다시 표시)
             return newMap;
           });
         }, 100);
