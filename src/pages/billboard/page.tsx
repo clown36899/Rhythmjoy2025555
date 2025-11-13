@@ -591,8 +591,9 @@ export default function BillboardPage() {
   }, [userId]); // 워치독은 한 번만 시작, Ref로 최신 값 추적
 
   // ✅ 모든 타이머 정리 함수 (메모리 누수 방지)
+  // ⚠️ watchdogTimer는 제외 (한 번만 생성되고 계속 실행되어야 함)
   const clearAllTimers = useCallback(() => {
-    console.log('[🧹 타이머 정리] 모든 타이머 정리 시작');
+    console.log('[🧹 타이머 정리] 슬라이드 관련 타이머 정리 시작');
     
     // 슬라이드 전환 타이머 (setInterval)
     if (slideTimerRef.current) {
@@ -601,12 +602,8 @@ export default function BillboardPage() {
       console.log('[🧹 타이머 정리] slideTimer 정리 완료');
     }
     
-    // 워치독 타이머 (setInterval)
-    if (watchdogTimerRef.current) {
-      clearInterval(watchdogTimerRef.current);
-      watchdogTimerRef.current = null;
-      console.log('[🧹 타이머 정리] watchdogTimer 정리 완료');
-    }
+    // ⚠️ watchdogTimer는 정리하지 않음 (3분 자동 복구 기능 유지)
+    // watchdogTimerRef는 별도 useEffect에서 관리됨
     
     // 미리 로드 타이머 (setTimeout)
     if (preloadTimerRef.current) {
@@ -636,7 +633,7 @@ export default function BillboardPage() {
       console.log('[🧹 타이머 정리] playRetryTimer 정리 완료');
     }
     
-    console.log('[🧹 타이머 정리] ✅ 모든 타이머 정리 완료');
+    console.log('[🧹 타이머 정리] ✅ 슬라이드 타이머 정리 완료 (watchdog은 계속 실행 중)');
   }, []);
 
   // 슬라이드 타이머 시작 함수
@@ -1005,11 +1002,22 @@ export default function BillboardPage() {
           }
           
           // 대기열에 추가 (지연 업데이트, ref 사용)
-          pendingChangesRef.current = [...pendingChangesRef.current, payload];
+          // ✅ 최대 100개 제한 (메모리 누수 방지)
+          const MAX_PENDING_CHANGES = 100;
+          if (pendingChangesRef.current.length >= MAX_PENDING_CHANGES) {
+            console.warn(`[변경사항 감지] ⚠️ 대기열 가득참 (${MAX_PENDING_CHANGES}개) - 오래된 항목 제거`);
+            pendingChangesRef.current = [...pendingChangesRef.current.slice(-MAX_PENDING_CHANGES + 1), payload];
+          } else {
+            pendingChangesRef.current = [...pendingChangesRef.current, payload];
+          }
           
           // UI 피드백
           const count = pendingChangesRef.current.length;
-          setRealtimeStatus(`새 변경 ${count}건 대기중 (슬라이드 완료 후 적용)`);
+          if (count >= MAX_PENDING_CHANGES) {
+            setRealtimeStatus(`⚠️ 변경 ${count}건 대기중 (최대치 도달, 슬라이드 전환 필요)`);
+          } else {
+            setRealtimeStatus(`새 변경 ${count}건 대기중 (슬라이드 완료 후 적용)`);
+          }
         },
       )
       .subscribe((status) => {
