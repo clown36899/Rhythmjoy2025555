@@ -41,6 +41,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   const playerRef = useRef<any>(null);
   const hasCalledOnPlaying = useRef(false);
   const playerReady = useRef(false);  // YouTube Player 준비 상태
+  const loopTimerRef = useRef<NodeJS.Timeout | null>(null);  // 루프 재생 타이머 (메모리 누수 방지)
 
   // 외부에서 제어 가능하도록 함수 노출
   useImperativeHandle(ref, () => ({
@@ -207,8 +208,11 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                 console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🔁 재생 종료 → 0초로 돌아가서 다시 재생`);
                 if (playerRef.current?.seekTo && playerRef.current?.playVideo) {
                   playerRef.current.seekTo(0, true); // 0초로 이동
-                  setTimeout(() => {
+                  // ✅ 기존 타이머 정리 (메모리 누수 방지)
+                  if (loopTimerRef.current) clearTimeout(loopTimerRef.current);
+                  loopTimerRef.current = setTimeout(() => {
                     playerRef.current?.playVideo(); // 다시 재생
+                    loopTimerRef.current = null;
                   }, 100);
                 }
                 hasCalledOnPlaying.current = false; // 플래그 리셋
@@ -248,6 +252,11 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
 
     return () => {
       clearTimeout(timer);
+      // ✅ 루프 타이머 정리 (메모리 누수 방지)
+      if (loopTimerRef.current) {
+        clearTimeout(loopTimerRef.current);
+        loopTimerRef.current = null;
+      }
       // ✅ Player 메모리 해제 (Android TV 안정성 확보)
       if (playerRef.current?.destroy) {
         try {
@@ -329,6 +338,10 @@ export default function BillboardPage() {
   const loadBillboardDataRef = useRef<(() => Promise<void>) | null>(null); // loadBillboardData 함수 ref
   const lastSlideChangeTimeRef = useRef<number>(Date.now()); // 워치독: 마지막 슬라이드 전환 시간
   const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null); // 워치독 타이머
+  // ✅ setTimeout 타이머들 (메모리 누수 방지)
+  const transitionTimersRef = useRef<NodeJS.Timeout[]>([]); // 슬라이드 전환 시 사용되는 모든 setTimeout
+  const reloadTimerRef = useRef<NodeJS.Timeout | null>(null); // 실시간 업데이트용 setTimeout
+  const playRetryTimerRef = useRef<NodeJS.Timeout | null>(null); // Player 재생 재시도용 setTimeout
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -458,10 +471,18 @@ export default function BillboardPage() {
 
   // 슬라이드 타이머 시작 함수
   const startSlideTimer = useCallback((slideInterval: number) => {
-    // 기존 타이머 정리
+    // ✅ 기존 모든 타이머 정리 (메모리 누수 방지)
     if (slideTimerRef.current) {
       clearInterval(slideTimerRef.current);
       slideTimerRef.current = null;
+    }
+    // transition 타이머들 정리
+    transitionTimersRef.current.forEach(timer => clearTimeout(timer));
+    transitionTimersRef.current = [];
+    // reload 타이머 정리
+    if (reloadTimerRef.current) {
+      clearTimeout(reloadTimerRef.current);
+      reloadTimerRef.current = null;
     }
     
     const startTime = Date.now();
@@ -492,11 +513,14 @@ export default function BillboardPage() {
       lastSlideChangeTimeRef.current = Date.now();
       
       if (latestPendingReload) {
-        setTimeout(() => window.location.reload(), 500);
+        // ✅ 페이지 reload 타이머 저장 (메모리 누수 방지)
+        const timer = setTimeout(() => window.location.reload(), 500);
+        transitionTimersRef.current.push(timer);
         return;
       }
       
-      setTimeout(() => {
+      // ✅ 슬라이드 전환 타이머 저장 (메모리 누수 방지)
+      const transitionTimer = setTimeout(() => {
         // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
@@ -513,7 +537,9 @@ export default function BillboardPage() {
           // 데이터만 새로고침 (페이지 reload 안함 → React.memo가 Player 보존)
           loadBillboardDataRef.current?.();
           
-          setTimeout(() => setRealtimeStatus("연결됨"), 2000);
+          // ✅ 상태 업데이트 타이머 저장 (메모리 누수 방지)
+          const statusTimer = setTimeout(() => setRealtimeStatus("연결됨"), 2000);
+          transitionTimersRef.current.push(statusTimer);
         }
         
         // 정상 슬라이드 전환 (플레이리스트 재구성 없을 때만)
@@ -544,14 +570,17 @@ export default function BillboardPage() {
         }
         
         // 슬라이드 전환 후 이전 슬라이드의 비디오 로딩 상태 초기화
-        setTimeout(() => {
+        // ✅ 비디오 로딩 상태 초기화 타이머 저장 (메모리 누수 방지)
+        const videoLoadedTimer = setTimeout(() => {
           setVideoLoadedMap(prev => {
             const newMap = { ...prev };
             delete newMap[previousIndex];
             return newMap;
           });
         }, 100);
+        transitionTimersRef.current.push(videoLoadedTimer);
       }, 500);
+      transitionTimersRef.current.push(transitionTimer);
     }, slideInterval);
   }, []); // 모든 state ref로 변경, dependency array 비움 (stale closure 완전 제거)
 
@@ -624,7 +653,9 @@ export default function BillboardPage() {
         } else if (attemptCount < maxAttempts) {
           // Player가 아직 준비 안되면 100ms 후 재시도
           attemptCount++;
-          setTimeout(attemptPlay, 100);
+          // ✅ 이전 재시도 타이머 정리 (메모리 누수 방지)
+          if (playRetryTimerRef.current) clearTimeout(playRetryTimerRef.current);
+          playRetryTimerRef.current = setTimeout(attemptPlay, 100);
         } else {
           console.error(`[슬라이드 전환] Player ${targetIndex} 준비 시간 초과 (5초) - fallback으로 이미지 타이머 시작`);
           // ✅ Fallback: Player 준비 실패 시에도 타이머 시작하여 다음 슬라이드로 전환
@@ -693,8 +724,11 @@ export default function BillboardPage() {
           if (eventsRef.current.length === 0) {
             console.log("[변경사항 감지] 빈 화면 → 즉시 데이터 새로고침");
             setRealtimeStatus("새 이벤트 감지! 즉시 새로고침...");
-            setTimeout(() => {
+            // ✅ 이전 reload 타이머 정리 (메모리 누수 방지)
+            if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+            reloadTimerRef.current = setTimeout(() => {
               loadBillboardDataRef.current?.();
+              reloadTimerRef.current = null;
             }, 500);
             return;
           }
@@ -723,7 +757,12 @@ export default function BillboardPage() {
           // 이미 필터링된 상태로 수신 (if 체크 불필요)
           setRealtimeStatus("설정 변경 감지!");
           loadBillboardData();
-          setTimeout(() => setRealtimeStatus("연결됨"), 3000);
+          // ✅ 이전 reload 타이머 정리 (메모리 누수 방지)
+          if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+          reloadTimerRef.current = setTimeout(() => {
+            setRealtimeStatus("연결됨");
+            reloadTimerRef.current = null;
+          }, 3000);
         },
       )
       .subscribe((status) => setRealtimeStatus(`설정: ${status}`));
@@ -743,6 +782,22 @@ export default function BillboardPage() {
       .subscribe((status) => setRealtimeStatus(`배포: ${status}`));
 
     return () => {
+      // ✅ 모든 타이머 정리 (메모리 누수 방지)
+      console.log("[cleanup] 컴포넌트 언마운트: 모든 타이머 정리");
+      // transition 타이머들 정리
+      transitionTimersRef.current.forEach(timer => clearTimeout(timer));
+      transitionTimersRef.current = [];
+      // reload 타이머 정리
+      if (reloadTimerRef.current) {
+        clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = null;
+      }
+      // play retry 타이머 정리
+      if (playRetryTimerRef.current) {
+        clearTimeout(playRetryTimerRef.current);
+        playRetryTimerRef.current = null;
+      }
+      // 채널 정리
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(settingsChannel);
       supabase.removeChannel(deployChannel);
