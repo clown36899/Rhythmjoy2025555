@@ -459,6 +459,10 @@ export default function BillboardPage() {
   const transitionTimersRef = useRef<NodeJS.Timeout[]>([]); // 슬라이드 전환 시 사용되는 모든 setTimeout
   const reloadTimerRef = useRef<NodeJS.Timeout | null>(null); // 실시간 업데이트용 setTimeout
   const playRetryTimerRef = useRef<NodeJS.Timeout | null>(null); // Player 재생 재시도용 setTimeout
+  // ✅ Supabase 채널 ref (메모리 누수 방지 - 중복 구독 방지)
+  const eventsChannelRef = useRef<any>(null);
+  const settingsChannelRef = useRef<any>(null);
+  const deployChannelRef = useRef<any>(null);
 
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
@@ -922,7 +926,27 @@ export default function BillboardPage() {
     }
     loadBillboardData();
 
-    const eventsChannel = supabase
+    // ✅ 중복 구독 방지: 기존 채널이 있으면 먼저 제거
+    console.log('[📡 채널 관리] Supabase 채널 설정 시작');
+    
+    if (eventsChannelRef.current) {
+      console.log('[📡 채널 관리] ⚠️ 기존 eventsChannel 발견 - 제거');
+      supabase.removeChannel(eventsChannelRef.current);
+      eventsChannelRef.current = null;
+    }
+    if (settingsChannelRef.current) {
+      console.log('[📡 채널 관리] ⚠️ 기존 settingsChannel 발견 - 제거');
+      supabase.removeChannel(settingsChannelRef.current);
+      settingsChannelRef.current = null;
+    }
+    if (deployChannelRef.current) {
+      console.log('[📡 채널 관리] ⚠️ 기존 deployChannel 발견 - 제거');
+      supabase.removeChannel(deployChannelRef.current);
+      deployChannelRef.current = null;
+    }
+
+    // ✅ 새 채널 생성 및 ref에 저장
+    eventsChannelRef.current = supabase
       .channel("billboard-events-changes")
       .on(
         "postgres_changes",
@@ -951,9 +975,12 @@ export default function BillboardPage() {
           setRealtimeStatus(`새 변경 ${count}건 대기중 (슬라이드 완료 후 적용)`);
         },
       )
-      .subscribe((status) => setRealtimeStatus(`데이터: ${status}`));
+      .subscribe((status) => {
+        console.log('[📡 채널 관리] eventsChannel 상태:', status);
+        setRealtimeStatus(`데이터: ${status}`);
+      });
 
-    const settingsChannel = supabase
+    settingsChannelRef.current = supabase
       .channel("billboard-settings-changes")
       .on(
         "postgres_changes",
@@ -975,9 +1002,12 @@ export default function BillboardPage() {
           }, 3000);
         },
       )
-      .subscribe((status) => setRealtimeStatus(`설정: ${status}`));
+      .subscribe((status) => {
+        console.log('[📡 채널 관리] settingsChannel 상태:', status);
+        setRealtimeStatus(`설정: ${status}`);
+      });
 
-    const deployChannel = supabase
+    deployChannelRef.current = supabase
       .channel("deploy-updates")
       .on(
         "postgres_changes",
@@ -989,7 +1019,12 @@ export default function BillboardPage() {
           setRealtimeStatus("새 배포! 슬라이드 완료 후 새로고침...");
         },
       )
-      .subscribe((status) => setRealtimeStatus(`배포: ${status}`));
+      .subscribe((status) => {
+        console.log('[📡 채널 관리] deployChannel 상태:', status);
+        setRealtimeStatus(`배포: ${status}`);
+      });
+
+    console.log('[📡 채널 관리] ✅ 3개 채널 생성 완료 (중복 방지됨)');
 
     return () => {
       // ✅ 모든 타이머 정리 (메모리 누수 방지)
@@ -1012,10 +1047,25 @@ export default function BillboardPage() {
         clearTimeout(preloadTimerRef.current);
         preloadTimerRef.current = null;
       }
-      // 채널 정리
-      supabase.removeChannel(eventsChannel);
-      supabase.removeChannel(settingsChannel);
-      supabase.removeChannel(deployChannel);
+      
+      // ✅ 채널 정리 (ref에서)
+      console.log('[📡 채널 관리] cleanup: Supabase 채널 제거 시작');
+      if (eventsChannelRef.current) {
+        supabase.removeChannel(eventsChannelRef.current);
+        eventsChannelRef.current = null;
+        console.log('[📡 채널 관리] eventsChannel 제거 완료');
+      }
+      if (settingsChannelRef.current) {
+        supabase.removeChannel(settingsChannelRef.current);
+        settingsChannelRef.current = null;
+        console.log('[📡 채널 관리] settingsChannel 제거 완료');
+      }
+      if (deployChannelRef.current) {
+        supabase.removeChannel(deployChannelRef.current);
+        deployChannelRef.current = null;
+        console.log('[📡 채널 관리] deployChannel 제거 완료');
+      }
+      console.log('[📡 채널 관리] ✅ 모든 채널 제거 완료');
     };
   }, [userId]);
 
