@@ -544,10 +544,11 @@ export default function BillboardPage() {
         }
         
         if (calculatedNextIndex !== null && calculatedNextIndex < latestEvents.length) {
-          console.log(`[미리 로드] 슬라이드 ${displayIndex} → 다음 슬라이드 ${calculatedNextIndex} 미리 준비 (${preloadDelay}ms 후)`);
+          console.log(`[🔜 미리 로드] 슬라이드 ${displayIndex} → 다음 슬라이드 ${calculatedNextIndex} 미리 준비 (${preloadDelay}ms 후)`);
+          console.log(`[🔜 미리 로드] ⭐ setNextSlideIndex(${calculatedNextIndex}) 호출 - 2개 플레이어 로드 시작`);
           setNextSlideIndex(calculatedNextIndex);
         } else {
-          console.warn(`[미리 로드] 잘못된 인덱스: ${calculatedNextIndex}, events: ${latestEvents.length}`);
+          console.warn(`[🔜 미리 로드] ⚠️ 잘못된 인덱스: ${calculatedNextIndex}, events: ${latestEvents.length}`);
         }
         preloadTimerRef.current = null;
       }, preloadDelay);
@@ -679,6 +680,7 @@ export default function BillboardPage() {
     const hasVideo = !!currentEvent?.video_url;
     
     // ✅ 슬라이드 전환 시 다음 슬라이드 인덱스 리셋 (이전 미리 로드 취소)
+    console.log(`[🔄 슬라이드 전환] currentIndex: ${prevIndex} → ${currentIndex}, nextSlideIndex 리셋: ${nextSlideIndex} → null`);
     setNextSlideIndex(null);
     
     // 현재 활성 슬라이드 업데이트
@@ -1509,6 +1511,11 @@ export default function BillboardPage() {
         {events.map((event, index) => {
           // 현재 + 다음 슬라이드 렌더링 (마지막 5초 전에 다음 슬라이드 미리 로드)
           const shouldRender = index === currentIndex || index === nextSlideIndex;
+          
+          // ✅ 로그: 렌더링 판단
+          if (shouldRender) {
+            console.log(`[🎬 렌더링] 슬라이드 ${index} 렌더링 중 - currentIndex: ${currentIndex}, nextSlideIndex: ${nextSlideIndex}, 역할: ${index === currentIndex ? '현재' : '다음'}`);
+          }
           
           if (!shouldRender) return null;
           
