@@ -1298,13 +1298,19 @@ export default function BillboardPage() {
           </>
         ) : (
           /* === 일반 이미지 === */
-          imageUrl && (
+          imageUrl && isVisible && (
             <img
               src={imageUrl}
               alt={event.title}
               className="w-full h-full object-contain"
               style={{ backgroundColor: "#000" }}
               loading="lazy"
+              onLoad={() => {
+                console.log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - 이미지 로드 완료`, {
+                  imageUrl: imageUrl.substring(0, 50) + '...',
+                  타입: '일반 이미지'
+                });
+              }}
             />
           )
         )}
