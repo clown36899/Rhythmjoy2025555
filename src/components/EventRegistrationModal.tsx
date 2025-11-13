@@ -445,6 +445,20 @@ export default function EventRegistrationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log('[🚀 이벤트 등록] 폼 제출 시작 - 필수 필드 검증');
+
+    // 1️⃣ 날짜 검증 (최우선)
+    if (dateMode === "range" && !startDateInput) {
+      alert("시작 날짜를 선택해주세요.");
+      return;
+    }
+
+    if (dateMode === "specific" && specificDates.length === 0) {
+      alert("최소 1개의 날짜를 선택해주세요.");
+      return;
+    }
+
+    // 2️⃣ 필수 필드 검증
     if (!formData.password) {
       alert("이벤트 수정을 위한 비밀번호를 설정해주세요.");
       return;
@@ -460,7 +474,7 @@ export default function EventRegistrationModal({
       return;
     }
 
-    // 영상 URL 유효성 검증
+    // 3️⃣ 영상 URL 유효성 검증
     if (formData.videoUrl && !isValidVideoUrl(formData.videoUrl)) {
       alert(
         "지원하지 않는 영상 URL입니다. YouTube, Instagram, Facebook, Vimeo 링크를 사용해주세요.",
@@ -479,9 +493,7 @@ export default function EventRegistrationModal({
       }
     }
 
-    // 이미지와 영상 중 하나는 있어야 함 (선택사항이므로 둘 다 없어도 됨)
-
-    // 링크 유효성 검증: 제목과 주소가 짝을 이루어야 함
+    // 4️⃣ 링크 유효성 검증
     if (formData.linkName1 && !formData.link1) {
       alert("링크1 제목을 입력했다면 링크 주소도 입력해주세요.");
       return;
@@ -507,6 +519,7 @@ export default function EventRegistrationModal({
       return;
     }
 
+    console.log('[✅ 검증 완료] 모든 필수 필드 통과');
     console.log('[🚀 이벤트 등록] 시작', { 
       title: formData.title, 
       dateMode,
@@ -518,6 +531,7 @@ export default function EventRegistrationModal({
     setUploadStep('준비 중...');
 
     try {
+      // 5️⃣ 이미지 업로드 (검증 완료 후)
       let imageUrls = {
         thumbnail: "",
         medium: "",
@@ -530,7 +544,7 @@ export default function EventRegistrationModal({
         console.log('[🚀 이벤트 등록] 이미지 업로드 완료');
       }
 
-      // 날짜 데이터 준비
+      // 6️⃣ 날짜 데이터 준비
       console.log('[🚀 이벤트 등록] 날짜 데이터 준비 중');
       setUploadStep('이벤트 데이터 준비 중...');
       
@@ -549,12 +563,6 @@ export default function EventRegistrationModal({
         console.log('[🚀 이벤트 등록] 특정 날짜 모드', { 날짜수: eventDatesArray.length });
       } else {
         // 연속 기간 모드: startDateInput 사용
-        if (!startDateInput) {
-          alert("시작 날짜를 선택해주세요.");
-          setIsSubmitting(false);
-          return;
-        }
-        
         localDateString = startDateInput;
         endDateString = formatDateForInput(endDate);
         console.log('[🚀 이벤트 등록] 연속 기간 모드', { 시작일: localDateString, 종료일: endDateString });
@@ -796,13 +804,26 @@ export default function EventRegistrationModal({
                         minDate={new Date()}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        customInput={
+                          <button
+                            type="button"
+                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                          >
+                            <span>
+                              {startDateInput
+                                ? new Date(startDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })
+                                : "날짜 선택"}
+                            </span>
+                            <i className="ri-calendar-line"></i>
+                          </button>
+                        }
                         calendarClassName="bg-gray-800"
-                        placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        readOnly
-                        onFocus={(e) => e.target.blur()}
                         renderCustomHeader={(props) => (
                           <CustomDatePickerHeader
                             {...props}
@@ -839,13 +860,24 @@ export default function EventRegistrationModal({
                         minDate={startDateInput ? new Date(startDateInput + "T00:00:00") : undefined}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        customInput={
+                          <button
+                            type="button"
+                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                          >
+                            <span>
+                              {endDate.toLocaleDateString("ko-KR", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </span>
+                            <i className="ri-calendar-line"></i>
+                          </button>
+                        }
                         calendarClassName="bg-gray-800"
-                        placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        readOnly
-                        onFocus={(e) => e.target.blur()}
                         renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
                       />
                     </div>
@@ -899,13 +931,26 @@ export default function EventRegistrationModal({
                         }}
                         dateFormat="yyyy-MM-dd"
                         locale="ko"
-                        className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        customInput={
+                          <button
+                            type="button"
+                            className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                          >
+                            <span>
+                              {tempDateInput
+                                ? new Date(tempDateInput + "T00:00:00").toLocaleDateString("ko-KR", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })
+                                : "날짜 선택"}
+                            </span>
+                            <i className="ri-calendar-line"></i>
+                          </button>
+                        }
                         calendarClassName="bg-gray-800"
-                        placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
-                        readOnly
-                        onFocus={(e) => e.target.blur()}
                         renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
                       />
                       <button
