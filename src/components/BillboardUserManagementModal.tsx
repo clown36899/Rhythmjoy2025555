@@ -576,7 +576,9 @@ export default function BillboardUserManagementModal({
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 mb-2">
-                    총 <span className="font-bold text-blue-400">{events.length}개</span> 이벤트 (미디어 있는 이벤트만 표시)
+                    총 <span className="font-bold text-blue-400">{events.length}개</span> 이벤트 / 
+                    제외 <span className="font-bold text-red-400">{excludedEventIds.length}개</span> 
+                    (미디어 있는 이벤트만 표시)
                   </p>
                   <div className="max-h-40 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
                     {events.length === 0 ? (
