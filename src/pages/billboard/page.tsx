@@ -311,6 +311,9 @@ export default function BillboardPage() {
   const eventsRef = useRef<Event[]>([]); // Ref 동기화 (stale closure 방지)
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentEventIdRef = useRef<number | null>(null); // 현재 이벤트 ID 추적 (Event.id는 number 타입)
+  const [nextSlideIndex, setNextSlideIndex] = useState<number | null>(null); // 다음 슬라이드 인덱스 (미리 로드용)
+  const preloadTimerRef = useRef<NodeJS.Timeout | null>(null); // 다음 슬라이드 미리 로드 타이머
+  const precomputedShuffleRef = useRef<number[] | null>(null); // Random 모드 wrap용 미리 계산된 shuffle
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
@@ -484,6 +487,11 @@ export default function BillboardPage() {
       clearTimeout(reloadTimerRef.current);
       reloadTimerRef.current = null;
     }
+    // ✅ preload 타이머 정리
+    if (preloadTimerRef.current) {
+      clearTimeout(preloadTimerRef.current);
+      preloadTimerRef.current = null;
+    }
     
     const startTime = Date.now();
     slideStartTimeRef.current = startTime;
@@ -498,6 +506,52 @@ export default function BillboardPage() {
     const displayIndex = logIndex >= 0 ? logIndex : 0;
     
     console.log(`[타이머 시작] 슬라이드 ${displayIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
+    
+    // ✅ 다음 슬라이드 미리 로드 (종료 5초 전, 최소 2초는 보장)
+    const preloadDelay = Math.max(slideInterval - 5000, Math.min(slideInterval / 2, 2000));
+    if (preloadDelay > 0 && preloadDelay < slideInterval) {
+      preloadTimerRef.current = setTimeout(() => {
+        const latestEvents = eventsRef.current;
+        const latestSettings = settingsRef.current;
+        const latestShuffledPlaylist = shuffledPlaylistRef.current;
+        
+        // ✅ events가 없으면 preload 스킵
+        if (latestEvents.length === 0) {
+          console.warn(`[미리 로드] events 없음 → 미리 로드 스킵`);
+          preloadTimerRef.current = null;
+          return;
+        }
+        
+        // 다음 슬라이드 인덱스 계산
+        let calculatedNextIndex: number | null = null;
+        if (latestSettings?.play_order === "random") {
+          const next = playlistIndexRef.current + 1;
+          if (next >= latestShuffledPlaylist.length) {
+            // ✅ 플레이리스트 끝: 새 shuffle 미리 계산 (부드러운 전환 보장)
+            const newShuffledList = shuffleArray(
+              Array.from({ length: latestEvents.length }, (_, i) => i)
+            );
+            precomputedShuffleRef.current = newShuffledList;
+            calculatedNextIndex = newShuffledList[0];
+            console.log(`[미리 로드] 플레이리스트 끝 → 새 shuffle 미리 계산, 다음: ${calculatedNextIndex}`);
+          } else {
+            calculatedNextIndex = latestShuffledPlaylist[next];
+          }
+        } else {
+          const currentEventId = currentEventIdRef.current;
+          const currentIdx = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
+          calculatedNextIndex = (currentIdx + 1) % latestEvents.length;
+        }
+        
+        if (calculatedNextIndex !== null && calculatedNextIndex < latestEvents.length) {
+          console.log(`[미리 로드] 슬라이드 ${displayIndex} → 다음 슬라이드 ${calculatedNextIndex} 미리 준비 (${preloadDelay}ms 후)`);
+          setNextSlideIndex(calculatedNextIndex);
+        } else {
+          console.warn(`[미리 로드] 잘못된 인덱스: ${calculatedNextIndex}, events: ${latestEvents.length}`);
+        }
+        preloadTimerRef.current = null;
+      }, preloadDelay);
+    }
 
     // 슬라이드 전환 타이머
     slideTimerRef.current = setInterval(() => {
@@ -546,15 +600,22 @@ export default function BillboardPage() {
         if (latestSettings?.play_order === "random") {
           const next = playlistIndexRef.current + 1;
           if (next >= latestShuffledPlaylist.length) {
-            const newList = shuffleArray(
-              Array.from({ length: latestEvents.length }, (_, i) => i),
-            );
+            // ✅ 미리 계산된 shuffle이 있으면 재사용 (부드러운 전환)
+            let newList = precomputedShuffleRef.current;
+            if (!newList) {
+              console.warn(`[슬라이드 전환] ⚠️ precomputed shuffle 없음, 새로 생성 (전환이 부드럽지 않을 수 있음)`);
+              newList = shuffleArray(
+                Array.from({ length: latestEvents.length }, (_, i) => i),
+              );
+            }
+            precomputedShuffleRef.current = null; // 사용 후 리셋
             setShuffledPlaylist(newList);
             shuffledPlaylistRef.current = newList; // Ref 동기화
             playlistIndexRef.current = 0;
             const nextIndex = newList[0] ?? 0;
             setCurrentIndex(nextIndex);
             currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
+            console.log(`[슬라이드 전환] Random 모드 wrap → 새 playlist 시작: ${nextIndex}`);
           } else {
             playlistIndexRef.current = next;
             const nextIndex = latestShuffledPlaylist[next] ?? 0;
@@ -616,6 +677,9 @@ export default function BillboardPage() {
     const prevIndex = prevIndexRef.current;
     const currentEvent = events[currentIndex];
     const hasVideo = !!currentEvent?.video_url;
+    
+    // ✅ 슬라이드 전환 시 다음 슬라이드 인덱스 리셋 (이전 미리 로드 취소)
+    setNextSlideIndex(null);
     
     // 현재 활성 슬라이드 업데이트
     currentActiveIndexRef.current = currentIndex;
@@ -796,6 +860,11 @@ export default function BillboardPage() {
       if (playRetryTimerRef.current) {
         clearTimeout(playRetryTimerRef.current);
         playRetryTimerRef.current = null;
+      }
+      // ✅ preload 타이머 정리
+      if (preloadTimerRef.current) {
+        clearTimeout(preloadTimerRef.current);
+        preloadTimerRef.current = null;
       }
       // 채널 정리
       supabase.removeChannel(eventsChannel);
@@ -1436,10 +1505,10 @@ export default function BillboardPage() {
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
       <div className="billboard-page">
-        {/* 현재 슬라이드만 DOM에 유지 (메모리 최적화 - 83MB → 40MB) */}
+        {/* 현재 + 다음 슬라이드만 DOM에 유지 (부드러운 전환 + 메모리 최적화) */}
         {events.map((event, index) => {
-          // 현재 슬라이드만 렌더링 (메모리 절약)
-          const shouldRender = index === currentIndex;
+          // 현재 + 다음 슬라이드 렌더링 (마지막 5초 전에 다음 슬라이드 미리 로드)
+          const shouldRender = index === currentIndex || index === nextSlideIndex;
           
           if (!shouldRender) return null;
           
