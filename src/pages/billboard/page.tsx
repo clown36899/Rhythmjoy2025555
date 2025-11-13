@@ -9,6 +9,25 @@ import type {
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
 
+// ✅ 빌보드 로그 제어 (CPU 절약을 위해 비활성화)
+const ENABLE_BILLBOARD_LOGS = false; // CPU 사용률 최적화를 위해 로그 비활성화
+
+// 로그 래퍼 함수 (프로덕션에서는 자동으로 비활성화)
+const log = (...args: any[]) => {
+  if (ENABLE_BILLBOARD_LOGS) {
+    console.log(...args);
+  }
+};
+
+const warn = (...args: any[]) => {
+  if (ENABLE_BILLBOARD_LOGS) {
+    console.warn(...args);
+  }
+};
+
+// 에러는 console.error를 직접 사용 (이름 충돌 방지)
+// error state 변수와 충돌하므로 alias 사용 안함
+
 // YouTube IFrame Player API 타입
 declare global {
   interface Window {
