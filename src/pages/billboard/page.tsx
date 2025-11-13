@@ -1309,14 +1309,9 @@ export default function BillboardPage() {
         log(`[슬라이드 ${currentIndex}] 영상 감지 - 실제 재생 감지 시 타이머 시작 예정`);
       }
     }
-
-    return () => {
-      log(`[타이머 cleanup] 슬라이드 ${currentIndex} 타이머 정리`);
-      if (slideTimerRef.current) {
-        clearInterval(slideTimerRef.current);
-        slideTimerRef.current = null;
-      }
-    };
+    
+    // ✅ cleanup 제거: startSlideTimer가 이미 clearAllTimers()를 호출하여 타이머 정리
+    // 중복 cleanup이 타이밍 이슈를 일으켜 슬라이드 전환 실패 원인이 됨
   }, [events, settings, currentIndex, startSlideTimer, currentVideoLoaded]);
 
   // 로딩/에러/빈 화면
