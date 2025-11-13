@@ -991,7 +991,10 @@ export default function EventList({
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
     
+    console.log('[EventList] handleEditClick - isAdminMode:', isAdminMode, 'adminType:', adminType, 'event:', event.title);
+    
     if (isAdminMode) {
+      console.log('[EventList] 개발자 모드로 수정 모달 열기');
       // 개발자 모드(관리자 모드)에서는 비밀번호 없이 바로 수정 모달 열기
       setEventToEdit(event);
       // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
