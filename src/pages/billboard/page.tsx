@@ -146,10 +146,19 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
 
     return () => {
       clearTimeout(timer);
-      // destroy() 제거 - Player 객체 유지하여 캐시 활용
-      console.log('[YouTube] Player cleanup (destroy 안함, 캐시 유지):', videoId);
+      // ✅ Player 메모리 해제 (Android TV 안정성 확보)
+      if (playerRef.current?.destroy) {
+        try {
+          playerRef.current.destroy();
+          console.log('[YouTube] Player 메모리 해제 완료:', videoId);
+        } catch (err) {
+          console.error('[YouTube] Player destroy 실패:', err);
+        }
+        playerRef.current = null;
+      }
       // hasCalledOnPlaying 리셋하여 재진입 시 다시 재생 가능
       hasCalledOnPlaying.current = false;
+      playerReady.current = false;
     };
   }, [apiReady, videoId, onPlayingCallback]);  // ✅ slideIndex 제거 - videoId만 의존
 
