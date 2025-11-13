@@ -344,14 +344,26 @@ export default function EventRegistrationModal({
     full: string;
   }> => {
     try {
-      console.log('[📤 이미지 업로드] 시작', { fileName: file.name, fileSize: file.size });
+      console.log('[📤 이미지 업로드] 시작', { 
+        fileName: file.name, 
+        fileSize: `${(file.size / 1024).toFixed(0)}KB`,
+        fileType: file.type,
+        hasImagePreview: !!imagePreview
+      });
       
       setUploadStep('이미지 리사이즈 중...');
-      const resizedImages = await createResizedImages(file, (progress, step) => {
+      
+      // imagePreview(base64) 우선 사용, 없으면 File 객체 사용
+      const source = imagePreview || file;
+      const fileName = file.name;
+      
+      console.log('[📤 이미지 업로드] 리사이즈 소스:', imagePreview ? 'base64 (모바일 호환)' : 'File 객체');
+      
+      const resizedImages = await createResizedImages(source, (progress, step) => {
         setUploadProgress(progress);
         setUploadStep(step);
         console.log(`[📤 진행률] ${progress}% - ${step}`);
-      });
+      }, fileName);
       
       console.log('[📤 이미지 업로드] 리사이즈 완료, 업로드 시작');
       setUploadStep('서버에 업로드 중...');
@@ -789,6 +801,8 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
+                        readOnly
+                        onFocus={(e) => e.target.blur()}
                         renderCustomHeader={(props) => (
                           <CustomDatePickerHeader
                             {...props}
@@ -830,6 +844,8 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
+                        readOnly
+                        onFocus={(e) => e.target.blur()}
                         renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
                       />
                     </div>
@@ -888,6 +904,8 @@ export default function EventRegistrationModal({
                         placeholderText="날짜 선택"
                         withPortal
                         portalId="root-portal"
+                        readOnly
+                        onFocus={(e) => e.target.blur()}
                         renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
                       />
                       <button
