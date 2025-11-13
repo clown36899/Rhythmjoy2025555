@@ -491,7 +491,11 @@ export default function BillboardPage() {
       clearTimeout(reloadTimerRef.current);
       reloadTimerRef.current = null;
     }
-    // ✅ preload 타이머는 정리하지 않음 (10초 대기 중 startSlideTimer 재호출되어도 유지)
+    // ✅ preload 타이머 정리 (새 타이머 시작 시 리셋)
+    if (preloadTimerRef.current) {
+      clearTimeout(preloadTimerRef.current);
+      preloadTimerRef.current = null;
+    }
     
     const startTime = Date.now();
     slideStartTimeRef.current = startTime;
@@ -509,10 +513,8 @@ export default function BillboardPage() {
     
     // ✅ 다음 슬라이드 미리 로드 (종료 5초 전, 최소 2초는 보장)
     const preloadDelay = Math.max(slideInterval - 5000, Math.min(slideInterval / 2, 2000));
-    
-    // ✅ preload 타이머가 이미 설정되어 있으면 재설정하지 않음 (중복 방지)
-    if (!preloadTimerRef.current && preloadDelay > 0 && preloadDelay < slideInterval) {
-      console.log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (총 ${slideInterval}ms 중 ${slideInterval - preloadDelay}ms는 1개 플레이어만)`);
+    console.log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (총 ${slideInterval}ms 중 ${slideInterval - preloadDelay}ms는 1개 플레이어만)`);
+    if (preloadDelay > 0 && preloadDelay < slideInterval) {
       preloadTimerRef.current = setTimeout(() => {
         const latestEvents = eventsRef.current;
         const latestSettings = settingsRef.current;
