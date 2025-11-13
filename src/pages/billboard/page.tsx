@@ -15,13 +15,13 @@ const ENABLE_BILLBOARD_LOGS = false; // CPU 사용률 최적화를 위해 로그
 // 로그 래퍼 함수 (프로덕션에서는 자동으로 비활성화)
 const log = (...args: any[]) => {
   if (ENABLE_BILLBOARD_LOGS) {
-    console.log(...args);
+    log(...args);
   }
 };
 
 const warn = (...args: any[]) => {
   if (ENABLE_BILLBOARD_LOGS) {
-    console.warn(...args);
+    warn(...args);
   }
 };
 
@@ -67,30 +67,30 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     pauseVideo: () => {
       if (playerRef.current?.pauseVideo) {
         playerRef.current.pauseVideo();
-        console.log(`[플레이어 제어] 슬라이드 ${slideIndex} - ⏸️ 일시정지 명령 실행`, {
+        log(`[플레이어 제어] 슬라이드 ${slideIndex} - ⏸️ 일시정지 명령 실행`, {
           videoId,
           playerExists: !!playerRef.current,
           isReady: playerReady.current
         });
       } else {
-        console.warn(`[플레이어 제어] 슬라이드 ${slideIndex} - ⚠️ 일시정지 실패: Player 없음`);
+        warn(`[플레이어 제어] 슬라이드 ${slideIndex} - ⚠️ 일시정지 실패: Player 없음`);
       }
     },
     playVideo: () => {
       if (playerRef.current?.playVideo) {
         playerRef.current.playVideo();
-        console.log(`[플레이어 제어] 슬라이드 ${slideIndex} - ▶️ 재생 명령 실행`, {
+        log(`[플레이어 제어] 슬라이드 ${slideIndex} - ▶️ 재생 명령 실행`, {
           videoId,
           playerExists: !!playerRef.current,
           isReady: playerReady.current
         });
       } else {
-        console.warn(`[플레이어 제어] 슬라이드 ${slideIndex} - ⚠️ 재생 실패: Player 없음`);
+        warn(`[플레이어 제어] 슬라이드 ${slideIndex} - ⚠️ 재생 실패: Player 없음`);
       }
     },
     isReady: () => {
       const ready = playerReady.current;
-      console.log(`[플레이어 제어] 슬라이드 ${slideIndex} - 준비 상태 확인: ${ready ? '✅ 준비됨' : '⏳ 준비 안됨'}`, {
+      log(`[플레이어 제어] 슬라이드 ${slideIndex} - 준비 상태 확인: ${ready ? '✅ 준비됨' : '⏳ 준비 안됨'}`, {
         videoId,
         playerExists: !!playerRef.current
       });
@@ -107,7 +107,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
         const memBeforeDestroyMB = (memBeforeDestroy / 1024 / 1024).toFixed(1);
         const isWebView = /wv/.test(navigator.userAgent);
         
-        console.log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - isVisible=false 감지, 메모리 해제 시작`, {
+        log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - isVisible=false 감지, 메모리 해제 시작`, {
           videoId,
           playerExists: !!playerRef.current,
           wasReady: playerReady.current,
@@ -115,11 +115,11 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
         });
         
         if (!isWebView && memBeforeDestroy > 0) {
-          console.log(`[💾 메모리] PLAYER ${slideIndex} 제거 전 - 현재 메모리: ${memBeforeDestroyMB}MB`);
+          log(`[💾 메모리] PLAYER ${slideIndex} 제거 전 - 현재 메모리: ${memBeforeDestroyMB}MB`);
         }
         
         // ✅ 1단계: 비디오 버퍼 플러시 (APK WebView 메모리 누적 방지)
-        console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 1단계: 비디오 버퍼 플러시`);
+        log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 1단계: 비디오 버퍼 플러시`);
         if (playerRef.current.stopVideo) {
           playerRef.current.stopVideo();
         }
@@ -128,14 +128,14 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
         }
         
         // ✅ 2단계: Player 인스턴스 제거
-        console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 2단계: destroy() 호출`);
+        log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 2단계: destroy() 호출`);
         playerRef.current.destroy();
         
         // ✅ 3단계: iframe DOM 요소 직접 제거 (WebView 리소스 해제 보장)
         const playerId = `yt-player-${slideIndex}`;
         const iframeElement = document.getElementById(playerId);
         if (iframeElement) {
-          console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 3단계: iframe DOM 제거`);
+          log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 3단계: iframe DOM 제거`);
           iframeElement.innerHTML = ''; // 내부 정리
           iframeElement.remove(); // DOM 제거
         }
@@ -146,11 +146,11 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
             const memAfterDestroy = (performance as any).memory?.usedJSHeapSize ?? 0;
             const memAfterDestroyMB = (memAfterDestroy / 1024 / 1024).toFixed(1);
             const memFreed = ((memBeforeDestroy - memAfterDestroy) / 1024 / 1024).toFixed(1);
-            console.log(`[💾 메모리] PLAYER ${slideIndex} 제거 후 - 현재: ${memAfterDestroyMB}MB (감소: ${memFreed}MB, GC 대기중)`);
+            log(`[💾 메모리] PLAYER ${slideIndex} 제거 후 - 현재: ${memAfterDestroyMB}MB (감소: ${memFreed}MB, GC 대기중)`);
           }, 100);
         }
         
-        console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} 완전 제거 완료 (버퍼+destroy+DOM)`);
+        log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} 완전 제거 완료 (버퍼+destroy+DOM)`);
       } catch (err) {
         console.error('[YouTube] Player destroy 실패:', err);
       }
@@ -158,7 +158,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       playerReady.current = false;
       hasCalledOnPlaying.current = false;
     } else if (!isVisible) {
-      console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 화면 밖 (Player 인스턴스 없음)`, videoId);
+      log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 화면 밖 (Player 인스턴스 없음)`, videoId);
     }
   }, [isVisible, videoId, slideIndex]);
 
@@ -166,20 +166,20 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   useEffect(() => {
     // isVisible이 false이면 Player 생성 스킵
     if (!isVisible) {
-      console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 생성 스킵 (화면에 표시 안됨)`, videoId);
+      log(`[플레이어 상태] 슬라이드 ${slideIndex} - 생성 스킵 (화면에 표시 안됨)`, videoId);
       return;
     }
 
     if (!apiReady || !videoId || playerRef.current) {
       if (playerRef.current) {
-        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ♻️ 기존 인스턴스 유지 중 (재생성 스킵)`, {
+        log(`[플레이어 상태] 슬라이드 ${slideIndex} - ♻️ 기존 인스턴스 유지 중 (재생성 스킵)`, {
           videoId,
           ready: playerReady.current,
           hasPlayed: hasCalledOnPlaying.current
         });
       }
       if (!apiReady) {
-        console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - YouTube API 대기 중...`);
+        log(`[플레이어 상태] 슬라이드 ${slideIndex} - YouTube API 대기 중...`);
       }
       return;
     }
@@ -190,13 +190,13 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     const memBefore = (performance as any).memory?.usedJSHeapSize ?? 0;
     const memBeforeMB = (memBefore / 1024 / 1024).toFixed(1);
     
-    console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 🔧 생성 시작`, {
+    log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 🔧 생성 시작`, {
       playerId,
       videoId,
       isVisible,
       apiReady
     });
-    console.log(`[💾 메모리] PLAYER ${slideIndex} 생성 전 - 현재 메모리: ${memBeforeMB}MB`);
+    log(`[💾 메모리] PLAYER ${slideIndex} 생성 전 - 현재 메모리: ${memBeforeMB}MB`);
     
     const timer = setTimeout(() => {
       const element = document.getElementById(playerId);
@@ -245,7 +245,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               const memReadyMB = (memReady / 1024 / 1024).toFixed(1);
               const totalMemMB = ((performance as any).memory?.totalJSHeapSize ?? 0) / 1024 / 1024;
               
-              console.log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ✅ 준비 완료 (READY)`, {
+              log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ✅ 준비 완료 (READY)`, {
                 videoId,
                 canPlay: true,
                 isVisible,
@@ -258,7 +258,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                 볼륨: volume,
                 메모리상태: '로드됨'
               });
-              console.log(`[💾 메모리] PLAYER ${slideIndex} 준비 완료 - 현재: ${memReadyMB}MB / 총 할당: ${totalMemMB.toFixed(1)}MB`);
+              log(`[💾 메모리] PLAYER ${slideIndex} 준비 완료 - 현재: ${memReadyMB}MB / 총 할당: ${totalMemMB.toFixed(1)}MB`);
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
               // 부모 컴포넌트에서 명시적으로 playVideo 호출할 예정
             },
@@ -274,7 +274,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               };
               const stateName = stateNames[event.data] || `UNKNOWN(${event.data})`;
               
-              console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 상태 변경: ${stateName}`, {
+              log(`[플레이어 상태] 슬라이드 ${slideIndex} - 상태 변경: ${stateName}`, {
                 videoId,
                 stateCode: event.data,
                 isVisible,
@@ -287,7 +287,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                   const loadedFraction = playerRef.current?.getVideoLoadedFraction?.() ?? 0;
                   const quality = playerRef.current?.getPlaybackQuality?.() ?? 'unknown';
                   const currentTime = playerRef.current?.getCurrentTime?.() ?? 0;
-                  console.log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ▶️ 첫 재생 시작됨`, {
+                  log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ▶️ 첫 재생 시작됨`, {
                     videoId,
                     현재시간: `${currentTime.toFixed(1)}s`,
                     버퍼링진행도: `${(loadedFraction * 100).toFixed(1)}%`,
@@ -297,12 +297,12 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                   hasCalledOnPlaying.current = true;
                   onPlayingCallback(slideIndex);
                 } else {
-                  console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ▶️ 재생 중...`);
+                  log(`[플레이어 상태] 슬라이드 ${slideIndex} - ▶️ 재생 중...`);
                 }
               }
               // 종료 감지 (YT.PlayerState.ENDED = 0) → 0초로 돌아가서 루프 재생 (현재 표시 중일 때만)
               else if (event.data === 0 && isVisible) {
-                console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🔁 재생 종료 → 0초로 돌아가서 다시 재생`);
+                log(`[플레이어 상태] 슬라이드 ${slideIndex} - 🔁 재생 종료 → 0초로 돌아가서 다시 재생`);
                 if (playerRef.current?.seekTo && playerRef.current?.playVideo) {
                   playerRef.current.seekTo(0, true); // 0초로 이동
                   // ✅ 기존 타이머 정리 (메모리 누수 방지)
@@ -316,7 +316,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               }
               // 일시정지 감지 (YT.PlayerState.PAUSED = 2)
               else if (event.data === 2) {
-                console.log(`[플레이어 상태] 슬라이드 ${slideIndex} - ⏸️ 일시정지됨`);
+                log(`[플레이어 상태] 슬라이드 ${slideIndex} - ⏸️ 일시정지됨`);
                 // 다음 재생을 위해 플래그 리셋
                 hasCalledOnPlaying.current = false;
               }
@@ -324,7 +324,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               else if (event.data === 3) {
                 const loadedFraction = playerRef.current?.getVideoLoadedFraction?.() ?? 0;
                 const quality = playerRef.current?.getPlaybackQuality?.() ?? 'unknown';
-                console.log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ⏳ 버퍼링 중...`, {
+                log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ⏳ 버퍼링 중...`, {
                   videoId,
                   버퍼링진행도: `${(loadedFraction * 100).toFixed(1)}%`,
                   재생품질: quality,
@@ -354,8 +354,8 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
         const memAfterMB = (memAfter / 1024 / 1024).toFixed(1);
         const memDiff = ((memAfter - memBefore) / 1024 / 1024).toFixed(1);
         
-        console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - Player 객체 생성 완료 (초기화 대기 중...)`);
-        console.log(`[💾 메모리] PLAYER ${slideIndex} 생성 후 - 현재: ${memAfterMB}MB (증가: +${memDiff}MB)`);
+        log(`[🎮 플레이어] 슬라이드 ${slideIndex} - Player 객체 생성 완료 (초기화 대기 중...)`);
+        log(`[💾 메모리] PLAYER ${slideIndex} 생성 후 - 현재: ${memAfterMB}MB (증가: +${memDiff}MB)`);
       } catch (err) {
         console.error('[YouTube] Player 생성 실패:', err);
       }
@@ -371,10 +371,10 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
       // ✅ Player 메모리 해제 (Android TV 안정성 확보)
       if (playerRef.current?.destroy) {
         try {
-          console.log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - cleanup 함수 실행, 메모리 해제 시작`, videoId);
+          log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - cleanup 함수 실행, 메모리 해제 시작`, videoId);
           
           // ✅ 1단계: 비디오 버퍼 플러시 (APK WebView 메모리 누적 방지)
-          console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 1단계: 비디오 버퍼 플러시`);
+          log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 1단계: 비디오 버퍼 플러시`);
           if (playerRef.current.stopVideo) {
             playerRef.current.stopVideo();
           }
@@ -383,19 +383,19 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
           }
           
           // ✅ 2단계: Player 인스턴스 제거
-          console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 2단계: destroy() 호출`);
+          log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 2단계: destroy() 호출`);
           playerRef.current.destroy();
           
           // ✅ 3단계: iframe DOM 요소 직접 제거 (WebView 리소스 해제 보장)
           const playerId = `yt-player-${slideIndex}`;
           const iframeElement = document.getElementById(playerId);
           if (iframeElement) {
-            console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 3단계: iframe DOM 제거`);
+            log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 3단계: iframe DOM 제거`);
             iframeElement.innerHTML = ''; // 내부 정리
             iframeElement.remove(); // DOM 제거
           }
           
-          console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} cleanup 완료 - 완전 제거됨`);
+          log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} cleanup 완료 - 완전 제거됨`);
         } catch (err) {
           console.error('[YouTube] Player destroy 실패:', err);
         }
@@ -416,7 +416,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                            prevProps.isVisible === nextProps.isVisible;
   
   if (shouldSkipRender && prevProps.slideIndex !== nextProps.slideIndex) {
-    console.log(`[YouTube 캐시] videoId ${prevProps.videoId} 재사용 (슬라이드 ${prevProps.slideIndex} → ${nextProps.slideIndex})`);
+    log(`[YouTube 캐시] videoId ${prevProps.videoId} 재사용 (슬라이드 ${prevProps.slideIndex} → ${nextProps.slideIndex})`);
   }
   
   return shouldSkipRender;
@@ -512,7 +512,7 @@ export default function BillboardPage() {
       const dateLocationFont = Math.min(36, Math.max(18, dateLocationMax * 0.3));
       setDateLocationFontSize(dateLocationFont);
       
-      console.log(`[빌보드] 크기 계산: ${isLandscape ? '가로' : '세로'}, 제목영역: ${Math.round(maxHeight)}px (QR:${Math.round(calculatedQrSize)}px, 폰트:${Math.round(calculatedFontSize)}px), 날짜영역: ${Math.round(dateLocationMax)}px (폰트:${Math.round(dateLocationFont)}px)`);
+      log(`[빌보드] 크기 계산: ${isLandscape ? '가로' : '세로'}, 제목영역: ${Math.round(maxHeight)}px (QR:${Math.round(calculatedQrSize)}px, 폰트:${Math.round(calculatedFontSize)}px), 날짜영역: ${Math.round(dateLocationMax)}px (폰트:${Math.round(dateLocationFont)}px)`);
     };
 
     const handleResize = () => {
@@ -534,21 +534,21 @@ export default function BillboardPage() {
   // YouTube API 로드 (부모에서 한 번만)
   useEffect(() => {
     if (window.YT && window.YT.Player) {
-      console.log('[YouTube API] 이미 로드됨');
+      log('[YouTube API] 이미 로드됨');
       setYoutubeApiReady(true);
       return;
     }
 
     // ✅ 콜백 함수를 변수로 저장 (cleanup에서 제거하기 위함)
     const apiReadyCallback = () => {
-      console.log('[YouTube API] 준비 완료');
+      log('[YouTube API] 준비 완료');
       setYoutubeApiReady(true);
     };
     
     window.onYouTubeIframeAPIReady = apiReadyCallback;
 
     if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      console.log('[YouTube API] 스크립트 로드 시작');
+      log('[YouTube API] 스크립트 로드 시작');
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       const firstScript = document.getElementsByTagName('script')[0];
@@ -558,7 +558,7 @@ export default function BillboardPage() {
     // ✅ Cleanup: 콜백 제거 (메모리 누수 + stale closure 방지)
     return () => {
       if (window.onYouTubeIframeAPIReady === apiReadyCallback) {
-        console.log('[YouTube API] 콜백 cleanup (메모리 누수 방지)');
+        log('[YouTube API] 콜백 cleanup (메모리 누수 방지)');
         // @ts-ignore - noop 함수로 교체
         window.onYouTubeIframeAPIReady = () => {};
       }
@@ -570,7 +570,7 @@ export default function BillboardPage() {
     const WATCHDOG_INTERVAL = 30000; // 30초마다 체크
     const STALL_THRESHOLD = 180000; // 3분(180초) 동안 변화 없으면 새로고침
     
-    console.log('[워치독] 안전장치 시작 - 3분간 슬라이드 전환 없으면 자동 새로고침');
+    log('[워치독] 안전장치 시작 - 3분간 슬라이드 전환 없으면 자동 새로고침');
     
     watchdogTimerRef.current = setInterval(() => {
       const now = Date.now();
@@ -609,7 +609,7 @@ export default function BillboardPage() {
         window.location.reload();
       } else if (timeSinceLastChange >= 120000) {
         // 2분 경과 시 경고 로그
-        console.warn(`[워치독] ⚠️ ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음 (1분 후 자동 새로고침)`);
+        warn(`[워치독] ⚠️ ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음 (1분 후 자동 새로고침)`);
       }
     }, WATCHDOG_INTERVAL);
     
@@ -624,13 +624,13 @@ export default function BillboardPage() {
   // ✅ 모든 타이머 정리 함수 (메모리 누수 방지)
   // ⚠️ watchdogTimer는 제외 (한 번만 생성되고 계속 실행되어야 함)
   const clearAllTimers = useCallback(() => {
-    console.log('[🧹 타이머 정리] 슬라이드 관련 타이머 정리 시작');
+    log('[🧹 타이머 정리] 슬라이드 관련 타이머 정리 시작');
     
     // 슬라이드 전환 타이머 (setInterval)
     if (slideTimerRef.current) {
       clearInterval(slideTimerRef.current);
       slideTimerRef.current = null;
-      console.log('[🧹 타이머 정리] slideTimer 정리 완료');
+      log('[🧹 타이머 정리] slideTimer 정리 완료');
     }
     
     // ⚠️ watchdogTimer는 정리하지 않음 (3분 자동 복구 기능 유지)
@@ -640,31 +640,31 @@ export default function BillboardPage() {
     if (preloadTimerRef.current) {
       clearTimeout(preloadTimerRef.current);
       preloadTimerRef.current = null;
-      console.log('[🧹 타이머 정리] preloadTimer 정리 완료');
+      log('[🧹 타이머 정리] preloadTimer 정리 완료');
     }
     
     // 전환 애니메이션 타이머들 (setTimeout[])
     if (transitionTimersRef.current.length > 0) {
       transitionTimersRef.current.forEach(timer => clearTimeout(timer));
       transitionTimersRef.current = [];
-      console.log('[🧹 타이머 정리] transitionTimers 정리 완료');
+      log('[🧹 타이머 정리] transitionTimers 정리 완료');
     }
     
     // 데이터 새로고침 타이머 (setTimeout)
     if (reloadTimerRef.current) {
       clearTimeout(reloadTimerRef.current);
       reloadTimerRef.current = null;
-      console.log('[🧹 타이머 정리] reloadTimer 정리 완료');
+      log('[🧹 타이머 정리] reloadTimer 정리 완료');
     }
     
     // 재생 재시도 타이머 (setTimeout)
     if (playRetryTimerRef.current) {
       clearTimeout(playRetryTimerRef.current);
       playRetryTimerRef.current = null;
-      console.log('[🧹 타이머 정리] playRetryTimer 정리 완료');
+      log('[🧹 타이머 정리] playRetryTimer 정리 완료');
     }
     
-    console.log('[🧹 타이머 정리] ✅ 슬라이드 타이머 정리 완료 (watchdog은 계속 실행 중)');
+    log('[🧹 타이머 정리] ✅ 슬라이드 타이머 정리 완료 (watchdog은 계속 실행 중)');
   }, []);
 
   // 슬라이드 타이머 시작 함수
@@ -684,14 +684,14 @@ export default function BillboardPage() {
       : 0;
     const displayIndex = logIndex >= 0 ? logIndex : 0;
     
-    console.log(`[⏱️ 타이머] 슬라이드 ${displayIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
+    log(`[⏱️ 타이머] 슬라이드 ${displayIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
     
     // ✅ 다음 슬라이드 미리 로드 (재생 시작 5초 후, 슬라이드가 5초보다 짧으면 중간)
     const preloadDelay = Math.min(5000, slideInterval / 2);
     
     // preload 타이머가 없을 때만 설정 (중복 방지)
     if (!preloadTimerRef.current && preloadDelay > 0 && preloadDelay < slideInterval) {
-      console.log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (재생 시작 후 ${preloadDelay/1000}초, 메모리 절약)`);
+      log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (재생 시작 후 ${preloadDelay/1000}초, 메모리 절약)`);
       preloadTimerRef.current = setTimeout(() => {
         const latestEvents = eventsRef.current;
         const latestSettings = settingsRef.current;
@@ -699,7 +699,7 @@ export default function BillboardPage() {
         
         // ✅ events가 없으면 preload 스킵
         if (latestEvents.length === 0) {
-          console.warn(`[미리 로드] events 없음 → 미리 로드 스킵`);
+          warn(`[미리 로드] events 없음 → 미리 로드 스킵`);
           preloadTimerRef.current = null;
           return;
         }
@@ -715,7 +715,7 @@ export default function BillboardPage() {
             );
             precomputedShuffleRef.current = newShuffledList;
             calculatedNextIndex = newShuffledList[0];
-            console.log(`[미리 로드] 플레이리스트 끝 → 새 shuffle 미리 계산, 다음: ${calculatedNextIndex}`);
+            log(`[미리 로드] 플레이리스트 끝 → 새 shuffle 미리 계산, 다음: ${calculatedNextIndex}`);
           } else {
             calculatedNextIndex = latestShuffledPlaylist[next];
           }
@@ -730,8 +730,8 @@ export default function BillboardPage() {
           const hasVideo = !!nextEvent?.video_url;
           const videoId = hasVideo ? nextEvent.video_url?.split('v=')[1]?.split('&')[0] : null;
           
-          console.log(`[🔜 미리 로드] 슬라이드 ${displayIndex} → 다음 슬라이드 ${calculatedNextIndex} 미리 준비 (${preloadDelay}ms 후)`);
-          console.log(`[🔜 미리 로드] ⭐ setNextSlideIndex(${calculatedNextIndex}) 호출`, {
+          log(`[🔜 미리 로드] 슬라이드 ${displayIndex} → 다음 슬라이드 ${calculatedNextIndex} 미리 준비 (${preloadDelay}ms 후)`);
+          log(`[🔜 미리 로드] ⭐ setNextSlideIndex(${calculatedNextIndex}) 호출`, {
             타입: hasVideo ? '영상' : '이미지',
             videoId: videoId || 'N/A',
             제목: nextEvent?.title || 'N/A',
@@ -739,7 +739,7 @@ export default function BillboardPage() {
           });
           setNextSlideIndex(calculatedNextIndex);
         } else {
-          console.warn(`[🔜 미리 로드] ⚠️ 잘못된 인덱스: ${calculatedNextIndex}, events: ${latestEvents.length}`);
+          warn(`[🔜 미리 로드] ⚠️ 잘못된 인덱스: ${calculatedNextIndex}, events: ${latestEvents.length}`);
         }
         preloadTimerRef.current = null;
       }, preloadDelay);
@@ -753,7 +753,7 @@ export default function BillboardPage() {
       const latestShuffledPlaylist = shuffledPlaylistRef.current;
       const latestSettings = settingsRef.current;
       const latestPendingReload = pendingReloadRef.current;
-      console.log(`[타이머 종료] - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
+      log(`[타이머 종료] - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
       
       // 🛡️ 워치독: 타이머 종료 = 정상 작동 신호 (이벤트 1개일 때도 업데이트)
       lastSlideChangeTimeRef.current = Date.now();
@@ -771,21 +771,21 @@ export default function BillboardPage() {
         if (preloadTimerRef.current) {
           clearTimeout(preloadTimerRef.current);
           preloadTimerRef.current = null;
-          console.log(`[🔄 슬라이드 전환] preload 타이머 정리 (전환 완료)`);
+          log(`[🔄 슬라이드 전환] preload 타이머 정리 (전환 완료)`);
         }
         setNextSlideIndex(null);
-        console.log(`[🔄 슬라이드 전환] nextSlideIndex 리셋 → null`);
+        log(`[🔄 슬라이드 전환] nextSlideIndex 리셋 → null`);
         
         // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
         
-        console.log(`[💾 메모리 관리] 슬라이드 전환 시작 - 이전: ${previousIndex}, 메모리 해제 예정`);
+        log(`[💾 메모리 관리] 슬라이드 전환 시작 - 이전: ${previousIndex}, 메모리 해제 예정`);
         
         // 🎯 변경사항 감지 시 데이터만 새로고침 (React.memo가 Player 캐시 보존)
         if (pendingChangesRef.current.length > 0) {
           const changeCount = pendingChangesRef.current.length;
-          console.log(`[변경사항 감지] ${changeCount}건 → 데이터만 새로고침`);
+          log(`[변경사항 감지] ${changeCount}건 → 데이터만 새로고침`);
           
           // 대기열 초기화
           pendingChangesRef.current = [];
@@ -806,7 +806,7 @@ export default function BillboardPage() {
             // ✅ 미리 계산된 shuffle이 있으면 재사용 (부드러운 전환)
             let newList = precomputedShuffleRef.current;
             if (!newList) {
-              console.warn(`[슬라이드 전환] ⚠️ precomputed shuffle 없음, 새로 생성 (전환이 부드럽지 않을 수 있음)`);
+              warn(`[슬라이드 전환] ⚠️ precomputed shuffle 없음, 새로 생성 (전환이 부드럽지 않을 수 있음)`);
               newList = shuffleArray(
                 Array.from({ length: latestEvents.length }, (_, i) => i),
               );
@@ -818,18 +818,18 @@ export default function BillboardPage() {
             const nextIndex = newList[0] ?? 0;
             setCurrentIndex(nextIndex);
             currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
-            console.log(`[슬라이드 전환] Random 모드 wrap → 새 playlist 시작: ${nextIndex}`);
+            log(`[슬라이드 전환] Random 모드 wrap → 새 playlist 시작: ${nextIndex}`);
           } else {
             playlistIndexRef.current = next;
             const nextIndex = latestShuffledPlaylist[next] ?? 0;
-            console.log(`[💾 메모리 관리] 슬라이드 ${nextIndex}로 전환 → 슬라이드 ${previousIndex} 메모리 해제됨 (React 자동)`);
+            log(`[💾 메모리 관리] 슬라이드 ${nextIndex}로 전환 → 슬라이드 ${previousIndex} 메모리 해제됨 (React 자동)`);
             setCurrentIndex(nextIndex);
             currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
           }
         } else {
           setCurrentIndex((prev) => {
             const nextIndex = (prev + 1) % latestEvents.length;
-            console.log(`[💾 메모리 관리] 슬라이드 ${nextIndex}로 전환 → 슬라이드 ${previousIndex} 메모리 해제됨 (React 자동)`);
+            log(`[💾 메모리 관리] 슬라이드 ${nextIndex}로 전환 → 슬라이드 ${previousIndex} 메모리 해제됨 (React 자동)`);
             currentEventIdRef.current = latestEvents[nextIndex]?.id || null; // ID 업데이트
             return nextIndex;
           });
@@ -884,7 +884,7 @@ export default function BillboardPage() {
     const hasVideo = !!currentEvent?.video_url;
     
     // ✅ 슬라이드 전환 시 다음 슬라이드 인덱스 리셋 (이전 미리 로드 취소)
-    console.log(`[🔄 슬라이드 전환] currentIndex: ${prevIndex} → ${currentIndex}, nextSlideIndex 리셋: ${nextSlideIndex} → null`);
+    log(`[🔄 슬라이드 전환] currentIndex: ${prevIndex} → ${currentIndex}, nextSlideIndex 리셋: ${nextSlideIndex} → null`);
     setNextSlideIndex(null);
     
     // 현재 활성 슬라이드 업데이트
@@ -892,34 +892,34 @@ export default function BillboardPage() {
     
     // 이전 슬라이드 pause
     if (prevIndex !== currentIndex && playerRefsRef.current[prevIndex]) {
-      console.log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 슬라이드 일시정지`);
+      log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 슬라이드 일시정지`);
       playerRefsRef.current[prevIndex]?.pauseVideo();
     }
     
     // 현재 슬라이드가 영상이면 재생 시작
     if (hasVideo) {
       const targetIndex = currentIndex;  // 현재 타겟 캡처 (클로저 보존)
-      console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 준비`);
+      log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 준비`);
       // Player가 준비될 때까지 대기 후 재생
       let attemptCount = 0;
       const maxAttempts = 50;  // 최대 5초 대기 (50 * 100ms)
       const attemptPlay = () => {
         // 슬라이드가 변경되었으면 재시도 중단
         if (currentActiveIndexRef.current !== targetIndex) {
-          console.log(`[슬라이드 전환] 슬라이드 ${targetIndex} 재시도 중단 (현재: ${currentActiveIndexRef.current})`);
+          log(`[슬라이드 전환] 슬라이드 ${targetIndex} 재시도 중단 (현재: ${currentActiveIndexRef.current})`);
           return;
         }
         
         const player = playerRefsRef.current[targetIndex];
         // Player가 준비되었는지 확인
         if (player && player.isReady && player.isReady()) {
-          console.log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 시작`);
+          log(`[슬라이드 전환] 현재 슬라이드 ${targetIndex} 재생 시작`);
           player.playVideo();
           
           // ❌ 타이머 시작 제거: 실제 재생 감지 시점(handleVideoPlaying)에서 시작
           // YouTube iframe 로드 시간으로 인해 playVideo() 호출 시점과
           // 실제 재생 시작 시점이 8-10초 차이 날 수 있음
-          console.log(`[디버그] playVideo() 호출 완료, 실제 재생 시 타이머 시작 예정`);
+          log(`[디버그] playVideo() 호출 완료, 실제 재생 시 타이머 시작 예정`);
         } else if (attemptCount < maxAttempts) {
           // Player가 아직 준비 안되면 100ms 후 재시도
           attemptCount++;
@@ -932,7 +932,7 @@ export default function BillboardPage() {
           const currentSettings = settingsRef.current;
           if (currentSettings) {
             const fallbackInterval = currentSettings.auto_slide_interval || 5000;
-            console.log(`[Fallback 타이머] 영상 로드 실패, 이미지 타이머로 전환: ${fallbackInterval}ms`);
+            log(`[Fallback 타이머] 영상 로드 실패, 이미지 타이머로 전환: ${fallbackInterval}ms`);
             startSlideTimer(fallbackInterval);
           }
         }
@@ -945,7 +945,7 @@ export default function BillboardPage() {
 
   // YouTube 재생 콜백 (useCallback으로 안정화)
   const handleVideoPlaying = useCallback((slideIndex: number) => {
-    console.log('[빌보드] 영상 재생 감지 (onStateChange), 슬라이드:', slideIndex);
+    log('[빌보드] 영상 재생 감지 (onStateChange), 슬라이드:', slideIndex);
     const currentActiveIndex = currentActiveIndexRef.current;
     
     // 현재 활성 슬라이드의 영상만 처리
@@ -954,7 +954,7 @@ export default function BillboardPage() {
         const wasLoaded = prev[slideIndex];
         if (!wasLoaded) {
           // 🖼️ 첫 로드 시: 썸네일 DOM 제거 (메모리 해제)
-          console.log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - ✅ 썸네일 DOM 제거 (메모리 해제)`, {
+          log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - ✅ 썸네일 DOM 제거 (메모리 해제)`, {
             설명: '비디오 재생 시작, 썸네일 디코딩 버퍼 해제됨'
           });
         }
@@ -965,7 +965,7 @@ export default function BillboardPage() {
       const currentSettings = settingsRef.current;
       if (currentSettings) {
         const slideInterval = currentSettings.video_play_duration || 10000;
-        console.log(`[타이머 시작] 실제 재생 감지, 타이머: ${slideInterval}ms`);
+        log(`[타이머 시작] 실제 재생 감지, 타이머: ${slideInterval}ms`);
         startSlideTimer(slideInterval);
       }
     }
@@ -992,20 +992,20 @@ export default function BillboardPage() {
     loadBillboardData();
 
     // ✅ 중복 구독 방지: 기존 채널이 있으면 먼저 제거
-    console.log('[📡 채널 관리] Supabase 채널 설정 시작');
+    log('[📡 채널 관리] Supabase 채널 설정 시작');
     
     if (eventsChannelRef.current) {
-      console.log('[📡 채널 관리] ⚠️ 기존 eventsChannel 발견 - 제거');
+      log('[📡 채널 관리] ⚠️ 기존 eventsChannel 발견 - 제거');
       supabase.removeChannel(eventsChannelRef.current);
       eventsChannelRef.current = null;
     }
     if (settingsChannelRef.current) {
-      console.log('[📡 채널 관리] ⚠️ 기존 settingsChannel 발견 - 제거');
+      log('[📡 채널 관리] ⚠️ 기존 settingsChannel 발견 - 제거');
       supabase.removeChannel(settingsChannelRef.current);
       settingsChannelRef.current = null;
     }
     if (deployChannelRef.current) {
-      console.log('[📡 채널 관리] ⚠️ 기존 deployChannel 발견 - 제거');
+      log('[📡 채널 관리] ⚠️ 기존 deployChannel 발견 - 제거');
       supabase.removeChannel(deployChannelRef.current);
       deployChannelRef.current = null;
     }
@@ -1017,11 +1017,11 @@ export default function BillboardPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "events" },
         (payload) => {
-          console.log("[변경사항 감지] 이벤트 변경:", payload.eventType, payload);
+          log("[변경사항 감지] 이벤트 변경:", payload.eventType, payload);
           
           // 이벤트가 0개일 때는 즉시 데이터만 새로고침 (타이머가 안 돌아가므로)
           if (eventsRef.current.length === 0) {
-            console.log("[변경사항 감지] 빈 화면 → 즉시 데이터 새로고침");
+            log("[변경사항 감지] 빈 화면 → 즉시 데이터 새로고침");
             setRealtimeStatus("새 이벤트 감지! 즉시 새로고침...");
             // ✅ 이전 reload 타이머 정리 (메모리 누수 방지)
             if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
@@ -1036,7 +1036,7 @@ export default function BillboardPage() {
           // ✅ 최대 100개 제한 (메모리 누수 방지)
           const MAX_PENDING_CHANGES = 100;
           if (pendingChangesRef.current.length >= MAX_PENDING_CHANGES) {
-            console.warn(`[변경사항 감지] ⚠️ 대기열 가득참 (${MAX_PENDING_CHANGES}개) - 오래된 항목 제거`);
+            warn(`[변경사항 감지] ⚠️ 대기열 가득참 (${MAX_PENDING_CHANGES}개) - 오래된 항목 제거`);
             pendingChangesRef.current = [...pendingChangesRef.current.slice(-MAX_PENDING_CHANGES + 1), payload];
           } else {
             pendingChangesRef.current = [...pendingChangesRef.current, payload];
@@ -1052,7 +1052,7 @@ export default function BillboardPage() {
         },
       )
       .subscribe((status) => {
-        console.log('[📡 채널 관리] eventsChannel 상태:', status);
+        log('[📡 채널 관리] eventsChannel 상태:', status);
         setRealtimeStatus(`데이터: ${status}`);
       });
 
@@ -1079,7 +1079,7 @@ export default function BillboardPage() {
         },
       )
       .subscribe((status) => {
-        console.log('[📡 채널 관리] settingsChannel 상태:', status);
+        log('[📡 채널 관리] settingsChannel 상태:', status);
         setRealtimeStatus(`설정: ${status}`);
       });
 
@@ -1089,42 +1089,42 @@ export default function BillboardPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "deployments" },
         (payload) => {
-          console.log("새 배포 감지!", payload);
+          log("새 배포 감지!", payload);
           setPendingReload(true);
           pendingReloadTimeRef.current = Date.now();
           setRealtimeStatus("새 배포! 슬라이드 완료 후 새로고침...");
         },
       )
       .subscribe((status) => {
-        console.log('[📡 채널 관리] deployChannel 상태:', status);
+        log('[📡 채널 관리] deployChannel 상태:', status);
         setRealtimeStatus(`배포: ${status}`);
       });
 
-    console.log('[📡 채널 관리] ✅ 3개 채널 생성 완료 (중복 방지됨)');
+    log('[📡 채널 관리] ✅ 3개 채널 생성 완료 (중복 방지됨)');
 
     return () => {
       // ✅ 모든 타이머 일괄 정리 (메모리 누수 방지)
-      console.log("[cleanup] 컴포넌트 언마운트: 모든 타이머 및 채널 정리");
+      log("[cleanup] 컴포넌트 언마운트: 모든 타이머 및 채널 정리");
       clearAllTimers();
       
       // ✅ 채널 정리 (ref에서)
-      console.log('[📡 채널 관리] cleanup: Supabase 채널 제거 시작');
+      log('[📡 채널 관리] cleanup: Supabase 채널 제거 시작');
       if (eventsChannelRef.current) {
         supabase.removeChannel(eventsChannelRef.current);
         eventsChannelRef.current = null;
-        console.log('[📡 채널 관리] eventsChannel 제거 완료');
+        log('[📡 채널 관리] eventsChannel 제거 완료');
       }
       if (settingsChannelRef.current) {
         supabase.removeChannel(settingsChannelRef.current);
         settingsChannelRef.current = null;
-        console.log('[📡 채널 관리] settingsChannel 제거 완료');
+        log('[📡 채널 관리] settingsChannel 제거 완료');
       }
       if (deployChannelRef.current) {
         supabase.removeChannel(deployChannelRef.current);
         deployChannelRef.current = null;
-        console.log('[📡 채널 관리] deployChannel 제거 완료');
+        log('[📡 채널 관리] deployChannel 제거 완료');
       }
-      console.log('[📡 채널 관리] ✅ 모든 채널 제거 완료');
+      log('[📡 채널 관리] ✅ 모든 채널 제거 완료');
     };
   }, [userId, clearAllTimers]);
 
@@ -1171,7 +1171,7 @@ export default function BillboardPage() {
 
   const loadBillboardData = useCallback(async () => {
     try {
-      console.log("[빌보드] 데이터 리로드: 기존 타이머 정리 중...");
+      log("[빌보드] 데이터 리로드: 기존 타이머 정리 중...");
 
       const { data: user, error: userError } = await supabase
         .from("billboard_users")
@@ -1188,7 +1188,7 @@ export default function BillboardPage() {
         .eq("billboard_user_id", userId)
         .single();
       if (settingsError) throw new Error("빌보드 설정을 불러올 수 없습니다.");
-      console.log("[빌보드] 설정 로드:", {
+      log("[빌보드] 설정 로드:", {
         auto_slide_interval: userSettings.auto_slide_interval,
         video_play_duration: userSettings.video_play_duration,
         auto_slide_interval_video: userSettings.auto_slide_interval_video,
@@ -1206,7 +1206,7 @@ export default function BillboardPage() {
       if (eventsError) throw eventsError;
 
       const filteredEvents = filterEvents(allEvents || [], userSettings);
-      console.log("[빌보드] 필터링 완료:", {
+      log("[빌보드] 필터링 완료:", {
         전체이벤트: allEvents?.length || 0,
         필터링후: filteredEvents.length,
         날짜필터시작: userSettings.date_filter_start || 'null',
@@ -1219,11 +1219,11 @@ export default function BillboardPage() {
         setShuffledPlaylist([]);
         
         // ✅ playerRefsRef 배열 정리 (이벤트 0개)
-        console.log('[💾 메모리 관리] 이벤트 0개 → playerRefsRef 배열 완전 비우기');
+        log('[💾 메모리 관리] 이벤트 0개 → playerRefsRef 배열 완전 비우기');
         playerRefsRef.current.length = 0;
         
         // ✅ videoLoadedMap 정리 (이벤트 0개)
-        console.log('[💾 메모리 관리] 이벤트 0개 → videoLoadedMap 완전 비우기');
+        log('[💾 메모리 관리] 이벤트 0개 → videoLoadedMap 완전 비우기');
         setVideoLoadedMap({});
       } else {
         setEvents(filteredEvents);
@@ -1244,13 +1244,13 @@ export default function BillboardPage() {
         
         if (oldLength > newLength) {
           // 배열이 줄어들 때: 남는 Player 참조 제거
-          console.log(`[💾 메모리 관리] playerRefsRef 배열 축소: ${oldLength} → ${newLength}`);
+          log(`[💾 메모리 관리] playerRefsRef 배열 축소: ${oldLength} → ${newLength}`);
           
           // 남는 슬롯의 Player는 이미 isVisible=false로 destroy됨
           // 배열 크기만 조정하여 참조 제거
           playerRefsRef.current.length = newLength;
           
-          console.log('[💾 메모리 관리] ✅ 남는 Player 참조 제거 완료');
+          log('[💾 메모리 관리] ✅ 남는 Player 참조 제거 완료');
           
           // ✅ videoLoadedMap도 정리 (남는 항목 제거)
           setVideoLoadedMap(prev => {
@@ -1262,12 +1262,12 @@ export default function BillboardPage() {
             }
             const removedCount = Object.keys(prev).length - Object.keys(newMap).length;
             if (removedCount > 0) {
-              console.log(`[💾 메모리 관리] videoLoadedMap 정리: ${removedCount}개 항목 제거`);
+              log(`[💾 메모리 관리] videoLoadedMap 정리: ${removedCount}개 항목 제거`);
             }
             return newMap;
           });
         } else if (oldLength < newLength) {
-          console.log(`[💾 메모리 관리] playerRefsRef 배열 확장: ${oldLength} → ${newLength} (새 슬라이드 추가됨)`);
+          log(`[💾 메모리 관리] playerRefsRef 배열 확장: ${oldLength} → ${newLength} (새 슬라이드 추가됨)`);
         }
       }
       setIsLoading(false);
@@ -1297,21 +1297,21 @@ export default function BillboardPage() {
     // 이미지 슬라이드만 여기서 타이머 시작
     if (!hasVideo) {
       const slideInterval = settings.auto_slide_interval;
-      console.log(`[슬라이드 ${currentIndex}] 이미지 감지 - 즉시 타이머 시작: ${slideInterval}ms`);
+      log(`[슬라이드 ${currentIndex}] 이미지 감지 - 즉시 타이머 시작: ${slideInterval}ms`);
       startSlideTimer(slideInterval);
     } else {
       // 영상 슬라이드: 이미 재생 중이면 타이머 재시작 (데이터 새로고침 후 타이머 손실 방지)
       if (currentVideoLoaded) {
         const slideInterval = settings.video_play_duration || 10000;
-        console.log(`[슬라이드 ${currentIndex}] 영상 이미 재생 중 - 타이머 재시작: ${slideInterval}ms`);
+        log(`[슬라이드 ${currentIndex}] 영상 이미 재생 중 - 타이머 재시작: ${slideInterval}ms`);
         startSlideTimer(slideInterval);
       } else {
-        console.log(`[슬라이드 ${currentIndex}] 영상 감지 - 실제 재생 감지 시 타이머 시작 예정`);
+        log(`[슬라이드 ${currentIndex}] 영상 감지 - 실제 재생 감지 시 타이머 시작 예정`);
       }
     }
 
     return () => {
-      console.log(`[타이머 cleanup] 슬라이드 ${currentIndex} 타이머 정리`);
+      log(`[타이머 cleanup] 슬라이드 ${currentIndex} 타이머 정리`);
       if (slideTimerRef.current) {
         clearInterval(slideTimerRef.current);
         slideTimerRef.current = null;
@@ -1437,10 +1437,10 @@ export default function BillboardPage() {
                 ref={(el) => {
                   if (el) {
                     playerRefsRef.current[slideIndex] = el;
-                    console.log(`[💾 메모리 관리] playerRefsRef[${slideIndex}] = Player 참조 저장`);
+                    log(`[💾 메모리 관리] playerRefsRef[${slideIndex}] = Player 참조 저장`);
                   } else {
                     playerRefsRef.current[slideIndex] = null;
-                    console.log(`[💾 메모리 관리] playerRefsRef[${slideIndex}] = null (참조 해제)`);
+                    log(`[💾 메모리 관리] playerRefsRef[${slideIndex}] = null (참조 해제)`);
                   }
                 }}
                 videoId={videoInfo.videoId}
@@ -1461,7 +1461,7 @@ export default function BillboardPage() {
               style={{ backgroundColor: "#000" }}
               loading="lazy"
               onLoad={() => {
-                console.log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - 이미지 로드 완료`, {
+                log(`[🖼️ 이미지] 슬라이드 ${slideIndex} - 이미지 로드 완료`, {
                   imageUrl: imageUrl.substring(0, 50) + '...',
                   타입: '일반 이미지'
                 });
@@ -1821,7 +1821,7 @@ export default function BillboardPage() {
           
           // ✅ 로그: 렌더링 판단
           if (shouldRender) {
-            console.log(`[🎬 렌더링] 슬라이드 ${index} 렌더링 중 - currentIndex: ${currentIndex}, nextSlideIndex: ${nextSlideIndex}, 역할: ${index === currentIndex ? '현재' : '다음'}`);
+            log(`[🎬 렌더링] 슬라이드 ${index} 렌더링 중 - currentIndex: ${currentIndex}, nextSlideIndex: ${nextSlideIndex}, 역할: ${index === currentIndex ? '현재' : '다음'}`);
           }
           
           if (!shouldRender) return null;
