@@ -83,13 +83,28 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
   useEffect(() => {
     if (!isVisible && playerRef.current) {
       try {
+        // 메모리 측정 (제거 전)
+        const memBeforeDestroy = (performance as any).memory?.usedJSHeapSize ?? 0;
+        const memBeforeDestroyMB = (memBeforeDestroy / 1024 / 1024).toFixed(1);
+        
         console.log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - isVisible=false 감지, 메모리 해제 시작`, {
           videoId,
           playerExists: !!playerRef.current,
           wasReady: playerReady.current
         });
+        console.log(`[💾 메모리] PLAYER ${slideIndex} 제거 전 - 현재 메모리: ${memBeforeDestroyMB}MB`);
         console.log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} 메모리에서 제거 중 (destroy 호출) - videoId: ${videoId}`);
+        
         playerRef.current.destroy();
+        
+        // 메모리 측정 (제거 후) - GC가 즉시 실행되지 않을 수 있음
+        setTimeout(() => {
+          const memAfterDestroy = (performance as any).memory?.usedJSHeapSize ?? 0;
+          const memAfterDestroyMB = (memAfterDestroy / 1024 / 1024).toFixed(1);
+          const memFreed = ((memBeforeDestroy - memAfterDestroy) / 1024 / 1024).toFixed(1);
+          console.log(`[💾 메모리] PLAYER ${slideIndex} 제거 후 - 현재: ${memAfterDestroyMB}MB (감소: ${memFreed}MB, GC 대기중일 수 있음)`);
+        }, 100);
+        
         console.log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} 메모리 해제 완료 - RAM에서 제거됨`);
       } catch (err) {
         console.error('[YouTube] Player destroy 실패:', err);
@@ -125,13 +140,18 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
     }
 
     const playerId = `yt-player-${slideIndex}`;
+    
+    // 메모리 측정 (생성 전)
+    const memBefore = (performance as any).memory?.usedJSHeapSize ?? 0;
+    const memBeforeMB = (memBefore / 1024 / 1024).toFixed(1);
+    
     console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - 🔧 생성 시작`, {
       playerId,
       videoId,
       isVisible,
       apiReady
     });
-    console.log(`[🎮 플레이어] ⚠️ PLAYER ${slideIndex} 인스턴스 생성 중 (메모리 할당)`);
+    console.log(`[💾 메모리] PLAYER ${slideIndex} 생성 전 - 현재 메모리: ${memBeforeMB}MB`);
     
     const timer = setTimeout(() => {
       const element = document.getElementById(playerId);
@@ -175,6 +195,11 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
               const availableQualities = event.target.getAvailableQualityLevels?.() ?? [];
               const volume = event.target.getVolume?.() ?? 0;
               
+              // 메모리 측정 (준비 완료 시)
+              const memReady = (performance as any).memory?.usedJSHeapSize ?? 0;
+              const memReadyMB = (memReady / 1024 / 1024).toFixed(1);
+              const totalMemMB = ((performance as any).memory?.totalJSHeapSize ?? 0) / 1024 / 1024;
+              
               console.log(`[📊 플레이어 데이터] 슬라이드 ${slideIndex} - ✅ 준비 완료 (READY)`, {
                 videoId,
                 canPlay: true,
@@ -188,6 +213,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
                 볼륨: volume,
                 메모리상태: '로드됨'
               });
+              console.log(`[💾 메모리] PLAYER ${slideIndex} 준비 완료 - 현재: ${memReadyMB}MB / 총 할당: ${totalMemMB.toFixed(1)}MB`);
               // 현재 슬라이드만 자동 재생 (나머지는 pause 상태 유지)
               // 부모 컴포넌트에서 명시적으로 playVideo 호출할 예정
             },
@@ -277,8 +303,14 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, {
             },
           },
         });
+        
+        // 메모리 측정 (생성 후)
+        const memAfter = (performance as any).memory?.usedJSHeapSize ?? 0;
+        const memAfterMB = (memAfter / 1024 / 1024).toFixed(1);
+        const memDiff = ((memAfter - memBefore) / 1024 / 1024).toFixed(1);
+        
         console.log(`[🎮 플레이어] 슬라이드 ${slideIndex} - Player 객체 생성 완료 (초기화 대기 중...)`);
-        console.log(`[🎮 플레이어] ✅ PLAYER ${slideIndex} 메모리에 로드됨 (YouTube iframe 활성화)`);
+        console.log(`[💾 메모리] PLAYER ${slideIndex} 생성 후 - 현재: ${memAfterMB}MB (증가: +${memDiff}MB)`);
       } catch (err) {
         console.error('[YouTube] Player 생성 실패:', err);
       }
