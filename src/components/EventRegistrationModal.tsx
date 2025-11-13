@@ -755,6 +755,13 @@ export default function EventRegistrationModal({
                             const today = new Date();
                             changeMonth(today.getMonth());
                             changeYear(today.getFullYear());
+                            setStartDateInput(formatDateForInput(today));
+                            if (endDate < today) {
+                              setEndDate(today);
+                            }
+                            if (onMonthChange) {
+                              onMonthChange(today);
+                            }
                           };
 
                           return (
