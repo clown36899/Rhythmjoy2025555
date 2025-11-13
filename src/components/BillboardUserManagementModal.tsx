@@ -20,6 +20,14 @@ interface BillboardUserManagementModalProps {
   onClose: () => void;
 }
 
+// 한국 시간 기준 오늘 날짜 (KST = UTC+9)
+const getTodayKST = () => {
+  const today = new Date();
+  const koreaOffset = 9 * 60;
+  const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
+  return koreaTime.toISOString().split('T')[0];
+};
+
 export default function BillboardUserManagementModal({
   isOpen,
   onClose,
@@ -38,20 +46,12 @@ export default function BillboardUserManagementModal({
   const [autoSlideInterval, setAutoSlideInterval] = useState(5000);
   const [videoPlayDuration, setVideoPlayDuration] = useState(10000);
   const [playOrder, setPlayOrder] = useState<'sequential' | 'random'>('sequential');
-  const [dateFilterStart, setDateFilterStart] = useState('');
+  const [dateFilterStart, setDateFilterStart] = useState(getTodayKST());
   const [dateFilterEnd, setDateFilterEnd] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
-  
-  // 한국 시간 기준 오늘 날짜 (KST = UTC+9)
-  const getTodayKST = () => {
-    const today = new Date();
-    const koreaOffset = 9 * 60;
-    const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
-    return koreaTime.toISOString().split('T')[0];
-  };
   const todayKST = getTodayKST();
 
   useEffect(() => {

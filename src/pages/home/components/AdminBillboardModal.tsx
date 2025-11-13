@@ -476,13 +476,12 @@ export default function AdminBillboardModal({
                     <div className="flex-1 relative">
                       <input
                         type="date"
-                        value={userSettings.date_filter_start || ""}
+                        value={userSettings.date_filter_start || todayKST}
                         min={todayKST}
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_start: e.target.value || null })
                         }
                         className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
-                        style={!userSettings.date_filter_start ? { color: 'transparent' } : {}}
                       />
                       {!userSettings.date_filter_start && (
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
