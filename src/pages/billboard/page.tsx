@@ -793,6 +793,33 @@ export default function BillboardPage() {
           transitionTimersRef.current.push(statusTimer);
         }
         
+        // ⚡ videoLoadedMap 먼저 초기화 (setCurrentIndex 전에!)
+        setVideoLoadedMap(prev => {
+          const newMap = { ...prev };
+          delete newMap[previousIndex]; // 이전 슬라이드 초기화
+          
+          // 다음 슬라이드 인덱스 미리 계산하여 초기화
+          if (latestSettings?.play_order === 'random') {
+            const next = playlistIndexRef.current + 1;
+            if (next >= latestShuffledPlaylist.length) {
+              const newList = precomputedShuffleRef.current || shuffleArray(
+                Array.from({ length: latestEvents.length }, (_, i) => i),
+              );
+              const nextIndex = newList[0] ?? 0;
+              delete newMap[nextIndex]; // 다음 슬라이드 초기화
+            } else {
+              const nextIndex = latestShuffledPlaylist[next] ?? 0;
+              delete newMap[nextIndex]; // 다음 슬라이드 초기화
+            }
+          } else {
+            const nextIndex = (previousIndex + 1) % latestEvents.length;
+            delete newMap[nextIndex]; // 다음 슬라이드 초기화
+          }
+          
+          log(`[🖼️ 썸네일] videoLoadedMap 초기화 완료 (썸네일 표시 준비)`);
+          return newMap;
+        });
+        
         // 정상 슬라이드 전환 (플레이리스트 재구성 없을 때만)
         if (latestSettings?.play_order === "random") {
           const next = playlistIndexRef.current + 1;
@@ -828,31 +855,6 @@ export default function BillboardPage() {
             return nextIndex;
           });
         }
-        
-        // 슬라이드 전환 후 비디오 로딩 상태 초기화
-        // ✅ 비디오 로딩 상태 초기화 타이머 저장 (메모리 누수 방지)
-        const videoLoadedTimer = setTimeout(() => {
-          setVideoLoadedMap(prev => {
-            const latestEvents = eventsRef.current;
-            const latestShuffledPlaylist = shuffledPlaylistRef.current;
-            const latestSettings = settingsRef.current;
-            
-            // 다음 슬라이드 인덱스 계산
-            let nextSlideIndex: number;
-            if (latestSettings?.play_order === 'random') {
-              const playlistIdx = playlistIndexRef.current;
-              nextSlideIndex = latestShuffledPlaylist[playlistIdx] ?? 0;
-            } else {
-              nextSlideIndex = (previousIndex + 1) % latestEvents.length;
-            }
-            
-            const newMap = { ...prev };
-            delete newMap[previousIndex]; // 이전 슬라이드 초기화
-            delete newMap[nextSlideIndex]; // 다음 슬라이드 초기화 (썸네일 다시 표시)
-            return newMap;
-          });
-        }, 100);
-        transitionTimersRef.current.push(videoLoadedTimer);
       }, 500);
       transitionTimersRef.current.push(transitionTimer);
     }, slideInterval);
