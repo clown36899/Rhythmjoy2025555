@@ -749,37 +749,50 @@ export default function EventRegistrationModal({
                           increaseMonth,
                           prevMonthButtonDisabled,
                           nextMonthButtonDisabled,
-                        }) => (
-                          <div className="flex items-center justify-between px-2 py-2">
-                            <button
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                decreaseMonth();
-                              }}
-                              disabled={prevMonthButtonDisabled}
-                              type="button"
-                              className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
-                            >
-                              <i className="ri-arrow-left-s-line text-xl"></i>
-                            </button>
-                            <span className="text-black font-medium">
-                              {date.getMonth() + 1}월
-                            </span>
-                            <button
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                increaseMonth();
-                              }}
-                              disabled={nextMonthButtonDisabled}
-                              type="button"
-                              className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
-                            >
-                              <i className="ri-arrow-right-s-line text-xl"></i>
-                            </button>
-                          </div>
-                        )}
+                        }) => {
+                          console.log('[DatePicker] renderCustomHeader 호출됨', {
+                            currentMonth: date.getMonth() + 1,
+                            prevDisabled: prevMonthButtonDisabled,
+                            nextDisabled: nextMonthButtonDisabled
+                          });
+                          return (
+                            <div className="flex items-center justify-between px-2 py-2">
+                              <button
+                                onMouseDown={(e) => {
+                                  console.log('[DatePicker] 이전 달 버튼 클릭됨');
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('[DatePicker] decreaseMonth 호출 직전');
+                                  decreaseMonth();
+                                  console.log('[DatePicker] decreaseMonth 호출 완료');
+                                }}
+                                disabled={prevMonthButtonDisabled}
+                                type="button"
+                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                              >
+                                <i className="ri-arrow-left-s-line text-xl"></i>
+                              </button>
+                              <span className="text-black font-medium">
+                                {date.getMonth() + 1}월
+                              </span>
+                              <button
+                                onMouseDown={(e) => {
+                                  console.log('[DatePicker] 다음 달 버튼 클릭됨');
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('[DatePicker] increaseMonth 호출 직전');
+                                  increaseMonth();
+                                  console.log('[DatePicker] increaseMonth 호출 완료');
+                                }}
+                                disabled={nextMonthButtonDisabled}
+                                type="button"
+                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                              >
+                                <i className="ri-arrow-right-s-line text-xl"></i>
+                              </button>
+                            </div>
+                          );
+                        }}
                       />
                     </div>
                     <div>
@@ -812,37 +825,50 @@ export default function EventRegistrationModal({
                           increaseMonth,
                           prevMonthButtonDisabled,
                           nextMonthButtonDisabled,
-                        }) => (
-                          <div className="flex items-center justify-between px-2 py-2">
-                            <button
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                decreaseMonth();
-                              }}
-                              disabled={prevMonthButtonDisabled}
-                              type="button"
-                              className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
-                            >
-                              <i className="ri-arrow-left-s-line text-xl"></i>
-                            </button>
-                            <span className="text-black font-medium">
-                              {date.getMonth() + 1}월
-                            </span>
-                            <button
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                increaseMonth();
-                              }}
-                              disabled={nextMonthButtonDisabled}
-                              type="button"
-                              className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
-                            >
-                              <i className="ri-arrow-right-s-line text-xl"></i>
-                            </button>
-                          </div>
-                        )}
+                        }) => {
+                          console.log('[DatePicker] renderCustomHeader 호출됨', {
+                            currentMonth: date.getMonth() + 1,
+                            prevDisabled: prevMonthButtonDisabled,
+                            nextDisabled: nextMonthButtonDisabled
+                          });
+                          return (
+                            <div className="flex items-center justify-between px-2 py-2">
+                              <button
+                                onMouseDown={(e) => {
+                                  console.log('[DatePicker] 이전 달 버튼 클릭됨');
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('[DatePicker] decreaseMonth 호출 직전');
+                                  decreaseMonth();
+                                  console.log('[DatePicker] decreaseMonth 호출 완료');
+                                }}
+                                disabled={prevMonthButtonDisabled}
+                                type="button"
+                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                              >
+                                <i className="ri-arrow-left-s-line text-xl"></i>
+                              </button>
+                              <span className="text-black font-medium">
+                                {date.getMonth() + 1}월
+                              </span>
+                              <button
+                                onMouseDown={(e) => {
+                                  console.log('[DatePicker] 다음 달 버튼 클릭됨');
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('[DatePicker] increaseMonth 호출 직전');
+                                  increaseMonth();
+                                  console.log('[DatePicker] increaseMonth 호출 완료');
+                                }}
+                                disabled={nextMonthButtonDisabled}
+                                type="button"
+                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                              >
+                                <i className="ri-arrow-right-s-line text-xl"></i>
+                              </button>
+                            </div>
+                          );
+                        }}
                       />
                     </div>
                   </div>
@@ -909,37 +935,50 @@ export default function EventRegistrationModal({
                           increaseMonth,
                           prevMonthButtonDisabled,
                           nextMonthButtonDisabled,
-                        }) => (
-                          <div className="flex items-center justify-between px-2 py-2">
-                            <button
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                decreaseMonth();
-                              }}
-                              disabled={prevMonthButtonDisabled}
-                              type="button"
-                              className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
-                            >
-                              <i className="ri-arrow-left-s-line text-xl"></i>
-                            </button>
-                            <span className="text-black font-medium">
-                              {date.getMonth() + 1}월
-                            </span>
-                            <button
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                increaseMonth();
-                              }}
-                              disabled={nextMonthButtonDisabled}
-                              type="button"
-                              className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
-                            >
-                              <i className="ri-arrow-right-s-line text-xl"></i>
-                            </button>
-                          </div>
-                        )}
+                        }) => {
+                          console.log('[DatePicker] renderCustomHeader 호출됨', {
+                            currentMonth: date.getMonth() + 1,
+                            prevDisabled: prevMonthButtonDisabled,
+                            nextDisabled: nextMonthButtonDisabled
+                          });
+                          return (
+                            <div className="flex items-center justify-between px-2 py-2">
+                              <button
+                                onMouseDown={(e) => {
+                                  console.log('[DatePicker] 이전 달 버튼 클릭됨');
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('[DatePicker] decreaseMonth 호출 직전');
+                                  decreaseMonth();
+                                  console.log('[DatePicker] decreaseMonth 호출 완료');
+                                }}
+                                disabled={prevMonthButtonDisabled}
+                                type="button"
+                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                              >
+                                <i className="ri-arrow-left-s-line text-xl"></i>
+                              </button>
+                              <span className="text-black font-medium">
+                                {date.getMonth() + 1}월
+                              </span>
+                              <button
+                                onMouseDown={(e) => {
+                                  console.log('[DatePicker] 다음 달 버튼 클릭됨');
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('[DatePicker] increaseMonth 호출 직전');
+                                  increaseMonth();
+                                  console.log('[DatePicker] increaseMonth 호출 완료');
+                                }}
+                                disabled={nextMonthButtonDisabled}
+                                type="button"
+                                className="text-black hover:bg-gray-200 p-1 rounded disabled:opacity-50"
+                              >
+                                <i className="ri-arrow-right-s-line text-xl"></i>
+                              </button>
+                            </div>
+                          );
+                        }}
                       />
                       <button
                         type="button"
