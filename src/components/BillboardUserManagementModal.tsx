@@ -84,7 +84,7 @@ export default function BillboardUserManagementModal({
 
   const loadEvents = async () => {
     try {
-      // 날짜 필터 적용 (종료날짜 기준)
+      // 날짜 필터 적용 (시작날짜 기준)
       const startDate = dateFilterStart || todayKST;
       const endDate = dateFilterEnd;
 
@@ -96,16 +96,17 @@ export default function BillboardUserManagementModal({
 
       if (error) throw error;
 
-      // 종료날짜 기준 필터 적용 + 제외 요일 필터 적용
+      // 시작날짜 기준 필터 적용 + 제외 요일 필터 적용
       const filteredEvents = (data || []).filter(event => {
         const eventDate = new Date(event.start_date || event.date);
         const dayOfWeek = eventDate.getDay();
         if (excludedWeekdays.includes(dayOfWeek)) return false;
 
-        // 종료날짜 기준으로 필터링
-        const eventEndDate = new Date(event.end_date || event.start_date || event.date);
-        if (eventEndDate < new Date(startDate)) return false;
-        if (endDate && eventEndDate > new Date(endDate)) return false;
+        // 시작날짜 기준으로 필터링 (빌보드 실제 필터링과 동일)
+        const eventStartDate = new Date(event.start_date || event.date);
+        eventStartDate.setHours(0, 0, 0, 0);
+        if (eventStartDate < new Date(startDate)) return false;
+        if (endDate && eventStartDate > new Date(endDate)) return false;
 
         return true;
       });
