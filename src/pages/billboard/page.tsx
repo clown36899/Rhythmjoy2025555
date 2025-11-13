@@ -590,22 +590,59 @@ export default function BillboardPage() {
     };
   }, [userId]); // 워치독은 한 번만 시작, Ref로 최신 값 추적
 
-  // 슬라이드 타이머 시작 함수
-  const startSlideTimer = useCallback((slideInterval: number) => {
-    // ✅ 기존 모든 타이머 정리 (메모리 누수 방지)
+  // ✅ 모든 타이머 정리 함수 (메모리 누수 방지)
+  const clearAllTimers = useCallback(() => {
+    console.log('[🧹 타이머 정리] 모든 타이머 정리 시작');
+    
+    // 슬라이드 전환 타이머 (setInterval)
     if (slideTimerRef.current) {
       clearInterval(slideTimerRef.current);
       slideTimerRef.current = null;
+      console.log('[🧹 타이머 정리] slideTimer 정리 완료');
     }
-    // transition 타이머들 정리
-    transitionTimersRef.current.forEach(timer => clearTimeout(timer));
-    transitionTimersRef.current = [];
-    // reload 타이머 정리
+    
+    // 워치독 타이머 (setInterval)
+    if (watchdogTimerRef.current) {
+      clearInterval(watchdogTimerRef.current);
+      watchdogTimerRef.current = null;
+      console.log('[🧹 타이머 정리] watchdogTimer 정리 완료');
+    }
+    
+    // 미리 로드 타이머 (setTimeout)
+    if (preloadTimerRef.current) {
+      clearTimeout(preloadTimerRef.current);
+      preloadTimerRef.current = null;
+      console.log('[🧹 타이머 정리] preloadTimer 정리 완료');
+    }
+    
+    // 전환 애니메이션 타이머들 (setTimeout[])
+    if (transitionTimersRef.current.length > 0) {
+      transitionTimersRef.current.forEach(timer => clearTimeout(timer));
+      transitionTimersRef.current = [];
+      console.log('[🧹 타이머 정리] transitionTimers 정리 완료');
+    }
+    
+    // 데이터 새로고침 타이머 (setTimeout)
     if (reloadTimerRef.current) {
       clearTimeout(reloadTimerRef.current);
       reloadTimerRef.current = null;
+      console.log('[🧹 타이머 정리] reloadTimer 정리 완료');
     }
-    // ✅ preload 타이머는 여기서 정리하지 않음 (슬라이드 전환 시에만 정리)
+    
+    // 재생 재시도 타이머 (setTimeout)
+    if (playRetryTimerRef.current) {
+      clearTimeout(playRetryTimerRef.current);
+      playRetryTimerRef.current = null;
+      console.log('[🧹 타이머 정리] playRetryTimer 정리 완료');
+    }
+    
+    console.log('[🧹 타이머 정리] ✅ 모든 타이머 정리 완료');
+  }, []);
+
+  // 슬라이드 타이머 시작 함수
+  const startSlideTimer = useCallback((slideInterval: number) => {
+    // ✅ 모든 타이머 일괄 정리 (중복 생성 방지, 메모리 누수 방지)
+    clearAllTimers();
     
     const startTime = Date.now();
     slideStartTimeRef.current = startTime;
@@ -783,7 +820,7 @@ export default function BillboardPage() {
       }, 500);
       transitionTimersRef.current.push(transitionTimer);
     }, slideInterval);
-  }, []); // 모든 state ref로 변경, dependency array 비움 (stale closure 완전 제거)
+  }, [clearAllTimers]); // clearAllTimers 함수 포함 (타이머 정리)
 
 
   // State-Ref 동기화 (stale closure 방지)
@@ -1027,26 +1064,9 @@ export default function BillboardPage() {
     console.log('[📡 채널 관리] ✅ 3개 채널 생성 완료 (중복 방지됨)');
 
     return () => {
-      // ✅ 모든 타이머 정리 (메모리 누수 방지)
-      console.log("[cleanup] 컴포넌트 언마운트: 모든 타이머 정리");
-      // transition 타이머들 정리
-      transitionTimersRef.current.forEach(timer => clearTimeout(timer));
-      transitionTimersRef.current = [];
-      // reload 타이머 정리
-      if (reloadTimerRef.current) {
-        clearTimeout(reloadTimerRef.current);
-        reloadTimerRef.current = null;
-      }
-      // play retry 타이머 정리
-      if (playRetryTimerRef.current) {
-        clearTimeout(playRetryTimerRef.current);
-        playRetryTimerRef.current = null;
-      }
-      // ✅ preload 타이머 정리
-      if (preloadTimerRef.current) {
-        clearTimeout(preloadTimerRef.current);
-        preloadTimerRef.current = null;
-      }
+      // ✅ 모든 타이머 일괄 정리 (메모리 누수 방지)
+      console.log("[cleanup] 컴포넌트 언마운트: 모든 타이머 및 채널 정리");
+      clearAllTimers();
       
       // ✅ 채널 정리 (ref에서)
       console.log('[📡 채널 관리] cleanup: Supabase 채널 제거 시작');
@@ -1067,7 +1087,7 @@ export default function BillboardPage() {
       }
       console.log('[📡 채널 관리] ✅ 모든 채널 제거 완료');
     };
-  }, [userId]);
+  }, [userId, clearAllTimers]);
 
   const filterEvents = useCallback((
     allEvents: Event[],
