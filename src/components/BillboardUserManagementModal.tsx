@@ -84,10 +84,6 @@ export default function BillboardUserManagementModal({
 
   const loadEvents = async () => {
     try {
-      // 날짜 필터 적용 (시작날짜 기준)
-      const startDate = dateFilterStart || todayKST;
-      const endDate = dateFilterEnd;
-
       let query = supabase
         .from('events')
         .select('id, title, start_date, end_date, date, image_full, image, video_url');
@@ -96,18 +92,39 @@ export default function BillboardUserManagementModal({
 
       if (error) throw error;
 
-      // 시작날짜 기준 필터 적용 + 제외 요일 필터 적용
-      const filteredEvents = (data || []).filter(event => {
-        const eventDate = new Date(event.start_date || event.date);
-        const dayOfWeek = eventDate.getDay();
-        if (excludedWeekdays.includes(dayOfWeek)) return false;
-
-        // 시작날짜 기준으로 필터링 (빌보드 실제 필터링과 동일)
-        const eventStartDate = new Date(event.start_date || event.date);
+      // 빌보드와 완전히 동일한 필터링 로직 (billboard/page.tsx 658-686줄)
+      // 한국 시간 기준 오늘 날짜 (KST = UTC+9)
+      const today = new Date();
+      const koreaOffset = 9 * 60;
+      const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
+      koreaTime.setHours(0, 0, 0, 0);
+      
+      const filteredEvents = (data || []).filter((event) => {
+        if (!event?.image_full && !event?.image && !event?.video_url) return false;
+        const eventDate = new Date(event.start_date || event.date || "");
+        const weekday = eventDate.getDay();
+        if (excludedWeekdays.includes(weekday)) return false;
+        
+        // 시작날짜 기준으로 필터링 (지난 이벤트 제외)
+        const eventStartDate = new Date(event.start_date || event.date || "");
         eventStartDate.setHours(0, 0, 0, 0);
-        if (eventStartDate < new Date(startDate)) return false;
-        if (endDate && eventStartDate > new Date(endDate)) return false;
-
+        
+        // 관리자 설정 날짜 범위 필터
+        if (dateFilterStart) {
+          const filterStart = new Date(dateFilterStart);
+          filterStart.setHours(0, 0, 0, 0);
+          if (eventStartDate < filterStart) return false;
+        }
+        if (dateFilterEnd) {
+          const filterEnd = new Date(dateFilterEnd);
+          filterEnd.setHours(0, 0, 0, 0);
+          if (eventStartDate > filterEnd) return false;
+        }
+        
+        // 기본 필터: 시작일이 오늘 이전이면 제외 (시작일 >= 오늘만 노출)
+        if (!dateFilterStart && !dateFilterEnd) {
+          if (eventStartDate < koreaTime) return false;
+        }
         return true;
       });
 
@@ -550,7 +567,9 @@ export default function BillboardUserManagementModal({
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 mb-2">당일 포함 이후 이벤트만 표시됩니다</p>
+                  <p className="text-xs text-gray-400 mb-2">
+                    총 <span className="font-bold text-blue-400">{events.length}개</span> 이벤트 (미디어 있는 이벤트만 표시)
+                  </p>
                   <div className="max-h-40 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
                     {events.length === 0 ? (
                       <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
