@@ -525,30 +525,59 @@ export default function BillboardPage() {
     };
   }, []);
 
-  // YouTube API 로드 (부모에서 한 번만)
+  // YouTube API 로드 (전역 Promise 기반, 메모리 누수 방지)
   useEffect(() => {
-    if (window.YT && window.YT.Player) {
-      log('[YouTube API] 이미 로드됨');
-      setYoutubeApiReady(true);
-      return;
+    const isMountedRef = { current: true };
+
+    // ✅ 전역 Promise로 YouTube API 로드 (중복 로드 방지, 메모리 안전)
+    if (!(window as any).__ytApiPromise) {
+      (window as any).__ytApiPromise = new Promise<void>((resolve) => {
+        // 이미 로드됨
+        if (window.YT && window.YT.Player) {
+          log('[YouTube API] 이미 로드됨 (Promise 즉시 resolve)');
+          resolve();
+          return;
+        }
+
+        // 이전 핸들러 백업
+        const prevHandler = window.onYouTubeIframeAPIReady;
+        
+        // API 준비 콜백 설정
+        window.onYouTubeIframeAPIReady = () => {
+          log('[YouTube API] 준비 완료 (Promise resolve)');
+          // 이전 핸들러 실행 (있다면)
+          if (prevHandler && typeof prevHandler === 'function') {
+            prevHandler();
+          }
+          resolve();
+        };
+
+        // 스크립트 로드
+        if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+          log('[YouTube API] 스크립트 로드 시작');
+          const tag = document.createElement('script');
+          tag.src = 'https://www.youtube.com/iframe_api';
+          const firstScript = document.getElementsByTagName('script')[0];
+          firstScript.parentNode?.insertBefore(tag, firstScript);
+        }
+      });
     }
 
-    // ✅ API 준비 콜백 설정
-    window.onYouTubeIframeAPIReady = () => {
-      log('[YouTube API] 준비 완료');
-      setYoutubeApiReady(true);
+    // Promise 기다린 후 상태 업데이트 (isMounted guard로 메모리 누수 방지)
+    (window as any).__ytApiPromise.then(() => {
+      if (isMountedRef.current) {
+        log('[YouTube API] API 준비 완료 → youtubeApiReady = true');
+        setYoutubeApiReady(true);
+      } else {
+        log('[YouTube API] 컴포넌트 unmount됨 → 상태 업데이트 스킵 (메모리 누수 방지)');
+      }
+    });
+
+    // Cleanup: unmount 시 플래그만 false로 설정
+    return () => {
+      isMountedRef.current = false;
+      log('[YouTube API] cleanup - isMounted = false');
     };
-
-    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      log('[YouTube API] 스크립트 로드 시작');
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScript = document.getElementsByTagName('script')[0];
-      firstScript.parentNode?.insertBefore(tag, firstScript);
-    }
-    
-    // ⚠️ Cleanup 제거: YouTube API는 전역 리소스이며 한 번만 로드되면 됨
-    // cleanup에서 콜백을 제거하면 API 로드 중 콜백이 무효화되어 youtubeApiReady가 false로 남음
   }, []);
 
   // 🛡️ 워치독(Watchdog): 3분간 슬라이드 전환 없으면 자동 새로고침
