@@ -533,13 +533,11 @@ export default function BillboardPage() {
       return;
     }
 
-    // ✅ 콜백 함수를 변수로 저장 (cleanup에서 제거하기 위함)
-    const apiReadyCallback = () => {
+    // ✅ API 준비 콜백 설정
+    window.onYouTubeIframeAPIReady = () => {
       log('[YouTube API] 준비 완료');
       setYoutubeApiReady(true);
     };
-    
-    window.onYouTubeIframeAPIReady = apiReadyCallback;
 
     if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
       log('[YouTube API] 스크립트 로드 시작');
@@ -549,14 +547,8 @@ export default function BillboardPage() {
       firstScript.parentNode?.insertBefore(tag, firstScript);
     }
     
-    // ✅ Cleanup: 콜백 제거 (메모리 누수 + stale closure 방지)
-    return () => {
-      if (window.onYouTubeIframeAPIReady === apiReadyCallback) {
-        log('[YouTube API] 콜백 cleanup (메모리 누수 방지)');
-        // @ts-ignore - noop 함수로 교체
-        window.onYouTubeIframeAPIReady = () => {};
-      }
-    };
+    // ⚠️ Cleanup 제거: YouTube API는 전역 리소스이며 한 번만 로드되면 됨
+    // cleanup에서 콜백을 제거하면 API 로드 중 콜백이 무효화되어 youtubeApiReady가 false로 남음
   }, []);
 
   // 🛡️ 워치독(Watchdog): 3분간 슬라이드 전환 없으면 자동 새로고침
