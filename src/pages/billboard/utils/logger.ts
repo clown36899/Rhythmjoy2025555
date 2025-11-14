@@ -1,5 +1,5 @@
-// ✅ 빌보드 로그 제어 (썸네일 문제 디버깅을 위해 임시 활성화)
-const ENABLE_BILLBOARD_LOGS = true;
+// ✅ 빌보드 로그 제어 (배포 시 비활성화)
+const ENABLE_BILLBOARD_LOGS = false;
 
 // 로그 래퍼 함수 (프로덕션에서는 자동으로 비활성화)
 export const log = (...args: any[]) => {

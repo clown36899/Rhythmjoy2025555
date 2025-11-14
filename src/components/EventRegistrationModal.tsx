@@ -67,7 +67,7 @@ export default function EventRegistrationModal({
   onEventCreated,
   onMonthChange,
   fromBanner = false,
-  bannerMonthBounds,
+  bannerMonthBounds: _bannerMonthBounds,
 }: EventRegistrationModalProps) {
   const { isAdmin } = useAuth();
   const [formData, setFormData] = useState({
