@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback, type RefObject } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, type RefObject } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
@@ -24,6 +24,27 @@ import { EventCard } from "./EventCard";
 import EventPasswordModal from "./EventPasswordModal";
 
 registerLocale("ko", ko);
+
+// ForwardRef 커스텀 입력 컴포넌트
+interface CustomInputProps {
+  value?: string;
+  onClick?: () => void;
+}
+
+const CustomDateInput = forwardRef<HTMLButtonElement, CustomInputProps>(
+  ({ value, onClick }, ref) => (
+    <button
+      type="button"
+      ref={ref}
+      onClick={onClick}
+      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
+    >
+      {value || "날짜 선택"}
+    </button>
+  )
+);
+
+CustomDateInput.displayName = "CustomDateInput";
 
 const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
@@ -2282,14 +2303,40 @@ export default function EventList({
                               }
                             }
                           }}
-                          dateFormat="yyyy-MM-dd"
                           locale="ko"
-                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          shouldCloseOnSelect={false}
+                          customInput={
+                            <CustomDateInput
+                              value={
+                                editFormData.start_date
+                                  ? `${new Date(editFormData.start_date + "T00:00:00").getMonth() + 1}.${new Date(editFormData.start_date + "T00:00:00").getDate()}`
+                                  : undefined
+                              }
+                            />
+                          }
                           calendarClassName="bg-gray-800"
-                          placeholderText="날짜 선택"
                           withPortal
                           portalId="root-portal"
-                          renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
+                          renderCustomHeader={(props) => (
+                            <CustomDatePickerHeader
+                              {...props}
+                              selectedDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
+                              onTodayClick={() => {
+                                const today = new Date();
+                                props.changeMonth(today.getMonth());
+                                props.changeYear(today.getFullYear());
+                                const todayStr = formatDateForInput(today);
+                                setEditFormData((prev) => ({
+                                  ...prev,
+                                  start_date: todayStr,
+                                  end_date: !prev.end_date || prev.end_date < todayStr ? todayStr : prev.end_date,
+                                }));
+                                if (onMonthChange) {
+                                  onMonthChange(today);
+                                }
+                              }}
+                            />
+                          )}
                         />
                       </div>
                       <div>
@@ -2310,12 +2357,21 @@ export default function EventList({
                               }
                             }
                           }}
+                          startDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
+                          endDate={editFormData.end_date ? new Date(editFormData.end_date + "T00:00:00") : null}
                           minDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : undefined}
-                          dateFormat="yyyy-MM-dd"
                           locale="ko"
-                          className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          shouldCloseOnSelect={false}
+                          customInput={
+                            <CustomDateInput
+                              value={
+                                editFormData.end_date
+                                  ? `${new Date(editFormData.end_date + "T00:00:00").getMonth() + 1}.${new Date(editFormData.end_date + "T00:00:00").getDate()}`
+                                  : undefined
+                              }
+                            />
+                          }
                           calendarClassName="bg-gray-800"
-                          placeholderText="날짜 선택"
                           withPortal
                           portalId="root-portal"
                           renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
