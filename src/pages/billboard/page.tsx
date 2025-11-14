@@ -62,6 +62,17 @@ export default function BillboardPage() {
   const settingsChannelRef = useRef<any>(null);
   const deployChannelRef = useRef<any>(null);
 
+  // 빌보드 페이지 배경색을 검은색으로 설정 (전환 시 화이트 플래시 방지)
+  useEffect(() => {
+    document.body.style.backgroundColor = '#000000';
+    document.documentElement.style.backgroundColor = '#000000';
+    
+    return () => {
+      document.body.style.backgroundColor = '';
+      document.documentElement.style.backgroundColor = '';
+    };
+  }, []);
+
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
     let debounceTimer: NodeJS.Timeout;
