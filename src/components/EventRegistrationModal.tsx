@@ -840,6 +840,7 @@ export default function EventRegistrationModal({
                         renderCustomHeader={(props) => (
                           <CustomDatePickerHeader
                             {...props}
+                            selectedDate={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
                             onTodayClick={() => {
                               const today = new Date();
                               props.changeMonth(today.getMonth());

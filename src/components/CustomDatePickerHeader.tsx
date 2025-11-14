@@ -1,7 +1,8 @@
-import { ReactDatePickerCustomHeaderProps } from "react-datepicker";
+import type { ReactDatePickerCustomHeaderProps } from "react-datepicker";
 
 interface CustomDatePickerHeaderProps extends ReactDatePickerCustomHeaderProps {
   onTodayClick?: () => void;
+  selectedDate?: Date | null;
 }
 
 export default function CustomDatePickerHeader({
@@ -13,6 +14,7 @@ export default function CustomDatePickerHeader({
   prevMonthButtonDisabled,
   nextMonthButtonDisabled,
   onTodayClick,
+  selectedDate,
 }: CustomDatePickerHeaderProps) {
   const handleTodayClick = () => {
     const today = new Date();
@@ -40,6 +42,11 @@ export default function CustomDatePickerHeader({
       <div className="flex items-center gap-2">
         <span className="text-white font-medium">
           {date.getMonth() + 1}월
+          {selectedDate && (
+            <span className="text-blue-400 ml-1">
+              {selectedDate.getDate()}일
+            </span>
+          )}
         </span>
         {onTodayClick && (
           <button
