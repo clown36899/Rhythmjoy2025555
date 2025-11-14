@@ -127,6 +127,8 @@ body, html {
   transition: background-color 0.05s ease, color 0.05s ease;
   border: none !important;
   border-radius: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* 선택된 날짜 - 채도 낮춤 */
@@ -144,6 +146,8 @@ body, html {
   border-radius: 0 !important;
   margin-top: 2px !important;
   margin-bottom: 2px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* 범위 시작 - 왼쪽 라운드 */
@@ -157,6 +161,8 @@ body, html {
   border-bottom-right-radius: 0 !important;
   margin-top: 2px !important;
   margin-bottom: 2px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* 범위 종료 - 오른쪽 라운드 */
@@ -170,6 +176,8 @@ body, html {
   border-bottom-right-radius: 8px !important;
   margin-top: 2px !important;
   margin-bottom: 2px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* hover 반응 */
