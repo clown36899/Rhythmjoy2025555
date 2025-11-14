@@ -192,13 +192,14 @@ body, html {
 .react-datepicker__day {
   width: 2.2rem !important;
   line-height: 2.2rem !important;
-  margin: 0 !important;
+  margin: 0.15rem 0 !important;
   padding: 0 !important;
 }
 
 .react-datepicker__week {
   display: flex !important;
   gap: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .react-datepicker__current-month {
