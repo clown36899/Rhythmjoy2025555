@@ -107,8 +107,18 @@ export default defineConfig({
   ],
   base,
   build: {
-    sourcemap: true,
+    sourcemap: false, // 프로덕션 빌드: sourcemap 비활성화 (파일 크기 감소)
     outDir: "dist",
+    minify: true, // esbuild 최적화 압축 (빠르고 효율적)
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase': ['@supabase/supabase-js'],
+          'charts': ['recharts'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

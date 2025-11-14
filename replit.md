@@ -92,14 +92,21 @@ The billboard system provides a fullscreen slideshow with random/sequential play
 
 This system supports multi-user billboards, allowing Super Admins to create dedicated billboard displays for sub-admins via unique URLs (`/billboard/:userId`). Sub-admins can customize event filtering, auto-slide intervals, and play order. It's optimized for portrait displays with CSS rotation support.
 
-**Performance & Memory Optimizations (Updated: 2025-11-13)**:
+**Performance & Memory Optimizations (Updated: 2025-11-14)**:
 - **Realtime Updates**: Full page reloads for Supabase changes ensure stability; queued until next slide transition when events exist
 - **React.memo Caching**: `YouTubePlayer` components memoized by `videoId` to preserve players across slides
 - **Ref-Based Architecture**: Timer callbacks use refs to prevent stale closure values
 - **Smart Player Reuse**: YouTube Player objects retained in memory for instant reuse, eliminating 8-10s load times
 - **Video End Handling**: Videos ending before configured duration immediately transition to next slide (no loop replay) to prevent memory buildup
-- **CPU Optimization**: Billboard logging disabled in production (`ENABLE_BILLBOARD_LOGS = false`) for 20-30% CPU reduction
+- **CPU Optimization**: Billboard logging disabled in production (`ENABLE_BILLBOARD_LOGS = false` in `src/pages/billboard/utils/logger.ts`) for 20-30% CPU reduction
 - **APK WebView Compatibility**: Designed for long-running Android APK WebView environments with strict memory management (target 50-60MB)
+- **Black Background**: Body/HTML background set to black on billboard page to prevent white flash during slide transitions
+
+**Production Build (Updated: 2025-11-14)**:
+- Build command: `npm run build` (outputs to `dist/` folder)
+- Optimizations: No sourcemaps, esbuild minification, manual chunking (vendor/supabase/charts)
+- Billboard logs: Disabled in production (`ENABLE_BILLBOARD_LOGS = false`)
+- Version tracking: Automatic `version.json` generation with build timestamp
 
 **Known Issues & Solutions (Updated: 2025-11-13)**:
 - **YouTube Thumbnail Display (Resolved)**: Changed thumbnail URL from `maxresdefault.jpg` to `hqdefault.jpg` in `src/utils/videoEmbed.ts` to ensure compatibility with all YouTube videos (many lack max-resolution thumbnails, causing 404 errors)

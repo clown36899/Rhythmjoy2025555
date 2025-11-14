@@ -1,5 +1,5 @@
-// ✅ 빌보드 로그 제어 (APK 인스펙터 테스트용 활성화)
-const ENABLE_BILLBOARD_LOGS = true;
+// ✅ 빌보드 로그 제어 (프로덕션: false, 디버깅: true)
+const ENABLE_BILLBOARD_LOGS = false;
 
 // 로그 래퍼 함수 (프로덕션에서는 자동으로 비활성화)
 export const log = (...args: any[]) => {
