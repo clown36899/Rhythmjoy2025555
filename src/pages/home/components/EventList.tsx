@@ -284,7 +284,21 @@ export default function EventList({
     const eventsCopy = [...eventsToSort];
     const today = getLocalDateString();
 
-    // 진행 중/종료 이벤트 분류 (종료일 기준)
+    // 시간순 정렬일 때는 진행 중/종료 구분 없이 날짜 순서대로만 정렬
+    if (sortType === "time") {
+      return eventsCopy.sort((a, b) => {
+        const dateStrA = a.start_date || a.date;
+        const dateStrB = b.start_date || b.date;
+        if (!dateStrA && !dateStrB) return 0;
+        if (!dateStrA) return 1;
+        if (!dateStrB) return -1;
+        const dateA = new Date(`${dateStrA} ${a.time}`);
+        const dateB = new Date(`${dateStrB} ${b.time}`);
+        return dateA.getTime() - dateB.getTime();
+      });
+    }
+
+    // 랜덤/제목순일 때는 진행 중/종료 이벤트 분류 (종료일 기준)
     const ongoingEvents: Event[] = [];
     const endedEvents: Event[] = [];
 
@@ -312,18 +326,6 @@ export default function EventList({
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
           }
           return shuffled;
-        case "time":
-          // 시간순 정렬 (날짜 + 시간)
-          return group.sort((a, b) => {
-            const dateStrA = a.start_date || a.date;
-            const dateStrB = b.start_date || b.date;
-            if (!dateStrA && !dateStrB) return 0;
-            if (!dateStrA) return 1;
-            if (!dateStrB) return -1;
-            const dateA = new Date(`${dateStrA} ${a.time}`);
-            const dateB = new Date(`${dateStrB} ${b.time}`);
-            return dateA.getTime() - dateB.getTime();
-          });
         case "title":
           // 제목순 정렬 (가나다순)
           return group.sort((a, b) => a.title.localeCompare(b.title, "ko"));
