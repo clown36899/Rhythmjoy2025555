@@ -2907,8 +2907,8 @@ export default function EventList({
           }}
         >
           <div
-            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border-2 relative flex flex-col"
-            style={{ borderColor: "rgb(255 191 19)" }}
+            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border relative flex flex-col"
+            style={{ borderColor: "rgb(89, 89, 89)" }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* 스크롤 가능한 전체 영역 */}
