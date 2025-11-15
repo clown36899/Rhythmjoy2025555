@@ -945,20 +945,18 @@ export default function HomePage() {
               setCurrentMonth(newMonth);
               setDragOffset(0);
               setIsAnimating(false);
-              // 달 이동 시 날짜 리셋하고 이벤트 리스트 표시
+              // 달 이동 시 날짜 리셋 (분류 선택은 유지)
               setSelectedDate(null);
               setFromBanner(false);
               setBannerMonthBounds(null);
-              navigateWithCategory("all");
             }, 300);
           }}
           onDateChange={(newMonth) => {
             setCurrentMonth(newMonth);
-            // 날짜 변경 시 날짜 리셋하고 이벤트 리스트 표시
+            // 날짜 변경 시 날짜 리셋 (분류 선택은 유지)
             setSelectedDate(null);
             setFromBanner(false);
             setBannerMonthBounds(null);
-            navigateWithCategory("all");
           }}
           onAdminModeToggle={handleAdminModeToggle}
           onBillboardOpen={handleBillboardOpen}
