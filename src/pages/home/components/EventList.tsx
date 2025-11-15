@@ -3283,27 +3283,144 @@ export default function EventList({
             </div>
             
             {/* 하단 고정 버튼 영역 */}
-            <div className="border-t border-gray-700 bg-gray-800 p-4 flex gap-3 justify-end">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEditClick(selectedEvent, e);
-                }}
-                className="bg-black/30 hover:bg-black/50 text-yellow-400 hover:text-yellow-300 w-12 h-12 rounded-lg transition-all cursor-pointer backdrop-blur-sm flex items-center justify-center"
-                title="이벤트 수정"
-              >
-                <i className="ri-edit-line text-2xl"></i>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeModal();
-                }}
-                className="bg-gray-600 hover:bg-gray-700 text-white w-12 h-12 rounded-lg transition-all cursor-pointer shadow-lg flex items-center justify-center"
-                title="닫기"
-              >
-                <i className="ri-close-line text-2xl"></i>
-              </button>
+            <div className="border-t border-gray-700 bg-gray-800 p-4 flex flex-wrap gap-2 justify-between items-center">
+              {/* 왼쪽: 바로가기 링크 버튼들 */}
+              <div className="flex gap-2 flex-1 overflow-x-auto min-w-0">
+                {selectedEvent.link1 && (
+                  <a
+                    href={selectedEvent.link1}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-600/50 text-blue-300 px-3 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                    title={selectedEvent.link_name1 || "바로가기 1"}
+                  >
+                    <i className="ri-external-link-line text-base"></i>
+                    <span className="text-sm font-medium">
+                      {selectedEvent.link_name1 || "링크1"}
+                    </span>
+                  </a>
+                )}
+                {selectedEvent.link2 && (
+                  <a
+                    href={selectedEvent.link2}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-600/50 text-blue-300 px-3 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                    title={selectedEvent.link_name2 || "바로가기 2"}
+                  >
+                    <i className="ri-external-link-line text-base"></i>
+                    <span className="text-sm font-medium">
+                      {selectedEvent.link_name2 || "링크2"}
+                    </span>
+                  </a>
+                )}
+                {selectedEvent.link3 && (
+                  <a
+                    href={selectedEvent.link3}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-600/50 text-blue-300 px-3 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                    title={selectedEvent.link_name3 || "바로가기 3"}
+                  >
+                    <i className="ri-external-link-line text-base"></i>
+                    <span className="text-sm font-medium">
+                      {selectedEvent.link_name3 || "링크3"}
+                    </span>
+                  </a>
+                )}
+              </div>
+
+              {/* 오른쪽: 공유, 수정, 닫기 버튼 */}
+              <div className="flex gap-2 flex-shrink-0">
+                {/* 공유 버튼 */}
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    // 현재 URL 기반으로 공유 링크 생성
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('event', selectedEvent.id.toString());
+                    const shareUrl = url.toString();
+                    
+                    // 공유 메시지 구성
+                    const shareTitle = selectedEvent.title;
+                    const shareText = `${selectedEvent.title}\n📍 ${selectedEvent.location}\n📅 ${selectedEvent.date || selectedEvent.start_date}`;
+                    
+                    try {
+                      // 모바일: 네이티브 공유 API 사용
+                      if (navigator.share) {
+                        await navigator.share({
+                          title: shareTitle,
+                          text: shareText,
+                          url: shareUrl,
+                        });
+                      } else {
+                        // 데스크톱: 클립보드 복사
+                        await navigator.clipboard.writeText(shareUrl);
+                        // 성공 피드백 (alert 대신 버튼 색상 변경)
+                        const button = e.currentTarget;
+                        button.classList.remove('text-green-400', 'hover:text-green-300');
+                        button.classList.add('text-blue-400', 'hover:text-blue-300');
+                        const icon = button.querySelector('i');
+                        if (icon) {
+                          icon.classList.remove('ri-share-line');
+                          icon.classList.add('ri-check-line');
+                        }
+                        setTimeout(() => {
+                          button.classList.remove('text-blue-400', 'hover:text-blue-300');
+                          button.classList.add('text-green-400', 'hover:text-green-300');
+                          if (icon) {
+                            icon.classList.remove('ri-check-line');
+                            icon.classList.add('ri-share-line');
+                          }
+                        }, 2000);
+                      }
+                    } catch (err) {
+                      // 공유 취소 또는 실패 시
+                      if ((err as Error).name !== 'AbortError') {
+                        console.error("공유 실패:", err);
+                        // 재시도: 클립보드 복사
+                        try {
+                          await navigator.clipboard.writeText(shareUrl);
+                          const button = e.currentTarget;
+                          button.classList.remove('text-green-400', 'hover:text-green-300');
+                          button.classList.add('text-blue-400', 'hover:text-blue-300');
+                        } catch {
+                          // 완전 실패 시에만 alert
+                          alert("공유에 실패했습니다.");
+                        }
+                      }
+                    }
+                  }}
+                  className="bg-black/30 hover:bg-black/50 text-green-400 hover:text-green-300 w-12 h-12 rounded-lg transition-all cursor-pointer backdrop-blur-sm flex items-center justify-center"
+                  title="공유하기"
+                >
+                  <i className="ri-share-line text-2xl"></i>
+                </button>
+                
+                {/* 수정 버튼 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditClick(selectedEvent, e);
+                  }}
+                  className="bg-black/30 hover:bg-black/50 text-yellow-400 hover:text-yellow-300 w-12 h-12 rounded-lg transition-all cursor-pointer backdrop-blur-sm flex items-center justify-center"
+                  title="이벤트 수정"
+                >
+                  <i className="ri-edit-line text-2xl"></i>
+                </button>
+                
+                {/* 닫기 버튼 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeModal();
+                  }}
+                  className="bg-gray-600 hover:bg-gray-700 text-white w-12 h-12 rounded-lg transition-all cursor-pointer shadow-lg flex items-center justify-center"
+                  title="닫기"
+                >
+                  <i className="ri-close-line text-2xl"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
