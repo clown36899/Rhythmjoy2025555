@@ -2988,7 +2988,7 @@ export default function EventList({
                           src={detailImageUrl}
                           alt={selectedEvent.title}
                           loading="lazy"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain object-top"
                         />
                         {isDefaultThumbnail && (
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
