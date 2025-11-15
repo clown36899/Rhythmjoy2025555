@@ -589,17 +589,26 @@ export default function EventList({
     const params = new URLSearchParams(window.location.search);
     const eventIdParam = params.get("event");
     
+    console.log('[공유 링크] URL 파라미터 확인:', eventIdParam);
+    console.log('[공유 링크] 로드된 이벤트 수:', events.length);
+    
     if (eventIdParam && events.length > 0) {
       const eventId = parseInt(eventIdParam);
       const event = events.find(e => e.id === eventId);
       
+      console.log('[공유 링크] 찾은 이벤트:', event ? event.title : '없음');
+      
       if (event) {
         // 상세 모달 자동 열기
+        console.log('[공유 링크] 상세 모달 열기 시도');
         setTimeout(() => {
           setSelectedEvent(event);
           // URL 파라미터 제거 (깔끔하게)
           window.history.replaceState({}, "", window.location.pathname);
-        }, 300);
+          console.log('[공유 링크] 모달 열림 완료');
+        }, 500);
+      } else {
+        console.log('[공유 링크] 이벤트를 찾지 못함. ID:', eventId);
       }
     }
   }, [events]);
