@@ -911,6 +911,7 @@ export default function EventList({
     searchTerm,
     selectedDate,
     filteredEvents,
+    viewMode,
   ]);
 
   // 필터링된 이벤트를 정렬 (캐싱으로 슬라이드 시 재정렬 방지 및 랜덤 순서 유지)
@@ -930,8 +931,12 @@ export default function EventList({
 
   const sortedCurrentEvents = useMemo(() => {
     if (!currentMonthKey) {
-      // 검색/날짜 선택 시: 정렬하되 캐시하지 않음 (검색 결과는 매번 다를 수 있음)
-      return sortEvents(currentMonthEvents, sortBy, currentMonth);
+      // 검색/날짜 선택/년 모드 시: 정렬하되 캐시하지 않음
+      // 년 모드일 때는 년도 전체 기준으로 정렬 (예: 2025-01-01)
+      const targetMonth = viewMode === "year" && currentMonth
+        ? new Date(currentMonth.getFullYear(), 0, 1)
+        : currentMonth;
+      return sortEvents(currentMonthEvents, sortBy, targetMonth);
     }
     const cacheKey = `${currentMonthKey}-${sortBy}`;
     if (sortedEventsCache.current[cacheKey]) {
@@ -940,7 +945,7 @@ export default function EventList({
     const sorted = sortEvents(currentMonthEvents, sortBy, currentMonth);
     sortedEventsCache.current[cacheKey] = sorted;
     return sorted;
-  }, [currentMonthEvents, sortBy, currentMonthKey, currentMonth]);
+  }, [currentMonthEvents, sortBy, currentMonthKey, currentMonth, viewMode]);
 
   const sortedNextEvents = useMemo(() => {
     if (!nextMonthKey || !currentMonth) return [];
@@ -1998,7 +2003,7 @@ export default function EventList({
                     key={option.id}
                     onClick={() =>
                       handleSortChange(
-                        option.id as "random" | "time" | "title" | "newest",
+                        option.id as "random" | "time" | "title",
                       )
                     }
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
