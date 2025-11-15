@@ -186,19 +186,6 @@ export function MobileShell() {
                 <i className={`${category === 'event' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
               
-              {/* 오늘 버튼 - 현재 월이 아닐 때만 표시 */}
-              {!(calendarView.year === new Date().getFullYear() && calendarView.month === new Date().getMonth()) && (
-                <button
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('resetToToday'));
-                  }}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors bg-green-500/20 border-green-500 text-green-300 hover:bg-green-500/30"
-                >
-                  <span>오늘</span>
-                  <i className="ri-calendar-check-line text-sm"></i>
-                </button>
-              )}
-              
               {/* 강습 버튼 */}
               <button
                 onClick={() => {

@@ -1200,6 +1200,25 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
+                  {/* 오늘 버튼 - 현재 월이 아닐 때만 표시 */}
+                  {currentMonth && !(currentMonth.getFullYear() === new Date().getFullYear() && currentMonth.getMonth() === new Date().getMonth()) && (
+                    <button
+                      onClick={() => {
+                        const today = new Date();
+                        setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+                        setSelectedDate(null);
+                        setFromBanner(false);
+                        setBannerMonthBounds(null);
+                        navigateWithCategory("all");
+                        setSortBy("random");
+                      }}
+                      className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full text-[10px] font-medium border transition-colors bg-green-500/20 border-green-500 text-green-300 hover:bg-green-500/30 flex-shrink-0"
+                    >
+                      <span>오늘</span>
+                      <i className="ri-calendar-check-line text-[10px]"></i>
+                    </button>
+                  )}
+                  
                   {/* 정렬 버튼 */}
                   <button
                     onClick={() => setShowSortModal(true)}
