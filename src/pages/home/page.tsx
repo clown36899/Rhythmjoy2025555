@@ -748,9 +748,7 @@ export default function HomePage() {
     }
 
     setViewMode(mode);
-
-    // 뷰 모드 변경 시 이벤트 리스트 표시
-    navigateWithCategory("all");
+    // 뷰 모드 변경 시 분류 선택 유지
   };
   // 1. 달력 접기/펴기 버튼의 배경색/텍스트를 조건부로 설정하는 상수
   const buttonBgClass =
