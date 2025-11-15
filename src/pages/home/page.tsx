@@ -87,7 +87,7 @@ export default function HomePage() {
   const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
-  const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">(
+  const [sortBy, setSortBy] = useState<"random" | "time" | "title">(
     "random",
   );
   const [highlightEvent, setHighlightEvent] = useState<{
@@ -732,8 +732,6 @@ export default function HomePage() {
         return "ri-time-line";
       case "title":
         return "ri-sort-alphabet-asc";
-      case "newest":
-        return "ri-calendar-line";
       default:
         return "ri-shuffle-line";
     }
@@ -747,8 +745,6 @@ export default function HomePage() {
         return "시간";
       case "title":
         return "제목";
-      case "newest":
-        return "최신";
       default:
         return "랜덤";
     }

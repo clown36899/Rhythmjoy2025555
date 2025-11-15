@@ -24,8 +24,8 @@ interface PracticeRoomListProps {
   setShowSearchModal: (show: boolean) => void;
   showSortModal: boolean;
   setShowSortModal: (show: boolean) => void;
-  sortBy: "random" | "time" | "title" | "newest";
-  setSortBy: (sortBy: "random" | "time" | "title" | "newest") => void;
+  sortBy: "random" | "time" | "title";
+  setSortBy: (sortBy: "random" | "time" | "title") => void;
 }
 
 export default function PracticeRoomList({ 
@@ -110,13 +110,8 @@ export default function PracticeRoomList({
       filtered = [...filtered].sort(() => Math.random() - 0.5);
     } else if (sortBy === "title") {
       filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === "newest") {
-      filtered = [...filtered].sort((a, b) => {
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-        return dateB - dateA;
-      });
     }
+    // 연습실에는 "time" 정렬이 없음 (이벤트만 해당)
 
     return filtered;
   }, [rooms, searchQuery, sortBy]);
@@ -447,21 +442,6 @@ export default function PracticeRoomList({
                 >
                   <i className="ri-sort-alphabet-asc"></i>
                   <span>이름순</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSortBy("newest");
-                    setShowSortModal(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
-                    sortBy === "newest"
-                      ? "bg-blue-600 text-white"
-                      : "bg-[#242424] text-gray-300 hover:bg-gray-600"
-                  }`}
-                >
-                  <i className="ri-calendar-line"></i>
-                  <span>최신순</span>
                 </button>
               </div>
             </div>

@@ -68,8 +68,8 @@ interface EventListProps {
   setShowSearchModal?: (show: boolean) => void;
   showSortModal?: boolean;
   setShowSortModal?: (show: boolean) => void;
-  sortBy?: "random" | "time" | "title" | "newest";
-  setSortBy?: (sort: "random" | "time" | "title" | "newest") => void;
+  sortBy?: "random" | "time" | "title";
+  setSortBy?: (sort: "random" | "time" | "title") => void;
   highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
   dragOffset?: number;
@@ -119,7 +119,7 @@ export default function EventList({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [internalSortBy, setInternalSortBy] = useState<
-    "random" | "time" | "title" | "newest"
+    "random" | "time" | "title"
   >("random");
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
 
@@ -327,13 +327,6 @@ export default function EventList({
         case "title":
           // 제목순 정렬 (가나다순)
           return group.sort((a, b) => a.title.localeCompare(b.title, "ko"));
-        case "newest":
-          // 최신순 정렬 (created_at 기준)
-          return group.sort((a, b) => {
-            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return dateB - dateA;
-          });
         default:
           return group;
       }
@@ -443,7 +436,7 @@ export default function EventList({
   };
 
   const handleSortChange = (
-    newSortBy: "random" | "time" | "title" | "newest",
+    newSortBy: "random" | "time" | "title",
   ) => {
     setSortBy(newSortBy);
     setShowSortModal(false);
@@ -453,7 +446,6 @@ export default function EventList({
     { id: "random", name: "랜덤", icon: "ri-shuffle-line" },
     { id: "time", name: "시간순", icon: "ri-time-line" },
     { id: "title", name: "제목순", icon: "ri-sort-alphabet-asc" },
-    { id: "newest", name: "최신순", icon: "ri-calendar-line" },
   ];
 
   const fetchEvents = useCallback(async () => {
