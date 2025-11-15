@@ -344,13 +344,13 @@ export default function HomePage() {
 
   const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
-  // URL 파라미터 처리 (QR 코드 스캔 또는 이벤트 수정 후 하이라이트)
+  // URL 파라미터 처리 (QR 코드 스캔, 이벤트 수정 후, 공유 링크)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const eventId = params.get("event");
     const source = params.get("from");
 
-    if ((source === "qr" || source === "edit") && eventId) {
+    if (eventId) {
       const id = parseInt(eventId);
       setQrLoading(true);
 
@@ -371,12 +371,15 @@ export default function HomePage() {
               setCurrentMonth(date);
             }
 
-            // 로딩 해제 후 하이라이트
+            // 로딩 해제 (공유 링크는 하이라이트 없이 바로 모달만 열기)
             setTimeout(() => {
               setQrLoading(false);
-              setTimeout(() => {
-                setHighlightEvent({ id, nonce: Date.now() });
-              }, 500);
+              // QR 또는 수정 후 접속 시에만 하이라이트
+              if (source === "qr" || source === "edit") {
+                setTimeout(() => {
+                  setHighlightEvent({ id, nonce: Date.now() });
+                }, 500);
+              }
             }, 100);
           } else {
             setQrLoading(false);
@@ -389,8 +392,8 @@ export default function HomePage() {
 
       loadEventAndNavigate();
 
-      // URL에서 파라미터 제거 (깔끔하게)
-      window.history.replaceState({}, "", window.location.pathname);
+      // URL에서 파라미터 제거 (EventList에서 처리)
+      // window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 

@@ -584,6 +584,26 @@ export default function EventList({
     };
   }, []);
 
+  // URL 파라미터에서 event ID 읽어서 상세 모달 자동 열기 (공유 링크 지원)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const eventIdParam = params.get("event");
+    
+    if (eventIdParam && events.length > 0) {
+      const eventId = parseInt(eventIdParam);
+      const event = events.find(e => e.id === eventId);
+      
+      if (event) {
+        // 상세 모달 자동 열기
+        setTimeout(() => {
+          setSelectedEvent(event);
+          // URL 파라미터 제거 (깔끔하게)
+          window.history.replaceState({}, "", window.location.pathname);
+        }, 300);
+      }
+    }
+  }, [events]);
+
   // 빌보드에서 특정 이벤트 하이라이트
   useEffect(() => {
     if (!highlightEvent?.id) return;
