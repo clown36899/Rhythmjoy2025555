@@ -94,6 +94,7 @@ export default function HomePage() {
     id: number;
     nonce: number;
   } | null>(null);
+  const [sharedEventId, setSharedEventId] = useState<number | null>(null);
   const [eventJustCreated, setEventJustCreated] = useState<number>(0); // 이벤트 생성 시에만 변경
   const [calendarMode, setCalendarMode] = useState<
     "collapsed" | "expanded" | "fullscreen"
@@ -354,6 +355,12 @@ export default function HomePage() {
       const id = parseInt(eventId);
       setQrLoading(true);
 
+      // 공유 링크로 온 경우 EventList에서 모달을 열 수 있도록 ID 저장
+      if (!source || (source !== "qr" && source !== "edit")) {
+        console.log('[공유 링크 처리] 공유 링크로 접속. 이벤트 ID:', id);
+        setSharedEventId(id);
+      }
+
       // 이벤트 정보 조회 후 달력 이동
       const loadEventAndNavigate = async () => {
         try {
@@ -371,7 +378,7 @@ export default function HomePage() {
               setCurrentMonth(date);
             }
 
-            // 로딩 해제 (공유 링크는 하이라이트 없이 바로 모달만 열기)
+            // 로딩 해제
             setTimeout(() => {
               setQrLoading(false);
               // QR 또는 수정 후 접속 시에만 하이라이트
@@ -392,8 +399,8 @@ export default function HomePage() {
 
       loadEventAndNavigate();
 
-      // URL에서 파라미터 제거 (EventList에서 처리)
-      // window.history.replaceState({}, "", window.location.pathname);
+      // URL에서 파라미터 제거 (깔끔하게)
+      window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 
@@ -1336,6 +1343,8 @@ export default function HomePage() {
               setSortBy={setSortBy}
               highlightEvent={highlightEvent}
               onHighlightComplete={handleHighlightComplete}
+              sharedEventId={sharedEventId}
+              onSharedEventOpened={() => setSharedEventId(null)}
               dragOffset={dragOffset}
               isAnimating={isAnimating}
               slideContainerRef={eventListSlideContainerRef}

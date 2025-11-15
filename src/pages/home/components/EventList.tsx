@@ -72,6 +72,8 @@ interface EventListProps {
   setSortBy?: (sort: "random" | "time" | "title") => void;
   highlightEvent?: { id: number; nonce: number } | null;
   onHighlightComplete?: () => void;
+  sharedEventId?: number | null;
+  onSharedEventOpened?: () => void;
   dragOffset?: number;
   isAnimating?: boolean;
   slideContainerRef?: RefObject<HTMLDivElement | null>;
@@ -97,6 +99,8 @@ export default function EventList({
   setSortBy: externalSetSortBy,
   highlightEvent,
   onHighlightComplete,
+  sharedEventId,
+  onSharedEventOpened,
   dragOffset: externalDragOffset = 0,
   isAnimating: externalIsAnimating = false,
   slideContainerRef,
@@ -584,17 +588,13 @@ export default function EventList({
     };
   }, []);
 
-  // URL 파라미터에서 event ID 읽어서 상세 모달 자동 열기 (공유 링크 지원)
+  // props로 전달받은 공유 이벤트 ID로 상세 모달 자동 열기
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const eventIdParam = params.get("event");
-    
-    console.log('[공유 링크] URL 파라미터 확인:', eventIdParam);
-    console.log('[공유 링크] 로드된 이벤트 수:', events.length);
-    
-    if (eventIdParam && events.length > 0) {
-      const eventId = parseInt(eventIdParam);
-      const event = events.find(e => e.id === eventId);
+    if (sharedEventId && events.length > 0) {
+      console.log('[공유 링크] 이벤트 ID:', sharedEventId);
+      console.log('[공유 링크] 로드된 이벤트 수:', events.length);
+      
+      const event = events.find(e => e.id === sharedEventId);
       
       console.log('[공유 링크] 찾은 이벤트:', event ? event.title : '없음');
       
@@ -603,15 +603,16 @@ export default function EventList({
         console.log('[공유 링크] 상세 모달 열기 시도');
         setTimeout(() => {
           setSelectedEvent(event);
-          // URL 파라미터 제거 (깔끔하게)
-          window.history.replaceState({}, "", window.location.pathname);
+          if (onSharedEventOpened) {
+            onSharedEventOpened();
+          }
           console.log('[공유 링크] 모달 열림 완료');
         }, 500);
       } else {
-        console.log('[공유 링크] 이벤트를 찾지 못함. ID:', eventId);
+        console.log('[공유 링크] 이벤트를 찾지 못함. ID:', sharedEventId);
       }
     }
-  }, [events]);
+  }, [sharedEventId, events, onSharedEventOpened]);
 
   // 빌보드에서 특정 이벤트 하이라이트
   useEffect(() => {
