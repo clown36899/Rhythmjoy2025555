@@ -260,16 +260,29 @@ export default function HomePage() {
 
           setDragOffset(targetOffset);
 
-          // 🎯 월 변경 로직을 setTimeout 내부로 이동하여 최신 currentMonth 사용
+          // 🎯 월/년 변경 로직을 setTimeout 내부로 이동하여 최신 currentMonth 사용
           setTimeout(() => {
             setCurrentMonth((prevMonth) => {
               const newMonth = new Date(prevMonth);
               newMonth.setDate(1);
-              if (direction === "prev") {
-                newMonth.setMonth(prevMonth.getMonth() - 1);
+              
+              // viewMode에 따라 월 또는 년 단위 이동
+              if (viewMode === "year") {
+                // 연간 보기: 년 단위로 이동
+                if (direction === "prev") {
+                  newMonth.setFullYear(prevMonth.getFullYear() - 1);
+                } else {
+                  newMonth.setFullYear(prevMonth.getFullYear() + 1);
+                }
               } else {
-                newMonth.setMonth(prevMonth.getMonth() + 1);
+                // 월간 보기: 월 단위로 이동
+                if (direction === "prev") {
+                  newMonth.setMonth(prevMonth.getMonth() - 1);
+                } else {
+                  newMonth.setMonth(prevMonth.getMonth() + 1);
+                }
               }
+              
               return newMonth;
             });
             setSelectedDate(null);
@@ -319,7 +332,8 @@ export default function HomePage() {
     };
 
     // 🎯 dependencies에서 currentMonth 제거 - 함수형 업데이트로 최신 값 사용
-  }, [containerRef, isAnimating]);
+    // viewMode 추가 - 년/월 모드에 따라 이동 단위 변경
+  }, [containerRef, isAnimating, viewMode]);
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
   const [fromQR] = useState(() => {
