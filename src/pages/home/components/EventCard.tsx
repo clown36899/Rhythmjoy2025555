@@ -130,7 +130,7 @@ export const EventCard = memo(({
               src={finalThumbnailUrl}
               alt={event.title}
               loading="lazy"
-              className="w-full object-cover object-center bg-gray-900"
+              className="w-full object-contain object-top bg-gray-900"
               style={{ height: "-webkit-fill-available" }}
             />
             {variant === "sliding" && !event?.image && !event?.image_thumbnail && (
