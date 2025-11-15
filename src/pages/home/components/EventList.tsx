@@ -3408,16 +3408,8 @@ export default function EventList({
                       // 공유 취소 또는 실패 시
                       if ((err as Error).name !== 'AbortError') {
                         console.error("공유 실패:", err);
-                        // 재시도: 클립보드 복사
-                        try {
-                          await navigator.clipboard.writeText(shareUrl);
-                          const button = e.currentTarget;
-                          button.classList.remove('text-green-400', 'hover:text-green-300');
-                          button.classList.add('text-blue-400', 'hover:text-blue-300');
-                        } catch {
-                          // 완전 실패 시에만 alert
-                          alert("공유에 실패했습니다.");
-                        }
+                        // 카카오톡 인앱 브라우저 등에서 실패 시 안내
+                        alert("카카오톡에서는 공유 기능이 제한됩니다.\n\n우측 상단 메뉴(⋮)에서\n'다른 브라우저로 열기'를 선택한 후\n공유해주세요.");
                       }
                     }
                   }}
