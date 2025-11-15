@@ -280,12 +280,12 @@ export default function EventList({
   };
 
   // 이벤트 정렬 함수 (targetMonth를 명시적으로 받음)
-  const sortEvents = (eventsToSort: Event[], sortType: string, targetMonth?: Date) => {
+  const sortEvents = (eventsToSort: Event[], sortType: string, targetMonth?: Date, isYearView: boolean = false) => {
     const eventsCopy = [...eventsToSort];
     const today = getLocalDateString();
 
-    // 시간순 정렬일 때는 진행 중/종료 구분 없이 날짜 순서대로만 정렬
-    if (sortType === "time") {
+    // 년 단위 + 시간순일 때는 진행 중/종료 구분 없이 날짜 순서대로만 정렬
+    if (isYearView && sortType === "time") {
       return eventsCopy.sort((a, b) => {
         const dateStrA = a.start_date || a.date;
         const dateStrB = b.start_date || b.date;
@@ -298,7 +298,7 @@ export default function EventList({
       });
     }
 
-    // 랜덤/제목순일 때는 진행 중/종료 이벤트 분류 (종료일 기준)
+    // 달 단위 또는 랜덤/제목순일 때는 진행 중/종료 이벤트 분류 (종료일 기준)
     const ongoingEvents: Event[] = [];
     const endedEvents: Event[] = [];
 
@@ -326,6 +326,18 @@ export default function EventList({
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
           }
           return shuffled;
+        case "time":
+          // 시간순 정렬 (날짜 + 시간) - 달 단위에서만 사용
+          return group.sort((a, b) => {
+            const dateStrA = a.start_date || a.date;
+            const dateStrB = b.start_date || b.date;
+            if (!dateStrA && !dateStrB) return 0;
+            if (!dateStrA) return 1;
+            if (!dateStrB) return -1;
+            const dateA = new Date(`${dateStrA} ${a.time}`);
+            const dateB = new Date(`${dateStrB} ${b.time}`);
+            return dateA.getTime() - dateB.getTime();
+          });
         case "title":
           // 제목순 정렬 (가나다순)
           return group.sort((a, b) => a.title.localeCompare(b.title, "ko"));
@@ -926,7 +938,7 @@ export default function EventList({
     // 이전 달의 Date 객체 생성
     const prevMonth = new Date(currentMonth.getTime());
     prevMonth.setMonth(currentMonth.getMonth() - 1);
-    const sorted = sortEvents(prevMonthEvents, sortBy, prevMonth);
+    const sorted = sortEvents(prevMonthEvents, sortBy, prevMonth, false);
     sortedEventsCache.current[cacheKey] = sorted;
     return sorted;
   }, [prevMonthEvents, sortBy, prevMonthKey, currentMonth]);
@@ -938,13 +950,14 @@ export default function EventList({
       const targetMonth = viewMode === "year" && currentMonth
         ? new Date(currentMonth.getFullYear(), 0, 1)
         : currentMonth;
-      return sortEvents(currentMonthEvents, sortBy, targetMonth);
+      const isYearView = viewMode === "year";
+      return sortEvents(currentMonthEvents, sortBy, targetMonth, isYearView);
     }
     const cacheKey = `${currentMonthKey}-${sortBy}`;
     if (sortedEventsCache.current[cacheKey]) {
       return sortedEventsCache.current[cacheKey];
     }
-    const sorted = sortEvents(currentMonthEvents, sortBy, currentMonth);
+    const sorted = sortEvents(currentMonthEvents, sortBy, currentMonth, false);
     sortedEventsCache.current[cacheKey] = sorted;
     return sorted;
   }, [currentMonthEvents, sortBy, currentMonthKey, currentMonth, viewMode]);
@@ -958,7 +971,7 @@ export default function EventList({
     // 다음 달의 Date 객체 생성
     const nextMonth = new Date(currentMonth.getTime());
     nextMonth.setMonth(currentMonth.getMonth() + 1);
-    const sorted = sortEvents(nextMonthEvents, sortBy, nextMonth);
+    const sorted = sortEvents(nextMonthEvents, sortBy, nextMonth, false);
     sortedEventsCache.current[cacheKey] = sorted;
     return sorted;
   }, [nextMonthEvents, sortBy, nextMonthKey, currentMonth]);
