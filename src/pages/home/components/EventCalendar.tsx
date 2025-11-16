@@ -160,16 +160,20 @@ export default function EventCalendar({
     fetchEvents();
   }, [currentMonth]);
 
-  // 이벤트 삭제 감지를 위한 이벤트 리스너 추가
+  // 이벤트 생성/수정/삭제 감지를 위한 이벤트 리스너 추가
   useEffect(() => {
-    const handleEventDeleted = () => {
+    const handleEventChange = () => {
       fetchEvents();
     };
 
-    window.addEventListener("eventDeleted", handleEventDeleted);
+    window.addEventListener("eventCreated", handleEventChange);
+    window.addEventListener("eventUpdated", handleEventChange);
+    window.addEventListener("eventDeleted", handleEventChange);
 
     return () => {
-      window.removeEventListener("eventDeleted", handleEventDeleted);
+      window.removeEventListener("eventCreated", handleEventChange);
+      window.removeEventListener("eventUpdated", handleEventChange);
+      window.removeEventListener("eventDeleted", handleEventChange);
     };
   }, []);
 
