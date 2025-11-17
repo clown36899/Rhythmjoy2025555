@@ -35,7 +35,8 @@ export default function BillboardPage() {
   const [pendingReload, setPendingReload] = useState(false);
   const pendingReloadRef = useRef(false); // Ref 동기화 (stale closure 방지)
   const pendingReloadTimeRef = useRef<number>(0);
-  const pendingChangesRef = useRef<any[]>([]); // 지연 업데이트용 대기열 (ref로 stale closure 방지)
+  const pendingDataRefreshRef = useRef(false); // 이벤트 변경 감지 플래그 (단순 boolean)
+  const isLoadingDataRef = useRef(false); // 중복 로딩 방지 플래그
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
   const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
@@ -339,13 +340,12 @@ export default function BillboardPage() {
         log(`[💾 메모리 관리] 슬라이드 전환 시작 - 이전: ${previousIndex}, 메모리 해제 예정`);
         
         // 🎯 변경사항 감지 시 데이터만 새로고침 (React.memo가 Player 캐시 보존)
-        if (pendingChangesRef.current.length > 0) {
-          const changeCount = pendingChangesRef.current.length;
-          log(`[변경사항 감지] ${changeCount}건 → 데이터만 새로고침`);
+        if (pendingDataRefreshRef.current) {
+          log(`[변경사항 감지] 플래그 ON → 전체 데이터 새로고침`);
           
-          // 대기열 초기화
-          pendingChangesRef.current = [];
-          setRealtimeStatus(`변경 ${changeCount}건 감지, 데이터 새로고침 중...`);
+          // 플래그 초기화
+          pendingDataRefreshRef.current = false;
+          setRealtimeStatus(`변경사항 감지, 데이터 새로고침 중...`);
           
           // 데이터만 새로고침 (페이지 reload 안함 → React.memo가 Player 보존)
           loadBillboardDataRef.current?.();
@@ -679,22 +679,13 @@ export default function BillboardPage() {
             return;
           }
           
-          // 대기열에 추가 (지연 업데이트, ref 사용)
-          // ✅ 최대 100개 제한 (메모리 누수 방지)
-          const MAX_PENDING_CHANGES = 100;
-          if (pendingChangesRef.current.length >= MAX_PENDING_CHANGES) {
-            warn(`[변경사항 감지] ⚠️ 대기열 가득참 (${MAX_PENDING_CHANGES}개) - 오래된 항목 제거`);
-            pendingChangesRef.current = [...pendingChangesRef.current.slice(-MAX_PENDING_CHANGES + 1), payload];
+          // ✅ 플래그만 켬 (단순화: 대기열 없음, 메모리 안전)
+          if (!pendingDataRefreshRef.current) {
+            log("[변경사항 감지] 플래그 켬 → 다음 슬라이드 전환 시 전체 새로고침");
+            pendingDataRefreshRef.current = true;
+            setRealtimeStatus(`변경 감지 (슬라이드 완료 후 적용)`);
           } else {
-            pendingChangesRef.current = [...pendingChangesRef.current, payload];
-          }
-          
-          // UI 피드백
-          const count = pendingChangesRef.current.length;
-          if (count >= MAX_PENDING_CHANGES) {
-            setRealtimeStatus(`⚠️ 변경 ${count}건 대기중 (최대치 도달, 슬라이드 전환 필요)`);
-          } else {
-            setRealtimeStatus(`새 변경 ${count}건 대기중 (슬라이드 완료 후 적용)`);
+            log("[변경사항 감지] 플래그 이미 ON → 무시");
           }
         },
       )
@@ -817,6 +808,13 @@ export default function BillboardPage() {
   }, []);
 
   const loadBillboardData = useCallback(async () => {
+    // ✅ 중복 호출 방지: 이미 로딩 중이면 건너뜀
+    if (isLoadingDataRef.current) {
+      log("[빌보드] ⚠️ 이미 데이터 로딩 중 - 중복 호출 방지");
+      return;
+    }
+    
+    isLoadingDataRef.current = true;
     try {
       log("[빌보드] 데이터 리로드: 기존 타이머 정리 중...");
 
@@ -922,6 +920,9 @@ export default function BillboardPage() {
       console.error("빌보드 데이터 로드 실패:", err);
       setError(err.message || "데이터를 불러오는데 실패했습니다.");
       setIsLoading(false);
+    } finally {
+      // ✅ 로딩 플래그 해제 (성공/실패 모두)
+      isLoadingDataRef.current = false;
     }
   }, [userId, filterEvents, currentIndex]);
   
