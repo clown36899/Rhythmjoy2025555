@@ -705,15 +705,29 @@ export default function BillboardPage() {
           filter: `billboard_user_id=eq.${userId}`  // 서버 레벨 필터 (네트워크 90% 감소)
         },
         (_payload) => {
-          // 이미 필터링된 상태로 수신 (if 체크 불필요)
-          setRealtimeStatus("설정 변경 감지!");
-          loadBillboardData();
-          // ✅ 이전 reload 타이머 정리 (메모리 누수 방지)
-          if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
-          reloadTimerRef.current = setTimeout(() => {
-            setRealtimeStatus("연결됨");
-            reloadTimerRef.current = null;
-          }, 3000);
+          log("[변경사항 감지] 설정 변경:", _payload.eventType);
+          
+          // 이벤트가 0개일 때는 즉시 데이터만 새로고침 (타이머가 안 돌아가므로)
+          if (eventsRef.current.length === 0) {
+            log("[변경사항 감지] 빈 화면 → 즉시 설정 새로고침");
+            setRealtimeStatus("설정 변경 감지! 즉시 새로고침...");
+            // ✅ 이전 reload 타이머 정리 (메모리 누수 방지)
+            if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+            reloadTimerRef.current = setTimeout(() => {
+              loadBillboardDataRef.current?.();
+              reloadTimerRef.current = null;
+            }, 500);
+            return;
+          }
+          
+          // ✅ 플래그만 켬 (이벤트 변경과 동일하게 통일)
+          if (!pendingDataRefreshRef.current) {
+            log("[변경사항 감지] 설정 변경 - 플래그 켬 → 다음 슬라이드 전환 시 전체 새로고침");
+            pendingDataRefreshRef.current = true;
+            setRealtimeStatus(`설정 변경 감지 (슬라이드 완료 후 적용)`);
+          } else {
+            log("[변경사항 감지] 설정 변경 - 플래그 이미 ON → 무시");
+          }
         },
       )
       .subscribe((status) => {
