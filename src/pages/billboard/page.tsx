@@ -63,14 +63,18 @@ export default function BillboardPage() {
   const settingsChannelRef = useRef<any>(null);
   const deployChannelRef = useRef<any>(null);
 
-  // 빌보드 페이지 배경색을 검은색으로 설정 (전환 시 화이트 플래시 방지)
+  // 빌보드 페이지 배경색을 검은색으로 설정 + 스크롤 금지
   useEffect(() => {
     document.body.style.backgroundColor = '#000000';
     document.documentElement.style.backgroundColor = '#000000';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     
     return () => {
       document.body.style.backgroundColor = '';
       document.documentElement.style.backgroundColor = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, []);
 
@@ -1471,7 +1475,14 @@ export default function BillboardPage() {
         @keyframes fadeInScale { 0% { opacity: 0; transform: scale(0.2) translateY(100px) rotate(-15deg); } 60% { opacity: 1; transform: scale(1.2) translateY(-15px) rotate(5deg); } 80% { opacity: 1; transform: scale(0.9) translateY(5px) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); } }
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
-      <div className="billboard-page">
+      <div className="billboard-page" style={{ 
+        overflow: 'hidden',
+        width: '100vw',
+        height: '100vh',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+      }}>
         {/* 현재 + 다음 슬라이드만 DOM에 유지 (부드러운 전환 + 메모리 최적화) */}
         {events.map((event, index) => {
           // 현재 + 다음 슬라이드 렌더링 (마지막 5초 전에 다음 슬라이드 미리 로드)
