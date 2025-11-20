@@ -80,14 +80,15 @@ export default function BillboardPage() {
 
   // Google 번역 팝업 방지
   useEffect(() => {
-    const meta = document.createElement('meta');
-    meta.name = 'google';
-    meta.content = 'notranslate';
-    document.head.appendChild(meta);
+    // <html> 태그에 직접 번역 방지 속성 및 클래스 추가 (가장 확실한 방법)
+    const htmlElement = document.documentElement;
+    htmlElement.setAttribute('translate', 'no');
+    htmlElement.classList.add('notranslate');
 
     return () => {
-      // 컴포넌트 언마운트 시 메타 태그 제거
-      document.head.removeChild(meta);
+      // 컴포넌트 언마운트 시 속성 및 클래스 제거
+      htmlElement.removeAttribute('translate');
+      htmlElement.classList.remove('notranslate');
     };
   }, []);
 
