@@ -8,6 +8,7 @@ interface YouTubePlayerProps {
   isVisible: boolean;
   onPlayingCallback: (index: number) => void;
   onEndedCallback: (index: number) => void;
+  onPlayerError: (index: number, error: any) => void;
   apiReady: boolean;
 }
 
@@ -18,6 +19,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, YouTubePlayerProps>((
   isVisible,
   onPlayingCallback,
   onEndedCallback,
+  onPlayerError,
   apiReady,
 }, ref) => {
   const playerRef = useRef<any>(null);
@@ -64,53 +66,17 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, YouTubePlayerProps>((
   // isVisible이 false가 되면 Player 즉시 destroy (메모리 최적화)
   useEffect(() => {
     if (!isVisible && playerRef.current) {
+      log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - isVisible=false 감지, 메모리 해제 시작`, { videoId });
       try {
-        const memBeforeDestroy = (performance as any).memory?.usedJSHeapSize ?? 0;
-        const memBeforeDestroyMB = (memBeforeDestroy / 1024 / 1024).toFixed(1);
-        const isWebView = /wv/.test(navigator.userAgent);
-        
-        log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - isVisible=false 감지, 메모리 해제 시작`, {
-          videoId,
-          playerExists: !!playerRef.current,
-          wasReady: playerReady.current,
-          환경: isWebView ? 'WebView' : '웹브라우저'
-        });
-        
-        if (!isWebView && memBeforeDestroy > 0) {
-          log(`[💾 메모리] PLAYER ${slideIndex} 제거 전 - 현재 메모리: ${memBeforeDestroyMB}MB`);
+        const iframe = playerRef.current.getIframe ? playerRef.current.getIframe() : null;
+        if (iframe && document.body.contains(iframe)) {
+          log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - Player.destroy() 호출`);
+          playerRef.current.destroy();
+        } else {
+          warn(`[💾 메모리 관리] 슬라이드 ${slideIndex} - destroy() 스킵: iframe이 이미 DOM에서 제거됨`);
         }
-        
-        log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 1단계: 비디오 버퍼 플러시`);
-        if (playerRef.current.stopVideo) {
-          playerRef.current.stopVideo();
-        }
-        if (playerRef.current.clearVideo) {
-          playerRef.current.clearVideo();
-        }
-        
-        log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 2단계: destroy() 호출`);
-        playerRef.current.destroy();
-        
-        const playerId = `yt-player-${slideIndex}`;
-        const iframeElement = document.getElementById(playerId);
-        if (iframeElement) {
-          log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - 3단계: iframe DOM 제거`);
-          iframeElement.innerHTML = '';
-          iframeElement.remove();
-        }
-        
-        if (!isWebView && memBeforeDestroy > 0) {
-          setTimeout(() => {
-            const memAfterDestroy = (performance as any).memory?.usedJSHeapSize ?? 0;
-            const memAfterDestroyMB = (memAfterDestroy / 1024 / 1024).toFixed(1);
-            const memFreed = ((memBeforeDestroy - memAfterDestroy) / 1024 / 1024).toFixed(1);
-            log(`[💾 메모리] PLAYER ${slideIndex} 제거 후 - 현재: ${memAfterDestroyMB}MB (감소: ${memFreed}MB, GC 대기중)`);
-          }, 100);
-        }
-        
-        log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} 완전 제거 완료 (버퍼+destroy+DOM)`);
       } catch (err) {
-        console.error('[YouTube] Player destroy 실패:', err);
+        warn(`[YouTube] Player destroy 중 오류 발생 (슬라이드 ${slideIndex}):`, err);
       }
       playerRef.current = null;
       playerReady.current = false;
@@ -274,11 +240,13 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, YouTubePlayerProps>((
                 101: '임베드 허용 안됨',
                 150: '임베드 허용 안됨'
               };
-              const errorMsg = errorCodes[event.data] || `알 수 없는 오류 (코드: ${event.data})`;
-              console.error(`[플레이어 상태] 슬라이드 ${slideIndex} - ❌ 오류 발생: ${errorMsg}`, {
+              const errorPayload = {
                 videoId,
                 errorCode: event.data
-              });
+              };
+              const errorMsg = errorCodes[event.data] || `알 수 없는 오류 (코드: ${event.data})`;
+              warn(`[플레이어 상태] 슬라이드 ${slideIndex} - ⚠️ 재생 오류 (자동 복구됨): ${errorMsg}`, errorPayload);
+              onPlayerError(slideIndex, errorPayload);
             },
           },
         });
@@ -300,39 +268,24 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, YouTubePlayerProps>((
         clearTimeout(loopTimerRef.current);
         loopTimerRef.current = null;
       }
-      if (playerRef.current?.destroy) {
+      if (playerRef.current) {
         try {
-          log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - cleanup 함수 실행, 메모리 해제 시작`, videoId);
-          
-          log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 1단계: 비디오 버퍼 플러시`);
-          if (playerRef.current.stopVideo) {
-            playerRef.current.stopVideo();
+          const iframe = playerRef.current.getIframe ? playerRef.current.getIframe() : null;
+          if (iframe && document.body.contains(iframe)) {
+            log(`[💾 메모리 관리] 슬라이드 ${slideIndex} - cleanup: Player.destroy() 호출`);
+            playerRef.current.destroy();
+          } else {
+            warn(`[💾 메모리 관리] 슬라이드 ${slideIndex} - cleanup 스킵: iframe이 이미 DOM에서 제거됨`);
           }
-          if (playerRef.current.clearVideo) {
-            playerRef.current.clearVideo();
-          }
-          
-          log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 2단계: destroy() 호출`);
-          playerRef.current.destroy();
-          
-          const playerId = `yt-player-${slideIndex}`;
-          const iframeElement = document.getElementById(playerId);
-          if (iframeElement) {
-            log(`[🎮 플레이어] 🚮 PLAYER ${slideIndex} - cleanup 3단계: iframe DOM 제거`);
-            iframeElement.innerHTML = '';
-            iframeElement.remove();
-          }
-          
-          log(`[💾 메모리 관리] ✅ PLAYER ${slideIndex} cleanup 완료 - 완전 제거됨`);
         } catch (err) {
-          console.error('[YouTube] Player destroy 실패:', err);
+          warn(`[YouTube] Player destroy 중 오류 발생 (슬라이드 ${slideIndex}):`, err);
         }
         playerRef.current = null;
       }
       hasCalledOnPlaying.current = false;
       playerReady.current = false;
     };
-  }, [apiReady, videoId, onPlayingCallback, isVisible, slideIndex, onEndedCallback]);
+  }, [apiReady, videoId, onPlayingCallback, isVisible, slideIndex, onEndedCallback, onPlayerError]);
 
   return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
 }), (prevProps, nextProps) => {

@@ -88,6 +88,7 @@ export default function EventRegistrationModal({
     linkName3: "",
     password: "",
     videoUrl: "",
+    showTitleOnBillboard: true,
   });
   const [startDateInput, setStartDateInput] = useState<string>(
     fromBanner ? "" : formatDateForInput(selectedDate)
@@ -152,6 +153,14 @@ export default function EventRegistrationModal({
     >,
   ) => {
     const { name, value } = e.target;
+
+    if (e.target.type === 'checkbox' && 'checked' in e.target) {
+      const { checked } = e.target as HTMLInputElement;
+      setFormData(prev => ({ ...prev, [name]: checked }));
+      return;
+    }
+
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -619,6 +628,8 @@ export default function EventRegistrationModal({
         link_name2: formData.linkName2 || null,
         link_name3: formData.linkName3 || null,
         password: formData.password,
+        show_title_on_billboard: formData.showTitleOnBillboard,
+
         created_at: new Date().toISOString(),
       };
 
@@ -664,11 +675,12 @@ export default function EventRegistrationModal({
           linkName3: "",
           password: "",
           videoUrl: "",
+          showTitleOnBillboard: true,
         });
         setImageFile(null);
         setImagePreview("");
         setVideoPreview({ provider: null, embedUrl: null });
-        
+       
         // 등록된 이벤트의 시작 날짜 전달
         const createdDate = new Date(localDateString + "T00:00:00");
         console.log('[🔔 이벤트 등록] onEventCreated 호출', {
@@ -772,6 +784,26 @@ export default function EventRegistrationModal({
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* 빌보드 표시 옵션 */}
+              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-2">
+                <label className="block text-gray-300 text-sm font-medium">
+                  빌보드 표시 옵션
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="showTitleOnBillboard"
+                    name="showTitleOnBillboard"
+                    checked={formData.showTitleOnBillboard}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 rounded border-gray-400 bg-gray-800 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="showTitleOnBillboard" className="ml-2 block text-sm text-gray-300">
+                    빌보드에 제목, 날짜, 장소 정보 표시
+                  </label>
                 </div>
               </div>
 

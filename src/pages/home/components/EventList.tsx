@@ -157,6 +157,7 @@ export default function EventList({
     event_dates: [] as string[],
     dateMode: "range" as "range" | "specific",
     videoUrl: "",
+    showTitleOnBillboard: true,
   });
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
@@ -1096,6 +1097,7 @@ export default function EventList({
         end_date: event.end_date || event.date || "",
         event_dates: event.event_dates || [],
         dateMode: hasEventDates ? "specific" : "range",
+        showTitleOnBillboard: event.show_title_on_billboard ?? true,
         videoUrl: event?.video_url || "",
       });
 
@@ -1284,6 +1286,7 @@ export default function EventList({
             event_dates: fullEvent.event_dates || [],
             dateMode: hasEventDates ? "specific" : "range",
             videoUrl: fullEvent.video_url || "",
+            showTitleOnBillboard: fullEvent.show_title_on_billboard ?? true,
           });
           setEditImagePreview(fullEvent.image || "");
           setEditImageFile(null);
@@ -1464,7 +1467,7 @@ export default function EventList({
       return;
     }
     if (editFormData.link1 && !editFormData.linkName1) {
-      alert("링크1 주소를 입력했다면 링크 제목  � 입력해주세요.");
+      alert("링크1 주소를 입력했다면 링크 제목도 입력해주세요.");
       return;
     }
     if (editFormData.linkName2 && !editFormData.link2) {
@@ -1521,6 +1524,7 @@ export default function EventList({
         end_date: endDate,
         event_dates: eventDatesArray,
         video_url: editFormData.videoUrl || null,
+        show_title_on_billboard: editFormData.showTitleOnBillboard,
         updated_at: new Date().toISOString(), // 캐시 무효화를 위해 항상 갱신
       };
 
@@ -2241,6 +2245,29 @@ export default function EventList({
                     <option value="class">강습</option>
                     <option value="event">행사</option>
                   </select>
+                </div>
+
+                {/* 빌보드 표시 옵션 */}
+                <div className="bg-gray-700/50 rounded-lg p-3 space-y-2">
+                  <label className="block text-gray-300 text-xs font-medium">
+                    빌보드 표시 옵션
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="editShowTitleOnBillboard"
+                      name="showTitleOnBillboard"
+                      checked={editFormData.showTitleOnBillboard}
+                      onChange={(e) => {
+                        const { checked } = e.target;
+                        setEditFormData(prev => ({ ...prev, showTitleOnBillboard: checked }));
+                      }}
+                      className="h-4 w-4 rounded border-gray-400 bg-gray-800 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="editShowTitleOnBillboard" className="ml-2 block text-sm text-gray-300">
+                      빌보드에 제목, 날짜, 장소 정보 표시
+                    </label>
+                  </div>
                 </div>
 
                 {/* 장소 이름 & 주소 링크 (한 줄) */}
