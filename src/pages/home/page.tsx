@@ -19,27 +19,22 @@ export default function HomePage() {
   const { isAdmin } = useAuth();
 
   // --------------------------------------------------------------------------------
-  // 1. UI 상수 및 설정
+  // 1. UI 상수
   // --------------------------------------------------------------------------------
   const EXPANDED_HEIGHT = 280;
   const FOOTER_HEIGHT = 80;
   const MIN_SWIPE_DISTANCE = 50;
 
-  // ★ [추가] 모바일 브라우저의 '새로고침/고무줄 효과' 원천 차단
+  // 모바일 바운스 방지
   useEffect(() => {
-    // 원래 스타일 저장
-    
-    const originalStyle = window.getComputedStyle(document.body).overscrollBehaviorY;
-    
-    // 바운스 효과 제거
-    document.body.style.overscrollBehaviorY = 'none';
-    
-    // 언마운트 시 복구
+    document.documentElement.style.overscrollBehavior = 'none';
+    document.body.style.overscrollBehavior = 'none';
     return () => {
-      document.body.style.overscrollBehaviorY = originalStyle;
+      document.documentElement.style.overscrollBehavior = '';
+      document.body.style.overscrollBehavior = '';
     };
   }, []);
-  
+
   const navigateWithCategory = useCallback((cat?: string) => {
     if (!cat || cat === "all") navigate("/");
     else navigate(`/?category=${cat}`);
@@ -101,7 +96,7 @@ export default function HomePage() {
   const headerRef = useRef<HTMLDivElement>(null);
 
   // --------------------------------------------------------------------------------
-  // 3. 최신 상태 참조 Ref (Closure 문제 해결용)
+  // 3. 최신 상태 참조 Ref
   // --------------------------------------------------------------------------------
   const latestStateRef = useRef({
     isAnimating,
@@ -130,7 +125,6 @@ export default function HomePage() {
     return EXPANDED_HEIGHT;
   }, [calendarMode, calculateFullscreenHeight]);
 
-  // 오늘 날짜가 현재 달력에 포함되는지 확인 (오늘 버튼 표시 여부용)
   const isCurrentMonthVisible = (() => {
     const today = new Date();
     return currentMonth.getFullYear() === today.getFullYear() && 
@@ -138,104 +132,104 @@ export default function HomePage() {
   })();
 
   // --------------------------------------------------------------------------------
-  // 5. ★★★ 제스처 컨트롤러 (의존성 문제 해결됨) ★★★
+  // 5. ★★★ 통합 제스처 핸들러 (Native TouchEvent) ★★★
   // --------------------------------------------------------------------------------
-  const gestureStateRef = useRef<{
-    status: 'IDLE' | 'MEASURING' | 'LOCKED_HORIZONTAL' | 'LOCKED_VERTICAL' | 'SCROLLING';
+  const gestureRef = useRef<{
     startX: number;
     startY: number;
-    startTime: number;
     startHeight: number;
-    isListAtTop: boolean;
+    isLocked: 'horizontal' | 'vertical' | null; 
+    initialScrollTop: number;
   }>({
-    status: 'IDLE',
-    startX: 0,
-    startY: 0,
-    startTime: 0,
-    startHeight: 0,
-    isListAtTop: true,
+    startX: 0, startY: 0, startHeight: 0, isLocked: null, initialScrollTop: 0
   });
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const handlePointerDown = (e: PointerEvent) => {
-      if ((e.pointerType === 'mouse' && e.button !== 0) || latestStateRef.current.isAnimating) return;
+    const handleTouchStart = (e: TouchEvent) => {
+      // 애니메이션 중이거나 멀티 터치 무시
+      if (latestStateRef.current.isAnimating || e.touches.length > 1) return;
 
+      const touch = e.touches[0];
       const target = e.target as HTMLElement;
+
+      // 버튼 등 상호작용 요소는 터치 허용 (이벤트 핸들러 실행 안함)
       if (target.closest('button, a, input, .clickable, [role="button"]')) return;
+      
+      // Year 모드 달력 내부는 스크롤 허용
       if (latestStateRef.current.viewMode === 'year' && calendarContentRef.current?.contains(target)) return;
 
       const eventList = eventListElementRef.current;
-      const isListAtTop = eventList ? eventList.scrollTop <= 2 : true;
+      const scrollTop = eventList ? eventList.scrollTop : 0;
       
+      // 현재 높이 저장
       const currentHeight = calendarContentRef.current 
         ? calendarContentRef.current.getBoundingClientRect().height 
         : getTargetHeight();
 
-      gestureStateRef.current = {
-        status: 'MEASURING',
-        startX: e.clientX,
-        startY: e.clientY,
-        startTime: Date.now(),
+      gestureRef.current = {
+        startX: touch.clientX,
+        startY: touch.clientY,
         startHeight: currentHeight,
-        isListAtTop,
+        isLocked: null,
+        initialScrollTop: scrollTop
       };
+      // 주의: 여기서 preventDefault()를 호출하지 않음 -> 클릭 허용
     };
 
-    const handlePointerMove = (e: PointerEvent) => {
-      const state = gestureStateRef.current;
-      if (state.status === 'IDLE' || state.status === 'SCROLLING') return;
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      const { startX, startY, isLocked, startHeight, initialScrollTop } = gestureRef.current;
+      
+      const diffX = touch.clientX - startX;
+      const diffY = touch.clientY - startY;
 
-      const diffX = e.clientX - state.startX;
-      const diffY = e.clientY - state.startY;
-
-      // --- 방향 결정 단계 ---
-      if (state.status === 'MEASURING') {
+      // 1. 방향 잠금 로직 (아직 안 잠겼을 때)
+      if (!isLocked) {
         const absX = Math.abs(diffX);
         const absY = Math.abs(diffY);
-        const threshold = 5;
 
-        if (absX > threshold || absY > threshold) {
-          // 1. 수평 스와이프
-          if (absX > absY * 1.5) { 
-            state.status = 'LOCKED_HORIZONTAL';
-            container.setPointerCapture(e.pointerId);
+        // 5px 이상 움직였을 때 판정
+        if (absX > 5 || absY > 5) {
+          // 수평이 수직보다 확실히 클 때 -> 수평 잠금
+          if (absX > absY * 1.5) {
+            gestureRef.current.isLocked = 'horizontal';
           } 
-          // 2. 수직 드래그
-          else if (absY > absX * 1.2) {
-             const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
-             const isPullingDown = state.isListAtTop && diffY > 0;
-             const isPushingUp = state.isListAtTop && diffY < 0 && latestStateRef.current.calendarMode !== 'collapsed';
+          // 수직이 수평보다 클 때 -> 조건부 수직 잠금
+          else if (absY > absX) {
+            const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
+            // 리스트 맨 위 + 당김
+            const isPullingDown = initialScrollTop <= 2 && diffY > 0;
+            // 리스트 맨 위 + 밈 + 달력 열려있음
+            const isPushingUp = initialScrollTop <= 2 && diffY < 0 && latestStateRef.current.calendarMode !== 'collapsed';
 
-             if (isTouchingCalendar || isPullingDown || isPushingUp) {
-                state.status = 'LOCKED_VERTICAL';
-                container.setPointerCapture(e.pointerId);
-                setIsDragging(true);
-                setLiveCalendarHeight(state.startHeight);
-                if (e.cancelable) e.preventDefault();
-             } else {
-                state.status = 'SCROLLING'; 
-             }
-          } else {
-            state.status = 'SCROLLING';
+            if (isTouchingCalendar || isPullingDown || isPushingUp) {
+              gestureRef.current.isLocked = 'vertical';
+              // ★ 수직 잠금 되는 순간 높이 제어권 가져옴 (점프 방지)
+              setIsDragging(true);
+              setLiveCalendarHeight(startHeight);
+            } else {
+              // 리스트 스크롤 상황 -> 잠그지 않고 놔둠 (브라우저 스크롤)
+              return;
+            }
           }
         }
       }
 
-      // --- 실행 단계 ---
-      if (state.status === 'LOCKED_HORIZONTAL') {
-        if (e.cancelable) e.preventDefault();
+      // 2. 실행 로직 (잠긴 후)
+      if (gestureRef.current.isLocked === 'horizontal') {
+        if (e.cancelable) e.preventDefault(); // 가로 이동 시 세로 스크롤 방지
         if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
         swipeAnimationRef.current = requestAnimationFrame(() => {
           setDragOffset(diffX);
         });
       } 
-      else if (state.status === 'LOCKED_VERTICAL') {
-        if (e.cancelable) e.preventDefault();
+      else if (gestureRef.current.isLocked === 'vertical') {
+        if (e.cancelable) e.preventDefault(); // ★ 중요: 브라우저 스크롤/새로고침 차단
         
-        const newHeight = state.startHeight + diffY;
+        const newHeight = startHeight + diffY;
         const maxAllowedHeight = calculateFullscreenHeight();
         const clampedHeight = Math.max(0, Math.min(newHeight, maxAllowedHeight));
         
@@ -246,19 +240,15 @@ export default function HomePage() {
       }
     };
 
-    const handlePointerUp = (e: PointerEvent) => {
-      const state = gestureStateRef.current;
-      if (state.status === 'IDLE' || state.status === 'SCROLLING') {
-         gestureStateRef.current.status = 'IDLE';
-         return;
-      }
+    const handleTouchEnd = (e: TouchEvent) => {
+      const { isLocked, startX } = gestureRef.current;
+      const touch = e.changedTouches[0]; // changedTouches 사용
 
-      if (container.hasPointerCapture(e.pointerId)) container.releasePointerCapture(e.pointerId);
       if (swipeAnimationRef.current) { cancelAnimationFrame(swipeAnimationRef.current); swipeAnimationRef.current = null; }
 
-      // --- 수평 종료 ---
-      if (state.status === 'LOCKED_HORIZONTAL') {
-        const distance = e.clientX - state.startX;
+      // 수평 종료
+      if (isLocked === 'horizontal') {
+        const distance = touch.clientX - startX;
         if (Math.abs(distance) > MIN_SWIPE_DISTANCE) {
           const direction = distance < 0 ? "next" : "prev";
           const targetOffset = distance < 0 ? -window.innerWidth : window.innerWidth;
@@ -276,37 +266,35 @@ export default function HomePage() {
               return newM;
             });
             setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null);
-            setIsDragging(true); 
-            setDragOffset(0);
-            setIsAnimating(false);
-            requestAnimationFrame(() => setIsDragging(false));
+            setDragOffset(0); setIsAnimating(false);
           }, 200);
         } else {
           setDragOffset(0);
         }
       } 
-      
-      // --- 수직 종료 ---
-      else if (state.status === 'LOCKED_VERTICAL') {
-        // [Fix] ref에서 최신 상태 읽기 (상태 의존성 제거 목적)
-        const endHeight = latestStateRef.current.liveCalendarHeight;
-        const duration = Date.now() - state.startTime;
-        const velocity = duration > 0 ? (endHeight - state.startHeight) / duration : 0;
+      // 수직 종료 (자석)
+      else if (isLocked === 'vertical') {
+        const endHeight = liveCalendarHeight;
+        const fullscreenH = calculateFullscreenHeight();
+        const diffY = touch.clientY - gestureRef.current.startY;
         
         let nextMode = latestStateRef.current.calendarMode;
 
-        if (Math.abs(velocity) > 0.5) { 
-            if (velocity > 0) {
-                if (endHeight < EXPANDED_HEIGHT) nextMode = 'expanded';
-                else nextMode = 'fullscreen';
-            } else {
-                if (endHeight > EXPANDED_HEIGHT) nextMode = 'expanded';
-                else nextMode = 'collapsed';
-            }
-        } else {
+        // 아래로 당김 (열기)
+        if (diffY > 50) {
+            if (endHeight < EXPANDED_HEIGHT) nextMode = 'expanded';
+            else nextMode = 'fullscreen';
+        } 
+        // 위로 밈 (닫기)
+        else if (diffY < -50) {
+            if (endHeight > EXPANDED_HEIGHT) nextMode = 'expanded';
+            else nextMode = 'collapsed';
+        }
+        // 조금 움직임 -> 가까운 곳으로
+        else {
             const dist0 = Math.abs(endHeight - 0);
             const distEx = Math.abs(endHeight - EXPANDED_HEIGHT);
-            const distFull = Math.abs(endHeight - calculateFullscreenHeight());
+            const distFull = Math.abs(endHeight - fullscreenH);
             const min = Math.min(dist0, distEx, distFull);
             
             if (min === dist0) nextMode = 'collapsed';
@@ -314,29 +302,28 @@ export default function HomePage() {
             else nextMode = 'expanded';
         }
 
-        if (Math.abs(endHeight - state.startHeight) < 10) {
-            nextMode = latestStateRef.current.calendarMode;
-        }
-
         setCalendarMode(nextMode);
-        setIsDragging(false);
+        setIsDragging(false); // 트랜지션 복구
       }
 
-      gestureStateRef.current.status = 'IDLE';
+      gestureRef.current.isLocked = null;
     };
 
-    container.addEventListener('pointerdown', handlePointerDown);
-    container.addEventListener('pointermove', handlePointerMove);
-    container.addEventListener('pointerup', handlePointerUp);
-    container.addEventListener('pointercancel', handlePointerUp);
+    // ★ passive: false (필수)
+    const options = { passive: false };
+    
+    container.addEventListener('touchstart', handleTouchStart, options);
+    container.addEventListener('touchmove', handleTouchMove, options);
+    container.addEventListener('touchend', handleTouchEnd, options);
+    container.addEventListener('touchcancel', handleTouchEnd, options);
 
     return () => {
-      container.removeEventListener('pointerdown', handlePointerDown);
-      container.removeEventListener('pointermove', handlePointerMove);
-      container.removeEventListener('pointerup', handlePointerUp);
-      container.removeEventListener('pointercancel', handlePointerUp);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [calculateFullscreenHeight]); // [Fix] 의존성 최소화 (liveCalendarHeight 제거)
+  }, [calculateFullscreenHeight, liveCalendarHeight]); 
 
   useEffect(() => {
     return () => {
@@ -498,7 +485,10 @@ export default function HomePage() {
     <div
       ref={containerRef}
       className="h-screen flex flex-col overflow-hidden"
-      style={{ backgroundColor: "var(--page-bg-color)", touchAction: "none" }}
+      style={{ 
+        backgroundColor: "var(--page-bg-color)",
+        touchAction: "pan-y" 
+      }}
     >
       <div ref={headerRef} className="flex-shrink-0 w-full z-[51] border-b border-[#22262a]" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
         <Header
@@ -528,7 +518,7 @@ export default function HomePage() {
           className="w-full"
           style={{
             backgroundColor: "var(--calendar-bg-color)",
-            touchAction: "none",
+            touchAction: "pan-y",
             position: isFixed ? "fixed" : "relative",
             top: isFixed ? `${headerHeight}px` : undefined,
             left: 0, right: 0,
@@ -582,7 +572,7 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  {/* 오늘 버튼 (이번달 아닐 때만) */}
+                  {/* 오늘 버튼 조건부 렌더링 */}
                   {!isCurrentMonthVisible && (
                     <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full text-[10px] font-medium border transition-colors bg-green-500/20 border-green-500 text-green-300 hover:bg-green-500/30 flex-shrink-0"><span>오늘</span><i className="ri-calendar-check-line text-[10px]"></i></button>
                   )}
@@ -597,17 +587,12 @@ export default function HomePage() {
 
         <div
           ref={eventListElementRef}
-       
-
           className="flex-1 w-full mx-auto bg-[#1f1f1f] overflow-y-auto pb-20"
           style={{
             marginTop: isFixed ? `${calculateFullscreenHeight()}px` : undefined,
-            // ★ [수정] 터치 액션은 허용하되, 스크롤 체이닝은 'contain'으로 막음
             touchAction: "pan-y",
-            overscrollBehaviorY: "contain", 
+            overscrollBehaviorY: "contain"
           }}
-
-
         >
           <div className="p-0 bg-[#222] rounded-none no-select">
             <p className="text-gray-300 text-[13px] text-center no-select"><i className="ri-information-line mr-1"></i>날짜를 클릭하면 이벤트를 등록할 수 있습니다</p>
