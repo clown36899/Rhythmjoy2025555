@@ -30,6 +30,18 @@ export function MobileShell() {
     };
   }, []);
 
+  // 필터 초기화 이벤트 감지 ('전체 일정 보기' 카드 클릭 시)
+  useEffect(() => {
+    const handleClearAllFilters = () => {
+      navigate('/'); // URL에서 카테고리 파라미터 제거
+      window.dispatchEvent(new CustomEvent('clearSelectedDate')); // 날짜 선택 해제
+    };
+    window.addEventListener('clearAllFilters', handleClearAllFilters);
+    return () => {
+      window.removeEventListener('clearAllFilters', handleClearAllFilters);
+    };
+  }, [navigate]);
+
   // selectedDate 변경 감지
   useEffect(() => {
     const handleSelectedDateChanged = (e: CustomEvent) => {
@@ -151,7 +163,7 @@ export function MobileShell() {
       <Outlet context={{ category }} />
 
       {/* Bottom Navigation - 모든 페이지 공통 */}
-      <div className="fixed bottom-0 left-0 right-0 z-20" style={{ maxWidth: '650px', margin: '0 auto' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-20" style={{ maxWidth: '100%', margin: '0 auto' }}>
         {/* Category Filter Badges - 홈 페이지에서만 표시 */}
         {isEventsPage && (
           <div 
@@ -164,50 +176,26 @@ export function MobileShell() {
             <div className="flex items-center gap-2 flex-1 justify-center">
               {/* 행사 버튼 (앞으로 이동) */}
               <button
-                onClick={() => {
-                  // 독립 토글: 행사 켜기/끄기
-                  if (category === 'all') {
-                    handleCategoryChange('class'); // 둘 다 켜짐 → 강습만
-                  } else if (category === 'event') {
-                    handleCategoryChange('none'); // 행사만 → 둘 다 끔
-                  } else if (category === 'class') {
-                    handleCategoryChange('all'); // 강습만 → 둘 다 켬
-                  } else {
-                    handleCategoryChange('event'); // 둘 다 꺼짐 → 행사만
-                  }
-                }}
+                onClick={() => handleCategoryChange('event')}
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
-                  category === 'event' || category === 'all'
+                  category === 'event'
                     ? 'bg-blue-500/20 border-blue-500 text-blue-300'
                     : 'bg-gray-700/30 border-gray-600 text-gray-400'
                 }`}
               >
                 <span>행사 {eventCounts.event}</span>
-                <i className={`${category === 'event' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
               
               {/* 강습 버튼 */}
               <button
-                onClick={() => {
-                  // 독립 토글: 강습 켜기/끄기
-                  if (category === 'all') {
-                    handleCategoryChange('event'); // 둘 다 켜짐 → 행사만
-                  } else if (category === 'class') {
-                    handleCategoryChange('none'); // 강습만 → 둘 다 끔
-                  } else if (category === 'event') {
-                    handleCategoryChange('all'); // 행사만 → 둘 다 켬
-                  } else {
-                    handleCategoryChange('class'); // 둘 다 꺼짐 → 강습만
-                  }
-                }}
+                onClick={() => handleCategoryChange('class')}
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
-                  category === 'class' || category === 'all'
+                  category === 'class'
                     ? 'bg-purple-500/20 border-purple-500 text-purple-300'
                     : 'bg-gray-700/30 border-gray-600 text-gray-400'
                 }`}
               >
                 <span>강습 {eventCounts.class}</span>
-                <i className={`${category === 'class' || category === 'all' ? 'ri-check-line' : 'ri-close-line'} text-sm`}></i>
               </button>
 
               {/* 등록 버튼 - 날짜 선택 시에만 표시 */}

@@ -1136,7 +1136,7 @@ export default function BillboardPage() {
               style={{
                 width: "100%",
                 padding: "0 42px",
-                top: "20.0267px",
+                top: "0",
                 zIndex: 10,
                 display: "flex",
                 flexDirection: "row",

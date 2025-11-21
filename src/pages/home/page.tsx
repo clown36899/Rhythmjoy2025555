@@ -921,7 +921,7 @@ export default function HomePage() {
       {/* Fixed Header for all screens */}
       <div
         ref={headerRef}
-        className="flex-shrink-0 w-full z-30 border-b border-[#22262a]"
+        className="flex-shrink-0 w-full z-[51] border-b border-[#22262a]"
         style={{ 
           backgroundColor: "var(--header-bg-color)",
           touchAction: "auto",
@@ -1290,7 +1290,7 @@ export default function HomePage() {
         {/* Scrollable Content Area - Events and Footer (독립 스크롤) */}
         <div
           ref={eventListElementRef}
-          className="flex-1 w-full bg-[#1f1f1f] overflow-y-auto pb-20"
+          className="flex-1 w-full mx-auto bg-[#1f1f1f] overflow-y-auto pb-20"
           style={{
             // 달력이 fixed일 때 이벤트 리스트 위치 유지
             // 중요: 250px로 완전 고정! (fullscreen이든 뭐든 250px 유지)

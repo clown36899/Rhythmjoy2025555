@@ -1726,7 +1726,7 @@ export default function EventList({
       )}
 
       {/* Events List - 3-month sliding layout */}
-      {searchTerm.trim() || selectedDate ? (
+      {searchTerm.trim() || selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none') ? (
         // 검색 또는 날짜 선택 시: 단일 뷰
         <div
           className="p-[0.4rem]"
@@ -1737,7 +1737,25 @@ export default function EventList({
           }}
         >
           {/* Grid layout with 3 columns - poster ratio */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
+            {/* 필터 활성화 시 '전체 보기' 카드 표시 */}
+            {(selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none')) && (
+              <div
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('clearAllFilters'));
+                }}
+                className="cursor-pointer"
+                title="전체 일정 보기"
+              >
+                <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
+                    <i className="ri-arrow-go-back-line text-5xl text-gray-500 mb-2"></i>
+                    <span className="text-sm text-gray-400 font-medium">전체 일정 보기</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {sortedEvents.map((event) => (
               <EventCard
                 key={event.id}
@@ -1818,7 +1836,7 @@ export default function EventList({
                 }}
               >
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
                     {sortedPrevEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -1856,7 +1874,7 @@ export default function EventList({
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
                     {/* 등록 버튼 배너만 표시 */}
                     <div
                       onClick={() => {
@@ -1895,7 +1913,7 @@ export default function EventList({
                 }}
               >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
                     {sortedCurrentEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -1931,7 +1949,7 @@ export default function EventList({
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
                     {/* 등록 버튼 배너만 표시 */}
                     <div
                       onClick={() => {
@@ -1965,7 +1983,7 @@ export default function EventList({
                 }}
               >
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
                     {sortedNextEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -2003,7 +2021,7 @@ export default function EventList({
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-[0.4rem]">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
                     {/* 등록 버튼 배너만 표시 */}
                     <div
                       onClick={() => {
