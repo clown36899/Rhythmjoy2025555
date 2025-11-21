@@ -83,6 +83,7 @@ export default function HomePage() {
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isEventListModalOpen, setIsEventListModalOpen] = useState(false);
   const [isFullscreenDateModalOpen, setIsFullscreenDateModalOpen] = useState(false);
   const [fullscreenSelectedDate, setFullscreenSelectedDate] = useState<Date | null>(null);
   const [fullscreenClickPosition, setFullscreenClickPosition] = useState<{ x: number; y: number } | undefined>(undefined);
@@ -110,6 +111,26 @@ export default function HomePage() {
   useEffect(() => {
     latestStateRef.current = { isAnimating, calendarMode, headerHeight, viewMode, liveCalendarHeight, isDragging };
   }, [isAnimating, calendarMode, headerHeight, viewMode, liveCalendarHeight, isDragging]);
+
+  // 모달이 열렸을 때 배경 컨텐츠의 상호작용을 막기 위한 `inert` 속성 관리
+  useEffect(() => {
+    const isAnyModalOpen = isEventListModalOpen ||
+                           showSearchModal ||
+                           showSortModal ||
+                           showRegistrationModal ||
+                           isBillboardSettingsOpen ||
+                           isFullscreenDateModalOpen;
+
+    const container = containerRef.current;
+    if (container) {
+      container.inert = isAnyModalOpen;
+    }
+
+    return () => {
+      if (container) container.inert = false;
+    };
+  }, [isEventListModalOpen, showSearchModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, isFullscreenDateModalOpen]);
+
 
   // --------------------------------------------------------------------------------
   // 4. 헬퍼 함수
@@ -210,9 +231,6 @@ export default function HomePage() {
               // ★ 수직 잠금 되는 순간 높이 제어권 가져옴 (점프 방지)
               setIsDragging(true);
               setLiveCalendarHeight(startHeight);
-            } else {
-              // 리스트 스크롤 상황 -> 잠그지 않고 놔둠 (브라우저 스크롤)
-              return;
             }
           }
         }
@@ -490,7 +508,7 @@ export default function HomePage() {
         touchAction: "pan-y" 
       }}
     >
-      <div ref={headerRef} className="flex-shrink-0 w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
+      <div ref={headerRef} className="flex-shrink-0 w-full z-40 border-b border-[#22262a]" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
         <Header
           currentMonth={currentMonth}
           onNavigateMonth={(dir) => {
@@ -522,7 +540,7 @@ export default function HomePage() {
             position: isFixed ? "fixed" : "relative",
             top: isFixed ? `${headerHeight}px` : undefined,
             left: 0, right: 0,
-            zIndex: isFixed ? 50 : 15,
+            zIndex: isFixed ? 30 : 15,
           }}
         >
           <div
@@ -551,6 +569,7 @@ export default function HomePage() {
               calendarHeightPx={isDragging ? liveCalendarHeight : getTargetHeight()}
               calendarMode={calendarMode}
               selectedCategory={selectedCategory}
+              
             />
           </div>
 
@@ -590,7 +609,6 @@ export default function HomePage() {
           className="flex-1 w-full mx-auto bg-[#1f1f1f] overflow-y-auto pb-20"
           style={{
             marginTop: isFixed ? `${calculateFullscreenHeight()}px` : undefined,
-            touchAction: "pan-y",
             overscrollBehaviorY: "contain"
           }}
         >
@@ -627,7 +645,8 @@ export default function HomePage() {
               isAnimating={isAnimating}
               slideContainerRef={eventListSlideContainerRef}
               onMonthChange={(date) => setCurrentMonth(date)}
-            />
+              onModalStateChange={setIsEventListModalOpen}
+               />
           )}
           <Footer />
         </div>

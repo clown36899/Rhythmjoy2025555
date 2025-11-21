@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
@@ -78,6 +79,7 @@ interface EventListProps {
   isAnimating?: boolean;
   slideContainerRef?: RefObject<HTMLDivElement | null>;
   onMonthChange?: (date: Date) => void;
+  onModalStateChange: (isModalOpen: boolean) => void;
 }
 
 export default function EventList({
@@ -105,10 +107,13 @@ export default function EventList({
   isAnimating: externalIsAnimating = false,
   slideContainerRef,
   onMonthChange,
+  onModalStateChange,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
   const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
+
+  
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
@@ -192,7 +197,11 @@ export default function EventList({
   const sortedEventsCache = useRef<{
     [key: string]: Event[]; // key: "YYYY-MM-category-sortBy"
   }>({});
-
+  // 내부 모달 상태가 변경될 때마다 부모 컴포넌트(HomePage)에 알림
+  useEffect(() => {
+    const isAnyModalOpen = !!(selectedEvent || showFullscreenImage || showEditModal || showPasswordModal);
+    onModalStateChange(isAnyModalOpen);
+  }, [selectedEvent, showFullscreenImage, showEditModal, showPasswordModal, onModalStateChange]);
   // 날짜 변경 감지 (자정에만 실행)
   useEffect(() => {
     const scheduleNextMidnight = () => {
@@ -217,31 +226,7 @@ export default function EventList({
     sortedEventsCache.current = {};
   }, [selectedCategory, sortBy, events, currentDay]);
 
-  // 모달이 열릴 때 배경 스크롤 막기
-  useEffect(() => {
-    if (selectedEvent || showFullscreenImage) {
-      const originalOverflow = document.body.style.overflow;
-      const originalPosition = document.body.style.position;
-      const originalTop = document.body.style.top;
-      const originalWidth = document.body.style.width;
-      const scrollY = window.scrollY;
-      
-      // 모바일 포함 모든 브라우저에서 스크롤 완전 차단
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      
-      return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.position = originalPosition;
-        document.body.style.top = originalTop;
-        document.body.style.width = originalWidth;
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [selectedEvent, showFullscreenImage]);
-
+  
   // 슬라이드 높이 측정 및 업데이트 (애니메이션과 동시에)
   // ⚠️ 높이 자동 조정 기능 비활성화 - 푸터가 올라오는 문제 해결
   // useEffect(() => {
@@ -2051,6 +2036,7 @@ export default function EventList({
 
       {/* 정렬 모달 */}
       {showSortModal && (
+      createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg w-full max-w-md">
             <div className="p-4">
@@ -2089,16 +2075,71 @@ export default function EventList({
               </div>
             </div>
           </div>
-        </div>
+        </div>, document.body
+      )
       )}
 
       {/* 검색 모달 */}
       {showSearchModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white">이벤트 검색</h3>
+     createPortal(
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white">이벤트 검색</h3>
+              <button
+                onClick={() => {
+                  setShowSearchModal(false);
+                  setSearchQuery("");
+                  setSearchSuggestions([]);
+                  setSearchTerm("");
+                }}
+                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <i className="ri-close-line text-xl"></i>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* 검색 입력창 */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchQueryChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSearchSubmit();
+                    }
+                  }}
+                  className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="이벤트 제목, 장소, 주최자로 검색..."
+                  autoFocus
+                />
+                <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              </div>
+
+              {/* 자동완성 제안 */}
+              {searchSuggestions.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-400 mb-2">추천 검색어</p>
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {searchSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="w-full text-left bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                      >
+                        <i className="ri-search-line text-xs mr-2 text-gray-400"></i>
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 검색 버튼 */}
+              <div className="flex space-x-3">
                 <button
                   onClick={() => {
                     setShowSearchModal(false);
@@ -2106,74 +2147,22 @@ export default function EventList({
                     setSearchSuggestions([]);
                     setSearchTerm("");
                   }}
-                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
                 >
-                  <i className="ri-close-line text-xl"></i>
+                  취소
                 </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* 검색 입력창 */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => handleSearchQueryChange(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleSearchSubmit();
-                      }
-                    }}
-                    className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="이벤트 제목, 장소, 주최자로 검색..."
-                    autoFocus
-                  />
-                  <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                </div>
-
-                {/* 자동완성 제안 */}
-                {searchSuggestions.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-gray-400 mb-2">추천 검색어</p>
-                    <div className="max-h-48 overflow-y-auto space-y-1">
-                      {searchSuggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="w-full text-left bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
-                        >
-                          <i className="ri-search-line text-xs mr-2 text-gray-400"></i>
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 검색 버튼 */}
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => {
-                      setShowSearchModal(false);
-                      setSearchQuery("");
-                      setSearchSuggestions([]);
-                      setSearchTerm("");
-                    }}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleSearchSubmit}
-                    className="flex-1 bg-blue-600 hover-bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    검색
-                  </button>
-                </div>
+                <button
+                  onClick={handleSearchSubmit}
+                  className="flex-1 bg-blue-600 hover-bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  검색
+                </button>
               </div>
             </div>
           </div>
         </div>
+      </div>, document.body
+    )
       )}
 
       {/* Password Modal */}
@@ -2192,27 +2181,29 @@ export default function EventList({
       )}
 
       {/* Edit Modal */}
-      {showEditModal && eventToEdit && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-10 overflow-y-auto"
-          onTouchStartCapture={(e) => {
-            e.stopPropagation();
-          }}
-          onTouchMoveCapture={(e) => {
-            if (e.target === e.currentTarget) {
-              e.preventDefault();
+      {showEditModal && eventToEdit && createPortal(
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-10 overflow-y-auto"
+            onTouchStartCapture={(e) => {
               e.stopPropagation();
-            }
-          }}
-          onTouchEndCapture={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] flex flex-col">
-            {/* 헤더 */}
+            }}
+            onTouchMoveCapture={(e) => {
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            onTouchEndCapture={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] flex flex-col">
+              {/* 헤더 */}
             <div className="p-4 border-b border-gray-700">
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-bold text-white">이벤트 수정</h2>
+              <h2 className="text-lg font-bold text-white">
+                    이벤트 수정
+                  </h2>
                 <button
                   onClick={() => {
                     setShowEditModal(false);
@@ -2957,35 +2948,37 @@ export default function EventList({
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+            </div>
+          </div>,
+          document.body
       )}
 
       {/* Event Detail Modal - Sticky Header */}
-      {selectedEvent && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeModal();
-          }}
-          onTouchStartCapture={(e) => {
-            e.stopPropagation();
-          }}
-          onTouchMoveCapture={(e) => {
-            if (e.target === e.currentTarget) {
-              e.preventDefault();
+      {selectedEvent && createPortal(
+        (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) closeModal();
+            }}
+            onTouchStartCapture={(e) => {
               e.stopPropagation();
-            }
-          }}
-          onTouchEndCapture={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          <div
-            className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border relative flex flex-col"
-            style={{ borderColor: "rgb(89, 89, 89)" }}
-            onClick={(e) => e.stopPropagation()}
+            }}
+            onTouchMoveCapture={(e) => {
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            onTouchEndCapture={(e) => {
+              e.stopPropagation();
+            }}
           >
+            <div
+              className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border relative flex flex-col"
+              style={{ borderColor: "rgb(89, 89, 89)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* 스크롤 가능한 전체 영역 */}
             <div 
               className="overflow-y-auto flex-1"
@@ -3489,8 +3482,9 @@ export default function EventList({
                 </button>
               </div>
             </div>
+            </div>
           </div>
-        </div>
+        ), document.body
       )}
 
       {/* 풀스크린 이미지 모달 */}
@@ -3503,43 +3497,45 @@ export default function EventList({
             defaultThumbnailClass,
             defaultThumbnailEvent,
           )) && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
-            onClick={() => setShowFullscreenImage(false)}
-            onTouchStartCapture={(e) => {
-              e.stopPropagation();
-            }}
-            onTouchMoveCapture={(e) => {
-              if (e.target === e.currentTarget) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
-            onTouchEndCapture={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <button
-              onClick={() => setShowFullscreenImage(false)}
-              className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+            createPortal(
+              <div
+                className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
+                onClick={() => setShowFullscreenImage(false)}
+                onTouchStartCapture={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchMoveCapture={(e) => {
+                  if (e.target === e.currentTarget) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onTouchEndCapture={(e) => {
+                  e.stopPropagation();
+                }}
             >
-              <i className="ri-close-line text-2xl"></i>
-            </button>
-            <img
-              src={
-                selectedEvent.image_full ||
-                selectedEvent.image ||
-                getEventThumbnail(
-                  selectedEvent,
-                  defaultThumbnailClass,
-                  defaultThumbnailEvent,
-                )
-              }
-              alt={selectedEvent.title}
-              className="max-w-full max-h-full object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+             <button
+                onClick={() => setShowFullscreenImage(false)}
+                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+              >
+                <i className="ri-close-line text-2xl"></i>
+              </button>
+              <img
+                src={
+                  selectedEvent.image_full ||
+                  selectedEvent.image ||
+                  getEventThumbnail(
+                    selectedEvent,
+                    defaultThumbnailClass,
+                    defaultThumbnailEvent,
+                  )
+                }
+                alt={selectedEvent.title}
+                className="max-w-full max-h-full object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>, document.body
+          )
         )}
 
       {/* 이미지 크롭 모달 */}
