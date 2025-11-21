@@ -483,6 +483,7 @@ export default function HomePage() {
 
   return (
     <div
+      ref={containerRef}
       className="h-screen flex flex-col overflow-hidden"
       style={{ 
         backgroundColor: "var(--page-bg-color)",
