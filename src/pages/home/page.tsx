@@ -34,6 +34,8 @@ export default function HomePage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [qrLoading, setQrLoading] = useState(false);
+  
+  const viewModeRef = useRef(viewMode); // 🎯 로깅 및 이벤트 핸들러용 ref
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(null);
   const [billboardUserName, setBillboardUserName] = useState<string>("");
@@ -65,6 +67,11 @@ export default function HomePage() {
       }
     }
   }, [effectiveIsAdmin, billboardUserId]);
+
+  // 🎯 viewMode 상태를 ref에 동기화 (이벤트 핸들러에서 최신 값 사용)
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
 
   // MobileShell에 현재 월 정보 전달
   useEffect(() => {
@@ -182,13 +189,33 @@ export default function HomePage() {
 
     const handleTouchStart = (e: TouchEvent) => {
       // 🎯 ref 사용하여 최신 상태 체크
-      if (isAnimating) return;
+      // 년도 선택 모드에서는 수평 스와이프 비활성화
+      const target = e.target as HTMLElement;
+      const currentViewMode = viewModeRef.current; // 🎯 ref에서 최신 viewMode 가져오기
+
+      // 💡 상세 로깅: 터치 시작 시 모든 관련 정보 기록
+      console.log('[🖐️ 터치 시작]', {
+        target: target.tagName,
+        targetClasses: target.className,
+        viewMode: currentViewMode,
+        isAnimating,
+        isButton: !!target.closest('button'),
+        isCalendar: calendarRef.current?.contains(target),
+      });
+
+      // 💡 제스처 방해 조건 수정:
+      // '년' 보기 모드에서 달력 내부를 터치하면, 모든 제스처(수직/수평)를 중단합니다.
+      // e.stopImmediatePropagation()을 사용하여 다른 이벤트 리스너(수직 드래그)의 실행을 막습니다.
+      if (isAnimating || (currentViewMode === 'year' && calendarRef.current?.contains(target))) {
+        console.log('[🖐️ 제스처 중단] 제스처 무시 조건 충족. 모든 스와이프/드래그 동작을 중단합니다.');
+        e.stopImmediatePropagation();
+        return;
+      }
+
       const touch = e.touches[0];
       localTouchStart = { x: touch.clientX, y: touch.clientY };
       localIsDragging = true;
-      localSwipeDirection = null;
-      gestureDirectionRef.current = null; // 🎯 방향 초기화
-      setDragOffset(0);
+    
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -334,7 +361,7 @@ export default function HomePage() {
 
     // 🎯 dependencies에서 currentMonth 제거 - 함수형 업데이트로 최신 값 사용
     // viewMode 추가 - 년/월 모드에 따라 이동 단위 변경
-  }, [containerRef, isAnimating, viewMode]);
+  }, [containerRef, isAnimating]); // viewMode 의존성 제거 (ref 사용)
 
   // QR 스캔 또는 이벤트 수정으로 접속했는지 동기적으로 확인 (초기 렌더링 시점에 결정)
   const [fromQR] = useState(() => {
@@ -911,21 +938,18 @@ export default function HomePage() {
 
   return (
     <div
-      ref={containerRef}
       className="h-screen flex flex-col overflow-hidden"
       style={{
         backgroundColor: "var(--page-bg-color)",
-        touchAction: "none", // PointerCancel 방지 - 모든 제스처를 JS로 제어
       }}
     >
       {/* Fixed Header for all screens */}
       <div
         ref={headerRef}
-        className="flex-shrink-0 w-full z-[51] border-b border-[#22262a]"
+        className="relative flex-shrink-0 w-full z-[51] border-b border-[#22262a]"
         style={{ 
           backgroundColor: "var(--header-bg-color)",
-          touchAction: "auto",
-          pointerEvents: "auto"
+          transform: "translateZ(0)", // 모바일 브라우저에서 z-index 렌더링 레이어 강제 분리
         }}
       >
         <Header
@@ -986,7 +1010,17 @@ export default function HomePage() {
       </div>
 
       {/* Mobile Layout - Sticky Calendar, Scrollable Events */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div
+        ref={containerRef}
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{
+          // 제스처 컨트롤을 이 영역으로 제한
+             // 💡 제스처 컨트롤을 이 영역으로 제한
+          // 년도 선택 모드에서는 브라우저 기본 터치 동작(버튼 클릭 등)을 허용하고,
+         // 💡 JS로 모든 것을 제어하므로 touchAction은 항상 none으로 유지
+         touchAction: 'none',
+        }}
+      >
         {/* 서브 관리자도 일반 사용자처럼 달력/이벤트 표시 */}
         {/* Calendar Section - Fixed (헤더 아래 고정) */}
         <div
@@ -995,6 +1029,8 @@ export default function HomePage() {
           style={{
             backgroundColor: "var(--calendar-bg-color)",
             touchAction: "none",
+            // transform: "translateZ(0)", 
+            // 렌더링 레이어 분리로 터치 이벤트 문제 해결
             // 🎯 드래그 중 실시간 position 적용
             position: (() => {
               const threshold = Math.min(
