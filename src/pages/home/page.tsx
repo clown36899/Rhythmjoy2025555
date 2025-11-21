@@ -490,7 +490,7 @@ export default function HomePage() {
         touchAction: "pan-y" 
       }}
     >
-      <div ref={headerRef} className="flex-shrink-0 w-full z-[51] border-b border-[#22262a]" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
+      <div ref={headerRef} className="flex-shrink-0 w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
         <Header
           currentMonth={currentMonth}
           onNavigateMonth={(dir) => {
