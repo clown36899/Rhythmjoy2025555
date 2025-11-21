@@ -1030,7 +1030,7 @@ export default function EventCalendar({
                 style={{
                   transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
                   transition: externalIsAnimating
-                    ? "transform 0.3s ease-out"
+                    ? "transform 0.25s ease-out"
                     : "none",
                 }}
               >
