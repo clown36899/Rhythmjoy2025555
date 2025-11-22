@@ -38,7 +38,9 @@ export const EventCard = memo(({
   const highlightBorderColor =
     event.category === "class" ? "#9333ea" : "#2563eb";
 
-  const finalThumbnailUrl = getEventThumbnail(
+  // 이벤트에 가장 적합한 썸네일 URL을 가져옵니다.
+  // 신규 이미지는 WebP 형식으로 업로드되므로, 이 함수는 자동으로 최적화된 이미지 URL을 반환합니다.
+  const thumbnailUrl = getEventThumbnail(
     event,
     defaultThumbnailClass,
     defaultThumbnailEvent,
@@ -99,7 +101,6 @@ export const EventCard = memo(({
   const endDate = event.end_date || event.date;
   const today = getLocalDateString();
   const isPast = endDate ? endDate < today : false;
-
   return (
     <div
       key={event.id}
@@ -124,12 +125,13 @@ export const EventCard = memo(({
       }}
     >
       <div className="relative aspect-[3/4]">
-        {finalThumbnailUrl ? (
+        {thumbnailUrl ? (
           <>
             <img
-              src={finalThumbnailUrl}
+              src={thumbnailUrl}
               alt={event.title}
-              loading="lazy"
+              loading="lazy"  // 이미지가 뷰포트에 가까워질 때 로딩을 시작합니다.
+              decoding="async" // 이미지 디코딩을 다른 작업과 병렬로 처리합니다.
               className="w-full object-contain object-top bg-gray-900"
               style={{ height: "-webkit-fill-available" }}
             />

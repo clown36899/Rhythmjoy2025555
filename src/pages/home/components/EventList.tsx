@@ -1192,7 +1192,7 @@ export default function EventList({
           console.log("삭제할 이미지 경로:", imagesToDelete);
           
           const { error: storageError } = await supabase.storage
-            .from("event-images")
+            .from("images")
             .remove(imagesToDelete);
 
           if (storageError) {
@@ -3531,6 +3531,7 @@ export default function EventList({
                   )
                 }
                 alt={selectedEvent.title}
+                 loading="lazy"
                 className="max-w-full max-h-full object-contain"
                 onClick={(e) => e.stopPropagation()}
               />

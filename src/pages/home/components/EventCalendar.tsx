@@ -43,6 +43,10 @@ export default function EventCalendar({
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
 
+  // 전체화면 모드인지 시각적으로 판단 (애니메이션 중에도 색상을 미리 적용하기 위함)
+  // calendarMode가 'fullscreen'이거나, 달력 높이가 300px을 초과하면 전체화면으로 간주
+  const isFullscreen = calendarMode === 'fullscreen' || (calendarHeightPx && calendarHeightPx > 300);
+
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
 
@@ -68,7 +72,7 @@ export default function EventCalendar({
 
   // 현재 달의 이벤트별 색상 맵 생성 (전체화면 모드용)
   const eventColorMap = useMemo(() => {
-    if (calendarMode !== 'fullscreen') {
+    if (!isFullscreen) {
       return new Map<number, string>();
     }
 
@@ -116,11 +120,11 @@ export default function EventCalendar({
     });
 
     return map;
-  }, [filteredEvents, currentMonth, calendarMode]);
+  }, [filteredEvents, currentMonth, isFullscreen]);
 
   // 이벤트 색상 가져오기 함수
   const getEventColor = (eventId: number, category: string) => {
-    if (calendarMode !== 'fullscreen') {
+    if (!isFullscreen) {
       // 일반 모드: 카테고리별 색상
       return category === 'class' ? 'bg-green-500' : 'bg-blue-500';
     }
@@ -305,7 +309,7 @@ export default function EventCalendar({
 
       // 색상 할당
       let colorBg: string;
-      if (calendarMode === 'fullscreen') {
+      if (isFullscreen) {
         // 전체화면 모드: 이벤트 ID 기반 고유 색상
         colorBg = getEventColor(event.id, event.category);
       } else {
@@ -333,7 +337,7 @@ export default function EventCalendar({
     });
 
     return map;
-  }, [filteredEvents, currentMonth, calendarMode]);
+  }, [filteredEvents, currentMonth, isFullscreen]);
 
   const navigateMonth = (direction: "prev" | "next") => {
     if (externalIsAnimating) return;
