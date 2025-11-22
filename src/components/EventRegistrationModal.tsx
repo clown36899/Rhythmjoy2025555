@@ -372,6 +372,7 @@ export default function EventRegistrationModal({
     thumbnail: string;
     medium: string;
     full: string;
+    folderPath: string;
   }> => {
     try {
       console.log('[📤 이미지 업로드] 시작', { 
@@ -399,6 +400,7 @@ export default function EventRegistrationModal({
       setUploadStep('서버에 업로드 중...');
       const timestamp = Date.now();
       const baseFileName = sanitizeFileName(file.name);
+      const folderPath = `event-posters/${timestamp}_${baseFileName}`;
       
       console.log('[📤 이미지 업로드] 리사이즈 완료', { 
         baseFileName,
@@ -416,17 +418,17 @@ export default function EventRegistrationModal({
       const uploadPromises = [
         {
           file: resizedImages.thumbnail,
-          path: `event-posters/thumbnail/${baseFileName}_${timestamp}_thumb.${getExtension(resizedImages.thumbnail.name)}`,
+          path: `${folderPath}/thumb.${getExtension(resizedImages.thumbnail.name)}`,
           key: "thumbnail" as const,
         },
         {
           file: resizedImages.medium,
-          path: `event-posters/medium/${baseFileName}_${timestamp}_medium.${getExtension(resizedImages.medium.name)}`,
+          path: `${folderPath}/medium.${getExtension(resizedImages.medium.name)}`,
           key: "medium" as const,
         },
         {
           file: resizedImages.full,
-          path: `event-posters/full/${baseFileName}_${timestamp}_full.${getExtension(resizedImages.full.name)}`,
+          path: `${folderPath}/full.${getExtension(resizedImages.full.name)}`,
           key: "full" as const,
         },
       ];
@@ -458,9 +460,9 @@ export default function EventRegistrationModal({
         full: results.find((r) => r.key === "full")?.url || "",
       };
       
-      console.log('[📤 이미지 업로드] ✅ 완료', finalUrls);
+      console.log('[📤 이미지 업로드] ✅ 완료', { ...finalUrls, folderPath });
       
-      return finalUrls;
+      return { ...finalUrls, folderPath };
     } catch (error) {
       console.error("Image upload failed:", error);
       const errorMessage =
@@ -567,10 +569,15 @@ export default function EventRegistrationModal({
         medium: "",
         full: "",
       };
+      let storagePath: string | null = null;
 
       if (imageFile) {
         console.log('[🚀 이벤트 등록] 이미지 업로드 시작');
-        imageUrls = await uploadImages(imageFile);
+        const uploadResult = await uploadImages(imageFile);
+        imageUrls.thumbnail = uploadResult.thumbnail;
+        imageUrls.medium = uploadResult.medium;
+        imageUrls.full = uploadResult.full;
+        storagePath = uploadResult.folderPath;
         console.log('[🚀 이벤트 등록] 이미지 업로드 완료');
       }
 
@@ -628,6 +635,7 @@ export default function EventRegistrationModal({
         link_name2: formData.linkName2 || null,
         link_name3: formData.linkName3 || null,
         password: formData.password,
+        storage_path: storagePath,
         show_title_on_billboard: formData.showTitleOnBillboard,
 
         created_at: new Date().toISOString(),
@@ -636,14 +644,7 @@ export default function EventRegistrationModal({
       console.log('[💾 이벤트 등록] DB 저장 시작');
       setUploadStep('데이터베이스 저장 중...');
       
-      console.log('[💾 이벤트 등록] DB 저장 데이터', {
-        title: eventData.title,
-        image: eventData.image,
-        image_thumbnail: eventData.image_thumbnail,
-        image_medium: eventData.image_medium,
-        image_full: eventData.image_full,
-        video_url: eventData.video_url,
-      });
+      console.log('>>>>>>>>>> [DB INSERT 직전 데이터 확인] storage_path:', eventData.storage_path, '<<<<<<<<<<');
 
       const { data: insertedData, error } = await supabase
         .from("events")

@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../../lib/supabase";
-import type { Event } from "../../../lib/supabase";
+import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
+interface Event extends BaseEvent {
+  storage_path?: string | null;
+}
 import { parseVideoUrl } from "../../../utils/videoEmbed";
 import {
   getVideoThumbnailOptions,
@@ -23,6 +26,7 @@ import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
 import { EventCard } from "./EventCard";
 import EventPasswordModal from "./EventPasswordModal";
+
 
 registerLocale("ko", ko);
 
@@ -53,6 +57,28 @@ const formatDateForInput = (date: Date): string => {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
+
+const sanitizeFileName = (fileName: string): string => {
+  // 파일명에서 확장자 제거
+  const nameWithoutExt = fileName.split(".")[0];
+
+  // 전각 문자를 반각으로 변환
+  let normalized = nameWithoutExt.replace(/[\uFF01-\uFF5E]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0xfee0),
+  );
+
+  // 영문, 숫자, 하이픈, 언더스코어만 남기고 나머지는 제거
+  normalized = normalized.replace(/[^a-zA-Z0-9\-_]/g, "");
+
+  // 연속된 특수문자 제거
+  normalized = normalized.replace(/[\-_]+/g, "_");
+
+  // 앞뒤 특수문자 제거
+  normalized = normalized.replace(/^[\-_]+|[\-_]+$/g, "");
+
+  return normalized || "image";
+};
+
 
 interface EventListProps {
   selectedDate: Date | null;
@@ -127,6 +153,7 @@ export default function EventList({
   const [internalShowSearchModal, setInternalShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false); // 삭제 로딩 상태
   const [internalSortBy, setInternalSortBy] = useState<
     "random" | "time" | "title"
   >("random");
@@ -473,7 +500,7 @@ export default function EventList({
         if (isAdminMode) {
           const result = await supabase
             .from("events")
-            .select("*")
+            .select("*,storage_path")
             .order("start_date", { ascending: true, nullsFirst: false })
             .order("date", { ascending: true, nullsFirst: false });
           data = result.data;
@@ -481,9 +508,7 @@ export default function EventList({
         } else {
           const result = await supabase
             .from("events")
-            .select(
-              "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at",
-            )
+            .select("*,storage_path")
             .order("start_date", { ascending: true, nullsFirst: false })
             .order("date", { ascending: true, nullsFirst: false });
           data = result.data;
@@ -1109,123 +1134,63 @@ export default function EventList({
     }
   };
 
+ 
   const handleDeleteClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
+
+    // 슈퍼 관리자 모드일 경우 비밀번호 확인 없이 바로 삭제
     if (adminType === "super") {
-      // 슈퍼 관리자는 비밀번호 없이 바로 삭제
-      if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
+      if (confirm("정말로 이 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
         deleteEvent(event.id);
-        setSelectedEvent(null); // 상세 모달 닫기
-        setShowEditModal(false); // 수정 모달 닫기
-        setShowPasswordModal(false); // 비밀번호 모달 닫기
-        setEventToEdit(null); // 수정 이벤트 초기화
-        setEditVideoPreview({ provider: null, embedUrl: null }); // YouTube iframe 메모리 해제
       }
-    } else {
-      // 일반 모드에서는 비밀번호 확인 후 삭제
-      const password = prompt("이벤트 삭제를 위한 비밀번호를 입력하세요:");
-      if (password && password === event.password) {
-        if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
-          deleteEvent(event.id);
-          setSelectedEvent(null); // 상세 모달 닫기
-          setShowEditModal(false); // 수정 모달 닫기
-          setShowPasswordModal(false); // 비밀번호 모달 닫기
-          setEventToEdit(null); // 수정 이벤트 초기화
-          setEditVideoPreview({ provider: null, embedUrl: null }); // YouTube iframe 메모리 해제
-        }
-      } else if (password) {
-        alert("비밀번호가 올바르지 않습니다.");
-      }
+      return;
+    }
+
+    // 일반 모드에서는 비밀번호 확인
+    const password = prompt("이벤트 삭제를 위한 비밀번호를 입력하세요:");
+    if (password === null) {
+      return;
+    }
+
+    // 클라이언트에서 비밀번호를 먼저 간단히 확인 (빠른 피드백)
+    if (password !== event.password) {
+      alert("비밀번호가 올바르지 않습니다.");
+      return;
+    }
+
+    if (confirm("정말로 이 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+      // Edge Function에 비밀번호와 함께 삭제 요청
+      deleteEvent(event.id, password);
     }
   };
 
-  const deleteEvent = async (eventId: number) => {
+  const deleteEvent = async (eventId: number, password: string | null = null) => {
+    // 실제 삭제 로직은 Edge Function으로 이동
+    setIsDeleting(true);
     try {
-      // 1. 이벤트 정보를 조회하여 이미지 URL 가져오기 (원본 image 포함)
-      const { data: event, error: fetchError } = await supabase
-        .from("events")
-        .select("image, image_thumbnail, image_medium, image_full")
-        .eq("id", eventId)
-        .single();
+      console.log(`[🚀 함수 호출] 'delete-event' 호출 시작 (ID: ${eventId})`);
 
-      if (fetchError) {
-        console.error("Error fetching event:", fetchError);
-        alert("이벤트 정보를 불러오는 중 오류가 발생했습니다.");
-        return;
+      // Edge Function 호출
+      const { error } = await supabase.functions.invoke('delete-event', {
+        body: { eventId, password },
+      });
+
+      if (error) {
+        throw error;
       }
 
-      // 2. Storage에서 이미지 파일 삭제
-      if (event) {
-        const imagesToDelete: string[] = [];
-
-        // URL에서 Storage 경로 추출 및 디코딩 함수
-        const extractStoragePath = (url: string | null | undefined): string | null => {
-          if (!url) return null;
-          try {
-            // Supabase Storage URL 형식: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
-            const match = url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+?)(\?|$)/);
-            if (!match) return null;
-            
-            // URL 디코딩 (events%2Fthumb.jpg → events/thumb.jpg)
-            const encodedPath = match[1];
-            return decodeURIComponent(encodedPath);
-          } catch (error) {
-            console.error("경로 추출 실패:", url, error);
-            return null;
-          }
-        };
-
-        // 각 이미지 URL에서 경로 추출 (원본 포함 4개)
-        const imagePath = extractStoragePath(event.image);
-        const thumbnailPath = extractStoragePath(event.image_thumbnail);
-        const mediumPath = extractStoragePath(event.image_medium);
-        const fullPath = extractStoragePath(event.image_full);
-
-        // 중복 제거하여 배열에 추가
-        const paths = [imagePath, thumbnailPath, mediumPath, fullPath].filter(
-          (path): path is string => !!path
-        );
-        imagesToDelete.push(...new Set(paths));
-
-        // Storage에서 이미지 삭제
-        if (imagesToDelete.length > 0) {
-          console.log("삭제할 이미지 경로:", imagesToDelete);
-          
-          const { error: storageError } = await supabase.storage
-            .from("images")
-            .remove(imagesToDelete);
-
-          if (storageError) {
-            console.error("Storage 이미지 삭제 실패:", storageError);
-            alert(
-              `이미지 파일 삭제 중 오류가 발생했습니다.\n계속 진행하시겠습니까?\n\n오류: ${storageError.message}`
-            );
-            const proceed = confirm("DB에서 이벤트를 삭제하시겠습니까?");
-            if (!proceed) {
-              return;
-            }
-          }
-        }
-      }
-
-      // 3. DB에서 이벤트 삭제
-      const { error: deleteError } = await supabase
-        .from("events")
-        .delete()
-        .eq("id", eventId);
-
-      if (deleteError) {
-        console.error("Error deleting event:", deleteError);
-        alert("이벤트 삭제 중 오류가 발생했습니다.");
-      } else {
-        alert("이벤트가 삭제되었습니다.");
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("이벤트 삭제 중 오류가 발생했습니다.");
+      console.log(`[✅ 함수 호출] 'delete-event' 성공 (ID: ${eventId})`);
+      alert("이벤트가 삭제되었습니다.");
+      fetchEvents(); // 목록 새로고침
+      closeModal(); // 열려있는 상세 모달 닫기
+    } catch (error: any) {
+      console.error("Edge Function 호출 또는 이벤트 삭제 중 오류 발생:", error);
+      alert(`이벤트 삭제 중 오류가 발생했습니다: ${error.context?.error_description || error.message || '알 수 없는 오류'}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
+   
 
   const handlePasswordSubmit = async () => {
     if (eventToEdit && eventPassword === eventToEdit.password) {
@@ -1513,96 +1478,84 @@ export default function EventList({
         updated_at: new Date().toISOString(), // 캐시 무효화를 위해 항상 갱신
       };
 
-      // 이미지가 삭제되었으면 (editImagePreview가 비어있고 editImageFile도 없음)
-      if (!editImagePreview && !editImageFile) {
+      // --- 이미지 처리 로직 ---
+      const deleteOldImages = async () => {
+        if (!eventToEdit) return;
+        // [신규 방식] storage_path가 있으면 폴더 내용 삭제
+        if (eventToEdit.storage_path) {
+          console.log(`[수정] 기존 폴더 삭제: ${eventToEdit.storage_path}`);
+          const { data: files } = await supabase.storage.from("images").list(eventToEdit.storage_path);
+          if (files && files.length > 0) {
+            const paths = files.map(f => `${eventToEdit.storage_path}/${f.name}`);
+            await supabase.storage.from("images").remove(paths);
+          }
+        } 
+        // [레거시 방식] 기존 이미지가 URL 방식이면 개별 파일 삭제
+        else if (eventToEdit.image || eventToEdit.image_full) {
+          console.log("[수정] 기존 개별 파일 삭제");
+          const extractStoragePath = (url: string | null | undefined): string | null => {
+            if (!url) return null;
+            try {
+              const match = url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+?)(\?|$)/);
+              return match ? decodeURIComponent(match[1]) : null;
+            } catch (e) { return null; }
+          };
+          const paths = [...new Set([eventToEdit.image, eventToEdit.image_thumbnail, eventToEdit.image_medium, eventToEdit.image_full].map(extractStoragePath).filter((p): p is string => !!p))];
+          if (paths.length > 0) {
+            await supabase.storage.from("images").remove(paths);
+          }
+        }
+      };
+
+      // Case 1: 새 이미지가 업로드된 경우 (교체)
+      if (editImageFile) {
+        console.log("[수정] 새 이미지 감지. 기존 파일 정리 및 새 파일 업로드.");
+        await deleteOldImages();
+
+        // 새 이미지 업로드 (폴더 생성)
+        const resizedImages = await createResizedImages(editImageFile);
+        const timestamp = Date.now();
+        
+        const sanitizeFileName = (fileName: string): string => {
+          const nameWithoutExt = fileName.split(".")[0];
+          let normalized = nameWithoutExt.replace(/[\uFF01-\uFF5E]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0));
+          normalized = normalized.replace(/[^a-zA-Z0-9\-_]/g, "");
+          normalized = normalized.replace(/[\-_]+/g, "_");
+          normalized = normalized.replace(/^[\-_]+|[\-_]+$/g, "");
+          return normalized || "image";
+        };
+        const baseFileName = sanitizeFileName(editImageFile.name);
+        const newFolderPath = `event-posters/${timestamp}_${baseFileName}`;
+        const getExtension = (fileName: string) => fileName.split('.').pop()?.toLowerCase() || 'jpg';
+
+        const uploadPromises = ["thumbnail", "medium", "full"].map(async (key) => {
+          const file = resizedImages[key as keyof typeof resizedImages];
+          const path = `${newFolderPath}/${key}.${getExtension(file.name)}`;
+          const { error } = await supabase.storage.from("images").upload(path, file, { cacheControl: "31536000" });
+          if (error) throw new Error(`${key} upload failed: ${error.message}`);
+          return { key, url: supabase.storage.from("images").getPublicUrl(path).data.publicUrl };
+        });
+
+        const results = await Promise.all(uploadPromises);
+        const urls = Object.fromEntries(results.map(r => [r.key, r.url]));
+
+        updateData.image = urls.full;
+        updateData.image_thumbnail = urls.thumbnail;
+        updateData.image_medium = urls.medium;
+        updateData.image_full = urls.full;
+        updateData.storage_path = newFolderPath;
+      } 
+      // Case 2: 기존 이미지가 삭제된 경우 (새 이미지 없음)
+      else if (!editImagePreview && (eventToEdit.image || eventToEdit.image_full)) {
+        console.log("[수정] 이미지 삭제 감지. 기존 파일 정리.");
+        await deleteOldImages();
+
+        // DB 필드 초기화
         updateData.image = "";
         updateData.image_thumbnail = null;
         updateData.image_medium = null;
         updateData.image_full = null;
-      }
-      // 주의: 영상 URL이 있어도 추출 썸네일은 유지됨 (image 필드 사용)
-
-      // 새 이미지가 업로드되었으면 Supabase Storage에 3가지 크기로 업로드
-      if (editImageFile) {
-        const resizedImages = await createResizedImages(editImageFile);
-        const timestamp = Date.now();
-
-        // 파일명 정규화 (전각 문자 및 특수문자 제거)
-        const sanitizeFileName = (fileName: string): string => {
-          const nameWithoutExt = fileName.split(".")[0];
-
-          // 전각 문자를 반각으로 변환
-          let normalized = nameWithoutExt.replace(/[\uFF01-\uFF5E]/g, (ch) =>
-            String.fromCharCode(ch.charCodeAt(0) - 0xfee0),
-          );
-
-          // 영문, 숫자, 하이픈, 언더스코어만 남기고 나머지는 제거
-          normalized = normalized.replace(/[^a-zA-Z0-9\-_]/g, "");
-
-          // 연속된 특수문자 제거
-          normalized = normalized.replace(/[\-_]+/g, "_");
-
-          // 앞뒤 특수문자 제거
-          normalized = normalized.replace(/^[\-_]+|[\-_]+$/g, "");
-
-          return normalized || "image";
-        };
-
-        const baseFileName = sanitizeFileName(editImageFile.name);
-        
-        // 리사이즈된 이미지의 실제 확장자 추출 (WebP 또는 JPEG)
-        const getExtension = (fileName: string) => {
-          const ext = fileName.split('.').pop()?.toLowerCase();
-          return ext || 'jpg';
-        };
-
-        const uploadPromises = [
-          {
-            file: resizedImages.thumbnail,
-            path: `event-posters/thumbnail/${baseFileName}_${timestamp}_thumb.${getExtension(resizedImages.thumbnail.name)}`,
-            key: "thumbnail" as const,
-          },
-          {
-            file: resizedImages.medium,
-            path: `event-posters/medium/${baseFileName}_${timestamp}_medium.${getExtension(resizedImages.medium.name)}`,
-            key: "medium" as const,
-          },
-          {
-            file: resizedImages.full,
-            path: `event-posters/full/${baseFileName}_${timestamp}_full.${getExtension(resizedImages.full.name)}`,
-            key: "full" as const,
-          },
-        ];
-
-        const results = await Promise.all(
-          uploadPromises.map(async ({ file, path, key }) => {
-            const { error } = await supabase.storage
-              .from("images")
-              .upload(path, file, {
-                cacheControl: "31536000",
-              });
-
-            if (error) {
-              console.error(`${key} upload error:`, error);
-              return { key, url: "" };
-            }
-
-            const { data } = supabase.storage.from("images").getPublicUrl(path);
-
-            return { key, url: data.publicUrl };
-          }),
-        );
-
-        const thumbnailUrl =
-          results.find((r) => r.key === "thumbnail")?.url || "";
-        const mediumUrl = results.find((r) => r.key === "medium")?.url || "";
-        const fullUrl = results.find((r) => r.key === "full")?.url || "";
-
-        updateData.image = fullUrl || editFormData.image;
-        updateData.image_thumbnail = thumbnailUrl || null;
-        updateData.image_medium = mediumUrl || null;
-        updateData.image_full = fullUrl || null;
-      }
+        updateData.storage_path = null;  }
 
       const { error } = await supabase
         .from("events")
@@ -1676,6 +1629,20 @@ export default function EventList({
 
   return (
     <div className="no-select pb-24">
+      {/* 삭제 로딩 오버레이 */}
+      {isDeleting && createPortal(
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[9999]"
+          // 이벤트 전파를 막아 하단 컨텐츠 클릭 방지
+          onClick={(e) => e.stopPropagation()} 
+        >
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 border-4 border-gray-600 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-white text-lg mt-4 font-medium">삭제 중...</p>
+        </div>, document.body
+      )}
       {/* 검색 키워드 배너 (Compact Style) */}
       {searchTerm && (
         <div
@@ -3467,6 +3434,14 @@ export default function EventList({
                   title="이벤트 수정"
                 >
                   <i className="ri-edit-line text-2xl"></i>
+                </button>
+                {/* 삭제 버튼 */}
+                <button
+                  onClick={(e) => handleDeleteClick(selectedEvent, e)}
+                  className="bg-black/30 hover:bg-black/50 text-red-400 hover:text-red-300 w-12 h-12 rounded-lg transition-all cursor-pointer backdrop-blur-sm flex items-center justify-center"
+                  title="이벤트 삭제"
+                >
+                  <i className="ri-delete-bin-line text-2xl"></i>
                 </button>
                 
                 {/* 닫기 버튼 */}
