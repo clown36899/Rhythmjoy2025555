@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef } from "react";
+import React, { useState, useEffect, forwardRef, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import { createResizedImages } from "../utils/imageResize";
@@ -70,6 +70,14 @@ export default function EventRegistrationModal({
   bannerMonthBounds: _bannerMonthBounds,
 }: EventRegistrationModalProps) {
   const { isAdmin } = useAuth();
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const organizerNameInputRef = useRef<HTMLInputElement>(null);
+  const organizerPhoneInputRef = useRef<HTMLInputElement>(null);
+  const startDatePickerRef = useRef<DatePicker>(null);
+  const specificDatePickerRef = useRef<DatePicker>(null);
+  const dateSectionRef = useRef<HTMLDivElement>(null);
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -479,30 +487,44 @@ export default function EventRegistrationModal({
 
     console.log('[🚀 이벤트 등록] 폼 제출 시작 - 필수 필드 검증');
 
+    // 0️⃣ 제목 검증
+    if (!formData.title) {
+      alert("이벤트 제목을 입력해주세요.");
+      titleInputRef.current?.focus();
+      return;
+    }
+
     // 1️⃣ 날짜 검증 (최우선)
     if (dateMode === "range" && !startDateInput) {
       alert("시작 날짜를 선택해주세요.");
+      startDatePickerRef.current?.setOpen(true);
+      dateSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
     if (dateMode === "specific" && specificDates.length === 0) {
       alert("최소 1개의 날짜를 선택해주세요.");
+      specificDatePickerRef.current?.setOpen(true);
+      dateSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
     // 2️⃣ 필수 필드 검증
     if (!formData.password) {
       alert("이벤트 수정을 위한 비밀번호를 설정해주세요.");
+      passwordInputRef.current?.focus();
       return;
     }
 
     if (!formData.organizerName) {
       alert("등록자 이름을 입력해주세요.");
+      organizerNameInputRef.current?.focus();
       return;
     }
 
     if (!formData.organizerPhone) {
       alert("등록자 전화번호를 입력해주세요.");
+      organizerPhoneInputRef.current?.focus();
       return;
     }
 
@@ -744,6 +766,7 @@ export default function EventRegistrationModal({
               {/* 이벤트 제목 */}
               <div>
                 <input
+                  ref={titleInputRef}
                   type="text"
                   name="title"
                   value={formData.title}
@@ -760,6 +783,7 @@ export default function EventRegistrationModal({
                 {/* 이벤트 비밀번호 */}
                 <div>
                   <input
+                    ref={passwordInputRef}
                     type="password"
                     name="password"
                     value={formData.password}
@@ -809,7 +833,7 @@ export default function EventRegistrationModal({
               </div>
 
               {/* 날짜 선택 섹션 (날짜 선택 방식 + 시작일/종료일) */}
-              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
+              <div ref={dateSectionRef} className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
                 <label className="block text-gray-300 text-sm font-medium">
                   날짜 선택 방식
                 </label>
@@ -842,6 +866,7 @@ export default function EventRegistrationModal({
                         시작
                       </label>
                       <DatePicker
+                        ref={startDatePickerRef}
                         selected={startDateInput ? new Date(startDateInput + "T00:00:00") : null}
                         onChange={(date) => {
                           if (date) {
@@ -958,6 +983,7 @@ export default function EventRegistrationModal({
                     </div>
                     <div className="flex gap-2 mb-2">
                       <DatePicker
+                        ref={specificDatePickerRef}
                         selected={tempDateInput ? new Date(tempDateInput + "T00:00:00") : null}
                         onChange={(date) => {
                           if (date) {
@@ -1329,6 +1355,7 @@ export default function EventRegistrationModal({
                       등록자 이름 <span className="text-red-400">*필수</span>
                     </label>
                     <input
+                      ref={organizerNameInputRef}
                       type="text"
                       name="organizerName"
                       value={formData.organizerName}
@@ -1345,6 +1372,7 @@ export default function EventRegistrationModal({
                       <span className="text-red-400">*필수</span>
                     </label>
                     <input
+                      ref={organizerPhoneInputRef}
                       type="tel"
                       name="organizerPhone"
                       value={formData.organizerPhone}
