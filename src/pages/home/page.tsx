@@ -137,7 +137,12 @@ export default function HomePage() {
   // --------------------------------------------------------------------------------
   const calculateFullscreenHeight = useCallback(() => {
     if (typeof window === 'undefined') return 600;
-    return window.innerHeight - headerHeight - FOOTER_HEIGHT;
+    // 하단 네비게이션 메뉴의 실제 높이를 동적으로 가져옴
+    const bottomNav = document.querySelector<HTMLElement>('[data-id="bottom-nav"]');
+    // 메뉴가 있으면 높이를 사용하고, 없으면 기존 상수를 폴백으로 사용
+    const bottomNavHeight = bottomNav ? bottomNav.offsetHeight : FOOTER_HEIGHT;
+    
+    return window.innerHeight - headerHeight - bottomNavHeight;
   }, [headerHeight]);
 
   const getTargetHeight = useCallback(() => {

@@ -163,7 +163,7 @@ export function MobileShell() {
       <Outlet context={{ category }} />
 
       {/* Bottom Navigation - 모든 페이지 공통 */}
-      <div className="fixed bottom-0 left-0 right-0 z-20" style={{ maxWidth: '100%', margin: '0 auto' }}>
+      <div data-id="bottom-nav" className="fixed bottom-0 left-0 right-0 z-20" style={{ maxWidth: '100%', margin: '0 auto' }}>
         {/* Category Filter Badges - 홈 페이지에서만 표시 */}
         {isEventsPage && (
           <div 
