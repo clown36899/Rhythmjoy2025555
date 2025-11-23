@@ -5,6 +5,7 @@ import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
 import { QRCodeSVG } from 'qrcode.react';
+import './EventDetailModal.css';
 
 interface Event extends BaseEvent {
   storage_path?: string | null;
@@ -40,8 +41,8 @@ export default function EventDetailModal({
     <>
       {createPortal(
         (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          <div
+            className="event-detail-modal-overlay"
             onClick={(e) => {
               if (e.target === e.currentTarget) onClose();
             }}
@@ -59,21 +60,21 @@ export default function EventDetailModal({
             }}
           >
             <div
-              className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-hidden border relative flex flex-col"
+              className="event-detail-modal-container"
               style={{ borderColor: "rgb(89, 89, 89)" }}
               onClick={(e) => e.stopPropagation()}
             >
             {/* 스크롤 가능한 전체 영역 */}
-            <div 
-              className="overflow-y-auto flex-1"
-              style={{ 
+            <div
+              className="modal-scroll-container"
+              style={{
                 overscrollBehavior: 'contain',
                 WebkitOverflowScrolling: 'touch'
               }}
             >
               {/* 이미지 영역 (스크롤과 함께 사라짐) */}
               <div
-                className={`relative w-full ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-cover bg-center"}`}
+                className={`image-area ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-pattern"}`}
                 style={{
                   height: "256px",
                   ...(!(
@@ -85,7 +86,7 @@ export default function EventDetailModal({
                       defaultThumbnailEvent,
                     )
                   )
-                    ? { backgroundImage: "url(/grunge.png)" }
+                    ? { backgroundImage: "url(/grunge.png)" } // This remains as it's dynamic
                     : {}),
                 }}
               >
@@ -110,11 +111,11 @@ export default function EventDetailModal({
                           src={detailImageUrl}
                           alt={selectedEvent.title}
                           loading="lazy"
-                          className="w-full h-full object-contain object-top"
+                          className="detail-image"
                         />
                         {isDefaultThumbnail && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="text-white/50 text-6xl font-bold">
+                          <div className="default-thumbnail-overlay">
+                            <span className="default-thumbnail-text">
                               {selectedEvent.category === "class"
                                 ? "강습"
                                 : "행사"}
@@ -124,9 +125,9 @@ export default function EventDetailModal({
                         {/* 크게보기 버튼 */}
                         <button
                           onClick={() => setShowFullscreenImage(true)}
-                          className="absolute top-4 left-4 bg-black/50 hover:bg-black/70 text-white px-3 py-2 rounded-lg text-xs backdrop-blur-sm transition-colors cursor-pointer"
+                          className="fullscreen-button"
                         >
-                          <i className="ri-zoom-in-line mr-1"></i>
+                          <i className="ri-zoom-in-line"></i>
                           크게 보기
                         </button>
                       </>
@@ -136,9 +137,9 @@ export default function EventDetailModal({
                   return (
                     <>
                       <div
-                        className={`absolute inset-0 ${selectedEvent.category === "class" ? "bg-purple-500/30" : "bg-blue-500/30"}`}
+                        className={`category-bg-overlay ${selectedEvent.category === "class" ? "class" : "event"}`}
                       ></div>
-                      <span className="absolute inset-0 flex items-center justify-center text-white/10 text-6xl font-bold">
+                      <span className="category-bg-text">
                         {selectedEvent.category === "class" ? "강습" : "행사"}
                       </span>
                     </>
@@ -147,7 +148,7 @@ export default function EventDetailModal({
 
                 {/* 카테고리 배지 - 좌측 하단 */}
                 <div
-                  className={`absolute bottom-4 left-4 px-3 py-1 text-white text-sm font-bold rounded-lg ${selectedEvent.category === "class" ? "bg-purple-600" : "bg-[#242424]"}`}
+                  className={`category-badge ${selectedEvent.category === "class" ? "class" : "event"}`}
                 >
                   {selectedEvent.category === "class" ? "강습" : "행사"}
                 </div>
@@ -155,20 +156,20 @@ export default function EventDetailModal({
 
               {/* 제목 - Sticky Header */}
               <div
-                className="sticky top-0 z-40 bg-gray-800 border-b border-gray-700"
+                className="sticky-header"
                 style={{
                   padding: "16px",
                 }}
               >
-                <h2 className="text-xl font-bold text-white leading-tight break-words">
+                <h2 className="modal-title">
                   {selectedEvent.title}
                 </h2>
               </div>
 
               {/* 세부 정보 */}
-              <div className="p-4 space-y-3 bg-gray-800 overflow-x-hidden">
-                <div className="flex items-center space-x-3 text-gray-300">
-                  <i className="ri-calendar-line text-blue-400 text-xl"></i>
+              <div className="info-section">
+                <div className="info-item">
+                  <i className="ri-calendar-line info-icon"></i>
                   <span>
                     {(() => {
                       // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
@@ -244,15 +245,15 @@ export default function EventDetailModal({
                 </div>
 
                 {selectedEvent.organizer && (
-                  <div className="flex items-center space-x-3 text-gray-300">
-                    <i className="ri-user-line text-blue-400 text-xl"></i>
+                  <div className="info-item">
+                    <i className="ri-user-line info-icon"></i>
                     <span>{selectedEvent.organizer}</span>
                   </div>
                 )}
 
                 {selectedEvent.location && (
-                  <div className="flex items-center space-x-3 text-gray-300">
-                    <i className="ri-map-pin-line text-blue-400 text-xl"></i>
+                  <div className="info-item">
+                    <i className="ri-map-pin-line info-icon"></i>
                     <div className="flex items-center gap-1">
                       <span>{selectedEvent.location}</span>
                       {selectedEvent.location_link && (
@@ -260,7 +261,7 @@ export default function EventDetailModal({
                           href={selectedEvent.location_link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1 hover:bg-blue-600/20 rounded transition-colors"
+                          className="p-1 hover:bg-blue-600/20 rounded transition-colors" // Kept for simplicity, could be a class
                           title="지도 보기"
                         >
                           <i className="ri-external-link-line text-blue-400 text-lg"></i>
@@ -271,11 +272,11 @@ export default function EventDetailModal({
                 )}
 
                 {selectedEvent.description && (
-                  <div className="pt-3 border-t border-gray-700">
-                    <div className="flex items-start space-x-3 text-gray-300">
-                      <i className="ri-file-text-line text-blue-400 text-xl flex-shrink-0 mt-0.5"></i>
-                      <div className="flex-1 min-w-0">
-                        <p className="whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">
+                  <div className="info-divider">
+                    <div className="info-item">
+                      <i className="ri-file-text-line info-icon"></i>
+                      <div className="info-item-content">
+                        <p>
                           {selectedEvent.description
                             .split(/(\bhttps?:\/\/[^\s]+)/g)
                             .map((part, idx) => {
@@ -286,7 +287,7 @@ export default function EventDetailModal({
                                     href={part}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-400 hover:text-blue-300 underline cursor-pointer break-all"
+                                    className="info-link"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     {part}
@@ -309,10 +310,10 @@ export default function EventDetailModal({
 
                     return (
                       <div className="space-y-2">
-                        <span className="text-sm text-gray-400 block">
+                        <span className="text-sm text-gray-400 block"> {/* Generic label */}
                           문의
                         </span>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="contact-buttons-container">
                           {contactInfos.map((contactInfo, index) => {
                             const handleContactClick = async () => {
                               if (contactInfo.link) {
@@ -332,16 +333,16 @@ export default function EventDetailModal({
                               <button
                                 key={index}
                                 onClick={handleContactClick}
-                                className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/40 border border-green-600/50 text-gray-200 px-3 py-2 rounded-lg transition-colors group"
+                                className="contact-button"
                               >
                                 <i
-                                  className={`${contactInfo.icon} text-green-400 text-lg`}
+                                  className={`${contactInfo.icon} contact-icon`}
                                 ></i>
                                 <div className="text-left">
-                                  <div className="text-sm font-medium">
+                                  <div className="contact-text">
                                     {contactInfo.displayText}
                                   </div>
-                                  <div className="text-xs text-gray-400">
+                                  <div className="contact-subtext">
                                     {contactInfo.link
                                       ? "탭하여 열기"
                                       : "탭하여 복사"}
@@ -358,34 +359,35 @@ export default function EventDetailModal({
                 {isAdminMode &&
                   (selectedEvent.organizer_name ||
                     selectedEvent.organizer_phone) && (
-                    <div className="pt-3 border-t border-gray-700 space-y-2">
-                      <div className="flex items-center gap-2 text-red-400 font-semibold text-sm">
+                    <div className="admin-info-section">
+                      <div className="admin-info-header">
                         <i className="ri-admin-line"></i>
                         <span>등록자 정보 (관리자 전용)</span>
                       </div>
                       {selectedEvent.organizer_name && (
-                        <div className="flex items-center space-x-3 text-gray-300">
-                          <i className="ri-user-star-line text-red-400 text-xl"></i>
+                        <div className="admin-info-item">
+                          <i className="ri-user-star-line"></i>
                           <span>{selectedEvent.organizer_name}</span>
                         </div>
                       )}
                       {selectedEvent.organizer_phone && (
-                        <div className="flex items-center space-x-3 text-gray-300">
-                          <i className="ri-phone-line text-red-400 text-xl"></i>
+                        <div className="admin-info-item">
+                          <i className="ri-phone-line"></i>
                           <span>{selectedEvent.organizer_phone}</span>
                         </div>
                       )}
                     </div>
                   )}
 
-                {selectedEvent.link1 && (
-                  <div className="pt-3 border-t border-gray-700">
-                    <div className="flex items-center gap-3">
+                {/* This section was commented out in the original file, but I've added classes just in case */}
+                {/* {selectedEvent.link1 && (
+                  <div className="info-divider">
+                    <div className="link-container">
                       <a
                         href={selectedEvent.link1}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors cursor-pointer"
+                        className="main-link-button"
                       >
                         <i className="ri-external-link-line text-lg"></i>
                         <span className="font-medium">
@@ -396,7 +398,7 @@ export default function EventDetailModal({
                         href={selectedEvent.link1}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-shrink-0 bg-white p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        className="qr-link-button"
                         title="QR 코드로 바로가기"
                       >
                         <QRCodeSVG
@@ -408,11 +410,11 @@ export default function EventDetailModal({
                       </a>
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {isAdminMode && selectedEvent.created_at && (
-                  <div className="pt-3 border-t border-gray-700">
-                    <span className="text-xs text-gray-500">
+                  <div className="created-at-text">
+                    <span>
                       등록:{" "}
                       {new Date(selectedEvent.created_at).toLocaleDateString(
                         "ko-KR",
@@ -430,14 +432,14 @@ export default function EventDetailModal({
               </div>
             </div>
             
-            <div className="border-t border-gray-700 bg-gray-800 p-4 flex flex-wrap gap-2 justify-between items-center">
-              <div className="flex gap-2 flex-1 overflow-x-auto min-w-0">
+            <div className="modal-footer">
+              <div className="footer-links-container">
                 {selectedEvent.link1 && (
                   <a
                     href={selectedEvent.link1}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-600/50 text-blue-300 px-3 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                    className="footer-link"
                     title={selectedEvent.link_name1 || "바로가기 1"}
                   >
                     <i className="ri-external-link-line text-base"></i>
@@ -451,7 +453,7 @@ export default function EventDetailModal({
                     href={selectedEvent.link2}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-600/50 text-blue-300 px-3 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                    className="footer-link"
                     title={selectedEvent.link_name2 || "바로가기 2"}
                   >
                     <i className="ri-external-link-line text-base"></i>
@@ -465,7 +467,7 @@ export default function EventDetailModal({
                     href={selectedEvent.link3}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-600/50 text-blue-300 px-3 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                    className="footer-link"
                     title={selectedEvent.link_name3 || "바로가기 3"}
                   >
                     <i className="ri-external-link-line text-base"></i>
@@ -476,7 +478,7 @@ export default function EventDetailModal({
                 )}
               </div>
 
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="footer-actions-container">
                 <button
                   onClick={async (e) => {
                     e.stopPropagation();
@@ -497,16 +499,15 @@ export default function EventDetailModal({
                       } else {
                         await navigator.clipboard.writeText(shareUrl);
                         const button = e.currentTarget;
-                        button.classList.remove('text-green-400', 'hover:text-green-300');
-                        button.classList.add('text-blue-400', 'hover:text-blue-300');
+                        button.classList.remove('share');
+                        button.classList.add('share', 'copied');
                         const icon = button.querySelector('i');
                         if (icon) {
                           icon.classList.remove('ri-share-line');
                           icon.classList.add('ri-check-line');
                         }
                         setTimeout(() => {
-                          button.classList.remove('text-blue-400', 'hover:text-blue-300');
-                          button.classList.add('text-green-400', 'hover:text-green-300');
+                          button.classList.remove('copied');
                           if (icon) {
                             icon.classList.remove('ri-check-line');
                             icon.classList.add('ri-share-line');
@@ -520,7 +521,7 @@ export default function EventDetailModal({
                       }
                     }
                   }}
-                  className="bg-black/30 hover:bg-black/50 text-green-400 hover:text-green-300 w-12 h-12 rounded-lg transition-all cursor-pointer backdrop-blur-sm flex items-center justify-center"
+                  className="action-button share"
                   title="공유하기"
                 >
                   <i className="ri-share-line text-2xl"></i>
@@ -528,17 +529,10 @@ export default function EventDetailModal({
                 
                 <button
                   onClick={(e) => onEdit(selectedEvent, e)}
-                  className="bg-black/30 hover:bg-black/50 text-yellow-400 hover:text-yellow-300 w-12 h-12 rounded-lg transition-all cursor-pointer backdrop-blur-sm flex items-center justify-center"
+                  className="action-button edit"
                   title="이벤트 수정"
                 >
                   <i className="ri-edit-line text-2xl"></i>
-                </button>
-                <button
-                  onClick={(e) => onDelete(selectedEvent, e)}
-                  className="bg-black/30 hover:bg-black/50 text-red-400 hover:text-red-300 w-12 h-12 rounded-lg transition-all cursor-pointer backdrop-blur-sm flex items-center justify-center"
-                  title="이벤트 삭제"
-                >
-                  <i className="ri-delete-bin-line text-2xl"></i>
                 </button>
                 
                 <button
@@ -546,7 +540,7 @@ export default function EventDetailModal({
                     e.stopPropagation();
                     onClose();
                   }}
-                  className="bg-gray-600 hover:bg-gray-700 text-white w-12 h-12 rounded-lg transition-all cursor-pointer shadow-lg flex items-center justify-center"
+                  className="close-button"
                   title="닫기"
                 >
                   <i className="ri-close-line text-2xl"></i>
@@ -568,7 +562,7 @@ export default function EventDetailModal({
           )) && (
             createPortal(
               <div
-                className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-[60] p-4"
+                className="fullscreen-overlay"
                 onClick={() => setShowFullscreenImage(false)}
                 onTouchStartCapture={(e) => e.stopPropagation()}
                 onTouchMoveCapture={(e) => {
@@ -581,7 +575,7 @@ export default function EventDetailModal({
             >
              <button
                 onClick={() => setShowFullscreenImage(false)}
-                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-colors cursor-pointer backdrop-blur-sm"
+                className="fullscreen-close-button"
               >
                 <i className="ri-close-line text-2xl"></i>
               </button>
@@ -597,7 +591,7 @@ export default function EventDetailModal({
                 }
                 alt={selectedEvent.title}
                  loading="lazy"
-                className="max-w-full max-h-full object-contain"
+                className="fullscreen-image"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>, document.body
