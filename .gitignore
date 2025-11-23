@@ -35,3 +35,6 @@ dist/
 .DS_Store
 attached_assets/
 *.local
+
+# Local Netlify folder
+.netlify
