@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import EventCalendar from "./components/EventCalendar";
 import EventList from "./components/EventList";
@@ -95,6 +95,8 @@ export default function HomePage() {
   const eventListElementRef = useRef<HTMLDivElement | null>(null);
   const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
+  const calendarControlBarRef = useRef<HTMLDivElement>(null);
+  const calendarCategoryButtonsRef = useRef<HTMLDivElement>(null);
 
   // --------------------------------------------------------------------------------
   // 3. 최신 상태 참조 Ref
@@ -137,12 +139,12 @@ export default function HomePage() {
   // --------------------------------------------------------------------------------
   const calculateFullscreenHeight = useCallback(() => {
     if (typeof window === 'undefined') return 600;
-    // 하단 네비게이션 메뉴의 실제 높이를 동적으로 가져옴
-    const bottomNav = document.querySelector<HTMLElement>('[data-id="bottom-nav"]');
-    // 메뉴가 있으면 높이를 사용하고, 없으면 기존 상수를 폴백으로 사용
-    const bottomNavHeight = bottomNav ? bottomNav.offsetHeight : FOOTER_HEIGHT;
+    // 하단 메인 네비게이션 버튼 영역의 실제 높이를 동적으로 가져옴
+    const mainNavButtons = document.querySelector<HTMLElement>('[data-id="main-nav-buttons"]');
+    // 메인 버튼 영역이 있으면 높이를 사용하고, 없으면 기존 상수를 폴백으로 사용
+    const mainNavButtonsHeight = mainNavButtons ? mainNavButtons.offsetHeight : FOOTER_HEIGHT;
     
-    return window.innerHeight - headerHeight - bottomNavHeight;
+    return window.innerHeight - headerHeight - mainNavButtonsHeight;
   }, [headerHeight]);
 
   const getTargetHeight = useCallback(() => {
@@ -496,10 +498,17 @@ export default function HomePage() {
   // --------------------------------------------------------------------------------
   // 7. 렌더링
   // --------------------------------------------------------------------------------
-  const renderHeight = isDragging 
-    ? `${liveCalendarHeight}px` 
-    : calendarMode === "collapsed" ? "0px" : calendarMode === "fullscreen" ? `${calculateFullscreenHeight()}px` : `${EXPANDED_HEIGHT}px`;
-
+  const renderHeight = useMemo(() => {
+    if (isDragging) return `${liveCalendarHeight}px`;
+    if (calendarMode === 'collapsed') return '0px';
+    if (calendarMode === 'fullscreen') {
+      const containerHeight = calculateFullscreenHeight();
+      const controlBarHeight = calendarControlBarRef.current?.offsetHeight || 32;
+      const categoryButtonsHeight = calendarCategoryButtonsRef.current?.offsetHeight || 42;
+      return `${Math.max(0, containerHeight - controlBarHeight - categoryButtonsHeight)}px`;
+    }
+    return `${EXPANDED_HEIGHT}px`;
+  }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
   const isFixed = calendarMode === "fullscreen" || (isDragging && liveCalendarHeight > 300);
   const buttonBgClass = calendarMode === "collapsed" ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white";
   const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-up-s-line text-sm leading-none align-middle text-white font-bold"></i> : <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>;
@@ -578,7 +587,7 @@ export default function HomePage() {
             />
           </div>
 
-          <div className="w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none" }}>
+          <div ref={calendarControlBarRef} className="w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none" }}>
             <div className="flex items-center gap-2 px-2 py-1">
               <button
                 onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : prev === "fullscreen" ? "expanded" : "collapsed")}
@@ -604,7 +613,7 @@ export default function HomePage() {
               <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`flex items-center justify-center h-6 w-8 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${calendarMode === "fullscreen" ? "bg-blue-600 text-white" : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} text-sm leading-none align-middle`}></i></button>
             </div>
           </div>
-          <div data-id="bottom-nav" className="w-full flex justify-center items-center gap-3 px-2 py-2 border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)" }}>
+          <div ref={calendarCategoryButtonsRef} data-id="bottom-nav" className="w-full flex justify-center items-center gap-3 px-2 py-2 border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)" }}>
             <button onClick={() => navigateWithCategory('all')} className={`text-sm font-bold transition-colors ${selectedCategory === 'all' ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
               <span>전체</span>
             </button>
