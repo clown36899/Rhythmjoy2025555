@@ -1644,6 +1644,7 @@ export default function EventList({
           className="p-[0.4rem]"
           style={{
             margin: "2px 0",
+
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
@@ -1778,6 +1779,7 @@ export default function EventList({
                 className="p-[0.4rem]"
                 style={{
                   margin: "2px 0",
+                  padding:"0 19px",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
@@ -1855,6 +1857,7 @@ export default function EventList({
                 className="p-[0.4rem]"
                 style={{
                   margin: "2px 0",
+                  padding:"0 19px",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
@@ -1925,6 +1928,7 @@ export default function EventList({
                 className="p-[0.4rem]"
                 style={{
                   margin: "2px 0",
+                  padding:"0 19px",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
