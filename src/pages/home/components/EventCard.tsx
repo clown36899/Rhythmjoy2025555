@@ -132,12 +132,12 @@ export const EventCard = memo(({
               alt={event.title}
               loading="lazy"  // 이미지가 뷰포트에 가까워질 때 로딩을 시작합니다.
               decoding="async" // 이미지 디코딩을 다른 작업과 병렬로 처리합니다.
-              className="w-full object-contain object-top bg-gray-900"
+              className={`w-full object-contain object-top bg-gray-900 transition-opacity ${isPast ? 'opacity-50' : ''}`}
               style={{ height: "-webkit-fill-available" }}
             />
             {variant === "sliding" && !event?.image && !event?.image_thumbnail && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-white/50 text-4xl font-bold">
+                <span className={`text-white/50 text-4xl font-bold transition-opacity ${isPast ? 'opacity-50' : ''}`}>
                   {event.category === "class" ? "강습" : "행사"}
                 </span>
               </div>
@@ -145,7 +145,7 @@ export const EventCard = memo(({
           </>
         ) : (
           <div
-            className="w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative"
+            className={`w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative transition-opacity ${isPast ? 'opacity-50' : ''}`}
             style={{
               backgroundImage: "url(/grunge.png)",
             }}
@@ -175,7 +175,7 @@ export const EventCard = memo(({
           {isPast ? "종료" : event.category === "class" ? "강습" : "행사"}
         </div>
 
-        <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t ${variant === "sliding" ? "from-black/90 via-black/60" : "from-black/80 via-black/40"} to-transparent p-2 ${variant === "sliding" ? "pt-10" : "pt-6"}`}>
+        <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t ${variant === "sliding" ? "from-black/90 via-black/60" : "from-black/80 via-black/40"} to-transparent p-2 ${variant === "sliding" ? "pt-10" : "pt-6"} transition-opacity ${isPast ? 'opacity-50' : ''}`}>
           <h3
             className={`text-white font-bold leading-tight ${variant === "sliding" ? "line-clamp-4" : "line-clamp-2"}`}
             style={{ fontSize: "0.8rem" }}

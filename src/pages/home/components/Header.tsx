@@ -377,7 +377,7 @@ export default function Header({
         className="border-b border-[#22262a]"
         style={{ backgroundColor: "var(--header-bg-color)" }}
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-[9px]">
           <div className="flex items-center justify-between h-12">
             <div className="flex items-center space-x-8">
               <button

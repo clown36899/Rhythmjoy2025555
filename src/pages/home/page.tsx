@@ -230,10 +230,10 @@ export default function HomePage() {
             const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
             // 리스트 맨 위 + 당김
             const isPullingDown = initialScrollTop <= 2 && diffY > 0;
-            // 리스트 맨 위 + 밈 + 달력 열려있음
-            const isPushingUp = initialScrollTop <= 2 && diffY < 0 && latestStateRef.current.calendarMode !== 'collapsed';
 
-            if (isTouchingCalendar || isPullingDown || isPushingUp) {
+            // 달력 영역을 터치했거나, 이벤트 목록 최상단에서 아래로 당길 때만 달력 크기 조절
+            // 이벤트 목록에서 위로 올리는 동작은 목록 스크롤을 위해 제외
+            if (isTouchingCalendar || isPullingDown) {
               gestureRef.current.isLocked = 'vertical';
               // ★ 수직 잠금 되는 순간 높이 제어권 가져옴 (점프 방지)
               setIsDragging(true);
@@ -587,8 +587,8 @@ export default function HomePage() {
             />
           </div>
 
-          <div ref={calendarControlBarRef} className="w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none" }}>
-            <div className="flex items-center gap-2 px-2 py-1">
+          <div ref={calendarControlBarRef} className="w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none",padding:"0 9px" }}>
+            <div className="flex items-center gap-2 py-1">
               <button
                 onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : prev === "fullscreen" ? "expanded" : "collapsed")}
                 className={`flex items-center justify-center gap-1 h-6 px-2 ${buttonBgClass} rounded-lg transition-colors cursor-pointer flex-shrink-0`}
@@ -613,16 +613,16 @@ export default function HomePage() {
               <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`flex items-center justify-center h-6 w-8 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${calendarMode === "fullscreen" ? "bg-blue-600 text-white" : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} text-sm leading-none align-middle`}></i></button>
             </div>
           </div>
-          <div ref={calendarCategoryButtonsRef} data-id="bottom-nav" className="w-full flex justify-center items-center gap-3 px-2 py-2 border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)" }}>
-            <button onClick={() => navigateWithCategory('all')} className={`text-sm font-bold transition-colors ${selectedCategory === 'all' ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
+          <div ref={calendarCategoryButtonsRef} data-id="bottom-nav" className="w-full flex justify-center items-center gap-3 px-[9px] py-2 border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)" }}>
+            <button onClick={() => navigateWithCategory('all')} className={`text-lg font-bold transition-colors ${selectedCategory === 'all' ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
               <span>전체</span>
             </button>
             <span className="text-gray-600 select-none">|</span>
-            <button onClick={() => navigateWithCategory('event')} className={`text-sm font-bold transition-colors ${selectedCategory === 'event' ? 'text-blue-300' : 'text-gray-400 hover:text-white'}`}>
+            <button onClick={() => navigateWithCategory('event')} className={`text-lg font-bold transition-colors ${selectedCategory === 'event' ? 'text-blue-300' : 'text-gray-400 hover:text-white'}`}>
               <span>행사</span>
             </button>
             <span className="text-gray-600 select-none">|</span>
-            <button onClick={() => navigateWithCategory('class')} className={`text-sm font-bold transition-colors ${selectedCategory === 'class' ? 'text-purple-300' : 'text-gray-400 hover:text-white'}`}>
+            <button onClick={() => navigateWithCategory('class')} className={`text-lg font-bold transition-colors ${selectedCategory === 'class' ? 'text-purple-300' : 'text-gray-400 hover:text-white'}`}>
               <span>강습</span>
             </button>
           </div>
