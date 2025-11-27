@@ -590,10 +590,7 @@ export default function HomePage() {
               </button>
               <div className="flex-1"></div>
               {calendarMode === "fullscreen" ? (
-                <>
-                   <button onClick={() => navigateWithCategory(selectedCategory === 'all' ? 'class' : 'all')} className={`inline-flex items-center gap-1 px-2 h-6 rounded-full text-xs font-medium border transition-colors ${selectedCategory === 'event' || selectedCategory === 'all' ? 'bg-blue-500/20 border-blue-500 text-blue-300' : 'bg-gray-700/30 border-gray-600 text-gray-400'}`}><span>행사</span></button>
-                   <button onClick={() => navigateWithCategory(selectedCategory === 'all' ? 'event' : 'all')} className={`inline-flex items-center gap-1 px-2 h-6 rounded-full text-xs font-medium border transition-colors ${selectedCategory === 'class' || selectedCategory === 'all' ? 'bg-purple-500/20 border-purple-500 text-purple-300' : 'bg-gray-700/30 border-gray-600 text-gray-400'}`}><span>강습</span></button>
-                </>
+                null
               ) : (
                 <>
                   {/* 오늘 버튼 조건부 렌더링 */}
@@ -607,6 +604,19 @@ export default function HomePage() {
               <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`flex items-center justify-center h-6 w-8 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${calendarMode === "fullscreen" ? "bg-blue-600 text-white" : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} text-sm leading-none align-middle`}></i></button>
             </div>
           </div>
+          <div data-id="bottom-nav" className="w-full flex justify-center items-center gap-3 px-2 py-2 border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)" }}>
+            <button onClick={() => navigateWithCategory('all')} className={`text-sm font-bold transition-colors ${selectedCategory === 'all' ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
+              <span>전체</span>
+            </button>
+            <span className="text-gray-600 select-none">|</span>
+            <button onClick={() => navigateWithCategory('event')} className={`text-sm font-bold transition-colors ${selectedCategory === 'event' ? 'text-blue-300' : 'text-gray-400 hover:text-white'}`}>
+              <span>행사</span>
+            </button>
+            <span className="text-gray-600 select-none">|</span>
+            <button onClick={() => navigateWithCategory('class')} className={`text-sm font-bold transition-colors ${selectedCategory === 'class' ? 'text-purple-300' : 'text-gray-400 hover:text-white'}`}>
+              <span>강습</span>
+            </button>
+          </div>
         </div>
 
         <div
@@ -617,9 +627,9 @@ export default function HomePage() {
             overscrollBehaviorY: "contain"
           }}
         >
-          <div className="p-0 bg-[#222] rounded-none no-select">
+          {/* <div className="p-0 bg-[#222] rounded-none no-select">
             <p className="text-gray-300 text-[13px] text-center no-select"><i className="ri-information-line mr-1"></i>날짜를 클릭하면 이벤트를 등록할 수 있습니다</p>
-          </div>
+          </div> */}
 
           {qrLoading ? (
             <div className="flex items-center justify-center h-full"><div className="text-gray-400">이벤트 로딩 중...</div></div>

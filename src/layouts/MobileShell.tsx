@@ -175,28 +175,9 @@ export function MobileShell() {
           >
             <div className="flex items-center gap-2 flex-1 justify-center">
               {/* 행사 버튼 (앞으로 이동) */}
-              <button
-                onClick={() => handleCategoryChange('event')}
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
-                  category === 'event'
-                    ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                    : 'bg-gray-700/30 border-gray-600 text-gray-400'
-                }`}
-              >
-                <span>행사 {eventCounts.event}</span>
-              </button>
-              
-              {/* 강습 버튼 */}
-              <button
-                onClick={() => handleCategoryChange('class')}
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
-                  category === 'class'
-                    ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                    : 'bg-gray-700/30 border-gray-600 text-gray-400'
-                }`}
-              >
-                <span>강습 {eventCounts.class}</span>
-              </button>
+              <div className="text-center text-sm text-gray-400">
+            날짜를 클릭하여 일정을 추가하세요
+          </div>
 
               {/* 등록 버튼 - 날짜 선택 시에만 표시 */}
               {selectedDate && (
