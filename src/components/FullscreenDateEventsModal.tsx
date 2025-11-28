@@ -1,30 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
-
-interface Event {
-  id: number;
-  title: string;
-  date: string;
-  start_date: string | null;
-  end_date: string | null;
-  time: string;
-  location: string;
-  category: string;
-  image_thumbnail?: string;
-  image_medium?: string;
-  image_full?: string;
-  image?: string;
-  description?: string;
-  organizer?: string;
-}
+import type { Event as AppEvent } from "../lib/supabase";
 
 interface FullscreenDateEventsModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: Date;
   clickPosition?: { x: number; y: number };
-  onEventClick: (event: Event) => void;
+  onEventClick: (event: AppEvent) => void;
 }
 
 export default function FullscreenDateEventsModal({
@@ -34,7 +18,7 @@ export default function FullscreenDateEventsModal({
   clickPosition,
   onEventClick,
 }: FullscreenDateEventsModalProps) {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const modalRef = useRef<HTMLDivElement>(null);
 
