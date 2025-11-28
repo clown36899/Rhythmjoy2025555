@@ -9,6 +9,7 @@ import AdminBillboardModal from "./components/AdminBillboardModal";
 import EventRegistrationModal from "../../components/EventRegistrationModal";
 import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
 import { supabase } from "../../lib/supabase";
+import type { Event as AppEvent } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -166,7 +167,8 @@ export default function HomePage() {
     startX: number;
     startY: number;
     startHeight: number;
-    isLocked: 'horizontal' | 'vertical' | null; 
+    isLocked: 'horizontal' | 'vertical-resize' | 'vertical-scroll' | null; 
+
     initialScrollTop: number;
   }>({
     startX: 0, startY: 0, startHeight: 0, isLocked: null, initialScrollTop: 0
@@ -176,18 +178,32 @@ export default function HomePage() {
     const container = containerRef.current;
     if (!container) return;
 
-    const handleTouchStart = (e: TouchEvent) => {
-      // 애니메이션 중이거나 멀티 터치 무시
-      if (latestStateRef.current.isAnimating || e.touches.length > 1) return;
+    const getCoords = (e: TouchEvent | MouseEvent): { clientX: number; clientY: number } | null => {
+      if (e instanceof TouchEvent) {
+        return e.touches.length > 0 ? e.touches[0] : null;
+      }
+      return e; // MouseEvent
+    };
 
-      const touch = e.touches[0];
+    const getEndCoords = (e: TouchEvent | MouseEvent): { clientX: number; clientY: number } | null => {
+      if (e instanceof TouchEvent) {
+        return e.changedTouches.length > 0 ? e.changedTouches[0] : null;
+      }
+      return e; // MouseEvent
+    };
+
+    const handleGestureStart = (e: TouchEvent | MouseEvent) => {
+      if (latestStateRef.current.isAnimating || (e instanceof TouchEvent && e.touches.length > 1)) return;
       const target = e.target as HTMLElement;
 
       // 버튼 등 상호작용 요소는 터치 허용 (이벤트 핸들러 실행 안함)
-      if (target.closest('button, a, input, .clickable, [role="button"]')) return;
+      if (target.closest('button, a, input, select, .clickable, [role="button"]')) return;
       
       // Year 모드 달력 내부는 스크롤 허용
       if (latestStateRef.current.viewMode === 'year' && calendarContentRef.current?.contains(target)) return;
+
+      const coords = getCoords(e);
+      if (!coords) return;
 
       const eventList = eventListElementRef.current;
       const scrollTop = eventList ? eventList.scrollTop : 0;
@@ -198,34 +214,39 @@ export default function HomePage() {
         : getTargetHeight();
 
       gestureRef.current = {
-        startX: touch.clientX,
-        startY: touch.clientY,
+        startX: coords.clientX,
+        startY: coords.clientY,
         startHeight: currentHeight,
         isLocked: null,
         initialScrollTop: scrollTop
       };
-      // 주의: 여기서 preventDefault()를 호출하지 않음 -> 클릭 허용
+      if (e instanceof MouseEvent) {
+        window.addEventListener('mousemove', handleGestureMove, { passive: false });
+        window.addEventListener('mouseup', handleGestureEnd, { passive: false });
+      }
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      const touch = e.touches[0];
+    const handleGestureMove = (e: TouchEvent | MouseEvent) => {
+      const coords = getCoords(e);
+      if (!coords) return;
       const { startX, startY, isLocked, startHeight, initialScrollTop } = gestureRef.current;
       
-      const diffX = touch.clientX - startX;
-      const diffY = touch.clientY - startY;
+      const diffX = coords.clientX - startX;
+      const diffY = coords.clientY - startY;
+
 
       // 1. 방향 잠금 로직 (아직 안 잠겼을 때)
       if (!isLocked) {
         const absX = Math.abs(diffX);
         const absY = Math.abs(diffY);
 
-        // 5px 이상 움직였을 때 판정
+        
         if (absX > 5 || absY > 5) {
-          // 수평이 수직보다 확실히 클 때 -> 수평 잠금
+          
           if (absX > absY * 1.5) {
             gestureRef.current.isLocked = 'horizontal';
           } 
-          // 수직이 수평보다 클 때 -> 조건부 수직 잠금
+          
           else if (absY > absX) {
             const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
             // 리스트 맨 위 + 당김
@@ -234,26 +255,32 @@ export default function HomePage() {
             // 달력 영역을 터치했거나, 이벤트 목록 최상단에서 아래로 당길 때만 달력 크기 조절
             // 이벤트 목록에서 위로 올리는 동작은 목록 스크롤을 위해 제외
             if (isTouchingCalendar || isPullingDown) {
-              gestureRef.current.isLocked = 'vertical';
-              // ★ 수직 잠금 되는 순간 높이 제어권 가져옴 (점프 방지)
+              gestureRef.current.isLocked = 'vertical-resize';
+
               setIsDragging(true);
               setLiveCalendarHeight(startHeight);
+            } else if (e instanceof MouseEvent) {
+              // 마우스 이벤트의 경우, 달력 리사이즈 조건이 아니면 스크롤로 간주
+              gestureRef.current.isLocked = 'vertical-scroll';
+
             }
           }
         }
       }
 
       // 2. 실행 로직 (잠긴 후)
-      if (gestureRef.current.isLocked === 'horizontal') {
-        if (e.cancelable) e.preventDefault(); // 가로 이동 시 세로 스크롤 방지
+      const currentLock = gestureRef.current.isLocked;
+
+      if (currentLock === 'horizontal') {
+        if (e.cancelable && !(e.target as HTMLElement)?.closest('input[type="range"]')) e.preventDefault();
+
         if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
         swipeAnimationRef.current = requestAnimationFrame(() => {
           setDragOffset(diffX);
         });
       } 
-      else if (gestureRef.current.isLocked === 'vertical') {
-        if (e.cancelable) e.preventDefault(); // ★ 중요: 브라우저 스크롤/새로고침 차단
-        
+      else if (currentLock === 'vertical-resize') {
+        if (e.cancelable) e.preventDefault();   
         const newHeight = startHeight + diffY;
         const maxAllowedHeight = calculateFullscreenHeight();
         const clampedHeight = Math.max(0, Math.min(newHeight, maxAllowedHeight));
@@ -262,18 +289,46 @@ export default function HomePage() {
         swipeAnimationRef.current = requestAnimationFrame(() => {
           setLiveCalendarHeight(clampedHeight);
         });
+      } else if (currentLock === 'vertical-scroll') {
+        // 마우스로 이벤트 목록을 스크롤하는 경우
+        if (e instanceof MouseEvent) {
+          if (e.cancelable) e.preventDefault();
+          const eventList = eventListElementRef.current;
+          if (eventList) {
+            eventList.scrollTop = initialScrollTop - diffY;
+          }
+        }
+        // 터치 이벤트는 브라우저 네이티브 스크롤에 맡김 (아무것도 안 함)
       }
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      const { isLocked, startX } = gestureRef.current;
-      const touch = e.changedTouches[0]; // changedTouches 사용
+    const handleGestureEnd = (e: TouchEvent | MouseEvent) => {
+      const { isLocked, startX, startY } = gestureRef.current;
+      const endCoords = getEndCoords(e);
+      if (!endCoords) return;
+
 
       if (swipeAnimationRef.current) { cancelAnimationFrame(swipeAnimationRef.current); swipeAnimationRef.current = null; }
 
+      const diffX = endCoords.clientX - startX;
+      const diffY = endCoords.clientY - startY;
+      const distance = Math.sqrt(diffX * diffX + diffY * diffY);
+
+      // 탭(Tap) 동작 처리: 드래그/스와이프가 시작되지 않았고, 움직임이 거의 없었을 때
+      if (!isLocked && distance < 10) {
+        const target = e.target as HTMLElement;
+        // data-event-id를 가진 가장 가까운 부모 요소를 찾음 (EventCard)
+        const eventCard = target.closest<HTMLElement>('[data-event-id]');
+        if (eventCard) {
+          // 브라우저의 기본 클릭 이벤트를 막고, 수동으로 클릭 이벤트를 발생시켜 300ms 딜레이를 없애고 탭 안정성을 높임
+          e.preventDefault();
+          eventCard.click();
+        }
+      }
+
       // 수평 종료
       if (isLocked === 'horizontal') {
-        const distance = touch.clientX - startX;
+         const distance = endCoords.clientX - startX;
         if (Math.abs(distance) > MIN_SWIPE_DISTANCE) {
           const direction = distance < 0 ? "next" : "prev";
           const targetOffset = distance < 0 ? -window.innerWidth : window.innerWidth;
@@ -298,10 +353,11 @@ export default function HomePage() {
         }
       } 
       // 수직 종료 (자석)
-      else if (isLocked === 'vertical') {
+      else if (isLocked === 'vertical-resize') {
+
         const endHeight = liveCalendarHeight;
         const fullscreenH = calculateFullscreenHeight();
-        const diffY = touch.clientY - gestureRef.current.startY;
+        const diffY = endCoords.clientY - gestureRef.current.startY;
         
         let nextMode = latestStateRef.current.calendarMode;
 
@@ -330,23 +386,31 @@ export default function HomePage() {
         setCalendarMode(nextMode);
         setIsDragging(false); // 트랜지션 복구
       }
-
+      if (e instanceof MouseEvent) {
+        window.removeEventListener('mousemove', handleGestureMove);
+        window.removeEventListener('mouseup', handleGestureEnd);
+      }
       gestureRef.current.isLocked = null;
     };
 
     // ★ passive: false (필수)
     const options = { passive: false };
     
-    container.addEventListener('touchstart', handleTouchStart, options);
-    container.addEventListener('touchmove', handleTouchMove, options);
-    container.addEventListener('touchend', handleTouchEnd, options);
-    container.addEventListener('touchcancel', handleTouchEnd, options);
+    container.addEventListener('touchstart', handleGestureStart, options);
+    container.addEventListener('touchmove', handleGestureMove, options);
+    container.addEventListener('touchend', handleGestureEnd, options);
+    container.addEventListener('touchcancel', handleGestureEnd, options);
+    container.addEventListener('mousedown', handleGestureStart, options);
+
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('touchcancel', handleTouchEnd);
+      container.removeEventListener('touchstart', handleGestureStart);
+      container.removeEventListener('touchmove', handleGestureMove);
+      container.removeEventListener('touchend', handleGestureEnd);
+      container.removeEventListener('touchcancel', handleGestureEnd);
+      container.removeEventListener('mousedown', handleGestureStart);
+      window.removeEventListener('mousemove', handleGestureMove);
+      window.removeEventListener('mouseup', handleGestureEnd);
     };
   }, [calculateFullscreenHeight, liveCalendarHeight]); 
 
@@ -380,6 +444,16 @@ export default function HomePage() {
   const getSortLabel = () => (sortBy === "random" ? "랜덤" : sortBy === "time" ? "시간" : "제목");
   const handleViewModeChange = (mode: "month" | "year") => { if (mode === "year") setSavedMonth(new Date(currentMonth)); else if (mode === "month" && savedMonth) setCurrentMonth(new Date(savedMonth)); setViewMode(mode); };
   const handleSearchStart = () => navigateWithCategory("all");
+
+  const handleEventClickInFullscreen = (event: AppEvent) => {
+    const eventDateStr = event.start_date || event.date;
+    if (eventDateStr) {
+      // 클릭된 이벤트의 날짜로 모달을 열기 위해 날짜 설정
+      const eventDate = new Date(eventDateStr + "T00:00:00");
+      setFullscreenSelectedDate(eventDate);
+      setIsFullscreenDateModalOpen(true);
+    }
+  };
 
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
@@ -467,8 +541,8 @@ export default function HomePage() {
   }, [navigateWithCategory, sortBy]);
 
   useEffect(() => {
-    const handleCreateEvent = (event: Event) => {
-      const customEvent = event as CustomEvent;
+    const handleCreateEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
       if (customEvent.detail?.source === 'banner' && customEvent.detail?.monthIso) {
         if (selectedDate) { setFromBanner(false); setBannerMonthBounds(null); }
         else {
@@ -485,14 +559,16 @@ export default function HomePage() {
       }
       setShowRegistrationModal(true);
     };
-    window.addEventListener("createEventForDate", handleCreateEvent as EventListener);
-    return () => window.removeEventListener("createEventForDate", handleCreateEvent as EventListener);
+    window.addEventListener("createEventForDate", handleCreateEvent);
+    return () => window.removeEventListener("createEventForDate", handleCreateEvent);
+
   }, [selectedDate]);
 
   useEffect(() => { window.dispatchEvent(new CustomEvent("selectedDateChanged", { detail: selectedDate })); }, [selectedDate]);
   useEffect(() => {
-    const handleFullscreenDateClick = (event: Event) => { const customEvent = event as CustomEvent<{ date: Date; clickPosition?: { x: number; y: number } }>; setFullscreenSelectedDate(customEvent.detail.date); setFullscreenClickPosition(customEvent.detail.clickPosition); setIsFullscreenDateModalOpen(true); };
-    window.addEventListener("fullscreenDateClick", handleFullscreenDateClick as EventListener); return () => window.removeEventListener("fullscreenDateClick", handleFullscreenDateClick as EventListener);
+    const handleFullscreenDateClick = (e: Event) => { const customEvent = e as CustomEvent<{ date: Date; clickPosition?: { x: number; y: number } }>; setFullscreenSelectedDate(customEvent.detail.date); setFullscreenClickPosition(customEvent.detail.clickPosition); setIsFullscreenDateModalOpen(true); };
+    window.addEventListener("fullscreenDateClick", handleFullscreenDateClick); return () => window.removeEventListener("fullscreenDateClick", handleFullscreenDateClick);
+
   }, []);
 
   // --------------------------------------------------------------------------------
@@ -613,7 +689,10 @@ export default function HomePage() {
               <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`flex items-center justify-center h-6 w-8 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${calendarMode === "fullscreen" ? "bg-blue-600 text-white" : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} text-sm leading-none align-middle`}></i></button>
             </div>
           </div>
-          <div ref={calendarCategoryButtonsRef} data-id="bottom-nav" className="w-full flex justify-center items-center gap-3 px-[9px] py-2 border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)" }}>
+          <div ref={calendarCategoryButtonsRef} data-id="bottom-nav" className="w-full flex justify-center items-center gap-3 px-[9px] py-2 border-b border-[#22262a]" style={{ 
+            backgroundColor: "var(--calendar-bg-color)",
+            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+          }}>
             <button onClick={() => navigateWithCategory('all')} className={`text-lg font-bold transition-colors ${selectedCategory === 'all' ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
               <span>전체</span>
             </button>
@@ -670,6 +749,8 @@ export default function HomePage() {
               slideContainerRef={eventListSlideContainerRef}
               onMonthChange={(date) => setCurrentMonth(date)}
               onModalStateChange={setIsEventListModalOpen}
+              calendarMode={calendarMode}
+              onEventClickInFullscreen={handleEventClickInFullscreen}
                />
           )}
           <Footer />

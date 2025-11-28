@@ -116,12 +116,13 @@ export const EventCard = memo(({
         if (viewMode === "month" && onMouseLeave) onMouseLeave();
       }}
       className={`overflow-hidden transition-all cursor-pointer relative border ${
-        isHighlighted ? "" : "border-[#000000]"
+        isHighlighted ? "" : "border-transparent"
       }`}
       style={{
         backgroundColor: "var(--event-list-bg-color)",
         borderColor: isHighlighted ? highlightBorderColor : undefined,
         borderRadius: "0.3rem",
+        boxShadow: "rgb(0 0 0 / 53%) 0px 1px 4px, rgb(0 0 0 / 51%) 0px 1px 8px 0px",
       }}
     >
       <div className="relative aspect-[3/4]">

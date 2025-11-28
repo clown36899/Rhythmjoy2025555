@@ -246,7 +246,7 @@ export function MobileShell() {
           </div>
         )}
         
-        <div data-id="main-nav-buttons" className="flex items-center justify-around px-2 py-2 border-t border-[#22262a] no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
+        <div className="flex items-center justify-around px-2 py-2 border-t border-[#22262a] no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
           {/* 이벤트 달력 버튼 */}
           <button
             onClick={(e) => {

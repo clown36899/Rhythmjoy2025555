@@ -99,6 +99,8 @@ interface EventListProps {
   isAnimating?: boolean;
   slideContainerRef?: RefObject<HTMLDivElement | null>;
   onMonthChange?: (date: Date) => void;
+  calendarMode?: "collapsed" | "expanded" | "fullscreen";
+  onEventClickInFullscreen?: (event: Event) => void;
   onModalStateChange: (isModalOpen: boolean) => void;
 }
 
@@ -127,6 +129,8 @@ export default function EventList({
   isAnimating: externalIsAnimating = false,
   slideContainerRef,
   onMonthChange,
+  calendarMode,
+  onEventClickInFullscreen,
   onModalStateChange,
 }: EventListProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
@@ -1064,7 +1068,11 @@ export default function EventList({
   }, [sortedCurrentEvents, selectedDate]);
 
   const handleEventClick = (event: Event) => {
-    setSelectedEvent(event);
+    if (calendarMode === 'fullscreen' && onEventClickInFullscreen) {
+      onEventClickInFullscreen(event);
+    } else {
+      setSelectedEvent(event);
+    }
   };
 
   const closeModal = () => {
