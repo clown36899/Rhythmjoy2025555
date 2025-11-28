@@ -380,6 +380,7 @@ export default function EventCalendar({
   };
 
   const handleDateClick = (date: Date, clickEvent?: PointerEvent) => {
+    console.log(`[Calendar] handleDateClick triggered for ${date.toDateString()}`);
     // 전체화면 모드일 때는 모달을 띄우는 이벤트 발생
     if (calendarMode === "fullscreen") {
       const clickPosition = clickEvent
@@ -396,10 +397,12 @@ export default function EventCalendar({
 
     // 이미 선택된 날짜를 다시 클릭
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+      console.log('[Calendar] Date already selected. Deselecting.');
       // 두 번째 클릭: 선택 해제 (전체 일정 보이기)
       onDateSelect(null);
       return;
     } else {
+      console.log('[Calendar] Selecting new date.');
       // 새로운 날짜 선택 - 이벤트 유무 확인
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -731,37 +734,14 @@ export default function EventCalendar({
       return (
         <div
           key={`${monthDate.getMonth()}-${index}`}
+          data-calendar-date={dateString}
           className={`calendar-day-cell relative no-select transition-all duration-300 ${
             !isOtherMonth && !isSelected ? 'hover:bg-gray-700' : ''
           }`}
           style={{ backgroundColor: bgColor }}
+          onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
         >
           <div
-            onPointerDown={(e) => {
-              // 터치/마우스 시작 시 타이머 설정
-              const startTime = Date.now();
-              const startX = e.clientX;
-              const startY = e.clientY;
-
-              const handlePointerUp = (upEvent: PointerEvent) => {
-                const endTime = Date.now();
-                const endX = upEvent.clientX;
-                const endY = upEvent.clientY;
-                const duration = endTime - startTime;
-                const distance = Math.sqrt(
-                  Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2),
-                );
-
-                // 200ms 이내이고 10px 이내 이동만 클릭으로 간주
-                if (duration < 200 && distance < 10) {
-                  handleDateClick(day, upEvent);
-                }
-
-                window.removeEventListener("pointerup", handlePointerUp);
-              };
-
-              window.addEventListener("pointerup", handlePointerUp);
-            }}
             className={`w-full h-full cursor-pointer relative overflow-visible no-select ${
               isSelected ? "text-white z-10" : "text-gray-300"
             }`}

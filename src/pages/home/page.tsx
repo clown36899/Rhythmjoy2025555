@@ -194,6 +194,7 @@ export default function HomePage() {
 
     const handleGestureStart = (e: TouchEvent | MouseEvent) => {
       if (latestStateRef.current.isAnimating || (e instanceof TouchEvent && e.touches.length > 1)) return;
+      console.log('[Gesture] Start', { target: e.target });
       const target = e.target as HTMLElement;
 
       // 버튼 등 상호작용 요소는 터치 허용 (이벤트 핸들러 실행 안함)
@@ -233,16 +234,19 @@ export default function HomePage() {
       
       const diffX = coords.clientX - startX;
       const diffY = coords.clientY - startY;
+      
+      if (!isLocked && (Math.abs(diffX) > 3 || Math.abs(diffY) > 3)) {
+        console.log('[Gesture] Move', { diffX: Math.round(diffX), diffY: Math.round(diffY), isLocked });
+      }
 
 
       // 1. 방향 잠금 로직 (아직 안 잠겼을 때)
       if (!isLocked) {
         const absX = Math.abs(diffX);
         const absY = Math.abs(diffY);
+        // 10px 이상 움직여야 스크롤/스와이프로 인식 (탭과의 충돌 방지) - 민감도 하향 조정
+        if (absX > 10 || absY > 10) {
 
-        
-        if (absX > 5 || absY > 5) {
-          
           if (absX > absY * 1.5) {
             gestureRef.current.isLocked = 'horizontal';
           } 
@@ -307,12 +311,14 @@ export default function HomePage() {
       const endCoords = getEndCoords(e);
       if (!endCoords) return;
 
-
-      if (swipeAnimationRef.current) { cancelAnimationFrame(swipeAnimationRef.current); swipeAnimationRef.current = null; }
-
       const diffX = endCoords.clientX - startX;
       const diffY = endCoords.clientY - startY;
       const distance = Math.sqrt(diffX * diffX + diffY * diffY);
+
+      console.log('[Gesture] End', { isLocked, distance: Math.round(distance) });
+
+      if (swipeAnimationRef.current) { cancelAnimationFrame(swipeAnimationRef.current); swipeAnimationRef.current = null; }
+
 
       // 탭(Tap) 동작 처리: 드래그/스와이프가 시작되지 않았고, 움직임이 거의 없었을 때
       if (!isLocked && distance < 10) {
@@ -322,16 +328,25 @@ export default function HomePage() {
         if (eventCard) {
           // 브라우저의 기본 클릭 이벤트를 막고, 수동으로 클릭 이벤트를 발생시켜 300ms 딜레이를 없애고 탭 안정성을 높임
           e.preventDefault();
+
+          console.log('[Gesture] Tap detected on EventCard, manually clicking.');
           eventCard.click();
+        }
+        
+        // 달력 날짜 셀에 대한 탭 처리
+        const dateCell = target.closest<HTMLElement>('[data-calendar-date]');
+        if (dateCell) {
+          e.preventDefault();
+          console.log(`[Gesture] Tap detected on DateCell (${dateCell.dataset.calendarDate}), manually clicking.`);
+          dateCell.click();
         }
       }
 
       // 수평 종료
       if (isLocked === 'horizontal') {
-         const distance = endCoords.clientX - startX;
-        if (Math.abs(distance) > MIN_SWIPE_DISTANCE) {
-          const direction = distance < 0 ? "next" : "prev";
-          const targetOffset = distance < 0 ? -window.innerWidth : window.innerWidth;
+        if (Math.abs(diffX) > MIN_SWIPE_DISTANCE) {
+          const direction = diffX < 0 ? "next" : "prev";
+          const targetOffset = diffX < 0 ? -window.innerWidth : window.innerWidth;
           setDragOffset(targetOffset); 
           setIsAnimating(true);
 
@@ -357,7 +372,6 @@ export default function HomePage() {
 
         const endHeight = liveCalendarHeight;
         const fullscreenH = calculateFullscreenHeight();
-        const diffY = endCoords.clientY - gestureRef.current.startY;
         
         let nextMode = latestStateRef.current.calendarMode;
 

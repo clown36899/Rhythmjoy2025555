@@ -1068,9 +1068,12 @@ export default function EventList({
   }, [sortedCurrentEvents, selectedDate]);
 
   const handleEventClick = (event: Event) => {
+    console.log(`[EventList] handleEventClick triggered for event ID: ${event.id}`);
     if (calendarMode === 'fullscreen' && onEventClickInFullscreen) {
+      console.log('[EventList] Fullscreen mode detected, calling onEventClickInFullscreen.');
       onEventClickInFullscreen(event);
     } else {
+      console.log('[EventList] Default mode, calling setSelectedEvent to open detail modal.');
       setSelectedEvent(event);
     }
   };
