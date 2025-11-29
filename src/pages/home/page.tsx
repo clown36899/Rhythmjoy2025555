@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from "react";
-import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import EventCalendar from "./components/EventCalendar";
 import EventList from "./components/EventList";
@@ -11,22 +10,15 @@ import EventRegistrationModal from "../../components/EventRegistrationModal";
 import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
 import EventDetailModal from "./components/EventDetailModal";
 import EventPasswordModal from "./components/EventPasswordModal";
-import ImageCropModal from "../../components/ImageCropModal";
-import CustomDatePickerHeader from "../../components/CustomDatePickerHeader";
-import DatePicker, { registerLocale } from "react-datepicker";
+import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
-import { createResizedImages } from "../../utils/imageResize";
 import { parseVideoUrl } from "../../utils/videoEmbed";
-import {
-  getVideoThumbnailOptions,
-  downloadThumbnailAsBlob,
-  type VideoThumbnailOption,
-} from "../../utils/videoThumbnail";
 import { supabase } from "../../lib/supabase";
 import type { Event as AppEvent } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 import { useAuth } from "../../contexts/AuthContext";
+import { useCalendarGesture } from "../../hooks/useCalendarGesture";
 
 export default function HomePage() {
   const [searchParams] = useSearchParams();
@@ -56,20 +48,9 @@ export default function HomePage() {
   ), []);
   CustomDateInput.displayName = "CustomDateInput";
 
-  const formatDateForInput = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
   // --------------------------------------------------------------------------------
   // 1. UI 상수
   // --------------------------------------------------------------------------------
-  const EXPANDED_HEIGHT = 280;
-  const FOOTER_HEIGHT = 80;
-  const MIN_SWIPE_DISTANCE = 50;
-
   // 모바일 바운스 방지
   useEffect(() => {
     document.documentElement.style.overscrollBehavior = 'none';
@@ -80,6 +61,7 @@ export default function HomePage() {
     };
   }, []);
 
+  // 모바일 바운스 방지
   const navigateWithCategory = useCallback((cat?: string) => {
     if (!cat || cat === "all") navigate("/");
     else navigate(`/?category=${cat}`);
@@ -91,15 +73,7 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
-  
-  const [calendarMode, setCalendarMode] = useState<"collapsed" | "expanded" | "fullscreen">("collapsed");
-  const [isDragging, setIsDragging] = useState(false);
-  const [liveCalendarHeight, setLiveCalendarHeight] = useState(0);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(60);
-
-  const swipeAnimationRef = useRef<number | null>(null);
 
   // 기타 상태
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
@@ -139,7 +113,6 @@ export default function HomePage() {
   const [eventToEdit, setEventToEdit] = useState<AppEvent | null>(null);
   const [eventPassword, setEventPassword] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [editFormData, setEditFormData] = useState({
     title: "",
     description: "",
@@ -165,42 +138,17 @@ export default function HomePage() {
     videoUrl: "",
     showTitleOnBillboard: true,
   });
-  const [editImageFile, setEditImageFile] = useState<File | null>(null);
-  const [editImagePreview, setEditImagePreview] = useState<string>("");
   const [editVideoPreview, setEditVideoPreview] = useState<{ provider: string | null; embedUrl: string | null; }>({ provider: null, embedUrl: null });
-  const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
-  const [thumbnailOptions, setThumbnailOptions] = useState<VideoThumbnailOption[]>([]);
-  const [tempDateInput, setTempDateInput] = useState<string>("");
-  const [showEditCropModal, setShowEditCropModal] = useState(false);
-  const [editCropImageUrl, setEditCropImageUrl] = useState<string>("");
-  const [editOriginalImageFile, setEditOriginalImageFile] = useState<File | null>(null);
-  const [editOriginalImagePreview, setEditOriginalImagePreview] = useState<string>("");
 
   // Refs
-  const calendarRef = useRef<HTMLDivElement>(null);
-  const calendarContentRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const eventListElementRef = useRef<HTMLDivElement | null>(null);
+  const calendarRef = useRef<HTMLDivElement>(null!);
+  const calendarContentRef = useRef<HTMLDivElement>(null!);
+  const containerRef = useRef<HTMLDivElement>(null!);
+  const eventListElementRef = useRef<HTMLDivElement>(null!);
   const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const calendarControlBarRef = useRef<HTMLDivElement>(null);
   const calendarCategoryButtonsRef = useRef<HTMLDivElement>(null);
-
-  // --------------------------------------------------------------------------------
-  // 3. 최신 상태 참조 Ref
-  // --------------------------------------------------------------------------------
-  const latestStateRef = useRef({
-    isAnimating,
-    calendarMode,
-    headerHeight,
-    viewMode,
-    liveCalendarHeight,
-    isDragging,
-  });
-
-  useEffect(() => {
-    latestStateRef.current = { isAnimating, calendarMode, headerHeight, viewMode, liveCalendarHeight, isDragging };
-  }, [isAnimating, calendarMode, headerHeight, viewMode, liveCalendarHeight, isDragging]);
 
   // 모달이 열렸을 때 배경 컨텐츠의 상호작용을 막기 위한 `inert` 속성 관리
   useEffect(() => {
@@ -224,305 +172,51 @@ export default function HomePage() {
     };
   }, [isEventListModalOpen, showSearchModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, isFullscreenDateModalOpen, selectedEvent, showEditModal, showPasswordModal]);
 
+  const handleHorizontalSwipe = (direction: 'next' | 'prev') => {
+    setCurrentMonth((prev) => {
+      const newM = new Date(prev);
+      newM.setDate(1);
+      if (viewMode === "year") {
+        newM.setFullYear(prev.getFullYear() + (direction === 'next' ? 1 : -1));
+      } else {
+        newM.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
+      }
+      return newM;
+    });
+    setSelectedDate(null);
+    setFromBanner(false);
+    setBannerMonthBounds(null);
+  };
 
   // --------------------------------------------------------------------------------
-  // 4. 헬퍼 함수
+  // 4. 커스텀 훅: 달력 제스처 및 상태 관리
   // --------------------------------------------------------------------------------
-  const calculateFullscreenHeight = useCallback(() => {
-    if (typeof window === 'undefined') return 600;
-    // 하단 메인 네비게이션 버튼 영역의 실제 높이를 동적으로 가져옴
-    const mainNavButtons = document.querySelector<HTMLElement>('[data-id="main-nav-buttons"]');
-    // 메인 버튼 영역이 있으면 높이를 사용하고, 없으면 기존 상수를 폴백으로 사용
-    const mainNavButtonsHeight = mainNavButtons ? mainNavButtons.offsetHeight : FOOTER_HEIGHT;
-    
-    return window.innerHeight - headerHeight - mainNavButtonsHeight;
-  }, [headerHeight]);
-
-  const getTargetHeight = useCallback(() => {
-    if (calendarMode === "collapsed") return 0;
-    if (calendarMode === "fullscreen") return calculateFullscreenHeight();
-    return EXPANDED_HEIGHT;
-  }, [calendarMode, calculateFullscreenHeight]);
+  const {
+    calendarMode,
+    setCalendarMode,
+    isDragging,
+    liveCalendarHeight,
+    dragOffset,
+    setDragOffset,
+    isAnimating,
+    setIsAnimating,
+    getTargetHeight,
+    calculateFullscreenHeight,
+  } = useCalendarGesture({
+    headerHeight,
+    containerRef,
+    calendarRef,
+    calendarContentRef,
+    eventListElementRef,
+    onHorizontalSwipe: handleHorizontalSwipe,
+    isYearView: viewMode === 'year',
+  });
 
   const isCurrentMonthVisible = (() => {
     const today = new Date();
     return currentMonth.getFullYear() === today.getFullYear() && 
            currentMonth.getMonth() === today.getMonth();
   })();
-
-  // --------------------------------------------------------------------------------
-  // 5. ★★★ 통합 제스처 핸들러 (Native TouchEvent) ★★★
-  // --------------------------------------------------------------------------------
-  const gestureRef = useRef<{
-    startX: number;
-    startY: number;
-    startHeight: number;
-    isLocked: 'horizontal' | 'vertical-resize' | 'vertical-scroll' | null; 
-
-    initialScrollTop: number;
-  }>({
-    startX: 0, startY: 0, startHeight: 0, isLocked: null, initialScrollTop: 0
-  });
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const getCoords = (e: TouchEvent | MouseEvent): { clientX: number; clientY: number } | null => {
-      if (e instanceof TouchEvent) {
-        return e.touches.length > 0 ? e.touches[0] : null;
-      }
-      return e; // MouseEvent
-    };
-
-    const getEndCoords = (e: TouchEvent | MouseEvent): { clientX: number; clientY: number } | null => {
-      if (e instanceof TouchEvent) {
-        return e.changedTouches.length > 0 ? e.changedTouches[0] : null;
-      }
-      return e; // MouseEvent
-    };
-
-    const handleGestureStart = (e: TouchEvent | MouseEvent) => {
-      if (latestStateRef.current.isAnimating || (e instanceof TouchEvent && e.touches.length > 1)) return;
-      console.log('[Gesture] Start', { target: e.target });
-      const target = e.target as HTMLElement;
-
-      // 버튼 등 상호작용 요소는 터치 허용 (이벤트 핸들러 실행 안함)
-      if (target.closest('button, a, input, select, .clickable, [role="button"]')) return;
-      
-      // Year 모드 달력 내부는 스크롤 허용
-      if (latestStateRef.current.viewMode === 'year' && calendarContentRef.current?.contains(target)) return;
-
-      const coords = getCoords(e);
-      if (!coords) return;
-
-      const eventList = eventListElementRef.current;
-      const scrollTop = eventList ? eventList.scrollTop : 0;
-      
-      // 현재 높이 저장
-      const currentHeight = calendarContentRef.current 
-        ? calendarContentRef.current.getBoundingClientRect().height 
-        : getTargetHeight();
-
-      gestureRef.current = {
-        startX: coords.clientX,
-        startY: coords.clientY,
-        startHeight: currentHeight,
-        isLocked: null,
-        initialScrollTop: scrollTop
-      };
-      if (e instanceof MouseEvent) {
-        window.addEventListener('mousemove', handleGestureMove, { passive: false });
-        window.addEventListener('mouseup', handleGestureEnd, { passive: false });
-      }
-    };
-
-    const handleGestureMove = (e: TouchEvent | MouseEvent) => {
-      const coords = getCoords(e);
-      if (!coords) return;
-      const { startX, startY, isLocked, startHeight, initialScrollTop } = gestureRef.current;
-      
-      const diffX = coords.clientX - startX;
-      const diffY = coords.clientY - startY;
-      
-      if (!isLocked && (Math.abs(diffX) > 3 || Math.abs(diffY) > 3)) {
-        console.log('[Gesture] Move', { diffX: Math.round(diffX), diffY: Math.round(diffY), isLocked });
-      }
-
-
-      // 1. 방향 잠금 로직 (아직 안 잠겼을 때)
-      if (!isLocked) {
-        const absX = Math.abs(diffX);
-        const absY = Math.abs(diffY);
-        // 10px 이상 움직여야 스크롤/스와이프로 인식 (탭과의 충돌 방지) - 민감도 하향 조정
-        if (absX > 10 || absY > 10) {
-
-          if (absX > absY * 1.5) {
-            gestureRef.current.isLocked = 'horizontal';
-          } 
-          
-          else if (absY > absX) {
-            const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
-            // 리스트 맨 위 + 당김
-            const isPullingDown = initialScrollTop <= 2 && diffY > 0;
-
-            // 달력 영역을 터치했거나, 이벤트 목록 최상단에서 아래로 당길 때만 달력 크기 조절
-            // 이벤트 목록에서 위로 올리는 동작은 목록 스크롤을 위해 제외
-            if (isTouchingCalendar || isPullingDown) {
-              gestureRef.current.isLocked = 'vertical-resize';
-
-              setIsDragging(true);
-              setLiveCalendarHeight(startHeight);
-            } else if (e instanceof MouseEvent) {
-              // 마우스 이벤트의 경우, 달력 리사이즈 조건이 아니면 스크롤로 간주
-              gestureRef.current.isLocked = 'vertical-scroll';
-
-            }
-          }
-        }
-      }
-
-      // 2. 실행 로직 (잠긴 후)
-      const currentLock = gestureRef.current.isLocked;
-
-      if (currentLock === 'horizontal') {
-        if (e.cancelable && !(e.target as HTMLElement)?.closest('input[type="range"]')) e.preventDefault();
-
-        if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
-        swipeAnimationRef.current = requestAnimationFrame(() => {
-          setDragOffset(diffX);
-        });
-      } 
-      else if (currentLock === 'vertical-resize') {
-        if (e.cancelable) e.preventDefault();   
-        const newHeight = startHeight + diffY;
-        const maxAllowedHeight = calculateFullscreenHeight();
-        const clampedHeight = Math.max(0, Math.min(newHeight, maxAllowedHeight));
-        
-        if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
-        swipeAnimationRef.current = requestAnimationFrame(() => {
-          setLiveCalendarHeight(clampedHeight);
-        });
-      } else if (currentLock === 'vertical-scroll') {
-        // 마우스로 이벤트 목록을 스크롤하는 경우
-        if (e instanceof MouseEvent) {
-          if (e.cancelable) e.preventDefault();
-          const eventList = eventListElementRef.current;
-          if (eventList) {
-            eventList.scrollTop = initialScrollTop - diffY;
-          }
-        }
-        // 터치 이벤트는 브라우저 네이티브 스크롤에 맡김 (아무것도 안 함)
-      }
-    };
-
-    const handleGestureEnd = (e: TouchEvent | MouseEvent) => {
-      const { isLocked, startX, startY } = gestureRef.current;
-      const endCoords = getEndCoords(e);
-      if (!endCoords) return;
-
-      const diffX = endCoords.clientX - startX;
-      const diffY = endCoords.clientY - startY;
-      const distance = Math.sqrt(diffX * diffX + diffY * diffY);
-
-      console.log('[Gesture] End', { isLocked, distance: Math.round(distance) });
-
-      if (swipeAnimationRef.current) { cancelAnimationFrame(swipeAnimationRef.current); swipeAnimationRef.current = null; }
-
-
-      // 탭(Tap) 동작 처리: 드래그/스와이프가 시작되지 않았고, 움직임이 거의 없었을 때
-      if (!isLocked && distance < 10) {
-        const target = e.target as HTMLElement;
-        // data-event-id를 가진 가장 가까운 부모 요소를 찾음 (EventCard)
-        const eventCard = target.closest<HTMLElement>('[data-event-id]');
-        if (eventCard) {
-          // 브라우저의 기본 클릭 이벤트를 막고, 수동으로 클릭 이벤트를 발생시켜 300ms 딜레이를 없애고 탭 안정성을 높임
-          e.preventDefault();
-
-          console.log('[Gesture] Tap detected on EventCard, manually clicking.');
-          eventCard.click();
-        }
-        
-        // 달력 날짜 셀에 대한 탭 처리
-        const dateCell = target.closest<HTMLElement>('[data-calendar-date]');
-        if (dateCell) {
-          e.preventDefault();
-          console.log(`[Gesture] Tap detected on DateCell (${dateCell.dataset.calendarDate}), manually clicking.`);
-          dateCell.click();
-        }
-      }
-
-      // 수평 종료
-      if (isLocked === 'horizontal') {
-        if (Math.abs(diffX) > MIN_SWIPE_DISTANCE) {
-          const direction = diffX < 0 ? "next" : "prev";
-          const targetOffset = diffX < 0 ? -window.innerWidth : window.innerWidth;
-          setDragOffset(targetOffset); 
-          setIsAnimating(true);
-
-          setTimeout(() => {
-            setCurrentMonth((prev) => {
-              const newM = new Date(prev); newM.setDate(1);
-              if (latestStateRef.current.viewMode === "year") {
-                newM.setFullYear(prev.getFullYear() + (direction === 'next' ? 1 : -1));
-              } else {
-                newM.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
-              }
-              return newM;
-            });
-            setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null);
-            setDragOffset(0); setIsAnimating(false);
-          }, 200);
-        } else {
-          setDragOffset(0);
-        }
-      } 
-      // 수직 종료 (자석)
-      else if (isLocked === 'vertical-resize') {
-
-        const endHeight = liveCalendarHeight;
-        const fullscreenH = calculateFullscreenHeight();
-        
-        let nextMode = latestStateRef.current.calendarMode;
-
-        // 아래로 당김 (열기)
-        if (diffY > 50) {
-            if (endHeight < EXPANDED_HEIGHT) nextMode = 'expanded';
-            else nextMode = 'fullscreen';
-        } 
-        // 위로 밈 (닫기)
-        else if (diffY < -50) {
-            if (endHeight > EXPANDED_HEIGHT) nextMode = 'expanded';
-            else nextMode = 'collapsed';
-        }
-        // 조금 움직임 -> 가까운 곳으로
-        else {
-            const dist0 = Math.abs(endHeight - 0);
-            const distEx = Math.abs(endHeight - EXPANDED_HEIGHT);
-            const distFull = Math.abs(endHeight - fullscreenH);
-            const min = Math.min(dist0, distEx, distFull);
-            
-            if (min === dist0) nextMode = 'collapsed';
-            else if (min === distFull) nextMode = 'fullscreen';
-            else nextMode = 'expanded';
-        }
-
-        setCalendarMode(nextMode);
-        setIsDragging(false); // 트랜지션 복구
-      }
-      if (e instanceof MouseEvent) {
-        window.removeEventListener('mousemove', handleGestureMove);
-        window.removeEventListener('mouseup', handleGestureEnd);
-      }
-      gestureRef.current.isLocked = null;
-    };
-
-    // ★ passive: false (필수)
-    const options = { passive: false };
-    
-    container.addEventListener('touchstart', handleGestureStart, options);
-    container.addEventListener('touchmove', handleGestureMove, options);
-    container.addEventListener('touchend', handleGestureEnd, options);
-    container.addEventListener('touchcancel', handleGestureEnd, options);
-    container.addEventListener('mousedown', handleGestureStart, options);
-
-
-    return () => {
-      container.removeEventListener('touchstart', handleGestureStart);
-      container.removeEventListener('touchmove', handleGestureMove);
-      container.removeEventListener('touchend', handleGestureEnd);
-      container.removeEventListener('touchcancel', handleGestureEnd);
-      container.removeEventListener('mousedown', handleGestureStart);
-      window.removeEventListener('mousemove', handleGestureMove);
-      window.removeEventListener('mouseup', handleGestureEnd);
-    };
-  }, [calculateFullscreenHeight, liveCalendarHeight]); 
-
-  useEffect(() => {
-    return () => {
-      if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
-    };
-  }, []);
 
   // --------------------------------------------------------------------------------
   // 6. 핸들러 및 기타 로직
@@ -592,8 +286,6 @@ export default function HomePage() {
         showTitleOnBillboard: event.show_title_on_billboard ?? true,
         videoUrl: event?.video_url || "",
       });
-      setEditImagePreview(event?.image || "");
-      setEditImageFile(null);
       if (event?.video_url) {
         const videoInfo = parseVideoUrl(event.video_url);
         setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
@@ -610,7 +302,6 @@ export default function HomePage() {
   };
 
   const deleteEvent = async (eventId: number, password: string | null = null) => {
-    setIsDeleting(true);
     try {
       const { error } = await supabase.functions.invoke('delete-event', { body: { eventId, password } });
       if (error) throw error;
@@ -620,8 +311,6 @@ export default function HomePage() {
     } catch (error: any) {
       console.error("이벤트 삭제 중 오류 발생:", error);
       alert(`이벤트 삭제 중 오류가 발생했습니다: ${error.context?.error_description || error.message || '알 수 없는 오류'}`);
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -676,8 +365,6 @@ export default function HomePage() {
             videoUrl: fullEvent.video_url || "",
             showTitleOnBillboard: fullEvent.show_title_on_billboard ?? true,
           });
-          setEditImagePreview(fullEvent.image || "");
-          setEditImageFile(null);
           if (fullEvent.video_url) {
             const videoInfo = parseVideoUrl(fullEvent.video_url);
             setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
@@ -696,64 +383,6 @@ export default function HomePage() {
       setEventPassword("");
     } else {
       alert("비밀번호가 올바르지 않습니다.");
-    }
-  };
-
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!eventToEdit) return;
-
-    if (editFormData.start_date && editFormData.end_date && editFormData.end_date < editFormData.start_date) {
-      alert("종료일은 시작일보다 빠를 수 없습니다.");
-      return;
-    }
-
-    try {
-      let eventDatesArray: string[] | null = null;
-      let startDate = editFormData.start_date || null;
-      let endDate = editFormData.end_date || null;
-
-      if (editFormData.dateMode === "specific" && editFormData.event_dates.length > 0) {
-        eventDatesArray = [...editFormData.event_dates].sort();
-        startDate = eventDatesArray[0];
-        endDate = eventDatesArray[eventDatesArray.length - 1];
-      }
-
-      let updateData: any = {
-        title: editFormData.title,
-        time: editFormData.time,
-        location: editFormData.location,
-        location_link: editFormData.locationLink || null,
-        category: editFormData.category,
-        description: editFormData.description || "",
-        organizer: editFormData.organizer,
-        organizer_name: editFormData.organizerName || null,
-        organizer_phone: editFormData.organizerPhone || null,
-        contact: editFormData.contact || null,
-        link1: editFormData.link1 || null,
-        link2: editFormData.link2 || null,
-        link3: editFormData.link3 || null,
-        link_name1: editFormData.linkName1 || null,
-        link_name2: editFormData.linkName2 || null,
-        link_name3: editFormData.linkName3 || null,
-        start_date: startDate,
-        end_date: endDate,
-        event_dates: eventDatesArray,
-        video_url: editFormData.videoUrl || null,
-        show_title_on_billboard: editFormData.showTitleOnBillboard,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase.from("events").update(updateData).eq("id", eventToEdit.id);
-
-      if (error) throw error;
-
-      alert("이벤트가 수정되었습니다.");
-      window.dispatchEvent(new CustomEvent("eventUpdated"));
-      setShowEditModal(false);
-    } catch (error) {
-      console.error("Error:", error);
-      alert("이벤트 수정 중 오류가 발생했습니다.");
     }
   };
 
@@ -876,6 +505,8 @@ export default function HomePage() {
   // --------------------------------------------------------------------------------
   // 7. 렌더링
   // --------------------------------------------------------------------------------
+  const EXPANDED_HEIGHT = 280;
+
   const renderHeight = useMemo(() => {
     if (isDragging) return `${liveCalendarHeight}px`;
     if (calendarMode === 'collapsed') return '0px';
@@ -885,7 +516,7 @@ export default function HomePage() {
       const categoryButtonsHeight = calendarCategoryButtonsRef.current?.offsetHeight || 42;
       return `${Math.max(0, containerHeight - controlBarHeight - categoryButtonsHeight)}px`;
     }
-    return `${EXPANDED_HEIGHT}px`;
+    return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이
   }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
   const isFixed = calendarMode === "fullscreen" || (isDragging && liveCalendarHeight > 300);
   const buttonBgClass = calendarMode === "collapsed" ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white";

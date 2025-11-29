@@ -143,6 +143,7 @@ export function MobileShell() {
   const isSocialPage = location.pathname.startsWith('/social');
   const isPracticePage = location.pathname === '/practice';
   const isBoardPage = location.pathname === '/board';
+  const isShoppingPage = location.pathname.startsWith('/shopping');
   const isGuidePage = location.pathname === '/guide';
   const category = searchParams.get('category') || 'all';
 
@@ -218,6 +219,7 @@ export function MobileShell() {
               {isSocialPage && '소셜 장소'}
               {isPracticePage && '연습실'}
               {isBoardPage && '자유게시판'}
+              {isShoppingPage && '쇼핑'}
               {isGuidePage && '안내'}
             </span>
             <div className="flex items-center gap-2">
@@ -326,6 +328,19 @@ export function MobileShell() {
           >
             <i className="ri-music-2-line text-xl mb-0.5"></i>
             <span className="text-xs">연습실</span>
+          </button>
+
+          {/* 쇼핑 버튼 */}
+          <button
+            onClick={() => navigate('/shopping')}
+            className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors flex-1 ${
+              isShoppingPage
+                ? "text-yellow-500"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            <i className="ri-shopping-bag-line text-xl mb-0.5"></i>
+            <span className="text-xs">쇼핑</span>
           </button>
 
           {/* 게시판 버튼 */}
