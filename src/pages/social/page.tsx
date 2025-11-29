@@ -176,7 +176,6 @@ export default function SocialPage() {
           </div>
         )}
       </div>
-      {showEventModal && <SocialEventModal onClose={() => setShowEventModal(false)} onEventCreated={() => { setShowEventModal(false); /* TODO: fetchUnifiedEvents(); */ }} />}
     </div>
   );
 }
