@@ -22,30 +22,20 @@ export default function SeoulMap({ places }: SeoulMapProps) {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    let attempts = 0;
-    const maxAttempts = 20;
-
-    const initMap = () => {
-      if (!window.kakao || !window.kakao.maps) {
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(initMap, 200);
-        } else {
-          console.error('카카오맵 SDK가 로드되지 않았습니다.');
-          setLoading(false);
-        }
-        return;
-      }
-
+    // 지도 생성 로직을 별도 함수로 분리
+    const createMap = () => {
       const kakao = window.kakao;
       try {
+        const container = mapRef.current;
+        if (!container) return;
+
         const center = new kakao.maps.LatLng(37.5665, 126.9780);
         const options = {
           center,
           level: 8,
         };
 
-        const newMap = new kakao.maps.Map(mapRef.current, options);
+        const newMap = new kakao.maps.Map(container, options);
         setMap(newMap);
         setLoading(false);
         console.log('카카오맵 초기화 성공');
@@ -55,7 +45,14 @@ export default function SeoulMap({ places }: SeoulMapProps) {
       }
     };
 
-    initMap();
+    // autoload=false이므로, kakao.maps.load()를 사용하여 수동으로 초기화
+    if (window.kakao && window.kakao.maps) {
+      window.kakao.maps.load(createMap);
+    } else {
+      // 스크립트 자체가 로드되지 않은 경우에 대한 폴백
+      console.error('카카오맵 스크립트가 로드되지 않았습니다. index.html을 확인해주세요.');
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
