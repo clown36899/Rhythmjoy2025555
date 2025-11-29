@@ -114,6 +114,8 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* 요일 헤더 아래 그림자 */
+
   font-size: 0.75rem; /* text-xs */
   background-color: var(--header-bg-color);
 }
@@ -174,7 +176,7 @@
 }
 .event-item {
   background-color: rgba(55, 65, 81, 0.5); /* bg-gray-700/50 */
-  padding: 0.175rem;
+  padding: 0.1rem;
   border-radius: 0.25rem; /* rounded */
   text-align: left;
 }
