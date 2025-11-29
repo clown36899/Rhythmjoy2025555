@@ -5,8 +5,7 @@ import {
   SeoulMap,
   PlaceList,
   PlaceCalendar,
-  SocialCalendar,
-  SocialEventModal,
+  SocialCalendar
 } from './components';
 import type { SocialPlace } from './types';
 import './social.css';
@@ -36,7 +35,7 @@ export default function SocialPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('social_places')
-        .select('*')
+        .select('id:place_id, name, address, latitude, longitude, created_at')
         .order('name');
 
       if (error) throw error;

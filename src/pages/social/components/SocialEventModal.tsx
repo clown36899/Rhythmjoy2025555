@@ -20,8 +20,8 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
 
   useEffect(() => {
     const fetchPlaces = async () => {
-      const { data } = await supabase.from('social_places').select('id, name').order('name');
-      setPlaces(data || []);
+      const { data } = await supabase.from('social_places').select('id:place_id, name').order('name');
+      setPlaces(data as { id: number; name: string; }[] || []);
     };
     fetchPlaces();
   }, []);
@@ -57,7 +57,7 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
       const { error: insertError } = await supabase.from('social_events').insert({
         title,
         event_date: eventDate,
-        social_place_id: placeId,
+        place_id: placeId,
         description,
         image_url: imageUrl,
       });

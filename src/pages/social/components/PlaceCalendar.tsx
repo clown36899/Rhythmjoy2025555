@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { SocialPlace } from '../types';
+import SocialEditModal from './SocialEditModal';
 import ScheduleModal from './ScheduleModal';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -25,6 +26,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const { isAdmin } = useAuth();
 
   useEffect(() => {
@@ -109,7 +111,11 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
             {dateSchedules.slice(0, 3).map((schedule) => (
               <div
                 key={schedule.id}
-                className="text-[10px] bg-green-600/80 text-white px-1 py-0.5 rounded truncate"
+                className="text-[10px] bg-green-600/80 text-white px-1 py-0.5 rounded truncate cursor-pointer hover:bg-green-500"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isAdmin) setEditingSchedule(schedule);
+                }}
                 title={schedule.title}
               >
                 {schedule.start_time && (
@@ -214,6 +220,19 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
           onSuccess={() => {
             setShowScheduleModal(false);
             setSelectedDate(null);
+            loadSchedules();
+          }}
+        />
+      )}
+
+      {/* 일정 수정 모달 */}
+      {isAdmin && editingSchedule && (
+        <SocialEditModal
+          item={editingSchedule}
+          itemType="schedule"
+          onClose={() => setEditingSchedule(null)}
+          onSuccess={() => {
+            setEditingSchedule(null);
             loadSchedules();
           }}
         />

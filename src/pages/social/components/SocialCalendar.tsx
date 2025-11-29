@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
+import SocialEditModal from './SocialEditModal';
 import SocialEventModal from './SocialEventModal';
 
 // 두 종류의 이벤트를 통합하여 관리하기 위한 타입
@@ -21,6 +22,7 @@ interface SocialCalendarProps {
 export default function SocialCalendar({ currentMonth, showModal, setShowModal }: SocialCalendarProps) {
   const [events, setEvents] = useState<UnifiedSocialEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState<{ item: any; type: 'event' | 'schedule' } | null>(null);
 
   const fetchUnifiedEvents = async () => {
     setLoading(true);
@@ -28,14 +30,14 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
       // 1. social_events (별도 등록된 소셜 일정) 가져오기
       const { data: socialEvents, error: socialEventsError } = await supabase
         .from('social_events')
-        .select('*, social_places(name)');
+        .select('id, title, event_date, image_url, social_places!place_id(name)');
 
       if (socialEventsError) throw socialEventsError;
 
       // 2. social_schedules (장소별 일정) 가져오기
       const { data: placeSchedules, error: placeSchedulesError } = await supabase
         .from('social_schedules')
-        .select('*, social_places(name)');
+        .select('id, title, date, start_time, social_places!place_id(name)');
 
       if (placeSchedulesError) throw placeSchedulesError;
 
@@ -49,8 +51,7 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
             title: event.title,
             date: event.event_date,
             imageUrl: event.image_url,
-            // @ts-ignore
-            placeName: event.social_places?.name || '장소 미정',
+            placeName: (event.social_places as { name: string }[])?.[0]?.name || '장소 미정',
           });
         });
       }
@@ -61,9 +62,7 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
             id: `schedule-${schedule.id}`,
             title: schedule.title,
             date: schedule.date,
-            // social_schedules에는 이미지가 없으므로 imageUrl은 undefined
-            // @ts-ignore
-            placeName: schedule.social_places?.name,
+            placeName: (schedule.social_places as { name: string }[])?.[0]?.name,
             startTime: schedule.start_time,
           });
         });
@@ -80,6 +79,27 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
   useEffect(() => {
     fetchUnifiedEvents();
   }, []);
+
+  const handleEventClick = async (unifiedEvent: UnifiedSocialEvent) => {
+    const [type, idStr] = unifiedEvent.id.split('-');
+    const id = parseInt(idStr, 10);
+
+    if (type === 'event') {
+      const { data } = await supabase
+        .from('social_events')
+        .select('id, title, event_date, place_id, description, image_url, social_places!place_id(name)')
+        .eq('id', id)
+        .single();
+      if (data) setEditingItem({ item: data, type: 'event' });
+    } else if (type === 'schedule') {
+      const { data } = await supabase
+        .from('social_schedules')
+        .select('id, place_id, title, date, start_time, end_time, description, social_places!place_id(name)')
+        .eq('id', id)
+        .single();
+      if (data) setEditingItem({ item: data, type: 'schedule' });
+    }
+  };
 
   const calendarGrid = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -119,8 +139,8 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
               {dayInfo && <>
                 <span className="day-number">{dayInfo.day}</span>
                 <div className="events-container">
-                  {dayInfo.events.map(event => (
-                    <div key={event.id} className="event-item">
+                  {dayInfo.events.map((event) => (
+                    <div key={event.id} className="event-item" onClick={() => handleEventClick(event)}>
                       {event.imageUrl && (
                         <img src={event.imageUrl} alt={event.title} className="event-image" />
                       )}
@@ -141,6 +161,18 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
       )}
 
       {showModal && <SocialEventModal onClose={() => setShowModal(false)} onEventCreated={() => { setShowModal(false); fetchUnifiedEvents(); }} />}
+
+      {editingItem && (
+        <SocialEditModal
+          item={editingItem.item}
+          itemType={editingItem.type}
+          onClose={() => setEditingItem(null)}
+          onSuccess={() => {
+            setEditingItem(null);
+            fetchUnifiedEvents();
+          }}
+        />
+      )}
     </>
   );
 }
