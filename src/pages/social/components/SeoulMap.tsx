@@ -207,22 +207,18 @@ export default function SeoulMap({ places, selectedPlace, onMarkerClick }: Seoul
   };
 
   return (
-    <div className="w-full h-64 relative bg-gray-800 rounded-lg overflow-hidden">
-      <div ref={mapRef} className="w-full h-full" />
+    <div className="map-container">
+      <div ref={mapRef} className="map-element" />
       
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-          <div className="text-gray-400">지도 로딩 중...</div>
+        <div className="social-loader" style={{position: 'absolute', inset: 0, backgroundColor: '#1f2937'}}>
+          <div className="loader-text">지도 로딩 중...</div>
         </div>
       )}
       
       {map && initialBoundsRef.current && (
-        <button
-          onClick={resetMapView}
-          className="absolute bottom-2 left-2 z-10 bg-white hover:bg-gray-100 text-gray-700 p-2.5 rounded-lg shadow-md border border-gray-200 transition-colors"
-          title="전체 보기"
-        >
-          <i className="ri-fullscreen-line text-lg"></i>
+        <button onClick={resetMapView} className="reset-view-button" title="전체 보기">
+          <i className="ri-fullscreen-line reset-icon"></i>
         </button>
       )}
     </div>

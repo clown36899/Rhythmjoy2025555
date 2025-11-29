@@ -82,30 +82,23 @@ export default function PlaceModal({ onClose, onPlaceCreated }: PlaceModalProps)
   };
 
   return (
-    <div 
-      className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
-      onClick={onClose}
-    >
-      <div 
-        className="bg-gray-800 rounded-lg p-6 mx-4 w-full max-w-md border border-gray-700"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <h2 className="text-xl font-bold text-white mb-4">새 장소 등록</h2>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <h2 className="modal-title">새 장소 등록</h2>
           
-          <input type="text" placeholder="장소 이름 *" value={name} onChange={(e) => setName(e.target.value)} required className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <input type="text" placeholder="주소 *" value={address} onChange={(e) => setAddress(e.target.value)} required className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <textarea placeholder="장소 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3}></textarea>
-          <input type="text" placeholder="연락처 (선택)" value={contact} onChange={(e) => setContact(e.target.value)} className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input type="text" placeholder="장소 이름 *" value={name} onChange={(e) => setName(e.target.value)} required className="form-input" />
+          <input type="text" placeholder="주소 *" value={address} onChange={(e) => setAddress(e.target.value)} required className="form-input" />
+          <textarea placeholder="장소 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="form-textarea" rows={3}></textarea>
+          <input type="text" placeholder="연락처 (선택)" value={contact} onChange={(e) => setContact(e.target.value)} className="form-input" />
           
-          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+          {error && <p className="error-message">{error}</p>}
 
-          <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+          <div className="form-button-group">
+            <button type="button" onClick={onClose} className="cancel-button">
               취소
             </button>
-            <button type="submit" disabled={loading || !isKakaoReady} className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" disabled={loading || !isKakaoReady} className="submit-button">
               {loading ? '등록 중...' : '등록'}
             </button>
           </div>

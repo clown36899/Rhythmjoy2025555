@@ -112,24 +112,24 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
 
   return (
     <>
-      {loading ? <div className="text-center py-10 text-gray-400">일정 로딩 중...</div> : (
-        <div className="grid grid-cols-7 border-r border-b border-[rgb(13,13,13)]">
+      {loading ? <div className="loader-text" style={{textAlign: 'center', padding: '2.5rem 0'}}>일정 로딩 중...</div> : (
+        <div className="calendar-grid">
           {calendarGrid.flat().map((dayInfo, index) => ( // .flat()으로 2차원 배열을 1차원으로 만듦
-            <div key={index} className="bg-[#2c2c2e] border-t border-l border-[rgb(13,13,13)] min-h-[100px] p-1 flex flex-col">
+            <div key={index} className="calendar-cell">
               {dayInfo && <>
-                <span className="text-xs font-semibold text-gray-300">{dayInfo.day}</span>
-                <div className="flex-grow mt-1 flex flex-col gap-1.5">
+                <span className="day-number">{dayInfo.day}</span>
+                <div className="events-container">
                   {dayInfo.events.map(event => (
-                    <div key={event.id} className="bg-gray-700/50 p-[0.175rem] rounded text-left">
+                    <div key={event.id} className="event-item">
                       {event.imageUrl && (
-                        <img src={event.imageUrl} alt={event.title} className="w-full h-12 object-cover rounded-sm mb-1" />
+                        <img src={event.imageUrl} alt={event.title} className="event-image" />
                       )}
-                      <p className="text-white text-[11px] font-bold leading-tight truncate" title={event.title}>
-                        {event.startTime && <span className="text-cyan-400 mr-1">{event.startTime.substring(0, 5)}</span>}
+                      <p className="event-title" title={event.title}>
+                        {event.startTime && <span className="event-time">{event.startTime.substring(0, 5)}</span>}
                         {event.title}
                       </p>
                       {event.placeName && (
-                        <p className="text-gray-400 text-[10px] leading-tight truncate">{event.placeName}</p>
+                        <p className="event-place">{event.placeName}</p>
                       )}
                     </div>
                   ))}

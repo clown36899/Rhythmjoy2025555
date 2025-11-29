@@ -9,6 +9,7 @@ import {
   SocialEventModal,
 } from './components';
 import type { SocialPlace } from './types';
+import './social.css';
 
 export default function SocialPage() {
   const { placeId } = useParams();
@@ -84,7 +85,7 @@ export default function SocialPage() {
 
   // 메인 화면: 지도 + 장소 리스트
   return (
-    <div className="min-h-screen pb-32" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+    <div className="social-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       {/* 상단 고정 헤더 */}
       <div
         className="fixed top-0 left-0 right-0 z-10 border-b border-[#22262a]"
@@ -95,24 +96,16 @@ export default function SocialPage() {
         }}
       >
         {/* 서브 메뉴 */}
-        <div className="flex items-center">
+        <div className="social-sub-menu">
           <button
             onClick={() => setView('calendar')}
-            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
-              view === 'calendar'
-                ? 'text-green-400 border-b-2 border-green-400'
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`sub-menu-button ${view === 'calendar' ? 'active' : ''}`}
           >
             소셜 일정표
           </button>
           <button
             onClick={() => setView('places')}
-            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
-              view === 'places'
-                ? 'text-green-400 border-b-2 border-green-400'
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`sub-menu-button ${view === 'places' ? 'active' : ''}`}
           >
             소셜 장소
           </button>
@@ -121,25 +114,25 @@ export default function SocialPage() {
         {view === 'calendar' && (
           <>
             {/* 월 이동 + 등록 버튼 */}
-            <div className="flex items-center justify-between p-1 border-t border-[rgb(20,20,20)]">
-              <div className="flex items-center gap-4">
-                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-700 rounded-full"><i className="ri-arrow-left-s-line text-white"></i></button>
-                <h3 className="text-lg font-bold text-white w-28 text-center p-[0.2rem]">
+            <div className="calendar-controls">
+              <div className="month-nav-container">
+                <button onClick={() => changeMonth(-1)} className="month-nav-button"><i className="ri-arrow-left-s-line"></i></button>
+                <h3 className="month-display">
                   {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
                 </h3>
-                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-700 rounded-full"><i className="ri-arrow-right-s-line text-white"></i></button>
+                <button onClick={() => changeMonth(1)} className="month-nav-button"><i className="ri-arrow-right-s-line"></i></button>
               </div>
-              <button onClick={() => setShowEventModal(true)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <button onClick={() => setShowEventModal(true)} className="calendar-register-button">
                 <i className="ri-add-line mr-1"></i>일정 등록
               </button>
             </div>
             {/* 요일 헤더 */}
-            <div className="grid grid-cols-7 text-center text-xs shadow-[0_4px_6px_-1px_rgba(0,0,0,0.4)]" style={{ backgroundColor: 'var(--header-bg-color)'}}>
+            <div className="day-header-grid" style={{ backgroundColor: 'var(--header-bg-color)'}}>
               {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
-                <div key={day} className={`relative py-1.5 ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
+                <div key={day} className={`day-header-cell ${i === 0 ? 'sunday' : i === 6 ? 'saturday' : 'weekday'}`}>
                   {day}
                   {i < 6 && (
-                    <div className="absolute top-0 right-0 h-full w-px bg-gradient-to-t from-[rgb(20,20,20)] via-[rgba(20,20,20,0.5)] to-transparent"></div>
+                    <div className="day-header-divider"></div>
                   )}
                 </div>
               ))}
@@ -152,11 +145,11 @@ export default function SocialPage() {
       {/* 헤더 높이만큼 패딩 조정. 달력 뷰일 때 요일 헤더 높이만큼 추가 패딩 */}
       <div style={{ paddingTop: view === 'calendar' ? '7.5rem' : '3.5rem' }}>
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-gray-400">로딩 중...</div>
+          <div className="social-loader">
+            <div className="loader-text">로딩 중...</div>
           </div>
         ) : (
-          <div className={view === 'places' ? 'px-4' : ''}>
+          <div className={view === 'places' ? 'places-view' : 'calendar-view'}>
             {view === 'places' ? (
               <>
                 <div className="mb-4">

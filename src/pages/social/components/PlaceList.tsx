@@ -46,14 +46,11 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
   };
 
   return (
-    <div className="px-4 pb-4">
+    <div className="place-list-container">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-4 relative">
-        <h2 className="text-lg font-bold text-white">목록</h2>
-        <button
-          onClick={handleAddClick}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
+      <div className="place-list-header">
+        <h2 className="list-title">목록</h2>
+        <button onClick={handleAddClick} className="add-place-button">
           <i className="ri-add-line mr-1"></i>
           장소 등록
         </button>
@@ -61,18 +58,17 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
         {/* 관리자 아닐 때 안내 모달 */}
         {showAuthWarning && (
           <div 
-            className="fixed inset-0 flex items-center justify-center z-50"
+            className="modal-overlay"
             onClick={() => setShowAuthWarning(false)}
-            style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
           >
             <div 
-              className="bg-gray-800 rounded-lg p-6 mx-4 max-w-sm border border-gray-700"
+              className="modal-container"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-center">
+              <div style={{textAlign: 'center'}}>
                 <i className="ri-lock-line text-4xl text-yellow-500 mb-3"></i>
-                <h3 className="text-white text-lg font-bold mb-2">관리자 권한 필요</h3>
-                <p className="text-gray-400 text-sm mb-4">
+                <h3 className="modal-title" style={{marginBottom: '0.5rem'}}>관리자 권한 필요</h3>
+                <p style={{color: '#9ca3af', fontSize: '0.875rem', marginBottom: '1rem'}}>
                   장소 등록은 관리자만 가능합니다.<br/>
                   문의: <span className="text-blue-400">010-4801-7180</span>
                 </p>
@@ -94,29 +90,23 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
           등록된 장소가 없습니다.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-2">
+        <div className="places-grid">
           {places.map((place) => (
-            <div
-              key={place.id}
-              className="bg-gray-800 rounded-lg px-4 py-3 border border-gray-700"
-            >
-              <div className="flex items-center justify-between">
+            <div key={place.id} className="place-card">
                 <div 
                   onClick={() => onPlaceSelect(place)}
-                  className="flex-1 cursor-pointer hover:bg-gray-700 -mx-2 px-2 py-1 rounded transition-colors"
+                  className="place-card-main"
                 >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-white font-medium text-sm flex-shrink-0">{place.name}</h3>
-                    <p className="text-gray-400 text-xs truncate max-w-[120px] ml-3 text-right">
+                    <h3 className="place-name">{place.name}</h3>
+                    <p className="place-address-preview">
                     {place.address.split(' ').slice(0, 3).join(' ')}
                   </p>
-                  </div>
                 </div>
                 
                 {/* 액션 버튼 */}
-                <div className="flex items-center gap-1 ml-2">
-                <button onClick={(e) => { e.stopPropagation(); onViewCalendar(place); }} className="p-1.5 hover:bg-blue-500/20 rounded transition-colors" title="일정 보기">
-                  <i className="ri-calendar-2-line text-blue-400 text-lg"></i>
+                <div className="place-actions">
+                <button onClick={(e) => { e.stopPropagation(); onViewCalendar(place); }} className="action-button" title="일정 보기">
+                  <i className="ri-calendar-2-line calendar-icon"></i>
                 </button>
                   {/* 네이버지도 바로가기 */}
                   <a
@@ -124,10 +114,10 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="p-1.5 hover:bg-green-500/20 rounded transition-colors"
+                    className="action-button"
                     title="네이버지도에서 보기"
                   >
-                    <i className="ri-road-map-line text-green-500 text-lg"></i>
+                    <i className="ri-road-map-line map-icon"></i>
                   </a>
                   
                   {/* 공유 버튼 */}
@@ -136,13 +126,12 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
                       e.stopPropagation();
                       handleShare(place);
                     }}
-                    className="p-1.5 hover:bg-blue-500/20 rounded transition-colors"
+                    className="action-button"
                     title="공유하기"
                   >
-                    <i className="ri-share-line text-blue-400 text-lg"></i>
+                    <i className="ri-share-line share-icon"></i>
                   </button>
                 </div>
-              </div>
             </div>
           ))}
         </div>

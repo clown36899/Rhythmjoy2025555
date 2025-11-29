@@ -97,7 +97,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
       days.push(
         <div
           key={day}
-          onClick={() => handleDateClick(date)}
+          onClick={() => isAdmin && handleDateClick(date)}
           className={`aspect-square border border-gray-700 p-1 ${
             isAdmin ? 'cursor-pointer hover:bg-gray-700' : ''
           } ${isToday ? 'bg-blue-900/30' : 'bg-gray-800'}`}
