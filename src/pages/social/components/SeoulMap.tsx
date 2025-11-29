@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { SocialPlace } from '../page';
+import type { SocialPlace } from '../types';
 
 declare global {
   interface Window {
@@ -9,10 +9,11 @@ declare global {
 
 interface SeoulMapProps {
   places: SocialPlace[];
-  onPlaceSelect: (place: SocialPlace) => void;
+  selectedPlace: SocialPlace | null;
+  onMarkerClick: (place: SocialPlace) => void;
 }
 
-export default function SeoulMap({ places }: SeoulMapProps) {
+export default function SeoulMap({ places, selectedPlace, onMarkerClick }: SeoulMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -22,14 +23,13 @@ export default function SeoulMap({ places }: SeoulMapProps) {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // 지도 생성 로직을 별도 함수로 분리
     const createMap = () => {
       const kakao = window.kakao;
       try {
         const container = mapRef.current;
         if (!container) return;
 
-        const center = new kakao.maps.LatLng(37.5665, 126.9780);
+        const center = new kakao.maps.LatLng(37.5665, 126.9780); // 서울 중심
         const options = {
           center,
           level: 8,
@@ -37,23 +37,35 @@ export default function SeoulMap({ places }: SeoulMapProps) {
 
         const newMap = new kakao.maps.Map(container, options);
         setMap(newMap);
-        setLoading(false);
         console.log('카카오맵 초기화 성공');
       } catch (error) {
         console.error('카카오맵 초기화 실패:', error);
+      } finally {
         setLoading(false);
       }
     };
 
     // autoload=false이므로, kakao.maps.load()를 사용하여 수동으로 초기화
     if (window.kakao && window.kakao.maps) {
+      setLoading(true);
       window.kakao.maps.load(createMap);
     } else {
-      // 스크립트 자체가 로드되지 않은 경우에 대한 폴백
       console.error('카카오맵 스크립트가 로드되지 않았습니다. index.html을 확인해주세요.');
       setLoading(false);
     }
   }, []);
+
+  // selectedPlace prop이 변경되면 해당 위치로 지도를 확대하고 이동합니다.
+  useEffect(() => {
+    if (map && selectedPlace) {
+      const position = new window.kakao.maps.LatLng(
+        selectedPlace.latitude,
+        selectedPlace.longitude
+      );
+      map.setLevel(3, { animate: true }); // 부드럽게 확대
+      map.panTo(position); // 부드럽게 중심으로 이동
+    }
+  }, [map, selectedPlace]);
 
   useEffect(() => {
     if (!map || !window.kakao) return;
@@ -148,18 +160,18 @@ export default function SeoulMap({ places }: SeoulMapProps) {
       customOverlay.setMap(map);
 
       // 확대 함수
-      const handleZoom = () => {
-        map.setLevel(3);
-        map.setCenter(position);
+      const handleMarkerClick = () => {
+        // 클릭된 장소 정보를 부모 컴포넌트로 전달합니다.
+        onMarkerClick(place);
       };
 
       // 마커 클릭 이벤트
-      kakao.maps.event.addListener(marker, 'click', handleZoom);
+      kakao.maps.event.addListener(marker, 'click', handleMarkerClick);
 
       // 라벨 클릭 이벤트 (DOM 요소에 직접 할당)
       labelDiv.onclick = (e) => {
         e.stopPropagation();
-        handleZoom();
+        handleMarkerClick();
       };
 
       // 호버 시 상세 정보

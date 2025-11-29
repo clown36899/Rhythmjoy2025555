@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import type { SocialPlace } from '../page';
+import type { SocialPlace } from '../types';
 import PlaceModal from './PlaceModal';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface PlaceListProps {
   places: SocialPlace[];
   onPlaceSelect: (place: SocialPlace) => void;
+  onViewCalendar: (place: SocialPlace) => void;
   onPlaceUpdate: () => void;
 }
 
-export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: PlaceListProps) {
+export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPlaceUpdate }: PlaceListProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAuthWarning, setShowAuthWarning] = useState(false);
   const { isAdmin } = useAuth();
@@ -106,17 +107,17 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="text-white font-medium text-sm flex-shrink-0">{place.name}</h3>
-                    <div className="flex items-center gap-2 ml-3">
-                      <p className="text-gray-400 text-xs truncate max-w-[120px]">
-                        {place.address.split(' ').slice(0, 3).join(' ')}
-                      </p>
-                      <i className="ri-arrow-right-s-line text-gray-400 text-lg flex-shrink-0"></i>
-                    </div>
+                    <p className="text-gray-400 text-xs truncate max-w-[120px] ml-3 text-right">
+                    {place.address.split(' ').slice(0, 3).join(' ')}
+                  </p>
                   </div>
                 </div>
                 
                 {/* 액션 버튼 */}
                 <div className="flex items-center gap-1 ml-2">
+                <button onClick={(e) => { e.stopPropagation(); onViewCalendar(place); }} className="p-1.5 hover:bg-blue-500/20 rounded transition-colors" title="일정 보기">
+                  <i className="ri-calendar-2-line text-blue-400 text-lg"></i>
+                </button>
                   {/* 네이버지도 바로가기 */}
                   <a
                     href={`https://map.naver.com/v5/search/${encodeURIComponent(place.name + ' ' + place.address)}`}
@@ -151,7 +152,7 @@ export default function PlaceList({ places, onPlaceSelect, onPlaceUpdate }: Plac
       {showAddModal && (
         <PlaceModal
           onClose={() => setShowAddModal(false)}
-          onSuccess={() => {
+          onPlaceCreated={() => {
             setShowAddModal(false);
             onPlaceUpdate();
           }}

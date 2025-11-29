@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import type { SocialPlace } from '../page';
+import type { SocialPlace } from '../types';
 import ScheduleModal from './ScheduleModal';
 import { useAuth } from '../../../contexts/AuthContext';
 

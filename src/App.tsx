@@ -15,6 +15,7 @@ function App() {
       <Route element={<MobileShell />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/social" element={<SocialPage />} />
+        <Route path="/social/:placeId" element={<SocialPage />} />
         <Route path="/practice" element={<PracticePage />} />
         <Route path="/board" element={<BoardPage />} />
         <Route path="/guide" element={<GuidePage />} />
