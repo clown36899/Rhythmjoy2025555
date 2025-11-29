@@ -29,6 +29,7 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [description, setDescription] = useState('');
+  const [password, setPassword] = useState(''); // 비밀번호 상태 추가
 
   const dateStr = date.toISOString().split('T')[0];
   const formattedDate = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
@@ -59,6 +60,7 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
     setStartTime('');
     setEndTime('');
     setDescription('');
+    setPassword(''); // 추가 모드 시 비밀번호 필드 초기화
   };
 
   const handleEdit = (schedule: Schedule) => {
@@ -88,12 +90,25 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingSchedule && !password) {
+      alert('새 일정 등록 시에는 비밀번호가 필수입니다.');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
       const scheduleData = {
         place_id: placeId,
+        user_id: user.id, // user_id 추가
         title,
+        password, // 비밀번호 추가
         date: dateStr,
         start_time: startTime || null,
         end_time: endTime || null,
@@ -102,9 +117,18 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
 
       if (editingSchedule) {
         // 수정
+        const inputPassword = prompt('수정을 위해 비밀번호를 입력하세요:');
+        if (inputPassword === null) { setLoading(false); return; }
+
+        const { data: originalSchedule } = await supabase.from('social_schedules').select('password').eq('id', editingSchedule.id).single();
+        if (inputPassword !== originalSchedule?.password) {
+          alert('비밀번호가 올바르지 않습니다.');
+          setLoading(false);
+          return;
+        }
         const { error } = await supabase
           .from('social_schedules')
-          .update(scheduleData)
+          .update({ ...scheduleData, password: password || originalSchedule.password }) // 비밀번호 필드가 비어있으면 기존 비밀번호 유지
           .eq('id', editingSchedule.id);
 
         if (error) throw error;
@@ -164,6 +188,20 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  비밀번호 {editingSchedule ? '(변경 시에만 입력)' : '*'}
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required={!editingSchedule}
+                  placeholder={editingSchedule ? '새 비밀번호' : '수정/삭제 시 필요'}
                 />
               </div>
 

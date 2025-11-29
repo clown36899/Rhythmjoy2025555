@@ -11,6 +11,7 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
   const [eventDate, setEventDate] = useState('');
   const [placeId, setPlaceId] = useState<number | ''>('');
   const [description, setDescription] = useState('');
+  const [password, setPassword] = useState(''); // 비밀번호 상태 추가
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   
@@ -46,20 +47,28 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !eventDate || !placeId || !imageFile) {
-      setError('제목, 날짜, 장소, 이미지는 필수 항목입니다.');
+    if (!title || !eventDate || !placeId || !imageFile || !password) {
+      setError('제목, 날짜, 장소, 이미지, 비밀번호는 필수 항목입니다.');
       return;
     }
     setLoading(true);
     setError('');
     try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
       const imageUrl = await uploadImage(imageFile);
       const { error: insertError } = await supabase.from('social_events').insert({
+        user_id: user.id, // user_id 추가
         title,
         event_date: eventDate,
         place_id: placeId,
         description,
         image_url: imageUrl,
+        password, // 비밀번호 추가
       });
       if (insertError) throw insertError;
       alert('소셜 일정이 등록되었습니다.');
@@ -88,6 +97,8 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
 
           <textarea placeholder="간단한 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="form-textarea" rows={2}></textarea>
           
+          <input type="password" placeholder="비밀번호 (수정/삭제 시 필요) *" value={password} onChange={(e) => setPassword(e.target.value)} required className="form-input" />
+
           <div>
             <label className="form-label">일정 이미지 (1:1 비율) *</label>
             <input type="file" accept="image/*" onChange={handleImageChange} required className="form-input" style={{padding: '0.3rem'}} />

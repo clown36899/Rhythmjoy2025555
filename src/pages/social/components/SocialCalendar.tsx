@@ -87,14 +87,14 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
     if (type === 'event') {
       const { data } = await supabase
         .from('social_events')
-        .select('id, title, event_date, place_id, description, image_url, social_places!place_id(name)')
+        .select('id, title, event_date, place_id, description, image_url, password, social_places!place_id(name)')
         .eq('id', id)
         .single();
       if (data) setEditingItem({ item: data, type: 'event' });
     } else if (type === 'schedule') {
       const { data } = await supabase
         .from('social_schedules')
-        .select('id, place_id, title, date, start_time, end_time, description, social_places!place_id(name)')
+        .select('id, place_id, title, date, start_time, end_time, description, password, social_places!place_id(name)')
         .eq('id', id)
         .single();
       if (data) setEditingItem({ item: data, type: 'schedule' });

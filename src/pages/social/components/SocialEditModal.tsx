@@ -12,6 +12,7 @@ interface SocialEvent {
   event_date: string;
   place_id: number;
   description?: string;
+  password?: string;
   image_url?: string;
   social_places?: { name: string };
 }
@@ -24,6 +25,7 @@ interface Schedule {
   start_time?: string;
   end_time?: string;
   description?: string;
+  password?: string;
   social_places?: { name: string };
 }
 
@@ -51,6 +53,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
   const [error, setError] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [passwordInput, setPasswordInput] = useState(''); // 비밀번호 확인용 상태
 
   useEffect(() => {
     if (itemType === 'event') {
@@ -88,7 +91,11 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'place_id') {
+      setFormData(prev => ({ ...prev, [name]: Number(value) }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,64 +121,81 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
     setLoading(true);
     setError('');
 
-    console.log('[수정 시도]', {
-      itemType,
-      itemId: item.id,
-      formData,
-    });
+    // --- 추가된 상세 로깅 ---
+    console.log('[수정 시도] 전달된 원본 데이터:', { id: item.id, password: item.password, title: (item as any).title });
+    console.log('[수정 시도] 사용자가 입력한 비밀번호:', passwordInput);
+    // --- 여기까지 ---
+
+    // --- 비밀번호 확인 로직으로 변경 ---
+    if (!passwordInput) {
+      setError('수정을 위해 비밀번호를 입력해주세요.');
+      setLoading(false);
+      return;
+    }
+
+    if (passwordInput !== item.password) {
+      setError('비밀번호가 올바르지 않습니다.');
+      setLoading(false);
+      return;
+    }
+
+    console.log('[수정 시도] ✅ 비밀번호 일치 확인. DB 업데이트를 시작합니다.');
+    // --- 여기까지 ---
 
     try {
       if (itemType === 'event') {
-        let imageUrl = (item as SocialEvent).image_url;
+        let imageUrl: string | null | undefined = (item as SocialEvent).image_url;
         if (imageFile) {
           imageUrl = await uploadImage(imageFile);
         } else if (!imagePreview) {
-          imageUrl = undefined;
+          imageUrl = null; // 이미지를 제거할 때 undefined 대신 null을 할당
         }
 
         const updatePayload = {
           title: formData.title,
           event_date: formData.event_date,
           place_id: formData.place_id,
-          description: formData.description,
+          description: formData.description || null, // 빈 문자열일 경우 null로 보냄
           image_url: imageUrl,
         };
 
         console.log('[social_events] 업데이트 페이로드:', updatePayload);
 
-        const { data, error: updateError } = await supabase
-          .from('social_events')
-          .update(updatePayload)
-          .eq('id', item.id)
-          .select();
+        const { data, error: updateError } = await supabase.rpc('update_social_event_with_password', {
+          p_event_id: item.id,
+          p_password: passwordInput,
+          p_title: updatePayload.title,
+          p_event_date: updatePayload.event_date,
+          p_place_id: updatePayload.place_id,
+          p_description: updatePayload.description,
+          p_image_url: updatePayload.image_url,
+        });
 
         console.log('[social_events] Supabase 응답:', { data, updateError });
         if (updateError) throw updateError;
-        if (!data || data.length === 0) {
-          throw new Error('DB에서 일치하는 일정을 찾지 못해 업데이트에 실패했습니다.');
-        }
       } else {
         const updatePayload = {
           title: formData.title,
           date: formData.date,
           start_time: formData.start_time || null,
           end_time: formData.end_time || null,
-          description: formData.description,
+          description: formData.description || null, // 빈 문자열일 경우 null로 보내도록 수정
         };
 
         console.log('[social_schedules] 업데이트 페이로드:', updatePayload);
 
-        const { data, error: updateError } = await supabase
-          .from('social_schedules')
-          .update(updatePayload)
-          .eq('id', item.id)
-          .select();
+        const { data, error: updateError } = await supabase.rpc('update_social_schedule_with_password', {
+          p_schedule_id: item.id,
+          p_password: passwordInput,
+          p_title: updatePayload.title,
+          p_date: updatePayload.date,
+          p_start_time: updatePayload.start_time,
+          p_end_time: updatePayload.end_time,
+          p_description: updatePayload.description,
+        });
 
         console.log('[social_schedules] Supabase 응답:', { data, updateError });
         if (updateError) throw updateError;
-        if (!data || data.length === 0) {
-          throw new Error('DB에서 일치하는 스케줄을 찾지 못해 업데이트에 실패했습니다.');
-        }
       }
       alert('수정되었습니다.');
       onSuccess();
@@ -184,8 +208,20 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
   };
 
   const handleDelete = async () => {
+    const inputPassword = prompt('삭제를 위해 비밀번호를 입력하세요:');
+
+    if (inputPassword === null) { // 사용자가 '취소'를 누른 경우
+      return;
+    }
+
+    if (inputPassword !== item.password) {
+      alert('비밀번호가 올바르지 않습니다.');
+      return;
+    }
+
+    // 비밀번호 확인 후, 최종 삭제 여부 확인
     if (!confirm('정말로 이 일정을 삭제하시겠습니까?')) return;
-    
+
     setLoading(true);
     setError('');
     try {
@@ -237,6 +273,8 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
 
           <textarea name="description" placeholder="간단한 설명" value={formData.description || ''} onChange={handleInputChange} className="form-textarea" rows={2}></textarea>
           
+          <input type="password" name="password" placeholder="비밀번호 확인 *" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required className="form-input border-yellow-500 focus:ring-yellow-400" />
+
           {itemType === 'event' && (
             <div>
               <label className="form-label">일정 이미지 (1:1 비율)</label>
