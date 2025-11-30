@@ -1,0 +1,138 @@
+/* base.css - 전역 CSS 변수 및 기본 스타일 */
+
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 주요 배경 색상 */
+  --bg-color: #242424;
+  --bg-primary: #1f2937;
+  --bg-secondary: #374151;
+  --bg-tertiary: #4b5563;
+  --bg-hover: #4b5563;
+  --bg-selected: #3b82f6;
+  
+  /* 카드/컨테이너 배경 */
+  --bg-card: #1f1f1f;
+  --bg-modal: #2d2d2d;
+  --bg-input: #374151;
+  
+  /* 텍스트 색상 */
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --text-muted: #6b7280;
+  --text-disabled: #6b7280;
+  
+  /* 액센트 색상 */
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  
+  --color-purple-400: #c084fc;
+  --color-purple-500: #a855f7;
+  --color-purple-600: #9333ea;
+  
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  
+  /* 전체 색상 팔레트 */
+  --color-red-500: #ef4444;
+  --color-orange-500: #f97316;
+  --color-amber-500: #f59e0b;
+  --color-yellow-500: #eab308;
+  --color-lime-500: #84cc16;
+  --color-emerald-500: #10b981;
+  --color-teal-500: #14b8a6;
+  --color-cyan-500: #06b6d4;
+  --color-sky-500: #0ea5e9;
+  --color-indigo-500: #6366f1;
+  --color-violet-500: #8b5cf6;
+  --color-fuchsia-500: #d946ef;
+  --color-pink-500: #ec4899;
+  --color-rose-500: #f43f5e;
+  
+  /* 보더 색상 */
+  --border-primary: #555555;
+  --border-secondary: #4b5563;
+  --border-light: #374151;
+  
+  /* 간격 */
+  --spacing-0: 0;
+  --spacing-px: 1px;
+  --spacing-0-5: 0.125rem;
+  --spacing-1: 0.25rem;
+  --spacing-1-5: 0.375rem;
+  --spacing-2: 0.5rem;
+  --spacing-2-5: 0.625rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-7: 1.75rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  --spacing-20: 5rem;
+  
+  /* Border Radius */
+  --radius-none: 0;
+  --radius-sm: 0.125rem;
+  --radius-default: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-full: 9999px;
+  
+  /* 트랜지션 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+  --transition-colors: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  
+  /* 그림자 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  
+  /* Z-index 레벨 */
+  --z-base: 1;
+  --z-10: 10;
+  --z-20: 20;
+  --z-30: 30;
+  --z-40: 40;
+  --z-50: 50;
+  --z-modal: 100;
+  --z-dropdown: 200;
+  --z-tooltip: 300;
+}
+
+/* ===== 글로벌 리셋 ===== */
+* {
+  box-sizing: border-box;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

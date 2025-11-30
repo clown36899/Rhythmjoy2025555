@@ -1,3 +1,8 @@
+/* CSS 기본 스타일 및 유틸리티 시스템 */
+@import './styles/base.css';
+@import './styles/utilities.css';
+
+/* Tailwind - 단계적 마이그레이션 중 (모든 컴포넌트 변환 후 제거) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
