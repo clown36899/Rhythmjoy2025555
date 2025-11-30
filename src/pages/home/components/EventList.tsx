@@ -1776,7 +1776,7 @@ export default function EventList({
               className="evt-genre-filter-btn"
             >
               <span className="evt-max-w-100 evt-truncate">{selectedGenre || '장르'}</span>
-              <i className={`ri-arrow-down-s-line evt-transition-transform ${activeDropdown === 'genre' ? 'rotate-180' : ''}`}></i>
+              <i className={`ri-arrow-down-s-line evt-transition-transform ${activeDropdown === 'genre' ? 'evt-rotate-180' : ''}`}></i>
             </button>
             {activeDropdown === 'genre' && (
               <div className="evt-filter-dropdown">
@@ -1806,13 +1806,13 @@ export default function EventList({
             <div className="evt-loading-spinner-base evt-loading-spinner-gray"></div>
             <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
           </div>
-          <p className="text-white text-lg evt-mt-4 font-medium">삭제 중...</p>
+          <p className="evt-text-white evt-text-lg evt-mt-4 evt-font-medium">삭제 중...</p>
         </div>, document.body
       )}
       {/* 검색 키워드 배너 (Compact Style) */}
       {searchTerm && (
         <div
-          className="p-[0.4rem]"
+          className="evt-p-0-4rem"
           style={{
             margin: "2px 0",
 
@@ -1848,7 +1848,7 @@ export default function EventList({
       {searchTerm.trim() || selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none') ? (
         // 검색 또는 날짜 선택 시: 단일 뷰
         <div
-          className="p-[0.4rem]"
+          className="evt-p-0-4rem"
           style={{
             margin: "2px 0",
             borderRadius: "11px",
@@ -1869,7 +1869,7 @@ export default function EventList({
                 <div className="evt-add-banner-legacy" style={{ borderRadius: "0.3rem" }}>
                   <div className="evt-icon-absolute-center">
                     <i className="ri-arrow-go-back-line evt-icon-5xl evt-text-gray-400 evt-mb-2"></i>
-                    <span className="evt-text-sm evt-text-gray-400 font-medium">전체 일정 보기</span>
+                    <span className="evt-text-sm evt-text-gray-400 evt-font-medium">전체 일정 보기</span>
                   </div>
                 </div>
               </div>
@@ -1946,7 +1946,7 @@ export default function EventList({
             {/* 이전 달 - 독립 컨테이너 */}
             <div ref={prevMonthRef} className="evt-slide-item">
               <div
-                className="p-[0.4rem]"
+                className="evt-p-0-4rem"
                 style={{
                   margin: "2px 0",
                   padding:"12px 19px",
@@ -2023,7 +2023,7 @@ export default function EventList({
               className="evt-slide-item"
             >
               <div
-                className="p-[0.4rem]"
+                className="evt-p-0-4rem"
                 style={{
                   margin: "2px 0",
                   padding:"12px 19px",
@@ -2093,7 +2093,7 @@ export default function EventList({
             {/* 다음 달 - 독립 컨테이너 */}
             <div ref={nextMonthRef} className="evt-slide-item">
               <div
-                className="p-[0.4rem]"
+                className="evt-p-0-4rem"
                 style={{
                   margin: "2px 0",
                   padding:"12px 19px",
@@ -2440,7 +2440,7 @@ export default function EventList({
 
                 {/* 빌보드 표시 옵션 */}
                 <div className="evt-billboard-option-box evt-space-y-2">
-                  <label className="evt-block evt-text-gray-400 evt-text-xs font-medium">
+                  <label className="evt-block evt-text-gray-400 evt-text-xs evt-font-medium">
                     빌보드 표시 옵션
                   </label>
                   <div className="evt-flex evt-items-center">
@@ -2455,7 +2455,7 @@ export default function EventList({
                       }}
                       className="evt-form-checkbox"
                     />
-                    <label htmlFor="editShowTitleOnBillboard" className="ml-2 evt-block evt-text-sm evt-text-gray-400">
+                    <label htmlFor="editShowTitleOnBillboard" className="evt-ml-2 evt-block evt-text-sm evt-text-gray-400">
                       빌보드에 제목, 날짜, 장소 정보 표시
                     </label>
                   </div>
@@ -2501,7 +2501,7 @@ export default function EventList({
 
                 {/* 날짜 선택 섹션 (통합 박스) */}
                 <div className="evt-billboard-option-box evt-space-y-3">
-                  <label className="evt-block evt-text-gray-400 evt-text-xs font-medium">
+                  <label className="evt-block evt-text-gray-400 evt-text-xs evt-font-medium">
                     날짜 선택 방식
                   </label>
                   <div className="evt-flex evt-gap-4">
@@ -2640,7 +2640,7 @@ export default function EventList({
                     </div>
                   ) : (
                     <div>
-                      <label className="evt-block evt-text-gray-400 evt-text-sm font-medium evt-mb-2">
+                      <label className="evt-block evt-text-gray-400 evt-text-sm evt-font-medium evt-mb-2">
                         선택된 날짜 ({editFormData.event_dates.length}개)
                       </label>
                       <div className="evt-flex evt-flex-wrap evt-gap-2 evt-mb-3">
@@ -2668,7 +2668,7 @@ export default function EventList({
                                       }));
                                     }
                                   }}
-                                  className="ml-2 hover:evt-text-red-400"
+                                  className="evt-ml-2 hover:evt-text-red-400"
                                 >
                                   <i className="ri-close-line"></i>
                                 </button>
@@ -2720,7 +2720,7 @@ export default function EventList({
                           추가
                         </button>
                       </div>
-                      <p className="text-xs evt-text-gray-400">
+                      <p className="evt-text-xs evt-text-gray-400">
                         예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수
                         있습니다
                       </p>
