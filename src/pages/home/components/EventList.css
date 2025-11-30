@@ -76,37 +76,37 @@
 /* ===== 그리드 레이아웃 클래스 ===== */
 .evt-grid-3-4-10 {
   display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 0.4rem !important;
 }
 
 @media (min-width: 640px) {
   .evt-grid-3-4-10 {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }
 
 @media (min-width: 768px) {
   .evt-grid-3-4-10 {
-    grid-template-columns: repeat(10, 1fr) !important;
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
   }
 }
 
 .evt-grid-3-4-10-tight {
   display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 0.4rem !important;
 }
 
 @media (min-width: 640px) {
   .evt-grid-3-4-10-tight {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }
 
 @media (min-width: 768px) {
   .evt-grid-3-4-10-tight {
-    grid-template-columns: repeat(10, 1fr) !important;
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
   }
 }
 
