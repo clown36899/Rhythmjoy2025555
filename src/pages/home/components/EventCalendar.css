@@ -382,3 +382,42 @@
 .cal-cursor-pointer {
   cursor: pointer;
 }
+
+/* ===== 트랜지션 효과 ===== */
+.cal-transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.cal-transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.cal-duration-200 {
+  transition-duration: 200ms;
+}
+
+.cal-duration-300 {
+  transition-duration: 300ms;
+}
+
+/* ===== 변환 효과 ===== */
+.cal-transform {
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.cal-scale-110 {
+  transform: scale(1.1);
+}
+
+/* ===== 호버 효과 (Hover States) ===== */
+.cal-hover-bg-gray-700:hover {
+  background-color: #374151;
+}
+
+.cal-hover-text-white:hover {
+  color: var(--text-primary);
+}
