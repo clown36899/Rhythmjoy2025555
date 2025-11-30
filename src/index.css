@@ -9,10 +9,10 @@
 
 /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
 html, body {
-  max-width: 650px;
-  margin: 0 auto;
-  overflow-x: hidden;
-  width: 100%;
+  max-width: 650px !important;
+  margin: 0 auto !important;
+  overflow-x: hidden !important;
+  width: 100% !important;
   /* 수직 스크롤만 허용, 수평 슬라이드는 JS로 제어 */
   /* passive event listener 에러 방지 */
   touch-action: pan-y;
@@ -23,9 +23,9 @@ html, body {
 }
 
 #root {
-  max-width: 650px;
-  margin: 0 auto;
-  width: 100%;
+  max-width: 650px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
   /* overflow-x 제거 - sticky가 작동하려면 필요 */
 }
 
