@@ -222,7 +222,7 @@ export function MobileShell() {
               {isShoppingPage && '쇼핑'}
               {isGuidePage && '안내'}
             </span>
-            <div className="flex items-center shell-gap-2">
+            <div className="shell-flex-center shell-gap-2">
               {isPracticePage && (
                 <button
                   onClick={() => {
