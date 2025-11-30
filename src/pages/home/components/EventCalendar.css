@@ -86,3 +86,100 @@
   right: 0;
   z-index: 50;
 }
+
+/* ===== 레이아웃 클래스 ===== */
+
+/* Flexbox */
+.cal-flex {
+  display: flex;
+}
+
+.cal-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.cal-flex-1 {
+  flex: 1;
+}
+
+.cal-flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+.cal-items-center {
+  align-items: center;
+}
+
+.cal-justify-center {
+  justify-content: center;
+}
+
+.cal-justify-between {
+  justify-content: space-between;
+}
+
+/* Grid */
+.cal-grid {
+  display: grid;
+}
+
+.cal-grid-cols-7 {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-gap-0 {
+  gap: 0;
+}
+
+.cal-gap-1 {
+  gap: 0.25rem;
+}
+
+.cal-gap-2 {
+  gap: 0.5rem;
+}
+
+/* Overflow */
+.cal-overflow-hidden {
+  overflow: hidden;
+}
+
+.cal-overflow-y-auto {
+  overflow-y: auto;
+}
+
+.cal-overflow-visible {
+  overflow: visible;
+}
+
+/* Display */
+.cal-block {
+  display: block;
+}
+
+.cal-inline-block {
+  display: inline-block;
+}
+
+/* Width & Height */
+.cal-w-full {
+  width: 100%;
+}
+
+.cal-h-full {
+  height: 100%;
+}
+
+.cal-h-4 {
+  height: 1rem;
+}
+
+.cal-h-5 {
+  height: 1.25rem;
+}
+
+.cal-h-6 {
+  height: 1.5rem;
+}
