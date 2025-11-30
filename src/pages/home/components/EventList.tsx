@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
 import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
@@ -77,7 +78,6 @@ const sanitizeFileName = (fileName: string): string => {
 
 interface EventListProps {
   selectedDate: Date | null;
-  selectedCategory: string;
   currentMonth?: Date;
   isAdminMode?: boolean;
   adminType?: "super" | "sub" | null;
@@ -107,7 +107,6 @@ interface EventListProps {
 
 export default function EventList({
   selectedDate,
-  selectedCategory,
   currentMonth,
   isAdminMode = false,
   adminType = null,
@@ -134,6 +133,13 @@ export default function EventList({
   onEventClickInFullscreen,
   onModalStateChange,
 }: EventListProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedCategory = searchParams.get('category') || 'all';
+  const selectedGenre = searchParams.get('genre');
+
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
+
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
   const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
@@ -213,6 +219,17 @@ export default function EventList({
   const { defaultThumbnailClass, defaultThumbnailEvent } =
     useDefaultThumbnail();
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   // 현재 날짜 추적 (자정 지날 때 캐시 무효화를 위해)
   const [currentDay, setCurrentDay] = useState(() => new Date().toDateString());
 
@@ -480,6 +497,28 @@ export default function EventList({
     setShowSearchModal(false);
     setSearchSuggestions([]);
   };
+
+  const handleCategoryChange = (category: string) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (category === 'all') {
+      newSearchParams.delete('category');
+    } else {
+      newSearchParams.set('category', category);
+    }
+    setSearchParams(newSearchParams);
+    setActiveDropdown(null);
+  };
+
+  const handleGenreChange = (genre: string | null) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (genre) {
+      newSearchParams.set('genre', genre);
+    } else {
+      newSearchParams.delete('genre');
+    }
+    setSearchParams(newSearchParams);
+    setActiveDropdown(null);
+  };
  const handleGenreSuggestionClick = (genre: string) => {
     setEditFormData(prev => ({ ...prev, genre }));
     setGenreSuggestions([]);
@@ -504,6 +543,16 @@ export default function EventList({
     { id: "time", name: "시간순", icon: "ri-time-line" },
     { id: "title", name: "제목순", icon: "ri-sort-alphabet-asc" },
   ];
+
+  const sortedAllGenres = useMemo(() => {
+    const genres = new Set<string>();
+    events.forEach(event => {
+      if (event.genre) {
+        genres.add(event.genre);
+      }
+    });
+    return Array.from(genres).sort((a, b) => a.localeCompare(b, 'ko'));
+  }, [events]);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -791,10 +840,24 @@ export default function EventList({
           ? false
           : selectedCategory === "all" || event.category === selectedCategory;
 
+      // 장르 필터
+      const matchesGenre =
+        (() => {
+          if (!selectedGenre) {
+            return true; // 선택된 장르가 없으면 항상 통과 (필터 리셋)
+          }
+          if (!event.genre) {
+            return false; // 이벤트에 장르가 없으면 매칭 실패
+          }
+          return event.genre.trim().toLowerCase() === selectedGenre.trim().toLowerCase();
+        })();
+
       // 검색어 필터
       const matchesSearch =
-        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.location.toLowerCase().includes(searchTerm.toLowerCase());
+        (event.title && event.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (event.location && event.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (event.organizer && event.organizer.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (event.genre && event.genre.toLowerCase().includes(searchTerm.toLowerCase()));
 
       // 검색어가 있을 때는 3년치 데이터만 필터링 (월 필터 무시)
       if (searchTerm.trim()) {
@@ -809,7 +872,7 @@ export default function EventList({
         const matchesYearRange =
           eventYear >= currentYear - 1 && eventYear <= currentYear + 1;
 
-        return matchesCategory && matchesSearch && matchesYearRange;
+        return matchesCategory && matchesGenre && matchesSearch && matchesYearRange;
       }
 
       // 특정 날짜가 선택된 경우: 해당 날짜 이벤트만 필터링
@@ -822,7 +885,7 @@ export default function EventList({
         // event_dates 배열이 있으면 그 중에서 찾기
         if (event.event_dates && event.event_dates.length > 0) {
           const matchesSelectedDate = event.event_dates.includes(selectedDateString);
-          return matchesCategory && matchesSelectedDate;
+          return matchesCategory && matchesGenre && matchesSelectedDate;
         }
 
         // 연속 기간으로 정의된 이벤트
@@ -836,7 +899,7 @@ export default function EventList({
         const matchesSelectedDate =
           selectedDateString >= startDate && selectedDateString <= endDate;
 
-        return matchesCategory && matchesSelectedDate;
+        return matchesCategory && matchesGenre && matchesSelectedDate;
       }
 
       // 날짜가 선택되지 않은 경우: 현재 달력 월 기준으로 필터링
@@ -897,12 +960,13 @@ export default function EventList({
         }
       }
 
-      return matchesCategory && matchesDate;
+      return matchesCategory && matchesGenre && matchesDate;
     });
   }, [
     events,
     selectedDate,
     selectedCategory,
+    selectedGenre,
     searchTerm,
     currentMonth,
     viewMode,
@@ -949,17 +1013,28 @@ export default function EventList({
     nextMonth.setMonth(nextMonth.getMonth() + 1);
 
     // 캐시 키 생성
-    const prevKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth() + 1}-${selectedCategory}`;
-    const currKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${selectedCategory}`;
-    const nextKey = `${nextMonth.getFullYear()}-${nextMonth.getMonth() + 1}-${selectedCategory}`;
+    const prevKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}`;
+    const currKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}`;
+    const nextKey = `${nextMonth.getFullYear()}-${nextMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}`;
 
     // 각 달의 이벤트 필터링 함수
     const filterByMonth = (targetMonth: Date) => {
+      console.log(`[filterByMonth] ${targetMonth.getFullYear()}-${targetMonth.getMonth() + 1}월 필터링 시작. 장르: ${selectedGenre || '전체'}`);
       return events.filter((event) => {
         const matchesCategory =
           selectedCategory === "none"
             ? false
             : selectedCategory === "all" || event.category === selectedCategory;
+
+        const matchesGenre = (() => {
+          if (!selectedGenre) {
+            return true; // 선택된 장르가 없으면 항상 통과
+          }
+          if (!event.genre) {
+            return false; // 이벤트에 장르가 없으면 매칭 실패
+          }
+          return event.genre.trim().toLowerCase() === selectedGenre.trim().toLowerCase();
+        })();
 
         const startDate = event.start_date || event.date;
         const endDate = event.end_date || event.date;
@@ -973,7 +1048,7 @@ export default function EventList({
 
         const matchesDate =
           startDate <= monthEndStr && endDate >= monthStartStr;
-        return matchesCategory && matchesDate;
+        return matchesCategory && matchesGenre && matchesDate;
       });
     };
 
@@ -989,6 +1064,7 @@ export default function EventList({
     events,
     currentMonth,
     selectedCategory,
+    selectedGenre,
     searchTerm,
     selectedDate,
     filteredEvents,
@@ -1668,6 +1744,57 @@ export default function EventList({
   return (
     <div className="no-select pb-24">
       {/* 삭제 로딩 오버레이 */}
+      <div className="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm p-2" ref={filterDropdownRef}>
+        <div className="flex items-center gap-2">
+          {/* 카테고리 버튼 */}
+          <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-0.5">
+            <button
+              onClick={() => handleCategoryChange('all')}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${selectedCategory === 'all' ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-gray-600'}`}
+            >
+              전체
+            </button>
+            <button
+              onClick={() => handleCategoryChange('event')}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${selectedCategory === 'event' ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-gray-600'}`}
+            >
+              행사
+            </button>
+            <button
+              onClick={() => handleCategoryChange('class')}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${selectedCategory === 'class' ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-gray-600'}`}
+            >
+              강습
+            </button>
+          </div>
+
+          {/* 장르 드롭다운 */}
+          <div className="relative">
+            <button
+              onClick={() => setActiveDropdown(activeDropdown === 'genre' ? null : 'genre')}
+              className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors"
+            >
+              <span className="max-w-[100px] truncate">{selectedGenre || '장르'}</span>
+              <i className={`ri-arrow-down-s-line transition-transform ${activeDropdown === 'genre' ? 'rotate-180' : ''}`}></i>
+            </button>
+            {activeDropdown === 'genre' && (
+              <div className="absolute top-full left-0 mt-1 w-40 max-h-60 overflow-y-auto bg-gray-700 rounded-lg shadow-lg z-30">
+                <button onClick={() => handleGenreChange(null)} className="w-full text-left px-3 py-2 text-sm text-white hover:bg-blue-500">모든 장르</button>
+                {sortedAllGenres.map(genre => (
+                  <button
+                    key={genre}
+                    onClick={() => handleGenreChange(genre)}
+                    className="w-full text-left px-3 py-2 text-sm text-white hover:bg-blue-500"
+                    title={genre}
+                  >
+                    <span className="truncate block">{genre}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
       {isDeleting && createPortal(
         <div 
           className="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[9999]"
