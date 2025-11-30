@@ -6,6 +6,7 @@ import DefaultThumbnailSettingsModal from "../../../components/DefaultThumbnailS
 import InvitationManagementModal from "../../../components/InvitationManagementModal";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
+import "./Header.css";
 
 interface HeaderProps {
   currentMonth?: Date;
@@ -374,12 +375,12 @@ export default function Header({
   return (
     <>
       <header
-        className="border-b border-[#22262a]"
+        className="header-container"
         style={{ backgroundColor: "var(--header-bg-color)" }}
       >
-        <div className="container mx-auto px-[9px]">
-          <div className="flex items-center justify-between h-12">
-            <div className="flex items-center space-x-8">
+        <div className="header-inner">
+          <div className="header-content">
+            <div className="header-left">
               <button
                 onClick={() => {
                   const categoryPanel = document.querySelector(
@@ -405,28 +406,28 @@ export default function Header({
                     });
                   }
                 }}
-                className="flex items-center justify-center cursor-pointer group"
+                className="header-logo-btn"
               >
                 <img 
                   src="/dangong-logo.png" 
                   alt="DANGONG Logo" 
-                  className="h-12 w-12 transition-transform group-hover:scale-105"
+                  className="header-logo-img"
                 />
               </button>
             </div>
 
             {/* Calendar Controls - Center */}
             {currentMonth && onNavigateMonth && (
-              <div className="flex items-center space-x-3">
+              <div className="header-center">
                 <button
                   onClick={() => handleNavigateMonth("prev")}
-                  className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  className="header-nav-btn"
                 >
-                  <i className="ri-arrow-left-s-line text-lg"></i>
+                  <i className="ri-arrow-left-s-line header-nav-icon"></i>
                 </button>
                 <button
                   onClick={handleDateModalOpen}
-                  className="font-bold text-white whitespace-nowrap hover:text-blue-400 transition-colors cursor-pointer no-select"
+                  className="header-date-btn"
                   style={{ fontSize: "1.4rem" }}
                 >
                   {viewMode === "year"
@@ -438,37 +439,33 @@ export default function Header({
                     onClick={() =>
                       onViewModeChange(viewMode === "month" ? "year" : "month")
                     }
-                    className={`text-xs px-2 py-1 rounded transition-colors cursor-pointer whitespace-nowrap ${
-                      viewMode === "year"
-                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                        : "bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white"
-                    }`}
+                    className={viewMode === "year" ? "header-view-mode-btn header-view-mode-btn-year" : "header-view-mode-btn header-view-mode-btn-month"}
                   >
                     {viewMode === "month" ? "년" : "월"}
                   </button>
                 )}
                 <button
                   onClick={() => handleNavigateMonth("next")}
-                  className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  className="header-nav-btn"
                 >
-                  <i className="ri-arrow-right-s-line text-lg"></i>
+                  <i className="ri-arrow-right-s-line header-nav-icon"></i>
                 </button>
               </div>
             )}
 
             {/* Right: Login Status & Settings Button */}
-            <div className="flex items-center space-x-2">
+            <div className="header-right">
               {/* 로그인 상태 표시 */}
               {(isEffectiveAdmin || billboardUserId !== null) && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/30">
-                  <i className={`text-xs ${
+                <div className="header-login-status">
+                  <i className={`header-login-icon ${
                     isDevAdmin 
-                      ? 'ri-code-s-slash-line text-orange-400' 
+                      ? 'ri-code-s-slash-line header-login-icon-dev' 
                       : billboardUserId !== null
-                        ? 'ri-user-line text-blue-400'
-                        : 'ri-kakao-talk-fill text-yellow-400'
+                        ? 'ri-user-line header-login-icon-billboard'
+                        : 'ri-kakao-talk-fill header-login-icon-admin'
                   }`}></i>
-                  <span className="text-xs text-white font-medium">
+                  <span className="header-login-text">
                     {isDevAdmin 
                       ? '개발자' 
                       : billboardUserId !== null
@@ -480,9 +477,9 @@ export default function Header({
               )}
               <button
                 onClick={handleSettingsClick}
-                className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded-lg transition-colors cursor-pointer"
+                className="header-settings-btn"
               >
-                <i className="ri-settings-3-line text-sm"></i>
+                <i className="ri-settings-3-line header-settings-icon"></i>
               </button>
             </div>
           </div>
@@ -492,35 +489,35 @@ export default function Header({
       {/* Settings Modal */}
       {showSettingsModal &&
         createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-2 pt-12 overflow-y-auto">
-            <div className="bg-gray-800 rounded-lg p-4 w-full max-w-sm">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white">설정</h3>
+          <div className="header-modal-overlay">
+            <div className="header-modal">
+              <div className="header-modal-header">
+                <h3 className="header-modal-title">설정</h3>
               </div>
 
               {!isEffectiveAdmin && billboardUserId === null ? (
-                <div className="text-center">
-                  <h4 className="text-lg font-semibold text-white mb-2">
+                <div className="header-modal-text-center">
+                  <h4 className="header-modal-subtitle">
                     관리자 로그인
                   </h4>
-                  <p className="text-gray-400 text-sm mb-6">
+                  <p className="header-modal-text-sm">
                     관리자만 로그인 가능합니다.
                   </p>
                   
-                  <div className="space-y-3">
+                  <div className="header-btn-group-vertical">
                     <button
                       onClick={handleKakaoLogin}
                       disabled={loginLoading}
-                      className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-3 px-4 rounded-lg text-base font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="header-btn-base header-btn-yellow header-btn-icon"
                     >
                       {loginLoading ? (
                         <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-900 border-t-transparent"></div>
+                          <div className="header-icon-spinner"></div>
                           로그인 중...
                         </>
                       ) : (
                         <>
-                          <i className="ri-kakao-talk-fill text-xl"></i>
+                          <i className="ri-kakao-talk-fill header-icon-xl"></i>
                           카카오로 로그인
                         </>
                       )}
@@ -538,16 +535,16 @@ export default function Header({
                           setShowSettingsModal(false);
                           setShowLoginSuccessModal(true);
                         }}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 border-2 border-red-400"
+                        className="header-btn-sm header-btn-red header-btn-icon"
                       >
-                        <i className="ri-shield-keyhole-line text-base"></i>
+                        <i className="ri-shield-keyhole-line header-icon-base"></i>
                         개발자 프리패스 🔓
                       </button>
                     )}
                     
                     <button
                       onClick={() => setShowSettingsModal(false)}
-                      className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer mt-4"
+                      className="header-btn-sm header-btn-gray header-mt-4"
                     >
                       닫기
                     </button>
@@ -555,12 +552,12 @@ export default function Header({
                 </div>
               ) : (
                 <div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
+                  <h4 className="header-modal-subtitle">
                     {isEffectiveAdmin && billboardUserId === null
                       ? (isDevAdmin ? "슈퍼 관리자 모드 (개발)" : "슈퍼 관리자 모드")
                       : `${billboardUserName} 빌보드 관리자`}
                   </h4>
-                  <p className="text-gray-300 text-sm mb-4">
+                  <p className="header-modal-text">
                     {isEffectiveAdmin && billboardUserId === null
                       ? "모든 콘텐츠를 관리할 수 있습니다."
                       : "자신의 빌보드 설정을 관리할 수 있습니다."}
@@ -568,22 +565,22 @@ export default function Header({
                   
                   {/* 서브 관리자 전용 레이아웃 */}
                   {billboardUserId !== null ? (
-                    <div className="space-y-3">
+                    <div className="header-btn-group-vertical">
                       {/* 광고판 설정 + 주소/공유 섹션 */}
-                      <div className="bg-gray-700/30 rounded-lg p-3 space-y-2">
+                      <div className="header-billboard-section header-btn-group-vertical">
                         {/* 광고판 설정 - 넓게 */}
                         <button
                           onClick={() => {
                             onBillboardSettingsOpen?.();
                           }}
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg text-base font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2"
+                          className="header-btn-base header-btn-purple header-btn-icon"
                         >
-                          <i className="ri-image-2-line text-lg"></i>
+                          <i className="ri-image-2-line header-icon-lg"></i>
                           광고판 설정
                         </button>
                         
                         {/* 주소 복사 (2/3) + 공유 (1/3) */}
-                        <div className="flex gap-2">
+                        <div className="header-billboard-row">
                           <button
                             onClick={() => {
                               const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
@@ -591,9 +588,9 @@ export default function Header({
                               setShowCopySuccessModal(true);
                               setTimeout(() => setShowCopySuccessModal(false), 1500);
                             }}
-                            className="flex-[2] bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                            className="header-billboard-col-2-3 header-billboard-btn-sm header-billboard-btn-green"
                           >
-                            <i className="ri-link text-base"></i>
+                            <i className="ri-link header-icon-base"></i>
                             빌보드 주소 복사
                           </button>
                           <button
@@ -625,42 +622,40 @@ export default function Header({
                                 setTimeout(() => setShowCopySuccessModal(false), 1500);
                               }
                             }}
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                            className="header-billboard-col-1-3 header-billboard-btn-sm header-billboard-btn-share"
                           >
-                            <i className="ri-share-line text-base"></i>
+                            <i className="ri-share-line header-icon-base"></i>
                             공유
                           </button>
                         </div>
                       </div>
                       
                       {/* 닫기 + 로그아웃 - 컨테이너 하단에 붙임 */}
-                      <div className="pt-2 border-t border-gray-700">
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            onClick={() => setShowSettingsModal(false)}
-                            className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                          >
-                            닫기
-                          </button>
-                          <button
-                            onClick={handleAdminLogout}
-                            className="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                          >
-                            로그아웃
-                          </button>
-                        </div>
+                      <div className="header-grid-2 header-gap-2">
+                        <button
+                          onClick={() => setShowSettingsModal(false)}
+                          className="header-btn-sm header-btn-gray"
+                        >
+                          닫기
+                        </button>
+                        <button
+                          onClick={handleAdminLogout}
+                          className="header-btn-sm header-btn-red"
+                        >
+                          로그아웃
+                        </button>
                       </div>
                     </div>
                   ) : (
                     /* 슈퍼 관리자 레이아웃 */
-                    <div className="space-y-2">
+                    <div className="header-btn-group-vertical">
                       <button
                         onClick={() => {
                           onBillboardSettingsOpen?.();
                         }}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                        className="header-btn-admin header-btn-purple"
                       >
-                        <i className="ri-image-2-line text-base"></i>
+                        <i className="ri-image-2-line header-icon-base"></i>
                         광고판 설정
                       </button>
                     {isEffectiveAdmin && billboardUserId === null && (
@@ -669,9 +664,9 @@ export default function Header({
                           onClick={() => {
                             setShowBillboardUserManagement(true);
                           }}
-                          className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          className="header-btn-admin header-btn-orange"
                         >
-                          <i className="ri-user-settings-line text-base"></i>
+                          <i className="ri-user-settings-line header-icon-base"></i>
                           빌보드 사용자 관리
                         </button>
                         <button
@@ -679,25 +674,25 @@ export default function Header({
                             setShowInvitationManagement(true);
                             setShowSettingsModal(false);
                           }}
-                          className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          className="header-btn-admin header-btn-yellow-bg"
                         >
-                          <i className="ri-mail-send-line text-base"></i>
+                          <i className="ri-mail-send-line header-icon-base"></i>
                           초대 관리
                         </button>
                         <button
                           onClick={() => {
                             setShowDefaultThumbnailSettings(true);
                           }}
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          className="header-btn-admin header-btn-purple"
                         >
-                          <i className="ri-image-2-line text-base"></i>
+                          <i className="ri-image-2-line header-icon-base"></i>
                           기본 썸네일 설정
                         </button>
                         <button
                           onClick={() => setShowColorPanel(!showColorPanel)}
-                          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          className="header-btn-admin header-btn-green"
                         >
-                          <i className="ri-palette-line text-base"></i>
+                          <i className="ri-palette-line header-icon-base"></i>
                           색상 설정
                         </button>
                       </>
@@ -706,8 +701,8 @@ export default function Header({
                     {/* 개발자 모드 섹션 */}
                     {isDevAdmin && (
                       <>
-                        <div className="border-t border-red-500/30 pt-3 mt-3">
-                          <p className="text-red-400 text-xs font-bold mb-2">🔧 개발자 모드</p>
+                        <div className="header-admin-section">
+                          <p className="header-admin-label">🔧 개발자 모드</p>
                           <button
                             onClick={async () => {
                               // 서브 관리자 목록 가져오기
@@ -734,9 +729,9 @@ export default function Header({
                               setBillboardUsers(data);
                               setShowSubAdminSelector(true);
                             }}
-                            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                            className="header-btn-admin header-btn-orange"
                           >
-                            <i className="ri-user-settings-line text-base"></i>
+                            <i className="ri-user-settings-line header-icon-base"></i>
                             서브관리자로그인테스트
                           </button>
                         </div>
@@ -744,17 +739,17 @@ export default function Header({
                     )}
                     
                     {/* 닫기 + 로그아웃 - 컨테이너 하단에 붙임 */}
-                    <div className="pt-2 border-t border-gray-700 mt-3">
-                      <div className="grid grid-cols-2 gap-2">
+                    <div className="header-section-divider header-mt-3">
+                      <div className="header-grid-2 header-gap-2">
                         <button
                           onClick={() => setShowSettingsModal(false)}
-                          className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                          className="header-btn-sm header-btn-gray"
                         >
                           닫기
                         </button>
                         <button
                           onClick={handleAdminLogout}
-                          className="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                          className="header-btn-sm header-btn-red"
                         >
                           로그아웃
                         </button>
@@ -774,35 +769,35 @@ export default function Header({
         isAdmin &&
         billboardUserId === null &&
         createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999] p-4 pt-20 overflow-y-auto">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90svh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-white">색상 설정</h3>
+          <div className="header-color-panel-overlay">
+            <div className="header-color-panel">
+              <div className="header-color-panel-header">
+                <h3 className="header-color-panel-title">색상 설정</h3>
                 <button
                   onClick={() => {
                     setShowColorPanel(false);
                     // 설정 모달로 돌아가기 (이미 showSettingsModal이 true이므로 자동으로 보임)
                   }}
-                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  className="header-color-panel-close"
                 >
-                  <i className="ri-close-line text-xl"></i>
+                  <i className="ri-close-line header-icon-xl"></i>
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div className="header-btn-group-vertical header-gap-3 header-mb-6">
                 {/* 헤더 배경색 */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                <div className="header-color-section">
+                  <label className="header-color-label">
                     헤더 배경색
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="header-color-input-group">
                     <input
                       type="color"
                       value={themeColors.header_bg_color}
                       onChange={(e) =>
                         saveThemeColor("header_bg_color", e.target.value)
                       }
-                      className="w-16 h-10 rounded cursor-pointer"
+                      className="header-color-picker"
                     />
                     <input
                       type="text"
@@ -810,24 +805,24 @@ export default function Header({
                       onChange={(e) =>
                         saveThemeColor("header_bg_color", e.target.value)
                       }
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="header-color-text"
                     />
                   </div>
                 </div>
 
                 {/* 배경색 (650px 밖) */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                <div className="header-color-section">
+                  <label className="header-color-label">
                     배경색 (650px 밖)
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="header-color-input-group">
                     <input
                       type="color"
                       value={themeColors.background_color}
                       onChange={(e) =>
                         saveThemeColor("background_color", e.target.value)
                       }
-                      className="w-16 h-10 rounded cursor-pointer"
+                      className="header-color-picker"
                     />
                     <input
                       type="text"
@@ -835,24 +830,24 @@ export default function Header({
                       onChange={(e) =>
                         saveThemeColor("background_color", e.target.value)
                       }
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="header-color-text"
                     />
                   </div>
                 </div>
 
                 {/* 달력 배경색 */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                <div className="header-color-section">
+                  <label className="header-color-label">
                     달력 배경색
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="header-color-input-group">
                     <input
                       type="color"
                       value={themeColors.calendar_bg_color}
                       onChange={(e) =>
                         saveThemeColor("calendar_bg_color", e.target.value)
                       }
-                      className="w-16 h-10 rounded cursor-pointer"
+                      className="header-color-picker"
                     />
                     <input
                       type="text"
@@ -860,24 +855,24 @@ export default function Header({
                       onChange={(e) =>
                         saveThemeColor("calendar_bg_color", e.target.value)
                       }
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="header-color-text"
                     />
                   </div>
                 </div>
 
                 {/* 이벤트 리스트 배경색 */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                <div className="header-color-section">
+                  <label className="header-color-label">
                     이벤트 리스트 배경색
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="header-color-input-group">
                     <input
                       type="color"
                       value={themeColors.event_list_bg_color}
                       onChange={(e) =>
                         saveThemeColor("event_list_bg_color", e.target.value)
                       }
-                      className="w-16 h-10 rounded cursor-pointer"
+                      className="header-color-picker"
                     />
                     <input
                       type="text"
@@ -885,17 +880,17 @@ export default function Header({
                       onChange={(e) =>
                         saveThemeColor("event_list_bg_color", e.target.value)
                       }
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="header-color-text"
                     />
                   </div>
                 </div>
 
                 {/* 이벤트 리스트 컨테이너 배경색 */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                <div className="header-color-section">
+                  <label className="header-color-label">
                     이벤트 리스트 컨테이너 배경색
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="header-color-input-group">
                     <input
                       type="color"
                       value={themeColors.event_list_outer_bg_color}
@@ -905,7 +900,7 @@ export default function Header({
                           e.target.value,
                         )
                       }
-                      className="w-16 h-10 rounded cursor-pointer"
+                      className="header-color-picker"
                     />
                     <input
                       type="text"
@@ -916,24 +911,24 @@ export default function Header({
                           e.target.value,
                         )
                       }
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="header-color-text"
                     />
                   </div>
                 </div>
 
                 {/* 페이지 배경색 */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                <div className="header-color-section">
+                  <label className="header-color-label">
                     이벤트리스트판 뒷배경
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="header-color-input-group">
                     <input
                       type="color"
                       value={themeColors.page_bg_color}
                       onChange={(e) =>
                         saveThemeColor("page_bg_color", e.target.value)
                       }
-                      className="w-16 h-10 rounded cursor-pointer"
+                      className="header-color-picker"
                     />
                     <input
                       type="text"
@@ -941,12 +936,12 @@ export default function Header({
                       onChange={(e) =>
                         saveThemeColor("page_bg_color", e.target.value)
                       }
-                      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="header-color-text"
                     />
                   </div>
                 </div>
 
-                <p className="text-gray-400 text-xs mt-4">
+                <p className="header-color-note">
                   * 변경사항은 즉시 저장되어 모든 사용자에게 적용됩니다.
                 </p>
               </div>
@@ -979,27 +974,23 @@ export default function Header({
       {/* Date Selection Modal */}
       {showDateModal &&
         createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-[9999999] p-4 pt-20 overflow-y-auto">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-xl font-bold text-white mb-6 text-center">
+          <div className="header-modal-overlay-date">
+            <div className="header-modal-md">
+              <h3 className="header-modal-title-xl">
                 날짜 선택
               </h3>
 
               {/* Year Selection */}
-              <div className="mb-6">
-                <label className="block text-gray-300 text-sm font-medium mb-3">
+              <div className="header-form-group">
+                <label className="header-form-label">
                   년도
                 </label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="header-grid-5">
                   {years.map((year) => (
                     <button
                       key={year}
                       onClick={() => setSelectedYear(year)}
-                      className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                        selectedYear === year
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      }`}
+                      className={selectedYear === year ? "header-year-btn header-year-btn-active" : "header-year-btn header-year-btn-inactive"}
                     >
                       {year}
                     </button>
@@ -1008,20 +999,16 @@ export default function Header({
               </div>
 
               {/* Month Selection */}
-              <div className="mb-6">
-                <label className="block text-gray-300 text-sm font-medium mb-3">
+              <div className="header-form-group">
+                <label className="header-form-label">
                   월
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="header-grid-4">
                   {monthNames.map((month, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedMonth(index)}
-                      className={`p-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                        selectedMonth === index
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      }`}
+                      className={selectedMonth === index ? "header-year-btn header-year-btn-active" : "header-year-btn header-year-btn-inactive"}
                     >
                       {month}
                     </button>
@@ -1030,16 +1017,16 @@ export default function Header({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex space-x-3">
+              <div className="header-btn-group header-gap-3">
                 <button
                   onClick={handleDateCancel}
-                  className="flex-1 bg-[#242424] hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                  className="header-btn-sm header-btn-gray-dark header-flex-1"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleDateConfirm}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                  className="header-btn-sm header-btn-blue header-flex-1"
                 >
                   확인
                 </button>
@@ -1053,36 +1040,36 @@ export default function Header({
       {showLoginSuccessModal &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[99999] p-4"
+            className="header-modal-overlay-center"
             onClick={() => setShowLoginSuccessModal(false)}
           >
             <div
-              className="bg-gray-800 rounded-lg p-6 max-w-sm w-full animate-[scale-in_0.3s_ease-out]"
+              className="header-modal header-modal-animated"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-center">
-                <div className="mb-4 flex justify-center">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+              <div className="header-success-container">
+                <div className="header-success-icon-wrapper">
+                  <div className={`header-success-icon-circle ${
                     loginSuccessType.includes('프리패스')
-                      ? 'bg-gradient-to-br from-red-500 to-orange-500'
-                      : 'bg-gradient-to-br from-purple-500 to-blue-500'
+                      ? 'header-success-icon-red'
+                      : 'header-success-icon-purple'
                   }`}>
-                    <i className={`text-3xl text-white ${
+                    <i className={`header-icon-3xl ${
                       loginSuccessType.includes('프리패스')
                         ? 'ri-shield-keyhole-line'
                         : 'ri-shield-check-line'
-                    }`}></i>
+                    }`} style={{ color: 'white' }}></i>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">
+                <h3 className="header-success-title">
                   {loginSuccessName}님, 환영해요
                 </h3>
-                <p className="text-gray-400 text-sm mb-6">
+                <p className="header-success-text">
                   {loginSuccessType}로 로그인되었습니다
                 </p>
                 {loginSuccessType.includes('프리패스') && (
-                  <div className="mb-4 p-2 bg-red-900/30 border border-red-500/50 rounded-lg">
-                    <p className="text-red-300 text-xs">
+                  <div className="header-warning-box">
+                    <p className="header-warning-text">
                       🚨 개발 환경 전용 모드입니다
                     </p>
                   </div>
@@ -1091,10 +1078,10 @@ export default function Header({
                   onClick={() => {
                     setShowLoginSuccessModal(false);
                   }}
-                  className={`w-full text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer ${
+                  className={`header-btn-base ${
                     loginSuccessType.includes('프리패스')
-                      ? 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700'
-                      : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
+                      ? 'header-btn-gradient-red'
+                      : 'header-btn-gradient-purple'
                   }`}
                 >
                   시작하기
@@ -1108,19 +1095,19 @@ export default function Header({
       {/* 서브 관리자 선택 모달 (개발자 모드) */}
       {showSubAdminSelector && isDevAdmin && createPortal(
         <div 
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[9999999999] p-4"
+          className="header-modal-overlay-ultra"
           onClick={() => setShowSubAdminSelector(false)}
         >
           <div 
-            className="bg-gray-800 rounded-lg p-6 max-w-md w-full"
+            className="header-modal-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold text-white mb-4">서브 관리자 선택</h3>
-            <p className="text-gray-400 text-sm mb-4">테스트할 서브 관리자를 선택하세요</p>
+            <h3 className="header-modal-title-xl">서브 관리자 선택</h3>
+            <p className="header-modal-text header-modal-text-center">테스트할 서브 관리자를 선택하세요</p>
             
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="header-user-list">
               {billboardUsers.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">등록된 서브 관리자가 없습니다.</p>
+                <p className="header-empty-state">등록된 서브 관리자가 없습니다.</p>
               ) : (
                 billboardUsers.map((user) => (
                   <button
@@ -1161,12 +1148,12 @@ export default function Header({
                       
                       console.log('[개발 모드] ========== 서브 관리자 전환 완료 ==========');
                     }}
-                    className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg text-left transition-colors cursor-pointer"
+                    className="header-user-item"
                   >
-                    <div className="flex items-center gap-2">
-                      <i className="ri-user-line text-blue-400"></i>
-                      <span className="font-medium">{user.name}</span>
-                      <span className="text-xs text-gray-400 ml-auto">ID: {user.id.substring(0, 8)}...</span>
+                    <div className="header-user-content">
+                      <i className="ri-user-line header-login-icon-billboard"></i>
+                      <span className="header-user-name">{user.name}</span>
+                      <span className="header-user-id">ID: {user.id.substring(0, 8)}...</span>
                     </div>
                   </button>
                 ))
@@ -1175,7 +1162,7 @@ export default function Header({
             
             <button
               onClick={() => setShowSubAdminSelector(false)}
-              className="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors cursor-pointer"
+              className="header-btn-sm header-btn-gray header-mt-4"
             >
               취소
             </button>
@@ -1186,15 +1173,15 @@ export default function Header({
 
       {/* 빌보드 주소 복사 성공 모달 */}
       {showCopySuccessModal && createPortal(
-        <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
-            <div className="text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                  <i className="ri-check-line text-3xl text-white"></i>
+        <div className="header-modal-overlay-super">
+          <div className="header-modal header-modal-shadow">
+            <div className="header-success-container">
+              <div className="header-success-icon-wrapper">
+                <div className="header-success-icon-circle header-success-icon-green">
+                  <i className="ri-check-line header-icon-3xl" style={{ color: 'white' }}></i>
                 </div>
               </div>
-              <p className="text-white text-lg font-semibold">
+              <p className="header-success-text-lg">
                 빌보드 주소가 복사되었습니다!
               </p>
             </div>

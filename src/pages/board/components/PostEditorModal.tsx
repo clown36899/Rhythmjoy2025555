@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardPost } from '../page';
 import type { BoardPrefix } from '../../../components/BoardPrefixManagementModal';
+import './PostEditorModal.css';
 
 interface PostEditorModalProps {
   isOpen: boolean;
@@ -163,146 +164,141 @@ export default function PostEditorModal({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
-      <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden">
+    <div className="pem-modal-overlay">
+      <div className="pem-modal-container">
         {/* Header */}
-        <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">
+        <div className="pem-modal-header">
+          <h2 className="pem-modal-title">
             {post ? '게시글 수정' : '게시글 작성'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="pem-close-btn"
           >
-            <i className="ri-close-line text-2xl"></i>
+            <i className="ri-close-line pem-close-icon"></i>
           </button>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {(
-            <>
-              {/* 작성자 (새 글 작성 시에만) */}
-              {!post && (
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    작성자
-                  </label>
-                  <input
-                    type="text"
-                    name="author_name"
-                    value={formData.author_name}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="이름을 입력하세요"
-                  />
-                </div>
-              )}
-
-              {/* 제목 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  제목
+        <form onSubmit={handleSubmit} className="pem-form">
+          <div className="pem-form-content">
+            {/* 작성자 (새 글 작성 시에만) */}
+            {!post && (
+              <div className="pem-form-group">
+                <label className="pem-label">
+                  작성자
                 </label>
                 <input
                   type="text"
-                  name="title"
-                  value={formData.title}
+                  name="author_name"
+                  value={formData.author_name}
                   onChange={handleInputChange}
                   required
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="제목을 입력하세요"
+                  className="pem-input"
+                  placeholder="이름을 입력하세요"
                 />
               </div>
+            )}
 
-              {/* 머릿말 선택 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  머릿말
-                </label>
-                <select
-                  value={formData.prefix_id || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    prefix_id: e.target.value ? parseInt(e.target.value) : null
-                  }))}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">머릿말 없음</option>
-                  {prefixes
-                    .filter(prefix => !prefix.admin_only)
-                    .map(prefix => (
-                      <option key={prefix.id} value={prefix.id}>
-                        {prefix.name}
-                      </option>
-                    ))
-                  }
-                </select>
-              </div>
+            {/* 제목 */}
+            <div className="pem-form-group">
+              <label className="pem-label">
+                제목
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+                className="pem-input"
+                placeholder="제목을 입력하세요"
+              />
+            </div>
 
-              {/* 내용 */}
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  내용
-                </label>
-                <textarea
-                  name="content"
-                  value={formData.content}
-                  onChange={handleInputChange}
-                  required
-                  rows={12}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  placeholder="내용을 입력하세요"
-                />
-              </div>
+            {/* 머릿말 선택 */}
+            <div className="pem-form-group">
+              <label className="pem-label">
+                머릿말
+              </label>
+              <select
+                value={formData.prefix_id || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  prefix_id: e.target.value ? parseInt(e.target.value) : null
+                }))}
+                className="pem-select"
+              >
+                <option value="">머릿말 없음</option>
+                {prefixes
+                  .filter(prefix => !prefix.admin_only)
+                  .map(prefix => (
+                    <option key={prefix.id} value={prefix.id}>
+                      {prefix.name}
+                    </option>
+                  ))
+                }
+              </select>
+            </div>
 
-              {/* 공지사항 (관리자만) */}
-              {isAdmin && (
-                <div className="bg-blue-900/20 border border-blue-500/50 rounded-lg p-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_notice}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        is_notice: e.target.checked
-                      }))}
-                      className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <div className="flex-1">
-                      <div className="text-blue-300 font-medium">공지사항으로 등록</div>
-                      <div className="text-blue-400 text-xs mt-1">
-                        공지사항은 게시판 상단에 고정되어 표시됩니다
-                      </div>
+            {/* 내용 */}
+            <div className="pem-form-group">
+              <label className="pem-label">
+                내용
+              </label>
+              <textarea
+                name="content"
+                value={formData.content}
+                onChange={handleInputChange}
+                required
+                rows={12}
+                className="pem-textarea"
+                placeholder="내용을 입력하세요"
+              />
+            </div>
+
+            {/* 공지사항 (관리자만) */}
+            {isAdmin && (
+              <div className="pem-notice-box">
+                <label className="pem-notice-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_notice}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      is_notice: e.target.checked
+                    }))}
+                    className="pem-checkbox"
+                  />
+                  <div className="pem-notice-content">
+                    <div className="pem-notice-title">공지사항으로 등록</div>
+                    <div className="pem-notice-desc">
+                      공지사항은 게시판 상단에 고정되어 표시됩니다
                     </div>
-                  </label>
-                </div>
-              )}
-
-            </>
-          )}
+                  </div>
+                </label>
+              </div>
+            )}
+          </div>
         </form>
 
         {/* Footer */}
-        {(
-          <div className="px-4 py-4 border-t border-gray-700 flex-shrink-0 flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-colors"
-            >
-              취소
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? '저장 중...' : post ? '수정하기' : '등록하기'}
-            </button>
-          </div>
-        )}
+        <div className="pem-modal-footer">
+          <button
+            type="button"
+            onClick={onClose}
+            className="pem-btn pem-btn-cancel"
+          >
+            취소
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="pem-btn pem-btn-submit"
+          >
+            {isSubmitting ? '저장 중...' : post ? '수정하기' : '등록하기'}
+          </button>
+        </div>
       </div>
     </div>
   );

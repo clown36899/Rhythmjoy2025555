@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
+import './userreg.css';
 
 interface UserRegistrationModalProps {
   isOpen: boolean;
@@ -98,40 +99,40 @@ export default function UserRegistrationModal({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
-      <div className="bg-gray-800 rounded-lg max-w-md w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden">
+    <div className="userreg-overlay">
+      <div className="userreg-modal">
         {/* Header */}
-        <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold text-white flex-1 text-center">
+        <div className="userreg-header">
+          <div className="userreg-header-top">
+            <h2 className="userreg-title">
               {previewMode ? '회원가입 폼 미리보기' : '회원가입'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="userreg-close-btn"
             >
               <i className="ri-close-line text-2xl"></i>
             </button>
           </div>
           {previewMode && (
-            <div className="bg-blue-900/30 border border-blue-500/50 rounded px-3 py-2 mb-2">
-              <p className="text-blue-300 text-xs">
-                <i className="ri-eye-line mr-1"></i>
+            <div className="userreg-preview-notice">
+              <p className="userreg-preview-text">
+                <i className="ri-eye-line"></i>
                 관리자 미리보기 모드 - 실제 가입은 되지 않습니다
               </p>
             </div>
           )}
-          <p className="text-gray-400 text-sm text-center">
+          <p className="userreg-subtitle">
             게시판 이용을 위해 정보를 입력해주세요
           </p>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <form onSubmit={handleSubmit} className="userreg-form">
           {/* 닉네임 */}
-          <div>
-            <label className="block text-gray-300 text-sm font-medium mb-2">
-              닉네임 <span className="text-red-500">*</span>
+          <div className="userreg-field">
+            <label className="userreg-label">
+              닉네임 <span className="userreg-required">*</span>
             </label>
             <input
               type="text"
@@ -139,15 +140,15 @@ export default function UserRegistrationModal({
               value={formData.nickname}
               onChange={handleInputChange}
               required
-              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="userreg-input"
               placeholder="게시판에 표시될 닉네임"
             />
           </div>
 
           {/* 본명 */}
-          <div>
-            <label className="block text-gray-300 text-sm font-medium mb-2">
-              본명 <span className="text-red-500">*</span>
+          <div className="userreg-field">
+            <label className="userreg-label">
+              본명 <span className="userreg-required">*</span>
             </label>
             <input
               type="text"
@@ -155,15 +156,15 @@ export default function UserRegistrationModal({
               value={formData.real_name}
               onChange={handleInputChange}
               required
-              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="userreg-input"
               placeholder="실명을 입력하세요"
             />
           </div>
 
           {/* 전화번호 */}
-          <div>
-            <label className="block text-gray-300 text-sm font-medium mb-2">
-              전화번호 <span className="text-red-500">*</span>
+          <div className="userreg-field">
+            <label className="userreg-label">
+              전화번호 <span className="userreg-required">*</span>
             </label>
             <input
               type="tel"
@@ -171,22 +172,22 @@ export default function UserRegistrationModal({
               value={formData.phone}
               onChange={handleInputChange}
               required
-              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="userreg-input"
               placeholder="010-0000-0000"
             />
           </div>
 
           {/* 성별 */}
-          <div>
-            <label className="block text-gray-300 text-sm font-medium mb-2">
-              성별 <span className="text-red-500">*</span>
+          <div className="userreg-field">
+            <label className="userreg-label">
+              성별 <span className="userreg-required">*</span>
             </label>
             <select
               name="gender"
               value={formData.gender}
               onChange={handleInputChange}
               required
-              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="userreg-select"
             >
               <option value="">선택하세요</option>
               <option value="male">남성</option>
@@ -196,20 +197,20 @@ export default function UserRegistrationModal({
           </div>
 
           {/* 안내 메시지 */}
-          <div className="bg-blue-900/30 border border-blue-600 rounded-lg p-3">
-            <p className="text-blue-300 text-sm">
-              <i className="ri-information-line mr-1"></i>
+          <div className="userreg-notice">
+            <p className="userreg-notice-text">
+              <i className="ri-information-line"></i>
               입력하신 정보는 게시판 관리 목적으로만 사용됩니다.
             </p>
           </div>
         </form>
 
         {/* Footer */}
-        <div className="px-4 py-4 border-t border-gray-700 flex-shrink-0 flex gap-2">
+        <div className="userreg-footer">
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="userreg-submit-btn"
           >
             {isSubmitting ? '가입 중...' : '가입하기'}
           </button>

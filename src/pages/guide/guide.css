@@ -1,0 +1,151 @@
+/* guide.css - GuidePage 컴포넌트 전용 스타일 */
+
+/* ===== 페이지 컨테이너 ===== */
+.guide-page-container {
+  min-height: 100vh;
+}
+
+/* ===== 고정 헤더 ===== */
+.guide-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: var(--z-30);
+  border-bottom: 1px solid #22262a;
+}
+
+/* ===== 콘텐츠 영역 ===== */
+.guide-content {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+.guide-inner-content {
+  padding: var(--spacing-6);
+  color: white;
+}
+
+.guide-centered-content {
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+}
+
+/* ===== 타이틀 ===== */
+.guide-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-4);
+  color: #60a5fa;
+}
+
+/* ===== 메인 메시지 섹션 ===== */
+.guide-main-message {
+  margin-bottom: var(--spacing-6);
+}
+
+.guide-highlight-text {
+  color: #facc15;
+  margin-bottom: var(--spacing-4);
+  font-size: 1rem;
+  font-weight: 700;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.guide-instructions {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.guide-warning-text {
+  color: #fb923c;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: var(--spacing-4);
+}
+
+/* ===== 공유 버튼 섹션 ===== */
+.guide-share-section {
+  margin-top: var(--spacing-6);
+}
+
+.guide-share-button {
+  background-color: var(--color-blue-600);
+  color: white;
+  font-weight: 600;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-left: var(--spacing-6);
+  padding-right: var(--spacing-6);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: none;
+  cursor: pointer;
+}
+
+.guide-share-button:hover {
+  background-color: var(--color-blue-700);
+}
+
+.guide-share-icon {
+  font-size: 1.25rem;
+}
+
+.guide-share-hint {
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
+  margin-top: var(--spacing-2);
+}
+
+/* ===== 연락처 섹션 ===== */
+.guide-contact-section {
+  margin-top: var(--spacing-8);
+  padding-top: var(--spacing-6);
+  border-top: 1px solid var(--color-gray-700);
+}
+
+.guide-site-description {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-2);
+}
+
+.guide-copyright {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.guide-contact-info {
+  color: var(--color-gray-500);
+  font-size: 0.75rem;
+  margin-top: var(--spacing-2);
+}
+
+.guide-phone-link {
+  color: #60a5fa;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.guide-phone-link:hover {
+  color: #93c5fd;
+}

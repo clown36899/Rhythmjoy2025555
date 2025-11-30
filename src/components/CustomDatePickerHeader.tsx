@@ -1,4 +1,5 @@
 import type { ReactDatePickerCustomHeaderProps } from "react-datepicker";
+import "./CustomDatePickerHeader.css";
 
 interface CustomDatePickerHeaderProps extends ReactDatePickerCustomHeaderProps {
   onTodayClick?: () => void;
@@ -26,7 +27,7 @@ export default function CustomDatePickerHeader({
   };
 
   return (
-    <div className="flex items-center justify-between px-2 py-2">
+    <div className="cdp-header-container">
       <button
         onMouseDown={(e) => {
           e.preventDefault();
@@ -35,15 +36,15 @@ export default function CustomDatePickerHeader({
         }}
         disabled={prevMonthButtonDisabled}
         type="button"
-        className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
+        className="cdp-nav-button"
       >
-        <i className="ri-arrow-left-s-line text-xl"></i>
+        <i className="ri-arrow-left-s-line cdp-nav-icon"></i>
       </button>
-      <div className="flex items-center gap-2">
-        <span className="text-white font-medium">
+      <div className="cdp-center-area">
+        <span className="cdp-month-text">
           {date.getMonth() + 1}월
           {selectedDate && (
-            <span className="text-blue-400 ml-1">
+            <span className="cdp-day-text">
               {selectedDate.getDate()}일
             </span>
           )}
@@ -56,7 +57,7 @@ export default function CustomDatePickerHeader({
               handleTodayClick();
             }}
             type="button"
-            className="text-blue-400 hover:bg-blue-500/20 px-2 py-0.5 rounded text-sm font-medium transition-colors"
+            className="cdp-today-button"
           >
             오늘
           </button>
@@ -70,9 +71,9 @@ export default function CustomDatePickerHeader({
         }}
         disabled={nextMonthButtonDisabled}
         type="button"
-        className="text-white hover:bg-gray-600 p-1 rounded disabled:opacity-50 transition-colors"
+        className="cdp-nav-button"
       >
-        <i className="ri-arrow-right-s-line text-xl"></i>
+        <i className="ri-arrow-right-s-line cdp-nav-icon"></i>
       </button>
     </div>
   );

@@ -13,6 +13,7 @@ import { shuffleArray } from "./utils/helpers";
 import type { YouTubePlayerHandle } from "./types";
 import YouTubePlayer from "./components/YouTubePlayer";
 import { useYouTubeAPI } from "./hooks/useYouTubeAPI";
+import './billboard.css';
 
 export default function BillboardPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -978,31 +979,31 @@ export default function BillboardPage() {
   // 로딩/에러/빈 화면
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="flex flex-col items-center gap-6">
+      <div className="billboard-loading-container">
+        <div className="billboard-loading-content">
           {/* 부드러운 스피너 애니메이션 */}
-          <div className="relative w-20 h-20">
-            <div className="absolute inset-0 border-4 border-gray-700 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-t-white border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          <div className="billboard-spinner-container">
+            <div className="billboard-spinner-bg"></div>
+            <div className="billboard-spinner"></div>
           </div>
-          <div className="text-white text-xl font-light animate-pulse">이벤트 불러오는 중</div>
+          <div className="billboard-loading-text">이벤트 불러오는 중</div>
         </div>
       </div>
     );
   }
   if (error) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="text-red-500 text-2xl text-center p-8">{error}</div>
+      <div className="billboard-error-container">
+        <div className="billboard-error-text">{error}</div>
       </div>
     );
   }
   if (events.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="text-white text-2xl text-center">
-          <div className="mb-4">{billboardUser?.name}</div>
-          <div className="text-gray-400 text-lg">표시할 이벤트가 없습니다.</div>
+      <div className="billboard-empty-container">
+        <div className="billboard-empty-content">
+          <div className="billboard-empty-username">{billboardUser?.name}</div>
+          <div className="billboard-empty-message">표시할 이벤트가 없습니다.</div>
         </div>
       </div>
     );
@@ -1065,7 +1066,7 @@ export default function BillboardPage() {
               <img
                 src={thumbnailUrl}
                 alt={event.title}
-                className="w-full h-full object-contain"
+                className="billboard-image"
                 style={{
                   backgroundColor: "#000",
                   position: "absolute",
@@ -1079,7 +1080,7 @@ export default function BillboardPage() {
             )}
             {/* YouTube Player */}
             <div
-              className="w-full h-full"
+              className="billboard-youtube-container"
               style={{
                 position: "absolute",
                 top: 0,
@@ -1115,7 +1116,7 @@ export default function BillboardPage() {
             <img
               src={imageUrl}
               alt={event.title}
-              className="w-full h-full object-contain"
+              className="billboard-image"
               style={{ backgroundColor: "#000" }}
               loading="lazy"
               onLoad={() => {
@@ -1132,7 +1133,7 @@ export default function BillboardPage() {
         {isVisible && (
           <>
             <div
-              className="absolute"
+              className="billboard-top-info"
               style={{
                 width: "100%",
                 padding: "0 42px",
@@ -1148,7 +1149,7 @@ export default function BillboardPage() {
             >
               {events.length > 1 && (
                 <div
-                  className="relative flex items-center justify-center"
+                  className="billboard-progress-container"
                   style={{
                     width: `${96 * scale}px`,
                     height: `${96 * scale}px`,
@@ -1156,7 +1157,7 @@ export default function BillboardPage() {
                 >
                   {/* 펄스 링 (외부) - 부하 1%, CSS animation만 사용 */}
                   <div
-                    className="absolute inset-0 rounded-full"
+                    className="billboard-pulse-outer"
                     style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       animation: 'billboard-pulse 3s ease-in-out infinite',
@@ -1164,7 +1165,7 @@ export default function BillboardPage() {
                   />
                   {/* 펄스 링 (내부) */}
                   <div
-                    className="absolute rounded-full"
+                    className="billboard-pulse-inner"
                     style={{
                       width: `${72 * scale}px`,
                       height: `${72 * scale}px`,
@@ -1176,7 +1177,7 @@ export default function BillboardPage() {
                   />
                   {/* 슬라이드 번호 */}
                   <span
-                    className="relative text-white font-bold z-10"
+                    className="billboard-slide-number"
                     style={{ fontSize: `${20 * scale}px` }}
                   >
                     {currentIndex + 1}/{events.length}
@@ -1218,7 +1219,7 @@ export default function BillboardPage() {
                 </div>
               )}
               <div
-                className="bg-black/70 text-white px-3 py-1 rounded text-xs"
+                className="billboard-status-badge"
                 style={{ position: "relative", width: "max-content" }}
               >
                 {realtimeStatus}
@@ -1228,7 +1229,7 @@ export default function BillboardPage() {
             {/* 하단 정보 레이어 */}
             <div
               key={`info-${event.id}-${slideIndex}`}
-              className={`absolute bottom-0 left-0 right-0 flex flex-col justify-end ${(event.show_title_on_billboard ?? true) ? 'info-background' : ''}`}
+              className={`billboard-bottom-info ${(event.show_title_on_billboard ?? true) ? 'info-background' : ''}`}
               style={{
                 paddingLeft: `${32 * scale}px`,
                 paddingRight: `${32 * scale}px`,
@@ -1355,13 +1356,13 @@ export default function BillboardPage() {
               )}
 
               {/* 하단 정보: (제목 + 날짜/장소) + QR */}
-              <div className={`flex items-end w-full ${ (event.show_title_on_billboard ?? true) ? 'justify-between' : 'justify-end' }`}>
+              <div className={`billboard-info-wrapper ${ (event.show_title_on_billboard ?? true) ? 'billboard-info-wrapper-between' : 'billboard-info-wrapper-end' }`}>
                 {/* 왼쪽 정보: 제목, 날짜, 장소 (조건부 렌더링) */}
                 {(event.show_title_on_billboard ?? true) && (
-                  <div className="flex flex-col items-start justify-end gap-2">
+                  <div className="billboard-text-info">
                     {/* 제목 */}
                     <h3
-                      className="text-white font-bold"
+                      className="billboard-title"
                       style={{
                         fontSize: `${titleFontSize}px`,
                         lineHeight: 1.2,
@@ -1381,7 +1382,7 @@ export default function BillboardPage() {
                     {/* 날짜 */}
                     {event.start_date && (
                       <div
-                        className="text-blue-400 font-semibold"
+                        className="billboard-date"
                         style={{
                           fontSize: `${dateLocationFontSize}px`,
                           lineHeight: 1.2,
@@ -1390,14 +1391,14 @@ export default function BillboardPage() {
                           transform: `translateX(-${dateLocationFontSize * 5}px) rotate(-8deg)`,
                         }}
                       >
-                        <i className="ri-calendar-line" style={{ marginRight: `${dateLocationFontSize * 0.3}px` }}></i>
+                        <i className="ri-calendar-line billboard-date-icon" style={{ marginRight: `${dateLocationFontSize * 0.3}px` }}></i>
                         {formatDateRange(event.start_date, event.end_date)}
                       </div>
                     )}
                     {/* 장소 */}
                     {event.location && event.location.trim() && event.location !== "미정" && (
                       <div
-                        className="text-gray-300"
+                        className="billboard-location"
                         style={{
                           fontSize: `${dateLocationFontSize}px`,
                           lineHeight: 1.2,
@@ -1406,7 +1407,7 @@ export default function BillboardPage() {
                           transform: `translateX(${dateLocationFontSize * 5}px) rotate(8deg)`,
                         }}
                       >
-                        <i className="ri-map-pin-line" style={{ marginRight: `${dateLocationFontSize * 0.3}px` }}></i>
+                        <i className="ri-map-pin-line billboard-location-icon" style={{ marginRight: `${dateLocationFontSize * 0.3}px` }}></i>
                         {event.location}
                       </div>
                     )}
@@ -1415,13 +1416,13 @@ export default function BillboardPage() {
 
                 {/* QR 코드 */}
                 <div
-                  className="flex flex-col items-center flex-shrink-0"
+                  className="billboard-qr-container"
                   style={{
                     filter: "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7))",
                   }}
                 >
                   <p
-                    className="text-white font-bold text-center"
+                    className="billboard-qr-label"
                     style={{
                       fontSize: `${Math.max(12, qrSize * 0.15)}px`,
                       marginBottom: `${qrSize * 0.05}px`,
@@ -1433,7 +1434,7 @@ export default function BillboardPage() {
                     등록 + 상세
                   </p>
                   <div
-                    className="bg-white rounded-lg"
+                    className="billboard-qr-wrapper"
                     style={{ padding: `${qrSize * 0.08}px` }}
                   >
                     <QRCodeCanvas

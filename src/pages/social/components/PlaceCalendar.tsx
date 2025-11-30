@@ -4,6 +4,7 @@ import type { SocialPlace } from '../types';
 import SocialEditModal from './SocialEditModal';
 import ScheduleModal from './ScheduleModal';
 import { useAuth } from '../../../contexts/AuthContext';
+import './PlaceCalendar.css';
 
 interface Schedule {
   id: number;
@@ -87,7 +88,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
 
     // 빈 칸
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
+      days.push(<div key={`empty-${i}`} className="pcal-empty-cell"></div>);
     }
 
     // 날짜
@@ -100,18 +101,18 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
         <div
           key={day}
           onClick={() => isAdmin && handleDateClick(date)}
-          className={`aspect-square border border-gray-700 p-1 ${
-            isAdmin ? 'cursor-pointer hover:bg-gray-700' : ''
-          } ${isToday ? 'bg-blue-900/30' : 'bg-gray-800'}`}
+          className={`pcal-date-cell ${
+            isAdmin ? 'pcal-date-cell-clickable' : ''
+          } ${isToday ? 'pcal-date-cell-today' : ''}`}
         >
-          <div className={`text-xs mb-1 ${isToday ? 'text-blue-400 font-bold' : 'text-gray-300'}`}>
+          <div className={`pcal-date-number ${isToday ? 'pcal-date-number-today' : ''}`}>
             {day}
           </div>
-          <div className="space-y-0.5">
+          <div className="pcal-schedules">
             {dateSchedules.slice(0, 3).map((schedule) => (
               <div
                 key={schedule.id}
-                className="text-[10px] bg-green-600/80 text-white px-1 py-0.5 rounded truncate cursor-pointer hover:bg-green-500"
+                className="pcal-schedule-item"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (isAdmin) setEditingSchedule(schedule);
@@ -119,13 +120,13 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
                 title={schedule.title}
               >
                 {schedule.start_time && (
-                  <span className="mr-1">{schedule.start_time.substring(0, 5)}</span>
+                  <span className="pcal-schedule-time">{schedule.start_time.substring(0, 5)}</span>
                 )}
                 {schedule.title}
               </div>
             ))}
             {dateSchedules.length > 3 && (
-              <div className="text-[9px] text-gray-400">+{dateSchedules.length - 3}</div>
+              <div className="pcal-more-count">+{dateSchedules.length - 3}</div>
             )}
           </div>
         </div>
@@ -136,20 +137,18 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+    <div className="pcal-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       {/* 헤더 */}
       <div
-        className="fixed top-0 left-0 right-0 z-10"
+        className="pcal-header"
         style={{
-          maxWidth: '650px',
-          margin: '0 auto',
           backgroundColor: 'var(--header-bg-color)',
         }}
       >
-        <div className="flex items-center px-4 py-3">
+        <div className="pcal-header-content">
           <button
             onClick={onBack}
-            className="text-white hover:text-gray-300 mr-3"
+            className="pcal-back-btn"
           >
             <i className="ri-arrow-left-line text-xl"></i>
           </button>
@@ -161,12 +160,12 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
       </div>
 
       {/* 달력 */}
-      <div className="pt-16 px-4">
+      <div className="pcal-calendar-area">
         {/* 월 네비게이션 */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="pcal-month-nav">
           <button
             onClick={prevMonth}
-            className="text-white hover:text-gray-300"
+            className="pcal-nav-btn"
           >
             <i className="ri-arrow-left-s-line text-2xl"></i>
           </button>
@@ -175,19 +174,19 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
           </h2>
           <button
             onClick={nextMonth}
-            className="text-white hover:text-gray-300"
+            className="pcal-nav-btn"
           >
             <i className="ri-arrow-right-s-line text-2xl"></i>
           </button>
         </div>
 
         {/* 요일 */}
-        <div className="grid grid-cols-7 gap-1 mb-1">
+        <div className="pcal-weekdays">
           {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
             <div
               key={day}
-              className={`text-center text-sm font-medium py-2 ${
-                i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-400'
+              className={`pcal-weekday ${
+                i === 0 ? 'pcal-weekday-sunday' : i === 6 ? 'pcal-weekday-saturday' : 'pcal-weekday-default'
               }`}
             >
               {day}
@@ -196,13 +195,13 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
         </div>
 
         {/* 날짜 */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="pcal-dates-grid">
           {renderCalendar()}
         </div>
 
         {/* 안내 문구 */}
         {isAdmin && (
-          <div className="mt-4 text-center text-sm text-gray-400">
+          <div className="pcal-help-text">
             날짜를 클릭하여 일정을 추가하세요
           </div>
         )}

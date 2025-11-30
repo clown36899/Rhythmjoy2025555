@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import SocialSubMenu from '../components/SocialSubMenu';
 import PlaceModal from '../components/PlaceModal';
 import type { SocialPlace } from '../page';
+import './swingbars.css';
 
 export default function SwingBarsPage() {
   const { isAdmin } = useAuth();
@@ -316,75 +317,73 @@ export default function SwingBarsPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+    <div className="swingbars-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       <div
-        className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3"
+        className="swingbars-header"
         style={{
-          maxWidth: '650px',
-          margin: '0 auto',
           backgroundColor: 'var(--header-bg-color)',
         }}
       >
-        <h1 className="text-xl font-bold text-white">스윙바</h1>
+        <h1 className="swingbars-title">스윙바</h1>
       </div>
 
       <SocialSubMenu />
 
-      <div className="pt-28 h-full">
-        <div className="relative w-full h-full" style={{ maxHeight: 'calc(100vh - 192px)' }}>
-          <div id="swing-bars-map" className="w-full h-full" />
+      <div className="swingbars-content">
+        <div className="swingbars-map-wrapper">
+          <div id="swing-bars-map" className="swingbars-map" />
           
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-              <div className="text-gray-400">지도 로딩 중...</div>
+            <div className="swingbars-loading">
+              <div className="swingbars-loading-text">지도 로딩 중...</div>
             </div>
           )}
 
           {isAdmin && (
             <button
               onClick={() => setShowPlaceModal(true)}
-              className="absolute top-4 right-4 z-10 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg transition-colors"
+              className="swingbars-add-btn"
             >
-              <i className="ri-add-line mr-1"></i>
+              <i className="ri-add-line"></i>
               장소 등록
             </button>
           )}
 
           {selectedPlace && (
-            <div className="absolute bottom-4 left-4 right-4 z-50 bg-gray-900 rounded-lg p-4 shadow-lg">
-              <div className="flex justify-between items-start mb-3">
+            <div className="swingbars-info-card">
+              <div className="swingbars-info-header">
                 <div>
-                  <h3 className="text-white font-bold text-lg">{selectedPlace.name}</h3>
-                  <p className="text-gray-400 text-sm mt-1">{selectedPlace.address}</p>
+                  <h3 className="swingbars-place-name">{selectedPlace.name}</h3>
+                  <p className="swingbars-place-address">{selectedPlace.address}</p>
                 </div>
                 <button
                   onClick={handleClosePlaceInfo}
-                  className="text-gray-400 hover:text-white"
+                  className="swingbars-close-btn"
                 >
                   <i className="ri-close-line text-xl"></i>
                 </button>
               </div>
 
-              <div className="flex gap-2">
+              <div className="swingbars-action-buttons">
                 <button
                   onClick={handleCopyAddress}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 px-3 rounded text-sm transition-colors"
+                  className="swingbars-action-btn swingbars-action-btn-copy"
                 >
-                  <i className="ri-file-copy-line mr-1"></i>
+                  <i className="ri-file-copy-line"></i>
                   주소복사
                 </button>
                 <button
                   onClick={handleOpenNaverMap}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm transition-colors"
+                  className="swingbars-action-btn swingbars-action-btn-map"
                 >
-                  <i className="ri-map-pin-line mr-1"></i>
+                  <i className="ri-map-pin-line"></i>
                   지도보기
                 </button>
                 <button
                   onClick={handleShare}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-sm transition-colors"
+                  className="swingbars-action-btn swingbars-action-btn-share"
                 >
-                  <i className="ri-share-line mr-1"></i>
+                  <i className="ri-share-line"></i>
                   공유
                 </button>
               </div>

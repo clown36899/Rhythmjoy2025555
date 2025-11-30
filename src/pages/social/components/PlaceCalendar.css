@@ -1,0 +1,181 @@
+/* PlaceCalendar.css - 장소 달력 컴포넌트 전용 스타일 */
+
+/* ===== 컨테이너 ===== */
+.pcal-container {
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+.pcal-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+.pcal-header-content {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+}
+
+/* ===== 버튼 ===== */
+.pcal-back-btn {
+  color: white;
+  margin-right: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pcal-back-btn:hover {
+  color: #d1d5db;
+}
+
+.pcal-nav-btn {
+  color: white;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pcal-nav-btn:hover {
+  color: #d1d5db;
+}
+
+/* ===== 달력 영역 ===== */
+.pcal-calendar-area {
+  padding-top: 4rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.pcal-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+/* ===== 요일 헤더 ===== */
+.pcal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.pcal-weekday {
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 0;
+}
+
+.pcal-weekday-sunday {
+  color: #f87171;
+}
+
+.pcal-weekday-saturday {
+  color: #60a5fa;
+}
+
+.pcal-weekday-default {
+  color: #9ca3af;
+}
+
+/* ===== 날짜 그리드 ===== */
+.pcal-dates-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+}
+
+/* ===== 빈 셀 ===== */
+.pcal-empty-cell {
+  aspect-ratio: 1 / 1;
+}
+
+/* ===== 날짜 셀 ===== */
+.pcal-date-cell {
+  aspect-ratio: 1 / 1;
+  border: 1px solid #374151;
+  padding: 0.25rem;
+  background-color: #1f2937;
+}
+
+.pcal-date-cell-clickable {
+  cursor: pointer;
+}
+
+.pcal-date-cell-clickable:hover {
+  background-color: #374151;
+}
+
+.pcal-date-cell-today {
+  background-color: rgba(30, 58, 138, 0.3);
+}
+
+/* ===== 날짜 숫자 ===== */
+.pcal-date-number {
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+  color: #d1d5db;
+}
+
+.pcal-date-number-today {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+/* ===== 일정 컨테이너 ===== */
+.pcal-schedules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+/* ===== 일정 아이템 ===== */
+.pcal-schedule-item {
+  font-size: 10px;
+  background-color: rgba(22, 163, 74, 0.8);
+  color: white;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pcal-schedule-item:hover {
+  background-color: #22c55e;
+}
+
+.pcal-schedule-time {
+  margin-right: 0.25rem;
+}
+
+/* ===== 더보기 ===== */
+.pcal-more-count {
+  font-size: 9px;
+  color: #9ca3af;
+}
+
+/* ===== 안내 문구 ===== */
+.pcal-help-text {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* ===== 반응형 ===== */
+.pcal-rounded {
+  border-radius: 0.25rem;
+}

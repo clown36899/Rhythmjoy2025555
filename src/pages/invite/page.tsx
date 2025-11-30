@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { initKakaoSDK, loginWithKakao, getKakaoAccessToken } from '../../utils/kakaoAuth';
+import './invite.css';
 
 export default function InvitePage() {
   const { token } = useParams<{ token: string }>();
@@ -146,10 +147,10 @@ export default function InvitePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-        <div className="bg-white/10 rounded-2xl p-8 backdrop-blur-lg border border-white/20 text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg">초대 확인 중...</p>
+      <div className="invite-page-container">
+        <div className="invite-card invite-text-center">
+          <div className="invite-loading-spinner"></div>
+          <p className="invite-loading-text">초대 확인 중...</p>
         </div>
       </div>
     );
@@ -170,12 +171,12 @@ export default function InvitePage() {
     }
     
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-        <div className="bg-white/10 rounded-2xl p-8 backdrop-blur-lg border border-white/20 max-w-md w-full">
-          <div className="text-center">
-            <i className="ri-error-warning-line text-6xl text-red-400 mb-4"></i>
-            <h2 className="text-2xl font-bold text-white mb-4">초대 오류</h2>
-            <p className="text-red-200 text-lg font-semibold">{displayError}</p>
+      <div className="invite-page-container">
+        <div className="invite-card invite-card-full">
+          <div className="invite-text-center">
+            <i className="ri-error-warning-line invite-error-icon"></i>
+            <h2 className="invite-title">초대 오류</h2>
+            <p className="invite-error-message">{displayError}</p>
           </div>
         </div>
       </div>
@@ -183,41 +184,41 @@ export default function InvitePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-      <div className="bg-white/10 rounded-2xl p-8 backdrop-blur-lg border border-white/20 max-w-md w-full">
-        <div className="text-center">
-          <i className="ri-mail-check-line text-6xl text-green-400 mb-4"></i>
-          <h2 className="text-3xl font-bold text-white mb-2">초대장이 도착했습니다!</h2>
-          <p className="text-white/80 mb-2">다음 이메일로 초대되셨습니다:</p>
-          <p className="text-xl font-semibold text-purple-300 mb-6">{invitationEmail}</p>
+    <div className="invite-page-container">
+      <div className="invite-card invite-card-full">
+        <div className="invite-text-center">
+          <i className="ri-mail-check-line invite-success-icon"></i>
+          <h2 className="invite-title-large">초대장이 도착했습니다!</h2>
+          <p className="invite-subtitle">다음 이메일로 초대되셨습니다:</p>
+          <p className="invite-email">{invitationEmail}</p>
           
-          <div className="bg-white/5 rounded-lg p-6 mb-6 border border-white/10">
-            <h3 className="text-lg font-semibold text-white mb-3">가입 방법</h3>
-            <ol className="text-left text-white/80 space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+          <div className="invite-instructions">
+            <h3 className="invite-instructions-title">가입 방법</h3>
+            <ol className="invite-instructions-list">
+              <li className="invite-instruction-item">
+                <span className="invite-step-number">1</span>
                 <span>아래 "카카오로 가입하기" 버튼을 클릭하세요</span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                <span>카카오톡에 <strong className="text-yellow-300">{invitationEmail}</strong> 이메일로 로그인하세요</span>
+              <li className="invite-instruction-item">
+                <span className="invite-step-number">2</span>
+                <span>카카오톡에 <strong className="invite-email-highlight">{invitationEmail}</strong> 이메일로 로그인하세요</span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+              <li className="invite-instruction-item">
+                <span className="invite-step-number">3</span>
                 <span>자동으로 가입 및 로그인이 완료됩니다!</span>
               </li>
             </ol>
           </div>
 
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
-            <p className="text-yellow-200 text-sm flex items-start gap-2">
-              <i className="ri-information-line text-lg flex-shrink-0 mt-0.5"></i>
-              <span>카카오톡에 <strong className="text-yellow-100">{invitationEmail}</strong> 이메일이 등록되어 있어야 합니다. 다른 이메일로는 가입할 수 없습니다.</span>
+          <div className="invite-warning-box">
+            <p className="invite-warning-text">
+              <i className="ri-information-line invite-warning-icon"></i>
+              <span>카카오톡에 <strong className="invite-warning-email">{invitationEmail}</strong> 이메일이 등록되어 있어야 합니다. 다른 이메일로는 가입할 수 없습니다.</span>
             </p>
           </div>
 
-          <div className="mb-6">
-            <label className="block text-white text-sm font-semibold mb-2">
+          <div className="invite-input-container">
+            <label className="invite-input-label">
               표시 이름 (선택)
             </label>
             <input
@@ -225,42 +226,42 @@ export default function InvitePage() {
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="카카오 닉네임 사용 (비워두면 자동)"
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="invite-input"
               maxLength={20}
             />
-            <p className="text-white/60 text-xs mt-1">관리자 화면에 표시될 이름입니다</p>
+            <p className="invite-input-hint">관리자 화면에 표시될 이름입니다</p>
           </div>
 
           <button
             onClick={handleKakaoLogin}
             disabled={processing}
-            className="w-full py-4 bg-[#FEE500] text-[#000000] font-bold rounded-lg hover:bg-[#FDD835] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
+            className="invite-kakao-button"
           >
             {processing ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                <div className="invite-button-spinner"></div>
                 가입 진행 중...
               </>
             ) : (
               <>
-                <i className="ri-kakao-talk-fill text-2xl"></i>
+                <i className="ri-kakao-talk-fill invite-kakao-icon"></i>
                 카카오로 가입하기
               </>
             )}
           </button>
 
           {error && showError && (
-            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg relative">
+            <div className="invite-error-box">
               <button
                 onClick={() => setShowError(false)}
-                className="absolute top-2 right-2 text-red-300 hover:text-red-100 transition-colors"
+                className="invite-error-close"
               >
-                <i className="ri-close-line text-xl"></i>
+                <i className="ri-close-line invite-error-close-icon"></i>
               </button>
-              <p className="text-red-200 text-sm whitespace-pre-line pr-6">{error}</p>
+              <p className="invite-error-content">{error}</p>
               <button
                 onClick={() => setShowError(false)}
-                className="mt-3 w-full bg-red-500/30 hover:bg-red-500/40 text-red-100 py-2 px-4 rounded-lg font-semibold transition-colors text-sm"
+                className="invite-error-dismiss"
               >
                 닫기
               </button>

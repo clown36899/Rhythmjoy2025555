@@ -101,10 +101,8 @@ export default function SocialPage() {
       {/* 상단 고정 헤더 */}
       <div
         ref={headerRef}
-        className="fixed top-0 left-0 right-0 z-10 border-b border-[#22262a]"
+        className="social-header"
         style={{
-          maxWidth: '650px',
-          margin: '0 auto',
           backgroundColor: 'var(--header-bg-color)',
         }}
       >
@@ -136,7 +134,7 @@ export default function SocialPage() {
                 <button onClick={() => changeMonth(1)} className="month-nav-button"><i className="ri-arrow-right-s-line"></i></button>
               </div>
               <button onClick={() => setShowEventModal(true)} className="calendar-register-button">
-                <i className="ri-add-line mr-1"></i>일정 등록
+                <i className="ri-add-line"></i>일정 등록
               </button>
             </div>
             {/* 요일 헤더 */}

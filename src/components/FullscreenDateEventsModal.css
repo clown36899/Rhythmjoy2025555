@@ -1,0 +1,309 @@
+/* FullscreenDateEventsModal.css - FullscreenDateEventsModal 컴포넌트 전용 스타일 */
+
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  
+  --color-purple-300: #d8b4fe;
+  
+  /* 간격 */
+  --spacing-0-5: 0.125rem;
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+  
+  /* Z-index */
+  --z-fsde-modal: 9999;
+  
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+  --transition-all: all 0.2s ease;
+}
+
+/* ===== 애니메이션 ===== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ===== 모달 오버레이 ===== */
+.fsde-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-fsde-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* ===== 모달 컨테이너 ===== */
+.fsde-modal {
+  background-color: var(--color-gray-800);
+  border-radius: var(--radius-lg);
+  max-width: 42rem;
+  width: 100%;
+  margin-left: var(--spacing-4);
+  margin-right: var(--spacing-4);
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ===== 모달 헤더 ===== */
+.fsde-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--color-gray-700);
+}
+
+.fsde-header-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.fsde-header-icon {
+  color: var(--color-blue-400);
+  font-size: 1.25rem;
+}
+
+.fsde-header-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+}
+
+.fsde-close-btn {
+  color: var(--color-gray-400);
+  transition: var(--transition-colors);
+  padding: var(--spacing-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.fsde-close-btn:hover {
+  color: white;
+}
+
+.fsde-close-icon {
+  font-size: 1.5rem;
+}
+
+/* ===== 컨텐츠 영역 ===== */
+.fsde-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-4);
+}
+
+/* ===== 로딩 상태 ===== */
+.fsde-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.fsde-loading-icon {
+  font-size: 2.25rem;
+  color: var(--color-gray-500);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== 빈 상태 ===== */
+.fsde-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.fsde-empty-icon {
+  font-size: 3.75rem;
+  color: var(--color-gray-600);
+  margin-bottom: var(--spacing-4);
+}
+
+.fsde-empty-text {
+  color: var(--color-gray-400);
+}
+
+/* ===== 이벤트 리스트 ===== */
+.fsde-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+/* ===== 이벤트 아이템 ===== */
+.fsde-event-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  background-color: rgba(55, 65, 81, 0.5);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-all);
+  cursor: pointer;
+}
+
+.fsde-event-item:hover {
+  background-color: var(--color-gray-700);
+}
+
+/* ===== 썸네일 ===== */
+.fsde-thumbnail {
+  flex-shrink: 0;
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: var(--color-gray-800);
+}
+
+.fsde-thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== 이벤트 컨텐츠 ===== */
+.fsde-event-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.fsde-event-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-1);
+}
+
+/* ===== 카테고리 배지 ===== */
+.fsde-badge {
+  font-size: 0.75rem;
+  padding-left: var(--spacing-2);
+  padding-right: var(--spacing-2);
+  padding-top: var(--spacing-0-5);
+  padding-bottom: var(--spacing-0-5);
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.fsde-badge-class {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: var(--color-purple-300);
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.fsde-badge-event {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: var(--color-blue-300);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.fsde-event-time {
+  font-size: 0.75rem;
+  color: var(--color-gray-400);
+}
+
+/* ===== 이벤트 제목 ===== */
+.fsde-event-title {
+  color: white;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: var(--transition-colors);
+}
+
+.fsde-event-item:hover .fsde-event-title {
+  color: var(--color-blue-400);
+}
+
+/* ===== 이벤트 장소 ===== */
+.fsde-event-location {
+  font-size: 0.875rem;
+  color: var(--color-gray-400);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: var(--spacing-0-5);
+}
+
+.fsde-location-icon {
+  margin-right: var(--spacing-1);
+}
+
+/* ===== 화살표 ===== */
+.fsde-arrow {
+  flex-shrink: 0;
+}
+
+.fsde-arrow-icon {
+  font-size: 1.5rem;
+  color: var(--color-gray-500);
+  transition: var(--transition-colors);
+}
+
+.fsde-event-item:hover .fsde-arrow-icon {
+  color: var(--color-blue-400);
+}
+
+/* ===== 푸터 ===== */
+.fsde-footer {
+  padding: var(--spacing-3);
+  border-top: 1px solid var(--color-gray-700);
+  background-color: rgba(31, 41, 55, 0.5);
+}
+
+.fsde-footer-text {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-gray-400);
+}

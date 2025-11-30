@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import PracticeRoomModal from "../../../components/PracticeRoomModal";
+import "./PracticeRoomList.css";
 
 interface PracticeRoom {
   id: number;
@@ -193,21 +194,21 @@ export default function PracticeRoomList({
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="prl-loading-container">
+        <div className="prl-spinner"></div>
       </div>
     );
   }
 
   if (rooms.length === 0) {
     return (
-      <div className="text-center py-20 text-gray-400">
+      <div className="prl-empty-state">
         등록된 연습실이 없습니다
         {adminType === "super" && (
           <div className="mt-4">
             <button
               onClick={() => setShowModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="prl-empty-button"
             >
               연습실 등록
             </button>
@@ -219,12 +220,12 @@ export default function PracticeRoomList({
 
   return (
     <>
-      <div className="px-4 py-6">
+      <div className="prl-main-container">
         {adminType === "super" && (
-          <div className="mb-4">
+          <div className="prl-admin-section">
             <button
               onClick={handleAddNewRoom}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+              className="prl-add-room-btn"
             >
               <i className="ri-add-line"></i>
               <span>연습실 등록</span>
@@ -234,50 +235,50 @@ export default function PracticeRoomList({
 
         {/* 검색 키워드 배너 (Compact Style) */}
         {searchQuery && (
-          <div className="inline-flex items-center gap-1.5 bg-blue-600/20 text-blue-400 border border-blue-600/40 px-2.5 py-0.5 rounded-full text-xs font-medium mb-2">
-            <i className="ri-search-line text-[11px]"></i>
+          <div className="prl-search-banner">
+            <i className="ri-search-line prl-search-banner-icon"></i>
             <span>"{searchQuery}"</span>
             <button
               onClick={() => {
                 setSearchQuery("");
                 setInternalSearchQuery("");
               }}
-              className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-600/20 transition-colors cursor-pointer"
+              className="prl-search-banner-close"
               aria-label="검색 취소"
             >
-              <i className="ri-close-line text-[10px]"></i>
+              <i className="ri-close-line prl-search-banner-close-icon"></i>
             </button>
           </div>
         )}
 
         {filteredAndSortedRooms.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="prl-no-results">
             검색 결과가 없습니다
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="prl-grid">
             {filteredAndSortedRooms.map((room, index) => (
             <div
               key={room.id}
               onClick={() => handleRoomClick(room)}
-              className="bg-[#242424] rounded-lg overflow-hidden cursor-pointer hover:bg-gray-600 transition-all animate-fadeIn flex items-center"
+              className="prl-card animate-fadeIn"
               style={{
                 animationDelay: `${index * 100}ms`
               }}
             >
               {/* 왼쪽: 정보 */}
-              <div className="flex-1 p-3 min-w-0">
-                <h3 className="text-base font-semibold text-white mb-1 truncate">
+              <div className="prl-card-info">
+                <h3 className="prl-card-name">
                   {room.name}
                 </h3>
                 {room.address && (
-                  <p className="text-xs text-gray-300 mb-1 flex items-start gap-1.5 line-clamp-1">
-                    <i className="ri-map-pin-line mt-0.5 flex-shrink-0"></i>
-                    <span className="truncate">{room.address}</span>
+                  <p className="prl-card-address">
+                    <i className="ri-map-pin-line prl-card-address-icon"></i>
+                    <span className="prl-card-address-text">{room.address}</span>
                   </p>
                 )}
                 {room.description && (
-                  <p className="text-xs text-gray-300 line-clamp-1">
+                  <p className="prl-card-description">
                     {room.description}
                   </p>
                 )}
@@ -285,11 +286,11 @@ export default function PracticeRoomList({
               
               {/* 오른쪽: 정사각형 이미지 */}
               {room.images && room.images.length > 0 && (
-                <div className="w-20 h-20 flex-shrink-0 overflow-hidden">
+                <div className="prl-card-image-wrapper">
                   <img
                     src={room.images[0]}
                     alt={room.name}
-                    className="w-full h-full object-cover"
+                    className="prl-card-image"
                   />
                 </div>
               )}
@@ -316,11 +317,11 @@ export default function PracticeRoomList({
 
       {/* 검색 모달 */}
       {showSearchModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#242424] rounded-lg w-full max-w-md">
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white">연습실 검색</h3>
+        <div className="prl-modal-overlay">
+          <div className="prl-modal-container">
+            <div className="prl-modal-content">
+              <div className="prl-modal-header">
+                <h3 className="prl-modal-title">연습실 검색</h3>
                 <button
                   onClick={() => {
                     setSearchQuery("");
@@ -328,15 +329,15 @@ export default function PracticeRoomList({
                     setSearchSuggestions([]);
                     setShowSearchModal(false);
                   }}
-                  className="text-gray-300 hover:text-white"
+                  className="prl-modal-close-btn"
                 >
-                  <i className="ri-close-line text-xl"></i>
+                  <i className="ri-close-line prl-modal-close-icon"></i>
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="prl-search-modal-body">
                 {/* 검색 입력창 */}
-                <div className="relative">
+                <div className="prl-search-input-wrapper">
                   <input
                     type="text"
                     value={internalSearchQuery}
@@ -346,25 +347,25 @@ export default function PracticeRoomList({
                         handleSearchSubmit();
                       }
                     }}
-                    className="w-full bg-[#242424] border border-gray-600 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="prl-search-input"
                     placeholder="연습실 이름, 주소, 설명으로 검색..."
                     autoFocus
                   />
-                  <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                  <i className="ri-search-line prl-search-input-icon"></i>
                 </div>
 
                 {/* 자동완성 제안 */}
                 {searchSuggestions.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-gray-400 mb-2">추천 검색어</p>
-                    <div className="max-h-48 overflow-y-auto space-y-1">
+                  <div className="prl-suggestions-section">
+                    <p className="prl-suggestions-header">추천 검색어</p>
+                    <div className="prl-suggestions-list">
                       {searchSuggestions.map((suggestion, index) => (
                         <button
                           key={index}
                           onClick={() => handleSuggestionClick(suggestion)}
-                          className="w-full text-left bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                          className="prl-suggestion-item"
                         >
-                          <i className="ri-search-line text-xs mr-2 text-gray-400"></i>
+                          <i className="ri-search-line prl-suggestion-icon"></i>
                           {suggestion}
                         </button>
                       ))}
@@ -373,7 +374,7 @@ export default function PracticeRoomList({
                 )}
 
                 {/* 검색 버튼 */}
-                <div className="flex space-x-3">
+                <div className="prl-modal-buttons">
                   <button
                     onClick={() => {
                       setSearchQuery("");
@@ -381,13 +382,13 @@ export default function PracticeRoomList({
                       setSearchSuggestions([]);
                       setShowSearchModal(false);
                     }}
-                    className="flex-1 bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                    className="prl-modal-button prl-modal-button-secondary"
                   >
                     초기화
                   </button>
                   <button
                     onClick={handleSearchSubmit}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                    className="prl-modal-button prl-modal-button-primary"
                   >
                     검색
                   </button>
@@ -400,29 +401,29 @@ export default function PracticeRoomList({
 
       {/* 정렬 모달 */}
       {showSortModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#242424] rounded-lg w-full max-w-md">
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white">정렬 방식</h3>
+        <div className="prl-modal-overlay">
+          <div className="prl-modal-container">
+            <div className="prl-modal-content">
+              <div className="prl-modal-header">
+                <h3 className="prl-modal-title">정렬 방식</h3>
                 <button
                   onClick={() => setShowSortModal(false)}
-                  className="text-gray-300 hover:text-white"
+                  className="prl-modal-close-btn"
                 >
-                  <i className="ri-close-line text-xl"></i>
+                  <i className="ri-close-line prl-modal-close-icon"></i>
                 </button>
               </div>
 
-              <div className="space-y-2">
+              <div className="prl-sort-options-container">
                 <button
                   onClick={() => {
                     setSortBy("random");
                     setShowSortModal(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
+                  className={`prl-sort-option flex items-center gap-3 ${
                     sortBy === "random"
-                      ? "bg-blue-600 text-white"
-                      : "bg-[#242424] text-gray-300 hover:bg-gray-600"
+                      ? "prl-sort-option-active"
+                      : ""
                   }`}
                 >
                   <i className="ri-shuffle-line"></i>
@@ -434,10 +435,10 @@ export default function PracticeRoomList({
                     setSortBy("title");
                     setShowSortModal(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
+                  className={`prl-sort-option flex items-center gap-3 ${
                     sortBy === "title"
-                      ? "bg-blue-600 text-white"
-                      : "bg-[#242424] text-gray-300 hover:bg-gray-600"
+                      ? "prl-sort-option-active"
+                      : ""
                   }`}
                 >
                   <i className="ri-sort-alphabet-asc"></i>

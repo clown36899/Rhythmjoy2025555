@@ -1,6 +1,7 @@
 // components/QRCodeModal.tsx
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import "./QRCodeModal.css";
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -101,144 +102,146 @@ export default function QRCodeModal({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      className="qr-modal-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-gray-800 rounded-xl w-full max-w-md overflow-hidden">
+      <div className="qr-modal-container">
         {/* 헤더 */}
-        <div className="px-5 py-4 flex items-center justify-between border-b border-gray-700">
-          <h3 className="text-white font-bold">QR 코드</h3>
+        <div className="qr-header">
+          <h3 className="qr-header-title">QR 코드</h3>
           <button
             onClick={onClose}
-            className="text-gray-300 hover:text-white cursor-pointer"
+            className="qr-close-btn"
           >
-            <i className="ri-close-line text-2xl"></i>
+            <i className="ri-close-line qr-close-icon"></i>
           </button>
         </div>
 
         {/* 바디 */}
-        <div className="p-5 space-y-4">
-          {/* URL 입력 */}
-          <div className="space-y-2">
-            <label className="text-xs text-gray-400">URL</label>
-            <div className="flex gap-2">
-              <input
-                ref={inputRef}
-                value={targetUrl}
-                onChange={(e) => setTargetUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && generate(targetUrl)}
-                className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://example.com"
-              />
+        <div className="qr-body">
+          <div className="qr-body-spacing">
+            {/* URL 입력 */}
+            <div className="qr-url-section">
+              <label className="qr-url-label">URL</label>
+              <div className="qr-url-input-row">
+                <input
+                  ref={inputRef}
+                  value={targetUrl}
+                  onChange={(e) => setTargetUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && generate(targetUrl)}
+                  className="qr-url-input"
+                  placeholder="https://example.com"
+                />
+                <button
+                  onClick={() => generate(targetUrl)}
+                  disabled={isUrlEmpty}
+                  className={`qr-generate-btn ${
+                    isUrlEmpty
+                      ? "qr-generate-btn-disabled"
+                      : "qr-generate-btn-enabled"
+                  }`}
+                >
+                  생성
+                </button>
+              </div>
+            </div>
+
+            {/* QR 출력 */}
+            <div className="qr-display-area">
+              {dataUrl ? (
+                <img
+                  src={dataUrl}
+                  alt="QR"
+                  className="qr-image"
+                  style={{ width: qrSize, height: qrSize }}
+                />
+              ) : (
+                <div className="qr-placeholder">
+                  {isUrlEmpty ? "URL을 입력하세요" : "생성 중…"}
+                </div>
+              )}
+            </div>
+
+            {/* 액션 */}
+            <div className="qr-action-group">
               <button
-                onClick={() => generate(targetUrl)}
-                disabled={isUrlEmpty}
-                className={`px-3 py-2 rounded-lg cursor-pointer whitespace-nowrap ${
-                  isUrlEmpty
-                    ? "bg-gray-600 text-gray-300"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                }`}
+                onClick={handleCopyUrl}
+                className="qr-action-btn"
               >
-                생성
+                URL 복사
+              </button>
+              <button
+                onClick={handleDownload}
+                className="qr-action-btn qr-action-btn-purple"
+                disabled={!dataUrl}
+              >
+                PNG 저장
+              </button>
+              <button
+                onClick={handleRefresh}
+                className="qr-action-btn"
+                title="현재 주소로 갱신"
+              >
+                현재주소
               </button>
             </div>
-          </div>
 
-          {/* QR 출력 */}
-          <div className="flex items-center justify-center">
-            {dataUrl ? (
-              <img
-                src={dataUrl}
-                alt="QR"
-                className="rounded-lg border border-gray-700"
-                style={{ width: qrSize, height: qrSize }}
-              />
-            ) : (
-              <div className="w-40 h-40 grid place-items-center text-gray-400">
-                {isUrlEmpty ? "URL을 입력하세요" : "생성 중…"}
+            {/* 옵션 */}
+            <div className="qr-options-grid">
+              <div className="qr-option-item">
+                <label className="qr-option-label">전경색</label>
+                <input
+                  type="color"
+                  value={fg}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFg(v);
+                    generate(targetUrl, { fg: v });
+                  }}
+                  className="qr-color-input"
+                />
               </div>
-            )}
-          </div>
-
-          {/* 액션 */}
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={handleCopyUrl}
-              className="bg-gray-700 hover:bg-gray-600 text-white rounded-lg px-3 py-2 cursor-pointer"
-            >
-              URL 복사
-            </button>
-            <button
-              onClick={handleDownload}
-              className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3 py-2 cursor-pointer"
-              disabled={!dataUrl}
-            >
-              PNG 저장
-            </button>
-            <button
-              onClick={handleRefresh}
-              className="bg-gray-700 hover:bg-gray-600 text-white rounded-lg px-3 py-2 cursor-pointer"
-              title="현재 주소로 갱신"
-            >
-              현재주소
-            </button>
-          </div>
-
-          {/* 옵션 */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">전경색</label>
-              <input
-                type="color"
-                value={fg}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setFg(v);
-                  generate(targetUrl, { fg: v });
-                }}
-                className="w-full h-10 rounded"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">배경색</label>
-              <input
-                type="color"
-                value={bg}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setBg(v);
-                  generate(targetUrl, { bg: v });
-                }}
-                className="w-full h-10 rounded"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs text-gray-400 mb-1">크기(px)</label>
-              <input
-                type="range"
-                min={160}
-                max={520}
-                step={20}
-                value={qrSize}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setQrSize(v);
-                  generate(targetUrl, { size: v });
-                }}
-                className="w-full"
-              />
-              <div className="text-right text-xs text-gray-400 mt-1">{qrSize}px</div>
+              <div className="qr-option-item">
+                <label className="qr-option-label">배경색</label>
+                <input
+                  type="color"
+                  value={bg}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBg(v);
+                    generate(targetUrl, { bg: v });
+                  }}
+                  className="qr-color-input"
+                />
+              </div>
+              <div className="qr-option-item qr-option-full">
+                <label className="qr-option-label">크기(px)</label>
+                <input
+                  type="range"
+                  min={160}
+                  max={520}
+                  step={20}
+                  value={qrSize}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setQrSize(v);
+                    generate(targetUrl, { size: v });
+                  }}
+                  className="qr-range-input"
+                />
+                <div className="qr-size-text">{qrSize}px</div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* 푸터 */}
-        <div className="px-5 py-4 border-t border-gray-700 flex justify-end">
+        <div className="qr-footer">
           <button
             onClick={onClose}
-            className="bg-gray-700 hover:bg-gray-600 text-white rounded-lg px-4 py-2 cursor-pointer"
+            className="qr-footer-btn"
           >
             닫기
           </button>

@@ -1,0 +1,895 @@
+/* PracticeRoomModal.css - PracticeRoomModal 컴포넌트 전용 스타일 */
+
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-50: #f9fafb;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  
+  --color-yellow-600: #ca8a04;
+  --color-yellow-700: #a16207;
+  
+  /* 간격 */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+  
+  /* Z-index */
+  --z-modal-base: 50;
+  --z-modal-high: 60;
+  
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+  --transition-shadow: box-shadow 0.2s ease;
+  --transition-all: all 0.2s ease;
+}
+
+/* ===== 모달 오버레이 ===== */
+.room-modal-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal-base);
+}
+
+.room-modal-overlay-high {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal-high);
+  padding: var(--spacing-4);
+}
+
+/* ===== 모달 컨테이너 ===== */
+.room-modal-container {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  max-width: 72rem;
+  width: 100%;
+  max-height: 90svh;
+  overflow: hidden;
+  margin: 0 var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.room-modal-container-list {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  max-width: 72rem;
+  width: 100%;
+  margin: 0 var(--spacing-4);
+  max-height: 90svh;
+  overflow-y: auto;
+}
+
+.room-modal-container-form {
+  background-color: var(--color-gray-800);
+  border-radius: var(--radius-lg);
+  max-width: 42rem;
+  width: 100%;
+  max-height: 90svh;
+  overflow-y: auto;
+}
+
+/* ===== 모달 닫기 버튼 ===== */
+.room-close-btn {
+  position: absolute;
+  top: var(--spacing-2);
+  right: var(--spacing-2);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: var(--color-gray-800);
+  color: white;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.room-close-btn:hover {
+  background-color: var(--color-gray-700);
+}
+
+.room-close-icon {
+  font-size: 1.25rem;
+}
+
+/* ===== Detail View - 헤더 ===== */
+.room-detail-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2);
+  padding-right: 3.5rem;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.room-detail-admin-btns {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.room-detail-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background-color: var(--color-blue-600);
+  color: white;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+  font-size: 0.875rem;
+}
+
+.room-detail-edit-btn:hover {
+  background-color: var(--color-blue-700);
+}
+
+.room-detail-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background-color: var(--color-red-600);
+  color: white;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+  font-size: 0.875rem;
+}
+
+.room-detail-delete-btn:hover {
+  background-color: var(--color-red-700);
+}
+
+.room-detail-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+}
+
+/* ===== Detail View - 본문 ===== */
+.room-detail-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.room-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  height: 100%;
+}
+
+/* ===== Detail View - Gallery ===== */
+.room-gallery-container {
+  background-color: black;
+  display: flex;
+  flex-direction: column;
+}
+
+.room-gallery-main {
+  flex: 1;
+  position: relative;
+  background-color: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 30vh;
+}
+
+.room-gallery-image {
+  max-width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.room-gallery-nav-btn {
+  position: absolute;
+  top: 50%;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: white;
+  padding: 0.75rem;
+  border-radius: var(--radius-full);
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+  transform: translateY(-50%);
+}
+
+.room-gallery-nav-btn:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.room-gallery-nav-btn-left {
+  left: var(--spacing-4);
+}
+
+.room-gallery-nav-btn-right {
+  right: var(--spacing-4);
+}
+
+.room-gallery-nav-icon {
+  font-size: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.room-gallery-counter {
+  position: absolute;
+  top: var(--spacing-4);
+  right: var(--spacing-4);
+  background-color: rgba(0, 0, 0, 0.05);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+}
+
+.room-gallery-indicators {
+  position: absolute;
+  bottom: var(--spacing-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.room-gallery-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.room-gallery-indicator:hover {
+  background-color: rgba(255, 255, 255, 0.75);
+}
+
+.room-gallery-indicator-active {
+  background-color: white;
+}
+
+/* ===== Detail View - Thumbnails ===== */
+.room-thumbnails-container {
+  background-color: white;
+  padding: 0.75rem;
+}
+
+.room-thumbnails-list {
+  display: flex;
+  gap: var(--spacing-2);
+  padding-bottom: 0.75rem;
+  overflow-x: auto;
+}
+
+.room-thumbnail-btn {
+  flex-shrink: 0;
+  width: 4rem;
+  height: 3rem;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 2px solid;
+  transition: var(--transition-colors);
+  cursor: pointer;
+  background: none;
+  padding: 0;
+}
+
+.room-thumbnail-btn-active {
+  border-color: var(--color-blue-500);
+}
+
+.room-thumbnail-btn-inactive {
+  border-color: var(--color-gray-600);
+}
+
+.room-thumbnail-btn-inactive:hover {
+  border-color: var(--color-gray-400);
+}
+
+.room-thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+/* ===== Detail View - Info ===== */
+.room-info-container {
+  background-color: white;
+  padding: 0 var(--spacing-4) var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+}
+
+.room-address-section {
+  margin-bottom: var(--spacing-2);
+}
+
+.room-address-box {
+  background-color: var(--color-gray-50);
+  padding: var(--spacing-2);
+  border-radius: var(--radius-lg);
+}
+
+.room-address-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.room-address-text {
+  color: var(--color-gray-900);
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.room-address-btns {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-left: var(--spacing-4);
+  flex-shrink: 0;
+}
+
+.room-copy-btn {
+  background-color: var(--color-blue-600);
+  color: white;
+  padding: 0.25rem var(--spacing-2);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  transition: var(--transition-colors);
+  border: none;
+  cursor: pointer;
+}
+
+.room-copy-btn:hover {
+  background-color: var(--color-blue-700);
+}
+
+.room-map-btn {
+  background-color: var(--color-green-600);
+  color: white;
+  padding: 0.25rem var(--spacing-2);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  transition: var(--transition-colors);
+  border: none;
+  cursor: pointer;
+}
+
+.room-map-btn:hover {
+  background-color: var(--color-green-700);
+}
+
+.room-description-section {
+  flex: 1;
+}
+
+.room-description-header {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.room-description-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--spacing-2);
+  color: var(--color-blue-600);
+}
+
+.room-description-box {
+  padding: 0.75rem;
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-lg);
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.room-description-text {
+  color: var(--color-gray-700);
+  line-height: 1.625;
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-size: 0.875rem;
+}
+
+.room-additional-link {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--color-gray-800);
+  color: white;
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.room-additional-link:hover {
+  background-color: var(--color-gray-900);
+}
+
+.room-additional-link-icon {
+  margin-right: var(--spacing-2);
+}
+
+/* ===== List View - Main Container ===== */
+.room-list-padding {
+  padding: 1.5rem;
+}
+
+.room-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.room-list-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+}
+
+.room-list-header-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.room-register-btn {
+  padding: var(--spacing-2) var(--spacing-4);
+  background-color: var(--color-blue-600);
+  color: white;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+  border: none;
+  cursor: pointer;
+}
+
+.room-register-btn:hover {
+  background-color: var(--color-blue-700);
+}
+
+.room-list-close-btn {
+  color: var(--color-gray-400);
+  transition: var(--transition-colors);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.room-list-close-btn:hover {
+  color: var(--color-gray-600);
+}
+
+.room-list-close-icon {
+  font-size: 1.5rem;
+}
+
+/* ===== Loading Spinner ===== */
+.room-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 0;
+}
+
+.room-loading-spinner {
+  animation: spin 1s linear infinite;
+  border-radius: var(--radius-full);
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid transparent;
+  border-bottom-color: var(--color-blue-600);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Room Grid ===== */
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-2);
+}
+
+.room-card {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: var(--transition-shadow);
+  cursor: pointer;
+}
+
+.room-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.room-card-image {
+  width: 100%;
+  height: 8rem;
+  object-fit: cover;
+  object-position: top;
+}
+
+.room-card-content {
+  padding: 0.75rem;
+}
+
+.room-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin-bottom: 0.25rem;
+}
+
+.room-card-admin-btns {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.room-card-edit-btn {
+  padding: 0.25rem var(--spacing-2);
+  background-color: var(--color-yellow-600);
+  color: white;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+}
+
+.room-card-edit-btn:hover {
+  background-color: var(--color-yellow-700);
+}
+
+.room-card-delete-btn {
+  padding: 0.25rem var(--spacing-2);
+  background-color: var(--color-red-600);
+  color: white;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+}
+
+.room-card-delete-btn:hover {
+  background-color: var(--color-red-700);
+}
+
+/* ===== Contact Info ===== */
+.room-contact-info {
+  padding-top: 0.75rem;
+  text-align: center;
+  color: var(--color-gray-700);
+  font-size: 0.875rem;
+}
+
+.room-contact-link {
+  color: var(--color-blue-600);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.room-contact-link:hover {
+  color: var(--color-blue-800);
+}
+
+/* ===== Form Modal ===== */
+.room-form-padding {
+  padding: var(--spacing-4);
+}
+
+.room-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+}
+
+.room-form-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+}
+
+.room-form-close-btn {
+  color: var(--color-gray-400);
+  transition: var(--transition-colors);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.room-form-close-btn:hover {
+  color: white;
+}
+
+.room-form-close-icon {
+  font-size: 1.25rem;
+}
+
+.room-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+/* ===== Form Elements ===== */
+.room-form-group {
+  display: block;
+}
+
+.room-form-label {
+  display: block;
+  color: var(--color-gray-300);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.room-form-input {
+  width: 100%;
+  background-color: var(--color-gray-700);
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: 0.75rem var(--spacing-3);
+  outline: none;
+  border: none;
+}
+
+.room-form-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-blue-500);
+}
+
+.room-form-input::placeholder {
+  color: var(--color-gray-500);
+}
+
+.room-form-textarea {
+  width: 100%;
+  background-color: var(--color-gray-700);
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2) 0.75rem;
+  outline: none;
+  border: none;
+  resize: vertical;
+}
+
+.room-form-textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-blue-500);
+}
+
+.room-form-textarea::placeholder {
+  color: var(--color-gray-500);
+}
+
+.room-form-link-spacing {
+  margin-bottom: var(--spacing-2);
+}
+
+/* ===== Image Upload ===== */
+.room-file-input {
+  width: 100%;
+  color: var(--color-gray-300);
+  border: none;
+  background: none;
+}
+
+.room-file-input::file-selector-button {
+  margin-right: var(--spacing-4);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-lg);
+  border: 0;
+  background-color: var(--color-blue-600);
+  color: white;
+  cursor: pointer;
+}
+
+.room-file-input::file-selector-button:hover {
+  background-color: var(--color-blue-700);
+}
+
+.room-image-preview-container {
+  margin-top: 0.75rem;
+}
+
+.room-drag-hint {
+  color: var(--color-gray-400);
+  font-size: 0.75rem;
+  margin-bottom: var(--spacing-2);
+}
+
+.room-image-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-2);
+}
+
+.room-image-item {
+  position: relative;
+  cursor: move;
+}
+
+.room-image-item-dragging {
+  opacity: 0.5;
+}
+
+.room-preview-image {
+  width: 100%;
+  height: 5rem;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-gray-600);
+  transition: var(--transition-colors);
+}
+
+.room-preview-image:hover {
+  border-color: var(--color-gray-400);
+}
+
+.room-image-remove-btn {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background-color: var(--color-red-600);
+  color: white;
+  border-radius: var(--radius-full);
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+}
+
+.room-image-remove-btn:hover {
+  background-color: var(--color-red-700);
+}
+
+.room-image-remove-icon {
+  font-size: 0.75rem;
+}
+
+.room-image-order {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  background-color: var(--color-blue-600);
+  color: white;
+  border-radius: var(--radius-full);
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.room-image-drag-icon {
+  position: absolute;
+  bottom: 0.25rem;
+  right: 0.25rem;
+  background-color: rgba(31, 41, 55, 0.7);
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+}
+
+.room-drag-icon {
+  font-size: 0.75rem;
+}
+
+/* ===== Form Buttons ===== */
+.room-form-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: var(--spacing-4);
+}
+
+.room-form-cancel-btn {
+  padding: var(--spacing-2) var(--spacing-4);
+  background-color: var(--color-gray-600);
+  color: white;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+  border: none;
+  cursor: pointer;
+}
+
+.room-form-cancel-btn:hover {
+  background-color: var(--color-gray-700);
+}
+
+.room-form-submit-btn {
+  padding: var(--spacing-2) var(--spacing-4);
+  background-color: var(--color-blue-600);
+  color: white;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+  border: none;
+  cursor: pointer;
+}
+
+.room-form-submit-btn:hover {
+  background-color: var(--color-blue-700);
+}

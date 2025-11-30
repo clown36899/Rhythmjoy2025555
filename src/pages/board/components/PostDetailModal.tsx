@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardPost } from '../page';
+import './PostDetailModal.css';
 
 interface PostDetailModalProps {
   isOpen: boolean;
@@ -71,20 +72,20 @@ export default function PostDetailModal({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
-      <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden">
+    <div className="pdm-modal-overlay">
+      <div className="pdm-modal-container">
         {/* Header */}
-        <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0 flex items-center justify-between">
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-white mb-2">
+        <div className="pdm-modal-header">
+          <div className="pdm-header-content">
+            <h2 className="pdm-modal-title">
               {post.title}
             </h2>
-            <div className="flex items-center gap-4 text-sm text-gray-400">
-              <span className="flex items-center gap-1">
+            <div className="pdm-meta-info">
+              <span className="pdm-meta-item">
                 <i className="ri-user-line"></i>
                 {post.author_nickname || post.author_name}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="pdm-meta-item">
                 <i className="ri-eye-line"></i>
                 {post.views}
               </span>
@@ -93,49 +94,47 @@ export default function PostDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors ml-4"
+            className="pdm-close-btn"
           >
-            <i className="ri-close-line text-2xl"></i>
+            <i className="ri-close-line pdm-close-icon"></i>
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="text-gray-200 whitespace-pre-wrap break-words">
+        <div className="pdm-modal-body">
+          <div className="pdm-content">
             {post.content}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-4 border-t border-gray-700 flex-shrink-0">
-          {(
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-colors"
-              >
-                닫기
-              </button>
-              {(isAdmin || post.user_id === user?.id) && (
-                <>
-                  <button
-                    onClick={() => handleActionClick('edit')}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
-                  >
-                    <i className="ri-edit-line mr-1"></i>
-                    수정
-                  </button>
-                  <button
-                    onClick={() => handleActionClick('delete')}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition-colors"
-                  >
-                    <i className="ri-delete-bin-line mr-1"></i>
-                    삭제
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+        <div className="pdm-modal-footer">
+          <div className="pdm-footer-actions">
+            <button
+              onClick={onClose}
+              className="pdm-btn pdm-btn-close"
+            >
+              닫기
+            </button>
+            {(isAdmin || post.user_id === user?.id) && (
+              <>
+                <button
+                  onClick={() => handleActionClick('edit')}
+                  className="pdm-btn pdm-btn-edit"
+                >
+                  <i className="ri-edit-line pdm-btn-icon"></i>
+                  수정
+                </button>
+                <button
+                  onClick={() => handleActionClick('delete')}
+                  className="pdm-btn pdm-btn-delete"
+                >
+                  <i className="ri-delete-bin-line pdm-btn-icon"></i>
+                  삭제
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

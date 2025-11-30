@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
+import "./DefaultThumbnailSettingsModal.css";
 
 interface DefaultThumbnailSettingsModalProps {
   isOpen: boolean;
@@ -183,37 +184,37 @@ export default function DefaultThumbnailSettingsModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[99999999] p-4">
-      <div className="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-y-auto">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-white mb-6">
+    <div className="dtm-modal-overlay">
+      <div className="dtm-modal-container">
+        <div className="dtm-modal-body">
+          <h2 className="dtm-main-title">
             기본 썸네일 설정
           </h2>
 
           {/* 강습용 기본 이미지 */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-purple-400 mb-4">
+          <div className="dtm-section">
+            <h3 className="dtm-section-title dtm-section-title-purple">
               강습 기본 이미지
             </h3>
             
-            <div className="mb-4">
+            <div className="dtm-preview-container">
               {classImagePreview ? (
-                <div className="relative">
+                <div className="dtm-image-wrapper">
                   <img
                     src={classImagePreview}
                     alt="강습 기본 썸네일"
-                    className="w-full h-48 object-cover rounded"
+                    className="dtm-preview-image"
                   />
                   <button
                     onClick={handleRemoveClassImage}
-                    className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                    className="dtm-remove-btn"
                   >
                     제거
                   </button>
                 </div>
               ) : (
-                <div className="w-full h-48 bg-gray-800 flex items-center justify-center rounded">
-                  <span className="text-gray-400">이미지 없음</span>
+                <div className="dtm-no-image">
+                  <span className="dtm-no-image-text">이미지 없음</span>
                 </div>
               )}
             </div>
@@ -222,34 +223,34 @@ export default function DefaultThumbnailSettingsModal({
               type="file"
               accept="image/*"
               onChange={handleClassImageChange}
-              className="w-full text-white bg-gray-800 border border-gray-700 rounded p-2"
+              className="dtm-file-input"
             />
           </div>
 
           {/* 행사용 기본 이미지 */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-blue-400 mb-4">
+          <div className="dtm-section">
+            <h3 className="dtm-section-title dtm-section-title-blue">
               행사 기본 이미지
             </h3>
             
-            <div className="mb-4">
+            <div className="dtm-preview-container">
               {eventImagePreview ? (
-                <div className="relative">
+                <div className="dtm-image-wrapper">
                   <img
                     src={eventImagePreview}
                     alt="행사 기본 썸네일"
-                    className="w-full h-48 object-cover rounded"
+                    className="dtm-preview-image"
                   />
                   <button
                     onClick={handleRemoveEventImage}
-                    className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                    className="dtm-remove-btn"
                   >
                     제거
                   </button>
                 </div>
               ) : (
-                <div className="w-full h-48 bg-gray-800 flex items-center justify-center rounded">
-                  <span className="text-gray-400">이미지 없음</span>
+                <div className="dtm-no-image">
+                  <span className="dtm-no-image-text">이미지 없음</span>
                 </div>
               )}
             </div>
@@ -258,23 +259,23 @@ export default function DefaultThumbnailSettingsModal({
               type="file"
               accept="image/*"
               onChange={handleEventImageChange}
-              className="w-full text-white bg-gray-800 border border-gray-700 rounded p-2"
+              className="dtm-file-input"
             />
           </div>
 
           {/* 버튼 */}
-          <div className="flex justify-end space-x-3 mt-6">
+          <div className="dtm-button-container">
             <button
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+              className="dtm-button dtm-cancel-btn"
             >
               취소
             </button>
             <button
               onClick={handleSave}
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="dtm-button dtm-save-btn"
             >
               {loading ? "저장 중..." : "저장"}
             </button>

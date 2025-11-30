@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { parseVideoUrl } from "../utils/videoEmbed";
+import "./FullscreenBillboard.css";
 
 interface FullscreenBillboardProps {
   images: string[];
@@ -180,12 +181,12 @@ export default function FullscreenBillboard({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+      className="fsb-overlay"
       onClick={handleBackgroundClick}
     >
-      <div className="relative w-full h-full" onClick={handleBackgroundClick}>
+      <div className="fsb-wrapper" onClick={handleBackgroundClick}>
         {/* 미디어 컨텐츠 (이미지 또는 영상) - 상단 여백 없이 배치 */}
-        <div className="absolute top-0 left-0 right-0 flex justify-center">
+        <div className="fsb-media-container">
           {(() => {
             const currentEvent = sortedEvents[currentIndex];
             const videoUrl = currentEvent?.video_url;
@@ -195,22 +196,21 @@ export default function FullscreenBillboard({
               if (videoInfo.embedUrl) {
                 return (
                   <div 
-                    className={`relative w-full h-screen flex items-center justify-center transition-opacity cursor-pointer ${
-                      isTransitioning ? "opacity-0" : "opacity-100"
+                    className={`fsb-video-wrapper ${
+                      isTransitioning ? "fsb-transitioning" : "fsb-visible"
                     }`}
                     style={{ transitionDuration: `${transitionDuration}ms` }}
                   >
                     <iframe
                       src={videoInfo.embedUrl}
-                      className="w-full h-full"
+                      className="fsb-iframe"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
-                      style={{ maxHeight: '100vh', objectFit: 'contain' }}
                     ></iframe>
                     {/* 투명 오버레이: 인스타 클릭 차단 및 상세보기로 이동 */}
                     <div 
-                      className="absolute inset-0 z-10 cursor-pointer"
+                      className="fsb-video-overlay"
                       onClick={handleImageClick}
                       title="클릭하여 상세보기"
                     ></div>
@@ -223,8 +223,8 @@ export default function FullscreenBillboard({
               <img
                 src={sortedImages[currentIndex]}
                 alt={sortedEvents[currentIndex]?.title || "Event Billboard"}
-                className={`max-w-full max-h-screen object-contain transition-opacity cursor-pointer ${
-                  isTransitioning ? "opacity-0" : "opacity-100"
+                className={`fsb-image ${
+                  isTransitioning ? "fsb-transitioning" : "fsb-visible"
                 }`}
                 style={{ transitionDuration: `${transitionDuration}ms` }}
                 onClick={handleImageClick}
@@ -235,11 +235,11 @@ export default function FullscreenBillboard({
 
         {/* 화면 기준 하단 - 제목 + 버튼/QR (이미지와 분리) */}
         {sortedEvents[currentIndex] && (
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent pt-16 px-6 pointer-events-none">
+          <div className="fsb-bottom-info">
             {/* 대형 제목 - 40인치 디스플레이용, 단어 단위 줄바꿈 */}
             <h2
-              className={`text-white text-3xl md:text-4xl lg:text-5xl font-black text-center leading-tight tracking-tight transition-opacity ${
-                isTransitioning ? "opacity-0" : "opacity-100"
+              className={`fsb-title ${
+                isTransitioning ? "fsb-transitioning" : "fsb-visible"
               }`}
               style={{
                 transitionDuration: `${transitionDuration}ms`,
@@ -302,25 +302,25 @@ export default function FullscreenBillboard({
             </h2>
 
             {/* 최하단 - 상세보기 버튼 + QR 코드 가로 배치 (바닥에서 1rem) */}
-            <div className="flex items-center justify-center gap-4 pb-4 pointer-events-auto">
+            <div className="fsb-actions-container">
               <button
                 onClick={handleImageClick}
                 style={{
                   transitionDuration: `${transitionDuration}ms`,
                   transitionDelay: isTransitioning ? '0ms' : '300ms',
                 }}
-                className={`bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium text-base inline-flex items-center gap-2 transition-all hover:scale-105 ${
-                  isTransitioning ? "opacity-0" : "opacity-100"
+                className={`fsb-detail-button ${
+                  isTransitioning ? "fsb-transitioning" : "fsb-visible"
                 }`}
               >
-                <i className="ri-eye-line text-lg" aria-hidden="true"></i>
+                <i className="fsb-icon ri-eye-line" aria-hidden="true"></i>
                 <span>상세보기</span>
               </button>
 
               {/* QR 코드 */}
               <div
-                className={`bg-white p-2 rounded-lg transition-opacity ${
-                  isTransitioning ? "opacity-0" : "opacity-100"
+                className={`fsb-qr-container ${
+                  isTransitioning ? "fsb-transitioning" : "fsb-visible"
                 }`}
                 style={{ 
                   transitionDuration: `${transitionDuration}ms`,
@@ -340,7 +340,7 @@ export default function FullscreenBillboard({
         )}
 
         {/* 좌측 상단 영역 - 원형 진행 표시 + 날짜 범위 */}
-        <div className="absolute top-8 left-8 pointer-events-none transition-opacity" 
+        <div className="fsb-top-info" 
              style={{
                opacity: isTransitioning ? 0 : 1,
                transitionDuration: `${transitionDuration}ms`,
@@ -348,9 +348,9 @@ export default function FullscreenBillboard({
              }}>
           {/* 원형 진행 표시 - 우로보로스 형태 */}
           {sortedImages.length > 1 && (
-            <div className="relative w-24 h-24 mb-3">
+            <div className="fsb-progress-circle">
               {/* 원형 진행 바 배경 */}
-              <svg className="transform -rotate-90 w-24 h-24">
+              <svg className="fsb-progress-svg">
                 <circle
                   cx="48"
                   cy="48"
@@ -370,13 +370,13 @@ export default function FullscreenBillboard({
                   strokeDasharray={`${2 * Math.PI * 42}`}
                   strokeDashoffset={`${2 * Math.PI * 42 * (1 - progress / 100)}`}
                   strokeLinecap="round"
-                  className="transition-all duration-75"
+                  className="fsb-progress-ring"
                 />
               </svg>
 
               {/* 중앙 슬라이드 번호 */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-white font-bold text-xl">
+              <div className="fsb-progress-center">
+                <div className="fsb-slide-number">
                   {currentIndex + 1}/{sortedImages.length}
                 </div>
               </div>
@@ -385,12 +385,12 @@ export default function FullscreenBillboard({
 
           {/* 날짜 범위 표시 */}
           {showDateRange && (dateRangeStart || dateRangeEnd) && (
-            <div className="bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-white">
-              <div className="text-xs text-gray-300 mb-1">일정 기간</div>
-              <div className="font-bold text-sm">
+            <div className="fsb-date-range">
+              <div className="fsb-date-label">일정 기간</div>
+              <div className="fsb-date-text">
                 {dateRangeStart || "시작"} ~
               </div>
-              <div className="font-bold text-sm">{dateRangeEnd || "종료"}</div>
+              <div className="fsb-date-text">{dateRangeEnd || "종료"}</div>
             </div>
           )}
         </div>

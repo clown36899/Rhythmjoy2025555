@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import './SocialEditModal.css';
 
 interface SocialPlace {
   id: number;
@@ -245,58 +246,58 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
   const placeName = itemType === 'schedule' ? (item as Schedule).social_places?.name : undefined;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-        <form onSubmit={handleSubmit} className="modal-form">
-          <h2 className="modal-title">일정 수정</h2>
+    <div className="sed-modal-overlay" onClick={onClose}>
+      <div className="sed-modal-container" onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSubmit} className="sed-modal-form">
+          <h2 className="sed-modal-title">일정 수정</h2>
           
-          <input type="text" name="title" placeholder="일정 제목 *" value={formData.title || ''} onChange={handleInputChange} required className="form-input" />
+          <input type="text" name="title" placeholder="일정 제목 *" value={formData.title || ''} onChange={handleInputChange} required className="sed-form-input" />
           
           {itemType === 'event' ? (
             <>
-              <input type="date" name="event_date" value={formData.event_date || ''} onChange={handleInputChange} required className="form-input" />
-              <select name="place_id" value={formData.place_id || ''} onChange={handleInputChange} required className="form-select">
+              <input type="date" name="event_date" value={formData.event_date || ''} onChange={handleInputChange} required className="sed-form-input" />
+              <select name="place_id" value={formData.place_id || ''} onChange={handleInputChange} required className="sed-form-select">
                 <option value="" disabled>장소 선택 *</option>
                 {places.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </>
           ) : (
             <>
-              <input type="date" name="date" value={formData.date || ''} onChange={handleInputChange} required className="form-input" />
-              {placeName && <div className="form-input bg-gray-700 text-gray-300 cursor-not-allowed">장소: {placeName}</div>}
-              <div className="grid grid-cols-2 gap-2">
-                <input type="time" name="start_time" placeholder="시작 시간" value={formData.start_time || ''} onChange={handleInputChange} className="form-input" />
-                <input type="time" name="end_time" placeholder="종료 시간" value={formData.end_time || ''} onChange={handleInputChange} className="form-input" />
+              <input type="date" name="date" value={formData.date || ''} onChange={handleInputChange} required className="sed-form-input" />
+              {placeName && <div className="sed-place-display">장소: {placeName}</div>}
+              <div className="sed-time-grid">
+                <input type="time" name="start_time" placeholder="시작 시간" value={formData.start_time || ''} onChange={handleInputChange} className="sed-form-input" />
+                <input type="time" name="end_time" placeholder="종료 시간" value={formData.end_time || ''} onChange={handleInputChange} className="sed-form-input" />
               </div>
             </>
           )}
 
-          <textarea name="description" placeholder="간단한 설명" value={formData.description || ''} onChange={handleInputChange} className="form-textarea" rows={2}></textarea>
+          <textarea name="description" placeholder="간단한 설명" value={formData.description || ''} onChange={handleInputChange} className="sed-form-textarea" rows={2}></textarea>
           
-          <input type="password" name="password" placeholder="비밀번호 확인 *" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required className="form-input border-yellow-500 focus:ring-yellow-400" />
+          <input type="password" name="password" placeholder="비밀번호 확인 *" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required className="sed-password-input" />
 
           {itemType === 'event' && (
             <div>
-              <label className="form-label">일정 이미지 (1:1 비율)</label>
-              <input type="file" accept="image/*" onChange={handleImageChange} className="form-input" style={{padding: '0.3rem'}} />
+              <label className="sed-form-label">일정 이미지 (1:1 비율)</label>
+              <input type="file" accept="image/*" onChange={handleImageChange} className="sed-form-input" style={{padding: '0.3rem'}} />
               {imagePreview && (
-                <div className="relative mt-2 w-24 h-24">
-                  <img src={imagePreview} alt="이미지 미리보기" className="w-full h-full object-cover rounded-lg" />
-                  <button type="button" onClick={() => setImagePreview('')} className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">&times;</button>
+                <div className="sed-image-preview-container">
+                  <img src={imagePreview} alt="이미지 미리보기" className="sed-image-preview" />
+                  <button type="button" onClick={() => setImagePreview('')} className="sed-image-remove-btn">&times;</button>
                 </div>
               )}
             </div>
           )}
 
-          {error && <p className="error-message">{error}</p>}
+          {error && <p className="sed-error-message">{error}</p>}
 
-          <div className="form-button-group justify-between">
-            <button type="button" onClick={handleDelete} disabled={loading} className="delete-button">
+          <div className="sed-button-group">
+            <button type="button" onClick={handleDelete} disabled={loading} className="sed-delete-button">
               {loading ? '...' : '삭제'}
             </button>
-            <div className="flex gap-2">
-              <button type="button" onClick={onClose} className="cancel-button">취소</button>
-              <button type="submit" disabled={loading} className="submit-button">
+            <div className="sed-button-group-right">
+              <button type="button" onClick={onClose} className="sed-cancel-button">취소</button>
+              <button type="submit" disabled={loading} className="sed-submit-button">
                 {loading ? '수정 중...' : '수정'}
               </button>
             </div>

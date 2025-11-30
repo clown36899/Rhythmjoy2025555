@@ -6,6 +6,7 @@ import PostDetailModal from './components/PostDetailModal';
 import UserRegistrationModal, { type UserData } from './components/UserRegistrationModal';
 import BoardUserManagementModal from '../../components/BoardUserManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
+import './board.css';
 
 export interface BoardPost {
   id: number;
@@ -287,13 +288,13 @@ export default function BoardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] pb-32">
+    <div className="board-page-container">
       {/* Header */}
-      <div className="bg-[#242424] border-b border-gray-600 px-4 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-white">자유게시판</h1>
+      <div className="board-header">
+        <div className="board-header-content">
+          <h1 className="board-header-title">자유게시판</h1>
           
-          <div className="flex items-center gap-2">
+          <div className="board-header-actions">
             {user ? (
               <>
                 {userData ? (
@@ -302,20 +303,20 @@ export default function BoardPage() {
                       setSelectedPost(null);
                       setShowEditorModal(true);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    className="board-btn-write"
                   >
                     <i className="ri-add-line"></i>
                     글쓰기
                   </button>
                 ) : (
-                  <span className="bg-[#242424] text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                  <span className="board-btn-registering">
                     <i className="ri-user-add-line"></i>
                     회원가입 중...
                   </span>
                 )}
                 <button
                   onClick={handleLogout}
-                  className="bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                  className="board-btn-logout"
                 >
                   <i className="ri-logout-box-line"></i>
                   로그아웃
@@ -331,7 +332,7 @@ export default function BoardPage() {
                     alert('로그인에 실패했습니다. 다시 시도해주세요.');
                   }
                 }}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                className="board-btn-kakao"
               >
                 <i className="ri-kakao-talk-fill"></i>
                 카카오 로그인
@@ -342,56 +343,56 @@ export default function BoardPage() {
       </div>
 
       {/* Post List */}
-      <div className="px-0 py-1">
+      <div className="board-posts-container">
         {loading ? (
-          <div className="text-center py-12">
-            <i className="ri-loader-4-line text-3xl text-blue-500 animate-spin"></i>
-            <p className="text-gray-400 mt-2">로딩 중...</p>
+          <div className="board-loading-container">
+            <i className="ri-loader-4-line board-loading-spinner"></i>
+            <p className="board-loading-text">로딩 중...</p>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <i className="ri-chat-3-line text-5xl text-gray-600 mb-4"></i>
-            <p className="text-gray-400">첫 번째 게시글을 작성해보세요!</p>
+          <div className="board-empty-container">
+            <i className="ri-chat-3-line board-empty-icon"></i>
+            <p className="board-empty-text">첫 번째 게시글을 작성해보세요!</p>
           </div>
         ) : (
           <>
-            <div className="space-y-1">
+            <div className="board-posts-list">
               {currentPosts.map((post) => (
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post)}
-                  className={`p-1.5 hover:bg-gray-600 transition-colors cursor-pointer ${
+                  className={`board-post-card ${
                     post.is_notice 
-                      ? 'bg-blue-500/20' 
-                      : 'bg-[#242424]'
+                      ? 'board-post-card-notice' 
+                      : 'board-post-card-normal'
                   }`}
                 >
-                  <div className="flex items-start gap-1.5 mb-0.5">
+                  <div className="board-post-header">
                     {post.prefix && (
                       <span 
-                        className="text-white text-[10px] px-1 py-0.5 rounded font-medium flex-shrink-0"
+                        className="board-post-prefix"
                         style={{ backgroundColor: post.prefix.color }}
                       >
                         {post.prefix.name}
                       </span>
                     )}
-                    <h3 className={`text-sm font-medium line-clamp-1 flex-1 ${
-                      post.is_notice ? 'text-blue-300' : 'text-white'
+                    <h3 className={`board-post-title ${
+                      post.is_notice ? 'board-post-title-notice' : 'board-post-title-normal'
                     }`}>
                       {post.title}
                     </h3>
                   </div>
-                  <p className="text-gray-300 text-xs mb-1 line-clamp-1">
+                  <p className="board-post-content">
                     {post.content}
                   </p>
-                  <div className="flex items-center justify-between text-[10px] text-gray-400">
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-0.5">
-                        <i className="ri-user-line text-xs"></i>
+                  <div className="board-post-meta">
+                    <div className="board-post-meta-left">
+                      <span className="board-post-meta-item">
+                        <i className="ri-user-line board-post-meta-icon"></i>
                         {post.author_nickname || post.author_name}
                       </span>
-                      <span className="flex items-center gap-0.5">
-                        <i className="ri-eye-line text-xs"></i>
+                      <span className="board-post-meta-item">
+                        <i className="ri-eye-line board-post-meta-icon"></i>
                         {post.views}
                       </span>
                     </div>
@@ -403,11 +404,11 @@ export default function BoardPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-1 mt-3 pb-2">
+              <div className="board-pagination">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-2 py-0.5 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
+                  className="board-page-btn"
                 >
                   <i className="ri-arrow-left-s-line"></i>
                 </button>
@@ -416,11 +417,11 @@ export default function BoardPage() {
                   <button
                     key={page}
                     onClick={() => goToPage(page)}
-                    className={`px-2.5 py-0.5 rounded text-sm transition-colors ${
+                    className={
                       currentPage === page
-                        ? 'bg-blue-600 text-white font-medium'
-                        : 'text-gray-300 hover:bg-gray-600 hover:text-white'
-                    }`}
+                        ? 'board-page-btn-active'
+                        : 'board-page-btn-inactive'
+                    }
                   >
                     {page}
                   </button>
@@ -429,7 +430,7 @@ export default function BoardPage() {
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-2 py-0.5 rounded text-sm disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
+                  className="board-page-btn"
                 >
                   <i className="ri-arrow-right-s-line"></i>
                 </button>

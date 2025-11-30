@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import SocialEditModal from './SocialEditModal';
 import SocialEventModal from './SocialEventModal';
+import './SocialCalendar.css';
 
 // 두 종류의 이벤트를 통합하여 관리하기 위한 타입
 interface UnifiedSocialEvent {
@@ -133,26 +134,26 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
 
   return (
     <>
-      {loading ? <div className="loader-text" style={{textAlign: 'center', padding: '2.5rem 0'}}>일정 로딩 중...</div> : (
-        <div className="calendar-grid">
-          {calendarGrid.flat().map((dayInfo, index) => ( // .flat()으로 2차원 배열을 1차원으로 만듦
-            <div key={index} className={`calendar-cell ${dayInfo && dayInfo.date.getDay() === 0 ? 'sunday' : ''}`}>
+      {loading ? <div className="scal-loader">일정 로딩 중...</div> : (
+        <div className="scal-grid">
+          {calendarGrid.flat().map((dayInfo, index) => (
+            <div key={index} className={`scal-cell ${dayInfo && dayInfo.date.getDay() === 0 ? 'scal-cell-sunday' : ''}`}>
               {dayInfo && <>
-                <span className="day-number">
-                  {dayInfo.day}일 <span className="day-weekday">({weekdays[dayInfo.date.getDay()]})</span>
+                <span className="scal-day-number">
+                  {dayInfo.day}일 <span className="scal-day-weekday">({weekdays[dayInfo.date.getDay()]})</span>
                 </span>
-                <div className="events-container">
+                <div className="scal-events-container">
                   {dayInfo.events.map((event) => (
-                    <div key={event.id} className="event-item" onClick={() => handleEventClick(event)}>
+                    <div key={event.id} className="scal-event-item" onClick={() => handleEventClick(event)}>
                       {event.placeName && (
-                        <p className="event-place">{event.placeName}</p>
+                        <p className="scal-event-place">{event.placeName}</p>
                       )}
-                      <p className="event-title" title={event.title}>
-                        {event.startTime && <span className="event-time">{event.startTime.substring(0, 5)}</span>}
+                      <p className="scal-event-title" title={event.title}>
+                        {event.startTime && <span className="scal-event-time">{event.startTime.substring(0, 5)}</span>}
                         {event.title}
                       </p>
                       {event.imageUrl && (
-                        <img src={event.imageUrl} alt={event.title} className="event-image" />
+                        <img src={event.imageUrl} alt={event.title} className="scal-event-image" />
                       )}
                     </div>
                   ))}

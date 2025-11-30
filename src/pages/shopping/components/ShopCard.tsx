@@ -1,4 +1,5 @@
 import type { Shop } from '../page';
+import './shopcard.css';
 
 interface ShopCardProps {
   shop: Shop;
@@ -8,21 +9,21 @@ export default function ShopCard({ shop }: ShopCardProps) {
   const featuredItem = shop.featured_items?.[0];
 
   return (
-    <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 shadow-lg transition-transform hover:scale-[1.02]">
+    <div className="shopcard-container">
       {/* 대표 상품 이미지 */}
       {featuredItem && (
-        <a href={featuredItem.item_link} target="_blank" rel="noopener noreferrer" className="block">
-          <div className="relative aspect-video bg-gray-700">
+        <a href={featuredItem.item_link} target="_blank" rel="noopener noreferrer" className="shopcard-image-link">
+          <div className="shopcard-image-wrapper">
             <img 
               src={featuredItem.item_image_url} 
               alt={featuredItem.item_name}
-              className="w-full h-full object-cover"
+              className="shopcard-image"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-            <div className="absolute bottom-2 left-3">
-              <h4 className="text-white font-bold text-lg drop-shadow-md">{featuredItem.item_name}</h4>
+            <div className="shopcard-image-gradient"></div>
+            <div className="shopcard-image-info">
+              <h4 className="shopcard-item-name">{featuredItem.item_name}</h4>
               {featuredItem.item_price && (
-                <p className="text-yellow-400 font-semibold text-md drop-shadow-md">
+                <p className="shopcard-item-price">
                   {featuredItem.item_price.toLocaleString()}원
                 </p>
               )}
@@ -32,18 +33,18 @@ export default function ShopCard({ shop }: ShopCardProps) {
       )}
 
       {/* 쇼핑몰 정보 */}
-      <div className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="shopcard-content">
+        <div className="shopcard-info-wrapper">
+          <div className="shopcard-shop-info">
             {shop.logo_url && (
-              <img src={shop.logo_url} alt={`${shop.name} 로고`} className="w-10 h-10 rounded-full object-contain bg-white p-1" />
+              <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-logo" />
             )}
             <div>
-              <h3 className="text-white font-semibold">{shop.name}</h3>
-              {shop.description && (<p className="text-gray-400 text-sm">{shop.description}</p>)}
+              <h3 className="shopcard-shop-name">{shop.name}</h3>
+              {shop.description && (<p className="shopcard-shop-description">{shop.description}</p>)}
             </div>
           </div>
-          <a href={shop.website_url} target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+          <a href={shop.website_url} target="_blank" rel="noopener noreferrer" className="shopcard-visit-btn">
             방문하기
           </a>
         </div>

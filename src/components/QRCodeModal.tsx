@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
+import "./QRCodeModal.css";
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -93,21 +94,21 @@ useEffect(() => {
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+      className="qrc-overlay"
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 rounded-2xl p-6 max-w-md w-full relative shadow-2xl border border-gray-700"
+        className="qrc-modal"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+          className="qrc-close-button"
           aria-label="닫기"
         >
           <svg
-            className="w-6 h-6"
+            className="qrc-close-icon"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -122,15 +123,15 @@ useEffect(() => {
         </button>
 
         {/* Title */}
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">
+        <h2 className="qrc-title">
           댄스일정표 주소링크
         </h2>
 
         {isMobile ? (
           /* Mobile View */
-          <div className="space-y-4">
+          <div className="qrc-content">
           {/* QR 박스: 항상 표시 */}
-          <div className="bg-white p-5 rounded-lg flex justify-center">
+          <div className="qrc-qr-box">
             <QRCodeSVG
               value={currentUrl}
               size={qrSize}          // 화면 폭에 맞춰 자동 크기
@@ -140,29 +141,27 @@ useEffect(() => {
           </div>
         
           {/* URL 표시 */}
-          <div className="bg-gray-800 rounded-lg p-4">
-            <p className="text-sm text-gray-300 break-all text-center">
+          <div className="qrc-url-box">
+            <p className="qrc-url-text">
               {currentUrl}
             </p>
           </div>
         
           {/* 안내 문구 (모바일/데스크탑 각각 자연스러운 카피) */}
-          <div className="text-sm text-gray-400 text-center space-y-1">
+          <div className="qrc-description">
             <p>📱 휴대폰 카메라(또는 QR 앱)로 스캔해서 바로 접속하세요.</p>
             <p>또는 아래 버튼으로 웹 주소를 복사하고 공유할 수 있어요.</p>
-            <p className="text-xs text-gray-500">
+            <p className="qrc-description-small">
               홈 화면에 추가하면 앱처럼 한 번에 열 수 있습니다.
             </p>
           </div>
         
           {/* 액션 버튼: 복사 + 홈화면 추가 (모바일/데스크탑 모두 노출) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="qrc-button-grid">
             <button
               onClick={handleCopyUrl}
-              className={`w-full py-3 px-4 rounded-lg font-semibold transition-all ${
-                copied
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              className={`qrc-button qrc-button-copy ${
+                copied ? "qrc-copied" : ""
               }`}
             >
               {copied ? "✓ 복사 완료!" : "📋 주소 복사"}
@@ -170,7 +169,7 @@ useEffect(() => {
         
             <button
               onClick={handleAddToHomeScreen}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+              className="qrc-button qrc-button-home"
             >
               📱 홈 화면에 바로가기 추가
             </button>
@@ -178,8 +177,8 @@ useEffect(() => {
         </div>
         ) : (
           /* Desktop View - QR Code */
-          <div className="space-y-4">
-            <div className="bg-white p-6 rounded-lg flex justify-center">
+          <div className="qrc-content">
+            <div className="qrc-qr-box-desktop">
               <QRCodeSVG
                 value={currentUrl}
                 size={200}
@@ -188,22 +187,20 @@ useEffect(() => {
               />
             </div>
 
-            <div className="bg-gray-800 rounded-lg p-4">
-              <p className="text-sm text-gray-300 break-all text-center">
+            <div className="qrc-url-box">
+              <p className="qrc-url-text">
                 {currentUrl}
               </p>
             </div>
 
-            <p className="text-sm text-gray-400 text-center">
+            <p className="qrc-description">
               📱 모바일로 QR 코드를 스캔해서 접속하세요
             </p>
 
             <button
               onClick={handleCopyUrl}
-              className={`w-full py-2 px-4 rounded-lg font-semibold transition-all ${
-                copied
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              className={`qrc-button-single qrc-button-single-copy ${
+                copied ? "qrc-copied" : ""
               }`}
             >
               {copied ? "✓ 복사 완료!" : "📋 주소 복사"}

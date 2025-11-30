@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import type { Event as AppEvent } from "../lib/supabase";
+import "./FullscreenDateEventsModal.css";
 
 interface FullscreenDateEventsModalProps {
   isOpen: boolean;
@@ -109,70 +110,44 @@ export default function FullscreenDateEventsModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
-      style={{
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        animation: "fadeIn 0.2s ease-out",
-      }}
+      className="fsde-overlay"
       onClick={onClose}
     >
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes popIn {
-            from {
-              opacity: 0;
-              transform: scale(0);
-            }
-            to {
-              opacity: 1;
-              transform: scale(1);
-            }
-          }
-        `}
-      </style>
-      
       <div
         ref={modalRef}
-        className="bg-gray-800 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col"
-        style={{
-          ...animationOrigin,
-          animation: "popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        }}
+        className="fsde-modal w-full flex flex-col"
+        style={animationOrigin}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <div className="flex items-center gap-2">
-            <i className="ri-calendar-line text-blue-400 text-xl"></i>
-            <h2 className="text-lg font-bold text-white">
+        <div className="fsde-header">
+          <div className="fsde-header-title-wrapper">
+            <i className="ri-calendar-line fsde-header-icon"></i>
+            <h2 className="fsde-header-title">
               {formatDate(selectedDate)}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1"
+            className="fsde-close-btn"
           >
-            <i className="ri-close-line text-2xl"></i>
+            <i className="ri-close-line fsde-close-icon"></i>
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="fsde-content flex-1">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <i className="ri-loader-4-line text-4xl text-gray-500 animate-spin"></i>
+            <div className="fsde-loading flex items-center justify-center">
+              <i className="ri-loader-4-line fsde-loading-icon"></i>
             </div>
           ) : events.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <i className="ri-calendar-close-line text-6xl text-gray-600 mb-4"></i>
-              <p className="text-gray-400">이 날짜에 등록된 이벤트가 없습니다.</p>
+            <div className="fsde-empty">
+              <i className="ri-calendar-close-line fsde-empty-icon"></i>
+              <p className="fsde-empty-text">이 날짜에 등록된 이벤트가 없습니다.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="fsde-event-list">
               {events.map((event) => {
                 const thumbnail =
                   event.image_thumbnail ||
@@ -187,51 +162,51 @@ export default function FullscreenDateEventsModal({
                       onEventClick(event);
                       onClose();
                     }}
-                    className="flex items-center gap-3 p-3 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-all cursor-pointer group"
+                    className="fsde-event-item"
                   >
                     {/* Thumbnail */}
                     {thumbnail && (
-                      <div className="flex-shrink-0 w-16 h-16 rounded overflow-hidden bg-gray-800">
+                      <div className="fsde-thumbnail">
                         <img
                           src={thumbnail}
                           alt={event.title}
-                          className="w-full h-full object-cover"
+                          className="fsde-thumbnail-img w-full h-full"
                         />
                       </div>
                     )}
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                    <div className="fsde-event-content flex-1">
+                      <div className="fsde-event-meta">
                         <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          className={`fsde-badge ${
                             event.category === "class"
-                              ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                              : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                              ? "fsde-badge-class"
+                              : "fsde-badge-event"
                           }`}
                         >
                           {event.category === "class" ? "강습" : "행사"}
                         </span>
                         {event.time && (
-                          <span className="text-xs text-gray-400">
+                          <span className="fsde-event-time">
                             {event.time}
                           </span>
                         )}
                       </div>
-                      <h3 className="text-white font-semibold truncate group-hover:text-blue-400 transition-colors">
+                      <h3 className="fsde-event-title truncate">
                         {event.title}
                       </h3>
                       {event.location && (
-                        <p className="text-sm text-gray-400 truncate mt-0.5">
-                          <i className="ri-map-pin-line mr-1"></i>
+                        <p className="fsde-event-location truncate">
+                          <i className="ri-map-pin-line fsde-location-icon"></i>
                           {event.location}
                         </p>
                       )}
                     </div>
 
                     {/* Arrow */}
-                    <div className="flex-shrink-0">
-                      <i className="ri-arrow-right-s-line text-2xl text-gray-500 group-hover:text-blue-400 transition-colors"></i>
+                    <div className="fsde-arrow">
+                      <i className="ri-arrow-right-s-line fsde-arrow-icon"></i>
                     </div>
                   </div>
                 );
@@ -242,8 +217,8 @@ export default function FullscreenDateEventsModal({
 
         {/* Footer */}
         {events.length > 0 && (
-          <div className="p-3 border-t border-gray-700 bg-gray-800/50">
-            <p className="text-center text-sm text-gray-400">
+          <div className="fsde-footer">
+            <p className="fsde-footer-text">
               총 {events.length}개의 이벤트
             </p>
           </div>

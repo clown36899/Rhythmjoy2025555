@@ -23,6 +23,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { EventCard } from "./EventCard";
 import EventPasswordModal from "./EventPasswordModal";
 import EventDetailModal from "./EventDetailModal";
+import "./EventList.css";
 
 registerLocale("ko", ko);
 
@@ -38,7 +39,7 @@ const CustomDateInput = forwardRef<HTMLButtonElement, CustomInputProps>(
       type="button"
       ref={ref}
       onClick={onClick}
-      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
+      className="evt-date-input-btn"
     >
       {value || "날짜 선택"}
     </button>
@@ -1694,19 +1695,19 @@ export default function EventList({
 
   if (loading) {
     return (
-      <div className="bg-[#1f1f1f] rounded-none p-4">
-        <div className="text-center py-8">
-          <i className="ri-loader-4-line text-4xl text-gray-500 mb-4 animate-spin"></i>
-          <p className="text-gray-400">이벤트를 불러오는 중...</p>
+      <div className="evt-bg-1f1f1f evt-rounded-none evt-p-4">
+        <div className="evt-text-center evt-py-8">
+          <i className="ri-loader-4-line evt-icon-4xl evt-text-gray-400 evt-mb-4 evt-animate-spin"></i>
+          <p className="evt-text-gray-400">이벤트를 불러오는 중...</p>
           {loadError && (
-            <div className="mt-4 p-3 bg-red-900/30 border border-red-500 rounded-lg">
-              <p className="text-red-300 text-sm">{loadError}</p>
+            <div className="evt-alert-error">
+              <p className="evt-text-red-400 evt-text-sm">{loadError}</p>
               <button
                 onClick={() => {
                   setLoadError(null);
                   fetchEvents();
                 }}
-                className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                className="evt-alert-btn"
               >
                 다시 시도
               </button>
@@ -1720,18 +1721,18 @@ export default function EventList({
   // 로딩 완료 후 에러가 있으면 표시
   if (loadError && events.length === 0) {
     return (
-      <div className="bg-[#1f1f1f] rounded-none p-4">
-        <div className="text-center py-8">
-          <i className="ri-error-warning-line text-4xl text-red-500 mb-4"></i>
-          <p className="text-gray-400 mb-2">데이터를 불러올 수 없습니다</p>
-          <div className="mt-4 p-3 bg-red-900/30 border border-red-500 rounded-lg">
-            <p className="text-red-300 text-sm">{loadError}</p>
+      <div className="evt-bg-1f1f1f evt-rounded-none evt-p-4">
+        <div className="evt-text-center evt-py-8">
+          <i className="ri-error-warning-line evt-icon-4xl evt-text-red-400 evt-mb-4"></i>
+          <p className="evt-text-gray-400 evt-mb-2">데이터를 불러올 수 없습니다</p>
+          <div className="evt-alert-error">
+            <p className="evt-text-red-400 evt-text-sm">{loadError}</p>
             <button
               onClick={() => {
                 setLoadError(null);
                 fetchEvents();
               }}
-              className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+              className="evt-alert-btn"
             >
               다시 시도
             </button>
@@ -1744,50 +1745,50 @@ export default function EventList({
   return (
     <div className="no-select pb-24">
       {/* 삭제 로딩 오버레이 */}
-      <div className="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm p-2" ref={filterDropdownRef}>
-        <div className="flex items-center gap-2">
+      <div className="evt-sticky-header" ref={filterDropdownRef}>
+        <div className="evt-flex evt-items-center evt-gap-2">
           {/* 카테고리 버튼 */}
-          <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-0.5">
+          <div className="evt-file-btn-group">
             <button
               onClick={() => handleCategoryChange('all')}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${selectedCategory === 'all' ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-gray-600'}`}
+              className={`evt-category-btn ${selectedCategory === 'all' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
             >
               전체
             </button>
             <button
               onClick={() => handleCategoryChange('event')}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${selectedCategory === 'event' ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-gray-600'}`}
+              className={`evt-category-btn ${selectedCategory === 'event' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
             >
               행사
             </button>
             <button
               onClick={() => handleCategoryChange('class')}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${selectedCategory === 'class' ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-gray-600'}`}
+              className={`evt-category-btn ${selectedCategory === 'class' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
             >
               강습
             </button>
           </div>
 
           {/* 장르 드롭다운 */}
-          <div className="relative">
+          <div className="evt-relative">
             <button
               onClick={() => setActiveDropdown(activeDropdown === 'genre' ? null : 'genre')}
-              className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors"
+              className="evt-genre-filter-btn"
             >
-              <span className="max-w-[100px] truncate">{selectedGenre || '장르'}</span>
-              <i className={`ri-arrow-down-s-line transition-transform ${activeDropdown === 'genre' ? 'rotate-180' : ''}`}></i>
+              <span className="evt-max-w-100 evt-truncate">{selectedGenre || '장르'}</span>
+              <i className={`ri-arrow-down-s-line evt-transition-transform ${activeDropdown === 'genre' ? 'rotate-180' : ''}`}></i>
             </button>
             {activeDropdown === 'genre' && (
-              <div className="absolute top-full left-0 mt-1 w-40 max-h-60 overflow-y-auto bg-gray-700 rounded-lg shadow-lg z-30">
-                <button onClick={() => handleGenreChange(null)} className="w-full text-left px-3 py-2 text-sm text-white hover:bg-blue-500">모든 장르</button>
+              <div className="evt-filter-dropdown">
+                <button onClick={() => handleGenreChange(null)} className="evt-filter-option">모든 장르</button>
                 {sortedAllGenres.map(genre => (
                   <button
                     key={genre}
                     onClick={() => handleGenreChange(genre)}
-                    className="w-full text-left px-3 py-2 text-sm text-white hover:bg-blue-500"
+                    className="evt-filter-option"
                     title={genre}
                   >
-                    <span className="truncate block">{genre}</span>
+                    <span className="evt-truncate evt-block">{genre}</span>
                   </button>
                 ))}
               </div>
@@ -1797,15 +1798,15 @@ export default function EventList({
       </div>
       {isDeleting && createPortal(
         <div 
-          className="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[9999]"
+          className="evt-delete-overlay"
           // 이벤트 전파를 막아 하단 컨텐츠 클릭 방지
           onClick={(e) => e.stopPropagation()} 
         >
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 border-4 border-gray-600 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          <div className="evt-loading-spinner-outer">
+            <div className="evt-loading-spinner-base evt-loading-spinner-gray"></div>
+            <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
           </div>
-          <p className="text-white text-lg mt-4 font-medium">삭제 중...</p>
+          <p className="text-white text-lg evt-mt-4 font-medium">삭제 중...</p>
         </div>, document.body
       )}
       {/* 검색 키워드 배너 (Compact Style) */}
@@ -1819,25 +1820,25 @@ export default function EventList({
             backgroundColor: "var(--event-list-outer-bg-color)",
           }}
         >
-          <div className="inline-flex items-center gap-1.5 bg-blue-600/20 text-blue-400 border border-blue-600/40 px-2.5 py-0.5 rounded-full text-xs font-medium">
+          <div className="evt-search-result-badge">
             <button
               onClick={() => {
                 const currentTerm = searchTerm;
                 setSearchTerm("");
                 setTimeout(() => setSearchTerm(currentTerm), 0);
               }}
-              className="flex items-center gap-1 cursor-pointer hover:text-blue-300 transition-colors"
+              className="evt-search-close-btn"
               aria-label="검색 재실행"
             >
-              <i className="ri-search-line text-[11px]"></i>
+              <i className="ri-search-line" style={{ fontSize: '11px' }}></i>
               <span>"{searchTerm}"</span>
             </button>
             <button
               onClick={() => setSearchTerm("")}
-              className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-600/20 transition-colors cursor-pointer"
+              className="evt-date-remove-btn"
               aria-label="검색 취소"
             >
-              <i className="ri-close-line text-[10px]"></i>
+              <i className="ri-close-line" style={{ fontSize: '10px' }}></i>
             </button>
           </div>
         </div>
@@ -1855,20 +1856,20 @@ export default function EventList({
           }}
         >
           {/* Grid layout with 3 columns - poster ratio */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.65rem]">
+          <div className="evt-grid-3-4-10">
             {/* 필터 활성화 시 '전체 보기' 카드 표시 */}
             {(selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none')) && (
               <div
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('clearAllFilters'));
                 }}
-                className="cursor-pointer"
+                className="evt-cursor-pointer"
                 title="전체 일정 보기"
               >
-                <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
-                    <i className="ri-arrow-go-back-line text-5xl text-gray-500 mb-2"></i>
-                    <span className="text-sm text-gray-400 font-medium">전체 일정 보기</span>
+                <div className="evt-add-banner-legacy" style={{ borderRadius: "0.3rem" }}>
+                  <div className="evt-icon-absolute-center">
+                    <i className="ri-arrow-go-back-line evt-icon-5xl evt-text-gray-400 evt-mb-2"></i>
+                    <span className="evt-text-sm evt-text-gray-400 font-medium">전체 일정 보기</span>
                   </div>
                 </div>
               </div>
@@ -1897,11 +1898,11 @@ export default function EventList({
                   detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
                 }));
               }}
-              className="cursor-pointer"
+              className="evt-cursor-pointer"
             >
-              <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <i className="ri-add-line text-6xl text-gray-600"></i>
+              <div className="evt-add-banner-card">
+                <div className="evt-add-banner-icon">
+                  <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
                 </div>
               </div>
             </div>
@@ -1909,8 +1910,8 @@ export default function EventList({
 
           {/* 이벤트 없음 메시지 */}
           {sortedEvents.length === 0 && (
-            <div className="text-center py-4 mt-2">
-              <p className="text-gray-500 text-sm">
+            <div className="evt-text-center evt-py-4 evt-mt-2">
+              <p className="evt-text-gray-400 evt-text-sm">
                 {selectedDate && selectedCategory === "class"
                   ? "강습이 없습니다"
                   : selectedDate && selectedCategory === "event"
@@ -1923,7 +1924,7 @@ export default function EventList({
       ) : (
         // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
         <div
-          className="overflow-hidden"
+          className="evt-overflow-hidden"
           style={
             {
               // height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
@@ -1933,7 +1934,7 @@ export default function EventList({
         >
           <div
             ref={slideContainerRef}
-            className="flex items-start"
+            className="evt-slide-container"
             style={{
               transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
               transition: externalIsAnimating
@@ -1943,7 +1944,7 @@ export default function EventList({
             }}
           >
             {/* 이전 달 - 독립 컨테이너 */}
-            <div ref={prevMonthRef} className="flex-shrink-0 w-full self-start">
+            <div ref={prevMonthRef} className="evt-slide-item">
               <div
                 className="p-[0.4rem]"
                 style={{
@@ -1954,7 +1955,7 @@ export default function EventList({
                 }}
               >
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.65rem]">
+                  <div className="evt-grid-3-4-10">
                     {sortedPrevEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -1981,17 +1982,17 @@ export default function EventList({
                           detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
                         }));
                       }}
-                      className="cursor-pointer"
+                      className="evt-cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                      <div className="evt-add-banner-card">
+                        <div className="evt-add-banner-icon">
+                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
+                  <div className="evt-grid-3-4-10-tight">
                     {/* 등록 버튼 배너만 표시 */}
                     <div
                       onClick={() => {
@@ -2003,11 +2004,11 @@ export default function EventList({
                           detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
                         }));
                       }}
-                      className="cursor-pointer"
+                      className="evt-cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                      <div className="evt-add-banner-card">
+                        <div className="evt-add-banner-icon">
+                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
                         </div>
                       </div>
                     </div>
@@ -2019,7 +2020,7 @@ export default function EventList({
             {/* 현재 달 - 독립 컨테이너 */}
             <div
               ref={currentMonthRef}
-              className="flex-shrink-0 w-full self-start"
+              className="evt-slide-item"
             >
               <div
                 className="p-[0.4rem]"
@@ -2031,7 +2032,7 @@ export default function EventList({
                 }}
               >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.65rem]">
+                    <div className="evt-grid-3-4-10">
                     {sortedCurrentEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -2056,17 +2057,17 @@ export default function EventList({
                           detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
                         }));
                       }}
-                      className="cursor-pointer"
+                      className="evt-cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                      <div className="evt-add-banner-card">
+                        <div className="evt-add-banner-icon">
+                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
+                    <div className="evt-grid-3-4-10-tight">
                     {/* 등록 버튼 배너만 표시 */}
                     <div
                       onClick={() => {
@@ -2076,11 +2077,11 @@ export default function EventList({
                           detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
                         }));
                       }}
-                      className="cursor-pointer"
+                      className="evt-cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                      <div className="evt-add-banner-card">
+                        <div className="evt-add-banner-icon">
+                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
                         </div>
                       </div>
                     </div>
@@ -2090,7 +2091,7 @@ export default function EventList({
             </div>
 
             {/* 다음 달 - 독립 컨테이너 */}
-            <div ref={nextMonthRef} className="flex-shrink-0 w-full self-start">
+            <div ref={nextMonthRef} className="evt-slide-item">
               <div
                 className="p-[0.4rem]"
                 style={{
@@ -2101,7 +2102,7 @@ export default function EventList({
                 }}
               >
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.65rem]">
+                  <div className="evt-grid-3-4-10">
                     {sortedNextEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -2128,17 +2129,17 @@ export default function EventList({
                           detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
                         }));
                       }}
-                      className="cursor-pointer"
+                      className="evt-cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                      <div className="evt-add-banner-card">
+                        <div className="evt-add-banner-icon">
+                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
+                  <div className="evt-grid-3-4-10-tight">
                     {/* 등록 버튼 배너만 표시 */}
                     <div
                       onClick={() => {
@@ -2150,11 +2151,11 @@ export default function EventList({
                           detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
                         }));
                       }}
-                      className="cursor-pointer"
+                      className="evt-cursor-pointer"
                     >
-                      <div className="relative aspect-[3/4] border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-500/5 transition-all overflow-hidden" style={{ borderRadius: "0.3rem" }}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <i className="ri-add-line text-6xl text-gray-600"></i>
+                      <div className="evt-add-banner-card">
+                        <div className="evt-add-banner-icon">
+                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
                         </div>
                       </div>
                     </div>
@@ -2169,20 +2170,20 @@ export default function EventList({
       {/* 정렬 모달 */}
       {showSortModal && (
       createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white">정렬 방식</h3>
+        <div className="evt-modal-overlay">
+          <div className="evt-modal-container">
+            <div className="evt-modal-body">
+              <div className="evt-flex evt-justify-between evt-items-center evt-mb-4">
+                <h3 className="evt-modal-title">정렬 방식</h3>
                 <button
                   onClick={() => setShowSortModal(false)}
-                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  className="evt-modal-close-btn"
                 >
-                  <i className="ri-close-line text-xl"></i>
+                  <i className="ri-close-line evt-icon-xl"></i>
                 </button>
               </div>
 
-              <div className="space-y-2">
+              <div className="evt-space-y-2">
                 {sortOptions.map((option) => (
                   <button
                     key={option.id}
@@ -2191,16 +2192,16 @@ export default function EventList({
                         option.id as "random" | "time" | "title",
                       )
                     }
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
+                    className={`evt-sort-option ${
                       sortBy === option.id
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        ? "evt-sort-option-active"
+                        : ""
                     }`}
                   >
-                    <i className={`${option.icon} text-lg`}></i>
-                    <span className="font-medium">{option.name}</span>
+                    <i className={`${option.icon} evt-sort-option-icon`}></i>
+                    <span className="evt-sort-option-text">{option.name}</span>
                     {sortBy === option.id && (
-                      <i className="ri-check-line text-lg ml-auto"></i>
+                      <i className="ri-check-line evt-sort-check-icon"></i>
                     )}
                   </button>
                 ))}
@@ -2214,11 +2215,11 @@ export default function EventList({
       {/* 검색 모달 */}
       {showSearchModal && (
      createPortal(
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-800 rounded-lg w-full max-w-md">
-          <div className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">이벤트 검색</h3>
+      <div className="evt-modal-overlay">
+        <div className="evt-modal-container">
+          <div className="evt-modal-body">
+            <div className="evt-flex evt-justify-between evt-items-center evt-mb-4">
+              <h3 className="evt-modal-title">이벤트 검색</h3>
               <button
                 onClick={() => {
                   setShowSearchModal(false);
@@ -2226,15 +2227,15 @@ export default function EventList({
                   setSearchSuggestions([]);
                   setSearchTerm("");
                 }}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                className="evt-modal-close-btn"
               >
-                <i className="ri-close-line text-xl"></i>
+                <i className="ri-close-line evt-icon-xl"></i>
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="evt-space-y-4">
               {/* 검색 입력창 */}
-              <div className="relative">
+              <div className="evt-relative">
                 <input
                   type="text"
                   value={searchQuery}
@@ -2244,25 +2245,25 @@ export default function EventList({
                       handleSearchSubmit();
                     }
                   }}
-                  className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="evt-form-input-with-icon"
                   placeholder="이벤트 제목, 장소, 주최자로 검색..."
                   autoFocus
                 />
-                <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <i className="ri-search-line evt-icon-absolute-left"></i>
               </div>
 
               {/* 자동완성 제안 */}
               {searchSuggestions.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-400 mb-2">추천 검색어</p>
-                  <div className="max-h-48 overflow-y-auto space-y-1">
+                <div className="evt-space-y-1">
+                  <p className="evt-info-text-xs evt-mb-2">추천 검색어</p>
+                  <div className="evt-max-h-48 evt-overflow-y-auto evt-space-y-1">
                     {searchSuggestions.map((suggestion, index) => (
                       <button
                         key={index}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="w-full text-left bg-[#242424] hover:bg-gray-600 text-gray-300 hover:text-white px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm"
+                        className="evt-search-suggestion-item"
                       >
-                        <i className="ri-search-line text-xs mr-2 text-gray-400"></i>
+                        <i className="ri-search-line evt-icon-text-xs evt-icon-mr-2 evt-text-gray-400"></i>
                         {suggestion}
                       </button>
                     ))}
@@ -2271,7 +2272,7 @@ export default function EventList({
               )}
 
               {/* 검색 버튼 */}
-              <div className="flex space-x-3">
+              <div className="evt-flex evt-space-x-3">
                 <button
                   onClick={() => {
                     setShowSearchModal(false);
@@ -2279,13 +2280,13 @@ export default function EventList({
                     setSearchSuggestions([]);
                     setSearchTerm("");
                   }}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+                  className="evt-flex-1 evt-btn-base evt-btn-gray"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleSearchSubmit}
-                  className="flex-1 bg-blue-600 hover-bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap"
+                  className="evt-flex-1 evt-btn-base evt-btn-blue evt-whitespace-nowrap"
                 >
                   검색
                 </button>
@@ -2324,7 +2325,7 @@ export default function EventList({
       {/* Edit Modal */}
       {showEditModal && eventToEdit && createPortal(
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-10 overflow-y-auto"
+            className="evt-fixed-inset-edit-modal"
             onTouchStartCapture={(e) => {
               e.stopPropagation();
             }}
@@ -2338,11 +2339,11 @@ export default function EventList({
               e.stopPropagation();
             }}
           >
-            <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] flex flex-col">
+            <div className="evt-modal-container-lg">
               {/* 헤더 */}
-            <div className="p-4 border-b border-gray-700">
-              <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold text-white">
+            <div className="evt-modal-header">
+              <div className="evt-modal-header-content">
+              <h2 className="evt-modal-title">
                     이벤트 수정
                   </h2>
                 <button
@@ -2351,18 +2352,18 @@ export default function EventList({
                     setEventToEdit(null);
                     setEditVideoPreview({ provider: null, embedUrl: null });
                   }}
-                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  className="evt-modal-close-btn"
                 >
-                  <i className="ri-close-line text-xl"></i>
+                  <i className="ri-close-line evt-icon-xl"></i>
                 </button>
               </div>
             </div>
 
             {/* 스크롤 가능한 폼 영역 */}
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
-              <form id="edit-event-form" onSubmit={handleEditSubmit} className="space-y-3">
+            <div className="evt-modal-body-scroll">
+              <form id="edit-event-form" onSubmit={handleEditSubmit} className="evt-space-y-3">
                 <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                  <label className="evt-form-label">
                     이벤트 제목
                   </label>
                   <input
@@ -2374,14 +2375,14 @@ export default function EventList({
                         title: e.target.value,
                       }))
                     }
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="evt-form-input"
                   />
                 </div>
 
               
-                <div className="relative">
+                <div className="evt-relative">
 
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                  <label className="evt-form-label">
                     장르 (7자 이내, 선택사항)
                   </label>
                   <input
@@ -2402,15 +2403,15 @@ export default function EventList({
                     onFocus={handleGenreFocus}
                     onBlur={() => setTimeout(() => setIsGenreInputFocused(false), 150)}
                     maxLength={7}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="evt-form-input"
                     placeholder="예: 린디합, 발보아"
                     autoComplete="off"
 
                   />
                       {isGenreInputFocused && genreSuggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div className="evt-autocomplete-dropdown">
                       {genreSuggestions.map((genre) => (
-                        <div key={genre} onMouseDown={() => handleGenreSuggestionClick(genre)} className="px-4 py-2 text-white hover:bg-blue-500 cursor-pointer">
+                        <div key={genre} onMouseDown={() => handleGenreSuggestionClick(genre)} className="evt-autocomplete-genre-item">
                           {genre}
                         </div>
                       ))}
@@ -2419,7 +2420,7 @@ export default function EventList({
                 </div>
                 
                 <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                  <label className="evt-form-label">
                     카테고리
                   </label>
                   <select
@@ -2430,7 +2431,7 @@ export default function EventList({
                         category: e.target.value,
                       }))
                     }
-                    className="w-full bg-[#242424] text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 text-sm"
+                    className="evt-form-select"
                   >
                     <option value="class">강습</option>
                     <option value="event">행사</option>
@@ -2438,11 +2439,11 @@ export default function EventList({
                 </div>
 
                 {/* 빌보드 표시 옵션 */}
-                <div className="bg-gray-700/50 rounded-lg p-3 space-y-2">
-                  <label className="block text-gray-300 text-xs font-medium">
+                <div className="evt-billboard-option-box evt-space-y-2">
+                  <label className="evt-block evt-text-gray-400 evt-text-xs font-medium">
                     빌보드 표시 옵션
                   </label>
-                  <div className="flex items-center">
+                  <div className="evt-flex evt-items-center">
                     <input
                       type="checkbox"
                       id="editShowTitleOnBillboard"
@@ -2452,18 +2453,18 @@ export default function EventList({
                         const { checked } = e.target;
                         setEditFormData(prev => ({ ...prev, showTitleOnBillboard: checked }));
                       }}
-                      className="h-4 w-4 rounded border-gray-400 bg-gray-800 text-blue-600 focus:ring-blue-500"
+                      className="evt-form-checkbox"
                     />
-                    <label htmlFor="editShowTitleOnBillboard" className="ml-2 block text-sm text-gray-300">
+                    <label htmlFor="editShowTitleOnBillboard" className="ml-2 evt-block evt-text-sm evt-text-gray-400">
                       빌보드에 제목, 날짜, 장소 정보 표시
                     </label>
                   </div>
                 </div>
 
                 {/* 장소 이름 & 주소 링크 (한 줄) */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="evt-grid-cols-2 evt-gap-3">
                   <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                    <label className="evt-form-label">
                       장소 이름
                     </label>
                     <input
@@ -2475,12 +2476,12 @@ export default function EventList({
                           location: e.target.value,
                         }))
                       }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      className="evt-form-input"
                       placeholder="예: 홍대 연습실"
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-300 text-xs font-medium mb-1">
+                    <label className="evt-form-label">
                       주소 링크 (선택)
                     </label>
                     <input
@@ -2492,19 +2493,19 @@ export default function EventList({
                           locationLink: e.target.value,
                         }))
                       }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      className="evt-form-input"
                       placeholder="지도 링크"
                     />
                   </div>
                 </div>
 
                 {/* 날짜 선택 섹션 (통합 박스) */}
-                <div className="bg-gray-700/50 rounded-lg p-3 space-y-3">
-                  <label className="block text-gray-300 text-xs font-medium">
+                <div className="evt-billboard-option-box evt-space-y-3">
+                  <label className="evt-block evt-text-gray-400 evt-text-xs font-medium">
                     날짜 선택 방식
                   </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center cursor-pointer">
+                  <div className="evt-flex evt-gap-4">
+                    <label className="evt-flex evt-items-center evt-cursor-pointer">
                       <input
                         type="radio"
                         name="edit-dateMode"
@@ -2517,11 +2518,11 @@ export default function EventList({
                             event_dates: [],
                           }));
                         }}
-                        className="mr-2"
+                        className="evt-mr-2"
                       />
-                      <span className="text-gray-300 text-sm">연속 기간</span>
+                      <span className="evt-text-gray-400 evt-text-sm">연속 기간</span>
                     </label>
-                    <label className="flex items-center cursor-pointer">
+                    <label className="evt-flex evt-items-center evt-cursor-pointer">
                       <input
                         type="radio"
                         name="edit-dateMode"
@@ -2533,18 +2534,18 @@ export default function EventList({
                             dateMode: "specific",
                           }));
                         }}
-                        className="mr-2"
+                        className="evt-mr-2"
                       />
-                      <span className="text-gray-300 text-sm">
+                      <span className="evt-text-gray-400 evt-text-sm">
                         특정 날짜 선택
                       </span>
                     </label>
                   </div>
 
                   {editFormData.dateMode === "range" ? (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="evt-grid-cols-2 evt-gap-3">
                       <div>
-                        <label className="block text-gray-300 text-xs font-medium mb-1">
+                        <label className="evt-form-label">
                           시작일
                         </label>
                         <DatePicker
@@ -2573,7 +2574,7 @@ export default function EventList({
                               }
                             />
                           }
-                          calendarClassName="bg-gray-800"
+                          calendarClassName="evt-calendar-bg"
                           withPortal
                           portalId="root-portal"
                           renderCustomHeader={(props) => (
@@ -2599,7 +2600,7 @@ export default function EventList({
                         />
                       </div>
                       <div>
-                        <label className="block text-gray-300 text-xs font-medium mb-1">
+                        <label className="evt-form-label">
                           종료일
                         </label>
                         <DatePicker
@@ -2630,7 +2631,7 @@ export default function EventList({
                               }
                             />
                           }
-                          calendarClassName="bg-gray-800"
+                          calendarClassName="evt-calendar-bg"
                           withPortal
                           portalId="root-portal"
                           renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
@@ -2639,10 +2640,10 @@ export default function EventList({
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-gray-300 text-sm font-medium mb-2">
+                      <label className="evt-block evt-text-gray-400 evt-text-sm font-medium evt-mb-2">
                         선택된 날짜 ({editFormData.event_dates.length}개)
                       </label>
-                      <div className="flex flex-wrap gap-2 mb-3">
+                      <div className="evt-flex evt-flex-wrap evt-gap-2 evt-mb-3">
                         {editFormData.event_dates
                           .sort((a, b) => a.localeCompare(b))
                           .map((dateStr, index) => {
@@ -2650,7 +2651,7 @@ export default function EventList({
                             return (
                               <div
                                 key={index}
-                                className="inline-flex items-center bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
+                                className="evt-date-badge"
                               >
                                 <span>
                                   {date.getMonth() + 1}/{date.getDate()}
@@ -2667,7 +2668,7 @@ export default function EventList({
                                       }));
                                     }
                                   }}
-                                  className="ml-2 hover:text-red-300"
+                                  className="ml-2 hover:evt-text-red-400"
                                 >
                                   <i className="ri-close-line"></i>
                                 </button>
@@ -2675,11 +2676,11 @@ export default function EventList({
                             );
                           })}
                       </div>
-                      <div className="flex gap-2 mb-2">
+                      <div className="evt-flex evt-gap-2 evt-mb-2">
                         <input
                           type="date"
                           value={tempDateInput}
-                          className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="evt-flex-1 evt-form-input"
                           onKeyDown={(e) => {
                             if (
                               e.key !== "Tab" &&
@@ -2714,12 +2715,12 @@ export default function EventList({
                               setTempDateInput("");
                             }
                           }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                          className="evt-video-btn"
                         >
                           추가
                         </button>
                       </div>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs evt-text-gray-400">
                         예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수
                         있습니다
                       </p>
@@ -2729,7 +2730,7 @@ export default function EventList({
 
                 {/* 문의 정보 (공개) */}
                 <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                  <label className="evt-form-label">
                     문의
                   </label>
                   <input
@@ -2741,18 +2742,18 @@ export default function EventList({
                         contact: e.target.value,
                       }))
                     }
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="evt-form-input"
                     placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    <i className="ri-information-line mr-1"></i>
+                  <p className="evt-text-xs evt-text-gray-400 evt-mt-1">
+                    <i className="ri-information-line evt-mr-1"></i>
                     참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
                   </p>
                 </div>
 
                 {/* 내용 */}
                 <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                  <label className="evt-form-label">
                     내용 (선택사항)
                   </label>
                   <textarea
@@ -2764,16 +2765,16 @@ export default function EventList({
                       }))
                     }
                     rows={4}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-y"
+                    className="evt-form-input"
                     placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                  <label className="evt-form-label">
                     바로가기 링크
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="evt-grid-cols-2 evt-gap-2">
                     <input
                       type="url"
                       value={editFormData.link1}
@@ -2783,7 +2784,7 @@ export default function EventList({
                           link1: e.target.value,
                         }))
                       }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      className="evt-form-input"
                       placeholder="링크 URL"
                     />
                     <input
@@ -2795,31 +2796,31 @@ export default function EventList({
                           linkName1: e.target.value,
                         }))
                       }
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      className="evt-form-input"
                       placeholder="링크 이름"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                  <label className="evt-form-label">
                     이벤트 이미지 (선택사항)
                   </label>
-                  <div className="space-y-2">
+                  <div className="evt-space-y-2">
                     {editImagePreview && (
-                      <div className="relative">
+                      <div className="evt-relative">
                         <img
                           src={editImagePreview}
                           alt="이벤트 이미지"
-                          className="w-full h-48 object-cover rounded-lg"
+                          className="evt-img-full-h48"
                         />
-                        <div className="absolute top-2 right-2 flex gap-2">
+                        <div className="evt-absolute evt-top-2 evt-right-2 evt-flex evt-gap-2">
                           <button
                             type="button"
                             onClick={handleEditOpenCropForFile}
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                            className="evt-btn-purple"
                           >
-                            <i className="ri-crop-line mr-1"></i>
+                            <i className="ri-crop-line evt-mr-1"></i>
                             편집
                           </button>
                           {isAdminMode && (
@@ -2833,9 +2834,9 @@ export default function EventList({
                                 link.click();
                                 document.body.removeChild(link);
                               }}
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                              className="evt-thumbnail-btn"
                             >
-                              <i className="ri-download-line mr-1"></i>
+                              <i className="ri-download-line evt-mr-1"></i>
                               다운로드
                             </button>
                           )}
@@ -2849,7 +2850,7 @@ export default function EventList({
                                 image: "",
                               }));
                             }}
-                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                            className="evt-thumbnail-remove-btn"
                           >
                             이미지 삭제
                           </button>
@@ -2860,7 +2861,7 @@ export default function EventList({
                       type="file"
                       accept="image/*"
                       onChange={handleEditImageChange}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                      className="evt-file-input"
                     />
 
                     {/* 썸네일 추출 버튼 (영상 URL이 있을 때만) */}
@@ -2888,25 +2889,25 @@ export default function EventList({
                                 alert("썸네일 추출 중 오류가 발생했습니다.");
                               }
                             }}
-                            className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                            className="evt-btn-green-full"
                           >
-                            <i className="ri-image-add-line mr-1"></i>
+                            <i className="ri-image-add-line evt-mr-1"></i>
                             썸네일 추출하기{" "}
                             {editVideoPreview.provider === "youtube" &&
                               "(여러 장면 선택 가능)"}
                           </button>
                         ) : (
-                          <div className="mt-2">
+                          <div className="evt-mt-2">
                             <button
                               type="button"
                               disabled
-                              className="w-full bg-gray-600 text-gray-400 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed opacity-60"
+                              className="evt-btn-disabled"
                             >
-                              <i className="ri-image-add-line mr-1"></i>
+                              <i className="ri-image-add-line evt-mr-1"></i>
                               썸네일 추출 불가능
                             </button>
-                            <p className="text-xs text-orange-400 mt-2">
-                              <i className="ri-alert-line mr-1"></i>
+                            <p className="evt-text-xs evt-text-orange-400 evt-mt-2">
+                              <i className="ri-alert-line evt-mr-1"></i>
                               Instagram/Facebook은 썸네일 자동 추출이 지원되지
                               않습니다. 위 이미지로 썸네일을 직접 등록해주세요.
                             </p>
@@ -2915,32 +2916,29 @@ export default function EventList({
                       </>
                     )}
 
-                    <p className="text-xs text-gray-400">
-                      <i className="ri-information-line mr-1"></i>
+                    <p className="evt-text-xs evt-text-gray-400">
+                      <i className="ri-information-line evt-mr-1"></i>
                       포스터 이미지는 이벤트 배너와 상세보기에 표시됩니다.
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                  <label className="evt-form-label">
                     영상 URL (선택사항)
                   </label>
-                  <div className="space-y-2">
+                  <div className="evt-space-y-2">
                     {/* 영상 프리뷰 */}
                     {editVideoPreview.provider && editVideoPreview.embedUrl && (
-                      <div className="relative">
-                        <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                      <div className="evt-relative">
+                        <div className="evt-flex evt-items-center evt-gap-2 evt-text-sm evt-text-green-400 evt-mb-2">
                           <i className="ri-check-line"></i>
                           <span>영상 인식됨 - 빌보드에서 재생됩니다</span>
                         </div>
-                        <div
-                          className="relative w-full"
-                          style={{ paddingTop: "56.25%" }}
-                        >
+                        <div className="evt-video-preview-wrapper">
                           <iframe
                             src={editVideoPreview.embedUrl}
-                            className="absolute top-0 left-0 w-full h-full rounded-lg"
+                            className="evt-video-preview-iframe"
                             frameBorder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
@@ -2960,7 +2958,7 @@ export default function EventList({
                             setEditImageFile(null);
                             setEditImagePreview("");
                           }}
-                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                          className="evt-btn-red-abs"
                         >
                           영상 삭제
                         </button>
@@ -2969,7 +2967,7 @@ export default function EventList({
                     
                     {/* 영상 URL 입력창 - 항상 표시 */}
                     <div>
-                      <label className="block text-gray-300 text-xs mb-1">
+                      <label className="evt-block evt-text-gray-400 evt-text-xs evt-mb-1">
                         {editVideoPreview.provider ? '영상 주소 (복사/수정 가능)' : '영상 주소 입력'}
                       </label>
                       <input
@@ -3007,28 +3005,28 @@ export default function EventList({
                             }
                           }
                         }}
-                        className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="evt-form-input"
                         placeholder="YouTube 링크만 가능"
                       />
                     </div>
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs text-gray-400">
-                        <i className="ri-information-line mr-1"></i>
+                    <div className="evt-mt-2 evt-space-y-1">
+                      <p className="evt-text-xs evt-text-gray-400">
+                        <i className="ri-information-line evt-mr-1"></i>
                         영상은 전면 빌보드에서 자동재생됩니다.
                       </p>
-                      <p className="text-xs text-green-400">
-                        <i className="ri-check-line mr-1"></i>
+                      <p className="evt-text-xs evt-text-green-400">
+                        <i className="ri-check-line evt-mr-1"></i>
                         <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상
                         재생 가능
                       </p>
-                      <p className="text-xs text-red-400">
-                        <i className="ri-close-line mr-1"></i>
+                      <p className="evt-text-xs evt-text-red-400">
+                        <i className="ri-close-line evt-mr-1"></i>
                         <strong>Instagram, Vimeo는 지원하지 않습니다</strong>
                       </p>
                     </div>
                     {editFormData.videoUrl && !editVideoPreview.provider && (
-                      <p className="text-xs text-red-400 mt-1">
-                        <i className="ri-alert-line mr-1"></i>
+                      <p className="evt-text-xs evt-text-red-400 evt-mt-1">
+                        <i className="ri-alert-line evt-mr-1"></i>
                         YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수
                         없습니다.
                       </p>
@@ -3037,17 +3035,17 @@ export default function EventList({
                 </div>
 
                 {/* 등록자 정보 (관리자 전용, 비공개) - 최하단 */}
-                <div className="bg-orange-900/20 border border-orange-700/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <i className="ri-lock-line text-orange-400 text-sm"></i>
-                    <h3 className="text-orange-400 text-xs font-bold">
+                <div className="evt-registrant-box">
+                  <div className="evt-registrant-header">
+                    <i className="ri-lock-line evt-text-orange-400 evt-text-sm"></i>
+                    <h3 className="evt-registrant-title">
                       등록자 정보 (비공개 - 관리자만 확인 가능)
                     </h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="evt-grid-cols-2 evt-gap-3">
                     <div>
-                      <label className="block text-orange-300 text-xs font-medium mb-1">
-                        등록자 이름 <span className="text-red-400">*필수</span>
+                      <label className="evt-registrant-label">
+                        등록자 이름 <span className="evt-text-red-400">*필수</span>
                       </label>
                       <input
                         type="text"
@@ -3059,14 +3057,14 @@ export default function EventList({
                           }))
                         }
                         required
-                        className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        className="evt-form-input-orange"
                         placeholder="등록자 이름"
                       />
                     </div>
                     <div>
-                      <label className="block text-orange-300 text-xs font-medium mb-1">
+                      <label className="evt-registrant-label">
                         등록자 전화번호{" "}
-                        <span className="text-red-400">*필수</span>
+                        <span className="evt-text-red-400">*필수</span>
                       </label>
                       <input
                         type="tel"
@@ -3078,13 +3076,13 @@ export default function EventList({
                           }))
                         }
                         required
-                        className="w-full bg-gray-800 border border-orange-700/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        className="evt-form-input-orange"
                         placeholder="010-0000-0000"
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-orange-300/80 mt-2">
-                    <i className="ri-information-line mr-1"></i>
+                  <p className="evt-registrant-info">
+                    <i className="ri-information-line evt-mr-1"></i>
                     수정 등 문제가 있을 경우 연락받으실 번호입니다
                   </p>
                 </div>
@@ -3093,8 +3091,8 @@ export default function EventList({
             </div>
 
             {/* 하단 고정 버튼 */}
-            <div className="sticky bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
-              <div className="flex space-x-3">
+            <div className="evt-footer-sticky">
+              <div className="evt-flex evt-space-x-3">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -3103,11 +3101,11 @@ export default function EventList({
                       handleDeleteClick(eventToEdit);
                     }
                   }}
-                  className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
+                  className="evt-btn-red-footer"
                 >
                   삭제
                 </button>
-                <div className="flex-1 flex space-x-3">
+                <div className="evt-flex-1 evt-flex evt-space-x-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -3115,14 +3113,14 @@ export default function EventList({
                       setEventToEdit(null);
                       setEditVideoPreview({ provider: null, embedUrl: null });
                     }}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer text-sm"
+                    className="evt-btn-gray-footer"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
                     form="edit-event-form"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap text-sm"
+                    className="evt-btn-blue-footer"
                   >
                     수정 완료
                   </button>
@@ -3150,51 +3148,48 @@ export default function EventList({
 
       {/* 썸네일 선택 모달 */}
       {showThumbnailSelector && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.9)" }}
-        >
-          <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90svh] overflow-y-auto">
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex justify-between items-center z-10">
-              <h2 className="text-xl font-bold text-white">썸네일 선택</h2>
+        <div className="evt-thumbnail-modal-outer">
+          <div className="evt-thumbnail-modal-inner">
+            <div className="evt-thumbnail-modal-header">
+              <h2 className="evt-thumbnail-modal-title">썸네일 선택</h2>
               <button
                 onClick={() => {
                   setShowThumbnailSelector(false);
                   setThumbnailOptions([]);
                 }}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="evt-thumbnail-modal-close"
               >
-                <i className="ri-close-line text-2xl"></i>
+                <i className="ri-close-line evt-text-2xl"></i>
               </button>
             </div>
 
-            <div className="p-6">
-              <p className="text-gray-400 text-sm mb-4">
+            <div className="evt-p-6">
+              <p className="evt-text-gray-400 evt-text-sm evt-mb-4">
                 원하는 썸네일을 선택하세요. YouTube 쇼츠도 지원됩니다.
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="evt-grid-cols-2 evt-gap-4">
                 {thumbnailOptions.map((option, index) => (
                   <div
                     key={index}
                     onClick={() => handleEditOpenCropForThumbnail(option.url)}
-                    className="cursor-pointer group"
+                    className="evt-thumbnail-selector-item"
                   >
-                    <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-800 border-2 border-gray-700 group-hover:border-blue-500 transition-colors">
+                    <div className="evt-thumbnail-selector-img">
                       <img
                         src={option.url}
                         alt={option.label}
-                        className="w-full h-full object-cover"
+                        className="evt-w-full evt-h-full evt-img-cover"
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
-                        <i className="ri-checkbox-circle-fill text-4xl text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                      <div className="evt-thumbnail-selector-overlay">
+                        <i className="ri-checkbox-circle-fill evt-icon-4xl evt-text-blue evt-thumbnail-selector-check"></i>
                       </div>
                     </div>
-                    <p className="text-center text-sm text-gray-300 mt-2">
+                    <p className="evt-text-center evt-text-sm evt-text-gray-400 evt-mt-2">
                       {option.label}
                     </p>
                     {option.quality === "high" && (
-                      <span className="block text-center text-xs text-green-400 mt-1">
+                      <span className="evt-block evt-text-center evt-text-xs evt-text-green-400 evt-mt-1">
                         고화질
                       </span>
                     )}

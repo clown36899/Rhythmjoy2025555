@@ -1,0 +1,112 @@
+/* shopcard.css - ShopCard 컴포넌트 전용 스타일 */
+
+/* ===== 카드 컨테이너 ===== */
+.shopcard-container {
+  background-color: #1f2937;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid #374151;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.shopcard-container:hover {
+  transform: scale(1.02);
+}
+
+/* ===== 상품 이미지 영역 ===== */
+.shopcard-image-link {
+  display: block;
+}
+
+.shopcard-image-wrapper {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background-color: #374151;
+}
+
+.shopcard-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shopcard-image-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+}
+
+.shopcard-image-info {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.75rem;
+}
+
+.shopcard-item-name {
+  color: white;
+  font-weight: 700;
+  font-size: 1.125rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.shopcard-item-price {
+  color: #fbbf24;
+  font-weight: 600;
+  font-size: 1rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+/* ===== 쇼핑몰 정보 영역 ===== */
+.shopcard-content {
+  padding: var(--spacing-4);
+}
+
+.shopcard-info-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shopcard-shop-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shopcard-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  object-fit: contain;
+  background-color: white;
+  padding: 0.25rem;
+}
+
+.shopcard-shop-name {
+  color: white;
+  font-weight: 600;
+}
+
+.shopcard-shop-description {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+/* ===== 방문하기 버튼 ===== */
+.shopcard-visit-btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.shopcard-visit-btn:hover {
+  background-color: #1d4ed8;
+}

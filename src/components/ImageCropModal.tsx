@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import './ImageCropModal.css';
 
 interface ImageCropModalProps {
   isOpen: boolean;
@@ -222,32 +223,32 @@ export default function ImageCropModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10000001] flex items-center justify-center bg-black bg-opacity-90 p-4"
+      className="crop-modal-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isProcessing) {
           handleCancel();
         }
       }}
     >
-      <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="crop-modal-container">
         {/* 헤더 */}
-        <div className="sticky top-0 bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-xl font-bold text-white">
-            <i className="ri-crop-line mr-2"></i>
+        <div className="crop-modal-header">
+          <h2 className="crop-modal-title">
+            <i className="ri-crop-line crop-modal-title-icon"></i>
             이미지 자르기
           </h2>
           <button
             onClick={handleCancel}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="crop-modal-close-btn"
             disabled={isProcessing}
           >
-            <i className="ri-close-line text-2xl"></i>
+            <i className="ri-close-line crop-modal-close-icon"></i>
           </button>
         </div>
 
         {/* 크롭 영역 */}
-        <div className="px-4 py-4 flex justify-center items-center bg-black" style={{ height: 'calc(90vh - 240px)' }}>
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="crop-area-container">
+          <div className="crop-area-wrapper">
             <ReactCrop
               crop={crop}
               onChange={(c) => setCrop(c)}
@@ -275,7 +276,7 @@ export default function ImageCropModal({
                 ref={imgRef}
                 src={imageUrl}
                 alt="크롭할 이미지"
-                style={{ maxHeight: 'calc(90vh - 240px)', width: 'auto', height: 'auto' }}
+                className="crop-image"
                 crossOrigin="anonymous"
               />
             </ReactCrop>
@@ -283,69 +284,71 @@ export default function ImageCropModal({
         </div>
 
         {/* 푸터 */}
-        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 px-4 py-3 space-y-2">
-          {/* 비율 선택 */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleAspectRatioChange('free')}
-              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                aspectRatioMode === 'free'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-              disabled={isProcessing}
-            >
-              자유
-            </button>
-            <button
-              onClick={() => handleAspectRatioChange('3:4')}
-              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                aspectRatioMode === '3:4'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-              disabled={isProcessing}
-            >
-              3:4
-            </button>
-            <button
-              onClick={() => handleAspectRatioChange('1:1')}
-              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                aspectRatioMode === '1:1'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-              disabled={isProcessing}
-            >
-              1:1
-            </button>
-          </div>
-          
-          {/* 액션 버튼 */}
-          <div className="flex gap-2">
-            <button
-              onClick={handleCancel}
-              className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
-              disabled={isProcessing}
-            >
-              취소
-            </button>
-            {hasOriginal && onRestoreOriginal && (
+        <div className="crop-modal-footer">
+          <div className="crop-footer-content">
+            {/* 비율 선택 */}
+            <div className="crop-button-row">
               <button
-                onClick={onRestoreOriginal}
-                className="flex-1 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                onClick={() => handleAspectRatioChange('free')}
+                className={`crop-ratio-btn ${
+                  aspectRatioMode === 'free'
+                    ? 'crop-ratio-btn-active'
+                    : 'crop-ratio-btn-inactive'
+                }`}
                 disabled={isProcessing}
               >
-                원본 되돌리기
+                자유
               </button>
-            )}
-            <button
-              onClick={handleCropConfirm}
-              className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-              disabled={isProcessing}
-            >
-              {isProcessing ? '처리 중...' : '자르기 완료'}
-            </button>
+              <button
+                onClick={() => handleAspectRatioChange('3:4')}
+                className={`crop-ratio-btn ${
+                  aspectRatioMode === '3:4'
+                    ? 'crop-ratio-btn-active'
+                    : 'crop-ratio-btn-inactive'
+                }`}
+                disabled={isProcessing}
+              >
+                3:4
+              </button>
+              <button
+                onClick={() => handleAspectRatioChange('1:1')}
+                className={`crop-ratio-btn ${
+                  aspectRatioMode === '1:1'
+                    ? 'crop-ratio-btn-active'
+                    : 'crop-ratio-btn-inactive'
+                }`}
+                disabled={isProcessing}
+              >
+                1:1
+              </button>
+            </div>
+            
+            {/* 액션 버튼 */}
+            <div className="crop-button-row">
+              <button
+                onClick={handleCancel}
+                className="crop-action-btn crop-cancel-btn"
+                disabled={isProcessing}
+              >
+                취소
+              </button>
+              {hasOriginal && onRestoreOriginal && (
+                <button
+                  onClick={onRestoreOriginal}
+                  className="crop-action-btn crop-restore-btn"
+                  disabled={isProcessing}
+                >
+                  원본 되돌리기
+                </button>
+              )}
+              <button
+                onClick={handleCropConfirm}
+                className="crop-action-btn crop-confirm-btn"
+                disabled={isProcessing}
+              >
+                {isProcessing ? '처리 중...' : '자르기 완료'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

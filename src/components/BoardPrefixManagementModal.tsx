@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import "./BoardPrefixManagementModal.css";
 
 export interface BoardPrefix {
   id: number;
@@ -120,132 +121,117 @@ export default function BoardPrefixManagementModal({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
-      <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">머릿말 관리</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <i className="ri-close-line text-2xl"></i>
+    <div className="bpm-overlay">
+      <div className="bpm-container">
+        <div className="bpm-header">
+          <h2 className="bpm-title">머릿말 관리</h2>
+          <button onClick={onClose} className="bpm-close-btn">
+            <i className="bpm-close-icon ri-close-line"></i>
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="bpm-content">
           {loading ? (
-            <div className="text-center py-12">
-              <i className="ri-loader-4-line text-3xl text-blue-500 animate-spin"></i>
-              <p className="text-gray-400 mt-2">로딩 중...</p>
+            <div className="bpm-loading">
+              <i className="bpm-loading-icon ri-loader-4-line"></i>
+              <p className="bpm-loading-text">로딩 중...</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* 머릿말 목록 */}
-              <div className="space-y-2">
+            <div className="bpm-content-inner">
+              <div className="bpm-prefix-list">
                 {prefixes.map((prefix) => (
-                  <div
-                    key={prefix.id}
-                    className="bg-gray-700 rounded-lg p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
+                  <div key={prefix.id} className="bpm-prefix-item">
+                    <div className="bpm-prefix-info">
                       <span
-                        className="px-3 py-1 rounded text-white text-sm font-medium"
+                        className="bpm-prefix-badge"
                         style={{ backgroundColor: prefix.color }}
                       >
                         {prefix.name}
                       </span>
                       {prefix.admin_only && (
-                        <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded">
+                        <span className="bpm-prefix-admin-badge">
                           관리자 전용
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => handleDeletePrefix(prefix.id, prefix.name)}
-                      className="text-red-400 hover:text-red-300 transition-colors"
+                      className="bpm-prefix-delete-btn"
                     >
-                      <i className="ri-delete-bin-line text-xl"></i>
+                      <i className="bpm-prefix-delete-icon ri-delete-bin-line"></i>
                     </button>
                   </div>
                 ))}
               </div>
 
-              {/* 추가 폼 */}
               {showAddForm ? (
-                <div className="bg-gray-700 rounded-lg p-4 space-y-3">
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
-                      머릿말 이름
-                    </label>
-                    <input
-                      type="text"
-                      value={newPrefix.name}
-                      onChange={(e) => setNewPrefix(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full bg-gray-600 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="예: 후기, 질문, 정보 등"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
-                      배지 색상
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={newPrefix.color}
-                        onChange={(e) => setNewPrefix(prev => ({ ...prev, color: e.target.value }))}
-                        className="h-10 w-20 rounded cursor-pointer"
-                      />
+                <div className="bpm-add-form">
+                  <div className="bpm-add-form-inner">
+                    <div className="bpm-form-group">
+                      <label className="bpm-form-label">머릿말 이름</label>
                       <input
                         type="text"
-                        value={newPrefix.color}
-                        onChange={(e) => setNewPrefix(prev => ({ ...prev, color: e.target.value }))}
-                        className="flex-1 bg-gray-600 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="#3B82F6"
+                        value={newPrefix.name}
+                        onChange={(e) => setNewPrefix(prev => ({ ...prev, name: e.target.value }))}
+                        className="bpm-form-input"
+                        placeholder="예: 후기, 질문, 정보 등"
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newPrefix.admin_only}
-                        onChange={(e) => setNewPrefix(prev => ({ ...prev, admin_only: e.target.checked }))}
-                        className="w-4 h-4 rounded border-gray-600 text-blue-600"
-                      />
-                      <span className="text-gray-300 text-sm">관리자 전용 머릿말</span>
-                    </label>
-                  </div>
+                    <div className="bpm-form-group">
+                      <label className="bpm-form-label">배지 색상</label>
+                      <div className="bpm-color-row">
+                        <input
+                          type="color"
+                          value={newPrefix.color}
+                          onChange={(e) => setNewPrefix(prev => ({ ...prev, color: e.target.value }))}
+                          className="bpm-color-picker"
+                        />
+                        <input
+                          type="text"
+                          value={newPrefix.color}
+                          onChange={(e) => setNewPrefix(prev => ({ ...prev, color: e.target.value }))}
+                          className="bpm-color-input"
+                          placeholder="#3B82F6"
+                        />
+                      </div>
+                    </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => {
-                        setShowAddForm(false);
-                        setNewPrefix({ name: '', color: '#3B82F6', admin_only: false });
-                      }}
-                      className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded font-medium transition-colors"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleAddPrefix}
-                      disabled={isSubmitting}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium transition-colors disabled:opacity-50"
-                    >
-                      {isSubmitting ? '추가 중...' : '추가'}
-                    </button>
+                    <div className="bpm-form-group">
+                      <label className="bpm-checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={newPrefix.admin_only}
+                          onChange={(e) => setNewPrefix(prev => ({ ...prev, admin_only: e.target.checked }))}
+                          className="bpm-checkbox"
+                        />
+                        <span className="bpm-checkbox-text">관리자 전용 머릿말</span>
+                      </label>
+                    </div>
+
+                    <div className="bpm-form-footer">
+                      <button
+                        onClick={() => {
+                          setShowAddForm(false);
+                          setNewPrefix({ name: '', color: '#3B82F6', admin_only: false });
+                        }}
+                        className="bpm-form-btn bpm-form-btn-cancel"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleAddPrefix}
+                        disabled={isSubmitting}
+                        className="bpm-form-btn bpm-form-btn-submit"
+                      >
+                        {isSubmitting ? '추가 중...' : '추가'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  <i className="ri-add-line text-xl"></i>
+                <button onClick={() => setShowAddForm(true)} className="bpm-add-btn">
+                  <i className="bpm-add-btn-icon ri-add-line"></i>
                   새 머릿말 추가
                 </button>
               )}

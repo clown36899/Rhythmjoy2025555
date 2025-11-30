@@ -1,0 +1,145 @@
+/* shopreg.css - Shopping Register Page 전용 스타일 */
+
+/* ===== 페이지 컨테이너 ===== */
+.shopreg-page-container {
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+/* ===== 헤더 ===== */
+.shopreg-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: var(--z-30);
+  border-bottom: 1px solid #22262a;
+}
+
+/* ===== 폼 컨테이너 ===== */
+.shopreg-form {
+  padding-top: 5rem;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+/* ===== 섹션 카드 ===== */
+.shopreg-section {
+  background-color: #1f2937;
+  padding: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid #374151;
+}
+
+.shopreg-section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+}
+
+/* ===== 입력 필드 ===== */
+.shopreg-input {
+  width: 100%;
+  background-color: #374151;
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 0.75rem;
+}
+
+.shopreg-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+.shopreg-textarea {
+  width: 100%;
+  background-color: #374151;
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 0.75rem;
+}
+
+.shopreg-textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+/* ===== 파일 입력 ===== */
+.shopreg-file-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #d1d5db;
+  margin-bottom: 0.25rem;
+}
+
+.shopreg-file-input {
+  width: 100%;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.shopreg-file-input::file-selector-button {
+  margin-right: var(--spacing-4);
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  border: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.shopreg-file-input::file-selector-button:hover {
+  background-color: #1d4ed8;
+}
+
+/* ===== 이미지 미리보기 ===== */
+.shopreg-logo-preview {
+  margin-top: 0.5rem;
+  width: 6rem;
+  height: 6rem;
+  object-fit: contain;
+  border-radius: 9999px;
+  background-color: white;
+  padding: 0.25rem;
+}
+
+.shopreg-item-preview {
+  margin-top: 0.5rem;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+/* ===== 에러 메시지 ===== */
+.shopreg-error {
+  color: #f87171;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ===== 제출 버튼 ===== */
+.shopreg-submit-btn {
+  width: 100%;
+  background-color: #16a34a;
+  color: white;
+  font-weight: 700;
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.shopreg-submit-btn:hover {
+  background-color: #15803d;
+}
+
+.shopreg-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

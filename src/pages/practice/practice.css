@@ -1,0 +1,111 @@
+/* practice.css - PracticeRoomsPage 컴포넌트 전용 스타일 */
+
+/* ===== 페이지 컨테이너 ===== */
+.practice-page-container {
+  min-height: 100vh;
+}
+
+/* ===== 헤더 ===== */
+.practice-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: var(--z-30);
+  border-bottom: 1px solid #22262a;
+}
+
+/* ===== 메인 컨텐츠 ===== */
+.practice-main-content {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+/* ===== Contact Modal (Non-Admin) ===== */
+.practice-modal-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-50);
+  padding: var(--spacing-4);
+}
+
+.practice-modal-container {
+  background-color: #242424;
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 24rem;
+  padding: var(--spacing-6);
+}
+
+.practice-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: var(--spacing-4);
+  text-align: center;
+}
+
+.practice-modal-subtitle {
+  color: var(--color-gray-300);
+  text-align: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.practice-modal-description {
+  color: var(--color-gray-400);
+  font-size: 0.875rem;
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.practice-modal-phone-link {
+  display: block;
+  width: 100%;
+  background-color: var(--color-blue-600);
+  color: white;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  font-weight: 600;
+  transition: var(--transition-colors);
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  text-decoration: none;
+}
+
+.practice-modal-phone-link:hover {
+  background-color: var(--color-blue-700);
+}
+
+.practice-modal-phone-icon {
+  margin-right: var(--spacing-2);
+}
+
+.practice-modal-close-btn {
+  width: 100%;
+  background-color: #242424;
+  color: var(--color-gray-300);
+  padding-top: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+  cursor: pointer;
+  border: none;
+}
+
+.practice-modal-close-btn:hover {
+  background-color: var(--color-gray-600);
+  color: white;
+}

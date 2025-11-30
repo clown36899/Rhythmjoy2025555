@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import './ScheduleModal.css';
 
 interface Schedule {
   id: number;
@@ -159,101 +160,101 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90svh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
+    <div className="schm-modal-overlay">
+      <div className="schm-modal-container">
+        <div className="schm-modal-body">
+          <div className="schm-header">
             <div>
-              <h2 className="text-xl font-bold text-white">일정 관리</h2>
-              <p className="text-sm text-gray-400">{formattedDate}</p>
+              <h2 className="schm-header-title">일정 관리</h2>
+              <p className="schm-header-date">{formattedDate}</p>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white"
+              className="schm-close-btn"
             >
-              <i className="ri-close-line text-2xl"></i>
+              <i className="ri-close-line schm-close-icon"></i>
             </button>
           </div>
 
           {/* 일정 추가/수정 폼 */}
           {(isAddMode || editingSchedule) ? (
-            <form onSubmit={handleSubmit} className="space-y-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+            <form onSubmit={handleSubmit} className="schm-form">
+              <div className="schm-form-group">
+                <label className="schm-form-label">
                   일정 제목 *
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="schm-form-input"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+              <div className="schm-form-group">
+                <label className="schm-form-label">
                   비밀번호 {editingSchedule ? '(변경 시에만 입력)' : '*'}
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="schm-form-input"
                   required={!editingSchedule}
                   placeholder={editingSchedule ? '새 비밀번호' : '수정/삭제 시 필요'}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+              <div className="schm-time-grid">
+                <div className="schm-form-group">
+                  <label className="schm-form-label">
                     시작 시간
                   </label>
                   <input
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="schm-form-input"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                <div className="schm-form-group">
+                  <label className="schm-form-label">
                     종료 시간
                   </label>
                   <input
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="schm-form-input"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+              <div className="schm-form-group">
+                <label className="schm-form-label">
                   설명
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                  className="schm-form-textarea"
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="schm-button-group">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                  className="schm-cancel-button"
                   disabled={loading}
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                  className="schm-submit-button"
                   disabled={loading}
                 >
                   {loading ? '저장 중...' : editingSchedule ? '수정' : '추가'}
@@ -263,48 +264,48 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
           ) : (
             <button
               onClick={handleAdd}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors mb-4"
+              className="schm-add-button"
             >
-              <i className="ri-add-line mr-1"></i>
+              <i className="ri-add-line schm-add-icon"></i>
               일정 추가
             </button>
           )}
 
           {/* 일정 목록 */}
-          <div className="space-y-2">
+          <div className="schm-schedule-list">
             {schedules.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 text-sm">
+              <div className="schm-empty-state">
                 등록된 일정이 없습니다
               </div>
             ) : (
               schedules.map((schedule) => (
                 <div
                   key={schedule.id}
-                  className="bg-gray-700 rounded-lg p-3 border border-gray-600"
+                  className="schm-schedule-item"
                 >
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="flex-1">
-                      <h3 className="text-white font-medium">{schedule.title}</h3>
+                  <div className="schm-schedule-content">
+                    <div className="schm-schedule-info">
+                      <h3 className="schm-schedule-title">{schedule.title}</h3>
                       {(schedule.start_time || schedule.end_time) && (
-                        <p className="text-sm text-gray-400">
+                        <p className="schm-schedule-time">
                           {schedule.start_time?.substring(0, 5)}
                           {schedule.end_time && ` - ${schedule.end_time.substring(0, 5)}`}
                         </p>
                       )}
                       {schedule.description && (
-                        <p className="text-sm text-gray-400 mt-1">{schedule.description}</p>
+                        <p className="schm-schedule-description">{schedule.description}</p>
                       )}
                     </div>
-                    <div className="flex gap-2 ml-2">
+                    <div className="schm-schedule-actions">
                       <button
                         onClick={() => handleEdit(schedule)}
-                        className="text-blue-400 hover:text-blue-300"
+                        className="schm-edit-button"
                       >
                         <i className="ri-edit-line"></i>
                       </button>
                       <button
                         onClick={() => handleDelete(schedule.id)}
-                        className="text-red-400 hover:text-red-300"
+                        className="schm-delete-button"
                       >
                         <i className="ri-delete-bin-line"></i>
                       </button>

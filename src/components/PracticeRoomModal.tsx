@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import "./PracticeRoomModal.css";
 
 interface PracticeRoom {
   id: number;
@@ -524,33 +525,33 @@ export default function PracticeRoomModal({
   // -------------------------------------------------
   if (selectedRoom) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90svh] overflow-hidden mx-4 flex flex-col relative">
+      <div className="room-modal-overlay">
+        <div className="room-modal-container">
           {/* 닫기 버튼 - 우측 상단 고정 */}
           <button
             onClick={handleCloseDetails}
-            className="absolute top-2 right-2 z-10 flex items-center justify-center w-10 h-10 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors cursor-pointer shadow-lg"
+            className="room-close-btn"
             title="닫기"
           >
-            <i className="ri-close-line text-xl"></i>
+            <i className="ri-close-line room-close-icon"></i>
           </button>
           
           {/* Header with navigation buttons */}
-          <div className="flex-shrink-0 flex items-center justify-between p-2 pr-14 border-b border-gray-200">
+          <div className="room-detail-header">
             {/* 관리자 버튼 */}
-            <div className="flex items-center gap-2">
+            <div className="room-detail-admin-btns">
               {isAdminMode && (
                 <>
                   <button
                     onClick={() => handleEdit(selectedRoom)}
-                    className="flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer text-sm"
+                    className="room-detail-edit-btn"
                   >
                     <i className="ri-edit-line"></i>
                     <span>수정</span>
                   </button>
                   <button
                     onClick={() => handleDelete(selectedRoom.id)}
-                    className="flex items-center justify-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors cursor-pointer text-sm"
+                    className="room-detail-delete-btn"
                   >
                     <i className="ri-delete-bin-line"></i>
                     <span>삭제</span>
@@ -558,54 +559,54 @@ export default function PracticeRoomModal({
                 </>
               )}
             </div>
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="room-detail-title">
               {selectedRoom.name}
             </h2>
           </div>
 
           {/* Gallery & info */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-1 h-full">
+          <div className="room-detail-body">
+            <div className="room-detail-grid">
               {/* Left: Image gallery */}
-              <div className="bg-black flex flex-col">
+              <div className="room-gallery-container">
                 {/* Main image */}
-                <div className="flex-1 relative bg-black flex items-center justify-center max-h-[30vh]">
+                <div className="room-gallery-main">
                   <img
                     src={selectedRoom.images[selectedImageIndex]}
                     alt={`${selectedRoom.name} ${selectedImageIndex + 1}`}
-                    className="max-w-full h-full object-contain"
+                    className="room-gallery-image"
                     onClick={nextImage}
                   />
                   {selectedRoom.images.length > 1 && (
                     <>
                       <button
                         onClick={prevImage}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black bg-opacity-5 text-white p-3 rounded-full hover:bg-opacity-70 transition-colors cursor-pointer"
+                        className="room-gallery-nav-btn room-gallery-nav-btn-left"
                       >
-                        <i className="ri-arrow-left-line text-xl w-6 h-6 flex items-center justify-center"></i>
+                        <i className="ri-arrow-left-line room-gallery-nav-icon"></i>
                       </button>
                       <button
                         onClick={nextImage}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black bg-opacity-5 text-white p-3 rounded-full hover:bg-opacity-70 transition-colors cursor-pointer"
+                        className="room-gallery-nav-btn room-gallery-nav-btn-right"
                       >
-                        <i className="ri-arrow-right-line text-xl w-6 h-6 flex items-center justify-center"></i>
+                        <i className="ri-arrow-right-line room-gallery-nav-icon"></i>
                       </button>
 
                       {/* Image counter */}
-                      <div className="absolute top-4 right-4 bg-black bg-opacity-5 text-white px-3 py-1 rounded-full text-sm">
+                      <div className="room-gallery-counter">
                         {selectedImageIndex + 1} / {selectedRoom.images.length}
                       </div>
 
                       {/* Image indicators */}
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+                      <div className="room-gallery-indicators">
                         {selectedRoom.images.map((_, idx) => (
                           <button
                             key={idx}
                             onClick={() => goToImage(idx)}
-                            className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
+                            className={`room-gallery-indicator ${
                               idx === selectedImageIndex
-                                ? "bg-white"
-                                : "bg-white bg-opacity-50 hover:bg-opacity-75"
+                                ? "room-gallery-indicator-active"
+                                : ""
                             }`}
                           />
                         ))}
@@ -615,22 +616,22 @@ export default function PracticeRoomModal({
                 </div>
 
                 {/* Thumbnail list */}
-                <div className="bg-white p-3">
-                  <div className="flex space-x-2 pb-3 overflow-x-auto">
+                <div className="room-thumbnails-container">
+                  <div className="room-thumbnails-list">
                     {selectedRoom.images.map((image, index) => (
                       <button
                         key={index}
                         onClick={() => setSelectedImageIndex(index)}
-                        className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-colors cursor-pointer ${
+                        className={`room-thumbnail-btn ${
                           selectedImageIndex === index
-                            ? "border-blue-500"
-                            : "border-gray-600 hover:border-gray-400"
+                            ? "room-thumbnail-btn-active"
+                            : "room-thumbnail-btn-inactive"
                         }`}
                       >
                         <img
                           src={image}
                           alt={`썸네일 ${index + 1}`}
-                          className="w-full h-full object-cover object-top"
+                          className="room-thumbnail-image"
                         />
                       </button>
                     ))}
@@ -639,25 +640,25 @@ export default function PracticeRoomModal({
               </div>
 
               {/* Right: Information */}
-              <div className="bg-white px-4 pb-4 flex flex-col">
+              <div className="room-info-container">
                 {/* Address */}
-                <div className="mb-2">
-                  <div className="bg-gray-50 p-2 rounded-lg">
+                <div className="room-address-section">
+                  <div className="room-address-box">
                     {/* Modified address block */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-900 text-sm break-all">
+                    <div className="room-address-content">
+                      <span className="room-address-text">
                         {selectedRoom.address}
                       </span>
-                      <div className="flex gap-2 ml-4 flex-shrink-0">
+                      <div className="room-address-btns">
                         <button
                           onClick={copyAddress}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-colors"
+                          className="room-copy-btn"
                         >
                           복사
                         </button>
                         <button
                           onClick={openMap}
-                          className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs transition-colors"
+                          className="room-map-btn"
                         >
                           지도 바로보기
                         </button>
@@ -667,13 +668,13 @@ export default function PracticeRoomModal({
                 </div>
 
                 {/* Description */}
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                    <i className="ri-information-line w-5 h-5 flex items-center justify-center mr-2 text-blue-600"></i>
+                <div className="room-description-section">
+                  <h3 className="room-description-header">
+                    <i className="ri-information-line room-description-icon"></i>
                     상세 정보
                   </h3>
-                  <div className="p-3 bg-gray-50 rounded-lg overflow-y-auto max-h-[200px]">
-                    <p className="text-gray-700 leading-relaxed break-words whitespace-pre-wrap text-sm">
+                  <div className="room-description-box">
+                    <p className="room-description-text">
                       {selectedRoom.description}
                     </p>
                   </div>
@@ -685,9 +686,9 @@ export default function PracticeRoomModal({
                     href={selectedRoom.additional_link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                    className="room-additional-link"
                   >
-                    <i className="ri-external-link-line mr-2"></i>
+                    <i className="ri-external-link-line room-additional-link-icon"></i>
                     {selectedRoom.additional_link_title || "추가 정보 보기"}
                   </a>
                 )}
@@ -703,66 +704,66 @@ export default function PracticeRoomModal({
   // Main list & admin form
   // -------------------------------------------------
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full mx-4 max-h-[90svh] overflow-y-auto">
-        <div className="p-6">
+    <div className="room-modal-overlay">
+      <div className="room-modal-container-list">
+        <div className="room-list-padding">
           {/* Header */}
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-2xl font-bold text-gray-900">추천연습실</h2>
-            <div className="flex items-center space-x-3">
+          <div className="room-list-header">
+            <h2 className="room-list-title">추천연습실</h2>
+            <div className="room-list-header-btns">
               {isAdminMode && (
                 <button
                   onClick={() => setIsFormOpen(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="room-register-btn"
                 >
                   등록
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="room-list-close-btn"
               >
-                <i className="ri-close-line text-2xl"></i>
+                <i className="ri-close-line room-list-close-icon"></i>
               </button>
             </div>
           </div>
 
           {/* Loading / List */}
           {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="room-loading-container">
+              <div className="room-loading-spinner"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="room-grid">
               {filteredRooms.map((room) => (
                 <div
                   key={room.id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                  className="room-card"
                   onClick={() => handleRoomClick(room)}
                 >
                   <img
                     src={room.images[0]}
                     alt={room.name}
-                    className="w-full h-32 object-cover object-top"
+                    className="room-card-image"
                   />
-                  <div className="p-3">
+                  <div className="room-card-content">
                     <h3
-                      className="text-sm font-semibold text-gray-900 mb-1"
+                      className="room-card-title"
                       title={room.name}
                     >
                       {room.name}
                     </h3>
                     {isAdminMode && (
-                      <div className="flex space-x-1 flex-shrink-0">
+                      <div className="room-card-admin-btns">
                         <button
                           onClick={(e) => handleEditClick(room, e)}
-                          className="py-1 px-2 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700 transition-colors cursor-pointer"
+                          className="room-card-edit-btn"
                         >
                           수정
                         </button>
                         <button
                           onClick={(e) => handleDeleteClick(room, e)}
-                          className="py-1 px-2 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors cursor-pointer"
+                          className="room-card-delete-btn"
                         >
                           삭제
                         </button>
@@ -773,7 +774,7 @@ export default function PracticeRoomModal({
               ))}
             </div>
           )}
-          <div className="pt-3 text-center text-gray-700 text-sm">
+          <div className="room-contact-info">
             연습실 등록문의{" "}
             <a
               href="tel:010-4801-7180"
@@ -789,7 +790,7 @@ export default function PracticeRoomModal({
                   });
                 }
               }}
-              className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+              className="room-contact-link"
             >
               010-4801-7180
             </a>
@@ -799,11 +800,11 @@ export default function PracticeRoomModal({
 
       {/* Register / Edit form modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] overflow-y-auto">
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-white">
+        <div className="room-modal-overlay-high">
+          <div className="room-modal-container-form">
+            <div className="room-form-padding">
+              <div className="room-form-header">
+                <h3 className="room-form-title">
                   {editingRoom ? "연습실 수정" : "연습실 등록"}
                 </h3>
                 <button
@@ -812,16 +813,16 @@ export default function PracticeRoomModal({
                     setEditingRoom(null);
                     setImageItems([]);
                   }}
-                  className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  className="room-form-close-btn"
                 >
-                  <i className="ri-close-line text-xl"></i>
+                  <i className="ri-close-line room-form-close-icon"></i>
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="room-form">
                 {/* Name */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                <div className="room-form-group">
+                  <label className="room-form-label">
                     연습실 이름 *
                   </label>
                   <input
@@ -830,13 +831,13 @@ export default function PracticeRoomModal({
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="room-form-input"
                   />
                 </div>
 
                 {/* Address */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                <div className="room-form-group">
+                  <label className="room-form-label">
                     주소 *
                   </label>
                   <input
@@ -845,13 +846,13 @@ export default function PracticeRoomModal({
                     value={formData.address}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="room-form-input"
                   />
                 </div>
 
                 {/* Address Link */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                <div className="room-form-group">
+                  <label className="room-form-label">
                     주소 링크
                   </label>
                   <input
@@ -859,14 +860,14 @@ export default function PracticeRoomModal({
                     name="address_link"
                     value={formData.address_link}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="room-form-input"
                     placeholder="https://..."
                   />
                 </div>
 
                 {/* 추가 링크 */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                <div className="room-form-group">
+                  <label className="room-form-label">
                     추가 링크 (선택사항)
                   </label>
                   <input
@@ -874,7 +875,7 @@ export default function PracticeRoomModal({
                     name="additional_link"
                     value={formData.additional_link}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                    className="room-form-input room-form-link-spacing"
                     placeholder="추가 정보 링크 URL"
                   />
                   <input
@@ -882,14 +883,14 @@ export default function PracticeRoomModal({
                     name="additional_link_title"
                     value={formData.additional_link_title}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="room-form-input"
                     placeholder="링크 버튼 제목 (예: 예약하기, 더보기 등)"
                   />
                 </div>
 
                 {/* Description */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                <div className="room-form-group">
+                  <label className="room-form-label">
                     설명
                   </label>
                   <textarea
@@ -897,14 +898,14 @@ export default function PracticeRoomModal({
                     value={formData.description}
                     onChange={handleInputChange}
                     rows={4}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="room-form-textarea"
                     placeholder="연습실에 대한 상세 설명을 입력하세요..."
                   />
                 </div>
 
                 {/* Image Upload */}
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1">
+                <div className="room-form-group">
+                  <label className="room-form-label">
                     이미지 (최대 7장)
                   </label>
                   <input
@@ -912,21 +913,21 @@ export default function PracticeRoomModal({
                     accept="image/*"
                     multiple
                     onChange={handleImageChange}
-                    className="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                    className="room-file-input"
                   />
 
                   {/* Image Previews with Drag & Drop */}
                   {imageItems.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-gray-400 text-xs mb-2">
+                    <div className="room-image-preview-container">
+                      <p className="room-drag-hint">
                         드래그하여 순서를 변경할 수 있습니다
                       </p>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="room-image-grid">
                         {imageItems.map((item, index) => (
                           <div
                             key={item.id}
-                            className={`relative cursor-move ${
-                              draggedIndex === index ? "opacity-50" : ""
+                            className={`room-image-item ${
+                              draggedIndex === index ? "room-image-item-dragging" : ""
                             }`}
                             draggable
                             onDragStart={(e) => handleDragStart(e, index)}
@@ -937,22 +938,22 @@ export default function PracticeRoomModal({
                             <img
                               src={item.url}
                               alt={`Preview ${index + 1}`}
-                              className="w-full h-20 object-cover rounded-lg border-2 border-gray-600 hover:border-gray-400 transition-colors"
+                              className="room-preview-image"
                             />
                             <button
                               type="button"
                               onClick={() => removeImage(item.id)}
-                              className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-700 transition-colors cursor-pointer"
+                              className="room-image-remove-btn"
                             >
-                              <i className="ri-close-line text-xs"></i>
+                              <i className="ri-close-line room-image-remove-icon"></i>
                             </button>
                             {/* 순서 표시 */}
-                            <div className="absolute top-1 left-1 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                            <div className="room-image-order">
                               {index + 1}
                             </div>
                             {/* 드래그 아이콘 */}
-                            <div className="absolute bottom-1 right-1 bg-gray-800 bg-opacity-70 text-white rounded p-1">
-                              <i className="ri-drag-move-line text-xs"></i>
+                            <div className="room-image-drag-icon">
+                              <i className="ri-drag-move-line room-drag-icon"></i>
                             </div>
                           </div>
                         ))}
@@ -962,7 +963,7 @@ export default function PracticeRoomModal({
                 </div>
 
                 {/* Submit Button */}
-                <div className="flex justify-end space-x-3 pt-4">
+                <div className="room-form-btns">
                   <button
                     type="button"
                     onClick={() => {
@@ -970,13 +971,13 @@ export default function PracticeRoomModal({
                       setEditingRoom(null);
                       setImageItems([]);
                     }}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    className="room-form-cancel-btn"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="room-form-submit-btn"
                   >
                     저장
                   </button>

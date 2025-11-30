@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import './SocialEventModal.css';
 
 interface SocialEventModalProps {
   onClose: () => void;
@@ -82,34 +83,34 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-        <form onSubmit={handleSubmit} className="modal-form">
-          <h2 className="modal-title">새 소셜 일정 등록</h2>
+    <div className="sem-modal-overlay" onClick={onClose}>
+      <div className="sem-modal-container" onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSubmit} className="sem-modal-form">
+          <h2 className="sem-modal-title">새 소셜 일정 등록</h2>
           
-          <input type="text" placeholder="일정 제목 *" value={title} onChange={(e) => setTitle(e.target.value)} required className="form-input" />
-          <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required className="form-input" />
+          <input type="text" placeholder="일정 제목 *" value={title} onChange={(e) => setTitle(e.target.value)} required className="sem-form-input" />
+          <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required className="sem-form-input" />
           
-          <select value={placeId} onChange={(e) => setPlaceId(Number(e.target.value))} required className="form-select">
+          <select value={placeId} onChange={(e) => setPlaceId(Number(e.target.value))} required className="sem-form-select">
             <option value="" disabled>장소 선택 *</option>
             {places.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
 
-          <textarea placeholder="간단한 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="form-textarea" rows={2}></textarea>
+          <textarea placeholder="간단한 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="sem-form-textarea" rows={2}></textarea>
           
-          <input type="password" placeholder="비밀번호 (수정/삭제 시 필요) *" value={password} onChange={(e) => setPassword(e.target.value)} required className="form-input" />
+          <input type="password" placeholder="비밀번호 (수정/삭제 시 필요) *" value={password} onChange={(e) => setPassword(e.target.value)} required className="sem-form-input" />
 
           <div>
-            <label className="form-label">일정 이미지 (1:1 비율) *</label>
-            <input type="file" accept="image/*" onChange={handleImageChange} required className="form-input" style={{padding: '0.3rem'}} />
-            {imagePreview && <img src={imagePreview} alt="이미지 미리보기" className="mt-2 w-24 h-24 object-cover rounded-lg" />}
+            <label className="sem-form-label">일정 이미지 (1:1 비율) *</label>
+            <input type="file" accept="image/*" onChange={handleImageChange} required className="sem-form-input" style={{padding: '0.3rem'}} />
+            {imagePreview && <img src={imagePreview} alt="이미지 미리보기" className="sem-image-preview" />}
           </div>
 
-          {error && <p className="error-message">{error}</p>}
+          {error && <p className="sem-error-message">{error}</p>}
 
-          <div className="form-button-group">
-            <button type="button" onClick={onClose} className="cancel-button">취소</button>
-            <button type="submit" disabled={loading} className="submit-button">
+          <div className="sem-button-group">
+            <button type="button" onClick={onClose} className="sem-cancel-button">취소</button>
+            <button type="submit" disabled={loading} className="sem-submit-button">
               {loading ? '등록 중...' : '등록'}
             </button>
           </div>

@@ -1,33 +1,34 @@
 import { memo } from "react";
 import type { Event as BaseEvent } from "../../../lib/supabase";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
+import "./EventCard.css";
 
 interface Event extends BaseEvent {
   genre?: string | null;
 }
 
 const genreColorPalette = [
-  'text-red-400',
-  'text-orange-400',
-  'text-amber-400',
-  'text-yellow-400',
-  'text-lime-400',
-  'text-green-400',
-  'text-emerald-400',
-  'text-teal-400',
-  'text-cyan-400',
-  'text-sky-400',
-  'text-blue-400',
-  'text-indigo-400',
-  'text-violet-400',
-  'text-purple-400',
-  'text-fuchsia-400',
-  'text-pink-400',
-  'text-rose-400',
+  'card-genre-red',
+  'card-genre-orange',
+  'card-genre-amber',
+  'card-genre-yellow',
+  'card-genre-lime',
+  'card-genre-green',
+  'card-genre-emerald',
+  'card-genre-teal',
+  'card-genre-cyan',
+  'card-genre-sky',
+  'card-genre-blue',
+  'card-genre-indigo',
+  'card-genre-violet',
+  'card-genre-purple',
+  'card-genre-fuchsia',
+  'card-genre-pink',
+  'card-genre-rose',
 ];
 
 function getGenreColor(genre: string): string {
-  if (!genre) return 'text-gray-400';
+  if (!genre) return 'card-genre-gray';
   let hash = 0;
   for (let i = 0; i < genre.length; i++) {
     hash = genre.charCodeAt(i) + ((hash << 5) - hash);
@@ -140,28 +141,28 @@ export const EventCard = memo(({
       onClick={onClick}
       onMouseEnter={() => onMouseEnter?.(event.id)}
       onMouseLeave={onMouseLeave}
-      className={`group cursor-pointer transition-all duration-200 ${
-        isPast ? "opacity-60" : ""
-      }`}
+      className={`card-container ${isPast ? "card-container-past" : ""}`}
     >
       <div
-        className={`relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-800 transition-all duration-200 ${
-          isHighlighted ? "ring-2 ring-offset-2 ring-offset-gray-900" : ""
+        className={`card-image-wrapper ${
+          isHighlighted ? "card-image-wrapper-highlighted" : ""
         }`}
-        style={{ borderColor: isHighlighted ? highlightBorderColor : "transparent" }}
+        style={{ 
+          "--highlight-color": isHighlighted ? highlightBorderColor : "transparent" 
+        } as React.CSSProperties}
       >
         {thumbnailUrl ? (
           <>
             <img
               src={thumbnailUrl}
               alt={event.title}
-              loading="lazy"  // 이미지가 뷰포트에 가까워질 때 로딩을 시작합니다.
-              decoding="async" // 이미지 디코딩을 다른 작업과 병렬로 처리합니다.
-              className="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
+              className="card-image"
             />
             {variant === "sliding" && !event?.image && !event?.image_thumbnail && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-white/50 text-4xl font-bold">
+              <div className="card-overlay-center">
+                <span className="card-overlay-text-semi">
                   {event.category === "class" ? "강습" : "행사"}
                 </span>
               </div>
@@ -169,7 +170,7 @@ export const EventCard = memo(({
           </>
         ) : (
           <div
-            className="h-full w-full flex items-center justify-center bg-cover bg-center"
+            className="card-placeholder-bg"
             style={{
               backgroundImage: "url(/grunge.png)",
             }}
@@ -177,23 +178,23 @@ export const EventCard = memo(({
             <div
               className={`absolute inset-0 ${
                 event.category === "class"
-                  ? "bg-purple-500/30"
-                  : "bg-blue-500/30"
+                  ? "card-bg-overlay-purple"
+                  : "card-bg-overlay-blue"
               }`}
             ></div>
-            <span className="text-white/10 text-4xl font-bold relative">
+            <span className="card-overlay-text-faint">
               {event.category === "class" ? "강습" : "행사"}
             </span>
           </div>
         )}
 
         <div
-          className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${
+          className={`card-badge ${
             isPast
-              ? "bg-gray-500/80"
+              ? "card-badge-past"
               : event.category === "class"
-                ? "bg-purple-600/80"
-                : "bg-blue-600/80"
+                ? "card-badge-class"
+                : "card-badge-event"
           }`}
         >
           {isPast ? "종료" : event.category === "class" ? "강습" : "행사"}
@@ -201,17 +202,16 @@ export const EventCard = memo(({
 
       </div>
 
-      {/* Text content */}
-      <div className="pt-2">
+      <div className="card-text-container">
         {event.genre && (
-          <p className={`truncate text-[1.1rem] font-semibold ${getGenreColor(event.genre)} mb-0.5`}>
+          <p className={`card-genre-text ${getGenreColor(event.genre)}`}>
             {event.genre}
           </p>
         )}
-        <h3 className="truncate text-sm font-bold text-gray-100">{event.title}</h3>
-        <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-400">
+        <h3 className="card-title-text">{event.title}</h3>
+        <div className="card-date-container">
           {isOnSelectedDate && (
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
+            <span className="card-date-indicator"></span>
           )}
           <span>{dateText}</span>
         </div>

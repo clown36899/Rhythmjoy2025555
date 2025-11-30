@@ -1,6 +1,7 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle, memo } from "react";
 import { log, warn } from "../utils/logger";
 import type { YouTubePlayerHandle } from "../types";
+import "./YouTubePlayer.css";
 
 interface YouTubePlayerProps {
   videoId: string;
@@ -287,7 +288,7 @@ const YouTubePlayer = memo(forwardRef<YouTubePlayerHandle, YouTubePlayerProps>((
     };
   }, [apiReady, videoId, onPlayingCallback, isVisible, slideIndex, onEndedCallback, onPlayerError]);
 
-  return <div id={`yt-player-${slideIndex}`} className="w-full h-full" />;
+  return <div id={`yt-player-${slideIndex}`} className="ytp-container" />;
 }), (prevProps, nextProps) => {
   const shouldSkipRender = prevProps.videoId === nextProps.videoId && 
                            prevProps.apiReady === nextProps.apiReady &&

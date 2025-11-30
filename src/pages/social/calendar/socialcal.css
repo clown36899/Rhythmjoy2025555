@@ -1,0 +1,236 @@
+/* socialcal.css - SocialCalendarPage 전용 스타일 */
+
+/* ===== 페이지 컨테이너 ===== */
+.socialcal-page-container {
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+/* ===== 헤더 ===== */
+.socialcal-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+.socialcal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+}
+
+/* ===== 컨텐츠 영역 ===== */
+.socialcal-content {
+  padding-top: 7rem;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+/* ===== 로딩 ===== */
+.socialcal-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16rem;
+}
+
+.socialcal-loading-text {
+  color: #9ca3af;
+}
+
+/* ===== 달력 헤더 ===== */
+.socialcal-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-4);
+}
+
+.socialcal-nav-btn {
+  padding: 0.5rem;
+  color: white;
+  border-radius: var(--radius-lg);
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+.socialcal-nav-btn:hover {
+  background-color: #374151;
+}
+
+.socialcal-month-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+}
+
+/* ===== 요일 헤더 ===== */
+.socialcal-weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.socialcal-weekday {
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.5rem;
+}
+
+.socialcal-weekday-sun {
+  color: #ef4444;
+}
+
+.socialcal-weekday-sat {
+  color: #3b82f6;
+}
+
+.socialcal-weekday-normal {
+  color: #9ca3af;
+}
+
+/* ===== 달력 그리드 ===== */
+.socialcal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+}
+
+.socialcal-empty-cell {
+  aspect-ratio: 1;
+}
+
+.socialcal-day-cell {
+  aspect-ratio: 1;
+  background-color: #1f2937;
+  border-radius: var(--radius-lg);
+  padding: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  overflow: hidden;
+}
+
+.socialcal-day-cell:hover {
+  background-color: #374151;
+}
+
+.socialcal-day-cell-today {
+  border: 2px solid #10b981;
+}
+
+.socialcal-day-number {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.socialcal-day-number-sun {
+  color: #ef4444;
+}
+
+.socialcal-day-number-sat {
+  color: #3b82f6;
+}
+
+.socialcal-day-number-normal {
+  color: white;
+}
+
+/* ===== 이벤트 표시 ===== */
+.socialcal-events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.socialcal-event-item {
+  font-size: 8px;
+  background-color: #16a34a;
+  color: white;
+  padding: 0 0.25rem;
+  border-radius: 0.125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.socialcal-more-events {
+  font-size: 8px;
+  color: #9ca3af;
+  padding: 0 0.25rem;
+}
+
+/* ===== 일정 목록 ===== */
+.socialcal-event-list {
+  margin-top: 1.5rem;
+}
+
+.socialcal-event-list-title {
+  color: white;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.socialcal-event-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.socialcal-event-list-empty {
+  color: #9ca3af;
+  text-align: center;
+  padding: 2rem;
+}
+
+.socialcal-event-card {
+  background-color: #1f2937;
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+}
+
+.socialcal-event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.25rem;
+}
+
+.socialcal-event-title {
+  font-weight: 700;
+  color: white;
+}
+
+.socialcal-event-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.socialcal-event-place {
+  font-size: 0.875rem;
+  color: #10b981;
+  margin-bottom: 0.25rem;
+}
+
+.socialcal-event-time {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.socialcal-event-description {
+  font-size: 0.75rem;
+  color: #d1d5db;
+  margin-top: 0.5rem;
+}

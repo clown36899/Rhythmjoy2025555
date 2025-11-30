@@ -1,0 +1,90 @@
+/* shopping.css - ShoppingPage 컴포넌트 전용 스타일 */
+
+/* ===== 페이지 컨테이너 ===== */
+.shop-page-container {
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+/* ===== 헤더 ===== */
+.shop-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: var(--z-30);
+  border-bottom: 1px solid #22262a;
+}
+
+/* ===== 등록 버튼 영역 ===== */
+.shop-register-section {
+  position: fixed;
+  top: 4rem;
+  left: 0;
+  right: 0;
+  z-index: var(--z-20);
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+  padding-top: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.shop-register-btn {
+  width: 100%;
+  background-color: var(--color-blue-600);
+  color: white;
+  font-weight: 600;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.shop-register-btn:hover {
+  background-color: var(--color-blue-700);
+}
+
+.shop-register-icon {
+  margin-right: 0.25rem;
+}
+
+/* ===== 쇼핑몰 목록 영역 ===== */
+.shop-list-section {
+  padding-top: 8rem;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+/* ===== 로딩 및 빈 상태 ===== */
+.shop-loading-container {
+  text-align: center;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+  color: var(--color-gray-400);
+}
+
+.shop-empty-container {
+  text-align: center;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+  color: var(--color-gray-400);
+}
+
+/* ===== 그리드 레이아웃 ===== */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-6);
+}
+
+@media (min-width: 768px) {
+  .shop-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

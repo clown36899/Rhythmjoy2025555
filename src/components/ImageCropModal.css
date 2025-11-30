@@ -1,0 +1,225 @@
+/* ImageCropModal.css - ImageCropModal 컴포넌트 전용 스타일 */
+
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  
+  --color-yellow-600: #ca8a04;
+  --color-yellow-700: #a16207;
+  
+  /* 간격 */
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  
+  /* Z-index */
+  --z-crop-modal: 10000001;
+  --z-crop-header: 10;
+  
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
+/* ===== 모달 오버레이 ===== */
+.crop-modal-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-crop-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.9);
+  padding: var(--spacing-4);
+}
+
+/* ===== 모달 컨테이너 ===== */
+.crop-modal-container {
+  background-color: var(--color-gray-900);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 56rem;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== 모달 헤더 ===== */
+.crop-modal-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--color-gray-900);
+  border-bottom: 1px solid var(--color-gray-700);
+  padding: var(--spacing-4) var(--spacing-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: var(--z-crop-header);
+}
+
+.crop-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+}
+
+.crop-modal-title-icon {
+  margin-right: var(--spacing-2);
+}
+
+.crop-modal-close-btn {
+  color: var(--color-gray-400);
+  transition: var(--transition-colors);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.crop-modal-close-btn:hover {
+  color: white;
+}
+
+.crop-modal-close-icon {
+  font-size: 1.5rem;
+}
+
+/* ===== 크롭 영역 ===== */
+.crop-area-container {
+  padding: var(--spacing-4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: black;
+  height: calc(90vh - 240px);
+}
+
+.crop-area-wrapper {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crop-image {
+  max-height: calc(90vh - 240px);
+  width: auto;
+  height: auto;
+}
+
+/* ===== 모달 푸터 ===== */
+.crop-modal-footer {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--color-gray-900);
+  border-top: 1px solid var(--color-gray-700);
+  padding: var(--spacing-3) var(--spacing-4);
+}
+
+.crop-footer-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.crop-button-row {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+/* ===== 비율 선택 버튼 ===== */
+.crop-ratio-btn {
+  flex: 1;
+  padding: 0.375rem var(--spacing-3);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: var(--transition-colors);
+  border: none;
+  cursor: pointer;
+}
+
+.crop-ratio-btn-active {
+  background-color: var(--color-blue-600);
+  color: white;
+}
+
+.crop-ratio-btn-inactive {
+  background-color: var(--color-gray-800);
+  color: var(--color-gray-300);
+}
+
+.crop-ratio-btn-inactive:hover {
+  background-color: var(--color-gray-700);
+}
+
+.crop-ratio-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ===== 액션 버튼 ===== */
+.crop-action-btn {
+  flex: 1;
+  padding: 0.5rem var(--spacing-3);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: var(--transition-colors);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.crop-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.crop-cancel-btn {
+  background-color: var(--color-gray-700);
+  color: white;
+}
+
+.crop-cancel-btn:hover:not(:disabled) {
+  background-color: var(--color-gray-600);
+}
+
+.crop-restore-btn {
+  background-color: var(--color-yellow-600);
+  color: white;
+}
+
+.crop-restore-btn:hover:not(:disabled) {
+  background-color: var(--color-yellow-700);
+}
+
+.crop-confirm-btn {
+  background-color: var(--color-green-600);
+  color: white;
+}
+
+.crop-confirm-btn:hover:not(:disabled) {
+  background-color: var(--color-green-700);
+}

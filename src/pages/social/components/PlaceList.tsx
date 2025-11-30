@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SocialPlace } from '../types';
 import PlaceModal from './PlaceModal';
 import { useAuth } from '../../../contexts/AuthContext';
+import './PlaceList.css';
 
 interface PlaceListProps {
   places: SocialPlace[];
@@ -46,35 +47,35 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
   };
 
   return (
-    <div className="place-list-container">
+    <div className="pl-container">
       {/* 헤더 */}
-      <div className="place-list-header">
-        <h2 className="list-title">목록</h2>
-        <button onClick={handleAddClick} className="add-place-button">
-          <i className="ri-add-line mr-1"></i>
+      <div className="pl-header">
+        <h2 className="pl-title">목록</h2>
+        <button onClick={handleAddClick} className="pl-add-button">
+          <i className="ri-add-line pl-add-icon"></i>
           장소 등록
         </button>
 
         {/* 관리자 아닐 때 안내 모달 */}
         {showAuthWarning && (
           <div 
-            className="modal-overlay"
+            className="pl-modal-overlay"
             onClick={() => setShowAuthWarning(false)}
           >
             <div 
-              className="modal-container"
+              className="pl-modal-container"
               onClick={(e) => e.stopPropagation()}
             >
-              <div style={{textAlign: 'center'}}>
-                <i className="ri-lock-line text-4xl text-yellow-500 mb-3"></i>
-                <h3 className="modal-title" style={{marginBottom: '0.5rem'}}>관리자 권한 필요</h3>
-                <p style={{color: '#9ca3af', fontSize: '0.875rem', marginBottom: '1rem'}}>
+              <div className="pl-modal-content">
+                <i className="ri-lock-line pl-modal-icon"></i>
+                <h3 className="pl-modal-title">관리자 권한 필요</h3>
+                <p className="pl-modal-text">
                   장소 등록은 관리자만 가능합니다.<br/>
-                  문의: <span className="text-blue-400">010-4801-7180</span>
+                  문의: <span className="pl-modal-contact">010-4801-7180</span>
                 </p>
                 <button
                   onClick={() => setShowAuthWarning(false)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors w-full"
+                  className="pl-modal-button"
                 >
                   확인
                 </button>
@@ -86,27 +87,27 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
 
       {/* 장소 리스트 - 한 줄로 압축 */}
       {places.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="pl-empty-state">
           등록된 장소가 없습니다.
         </div>
       ) : (
-        <div className="places-grid">
+        <div className="pl-grid">
           {places.map((place) => (
-            <div key={place.id} className="place-card">
+            <div key={place.id} className="pl-card">
                 <div 
                   onClick={() => onPlaceSelect(place)}
-                  className="place-card-main"
+                  className="pl-card-main"
                 >
-                    <h3 className="place-name">{place.name}</h3>
-                    <p className="place-address-preview">
+                    <h3 className="pl-card-name">{place.name}</h3>
+                    <p className="pl-card-address">
                     {place.address.split(' ').slice(0, 3).join(' ')}
                   </p>
                 </div>
                 
                 {/* 액션 버튼 */}
-                <div className="place-actions">
-                <button onClick={(e) => { e.stopPropagation(); onViewCalendar(place); }} className="action-button" title="일정 보기">
-                  <i className="ri-calendar-2-line calendar-icon"></i>
+                <div className="pl-actions">
+                <button onClick={(e) => { e.stopPropagation(); onViewCalendar(place); }} className="pl-action-button" title="일정 보기">
+                  <i className="ri-calendar-2-line pl-icon-calendar"></i>
                 </button>
                   {/* 네이버지도 바로가기 */}
                   <a
@@ -114,10 +115,10 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="action-button"
+                    className="pl-action-button"
                     title="네이버지도에서 보기"
                   >
-                    <i className="ri-road-map-line map-icon"></i>
+                    <i className="ri-road-map-line pl-icon-map"></i>
                   </a>
                   
                   {/* 공유 버튼 */}
@@ -126,10 +127,10 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
                       e.stopPropagation();
                       handleShare(place);
                     }}
-                    className="action-button"
+                    className="pl-action-button"
                     title="공유하기"
                   >
-                    <i className="ri-share-line share-icon"></i>
+                    <i className="ri-share-line pl-icon-share"></i>
                   </button>
                 </div>
             </div>

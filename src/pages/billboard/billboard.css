@@ -1,0 +1,290 @@
+/* billboard.css - BillboardPage 컴포넌트 전용 스타일 */
+
+/* ===== 페이지 컨테이너 ===== */
+.billboard-page {
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+/* ===== 로딩 화면 ===== */
+.billboard-loading-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.billboard-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+
+.billboard-spinner-container {
+  position: relative;
+  width: var(--spacing-20);
+  height: var(--spacing-20);
+}
+
+.billboard-spinner-bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border: 4px solid var(--color-gray-700);
+  border-radius: 9999px;
+}
+
+.billboard-spinner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border: 4px solid transparent;
+  border-top-color: white;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  border-radius: 9999px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.billboard-loading-text {
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 300;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ===== 에러 화면 ===== */
+.billboard-error-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.billboard-error-text {
+  color: #ef4444;
+  font-size: 1.5rem;
+  text-align: center;
+  padding: var(--spacing-8);
+}
+
+/* ===== 빈 화면 ===== */
+.billboard-empty-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.billboard-empty-content {
+  color: white;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.billboard-empty-username {
+  margin-bottom: var(--spacing-4);
+}
+
+.billboard-empty-message {
+  color: #9ca3af;
+  font-size: 1.125rem;
+}
+
+/* ===== 슬라이드 컨테이너 ===== */
+.portrait-container {
+  /* 스타일은 인라인으로 동적 설정 */
+}
+
+/* ===== 이미지 스타일 ===== */
+.billboard-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.billboard-youtube-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== 정보 레이어 ===== */
+.billboard-top-info {
+  position: absolute;
+}
+
+.billboard-progress-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.billboard-pulse-outer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 9999px;
+}
+
+.billboard-pulse-inner {
+  position: absolute;
+  border-radius: 9999px;
+}
+
+.billboard-slide-number {
+  position: relative;
+  color: white;
+  font-weight: 700;
+  z-index: var(--z-10);
+}
+
+.billboard-status-badge {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  position: relative;
+  width: max-content;
+}
+
+/* ===== 하단 정보 레이어 ===== */
+.billboard-bottom-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  z-index: var(--z-10);
+}
+
+.info-background {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 40%, transparent 100%);
+}
+
+.billboard-info-wrapper {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.billboard-info-wrapper-between {
+  justify-content: space-between;
+}
+
+.billboard-info-wrapper-end {
+  justify-content: flex-end;
+}
+
+.billboard-text-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+}
+
+.billboard-title {
+  color: white;
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: keep-all;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.billboard-date {
+  color: #60a5fa;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.billboard-date-icon {
+  display: inline-block;
+}
+
+.billboard-location {
+  color: #d1d5db;
+  line-height: 1.2;
+}
+
+.billboard-location-icon {
+  display: inline-block;
+}
+
+.billboard-qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7));
+}
+
+.billboard-qr-label {
+  color: white;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.billboard-qr-wrapper {
+  background-color: white;
+  border-radius: var(--radius-lg);
+}
+
+/* ===== 애니메이션 (인라인 스타일에 정의됨) ===== */
+/* billboard-pulse, float1, float2, diamond, diamond2, particle1, particle2, particle3, 
+   drawLine, slideInLeft, slideInRight, zoomInUp, fadeInScale, qrBounce 등은 
+   컴포넌트 내 <style> 태그에 정의되어 있음 */

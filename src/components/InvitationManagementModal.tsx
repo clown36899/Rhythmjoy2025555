@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import './InvitationManagementModal.css';
 
 interface Invitation {
   id: string;
@@ -140,39 +141,39 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
-      <div className="bg-gradient-to-br from-purple-900/95 to-blue-900/95 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90svh] overflow-hidden border border-purple-500/30">
+    <div className="im-modal-overlay">
+      <div className="im-modal-container">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+        <div className="im-header">
+          <h3 className="im-header-title">
             <i className="ri-mail-send-line"></i>
             초대 관리
           </h3>
           <button
             onClick={onClose}
-            className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+            className="im-close-btn"
           >
-            <i className="ri-close-line text-2xl"></i>
+            <i className="ri-close-line im-close-icon"></i>
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <div className="im-body">
           {/* Create Invitation Form */}
-          <div className="bg-white/10 rounded-lg p-6 mb-6">
-            <h4 className="text-lg font-semibold text-white mb-4">새 초대 생성</h4>
-            <form onSubmit={createInvitation} className="space-y-3">
+          <div className="im-form-section">
+            <h4 className="im-form-title">새 초대 생성</h4>
+            <form onSubmit={createInvitation} className="im-form">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="초대할 이메일 주소"
-                className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="im-email-input"
                 disabled={loading}
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="im-submit-btn"
               >
                 {loading ? '생성 중...' : '초대 생성'}
               </button>
@@ -181,40 +182,42 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
 
           {/* Invitations List */}
           <div>
-            <h4 className="text-lg font-semibold text-white mb-4">초대 목록</h4>
+            <h4 className="im-list-title">초대 목록</h4>
             {loading && invitations.length === 0 ? (
-              <p className="text-white/60 text-center py-8">불러오는 중...</p>
+              <p className="im-loading-text">불러오는 중...</p>
             ) : invitations.length === 0 ? (
-              <p className="text-white/60 text-center py-8">아직 초대가 없습니다</p>
+              <p className="im-empty-text">아직 초대가 없습니다</p>
             ) : (
-              <div className="space-y-3">
+              <div className="im-list-container">
                 {invitations.map((inv) => (
                   <div
                     key={inv.id}
-                    className="bg-white/10 rounded-lg p-4 border border-white/20"
+                    className="im-invite-card"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-white font-semibold text-sm break-all">{inv.email}</span>
-                        {inv.used ? (
-                          <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30 whitespace-nowrap">
-                            초대 수락
-                          </span>
-                        ) : new Date(inv.expires_at) < new Date() ? (
-                          <span className="px-2 py-1 bg-red-500/20 text-red-300 text-xs rounded-full border border-red-500/30 whitespace-nowrap">
-                            만료됨
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-500/30 whitespace-nowrap">
-                            활성
-                          </span>
-                        )}
+                    <div className="im-card-main">
+                      <div className="im-card-email-row">
+                        <div className="im-email-area">
+                          <span className="im-email-text">{inv.email}</span>
+                          {inv.used ? (
+                            <span className="im-badge im-badge-accepted">
+                              초대 수락
+                            </span>
+                          ) : new Date(inv.expires_at) < new Date() ? (
+                            <span className="im-badge im-badge-expired">
+                              만료됨
+                            </span>
+                          ) : (
+                            <span className="im-badge im-badge-active">
+                              활성
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                      <div className="im-action-area">
                         {!inv.used && new Date(inv.expires_at) >= new Date() && (
                           <button
                             onClick={() => copyInviteUrl(inv.token)}
-                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                            className="im-copy-btn"
                           >
                             <i className={copiedToken === inv.token ? "ri-check-line" : "ri-file-copy-line"}></i>
                             {copiedToken === inv.token ? '복사됨!' : '링크 복사'}
@@ -222,14 +225,14 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
                         )}
                         <button
                           onClick={() => deleteInvitation(inv.id, inv.email, inv.used)}
-                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                          className="im-delete-btn"
                         >
                           <i className="ri-delete-bin-line"></i>
                           삭제
                         </button>
                       </div>
                     </div>
-                    <div className="text-xs text-white/60 space-y-1">
+                    <div className="im-card-info">
                       <p>생성일: {new Date(inv.created_at).toLocaleString('ko-KR')}</p>
                       <p>만료일: {new Date(inv.expires_at).toLocaleString('ko-KR')}</p>
                     </div>

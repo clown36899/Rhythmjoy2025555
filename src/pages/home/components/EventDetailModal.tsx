@@ -13,27 +13,27 @@ interface Event extends BaseEvent {
 }
 
 const genreColorPalette = [
-  'text-red-400',
-  'text-orange-400',
-  'text-amber-400',
-  'text-yellow-400',
-  'text-lime-400',
-  'text-green-400',
-  'text-emerald-400',
-  'text-teal-400',
-  'text-cyan-400',
-  'text-sky-400',
-  'text-blue-400',
-  'text-indigo-400',
-  'text-violet-400',
-  'text-purple-400',
-  'text-fuchsia-400',
-  'text-pink-400',
-  'text-rose-400',
+  'genre-color-red',
+  'genre-color-orange',
+  'genre-color-amber',
+  'genre-color-yellow',
+  'genre-color-lime',
+  'genre-color-green',
+  'genre-color-emerald',
+  'genre-color-teal',
+  'genre-color-cyan',
+  'genre-color-sky',
+  'genre-color-blue',
+  'genre-color-indigo',
+  'genre-color-violet',
+  'genre-color-purple',
+  'genre-color-fuchsia',
+  'genre-color-pink',
+  'genre-color-rose',
 ];
 
 function getGenreColor(genre: string): string {
-  if (!genre) return 'text-gray-400';
+  if (!genre) return 'genre-color-gray';
   let hash = 0;
   for (let i = 0; i < genre.length; i++) {
     hash = genre.charCodeAt(i) + ((hash << 5) - hash);
@@ -194,7 +194,7 @@ export default function EventDetailModal({
               >
                 {/* 장르 표시 */}
                 {selectedEvent.genre && (
-                  <p className={`text-sm font-bold ${getGenreColor(selectedEvent.genre)} mb-1`}>
+                  <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
                     {selectedEvent.genre}
                   </p>
                 )}
@@ -291,17 +291,17 @@ export default function EventDetailModal({
                 {selectedEvent.location && (
                   <div className="info-item">
                     <i className="ri-map-pin-line info-icon"></i>
-                    <div className="flex items-center gap-1">
+                    <div className="info-flex-gap-1">
                       <span>{selectedEvent.location}</span>
                       {selectedEvent.location_link && (
                         <a
                           href={selectedEvent.location_link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1 hover:bg-blue-600/20 rounded transition-colors" // Kept for simplicity, could be a class
+                          className="location-link"
                           title="지도 보기"
                         >
-                          <i className="ri-external-link-line text-blue-400 text-lg"></i>
+                          <i className="ri-external-link-line location-link-icon"></i>
                         </a>
                       )}
                     </div>
@@ -347,7 +347,7 @@ export default function EventDetailModal({
 
                     return (
                       <div className="space-y-2">
-                        <span className="text-sm text-gray-400 block"> {/* Generic label */}
+                        <span className="contact-label">
                           문의
                         </span>
                         <div className="contact-buttons-container">
@@ -479,8 +479,8 @@ export default function EventDetailModal({
                     className="footer-link"
                     title={selectedEvent.link_name1 || "바로가기 1"}
                   >
-                    <i className="ri-external-link-line text-base"></i>
-                    <span className="text-sm font-medium">
+                    <i className="ri-external-link-line footer-link-icon"></i>
+                    <span className="footer-link-text">
                       {selectedEvent.link_name1 || "링크1"}
                     </span>
                   </a>
@@ -493,8 +493,8 @@ export default function EventDetailModal({
                     className="footer-link"
                     title={selectedEvent.link_name2 || "바로가기 2"}
                   >
-                    <i className="ri-external-link-line text-base"></i>
-                    <span className="text-sm font-medium">
+                    <i className="ri-external-link-line footer-link-icon"></i>
+                    <span className="footer-link-text">
                       {selectedEvent.link_name2 || "링크2"}
                     </span>
                   </a>
@@ -507,8 +507,8 @@ export default function EventDetailModal({
                     className="footer-link"
                     title={selectedEvent.link_name3 || "바로가기 3"}
                   >
-                    <i className="ri-external-link-line text-base"></i>
-                    <span className="text-sm font-medium">
+                    <i className="ri-external-link-line footer-link-icon"></i>
+                    <span className="footer-link-text">
                       {selectedEvent.link_name3 || "링크3"}
                     </span>
                   </a>
@@ -561,7 +561,7 @@ export default function EventDetailModal({
                   className="action-button share"
                   title="공유하기"
                 >
-                  <i className="ri-share-line text-2xl"></i>
+                  <i className="ri-share-line action-icon"></i>
                 </button>
                 
                 <button
@@ -569,7 +569,7 @@ export default function EventDetailModal({
                   className="action-button edit"
                   title="이벤트 수정"
                 >
-                  <i className="ri-edit-line text-2xl"></i>
+                  <i className="ri-edit-line action-icon"></i>
                 </button>
                 
                 <button
@@ -580,7 +580,7 @@ export default function EventDetailModal({
                   className="close-button"
                   title="닫기"
                 >
-                  <i className="ri-close-line text-2xl"></i>
+                  <i className="ri-close-line action-icon"></i>
                 </button>
               </div>
             </div>
@@ -614,7 +614,7 @@ export default function EventDetailModal({
                 onClick={() => setShowFullscreenImage(false)}
                 className="fullscreen-close-button"
               >
-                <i className="ri-close-line text-2xl"></i>
+                <i className="ri-close-line action-icon"></i>
               </button>
               <img
                 src={

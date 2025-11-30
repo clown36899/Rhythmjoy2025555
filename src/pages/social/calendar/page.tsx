@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import SocialSubMenu from '../components/SocialSubMenu';
 import SocialEventModal from '../components/SocialEventModal';
+import './socialcal.css';
 
 interface SocialEvent {
   id: number;
@@ -132,55 +133,54 @@ export default function SocialCalendarPage() {
   const days = getDaysInMonth();
 
   return (
-    <div className="min-h-screen pb-20" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+    <div className="socialcal-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       <div
-        className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3"
+        className="socialcal-header"
         style={{
-          maxWidth: '650px',
-          margin: '0 auto',
           backgroundColor: 'var(--header-bg-color)',
         }}
       >
-        <h1 className="text-xl font-bold text-white">전체 소셜 일정</h1>
+        <h1 className="socialcal-title">전체 소셜 일정</h1>
       </div>
 
       <SocialSubMenu />
 
-      <div className="pt-28 px-4">
+      <div className="socialcal-content">
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-gray-400">로딩 중...</div>
+          <div className="socialcal-loading">
+            <div className="socialcal-loading-text">로딩 중...</div>
           </div>
         ) : (
           <>
             {/* 달력 헤더 */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="socialcal-controls">
               <button
                 onClick={prevMonth}
-                className="p-2 text-white hover:bg-gray-700 rounded-lg transition-colors"
+                className="socialcal-nav-btn"
               >
                 <i className="ri-arrow-left-s-line text-xl"></i>
               </button>
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="socialcal-month-title">
                 {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
               </h2>
               <button
                 onClick={nextMonth}
-                className="p-2 text-white hover:bg-gray-700 rounded-lg transition-colors"
+                className="socialcal-nav-btn"
               >
                 <i className="ri-arrow-right-s-line text-xl"></i>
               </button>
             </div>
 
             {/* 요일 헤더 */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            <div className="socialcal-weekday-header">
               {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
                 <div
                   key={day}
-                  className="text-center text-sm font-bold py-2"
-                  style={{
-                    color: index === 0 ? '#ef4444' : index === 6 ? '#3b82f6' : '#9ca3af',
-                  }}
+                  className={`socialcal-weekday ${
+                    index === 0 ? 'socialcal-weekday-sun' : 
+                    index === 6 ? 'socialcal-weekday-sat' : 
+                    'socialcal-weekday-normal'
+                  }`}
                 >
                   {day}
                 </div>
@@ -188,10 +188,10 @@ export default function SocialCalendarPage() {
             </div>
 
             {/* 달력 그리드 */}
-            <div className="grid grid-cols-7 gap-1">
+            <div className="socialcal-grid">
               {days.map((date, index) => {
                 if (!date) {
-                  return <div key={`empty-${index}`} className="aspect-square" />;
+                  return <div key={`empty-${index}`} className="socialcal-empty-cell" />;
                 }
 
                 const dayEvents = getEventsForDate(date);
@@ -202,38 +202,31 @@ export default function SocialCalendarPage() {
                   <div
                     key={date.toISOString()}
                     onClick={() => handleDateClick(date)}
-                    className="aspect-square bg-gray-800 rounded-lg p-1 cursor-pointer hover:bg-gray-700 transition-colors overflow-hidden"
-                    style={{
-                      border: isToday ? '2px solid #10b981' : 'none',
-                    }}
+                    className={`socialcal-day-cell ${isToday ? 'socialcal-day-cell-today' : ''}`}
                   >
                     <div
-                      className="text-xs font-medium mb-1"
-                      style={{
-                        color:
-                          index % 7 === 0
-                            ? '#ef4444'
-                            : index % 7 === 6
-                            ? '#3b82f6'
-                            : '#fff',
-                      }}
+                      className={`socialcal-day-number ${
+                        index % 7 === 0 ? 'socialcal-day-number-sun' :
+                        index % 7 === 6 ? 'socialcal-day-number-sat' :
+                        'socialcal-day-number-normal'
+                      }`}
                     >
                       {date.getDate()}
                     </div>
 
                     {/* 일정 표시 */}
-                    <div className="space-y-0.5">
+                    <div className="socialcal-events">
                       {dayEvents.slice(0, 2).map((event) => (
                         <div
                           key={event.id}
-                          className="text-[8px] bg-green-600 text-white px-1 rounded truncate"
+                          className="socialcal-event-item"
                           title={`${event.place_name}: ${event.title}`}
                         >
                           {event.place_name}
                         </div>
                       ))}
                       {dayEvents.length > 2 && (
-                        <div className="text-[8px] text-gray-400 px-1">
+                        <div className="socialcal-more-events">
                           +{dayEvents.length - 2}
                         </div>
                       )}
@@ -244,36 +237,36 @@ export default function SocialCalendarPage() {
             </div>
 
             {/* 일정 목록 */}
-            <div className="mt-6">
-              <h3 className="text-white font-bold mb-3">이번 달 일정</h3>
-              <div className="space-y-2">
+            <div className="socialcal-event-list">
+              <h3 className="socialcal-event-list-title">이번 달 일정</h3>
+              <div className="socialcal-event-list-items">
                 {events.length === 0 ? (
-                  <div className="text-gray-400 text-center py-8">
+                  <div className="socialcal-event-list-empty">
                     등록된 일정이 없습니다
                   </div>
                 ) : (
                   events.map((event) => (
                     <div
                       key={event.id}
-                      className="bg-gray-800 rounded-lg p-3"
+                      className="socialcal-event-card"
                     >
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="font-bold text-white">{event.title}</div>
-                        <div className="text-xs text-gray-400">
+                      <div className="socialcal-event-header">
+                        <div className="socialcal-event-title">{event.title}</div>
+                        <div className="socialcal-event-date">
                           {new Date(event.date).getMonth() + 1}/{new Date(event.date).getDate()}
                         </div>
                       </div>
-                      <div className="text-sm text-green-400 mb-1">
+                      <div className="socialcal-event-place">
                         📍 {event.place_name}
                       </div>
                       {event.start_time && (
-                        <div className="text-xs text-gray-400">
+                        <div className="socialcal-event-time">
                           ⏰ {event.start_time.slice(0, 5)}
                           {event.end_time && ` - ${event.end_time.slice(0, 5)}`}
                         </div>
                       )}
                       {event.description && (
-                        <div className="text-xs text-gray-300 mt-2">
+                        <div className="socialcal-event-description">
                           {event.description}
                         </div>
                       )}

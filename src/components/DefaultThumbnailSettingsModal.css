@@ -1,0 +1,164 @@
+/* DefaultThumbnailSettingsModal.css - DefaultThumbnailSettingsModal 컴포넌트 전용 스타일 */
+
+/* ===== 모달 오버레이 ===== */
+.dtm-modal-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999999;
+  padding: var(--spacing-4);
+}
+
+/* ===== 모달 컨테이너 ===== */
+.dtm-modal-container {
+  background-color: #111827;
+  border-radius: var(--radius-lg);
+  max-width: 42rem;
+  width: 100%;
+  max-height: 90svh;
+  overflow-y: auto;
+}
+
+/* ===== 본문 ===== */
+.dtm-modal-body {
+  padding: var(--spacing-6);
+}
+
+/* ===== 메인 타이틀 ===== */
+.dtm-main-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: var(--spacing-6);
+}
+
+/* ===== 섹션 ===== */
+.dtm-section {
+  margin-bottom: 2rem;
+}
+
+/* ===== 섹션 타이틀 ===== */
+.dtm-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-4);
+}
+
+.dtm-section-title-purple {
+  color: #a78bfa;
+}
+
+.dtm-section-title-blue {
+  color: #60a5fa;
+}
+
+/* ===== 이미지 프리뷰 영역 ===== */
+.dtm-preview-container {
+  margin-bottom: var(--spacing-4);
+}
+
+.dtm-image-wrapper {
+  position: relative;
+}
+
+.dtm-preview-image {
+  width: 100%;
+  height: 12rem;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+.dtm-remove-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background-color: #dc2626;
+  color: white;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+}
+
+.dtm-remove-btn:hover {
+  background-color: #b91c1c;
+}
+
+.dtm-no-image {
+  width: 100%;
+  height: 12rem;
+  background-color: #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+}
+
+.dtm-no-image-text {
+  color: #9ca3af;
+}
+
+/* ===== 파일 입력 ===== */
+.dtm-file-input {
+  width: 100%;
+  color: white;
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  border-radius: var(--radius);
+  padding: 0.5rem;
+}
+
+/* ===== 버튼 컨테이너 ===== */
+.dtm-button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: var(--spacing-6);
+}
+
+/* ===== 버튼 공통 ===== */
+.dtm-button {
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.dtm-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== 취소 버튼 ===== */
+.dtm-cancel-btn {
+  background-color: #374151;
+  color: white;
+}
+
+.dtm-cancel-btn:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+/* ===== 저장 버튼 ===== */
+.dtm-save-btn {
+  background-color: #2563eb;
+  color: white;
+}
+
+.dtm-save-btn:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}

@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
+import "./AdminBillboardModal.css";
 
 interface AdminBillboardModalProps {
   isOpen: boolean;
@@ -351,8 +352,8 @@ export default function AdminBillboardModal({
   if (adminType === "sub") {
     if (loading) {
       return createPortal(
-        <div className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-          <div className="text-white text-xl">로딩 중...</div>
+        <div className="abm-loading-overlay">
+          <div className="abm-loading-text">로딩 중...</div>
         </div>,
         document.body
       );
@@ -371,25 +372,23 @@ export default function AdminBillboardModal({
     ];
 
     return createPortal(
-      <div
-        className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-      >
-        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90svh] flex flex-col overflow-hidden">
+      <div className="abm-sub-overlay">
+        <div className="abm-sub-container">
           {/* Header - 상단 고정 */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex-shrink-0">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <div className="abm-sub-header">
+            <h2 className="abm-sub-title">
               <i className="ri-settings-3-line"></i>
               {billboardUserName} 빌보드 설정
             </h2>
           </div>
 
           {/* Content - 스크롤 가능 */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="abm-sub-content"><div className="abm-sub-content-inner">
             {/* 제외 요일 */}
-            <div className="p-4 bg-gray-700/50 rounded-lg">
-              <label className="text-white font-medium block mb-3">제외 요일</label>
-              <p className="text-sm text-gray-400 mb-3">선택한 요일의 이벤트는 표시되지 않습니다</p>
-              <div className="grid grid-cols-7 gap-2">
+            <div className="abm-section-box">
+              <label className="abm-section-label">제외 요일</label>
+              <p className="abm-section-desc">선택한 요일의 이벤트는 표시되지 않습니다</p>
+              <div className="abm-weekday-grid">
                 {weekDays.map((day) => (
                   <button
                     key={day.value}
@@ -400,10 +399,10 @@ export default function AdminBillboardModal({
                         : [...excluded, day.value];
                       updateLocalSettings({ excluded_weekdays: newExcluded });
                     }}
-                    className={`py-2 px-1 text-xs rounded-lg font-medium transition-colors ${
+                    className={`abm-weekday-btn ${
                       (userSettings.excluded_weekdays || []).includes(day.value)
-                        ? "bg-red-500 text-white"
-                        : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                        ? "abm-weekday-btn-excluded"
+                        : "abm-weekday-btn-normal"
                     }`}
                   >
                     {day.label.substring(0, 1)}
@@ -413,24 +412,24 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 자동 슬라이드 시간 */}
-            <div className="p-4 bg-gray-700/50 rounded-lg">
-              <label className="text-white font-medium block mb-3">자동 슬라이드 시간</label>
-              <div className="flex items-center gap-3 bg-gray-600 rounded-lg px-4 py-3">
-                <span className="text-white text-2xl font-bold flex-1 text-center">
+            <div className="abm-section-box">
+              <label className="abm-section-label">자동 슬라이드 시간</label>
+              <div className="abm-slide-control">
+                <span className="abm-slide-time">
                   {formatTime(userSettings.auto_slide_interval)}
                 </span>
-                <div className="flex flex-col gap-1">
+                <div className="abm-slide-buttons">
                   <button
                     type="button"
                     onClick={() => updateLocalSettings({ auto_slide_interval: Math.min(30000, userSettings.auto_slide_interval + 500) })}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
+                    className="abm-slide-btn-up"
                   >
                     ▲
                   </button>
                   <button
                     type="button"
                     onClick={() => updateLocalSettings({ auto_slide_interval: Math.max(1000, userSettings.auto_slide_interval - 500) })}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
+                    className="abm-slide-btn-down"
                   >
                     ▼
                   </button>
@@ -439,43 +438,43 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 재생 순서 */}
-            <div className="hidden p-4 bg-gray-700/50 rounded-lg">
-              <label className="text-white font-medium block mb-3">재생 순서</label>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="abm-play-order-hidden">
+              <label className="abm-section-label">재생 순서</label>
+              <div className="abm-play-order-grid">
                 <button
                   onClick={() => updateLocalSettings({ play_order: 'sequential' })}
-                  className={`py-3 px-4 rounded-lg font-medium transition-colors ${
+                  className={`abm-play-order-btn ${
                     userSettings.play_order === 'sequential'
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                      ? "abm-play-order-btn-active"
+                      : "abm-play-order-btn-inactive"
                   }`}
                 >
-                  <div className="text-sm font-semibold">순차 재생</div>
-                  <div className="text-xs text-gray-300 mt-1">등록 순서대로</div>
+                  <div className="abm-play-order-title">순차 재생</div>
+                  <div className="abm-play-order-subtitle">등록 순서대로</div>
                 </button>
                 <button
                   onClick={() => updateLocalSettings({ play_order: 'random' })}
-                  className={`py-3 px-4 rounded-lg font-medium transition-colors ${
+                  className={`abm-play-order-btn ${
                     userSettings.play_order === 'random'
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                      ? "abm-play-order-btn-active"
+                      : "abm-play-order-btn-inactive"
                   }`}
                 >
-                  <div className="text-sm font-semibold">30분 랜덤</div>
-                  <div className="text-xs text-gray-300 mt-1">30분마다 재배열</div>
+                  <div className="abm-play-order-title">30분 랜덤</div>
+                  <div className="abm-play-order-subtitle">30분마다 재배열</div>
                 </button>
               </div>
             </div>
 
             {/* 날짜 범위 필터 */}
-            <div className="p-4 bg-gray-700/50 rounded-lg">
-              <label className="text-white font-medium block mb-3">날짜 범위 필터</label>
-              <p className="text-sm text-gray-400 mb-3">특정 기간의 이벤트만 표시합니다</p>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm text-gray-400 block mb-1">시작 날짜</label>
-                  <div className="flex gap-2">
-                    <div className="flex-1 relative">
+            <div className="abm-section-box">
+              <label className="abm-section-label">날짜 범위 필터</label>
+              <p className="abm-section-desc">특정 기간의 이벤트만 표시합니다</p>
+              <div className="abm-date-filter-group">
+                <div className="abm-date-filter-group">
+                  <label className="abm-date-filter-label">시작 날짜</label>
+                  <div className="abm-date-filter-row">
+                    <div className="abm-date-input-wrapper">
                       <input
                         type="date"
                         value={userSettings.date_filter_start || todayKST}
@@ -483,20 +482,20 @@ export default function AdminBillboardModal({
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_start: e.target.value || null })
                         }
-                        className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
+                        className="abm-date-input"
                       />
                       {!userSettings.date_filter_start && (
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        <span className="abm-date-placeholder">
                           지정안함
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => updateLocalSettings({ date_filter_start: null })}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                      className={`abm-date-clear-btn ${
                         !userSettings.date_filter_start
-                          ? 'bg-orange-700 text-white'
-                          : 'bg-orange-600 hover:bg-orange-700 text-white'
+                          ? 'abm-date-clear-btn-active'
+                          : 'abm-date-clear-btn-normal'
                       }`}
                       title="시작 날짜 제한 없음"
                     >
@@ -504,10 +503,10 @@ export default function AdminBillboardModal({
                     </button>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm text-gray-400 block mb-1">종료 날짜</label>
-                  <div className="flex gap-2">
-                    <div className="flex-1 relative">
+                <div className="abm-date-filter-group">
+                  <label className="abm-date-filter-label">종료 날짜</label>
+                  <div className="abm-date-filter-row">
+                    <div className="abm-date-input-wrapper">
                       <input
                         type="date"
                         value={userSettings.date_filter_end || ""}
@@ -515,21 +514,21 @@ export default function AdminBillboardModal({
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_end: e.target.value || null })
                         }
-                        className="w-full bg-gray-600 text-white rounded-lg px-3 py-2"
+                        className="abm-date-input"
                         style={!userSettings.date_filter_end ? { color: 'transparent' } : {}}
                       />
                       {!userSettings.date_filter_end && (
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        <span className="abm-date-placeholder">
                           지정안함
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => updateLocalSettings({ date_filter_end: null })}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                      className={`abm-date-clear-btn ${
                         !userSettings.date_filter_end
-                          ? 'bg-orange-700 text-white'
-                          : 'bg-orange-600 hover:bg-orange-700 text-white'
+                          ? 'abm-date-clear-btn-active'
+                          : 'abm-date-clear-btn-normal'
                       }`}
                       title="종료 날짜 제한 없음"
                     >
@@ -541,12 +540,12 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 특정 이벤트 제외 */}
-            <div className="p-4 bg-gray-700/50 rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-white font-medium">
+            <div className="abm-section-box">
+              <div className="abm-event-exclude-header">
+                <label className="abm-event-exclude-label">
                   🚫 제외할 이벤트
                 </label>
-                <div className="flex gap-2">
+                <div className="abm-event-exclude-actions">
                   <button
                     type="button"
                     onClick={() => {
@@ -554,23 +553,23 @@ export default function AdminBillboardModal({
                       const allIds = mediaEvents.map(e => e.id);
                       updateLocalSettings({ excluded_event_ids: allIds });
                     }}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="abm-event-exclude-btn-all"
                   >
                     전체 제외
                   </button>
                   <button
                     type="button"
                     onClick={() => updateLocalSettings({ excluded_event_ids: [] })}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="abm-event-exclude-btn-clear"
                   >
                     전체 해제
                   </button>
                 </div>
               </div>
-              <p className="text-sm text-gray-400 mb-3">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
-              <div className="max-h-60 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
+              <p className="abm-section-desc">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
+              <div className="abm-event-list"><div className="abm-event-list-inner">
                 {events.length === 0 ? (
-                  <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
+                  <p className="abm-event-empty">표시할 이벤트가 없습니다.</p>
                 ) : (
                   events.map((event) => {
                     const eventDate = new Date(event?.start_date);
@@ -582,46 +581,37 @@ export default function AdminBillboardModal({
                     return (
                       <label
                         key={event.id}
-                        className={`flex items-center gap-2 p-2 rounded transition-colors ${
+                        className={`abm-event-item ${
                           hasMedia 
                             ? (isExcluded 
-                              ? 'bg-red-900/30 border border-red-500/50 cursor-pointer hover:bg-red-900/50' 
-                              : 'cursor-pointer hover:bg-gray-600')
-                            : 'cursor-not-allowed opacity-60'
+                              ? 'abm-event-item-excluded' 
+                              : 'abm-event-item-media')
+                            : 'abm-event-item-no-media'
                         }`}
                       >
-                        <div className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center border-2 ${
-                          isExcluded 
-                            ? 'bg-red-600 border-red-500' 
-                            : 'bg-gray-600 border-gray-500'
-                        }`}>
-                          {isExcluded && (
-                            <i className="ri-close-line text-white text-sm font-bold"></i>
-                          )}
-                        </div>
                         <input
                           type="checkbox"
                           checked={isExcluded}
                           onChange={() => toggleEventExclusion(event.id)}
                           disabled={!hasMedia}
-                          className="hidden"
+                          className="abm-event-checkbox"
                         />
-                        <span className={`text-sm flex-1 ${
+                        <span className={`abm-event-text ${
                           hasMedia 
-                            ? (isExcluded ? 'text-red-300 line-through' : 'text-white')
-                            : 'text-gray-500'
+                            ? (isExcluded ? 'abm-event-text-excluded' : 'abm-event-text-media')
+                            : 'abm-event-text-no-media'
                         }`}>
                           {event.title}
-                          <span className="text-gray-400 text-xs ml-2">
+                          <span className="abm-event-date">
                             ({event.start_date} {weekday})
                           </span>
                           {isExcluded && hasMedia && (
-                            <span className="text-red-400 text-xs ml-2 font-bold">
+                            <span className="abm-event-excluded-badge">
                               [제외됨]
                             </span>
                           )}
                           {!hasMedia && (
-                            <span className="text-red-400 text-xs ml-2">
+                            <span className="abm-event-no-media-badge">
                               [이미지 없음 - 광고판 미노출]
                             </span>
                           )}
@@ -630,21 +620,21 @@ export default function AdminBillboardModal({
                     );
                   })
                 )}
-              </div>
+              </div></div>
             </div>
-          </div>
+          </div></div>
 
           {/* 저장 및 닫기 버튼 - 하단 고정 */}
-          <div className="flex gap-3 p-6 pt-4 bg-gray-800 border-t border-gray-700 flex-shrink-0">
+          <div className="abm-sub-footer">
             <button
               onClick={handleClose}
-              className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+              className="abm-sub-footer-btn-cancel"
             >
               닫기
             </button>
             <button
               onClick={saveUserSettings}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+              className="abm-sub-footer-btn-save"
             >
               저장
             </button>
@@ -653,15 +643,15 @@ export default function AdminBillboardModal({
 
         {/* 성공 알림 모달 */}
         {showSuccessModal && (
-          <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4">
-            <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
-              <div className="text-center">
-                <div className="mb-4 flex justify-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                    <i className="ri-check-line text-3xl text-white"></i>
+          <div className="abm-success-overlay">
+            <div className="abm-success-container">
+              <div className="abm-success-content">
+                <div className="abm-success-icon-wrapper">
+                  <div className="abm-success-icon">
+                    <i className="abm-success-icon-text ri-check-line"></i>
                   </div>
                 </div>
-                <p className="text-white text-lg font-semibold">
+                <p className="abm-success-message">
                   {successMessage}
                 </p>
               </div>
@@ -677,57 +667,51 @@ export default function AdminBillboardModal({
   return createPortal(
     <>
       <div
-        className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        className="abm-super-overlay"
         onClick={handleBackdropClick}
       >
-        <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90svh] flex flex-col overflow-hidden">
+        <div className="abm-super-container">
         {/* Header - 상단 고정 */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+        <div className="abm-super-header">
+          <h2 className="abm-super-title">
             <i className="ri-image-2-line"></i>
             메인 광고판 설정
           </h2>
-          <button
-            onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors"
-          >
-            <i className="ri-close-line text-2xl"></i>
-          </button>
         </div>
 
         {/* Content - 스크롤 가능 */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="abm-super-content"><div className="abm-super-content-inner">
           {/* 광고판 활성화/비활성화 */}
-          <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
-            <div className="flex-1">
-              <label className="text-white font-medium block">광고판 활성화</label>
-              <p className="text-sm text-gray-400 mt-1">
+          <div className="abm-toggle-container">
+            <div className="abm-toggle-content">
+              <label className="abm-toggle-label">광고판 활성화</label>
+              <p className="abm-toggle-desc">
                 광고판 기능을 전체적으로 켜거나 끕니다
               </p>
             </div>
             <button
               onClick={() => onUpdateSettings({ enabled: !settings.enabled })}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                settings.enabled ? "bg-purple-500" : "bg-gray-600"
+              className={`abm-toggle-switch ${
+                settings.enabled ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
               }`}
             >
               <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                  settings.enabled ? "translate-x-7" : "translate-x-1"
+                className={`abm-toggle-thumb ${
+                  settings.enabled ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
                 }`}
               />
             </button>
           </div>
 
           {/* 자동 슬라이드 시간 (슬라이더) */}
-          <div className="p-4 bg-gray-700/50 rounded-lg">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-white font-medium">자동 슬라이드 시간</label>
-              <span className="text-purple-400 font-bold">
+          <div className="abm-slider-section">
+            <div className="abm-slider-header">
+              <label className="abm-slider-label">자동 슬라이드 시간</label>
+              <span className="abm-slider-value">
                 {formatTime(settings.autoSlideInterval)}
               </span>
             </div>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="abm-slider-desc">
               광고판 이미지가 자동으로 넘어가는 시간 간격 (1초 ~ 30초)
             </p>
             <input
@@ -739,9 +723,9 @@ export default function AdminBillboardModal({
               onChange={(e) =>
                 onUpdateSettings({ autoSlideInterval: parseInt(e.target.value) })
               }
-              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider-purple"
+              className="abm-slider-input slider-purple"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <div className="abm-slider-marks">
               <span>1초</span>
               <span>15초</span>
               <span>30초</span>
@@ -749,14 +733,14 @@ export default function AdminBillboardModal({
           </div>
 
           {/* 비활동 타이머 (슬라이더) */}
-          <div className="p-4 bg-gray-700/50 rounded-lg">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-white font-medium">비활동 후 자동 표시</label>
-              <span className="text-purple-400 font-bold">
+          <div className="abm-slider-section">
+            <div className="abm-slider-header">
+              <label className="abm-slider-label">비활동 후 자동 표시</label>
+              <span className="abm-slider-value">
                 {formatTime(settings.inactivityTimeout)}
               </span>
             </div>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="abm-slider-desc">
               사용자 활동이 없을 때 광고판을 자동으로 표시하는 시간 (0분 = 비활성 ~ 60분)
             </p>
             <input
@@ -768,9 +752,9 @@ export default function AdminBillboardModal({
               onChange={(e) =>
                 onUpdateSettings({ inactivityTimeout: parseInt(e.target.value) })
               }
-              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider-purple"
+              className="abm-slider-input slider-purple"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <div className="abm-slider-marks">
               <span>비활성</span>
               <span>30분</span>
               <span>60분</span>
@@ -778,10 +762,10 @@ export default function AdminBillboardModal({
           </div>
 
           {/* 첫 방문 시 자동 표시 */}
-          <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
-            <div className="flex-1">
-              <label className="text-white font-medium block">첫 방문 시 자동 표시</label>
-              <p className="text-sm text-gray-400 mt-1">
+          <div className="abm-toggle-container">
+            <div className="abm-toggle-content">
+              <label className="abm-toggle-label">첫 방문 시 자동 표시</label>
+              <p className="abm-toggle-desc">
                 페이지를 처음 열 때 광고판을 자동으로 표시합니다
               </p>
             </div>
@@ -789,27 +773,27 @@ export default function AdminBillboardModal({
               onClick={() =>
                 onUpdateSettings({ autoOpenOnLoad: !settings.autoOpenOnLoad })
               }
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                settings.autoOpenOnLoad ? "bg-purple-500" : "bg-gray-600"
+              className={`abm-toggle-switch ${
+                settings.autoOpenOnLoad ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
               }`}
             >
               <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                  settings.autoOpenOnLoad ? "translate-x-7" : "translate-x-1"
+                className={`abm-toggle-thumb ${
+                  settings.autoOpenOnLoad ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
                 }`}
               />
             </button>
           </div>
 
           {/* 전환 효과 속도 (슬라이더) */}
-          <div className="p-4 bg-gray-700/50 rounded-lg">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-white font-medium">전환 효과 속도</label>
-              <span className="text-purple-400 font-bold">
+          <div className="abm-slider-section">
+            <div className="abm-slider-header">
+              <label className="abm-slider-label">전환 효과 속도</label>
+              <span className="abm-slider-value">
                 {formatTime(settings.transitionDuration)}
               </span>
             </div>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="abm-slider-desc">
               이미지가 전환될 때 페이드 인/아웃 효과의 속도 (0.1초 ~ 2초)
             </p>
             <input
@@ -821,9 +805,9 @@ export default function AdminBillboardModal({
               onChange={(e) =>
                 onUpdateSettings({ transitionDuration: parseInt(e.target.value) })
               }
-              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider-purple"
+              className="abm-slider-input slider-purple"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <div className="abm-slider-marks">
               <span>0.1초</span>
               <span>1초</span>
               <span>2초</span>
@@ -831,113 +815,113 @@ export default function AdminBillboardModal({
           </div>
 
           {/* 재생 순서 */}
-          <div className="p-4 bg-gray-700/50 rounded-lg">
-            <label className="text-white font-medium block mb-3">재생 순서</label>
-            <p className="text-sm text-gray-400 mb-4">
+          <div className="abm-playorder-section">
+            <label className="abm-playorder-label">재생 순서</label>
+            <p className="abm-playorder-desc">
               광고판 이미지를 표시하는 순서를 설정합니다
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="abm-playorder-grid">
               <button
                 onClick={() => handlePlayOrderChange('sequential')}
-                className={`p-3 rounded-lg border-2 transition-all ${
+                className={`abm-playorder-btn ${
                   settings.playOrder === 'sequential'
-                    ? 'border-purple-500 bg-purple-500/20 text-white'
-                    : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                    ? 'abm-playorder-btn-active'
+                    : 'abm-playorder-btn-inactive'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <i className="ri-sort-asc text-xl"></i>
-                  <span className="font-medium">순차 재생</span>
+                <div className="abm-playorder-btn-content">
+                  <i className="abm-playorder-btn-icon ri-sort-asc"></i>
+                  <span className="abm-playorder-btn-title">순차 재생</span>
                 </div>
-                <p className="text-xs text-gray-400">등록 순서대로</p>
+                <p className="abm-playorder-btn-subtitle">등록 순서대로</p>
               </button>
               <button
                 onClick={() => handlePlayOrderChange('random')}
-                className={`p-3 rounded-lg border-2 transition-all ${
+                className={`abm-playorder-btn ${
                   settings.playOrder === 'random'
-                    ? 'border-purple-500 bg-purple-500/20 text-white'
-                    : 'border-gray-600 bg-gray-700/30 text-gray-300 hover:border-gray-500'
+                    ? 'abm-playorder-btn-active'
+                    : 'abm-playorder-btn-inactive'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <i className="ri-shuffle-line text-xl"></i>
-                  <span className="font-medium">30분 랜덤</span>
+                <div className="abm-playorder-btn-content">
+                  <i className="abm-playorder-btn-icon ri-shuffle-line"></i>
+                  <span className="abm-playorder-btn-title">30분 랜덤</span>
                 </div>
-                <p className="text-xs text-gray-400">30분마다 재배열</p>
+                <p className="abm-playorder-btn-subtitle">30분마다 재배열</p>
               </button>
             </div>
           </div>
 
           {/* 날짜 범위 필터 */}
-          <div className="p-4 bg-gray-700/50 rounded-lg">
-            <label className="text-white font-medium block mb-3">일정 날짜 범위</label>
-            <p className="text-sm text-gray-400 mb-4">
+          <div className="abm-daterange-section">
+            <label className="abm-daterange-label">일정 날짜 범위</label>
+            <p className="abm-daterange-desc">
               특정 기간의 일정만 광고판에 표시합니다 (미설정 시 전체 표시)
             </p>
-            <div className="space-y-3 mb-4">
-              <div>
-                <label className="text-sm text-gray-400 mb-1 block">시작 날짜</label>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
+            <div className="abm-daterange-inputs">
+              <div className="abm-daterange-input-group">
+                <label className="abm-daterange-input-label">시작 날짜</label>
+                <div className="abm-daterange-input-row">
+                  <div className="abm-daterange-input-wrapper">
                     <input
                       type="date"
                       value={settings.dateRangeStart || todayKST}
                       min={todayKST}
                       onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
-                      className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                      className="abm-daterange-input"
                     />
                   </div>
                   <button
                     onClick={() => onUpdateSettings({ dateRangeStart: null })}
-                    className={`px-3 py-2 rounded-lg transition-colors ${
+                    className={`abm-daterange-clear-btn ${
                       !settings.dateRangeStart
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-orange-500 hover:bg-orange-600 text-white'
+                        ? 'abm-daterange-clear-btn-active'
+                        : 'abm-daterange-clear-btn-inactive'
                     }`}
                     title="시작 날짜 초기화"
                   >
-                    <i className="ri-close-line text-lg"></i>
+                    <i className="abm-daterange-clear-icon ri-close-line"></i>
                   </button>
                 </div>
               </div>
-              <div>
-                <label className="text-sm text-gray-400 mb-1 block">종료 날짜</label>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
+              <div className="abm-daterange-input-group">
+                <label className="abm-daterange-input-label">종료 날짜</label>
+                <div className="abm-daterange-input-row">
+                  <div className="abm-daterange-input-wrapper">
                     <input
                       type="date"
                       value={settings.dateRangeEnd || ''}
                       min={settings.dateRangeStart || undefined}
                       onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
-                      className="w-full px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-purple-500 focus:outline-none"
+                      className="abm-daterange-input"
                       style={!settings.dateRangeEnd ? { color: 'transparent' } : {}}
                     />
                     {!settings.dateRangeEnd && (
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <span className="abm-daterange-placeholder">
                         지정안함
                       </span>
                     )}
                   </div>
                   <button
                     onClick={() => onUpdateSettings({ dateRangeEnd: null })}
-                    className={`px-3 py-2 rounded-lg transition-colors ${
+                    className={`abm-daterange-clear-btn ${
                       !settings.dateRangeEnd
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-orange-500 hover:bg-orange-600 text-white'
+                        ? 'abm-daterange-clear-btn-active'
+                        : 'abm-daterange-clear-btn-inactive'
                     }`}
                     title="종료 날짜 초기화"
                   >
-                    <i className="ri-close-line text-lg"></i>
+                    <i className="abm-daterange-clear-icon ri-close-line"></i>
                   </button>
                 </div>
               </div>
             </div>
             
             {/* 날짜 범위 표시 여부 */}
-            <div className="flex items-center justify-between p-3 bg-gray-600/50 rounded-lg">
-              <div className="flex-1">
-                <label className="text-white font-medium block">날짜 범위 표시</label>
-                <p className="text-sm text-gray-400 mt-1">
+            <div className="abm-daterange-toggle-container">
+              <div className="abm-daterange-toggle-content">
+                <label className="abm-daterange-toggle-label">날짜 범위 표시</label>
+                <p className="abm-daterange-toggle-desc">
                   광고판에 날짜 범위를 표시합니다
                 </p>
               </div>
@@ -945,13 +929,13 @@ export default function AdminBillboardModal({
                 onClick={() =>
                   onUpdateSettings({ showDateRange: !settings.showDateRange })
                 }
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                  settings.showDateRange ? "bg-purple-500" : "bg-gray-600"
+                className={`abm-toggle-switch ${
+                  settings.showDateRange ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
                 }`}
               >
                 <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                    settings.showDateRange ? "translate-x-7" : "translate-x-1"
+                  className={`abm-toggle-thumb ${
+                    settings.showDateRange ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
                   }`}
                 />
               </button>
@@ -959,10 +943,10 @@ export default function AdminBillboardModal({
           </div>
 
           {/* 제외 요일 */}
-          <div className="p-4 bg-gray-700/50 rounded-lg">
-            <label className="text-white font-medium block mb-3">제외 요일</label>
-            <p className="text-sm text-gray-400 mb-3">선택한 요일의 이벤트는 표시되지 않습니다</p>
-            <div className="grid grid-cols-7 gap-2">
+          <div className="abm-weekdays-section">
+            <label className="abm-weekdays-label">제외 요일</label>
+            <p className="abm-weekdays-desc">선택한 요일의 이벤트는 표시되지 않습니다</p>
+            <div className="abm-weekdays-grid">
               {[
                 { value: 0, label: "일요일" },
                 { value: 1, label: "월요일" },
@@ -981,10 +965,10 @@ export default function AdminBillboardModal({
                       : [...excluded, day.value];
                     onUpdateSettings({ excludedWeekdays: newExcluded });
                   }}
-                  className={`py-2 px-1 text-xs rounded-lg font-medium transition-colors ${
+                  className={`abm-weekdays-btn ${
                     (settings.excludedWeekdays || []).includes(day.value)
-                      ? "bg-red-500 text-white"
-                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                      ? "abm-weekdays-btn-excluded"
+                      : "abm-weekdays-btn-normal"
                   }`}
                 >
                   {day.label.substring(0, 1)}
@@ -994,14 +978,14 @@ export default function AdminBillboardModal({
           </div>
 
           {/* 특정 이벤트 제외 */}
-          <div className="p-4 bg-gray-700/50 rounded-lg">
-            <label className="text-white font-medium block mb-3">
+          <div className="abm-events-section">
+            <label className="abm-events-label">
               🚫 제외할 이벤트
             </label>
-            <p className="text-sm text-gray-400 mb-3">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
-            <div className="max-h-60 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
+            <p className="abm-events-desc">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
+            <div className="abm-events-list"><div className="abm-events-list-inner">
               {mainBillboardEvents.length === 0 ? (
-                <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
+                <p className="abm-events-empty">표시할 이벤트가 없습니다.</p>
               ) : (
                 mainBillboardEvents.map((event) => {
                   const eventDate = new Date(event?.start_date);
@@ -1012,8 +996,8 @@ export default function AdminBillboardModal({
                   return (
                     <label
                       key={event.id}
-                      className={`flex items-center gap-2 p-2 rounded ${
-                        hasMedia ? 'cursor-pointer hover:bg-gray-600' : 'cursor-not-allowed opacity-60'
+                      className={`abm-events-item ${
+                        hasMedia ? 'abm-events-item-media' : 'abm-events-item-no-media'
                       }`}
                     >
                       <input
@@ -1027,15 +1011,15 @@ export default function AdminBillboardModal({
                           onUpdateSettings({ excludedEventIds: newExcluded });
                         }}
                         disabled={!hasMedia}
-                        className="w-4 h-4"
+                        className="abm-events-checkbox"
                       />
-                      <span className={`text-sm flex-1 ${hasMedia ? 'text-white' : 'text-gray-500'}`}>
+                      <span className={`abm-events-text ${hasMedia ? 'abm-events-text-white' : 'abm-events-text-gray'}`}>
                         {event.title}
-                        <span className="text-gray-400 text-xs ml-2">
+                        <span className="abm-events-date">
                           ({event.start_date} {weekday})
                         </span>
                         {!hasMedia && (
-                          <span className="text-red-400 text-xs ml-2">
+                          <span className="abm-events-badge">
                             [이미지 없음 - 광고판 미노출]
                           </span>
                         )}
@@ -1044,129 +1028,82 @@ export default function AdminBillboardModal({
                   );
                 })
               )}
-            </div>
+            </div></div>
           </div>
 
           {/* 현재 설정 요약 */}
-          <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+          <div className="abm-summary-section">
+            <h4 className="abm-summary-header">
               <i className="ri-information-line"></i>
               현재 설정
             </h4>
-            <div className="text-sm text-gray-300 space-y-2">
-              <div className="flex justify-between">
+            <div className="abm-summary-list">
+              <div className="abm-summary-row">
                 <span>광고판:</span>
-                <span className={settings.enabled ? "text-green-400 font-medium" : "text-red-400 font-medium"}>
+                <span className={settings.enabled ? "abm-summary-value-green" : "abm-summary-value-red"}>
                   {settings.enabled ? "활성화" : "비활성화"}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="abm-summary-row">
                 <span>슬라이드 간격:</span>
-                <span className="text-purple-300 font-medium">{formatTime(settings.autoSlideInterval)}</span>
+                <span className="abm-summary-value-purple">{formatTime(settings.autoSlideInterval)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="abm-summary-row">
                 <span>비활동 타이머:</span>
-                <span className="text-purple-300 font-medium">{formatTime(settings.inactivityTimeout)}</span>
+                <span className="abm-summary-value-purple">{formatTime(settings.inactivityTimeout)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="abm-summary-row">
                 <span>자동 표시:</span>
-                <span className={settings.autoOpenOnLoad ? "text-green-400 font-medium" : "text-gray-400 font-medium"}>
+                <span className={settings.autoOpenOnLoad ? "abm-summary-value-green" : "abm-summary-value-gray"}>
                   {settings.autoOpenOnLoad ? "켜짐" : "꺼짐"}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="abm-summary-row">
                 <span>전환 속도:</span>
-                <span className="text-purple-300 font-medium">{formatTime(settings.transitionDuration)}</span>
+                <span className="abm-summary-value-purple">{formatTime(settings.transitionDuration)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="abm-summary-row">
                 <span>재생 순서:</span>
-                <span className="text-purple-300 font-medium">
+                <span className="abm-summary-value-purple">
                   {settings.playOrder === 'random' ? '랜덤' : '순차'}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="abm-summary-row">
                 <span>날짜 범위:</span>
-                <span className="text-purple-300 font-medium">
+                <span className="abm-summary-value-purple">
                   {settings.dateRangeStart && settings.dateRangeEnd
                     ? `${settings.dateRangeStart} ~ ${settings.dateRangeEnd}`
                     : '전체'}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="abm-summary-row">
                 <span>날짜 표시:</span>
-                <span className={settings.showDateRange ? "text-green-400 font-medium" : "text-gray-400 font-medium"}>
+                <span className={settings.showDateRange ? "abm-summary-value-green" : "abm-summary-value-gray"}>
                   {settings.showDateRange ? "켜짐" : "꺼짐"}
                 </span>
               </div>
             </div>
           </div>
-        </div>
+        </div></div>
 
         {/* Footer - 하단 고정 */}
-        <div className="bg-gray-800 border-t border-gray-700 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
+        <div className="abm-super-footer">
           <button
             onClick={onResetSettings}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
+            className="abm-super-reset-btn"
           >
             <i className="ri-refresh-line"></i>
             기본값으로 초기화
           </button>
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium"
+            className="abm-super-close-btn"
           >
             완료
           </button>
         </div>
-
-        <style>{`
-          .slider-purple::-webkit-slider-thumb {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #a855f7;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-          .slider-purple::-webkit-slider-thumb:hover {
-            background: #9333ea;
-            transform: scale(1.1);
-          }
-          .slider-purple::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: #a855f7;
-            border-radius: 50%;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-          }
-          .slider-purple::-moz-range-thumb:hover {
-            background: #9333ea;
-            transform: scale(1.1);
-          }
-        `}</style>
       </div>
     </div>
-
-      {/* 성공 알림 모달 */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-[999999999] flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full shadow-2xl">
-            <div className="text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                  <i className="ri-check-line text-3xl text-white"></i>
-                </div>
-              </div>
-              <p className="text-white text-lg font-semibold">
-                {successMessage}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </>,
     document.body
   );

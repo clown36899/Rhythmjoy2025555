@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import type { BillboardUser, BillboardUserSettings } from '../lib/supabase';
 import { hashPassword } from '../utils/passwordHash';
+import "./BillboardUserManagementModal.css";
 
 interface SimpleEvent {
   id: number;
@@ -20,7 +21,6 @@ interface BillboardUserManagementModalProps {
   onClose: () => void;
 }
 
-// 한국 시간 기준 오늘 날짜 (KST = UTC+9)
 const getTodayKST = () => {
   const today = new Date();
   const koreaOffset = 9 * 60;
@@ -61,7 +61,6 @@ export default function BillboardUserManagementModal({
     }
   }, [isOpen]);
 
-  // 필터 설정이 변경되면 이벤트 목록 다시 로드
   useEffect(() => {
     if (showEditModal) {
       loadEvents();
@@ -92,8 +91,6 @@ export default function BillboardUserManagementModal({
 
       if (error) throw error;
 
-      // 빌보드와 완전히 동일한 필터링 로직 (billboard/page.tsx 658-686줄)
-      // 한국 시간 기준 오늘 날짜 (KST = UTC+9)
       const today = new Date();
       const koreaOffset = 9 * 60;
       const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
@@ -105,11 +102,9 @@ export default function BillboardUserManagementModal({
         const weekday = eventDate.getDay();
         if (excludedWeekdays.includes(weekday)) return false;
         
-        // 시작날짜 기준으로 필터링 (지난 이벤트 제외)
         const eventStartDate = new Date(event.start_date || event.date || "");
         eventStartDate.setHours(0, 0, 0, 0);
         
-        // 관리자 설정 날짜 범위 필터
         if (dateFilterStart) {
           const filterStart = new Date(dateFilterStart);
           filterStart.setHours(0, 0, 0, 0);
@@ -121,7 +116,6 @@ export default function BillboardUserManagementModal({
           if (eventStartDate > filterEnd) return false;
         }
         
-        // 기본 필터: 시작일이 오늘 이전이면 제외 (시작일 >= 오늘만 노출)
         if (!dateFilterStart && !dateFilterEnd) {
           if (eventStartDate < koreaTime) return false;
         }
@@ -214,7 +208,6 @@ export default function BillboardUserManagementModal({
       setVideoPlayDuration(data.video_play_duration || 10000);
       setPlayOrder(data.play_order);
       setDateFilterStart(data.date_filter_start || '');
-      // null이면 빈 문자열로 설정 (종료 날짜 제한 없음)
       setDateFilterEnd(data.date_filter_end || '');
       
       console.log('[빌보드 편집] 로드 완료:', {
@@ -297,7 +290,6 @@ export default function BillboardUserManagementModal({
     } catch (error) {
       console.error('클립보드 복사 실패:', error);
       
-      // Fallback: 수동 복사
       const textarea = document.createElement('textarea');
       textarea.value = url;
       textarea.style.position = 'fixed';
@@ -379,59 +371,47 @@ export default function BillboardUserManagementModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[99999999] p-4 pt-10 overflow-y-auto">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90svh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-white">빌보드 사용자 관리</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <i className="ri-close-line text-2xl"></i>
+    <div className="bum-overlay">
+      <div className="bum-container">
+        <div className="bum-header">
+          <h3 className="bum-title">빌보드 사용자 관리</h3>
+          <button onClick={onClose} className="bum-close-btn">
+            <i className="bum-close-icon ri-close-line"></i>
           </button>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors mb-4 flex items-center justify-center gap-2"
-        >
+        <button onClick={() => setShowCreateModal(true)} className="bum-create-btn">
           <i className="ri-add-line"></i>
           새 빌보드 사용자 생성
         </button>
 
-        <div className="space-y-3">
+        <div className="bum-user-list">
           {billboardUsers.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">등록된 빌보드 사용자가 없습니다.</p>
+            <p className="bum-user-empty">등록된 빌보드 사용자가 없습니다.</p>
           ) : (
             billboardUsers.map((user) => (
-              <div
-                key={user.id}
-                className="bg-gray-700 rounded-lg p-4 flex items-center justify-between"
-              >
-                <div className="flex-1">
-                  <h4 className="text-white font-semibold">{user.name}</h4>
+              <div key={user.id} className="bum-user-card">
+                <div className="bum-user-info">
+                  <h4 className="bum-user-name">{user.name}</h4>
                   {user.email && (
-                    <p className="text-gray-300 text-sm mt-0.5">
-                      <i className="ri-mail-line mr-1"></i>
+                    <p className="bum-user-email">
+                      <i className="bum-user-email-icon ri-mail-line"></i>
                       {user.email}
                     </p>
                   )}
-                  <p className="text-gray-400 text-xs mt-1">
+                  <p className="bum-user-url">
                     URL: /billboard/{user.id.substring(0, 8)}...
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="bum-user-actions">
                   <button
                     onClick={() => copyBillboardUrl(user.id)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors"
+                    className="bum-user-copy-btn"
                     title="URL 복사"
                   >
                     <i className="ri-file-copy-line"></i>
                   </button>
-                  <button
-                    onClick={() => handleEditUser(user)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition-colors"
-                  >
+                  <button onClick={() => handleEditUser(user)} className="bum-user-edit-btn">
                     설정
                   </button>
                 </div>
@@ -441,50 +421,44 @@ export default function BillboardUserManagementModal({
         </div>
 
         {showCreateModal && createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[999999999] p-4">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-              <h4 className="text-xl font-bold text-white mb-4">새 빌보드 사용자 생성</h4>
+          <div className="bum-create-overlay">
+            <div className="bum-create-container">
+              <h4 className="bum-create-title">새 빌보드 사용자 생성</h4>
               
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    이름
-                  </label>
+              <div className="bum-create-form">
+                <div className="bum-form-group">
+                  <label className="bum-form-label">이름</label>
                   <input
                     type="text"
                     value={newUserName}
                     onChange={(e) => setNewUserName(e.target.value)}
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="bum-form-input"
                     placeholder="예: 강남점 빌보드"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    비밀번호
-                  </label>
+                <div className="bum-form-group">
+                  <label className="bum-form-label">비밀번호</label>
                   <input
                     type="password"
                     value={newUserPassword}
                     onChange={(e) => setNewUserPassword(e.target.value)}
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="bum-form-input"
                     placeholder="관리 페이지 접속용"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    제외할 요일 (선택사항)
-                  </label>
-                  <div className="flex gap-2">
+                <div className="bum-form-group">
+                  <label className="bum-form-label">제외할 요일 (선택사항)</label>
+                  <div className="bum-weekday-container">
                     {weekdayNames.map((day, index) => (
                       <button
                         key={index}
                         onClick={() => toggleWeekday(index)}
-                        className={`flex-1 py-2 rounded text-sm font-medium transition-colors ${
+                        className={`bum-weekday-btn ${
                           excludedWeekdays.includes(index)
-                            ? 'bg-red-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            ? 'bum-weekday-btn-excluded'
+                            : 'bum-weekday-btn-normal'
                         }`}
                       >
                         {day}
@@ -493,20 +467,17 @@ export default function BillboardUserManagementModal({
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="bum-modal-footer">
                   <button
                     onClick={() => {
                       setShowCreateModal(false);
                       resetCreateForm();
                     }}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                    className="bum-footer-btn-cancel"
                   >
                     취소
                   </button>
-                  <button
-                    onClick={handleCreateUser}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors"
-                  >
+                  <button onClick={handleCreateUser} className="bum-footer-btn-submit">
                     생성
                   </button>
                 </div>
@@ -517,308 +488,277 @@ export default function BillboardUserManagementModal({
         )}
 
         {showEditModal && selectedUser && createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-[999999999] p-4 pt-10 overflow-y-auto">
-            <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90svh] flex flex-col overflow-hidden">
-              {/* Header - 상단 고정 */}
-              <div className="px-6 py-4 border-b border-gray-700 flex-shrink-0">
-                <h4 className="text-xl font-bold text-white">{selectedUser.name} 설정</h4>
+          <div className="bum-edit-overlay">
+            <div className="bum-edit-container">
+              <div className="bum-edit-header">
+                <h4 className="bum-edit-title">{selectedUser.name} 설정</h4>
               </div>
               
-              {/* Content - 스크롤 가능 */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    📅 제외할 요일
-                  </label>
-                  <div className="flex gap-2">
-                    {weekdayNames.map((day, index) => (
+              <div className="bum-edit-content">
+                <div className="bum-edit-form">
+                  <div className="bum-form-group">
+                    <label className="bum-form-label">📅 제외할 요일</label>
+                    <div className="bum-weekday-container">
+                      {weekdayNames.map((day, index) => (
+                        <button
+                          key={index}
+                          onClick={() => toggleWeekday(index)}
+                          className={`bum-weekday-btn ${
+                            excludedWeekdays.includes(index)
+                              ? 'bum-weekday-btn-excluded'
+                              : 'bum-weekday-btn-normal'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bum-exclude-section">
+                    <div className="bum-exclude-header">
+                      <label className="bum-exclude-label">🚫 제외할 이벤트</label>
+                      <div className="bum-exclude-actions">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const validEventIds = events
+                              .filter(event => !!(event?.image_full || event?.image || event?.video_url))
+                              .map(event => event.id);
+                            setExcludedEventIds(validEventIds);
+                          }}
+                          className="bum-exclude-btn-all"
+                        >
+                          전체 제외
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExcludedEventIds([])}
+                          className="bum-exclude-btn-clear"
+                        >
+                          전체 해제
+                        </button>
+                      </div>
+                    </div>
+                    <p className="bum-exclude-stats">
+                      총 <span className="bum-exclude-stats-blue">{events.length}개</span> 이벤트 / 
+                      제외 <span className="bum-exclude-stats-red">{excludedEventIds.length}개</span> 
+                      (미디어 있는 이벤트만 표시)
+                    </p>
+                    <div className="bum-exclude-list">
+                      <div className="bum-exclude-list-inner">
+                        {events.length === 0 ? (
+                          <p className="bum-exclude-empty">표시할 이벤트가 없습니다.</p>
+                        ) : (
+                          events.map((event) => {
+                            const eventDate = new Date(event?.start_date || event?.date || '');
+                            const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                            const weekday = weekdayNames[eventDate.getDay()];
+                            const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
+                            const isExcluded = excludedEventIds.includes(event.id);
+                            
+                            return (
+                              <label
+                                key={event.id}
+                                className={`bum-exclude-item ${
+                                  hasMedia 
+                                    ? (isExcluded 
+                                        ? 'bum-exclude-item-media bum-exclude-item-excluded' 
+                                        : 'bum-exclude-item-media')
+                                    : 'bum-exclude-item-disabled'
+                                }`}
+                              >
+                                {hasMedia ? (
+                                  <i className={`bum-exclude-icon ${isExcluded ? 'ri-close-circle-fill bum-exclude-icon-excluded' : 'ri-checkbox-circle-line bum-exclude-icon-normal'}`}></i>
+                                ) : (
+                                  <i className="bum-exclude-icon bum-exclude-icon-disabled ri-checkbox-blank-circle-line"></i>
+                                )}
+                                <input
+                                  type="checkbox"
+                                  checked={isExcluded}
+                                  onChange={() => toggleEvent(event.id)}
+                                  disabled={!hasMedia}
+                                  className="bum-exclude-checkbox"
+                                />
+                                <span className={`bum-exclude-text ${
+                                  hasMedia 
+                                    ? (isExcluded ? 'bum-exclude-text-excluded' : 'bum-exclude-text-media')
+                                    : 'bum-exclude-text-disabled'
+                                }`}>
+                                  {event.title}
+                                  <span className="bum-exclude-date">
+                                    ({event.start_date || event.date} {weekday})
+                                  </span>
+                                  {isExcluded && hasMedia && (
+                                    <span className="bum-exclude-badge-excluded">[제외됨]</span>
+                                  )}
+                                  {!hasMedia && (
+                                    <span className="bum-exclude-badge-no-media">[이미지 없음 - 광고판 미노출]</span>
+                                  )}
+                                </span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bum-form-group">
+                    <label className="bum-form-label">⚙️ 슬라이드 간격 (초) - 일반 이벤트</label>
+                    <div className="bum-slide-control">
+                      <span className="bum-slide-time">{autoSlideInterval / 1000}초</span>
+                      <div className="bum-slide-buttons">
+                        <button
+                          type="button"
+                          onClick={() => setAutoSlideInterval(Math.min(60000, autoSlideInterval + 1000))}
+                          className="bum-slide-btn"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAutoSlideInterval(Math.max(1000, autoSlideInterval - 1000))}
+                          className="bum-slide-btn"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bum-form-group">
+                    <label className="bum-form-label">🎬 영상 재생 시간 (초) - 영상 이벤트</label>
+                    <div className="bum-slide-control">
+                      <span className="bum-slide-time">{videoPlayDuration / 1000}초</span>
+                      <div className="bum-slide-buttons">
+                        <button
+                          type="button"
+                          onClick={() => setVideoPlayDuration(Math.min(60000, videoPlayDuration + 1000))}
+                          className="bum-slide-btn bum-slide-btn-video"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVideoPlayDuration(Math.max(5000, videoPlayDuration - 1000))}
+                          className="bum-slide-btn bum-slide-btn-video"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    </div>
+                    <p className="bum-slide-desc">영상 로딩 완료 후 재생되는 시간입니다.</p>
+                  </div>
+
+                  <div className="bum-play-order-hidden">
+                    <label className="bum-form-label">🔀 재생 순서</label>
+                    <div className="bum-play-order-buttons">
                       <button
-                        key={index}
-                        onClick={() => toggleWeekday(index)}
-                        className={`flex-1 py-2 rounded text-sm font-medium transition-colors ${
-                          excludedWeekdays.includes(index)
-                            ? 'bg-red-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        onClick={() => setPlayOrder('sequential')}
+                        className={`bum-play-order-btn ${
+                          playOrder === 'sequential'
+                            ? 'bum-play-order-btn-active'
+                            : 'bum-play-order-btn-inactive'
                         }`}
                       >
-                        {day}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-gray-300 text-sm font-medium">
-                      🚫 제외할 이벤트
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          // 미디어 있는 이벤트만 전체 제외
-                          const validEventIds = events
-                            .filter(event => !!(event?.image_full || event?.image || event?.video_url))
-                            .map(event => event.id);
-                          setExcludedEventIds(validEventIds);
-                        }}
-                        className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors font-medium"
-                      >
-                        전체 제외
+                        순서대로
                       </button>
                       <button
-                        type="button"
-                        onClick={() => setExcludedEventIds([])}
-                        className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors font-medium"
+                        onClick={() => setPlayOrder('random')}
+                        className={`bum-play-order-btn ${
+                          playOrder === 'random'
+                            ? 'bum-play-order-btn-active'
+                            : 'bum-play-order-btn-inactive'
+                        }`}
                       >
-                        전체 해제
+                        랜덤
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 mb-2">
-                    총 <span className="font-bold text-blue-400">{events.length}개</span> 이벤트 / 
-                    제외 <span className="font-bold text-red-400">{excludedEventIds.length}개</span> 
-                    (미디어 있는 이벤트만 표시)
-                  </p>
-                  <div className="max-h-40 overflow-y-auto bg-gray-700 rounded-lg p-3 space-y-2">
-                    {events.length === 0 ? (
-                      <p className="text-gray-400 text-sm">표시할 이벤트가 없습니다.</p>
-                    ) : (
-                      events.map((event) => {
-                        const eventDate = new Date(event?.start_date || event?.date || '');
-                        const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
-                        const weekday = weekdayNames[eventDate.getDay()];
-                        const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
-                        const isExcluded = excludedEventIds.includes(event.id);
-                        
-                        return (
-                          <label
-                            key={event.id}
-                            className={`flex items-center gap-2 p-2 rounded ${
-                              hasMedia 
-                                ? (isExcluded 
-                                    ? 'cursor-pointer bg-red-600/30 hover:bg-red-600/40 border border-red-500/50' 
-                                    : 'cursor-pointer hover:bg-gray-600')
-                                : 'cursor-not-allowed opacity-60'
-                            }`}
-                          >
-                            {hasMedia ? (
-                              <i className={`text-sm ${isExcluded ? 'ri-close-circle-fill text-red-400' : 'ri-checkbox-circle-line text-blue-400'}`}></i>
-                            ) : (
-                              <i className="ri-checkbox-blank-circle-line text-sm text-gray-500"></i>
-                            )}
-                            <input
-                              type="checkbox"
-                              checked={isExcluded}
-                              onChange={() => toggleEvent(event.id)}
-                              disabled={!hasMedia}
-                              className="hidden"
-                            />
-                            <span className={`text-sm flex-1 ${
-                              hasMedia 
-                                ? (isExcluded ? 'text-red-300 line-through' : 'text-white')
-                                : 'text-gray-500'
-                            }`}>
-                              {event.title}
-                              <span className="text-gray-400 text-xs ml-2">
-                                ({event.start_date || event.date} {weekday})
-                              </span>
-                              {isExcluded && hasMedia && (
-                                <span className="text-red-400 text-xs ml-2 font-bold">
-                                  [제외됨]
-                                </span>
-                              )}
-                              {!hasMedia && (
-                                <span className="text-red-400 text-xs ml-2">
-                                  [이미지 없음 - 광고판 미노출]
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
 
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    ⚙️ 슬라이드 간격 (초) - 일반 이벤트
-                  </label>
-                  <div className="flex items-center gap-3 bg-gray-700 rounded-lg px-4 py-3">
-                    <span className="text-white text-2xl font-bold flex-1 text-center">
-                      {autoSlideInterval / 1000}초
-                    </span>
-                    <div className="flex flex-col gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setAutoSlideInterval(Math.min(60000, autoSlideInterval + 1000))}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAutoSlideInterval(Math.max(1000, autoSlideInterval - 1000))}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
-                      >
-                        ▼
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    🎬 영상 재생 시간 (초) - 영상 이벤트
-                  </label>
-                  <div className="flex items-center gap-3 bg-gray-700 rounded-lg px-4 py-3">
-                    <span className="text-white text-2xl font-bold flex-1 text-center">
-                      {videoPlayDuration / 1000}초
-                    </span>
-                    <div className="flex flex-col gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setVideoPlayDuration(Math.min(60000, videoPlayDuration + 1000))}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setVideoPlayDuration(Math.max(5000, videoPlayDuration - 1000))}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-lg"
-                      >
-                        ▼
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-gray-400 text-xs mt-1">
-                    영상 로딩 완료 후 재생되는 시간입니다.
-                  </p>
-                </div>
-
-                <div className="hidden">
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    🔀 재생 순서
-                  </label>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setPlayOrder('sequential')}
-                      className={`flex-1 py-2 rounded font-medium transition-colors ${
-                        playOrder === 'sequential'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      순서대로
-                    </button>
-                    <button
-                      onClick={() => setPlayOrder('random')}
-                      className={`flex-1 py-2 rounded font-medium transition-colors ${
-                        playOrder === 'random'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      랜덤
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    📆 날짜 범위 필터
-                  </label>
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={dateFilterStart}
-                        min={todayKST}
-                        onChange={(e) => setDateFilterStart(e.target.value)}
-                        className="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="지정 안함"
-                      />
-                      <button
-                        onClick={() => setDateFilterStart('')}
-                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                      >
-                        지정 안 함
-                      </button>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex gap-2">
+                  <div className="bum-form-group">
+                    <label className="bum-form-label">📆 날짜 범위 필터</label>
+                    <div className="bum-date-filter-group">
+                      <div className="bum-date-filter-row">
                         <input
                           type="date"
-                          value={dateFilterEnd}
-                          onChange={(e) => setDateFilterEnd(e.target.value)}
-                          className="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="종료 날짜"
+                          value={dateFilterStart}
+                          min={todayKST}
+                          onChange={(e) => setDateFilterStart(e.target.value)}
+                          className="bum-date-input"
+                          placeholder="지정 안함"
                         />
                         <button
-                          onClick={() => setDateFilterEnd('')}
-                          className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                          title="종료 날짜 제한 없음"
+                          onClick={() => setDateFilterStart('')}
+                          className="bum-date-clear-btn"
                         >
                           지정 안 함
                         </button>
                       </div>
-                      {!dateFilterEnd && (
-                        <p className="text-xs text-green-400">
-                          <i className="ri-check-line mr-1"></i>
-                          종료 날짜 제한 없음 - 모든 미래 일정 표시
-                        </p>
-                      )}
+                      <div className="bum-date-filter-hint">
+                        <div className="bum-date-filter-row">
+                          <input
+                            type="date"
+                            value={dateFilterEnd}
+                            onChange={(e) => setDateFilterEnd(e.target.value)}
+                            className="bum-date-input"
+                            placeholder="종료 날짜"
+                          />
+                          <button
+                            onClick={() => setDateFilterEnd('')}
+                            className="bum-date-clear-btn"
+                            title="종료 날짜 제한 없음"
+                          >
+                            지정 안 함
+                          </button>
+                        </div>
+                        {!dateFilterEnd && (
+                          <p className="bum-date-filter-info">
+                            <i className="bum-date-filter-info-icon ri-check-line"></i>
+                            종료 날짜 제한 없음 - 모든 미래 일정 표시
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* 비밀번호 변경 섹션 */}
-                <div className="hidden border-t border-gray-700 pt-4">
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    🔑 비밀번호 변경
-                  </label>
-                  <div className="space-y-2">
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="새 비밀번호 (최소 4자)"
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="비밀번호 확인"
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={handleChangePassword}
-                      className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg font-medium transition-colors"
-                    >
-                      비밀번호 변경
-                    </button>
+                  <div className="bum-password-section-hidden">
+                    <label className="bum-form-label">🔑 비밀번호 변경</label>
+                    <div className="bum-password-form">
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="새 비밀번호 (최소 4자)"
+                        className="bum-form-input"
+                      />
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="비밀번호 확인"
+                        className="bum-form-input"
+                      />
+                      <button onClick={handleChangePassword} className="bum-password-change-btn">
+                        비밀번호 변경
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Footer - 하단 고정 */}
-              <div className="px-6 py-4 border-t border-gray-700 flex gap-3 flex-shrink-0">
+              <div className="bum-edit-footer">
                 <button
                   onClick={() => {
                     setShowEditModal(false);
                     resetEditForm();
                   }}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                  className="bum-footer-btn-cancel"
                 >
                   취소
                 </button>
-                <button
-                  onClick={handleSaveSettings}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors"
-                >
+                <button onClick={handleSaveSettings} className="bum-footer-btn-submit">
                   저장
                 </button>
               </div>

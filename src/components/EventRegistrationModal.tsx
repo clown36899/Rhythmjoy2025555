@@ -18,6 +18,7 @@ import CustomDatePickerHeader from "./CustomDatePickerHeader";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
+import "./EventRegistrationModal.css";
 
 interface EventRegistrationModalProps {
   isOpen: boolean;
@@ -51,7 +52,7 @@ const CustomDateInput = forwardRef<HTMLButtonElement, CustomInputProps>(
       type="button"
       ref={ref}
       onClick={onClick}
-      className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
+      className="reg-date-input-btn"
     >
       {value || "날짜 선택"}
     </button>
@@ -761,21 +762,21 @@ export default function EventRegistrationModal({
 
   const modalContent = (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]">
-        <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90svh] relative z-[999999] flex flex-col overflow-hidden border border-gray-600">
+      <div className="reg-modal-overlay" style={{ alignItems: 'center', zIndex: 999999 }}>
+        <div className="reg-modal-container reg-modal-shadow" style={{ position: 'relative', zIndex: 999999, border: '1px solid var(--color-gray-600)' }}>
           {/* 업로드 진행률 오버레이 */}
           {isSubmitting && (
-            <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[1000000] rounded-lg">
-              <div className="bg-gray-900 rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="reg-upload-overlay">
+              <div className="reg-upload-container">
                 <div className="text-center mb-4">
-                  <div className="text-5xl font-bold text-blue-500 mb-2">
+                  <div className="reg-upload-title" style={{ fontSize: '3rem', color: 'var(--color-blue-500)' }}>
                     {uploadProgress}%
                   </div>
-                  <div className="text-gray-300 text-sm">{uploadStep}</div>
+                  <div className="reg-upload-step">{uploadStep}</div>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div className="reg-upload-progress-bar">
                   <div
-                    className="bg-blue-500 h-full transition-all duration-300 ease-out rounded-full"
+                    className="reg-upload-progress-fill"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
@@ -784,7 +785,7 @@ export default function EventRegistrationModal({
           )}
           
           {/* Header - 상단 고정 */}
-          <div className="px-4 py-4 border-b border-gray-700 flex-shrink-0">
+          <div className="reg-modal-header">
             <h2 className="text-xl font-bold text-white">
               {(startDateInput ? new Date(startDateInput + "T00:00:00") : selectedDate).toLocaleDateString("ko-KR", {
                 year: "numeric",
@@ -797,7 +798,7 @@ export default function EventRegistrationModal({
           </div>
 
           {/* Content - 스크롤 가능 */}
-          <form id="event-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <form id="event-form" onSubmit={handleSubmit} className="reg-modal-body space-y-3">
               {/* 이벤트 제목 */}
               <div>
                 <input
@@ -808,14 +809,14 @@ export default function EventRegistrationModal({
                   onChange={handleInputChange}
                   onFocus={handleInputFocus}
                   required
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
+                  className="reg-form-input"
                   placeholder="이벤트 제목을 입력하세요"
                 />
               </div>
 
               {/* 장르 */}
               <div className="relative">
-                <label className="block text-gray-300 text-sm font-medium mb-1">
+                <label className="reg-form-label">
                   장르 (7자 이내, 선택사항)
                 </label>
                 <input
@@ -826,27 +827,28 @@ export default function EventRegistrationModal({
                   onFocus={handleGenreFocus}
                   onBlur={() => setTimeout(() => setIsGenreInputFocused(false), 150)}
                   maxLength={7}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
+                  className="reg-form-input"
                   placeholder="예: 린디합, 발보아, 스윙"
                   autoComplete="off"
                 />
                 {isGenreInputFocused && genreSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  <div className="reg-autocomplete-dropdown">
                     {genreSuggestions.map((genre) => (
-                      <div
+                      <button
                         key={genre}
+                        type="button"
                         onMouseDown={() => handleGenreSuggestionClick(genre)}
-                        className="px-4 py-2 text-white hover:bg-blue-500 cursor-pointer"
+                        className="reg-autocomplete-item"
                       >
                         {genre}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
 
               {/* 비밀번호 & 카테고리 (한 줄) */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid-cols-2 gap-3">
                 {/* 이벤트 비밀번호 */}
                 <div>
                   <input
@@ -857,7 +859,7 @@ export default function EventRegistrationModal({
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
                     required
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
+                    className="reg-form-input"
                     placeholder="비밀번호"
                   />
                 </div>
@@ -868,7 +870,8 @@ export default function EventRegistrationModal({
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                    className="reg-form-select"
+                    style={{ paddingRight: '2rem' }}
                   >
                     {categories.map((category) => (
                       <option key={category.id} value={category.id}>
@@ -880,32 +883,32 @@ export default function EventRegistrationModal({
               </div>
 
               {/* 빌보드 표시 옵션 */}
-              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-2">
-                <label className="block text-gray-300 text-sm font-medium">
+              <div className="reg-billboard-option-box space-y-2">
+                <label className="reg-form-label">
                   빌보드 표시 옵션
                 </label>
-                <div className="flex items-center">
+                <div className="reg-flex-items-center">
                   <input
                     type="checkbox"
                     id="showTitleOnBillboard"
                     name="showTitleOnBillboard"
                     checked={formData.showTitleOnBillboard}
                     onChange={handleInputChange}
-                    className="h-4 w-4 rounded border-gray-400 bg-gray-800 text-blue-600 focus:ring-blue-500"
+                    className="reg-form-checkbox"
                   />
-                  <label htmlFor="showTitleOnBillboard" className="ml-2 block text-sm text-gray-300">
+                  <label htmlFor="showTitleOnBillboard" className="reg-checkbox-text">
                     빌보드에 제목, 날짜, 장소 정보 표시
                   </label>
                 </div>
               </div>
 
               {/* 날짜 선택 섹션 (날짜 선택 방식 + 시작일/종료일) */}
-              <div ref={dateSectionRef} className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
-                <label className="block text-gray-300 text-sm font-medium">
+              <div ref={dateSectionRef} className="reg-date-section space-y-3">
+                <label className="reg-form-label">
                   날짜 선택 방식
                 </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center cursor-pointer">
+                <div className="reg-flex-gap-4">
+                  <label className="reg-checkbox-label">
                     <input
                       type="radio"
                       checked={dateMode === "range"}
@@ -914,7 +917,7 @@ export default function EventRegistrationModal({
                     />
                     <span className="text-white text-sm">연속 기간</span>
                   </label>
-                  <label className="flex items-center cursor-pointer">
+                  <label className="reg-checkbox-label">
                     <input
                       type="radio"
                       checked={dateMode === "specific"}
@@ -927,9 +930,9 @@ export default function EventRegistrationModal({
 
                 {/* 연속 기간 모드 */}
                 {dateMode === "range" && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="reg-date-range-inputs">
                     <div>
-                      <label className="block text-gray-300 text-sm font-medium mb-1">
+                      <label className="reg-form-label-sm mb-1">
                         시작
                       </label>
                       <DatePicker
@@ -983,7 +986,7 @@ export default function EventRegistrationModal({
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-300 text-sm font-medium mb-1">
+                      <label className="reg-form-label-sm mb-1">
                         종료
                       </label>
                       <DatePicker
@@ -1018,16 +1021,16 @@ export default function EventRegistrationModal({
                 {/* 특정 날짜 선택 모드 */}
                 {dateMode === "specific" && (
                   <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
+                    <label className="reg-form-label-sm mb-2">
                       선택된 날짜 ({specificDates.length}개)
                     </label>
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="reg-date-specific-tags">
                       {specificDates
                         .sort((a, b) => a.getTime() - b.getTime())
                         .map((date, index) => (
                           <div
                             key={index}
-                            className="inline-flex items-center bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
+                            className="reg-date-tag"
                           >
                             <span>
                               {date.getMonth() + 1}/{date.getDate()}
@@ -1041,14 +1044,14 @@ export default function EventRegistrationModal({
                                   );
                                 }
                               }}
-                              className="ml-2 hover:text-red-300"
+                              className="reg-date-tag-close"
                             >
                               <i className="ri-close-line"></i>
                             </button>
                           </div>
                         ))}
                     </div>
-                    <div className="flex gap-2 mb-2">
+                    <div className="reg-date-add-row">
                       <DatePicker
                         ref={specificDatePickerRef}
                         selected={tempDateInput ? new Date(tempDateInput + "T00:00:00") : null}
@@ -1096,12 +1099,12 @@ export default function EventRegistrationModal({
                             setTempDateInput(""); // 입력 필드 초기화
                           }
                         }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                        className="reg-btn-base reg-btn-blue reg-btn-whitespace-nowrap"
                       >
                         추가
                       </button>
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="reg-info-text">
                       예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
                     </p>
                   </div>
@@ -1109,11 +1112,11 @@ export default function EventRegistrationModal({
               </div>
 
               {/* 장소 입력 섹션 */}
-              <div className="bg-gray-700/50 rounded-lg p-3 space-y-3 border border-[#555]">
-                <label className="block text-gray-300 text-sm font-medium">
+              <div className="reg-location-section space-y-3">
+                <label className="reg-form-label">
                   장소 입력
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="reg-location-grid">
                   <div>
                     <input
                       type="text"
@@ -1121,7 +1124,7 @@ export default function EventRegistrationModal({
                       value={formData.location}
                       onChange={handleInputChange}
                       onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="reg-form-input"
                       placeholder="장소 이름"
                     />
                   </div>
@@ -1132,7 +1135,7 @@ export default function EventRegistrationModal({
                       value={formData.locationLink}
                       onChange={handleInputChange}
                       onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="reg-form-input"
                       placeholder="지도 링크"
                     />
                   </div>
@@ -1141,7 +1144,7 @@ export default function EventRegistrationModal({
 
               {/* 문의 정보 (공개) */}
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
+                <label className="reg-form-label">
                   문의
                 </label>
                 <input
@@ -1150,10 +1153,10 @@ export default function EventRegistrationModal({
                   value={formData.contact}
                   onChange={handleInputChange}
                   onFocus={handleInputFocus}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
+                  className="reg-form-input"
                   placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="reg-info-text-mt">
                   <i className="ri-information-line mr-1"></i>
                   참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
                 </p>
@@ -1161,7 +1164,7 @@ export default function EventRegistrationModal({
 
               {/* 내용 */}
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1">
+                <label className="reg-form-label">
                   내용 (선택사항)
                 </label>
                 <textarea
@@ -1170,24 +1173,24 @@ export default function EventRegistrationModal({
                   onChange={handleInputChange}
                   onFocus={handleInputFocus}
                   rows={4}
-                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y border border-[#555]"
+                  className="reg-form-textarea"
                   placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
                 />
               </div>
 
               {/* 바로가기 링크 섹션 */}
-              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
-                <label className="block text-gray-300 text-sm font-medium">
+              <div className="reg-links-section space-y-3">
+                <label className="reg-form-label">
                   바로가기 링크 (선택사항)
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="reg-link-grid">
                   <input
                     type="url"
                     name="link1"
                     value={formData.link1}
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="reg-form-input"
                     placeholder="링크 URL"
                   />
                   <input
@@ -1196,31 +1199,31 @@ export default function EventRegistrationModal({
                     value={formData.linkName1}
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="reg-form-input"
                     placeholder="링크 이름"
                   />
                 </div>
               </div>
 
               {/* 썸네일 이미지 & 영상 섹션 */}
-              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
-                <label className="block text-gray-300 text-sm font-medium">
+              <div className="reg-media-section space-y-3">
+                <label className="reg-form-label">
                   썸네일 이미지 & 영상 (선택사항)
                 </label>
-                <p className="text-xs text-yellow-400">
+                <p className="reg-info-text reg-text-yellow-400">
                   ⚠️ 이미지 또는 영상이 없으면 광고판에 나오지 않습니다
                 </p>
 
                 {/* 썸네일 이미지 업로드 */}
                 <div className="space-y-2">
                   {imagePreview && (
-                    <div className="relative">
+                    <div className="reg-image-preview-container">
                       <img
                         src={imagePreview}
                         alt="이미지 미리보기"
-                        className="w-full h-48 object-cover rounded-lg"
+                        className="reg-image-preview"
                       />
-                      <div className="absolute top-2 right-2 flex gap-2">
+                      <div className="reg-image-buttons">
                         {isAdmin && (
                           <button
                             type="button"
@@ -1233,7 +1236,7 @@ export default function EventRegistrationModal({
                               link.click();
                               document.body.removeChild(link);
                             }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                            className="reg-btn-sm reg-btn-blue"
                           >
                             <i className="ri-download-line mr-1"></i>
                             다운로드
@@ -1242,7 +1245,7 @@ export default function EventRegistrationModal({
                         <button
                           type="button"
                           onClick={handleOpenCropForFile}
-                          className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                          className="reg-btn-sm reg-btn-purple"
                         >
                           <i className="ri-crop-line mr-1"></i>
                           편집
@@ -1253,7 +1256,7 @@ export default function EventRegistrationModal({
                             setImagePreview("");
                             setImageFile(null);
                           }}
-                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                          className="reg-btn-sm reg-btn-red"
                         >
                           이미지 삭제
                         </button>
@@ -1264,7 +1267,7 @@ export default function EventRegistrationModal({
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+                    className="reg-file-input"
                   />
 
                   {/* 썸네일 추출 버튼 (영상 URL이 있을 때만) */}
@@ -1292,7 +1295,7 @@ export default function EventRegistrationModal({
                               alert("썸네일 추출 중 오류가 발생했습니다.");
                             }
                           }}
-                          className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                          className="mt-2 w-full reg-btn-base reg-btn-green"
                         >
                           <i className="ri-image-add-line mr-1"></i>
                           썸네일 추출하기{" "}
@@ -1304,12 +1307,12 @@ export default function EventRegistrationModal({
                           <button
                             type="button"
                             disabled
-                            className="w-full bg-gray-600 text-gray-400 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed opacity-60"
+                            className="w-full reg-btn-base reg-btn-disabled"
                           >
                             <i className="ri-image-add-line mr-1"></i>
                             썸네일 추출 불가능
                           </button>
-                          <p className="text-xs text-orange-400 mt-2">
+                          <p className="reg-info-text-mt2 reg-text-orange-400">
                             <i className="ri-alert-line mr-1"></i>
                             Instagram/Facebook은 썸네일 자동 추출이 지원되지
                             않습니다. 위 이미지 업로드로 썸네일을 직접
@@ -1320,7 +1323,7 @@ export default function EventRegistrationModal({
                     </>
                   )}
 
-                  <p className="text-xs text-gray-400">
+                  <p className="reg-info-text">
                     <i className="ri-information-line mr-1"></i>
                     썸네일 이미지는 이벤트 배너와 상세보기에 표시됩니다.
                   </p>
@@ -1330,21 +1333,18 @@ export default function EventRegistrationModal({
                 <div className="space-y-2">
                   {/* 영상 프리뷰 */}
                   {videoPreview.provider && videoPreview.embedUrl && (
-                    <div className="relative">
-                      <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                    <div className="reg-video-preview-container">
+                      <div className="reg-video-status mb-2">
                         <i className="ri-check-line"></i>
                         <span>
                           {getVideoProviderName(formData.videoUrl)} 영상 인식됨
                           - 빌보드에서 재생됩니다
                         </span>
                       </div>
-                      <div
-                        className="relative w-full"
-                        style={{ paddingTop: "56.25%" }}
-                      >
+                      <div className="reg-video-wrapper">
                         <iframe
                           src={videoPreview.embedUrl}
-                          className="absolute top-0 left-0 w-full h-full rounded-lg"
+                          className="reg-video-iframe"
                           frameBorder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
@@ -1361,7 +1361,7 @@ export default function EventRegistrationModal({
                           setImageFile(null);
                           setImagePreview("");
                         }}
-                        className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-colors cursor-pointer text-xs font-medium"
+                        className="reg-video-delete-btn"
                       >
                         영상 삭제
                       </button>
@@ -1370,7 +1370,7 @@ export default function EventRegistrationModal({
                   
                   {/* 영상 URL 입력창 - 항상 표시 */}
                   <div>
-                    <label className="block text-gray-300 text-xs mb-1">
+                    <label className="reg-form-label-sm mb-1">
                       {videoPreview.provider ? '영상 주소 (복사/수정 가능)' : '영상 주소 입력'}
                     </label>
                     <input
@@ -1379,27 +1379,27 @@ export default function EventRegistrationModal({
                       value={formData.videoUrl}
                       onChange={handleInputChange}
                       onFocus={handleInputFocus}
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="reg-form-input"
                       placeholder="YouTube 링크만 가능"
                     />
                   </div>
                   <div className="mt-2 space-y-1">
-                    <p className="text-xs text-gray-400">
+                    <p className="reg-info-text">
                       <i className="ri-information-line mr-1"></i>
                       영상은 전면 빌보드에서 자동재생됩니다.
                     </p>
-                    <p className="text-xs text-green-400">
+                    <p className="reg-info-text reg-text-green-400">
                       <i className="ri-check-line mr-1"></i>
                       <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상
                       재생 가능
                     </p>
-                    <p className="text-xs text-red-400">
+                    <p className="reg-info-text reg-text-red-400">
                       <i className="ri-close-line mr-1"></i>
                       <strong>Instagram, Vimeo는 지원하지 않습니다</strong>
                     </p>
                   </div>
                   {formData.videoUrl && !videoPreview.provider && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="reg-info-text-mt reg-text-red-400">
                       <i className="ri-alert-line mr-1"></i>
                       YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수
                       없습니다.
@@ -1409,17 +1409,17 @@ export default function EventRegistrationModal({
               </div>
 
               {/* 등록자 정보 (관리자 전용, 비공개) */}
-              <div className="border border-[#555] bg-gray-700/50 rounded-lg p-3 space-y-3">
-                <div className="flex items-center gap-2">
-                  <i className="ri-lock-line text-gray-300"></i>
-                  <h3 className="text-gray-300 text-sm font-medium">
+              <div className="reg-registrant-section space-y-3">
+                <div className="reg-registrant-header">
+                  <i className="ri-lock-line reg-text-gray-300"></i>
+                  <h3 className="reg-registrant-title">
                     등록자 정보 (비공개 - 관리자만 확인 가능)
                   </h3>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="reg-registrant-grid">
                   <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-1">
-                      등록자 이름 <span className="text-red-400">*필수</span>
+                    <label className="reg-form-label">
+                      등록자 이름 <span className="reg-required-mark">*필수</span>
                     </label>
                     <input
                       ref={organizerNameInputRef}
@@ -1429,14 +1429,14 @@ export default function EventRegistrationModal({
                       onChange={handleInputChange}
                       onFocus={handleInputFocus}
                       required
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
+                      className="reg-form-input"
                       placeholder="등록자 이름"
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-1">
+                    <label className="reg-form-label">
                       등록자 전화번호{" "}
-                      <span className="text-red-400">*필수</span>
+                      <span className="reg-required-mark">*필수</span>
                     </label>
                     <input
                       ref={organizerPhoneInputRef}
@@ -1446,12 +1446,12 @@ export default function EventRegistrationModal({
                       onChange={handleInputChange}
                       onFocus={handleInputFocus}
                       required
-                      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
+                      className="reg-form-input"
                       placeholder="010-0000-0000"
                     />
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="reg-info-text-mt2">
                   <i className="ri-information-line mr-1"></i>
                   수정 등 문제가 있을 경우 연락받으실 번호를 입력해주세요
                 </p>
@@ -1460,11 +1460,11 @@ export default function EventRegistrationModal({
             </form>
 
           {/* Footer - 하단 고정 */}
-          <div className="px-4 py-4 border-t border-gray-700 flex gap-3 flex-shrink-0">
+          <div className="reg-modal-footer">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer"
+              className="reg-footer-btn reg-footer-btn-cancel"
             >
               취소
             </button>
@@ -1472,7 +1472,7 @@ export default function EventRegistrationModal({
               type="submit"
               form="event-form"
               disabled={isSubmitting}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              className="reg-footer-btn reg-footer-btn-submit reg-btn-whitespace-nowrap"
             >
               {isSubmitting ? "등록 중..." : "이벤트 등록"}
             </button>
@@ -1482,51 +1482,48 @@ export default function EventRegistrationModal({
 
       {/* 썸네일 선택 모달 */}
       {showThumbnailSelector && (
-        <div
-          className="fixed inset-0 z-[10000000] flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.9)" }}
-        >
-          <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90svh] overflow-y-auto">
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex justify-between items-center z-10">
-              <h2 className="text-xl font-bold text-white">썸네일 선택</h2>
+        <div className="reg-thumbnail-modal-overlay">
+          <div className="reg-thumbnail-modal">
+            <div className="reg-thumbnail-header">
+              <h2 className="reg-thumbnail-title">썸네일 선택</h2>
               <button
                 onClick={() => {
                   setShowThumbnailSelector(false);
                   setThumbnailOptions([]);
                 }}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="reg-thumbnail-close-btn"
               >
-                <i className="ri-close-line text-2xl"></i>
+                <i className="ri-close-line reg-icon-text-2xl"></i>
               </button>
             </div>
 
-            <div className="p-6">
-              <p className="text-gray-400 text-sm mb-4">
+            <div className="reg-thumbnail-body">
+              <p className="reg-thumbnail-description">
                 원하는 썸네일을 선택하세요. YouTube 쇼츠도 지원됩니다.
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="reg-thumbnail-grid">
                 {thumbnailOptions.map((option, index) => (
                   <div
                     key={index}
                     onClick={() => handleOpenCropForThumbnail(option.url)}
-                    className="cursor-pointer group"
+                    className="reg-thumbnail-item"
                   >
-                    <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-800 border-2 border-gray-700 group-hover:border-blue-500 transition-colors">
+                    <div className="reg-thumbnail-image-wrapper">
                       <img
                         src={option.url}
                         alt={option.label}
-                        className="w-full h-full object-cover"
+                        className="reg-thumbnail-image"
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
-                        <i className="ri-checkbox-circle-fill text-4xl text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                      <div className="reg-thumbnail-overlay">
+                        <i className="ri-checkbox-circle-fill reg-thumbnail-check-icon"></i>
                       </div>
                     </div>
-                    <p className="text-center text-sm text-gray-300 mt-2">
+                    <p className="reg-thumbnail-label">
                       {option.label}
                     </p>
                     {option.quality === "high" && (
-                      <span className="block text-center text-xs text-green-400 mt-1">
+                      <span className="reg-thumbnail-quality">
                         고화질
                       </span>
                     )}
