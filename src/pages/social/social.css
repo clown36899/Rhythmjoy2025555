@@ -123,6 +123,11 @@
   font-size: 1.15rem; /* text-xs */
   background-color: var(--header-bg-color);
 }
+.day-weekday {
+  color: #ffffff5e;
+  font-size: 0.7rem;
+}
+
 
 .day-header-cell {
   position: relative;

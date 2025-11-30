@@ -23,6 +23,7 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
   const [events, setEvents] = useState<UnifiedSocialEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<{ item: any; type: 'event' | 'schedule' } | null>(null);
+  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
 
   const fetchUnifiedEvents = async () => {
     setLoading(true);
@@ -137,7 +138,9 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
           {calendarGrid.flat().map((dayInfo, index) => ( // .flat()으로 2차원 배열을 1차원으로 만듦
             <div key={index} className={`calendar-cell ${dayInfo && dayInfo.date.getDay() === 0 ? 'sunday' : ''}`}>
               {dayInfo && <>
-                <span className="day-number">{dayInfo.day}일</span>
+                <span className="day-number">
+                  {dayInfo.day}일 <span className="day-weekday">({weekdays[dayInfo.date.getDay()]})</span>
+                </span>
                 <div className="events-container">
                   {dayInfo.events.map((event) => (
                     <div key={event.id} className="event-item" onClick={() => handleEventClick(event)}>
