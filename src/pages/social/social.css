@@ -59,9 +59,13 @@
 .calendar-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem; /* p-1 */
+  justify-content: center;
+  padding: 0.25rem;
   border-top: 1px solid rgb(13, 13, 13);
+}
+
+.calendar-cell.sunday {
+  background-color: #2a2121; /* 일요일 배경색 */
 }
 
 .month-nav-container {
@@ -116,7 +120,7 @@
   text-align: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* 요일 헤더 아래 그림자 */
 
-  font-size: 0.75rem; /* text-xs */
+  font-size: 1.15rem; /* text-xs */
   background-color: var(--header-bg-color);
 }
 
@@ -200,8 +204,8 @@
   margin-right: 0.25rem; /* mr-1 */
 }
 .event-place {
-  color: #9ca3af; /* text-gray-400 */
-  font-size: 10px;
+  color: #bfbfbf; /* text-gray-400 */
+  font-size: 15px;
   line-height: 1.2;
   word-break: break-word; /* 긴 텍스트가 셀 너비에 맞춰 줄바꿈되도록 함 */
 

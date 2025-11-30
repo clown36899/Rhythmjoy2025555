@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import {
@@ -19,6 +19,19 @@ export default function SocialPage() {
   const [view, setView] = useState<'places' | 'calendar'>('calendar'); // 서브메뉴 상태
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showEventModal, setShowEventModal] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const headerElement = headerRef.current;
+    if (!headerElement) return;
+
+    const observer = new ResizeObserver(() => {
+      setHeaderHeight(headerElement.offsetHeight);
+    });
+    observer.observe(headerElement);
+    return () => observer.disconnect();
+  }, []);
 
   // 장소 목록 불러오기
   useEffect(() => {
@@ -87,6 +100,7 @@ export default function SocialPage() {
     <div className="social-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       {/* 상단 고정 헤더 */}
       <div
+        ref={headerRef}
         className="fixed top-0 left-0 right-0 z-10 border-b border-[#22262a]"
         style={{
           maxWidth: '650px',
@@ -142,7 +156,7 @@ export default function SocialPage() {
 
       {/* 메인 콘텐츠 */}
       {/* 헤더 높이만큼 패딩 조정. 달력 뷰일 때 요일 헤더 높이만큼 추가 패딩 */}
-      <div style={{ paddingTop: view === 'calendar' ? '7.5rem' : '3.5rem' }}>
+      <div style={{ paddingTop: `${headerHeight}px` }}>
         {loading ? (
           <div className="social-loader">
             <div className="loader-text">로딩 중...</div>

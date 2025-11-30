@@ -30,14 +30,14 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
       // 1. social_events (별도 등록된 소셜 일정) 가져오기
       const { data: socialEvents, error: socialEventsError } = await supabase
         .from('social_events')
-        .select('id, title, event_date, image_url, social_places!place_id(name)');
+        .select('id, title, event_date, image_url, social_places(name)');
 
       if (socialEventsError) throw socialEventsError;
 
       // 2. social_schedules (장소별 일정) 가져오기
       const { data: placeSchedules, error: placeSchedulesError } = await supabase
         .from('social_schedules')
-        .select('id, title, date, start_time, social_places!place_id(name)');
+        .select('id, title, date, start_time, social_places(name)');
 
       if (placeSchedulesError) throw placeSchedulesError;
 
@@ -51,7 +51,7 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
             title: event.title,
             date: event.event_date,
             imageUrl: event.image_url,
-            placeName: (event.social_places as { name: string }[])?.[0]?.name || '장소 미정',
+            placeName: ((event.social_places as unknown) as { name: string })?.name || '장소 미정',
           });
         });
       }
@@ -62,7 +62,7 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
             id: `schedule-${schedule.id}`,
             title: schedule.title,
             date: schedule.date,
-            placeName: (schedule.social_places as { name: string }[])?.[0]?.name,
+            placeName: ((schedule.social_places as unknown) as { name: string })?.name,
             startTime: schedule.start_time,
           });
         });
@@ -87,14 +87,14 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
     if (type === 'event') {
       const { data } = await supabase
         .from('social_events')
-        .select('id, title, event_date, place_id, description, image_url, password, social_places!place_id(name)')
+        .select('id, title, event_date, place_id, description, image_url, password, social_places(name)')
         .eq('id', id)
         .single();
       if (data) setEditingItem({ item: data, type: 'event' });
     } else if (type === 'schedule') {
       const { data } = await supabase
         .from('social_schedules')
-        .select('id, place_id, title, date, start_time, end_time, description, password, social_places!place_id(name)')
+        .select('id, place_id, title, date, start_time, end_time, description, password, social_places(name)')
         .eq('id', id)
         .single();
       if (data) setEditingItem({ item: data, type: 'schedule' });
@@ -135,21 +135,21 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
       {loading ? <div className="loader-text" style={{textAlign: 'center', padding: '2.5rem 0'}}>일정 로딩 중...</div> : (
         <div className="calendar-grid">
           {calendarGrid.flat().map((dayInfo, index) => ( // .flat()으로 2차원 배열을 1차원으로 만듦
-            <div key={index} className="calendar-cell">
+            <div key={index} className={`calendar-cell ${dayInfo && dayInfo.date.getDay() === 0 ? 'sunday' : ''}`}>
               {dayInfo && <>
-                <span className="day-number">{dayInfo.day}</span>
+                <span className="day-number">{dayInfo.day}일</span>
                 <div className="events-container">
                   {dayInfo.events.map((event) => (
                     <div key={event.id} className="event-item" onClick={() => handleEventClick(event)}>
-                      {event.imageUrl && (
-                        <img src={event.imageUrl} alt={event.title} className="event-image" />
+                      {event.placeName && (
+                        <p className="event-place">{event.placeName}</p>
                       )}
                       <p className="event-title" title={event.title}>
                         {event.startTime && <span className="event-time">{event.startTime.substring(0, 5)}</span>}
                         {event.title}
                       </p>
-                      {event.placeName && (
-                        <p className="event-place">{event.placeName}</p>
+                      {event.imageUrl && (
+                        <img src={event.imageUrl} alt={event.title} className="event-image" />
                       )}
                     </div>
                   ))}
