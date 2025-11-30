@@ -9,6 +9,37 @@ import './EventDetailModal.css';
 
 interface Event extends BaseEvent {
   storage_path?: string | null;
+  genre?: string | null;
+}
+
+const genreColorPalette = [
+  'text-red-400',
+  'text-orange-400',
+  'text-amber-400',
+  'text-yellow-400',
+  'text-lime-400',
+  'text-green-400',
+  'text-emerald-400',
+  'text-teal-400',
+  'text-cyan-400',
+  'text-sky-400',
+  'text-blue-400',
+  'text-indigo-400',
+  'text-violet-400',
+  'text-purple-400',
+  'text-fuchsia-400',
+  'text-pink-400',
+  'text-rose-400',
+];
+
+function getGenreColor(genre: string): string {
+  if (!genre) return 'text-gray-400';
+  let hash = 0;
+  for (let i = 0; i < genre.length; i++) {
+    hash = genre.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash % genreColorPalette.length);
+  return genreColorPalette[index];
 }
 
 interface EventDetailModalProps {
@@ -161,6 +192,12 @@ export default function EventDetailModal({
                   padding: "16px",
                 }}
               >
+                {/* 장르 표시 */}
+                {selectedEvent.genre && (
+                  <p className={`text-sm font-bold ${getGenreColor(selectedEvent.genre)} mb-1`}>
+                    {selectedEvent.genre}
+                  </p>
+                )}
                 <h2 className="modal-title">
                   {selectedEvent.title}
                 </h2>

@@ -5,6 +5,7 @@ import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
 interface Event extends BaseEvent {
   storage_path?: string | null;
+  genre?: string | null;
 }
 import { parseVideoUrl } from "../../../utils/videoEmbed";
 import {
@@ -156,7 +157,9 @@ export default function EventList({
     "random" | "time" | "title"
   >("random");
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
-
+  const [allGenres, setAllGenres] = useState<string[]>([]);
+  const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
+  const [isGenreInputFocused, setIsGenreInputFocused] = useState(false);
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
   const setShowSearchModal =
     externalSetShowSearchModal ?? setInternalShowSearchModal;
@@ -167,6 +170,7 @@ export default function EventList({
   const [editFormData, setEditFormData] = useState({
     title: "",
     description: "",
+    genre: "",
     time: "",
     location: "",
     locationLink: "",
@@ -246,6 +250,18 @@ export default function EventList({
     const timer = scheduleNextMidnight();
     return () => clearTimeout(timer);
   }, []);
+  // 장르 목록 로드 (자동완성용)
+  useEffect(() => {
+    const fetchGenres = async () => {
+      const { data, error } = await supabase.from('events').select('genre');
+      if (data && !error) {
+        const uniqueGenres = [...new Set(data.map(item => item.genre).filter(g => g))] as string[];
+        setAllGenres(uniqueGenres);
+      }
+    };
+    fetchGenres();
+  }, []);
+
 
   // 카테고리, 정렬 기준, 이벤트 배열, 날짜 변경 시 캐시 초기화
   useEffect(() => {
@@ -464,6 +480,17 @@ export default function EventList({
     setShowSearchModal(false);
     setSearchSuggestions([]);
   };
+ const handleGenreSuggestionClick = (genre: string) => {
+    setEditFormData(prev => ({ ...prev, genre }));
+    setGenreSuggestions([]);
+  };
+
+  const handleGenreFocus = () => {
+    setIsGenreInputFocused(true);
+    setGenreSuggestions(allGenres); // 포커스 시 전체 장르 목록 보여주기
+  };
+
+
 
   const handleSortChange = (
     newSortBy: "random" | "time" | "title",
@@ -1098,6 +1125,7 @@ export default function EventList({
         location: event.location,
         locationLink: event.location_link || "",
         category: event.category,
+        genre: event.genre || "",
         organizer: event.organizer,
         organizerName: event.organizer_name || "",
         organizerPhone: event.organizer_phone || "",
@@ -1221,6 +1249,8 @@ export default function EventList({
 
           setEditFormData({
             title: fullEvent.title,
+            genre: fullEvent.genre || "",
+
             description: fullEvent.description || "",
             time: fullEvent.time,
             location: fullEvent.location,
@@ -1461,6 +1491,8 @@ export default function EventList({
 
       let updateData: any = {
         title: editFormData.title,
+        genre: editFormData.genre || null,
+
         time: editFormData.time,
         location: editFormData.location,
         location_link: editFormData.locationLink || null,
@@ -1696,7 +1728,7 @@ export default function EventList({
           }}
         >
           {/* Grid layout with 3 columns - poster ratio */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.65rem]">
             {/* 필터 활성화 시 '전체 보기' 카드 표시 */}
             {(selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none')) && (
               <div
@@ -1726,7 +1758,6 @@ export default function EventList({
                 selectedDate={selectedDate}
                 defaultThumbnailClass={defaultThumbnailClass}
                 defaultThumbnailEvent={defaultThumbnailEvent}
-                viewMode={viewMode}
               />
             ))}
 
@@ -1790,13 +1821,13 @@ export default function EventList({
                 className="p-[0.4rem]"
                 style={{
                   margin: "2px 0",
-                  padding:"0 19px",
+                  padding:"12px 19px",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.65rem]">
                     {sortedPrevEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -1808,7 +1839,6 @@ export default function EventList({
                         selectedDate={null}
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
-                        viewMode={viewMode}
                         variant="sliding"
                       />
                     ))}
@@ -1868,13 +1898,13 @@ export default function EventList({
                 className="p-[0.4rem]"
                 style={{
                   margin: "2px 0",
-                  padding:"0 19px",
+                  padding:"12px 19px",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.65rem]">
                     {sortedCurrentEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -1886,7 +1916,6 @@ export default function EventList({
                         selectedDate={null}
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
-                        viewMode={viewMode}
                         variant="sliding"
                       />
                     ))}
@@ -1939,13 +1968,13 @@ export default function EventList({
                 className="p-[0.4rem]"
                 style={{
                   margin: "2px 0",
-                  padding:"0 19px",
+                  padding:"12px 19px",
                   borderRadius: "11px",
                   backgroundColor: "var(--event-list-outer-bg-color)",
                 }}
               >
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.4rem]">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-10 gap-[0.65rem]">
                     {sortedNextEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -1957,7 +1986,6 @@ export default function EventList({
                         selectedDate={null}
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
-                        viewMode={viewMode}
                         variant="sliding"
                       />
                     ))}
@@ -2223,6 +2251,46 @@ export default function EventList({
                   />
                 </div>
 
+              
+                <div className="relative">
+
+                  <label className="block text-gray-300 text-xs font-medium mb-1">
+                    장르 (7자 이내, 선택사항)
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.genre}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEditFormData((prev) => ({ ...prev, genre: value }));
+                      const suggestions = value
+                        ? allGenres.filter(
+                            (genre) =>
+                              genre.toLowerCase().includes(value.toLowerCase()) &&
+                              genre.toLowerCase() !== value.toLowerCase(),
+                          )
+                        : allGenres; // 입력값이 없으면 전체 목록 보여주기
+                      setGenreSuggestions(suggestions);
+                    }}
+                    onFocus={handleGenreFocus}
+                    onBlur={() => setTimeout(() => setIsGenreInputFocused(false), 150)}
+                    maxLength={7}
+                    className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="예: 린디합, 발보아"
+                    autoComplete="off"
+
+                  />
+                      {isGenreInputFocused && genreSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {genreSuggestions.map((genre) => (
+                        <div key={genre} onMouseDown={() => handleGenreSuggestionClick(genre)} className="px-4 py-2 text-white hover:bg-blue-500 cursor-pointer">
+                          {genre}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
                 <div>
                   <label className="block text-gray-300 text-xs font-medium mb-1">
                     카테고리

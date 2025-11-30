@@ -1,6 +1,40 @@
 import { memo } from "react";
-import type { Event } from "../../../lib/supabase";
+import type { Event as BaseEvent } from "../../../lib/supabase";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
+
+interface Event extends BaseEvent {
+  genre?: string | null;
+}
+
+const genreColorPalette = [
+  'text-red-400',
+  'text-orange-400',
+  'text-amber-400',
+  'text-yellow-400',
+  'text-lime-400',
+  'text-green-400',
+  'text-emerald-400',
+  'text-teal-400',
+  'text-cyan-400',
+  'text-sky-400',
+  'text-blue-400',
+  'text-indigo-400',
+  'text-violet-400',
+  'text-purple-400',
+  'text-fuchsia-400',
+  'text-pink-400',
+  'text-rose-400',
+];
+
+function getGenreColor(genre: string): string {
+  if (!genre) return 'text-gray-400';
+  let hash = 0;
+  for (let i = 0; i < genre.length; i++) {
+    hash = genre.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash % genreColorPalette.length);
+  return genreColorPalette[index];
+}
 
 const getLocalDateString = (): string => {
   const now = new Date();
@@ -19,7 +53,6 @@ interface EventCardProps {
   selectedDate?: Date | null;
   defaultThumbnailClass: string;
   defaultThumbnailEvent: string;
-  viewMode?: "month" | "year";
   variant?: "single" | "sliding";
 }
 
@@ -32,7 +65,6 @@ export const EventCard = memo(({
   selectedDate = null,
   defaultThumbnailClass,
   defaultThumbnailEvent,
-  viewMode = "month",
   variant = "single",
 }: EventCardProps) => {
   const highlightBorderColor =
@@ -106,26 +138,18 @@ export const EventCard = memo(({
       key={event.id}
       data-event-id={event.id}
       onClick={onClick}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = highlightBorderColor;
-        if (viewMode === "month" && onMouseEnter) onMouseEnter(event.id);
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = "var(--event-list-bg-color)";
-        e.currentTarget.style.borderColor = "#000000";
-        if (viewMode === "month" && onMouseLeave) onMouseLeave();
-      }}
-      className={`overflow-hidden transition-all cursor-pointer relative border ${
-        isHighlighted ? "" : "border-transparent"
+      onMouseEnter={() => onMouseEnter?.(event.id)}
+      onMouseLeave={onMouseLeave}
+      className={`group cursor-pointer transition-all duration-200 ${
+        isPast ? "opacity-60" : ""
       }`}
-      style={{
-        backgroundColor: "var(--event-list-bg-color)",
-        borderColor: isHighlighted ? highlightBorderColor : undefined,
-        borderRadius: "0.3rem",
-        boxShadow: "rgb(0 0 0 / 53%) 0px 1px 4px, rgb(0 0 0 / 51%) 0px 1px 8px 0px",
-      }}
     >
-      <div className="relative aspect-[3/4]">
+      <div
+        className={`relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-800 transition-all duration-200 ${
+          isHighlighted ? "ring-2 ring-offset-2 ring-offset-gray-900" : ""
+        }`}
+        style={{ borderColor: isHighlighted ? highlightBorderColor : "transparent" }}
+      >
         {thumbnailUrl ? (
           <>
             <img
@@ -133,12 +157,11 @@ export const EventCard = memo(({
               alt={event.title}
               loading="lazy"  // 이미지가 뷰포트에 가까워질 때 로딩을 시작합니다.
               decoding="async" // 이미지 디코딩을 다른 작업과 병렬로 처리합니다.
-              className={`w-full object-contain object-top bg-gray-900 transition-opacity ${isPast ? 'opacity-50' : ''}`}
-              style={{ height: "-webkit-fill-available" }}
+              className="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
             />
             {variant === "sliding" && !event?.image && !event?.image_thumbnail && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className={`text-white/50 text-4xl font-bold transition-opacity ${isPast ? 'opacity-50' : ''}`}>
+                <span className="text-white/50 text-4xl font-bold">
                   {event.category === "class" ? "강습" : "행사"}
                 </span>
               </div>
@@ -146,7 +169,7 @@ export const EventCard = memo(({
           </>
         ) : (
           <div
-            className={`w-full aspect-[3/4] flex items-center justify-center bg-cover bg-center relative transition-opacity ${isPast ? 'opacity-50' : ''}`}
+            className="h-full w-full flex items-center justify-center bg-cover bg-center"
             style={{
               backgroundImage: "url(/grunge.png)",
             }}
@@ -165,7 +188,7 @@ export const EventCard = memo(({
         )}
 
         <div
-          className={`absolute top-0.5 right-0.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${
+          className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 text-white text-[10px] font-medium rounded-sm ${
             isPast
               ? "bg-gray-500/80"
               : event.category === "class"
@@ -176,23 +199,22 @@ export const EventCard = memo(({
           {isPast ? "종료" : event.category === "class" ? "강습" : "행사"}
         </div>
 
-        <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t ${variant === "sliding" ? "from-black/90 via-black/60" : "from-black/80 via-black/40"} to-transparent p-2 ${variant === "sliding" ? "pt-10" : "pt-6"} transition-opacity ${isPast ? 'opacity-50' : ''}`}>
-          <h3
-            className={`text-white font-bold leading-tight ${variant === "sliding" ? "line-clamp-4" : "line-clamp-2"}`}
-            style={{ fontSize: "0.8rem" }}
-          >
-            {event.title}
-          </h3>
-        </div>
       </div>
 
-      <div className="p-1 h-7 flex items-center justify-center">
-        <p className="text-xs text-gray-300 text-center flex items-center justify-center gap-1">
+      {/* Text content */}
+      <div className="pt-2">
+        {event.genre && (
+          <p className={`truncate text-[1.1rem] font-semibold ${getGenreColor(event.genre)} mb-0.5`}>
+            {event.genre}
+          </p>
+        )}
+        <h3 className="truncate text-sm font-bold text-gray-100">{event.title}</h3>
+        <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-400">
           {isOnSelectedDate && (
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
           )}
           <span>{dateText}</span>
-        </p>
+        </div>
       </div>
     </div>
   );

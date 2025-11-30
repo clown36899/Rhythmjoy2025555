@@ -75,6 +75,9 @@ export default function EventRegistrationModal({
   const organizerNameInputRef = useRef<HTMLInputElement>(null);
   const organizerPhoneInputRef = useRef<HTMLInputElement>(null);
   const startDatePickerRef = useRef<DatePicker>(null);
+  const [allGenres, setAllGenres] = useState<string[]>([]);
+  const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
+  const [isGenreInputFocused, setIsGenreInputFocused] = useState(false);
   const specificDatePickerRef = useRef<DatePicker>(null);
   const dateSectionRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +97,7 @@ export default function EventRegistrationModal({
     linkName1: "",
     linkName2: "",
     linkName3: "",
+    genre: "",
     password: "",
     videoUrl: "",
     showTitleOnBillboard: true,
@@ -131,6 +135,16 @@ export default function EventRegistrationModal({
 
   // selectedDate가 변경되면 startDateInput, endDate, specificDates도 업데이트
   useEffect(() => {
+    if (isOpen) {
+      const fetchGenres = async () => {
+        const { data, error } = await supabase.from('events').select('genre');
+        if (data && !error) {
+          const uniqueGenres = [...new Set(data.map(item => item.genre).filter(g => g))] as string[];
+          setAllGenres(uniqueGenres);
+        }
+      };
+      fetchGenres();
+    }
     setStartDateInput(fromBanner ? "" : formatDateForInput(selectedDate));
     setEndDate(selectedDate);
     setSpecificDates([selectedDate]);
@@ -168,11 +182,20 @@ export default function EventRegistrationModal({
       return;
     }
 
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === 'genre') {
+      const suggestions = value
+        ? allGenres.filter(
+            (genre) =>
+              genre.toLowerCase().includes(value.toLowerCase()) &&
+              genre.toLowerCase() !== value.toLowerCase(),
+          )
+        : allGenres; // 입력값이 없으면 전체 목록 보여주기
+      setGenreSuggestions(suggestions);
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
 
     if (name === "videoUrl") {
       if (value.trim() === "") {
@@ -196,6 +219,16 @@ export default function EventRegistrationModal({
         }
       }
     }
+  };
+
+  const handleGenreSuggestionClick = (genre: string) => {
+    setFormData(prev => ({ ...prev, genre }));
+    setGenreSuggestions([]);
+  };
+
+  const handleGenreFocus = () => {
+    setIsGenreInputFocused(true);
+    setGenreSuggestions(allGenres); // 포커스 시 전체 장르 목록 보여주기
   };
 
   const handleInputFocus = (
@@ -630,6 +663,7 @@ export default function EventRegistrationModal({
       const eventData = {
         title: formData.title,
         date: localDateString,
+        genre: formData.genre || null,
         start_date: localDateString,
         end_date: endDateString,
         event_dates: eventDatesArray,
@@ -696,6 +730,7 @@ export default function EventRegistrationModal({
           linkName1: "",
           linkName2: "",
           linkName3: "",
+          genre: "",
           password: "",
           videoUrl: "",
           showTitleOnBillboard: true,
@@ -776,6 +811,38 @@ export default function EventRegistrationModal({
                   className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
                   placeholder="이벤트 제목을 입력하세요"
                 />
+              </div>
+
+              {/* 장르 */}
+              <div className="relative">
+                <label className="block text-gray-300 text-sm font-medium mb-1">
+                  장르 (7자 이내, 선택사항)
+                </label>
+                <input
+                  type="text"
+                  name="genre"
+                  value={formData.genre}
+                  onChange={handleInputChange}
+                  onFocus={handleGenreFocus}
+                  onBlur={() => setTimeout(() => setIsGenreInputFocused(false), 150)}
+                  maxLength={7}
+                  className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-[#555]"
+                  placeholder="예: 린디합, 발보아, 스윙"
+                  autoComplete="off"
+                />
+                {isGenreInputFocused && genreSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {genreSuggestions.map((genre) => (
+                      <div
+                        key={genre}
+                        onMouseDown={() => handleGenreSuggestionClick(genre)}
+                        className="px-4 py-2 text-white hover:bg-blue-500 cursor-pointer"
+                      >
+                        {genre}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 비밀번호 & 카테고리 (한 줄) */}
