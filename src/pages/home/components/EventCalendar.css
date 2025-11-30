@@ -1,0 +1,88 @@
+/* EventCalendar.css - 이벤트 달력 전용 스타일 */
+
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --calendar-bg: #1a1a1a;
+  --calendar-header-bg: #252525;
+  --calendar-cell-border: #15151575;
+  
+  /* 텍스트 색상 */
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --text-dark: #6b7280;
+  
+  /* 배경 색상 */
+  --bg-primary: #1f2937;
+  --bg-secondary: #374151;
+  --bg-hover: #4b5563;
+  --bg-selected: #3b82f6;
+  
+  /* 이벤트 색상 - 카테고리별 */
+  --event-class-primary: #a855f7;
+  --event-class-secondary: #9333ea;
+  --event-class-tertiary: #c084fc;
+  
+  --event-event-primary: #3b82f6;
+  --event-event-secondary: #2563eb;
+  --event-event-tertiary: #60a5fa;
+  
+  /* 전체화면 모드 이벤트 색상 팔레트 */
+  --color-red-500: #ef4444;
+  --color-orange-500: #f97316;
+  --color-amber-500: #f59e0b;
+  --color-yellow-500: #eab308;
+  --color-lime-500: #84cc16;
+  --color-green-500: #22c55e;
+  --color-emerald-500: #10b981;
+  --color-teal-500: #14b8a6;
+  --color-cyan-500: #06b6d4;
+  --color-sky-500: #0ea5e9;
+  --color-blue-500: #3b82f6;
+  --color-indigo-500: #6366f1;
+  --color-violet-500: #8b5cf6;
+  --color-purple-500: #a855f7;
+  --color-fuchsia-500: #d946ef;
+  --color-pink-500: #ec4899;
+  --color-rose-500: #f43f5e;
+  
+  /* 간격 */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* 트랜지션 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+}
+
+/* ===== 기본 리셋 및 유틸리티 ===== */
+.event-calendar {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== 컨테이너 클래스 ===== */
+.calendar-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--calendar-bg);
+  border-radius: 0;
+  padding: 0;
+}
+
+.calendar-wrapper {
+  width: 100%;
+  touch-action: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+}
