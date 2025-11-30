@@ -768,7 +768,7 @@ export default function EventRegistrationModal({
           {isSubmitting && (
             <div className="reg-upload-overlay">
               <div className="reg-upload-container">
-                <div className="text-center mb-4">
+                <div className="erm-text-center-mb-4">
                   <div className="reg-upload-title" style={{ fontSize: '3rem', color: 'var(--color-blue-500)' }}>
                     {uploadProgress}%
                   </div>
@@ -786,7 +786,7 @@ export default function EventRegistrationModal({
           
           {/* Header - 상단 고정 */}
           <div className="reg-modal-header">
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="erm-title">
               {(startDateInput ? new Date(startDateInput + "T00:00:00") : selectedDate).toLocaleDateString("ko-KR", {
                 year: "numeric",
                 month: "long",
@@ -848,7 +848,7 @@ export default function EventRegistrationModal({
               </div>
 
               {/* 비밀번호 & 카테고리 (한 줄) */}
-              <div className="grid-cols-2 gap-3">
+              <div className="erm-grid-2-gap-3">
                 {/* 이벤트 비밀번호 */}
                 <div>
                   <input
@@ -915,7 +915,7 @@ export default function EventRegistrationModal({
                       onChange={() => setDateMode("range")}
                       className="mr-2"
                     />
-                    <span className="text-white text-sm">연속 기간</span>
+                    <span className="erm-text-white-sm">연속 기간</span>
                   </label>
                   <label className="reg-checkbox-label">
                     <input
@@ -924,7 +924,7 @@ export default function EventRegistrationModal({
                       onChange={() => setDateMode("specific")}
                       className="mr-2"
                     />
-                    <span className="text-white text-sm">특정 날짜 선택</span>
+                    <span className="erm-text-white-sm">특정 날짜 선택</span>
                   </label>
                 </div>
 
@@ -932,7 +932,7 @@ export default function EventRegistrationModal({
                 {dateMode === "range" && (
                   <div className="reg-date-range-inputs">
                     <div>
-                      <label className="reg-form-label-sm mb-1">
+                      <label className="reg-form-label-sm erm-mb-1">
                         시작
                       </label>
                       <DatePicker
@@ -986,7 +986,7 @@ export default function EventRegistrationModal({
                       />
                     </div>
                     <div>
-                      <label className="reg-form-label-sm mb-1">
+                      <label className="reg-form-label-sm erm-mb-1">
                         종료
                       </label>
                       <DatePicker
@@ -1021,7 +1021,7 @@ export default function EventRegistrationModal({
                 {/* 특정 날짜 선택 모드 */}
                 {dateMode === "specific" && (
                   <div>
-                    <label className="reg-form-label-sm mb-2">
+                    <label className="reg-form-label-sm erm-mb-2">
                       선택된 날짜 ({specificDates.length}개)
                     </label>
                     <div className="reg-date-specific-tags">
@@ -1334,7 +1334,7 @@ export default function EventRegistrationModal({
                   {/* 영상 프리뷰 */}
                   {videoPreview.provider && videoPreview.embedUrl && (
                     <div className="reg-video-preview-container">
-                      <div className="reg-video-status mb-2">
+                      <div className="reg-video-status erm-mb-2">
                         <i className="ri-check-line"></i>
                         <span>
                           {getVideoProviderName(formData.videoUrl)} 영상 인식됨
@@ -1370,7 +1370,7 @@ export default function EventRegistrationModal({
                   
                   {/* 영상 URL 입력창 - 항상 표시 */}
                   <div>
-                    <label className="reg-form-label-sm mb-1">
+                    <label className="reg-form-label-sm erm-mb-1">
                       {videoPreview.provider ? '영상 주소 (복사/수정 가능)' : '영상 주소 입력'}
                     </label>
                     <input

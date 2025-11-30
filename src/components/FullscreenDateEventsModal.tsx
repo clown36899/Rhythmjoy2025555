@@ -115,7 +115,7 @@ export default function FullscreenDateEventsModal({
     >
       <div
         ref={modalRef}
-        className="fsde-modal w-full flex flex-col"
+        className="fsde-modal fsde-w-full fsde-flex fsde-flex-col"
         style={animationOrigin}
         onClick={(e) => e.stopPropagation()}
       >
@@ -136,9 +136,9 @@ export default function FullscreenDateEventsModal({
         </div>
 
         {/* Content */}
-        <div className="fsde-content flex-1">
+        <div className="fsde-content fsde-flex-1">
           {loading ? (
-            <div className="fsde-loading flex items-center justify-center">
+            <div className="fsde-loading fsde-flex-center">
               <i className="ri-loader-4-line fsde-loading-icon"></i>
             </div>
           ) : events.length === 0 ? (
@@ -170,13 +170,13 @@ export default function FullscreenDateEventsModal({
                         <img
                           src={thumbnail}
                           alt={event.title}
-                          className="fsde-thumbnail-img w-full h-full"
+                          className="fsde-thumbnail-img"
                         />
                       </div>
                     )}
 
                     {/* Content */}
-                    <div className="fsde-event-content flex-1">
+                    <div className="fsde-event-content">
                       <div className="fsde-event-meta">
                         <span
                           className={`fsde-badge ${

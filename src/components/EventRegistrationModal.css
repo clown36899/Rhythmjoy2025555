@@ -1024,3 +1024,34 @@
   display: flex;
   gap: 1rem;
 }
+
+/* ===== 추가 유틸리티 클래스 ===== */
+.erm-text-center-mb-4 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.erm-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+}
+
+.erm-grid-2-gap-3 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.erm-text-white-sm {
+  color: white;
+  font-size: 0.875rem;
+}
+
+.erm-mb-1 {
+  margin-bottom: 0.25rem;
+}
+
+.erm-mb-2 {
+  margin-bottom: 0.5rem;
+}

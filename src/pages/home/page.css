@@ -1,0 +1,207 @@
+/* home/page.css - Home 페이지 전용 스타일 */
+
+/* ===== 메인 컨테이너 ===== */
+.home-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== 헤더 ===== */
+.home-header {
+  flex-shrink: 0;
+  width: 100%;
+  z-index: 40;
+  border-bottom: 1px solid #22262a;
+  touch-action: auto;
+}
+
+/* ===== 메인 컨텐츠 영역 ===== */
+.home-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ===== 컨텐츠 스크롤 영역 ===== */
+.home-content-scroll {
+  flex: 1;
+  width: 100%;
+  margin: 0 auto;
+  background-color: #1f1f1f;
+  overflow-y: auto;
+  padding-bottom: 5rem;
+}
+
+/* ===== 달력/카테고리 버튼 영역 ===== */
+.home-calendar-buttons {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  padding-left: 9px;
+  padding-right: 9px;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #22262a;
+}
+
+/* ===== 툴바 ===== */
+.home-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.home-toolbar-spacer {
+  flex: 1;
+}
+
+.home-toolbar-text {
+  font-size: 0.75rem;
+  line-height: 1;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ===== 구분선 ===== */
+.home-divider {
+  color: #4b5563;
+  user-select: none;
+}
+
+/* ===== 버튼 스타일 ===== */
+.home-btn-today {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid #22c55e;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  flex-shrink: 0;
+}
+
+.home-btn-today:hover {
+  background-color: rgba(34, 197, 94, 0.3);
+}
+
+.home-btn-sort {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  gap: 0.25rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+  background-color: #242424;
+  color: #d1d5db;
+}
+
+.home-btn-sort:hover {
+  background-color: #4b5563;
+  color: white;
+}
+
+.home-btn-sort.blinking {
+  background-color: #3b82f6;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+.home-btn-search {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  width: 2rem;
+  background-color: #242424;
+  color: #d1d5db;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.home-btn-search:hover {
+  background-color: #4b5563;
+  color: white;
+}
+
+/* ===== 날짜 인풋 버튼 ===== */
+.home-date-btn {
+  flex: 1;
+  background-color: #374151;
+  color: white;
+  border-radius: 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.875rem;
+  text-align: left;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  outline: none;
+  border: none;
+}
+
+.home-date-btn:hover {
+  background-color: #4b5563;
+}
+
+.home-date-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* ===== 아이콘 크기 ===== */
+.home-icon-sm {
+  font-size: 0.875rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.home-icon-xs {
+  font-size: 10px;
+}
+
+/* ===== 텍스트 스타일 ===== */
+.home-text-xs {
+  font-size: 0.75rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.home-text-10px {
+  font-size: 10px;
+}
+
+.home-text-bold {
+  font-weight: 700;
+}
+
+/* ===== 애니메이션 ===== */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

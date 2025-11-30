@@ -19,6 +19,7 @@ import type { Event as AppEvent } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 import { useAuth } from "../../contexts/AuthContext";
 import { useCalendarGesture } from "../../hooks/useCalendarGesture";
+import "./page.css";
 
 export default function HomePage() {
   const [searchParams] = useSearchParams();
@@ -40,7 +41,7 @@ export default function HomePage() {
         type="button"
         ref={ref}
         onClick={onClick}
-        className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-left hover:bg-gray-600 transition-colors"
+        className="home-date-btn"
       >
         {value || "날짜 선택"}
       </button>
@@ -520,18 +521,18 @@ export default function HomePage() {
   }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
   const isFixed = calendarMode === "fullscreen" || (isDragging && liveCalendarHeight > 300);
   const buttonBgClass = calendarMode === "collapsed" ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white";
-  const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-up-s-line text-sm leading-none align-middle text-white font-bold"></i> : <i className="ri-arrow-down-s-line text-sm leading-none align-middle text-blue-400 font-bold"></i>;
+  const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-up-s-line home-icon-sm text-white font-bold"></i> : <i className="ri-arrow-down-s-line home-icon-sm text-blue-400 font-bold"></i>;
 
   return (
     <div
       ref={containerRef}
-      className="h-screen flex flex-col overflow-hidden"
+      className="home-container"
       style={{ 
         backgroundColor: "var(--page-bg-color)",
         touchAction: "pan-y" 
       }}
     >
-      <div ref={headerRef} className="flex-shrink-0 w-full z-40 border-b border-[#22262a]" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
+      <div ref={headerRef} className="home-header" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
         <Header
           currentMonth={currentMonth}
           onNavigateMonth={(dir) => {
@@ -553,7 +554,7 @@ export default function HomePage() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="home-main">
         <div
           ref={calendarRef}
           className="w-full"
@@ -597,43 +598,43 @@ export default function HomePage() {
           </div>
 
           <div ref={calendarControlBarRef} className="w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none",padding:"0 9px" }}>
-            <div className="flex items-center gap-2 py-1">
+            <div className="home-toolbar">
               <button
                 onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : prev === "fullscreen" ? "expanded" : "collapsed")}
                 className={`flex items-center justify-center gap-1 h-6 px-2 ${buttonBgClass} rounded-lg transition-colors cursor-pointer flex-shrink-0`}
               >
-                <i className={`${calendarMode === "collapsed" ? "ri-calendar-line" : "ri-calendar-close-line"} text-sm leading-none align-middle`}></i>
-                <span className="text-xs leading-none align-middle whitespace-nowrap">{calendarMode === "collapsed" ? "이벤트 등록달력" : "달력 접기"}</span>
+                <i className={`${calendarMode === "collapsed" ? "ri-calendar-line" : "ri-calendar-close-line"} home-icon-sm`}></i>
+                <span className="home-toolbar-text">{calendarMode === "collapsed" ? "이벤트 등록달력" : "달력 접기"}</span>
                 {arrowIconContent}
               </button>
-              <div className="flex-1"></div>
+              <div className="home-toolbar-spacer"></div>
               {calendarMode === "fullscreen" ? (
                 null
               ) : (
                 <>
                   {/* 오늘 버튼 조건부 렌더링 */}
                   {!isCurrentMonthVisible && (
-                    <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full text-10px font-medium border transition-colors bg-green-500-20 border-green-500 text-green-300 hover:bg-green-500-30 flex-shrink-0"><span>오늘</span><i className="ri-calendar-check-line text-10px"></i></button>
+                    <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="home-btn-today"><span>오늘</span><i className="ri-calendar-check-line home-text-10px"></i></button>
                   )}
-                  <button onClick={() => setShowSortModal(true)} className={`flex items-center justify-center h-6 gap-1 px-2 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${sortBy === "random" && isRandomBlinking ? "bg-blue-500 text-white animate-pulse" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${getSortIcon()} text-sm leading-none align-middle`}></i><span className="text-xs leading-none align-middle">{getSortLabel()}</span></button>
-                  <button onClick={() => setShowSearchModal(true)} className="flex items-center justify-center h-6 w-8 bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors cursor-pointer flex-shrink-0"><i className="ri-search-line text-sm leading-none align-middle"></i></button>
+                  <button onClick={() => setShowSortModal(true)} className={`flex items-center justify-center h-6 gap-1 px-2 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${sortBy === "random" && isRandomBlinking ? "bg-blue-500 text-white animate-pulse" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${getSortIcon()} home-icon-sm`}></i><span className="home-text-xs">{getSortLabel()}</span></button>
+                  <button onClick={() => setShowSearchModal(true)} className="home-btn-search"><i className="ri-search-line home-icon-sm"></i></button>
                 </>
               )}
-              <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`flex items-center justify-center h-6 w-8 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${calendarMode === "fullscreen" ? "bg-blue-600 text-white" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} text-sm leading-none align-middle`}></i></button>
+              <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`flex items-center justify-center h-6 w-8 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${calendarMode === "fullscreen" ? "bg-blue-600 text-white" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i></button>
             </div>
           </div>
-          <div ref={calendarCategoryButtonsRef} data-id="bottom-nav" className="w-full flex justify-center items-center gap-3 px-[9px] py-2 border-b border-[#22262a]" style={{ 
+          <div ref={calendarCategoryButtonsRef} data-id="bottom-nav" className="home-calendar-buttons" style={{ 
             backgroundColor: "var(--calendar-bg-color)",
             boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
           }}>
             <button onClick={() => navigateWithCategory('all')} className={`text-lg font-bold transition-colors ${selectedCategory === 'all' ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
               <span>전체</span>
             </button>
-            <span className="text-gray-600 select-none">|</span>
+            <span className="home-divider">|</span>
             <button onClick={() => navigateWithCategory('event')} className={`text-lg font-bold transition-colors ${selectedCategory === 'event' ? 'text-blue-300' : 'text-gray-400 hover:text-white'}`}>
               <span>행사</span>
             </button>
-            <span className="text-gray-600 select-none">|</span>
+            <span className="home-divider">|</span>
             <button onClick={() => navigateWithCategory('class')} className={`text-lg font-bold transition-colors ${selectedCategory === 'class' ? 'text-purple-300' : 'text-gray-400 hover:text-white'}`}>
               <span>강습</span>
             </button>
@@ -642,7 +643,7 @@ export default function HomePage() {
 
         <div
           ref={eventListElementRef}
-          className="flex-1 w-full mx-auto bg-1f1f1f overflow-y-auto pb-20"
+          className="home-content-scroll"
           style={{
             marginTop: isFixed ? `${calculateFullscreenHeight()}px` : undefined,
             overscrollBehaviorY: "contain"

@@ -307,3 +307,30 @@
   font-size: 0.875rem;
   color: var(--color-gray-400);
 }
+
+/* ===== 유틸리티 클래스 ===== */
+.fsde-w-full {
+  width: 100%;
+}
+
+.fsde-h-full {
+  height: 100%;
+}
+
+.fsde-flex {
+  display: flex;
+}
+
+.fsde-flex-col {
+  flex-direction: column;
+}
+
+.fsde-flex-1 {
+  flex: 1;
+}
+
+.fsde-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
