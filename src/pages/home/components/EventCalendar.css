@@ -748,3 +748,270 @@
   color: white;
   transform: scale(1.1);
 }
+
+/* ===== 추가 유틸리티 클래스 ===== */
+
+/* Opacity */
+.cal-opacity-15 {
+  opacity: 0.15;
+}
+
+.cal-opacity-20 {
+  opacity: 0.2;
+}
+
+.cal-opacity-60 {
+  opacity: 0.6;
+}
+
+.cal-opacity-80 {
+  opacity: 0.8;
+}
+
+.cal-opacity-100 {
+  opacity: 1;
+}
+
+/* Z-Index */
+.cal-z-0 {
+  z-index: 0;
+}
+
+.cal-z-10 {
+  z-index: 10;
+}
+
+.cal-z-30 {
+  z-index: 30;
+}
+
+/* 인터랙션 */
+.cal-pointer-events-none {
+  pointer-events: none;
+}
+
+.cal-cursor-pointer {
+  cursor: pointer;
+}
+
+/* Display */
+.cal-hidden {
+  display: none;
+}
+
+.cal-inline-block {
+  display: inline-block;
+}
+
+/* Overflow */
+.cal-overflow-hidden {
+  overflow: hidden;
+}
+
+.cal-overflow-y-auto {
+  overflow-y: auto;
+}
+
+.cal-overflow-visible {
+  overflow: visible;
+}
+
+/* Text */
+.cal-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-font-bold {
+  font-weight: 700;
+}
+
+.cal-font-medium {
+  font-weight: 500;
+}
+
+.cal-font-semibold {
+  font-weight: 600;
+}
+
+.cal-text-center {
+  text-align: center;
+}
+
+/* Space Between */
+.cal-space-x-1 > * + * {
+  margin-left: 0.25rem;
+}
+
+.cal-space-x-2 > * + * {
+  margin-left: 0.5rem;
+}
+
+/* 임의 값 클래스 */
+.cal-text-\[10px\] {
+  font-size: 10px;
+}
+
+.cal-text-\[9px\] {
+  font-size: 9px;
+}
+
+.cal-text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+/* 위치 */
+.cal-inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.cal-top-px {
+  top: 1px;
+}
+
+.cal-left-0\.5 {
+  left: 0.125rem;
+}
+
+.cal-right-0\.5 {
+  right: 0.125rem;
+}
+
+.cal-top-0\.5 {
+  top: 0.125rem;
+}
+
+.cal-bottom-0 {
+  bottom: 0;
+}
+
+.cal-left-0 {
+  left: 0;
+}
+
+.cal-right-0 {
+  right: 0;
+}
+
+.cal-left-1 {
+  left: 0.25rem;
+}
+
+.cal-right-1 {
+  right: 0.25rem;
+}
+
+.cal-top-1 {
+  top: 0.25rem;
+}
+
+.cal-left-2 {
+  left: 0.5rem;
+}
+
+/* Padding */
+.cal-px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.cal-px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+
+.cal-py-0 {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Gap */
+.cal-gap-0\.5 {
+  gap: 0.125rem;
+}
+
+.cal-gap-0 {
+  gap: 0;
+}
+
+/* Height */
+.cal-h-1\.5 {
+  height: 0.375rem;
+}
+
+.cal-h-3\.5 {
+  height: 0.875rem;
+}
+
+.cal-h-4 {
+  height: 1rem;
+}
+
+.cal-h-5 {
+  height: 1.25rem;
+}
+
+.cal-h-full {
+  height: 100%;
+}
+
+/* Border Radius */
+.cal-rounded-full {
+  border-radius: 9999px;
+}
+
+.cal-rounded-l-full {
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+}
+
+.cal-rounded-r-full {
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+}
+
+.cal-rounded-none {
+  border-radius: 0;
+}
+
+/* Transform */
+.cal-scale-105 {
+  transform: scale(1.05);
+}
+
+.cal-rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Transitions */
+.cal-transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.cal-duration-200 {
+  transition-duration: 200ms;
+}
+
+/* Hover States */
+.cal-hover-bg-gray-700:hover {
+  background-color: #374151;
+}
+
+.cal-hover-bg-gray-600:hover {
+  background-color: #4b5563;
+}
+
+.cal-hover-text-white:hover {
+  color: white;
+}
+
+.cal-hover-text-blue-400:hover {
+  color: #60a5fa;
+}
