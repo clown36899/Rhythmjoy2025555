@@ -280,3 +280,105 @@
 .cal-bg-rose-500 { background-color: var(--color-rose-500); }
 .cal-bg-rose-600 { background-color: #e11d48; }
 .cal-bg-gray-500 { background-color: #6b7280; }
+
+/* ===== 간격 클래스 (Spacing) ===== */
+
+/* Padding */
+.cal-p-0 {
+  padding: 0;
+}
+
+.cal-p-1 {
+  padding: 0.25rem;
+}
+
+.cal-p-2 {
+  padding: 0.5rem;
+}
+
+.cal-p-4 {
+  padding: 1rem;
+}
+
+.cal-px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.cal-px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.cal-py-0 {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.cal-pb-0 {
+  padding-bottom: 0;
+}
+
+/* ===== 테두리 및 모서리 ===== */
+.cal-rounded-none {
+  border-radius: 0;
+}
+
+.cal-rounded-full {
+  border-radius: 9999px;
+}
+
+.cal-border {
+  border-width: 1px;
+}
+
+/* ===== 폰트 관련 ===== */
+.cal-font-bold {
+  font-weight: 700;
+}
+
+.cal-font-semibold {
+  font-weight: 600;
+}
+
+.cal-font-medium {
+  font-weight: 500;
+}
+
+.cal-text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.cal-text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.cal-text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.cal-text-9px {
+  font-size: 9px;
+}
+
+.cal-text-10px {
+  font-size: 10px;
+}
+
+.cal-text-center {
+  text-align: center;
+}
+
+.cal-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 커서 ===== */
+.cal-cursor-pointer {
+  cursor: pointer;
+}
