@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
+import "./EventCalendar.css";
 
 interface EventCalendarProps {
   selectedDate: Date | null;
@@ -77,14 +78,14 @@ export default function EventCalendar({
     }
 
     const colors = [
-      'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500',
-      'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500',
-      'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500',
-      'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500',
-      'bg-rose-500', 'bg-red-600', 'bg-orange-600', 'bg-amber-600',
-      'bg-yellow-600', 'bg-lime-600', 'bg-green-600', 'bg-emerald-600',
-      'bg-teal-600', 'bg-cyan-600', 'bg-sky-600', 'bg-indigo-600',
-      'bg-violet-600', 'bg-purple-600', 'bg-fuchsia-600', 'bg-pink-600'
+      'cal-bg-red-500', 'cal-bg-orange-500', 'cal-bg-amber-500', 'cal-bg-yellow-500',
+      'cal-bg-lime-500', 'cal-bg-green-500', 'cal-bg-emerald-500', 'cal-bg-teal-500',
+      'cal-bg-cyan-500', 'cal-bg-sky-500', 'cal-bg-blue-500', 'cal-bg-indigo-500',
+      'cal-bg-violet-500', 'cal-bg-purple-500', 'cal-bg-fuchsia-500', 'cal-bg-pink-500',
+      'cal-bg-rose-500', 'cal-bg-red-600', 'cal-bg-orange-600', 'cal-bg-amber-600',
+      'cal-bg-yellow-600', 'cal-bg-lime-600', 'cal-bg-green-600', 'cal-bg-emerald-600',
+      'cal-bg-teal-600', 'cal-bg-cyan-600', 'cal-bg-sky-600', 'cal-bg-indigo-600',
+      'cal-bg-violet-600', 'cal-bg-purple-600', 'cal-bg-fuchsia-600', 'cal-bg-pink-600'
     ];
 
     const map = new Map<number, string>();
@@ -126,11 +127,11 @@ export default function EventCalendar({
   const getEventColor = (eventId: number, category: string) => {
     if (!isFullscreen) {
       // 일반 모드: 카테고리별 색상
-      return category === 'class' ? 'bg-green-500' : 'bg-blue-500';
+      return category === 'class' ? 'cal-bg-green-500' : 'cal-bg-blue-500';
     }
     
     // 전체화면 모드: 맵에서 색상 가져오기
-    return eventColorMap.get(eventId) || 'bg-gray-500';
+    return eventColorMap.get(eventId) || 'cal-bg-gray-500';
   };
 
   // 외부 currentMonth가 변경되면 내부 상태도 업데이트
@@ -318,18 +319,18 @@ export default function EventCalendar({
           // 강습: 보라색 계열
           colorBg =
             assignedLane === 0
-              ? "bg-purple-500"
+              ? "cal-bg-purple-500"
               : assignedLane === 1
-                ? "bg-purple-600"
-                : "bg-purple-400";
+                ? "cal-bg-purple-600"
+                : "cal-bg-purple-400";
         } else {
           // 행사: 파란색 계열
           colorBg =
             assignedLane === 0
-              ? "bg-blue-500"
+              ? "cal-bg-blue-500"
               : assignedLane === 1
-                ? "bg-blue-600"
-                : "bg-blue-400";
+                ? "cal-bg-blue-600"
+                : "cal-bg-blue-400";
         }
       }
 
