@@ -1438,3 +1438,64 @@
     line-height: 1.75rem;
   }
 }
+
+/* ===== Page-specific utilities ===== */
+
+/* 특수 배경 색상 */
+.bg-242424 {
+  background-color: #242424;
+}
+
+.bg-1f1f1f {
+  background-color: #1f1f1f;
+}
+
+/* 특수 텍스트 크기 */
+.text-10px {
+  font-size: 10px;
+}
+
+.text-13px {
+  font-size: 13px;
+}
+
+/* 애니메이션 */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 호버 상태 - 배경 */
+.hover\:bg-gray-600:hover {
+  background-color: var(--color-gray-600);
+}
+
+.hover\:bg-green-500-30:hover {
+  background-color: rgba(34, 197, 94, 0.3);
+}
+
+/* 호버 상태 - 텍스트 */
+.hover\:text-white:hover {
+  color: white;
+}
+
+/* 추가 색상 클래스 */
+.bg-green-500-20 {
+  background-color: rgba(34, 197, 94, 0.2);
+}
+
+.border-green-500 {
+  border-color: #22c55e;
+}
+
+.text-green-300 {
+  color: #86efac;
+}
