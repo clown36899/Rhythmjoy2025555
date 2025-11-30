@@ -1,16 +1,15 @@
+/* CSS 기본 스타일 및 유틸리티 시스템 - @import는 맨 위에 와야 함 */
+@import './styles/base.css';
+@import './styles/utilities.css';
+
 /* Tailwind - 단계적 마이그레이션 중 (모든 컴포넌트 변환 후 제거) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* CSS 기본 스타일 및 유틸리티 시스템 - Tailwind 덮어쓰기 */
-@import './styles/base.css';
-@import './styles/utilities.css';
-
 /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
 html, body {
-  /* max-width: 650px; */
-  max-width: 100%; 
+  max-width: 650px;
   margin: 0 auto;
   overflow-x: hidden;
   width: 100%;
@@ -24,8 +23,7 @@ html, body {
 }
 
 #root {
-  /* max-width: 650px; */
-  max-width: 100%;
+  max-width: 650px;
   margin: 0 auto;
   width: 100%;
   /* overflow-x 제거 - sticky가 작동하려면 필요 */
