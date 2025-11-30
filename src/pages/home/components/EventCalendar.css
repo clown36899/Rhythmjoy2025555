@@ -499,3 +499,127 @@
 .cal-self-end {
   align-self: end;
 }
+
+/* ===== 연간 보기 (Year View) ===== */
+.cal-grid-cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.cal-gap-2 {
+  gap: 0.5rem;
+}
+
+.cal-py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.cal-px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.cal-rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.cal-text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.cal-text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.cal-bg-blue-600 {
+  background-color: #2563eb;
+}
+
+.cal-hover-bg-gray-600:hover {
+  background-color: #4b5563;
+}
+
+/* ===== 추가 레이아웃 클래스 ===== */
+.cal-space-x-1 > * + * {
+  margin-left: 0.25rem;
+}
+
+.cal-space-x-2 > * + * {
+  margin-left: 0.5rem;
+}
+
+.cal-inline-block {
+  display: inline-block;
+}
+
+.cal-hidden {
+  display: none;
+}
+
+.cal-mb-6 {
+  margin-bottom: 1.5rem;
+}
+
+/* ===== 투명도 (Opacity) ===== */
+.cal-opacity-20 {
+  opacity: 0.2;
+}
+
+.cal-opacity-60 {
+  opacity: 0.6;
+}
+
+.cal-opacity-80 {
+  opacity: 0.8;
+}
+
+.cal-opacity-100 {
+  opacity: 1;
+}
+
+/* ===== 높이 클래스 추가 ===== */
+.cal-h-1-5 {
+  height: 0.375rem;
+}
+
+.cal-h-3-5 {
+  height: 0.875rem;
+}
+
+.cal-h-5 {
+  height: 1.25rem;
+}
+
+/* ===== 모서리 라운드 추가 ===== */
+.cal-rounded-l-full {
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+}
+
+.cal-rounded-r-full {
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+}
+
+.cal-rounded-t-lg {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.cal-rounded-b-lg {
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+/* ===== Bottom 위치 ===== */
+.cal-bottom-0 {
+  bottom: 0;
+}
+
+/* ===== 최소 너비 ===== */
+.cal-min-w-120 {
+  min-width: 120px;
+}
