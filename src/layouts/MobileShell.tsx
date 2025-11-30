@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate, useSearchParams } from "react-router-
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
+import "./MobileShell.css";
 
 export function MobileShell() {
   const location = useLocation();
@@ -159,24 +160,24 @@ export function MobileShell() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1f1f1f]">
+    <div className="shell-container">
       {/* Main Content */}
       <Outlet context={{ category }} />
 
       {/* Bottom Navigation - 모든 페이지 공통 */}
-      <div data-id="bottom-nav" className="fixed bottom-0 left-0 right-0 z-20" style={{ maxWidth: '100%', margin: '0 auto' }}>
+      <div data-id="bottom-nav" className="shell-bottom-nav">
         {/* Category Filter Badges - 홈 페이지에서만 표시 */}
         {isEventsPage && (
           <div 
-            className="border-t border-[#22262a] flex items-center justify-between px-3 py-1.5 no-select gap-2"
+            className="shell-top-bar"
             style={{ 
               backgroundColor: "var(--header-bg-color)",
               minHeight: '32px'
             }}
           >
-            <div className="flex items-center gap-2 flex-1 justify-center">
+            <div className="shell-top-bar-content">
               {/* 행사 버튼 (앞으로 이동) */}
-              <div className="text-center text-sm text-gray-400">
+              <div className="shell-text-hint">
             날짜를 클릭하여 일정을 추가하세요
           </div>
 
@@ -186,9 +187,9 @@ export function MobileShell() {
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('createEventForDate'));
                   }}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all bg-blue-600 border-blue-500 text-white hover:bg-blue-700 ml-auto"
+                  className="shell-btn-register"
                 >
-                  <i className="ri-add-line text-sm"></i>
+                  <i className="ri-add-line shell-icon-sm"></i>
                   <span>등록</span>
                 </button>
               )}
@@ -197,10 +198,9 @@ export function MobileShell() {
             {isAdmin && (
               <button
                 onClick={() => setShowAdminPanel(!showAdminPanel)}
-                className="text-red-400 hover:text-red-300 transition-colors ml-auto"
-                style={{ fontSize: '12px', lineHeight: '1.2' }}
+                className="shell-btn-admin"
               >
-                <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} text-sm`}></i>
+                <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} shell-icon-sm`}></i>
               </button>
             )}
           </div>
@@ -209,46 +209,44 @@ export function MobileShell() {
         {/* 관리자 상태 표시 - 모든 페이지 공통 */}
         {!isEventsPage && (
           <div 
-            className="border-t border-[#22262a] flex items-center justify-between px-3 py-1.5 no-select"
+            className="shell-top-bar"
             style={{ 
               backgroundColor: "var(--header-bg-color)",
               minHeight: '32px'
             }}
           >
-            <span className="text-gray-400 font-medium no-select" style={{ fontSize: '12px', lineHeight: '1.2' }}>
+            <span className="shell-text-label no-select">
               {isSocialPage && '소셜 장소'}
               {isPracticePage && '연습실'}
               {isBoardPage && '자유게시판'}
               {isShoppingPage && '쇼핑'}
               {isGuidePage && '안내'}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center shell-gap-2">
               {isPracticePage && (
                 <button
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('practiceRoomRegister'));
                   }}
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                  style={{ fontSize: '12px', lineHeight: '1.2' }}
+                  className="shell-btn-practice-register"
                 >
-                  <i className="ri-add-line text-sm mr-0.5"></i>
+                  <i className="ri-add-line shell-icon-sm shell-mr-0-5"></i>
                   <span>등록</span>
                 </button>
               )}
               {isAdmin && (
                 <button
                   onClick={() => setShowAdminPanel(!showAdminPanel)}
-                  className="text-red-400 hover:text-red-300 transition-colors"
-                  style={{ fontSize: '12px', lineHeight: '1.2' }}
+                  className="shell-btn-admin"
                 >
-                  <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} text-sm`}></i>
+                  <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} shell-icon-sm`}></i>
                 </button>
               )}
             </div>
           </div>
         )}
         
-        <div className="flex items-center justify-around px-2 py-2 border-t border-[#22262a] no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
+        <div className="shell-nav-bar no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
           {/* 이벤트 달력 버튼 */}
           <button
             onClick={(e) => {
@@ -291,28 +289,28 @@ export function MobileShell() {
                 navigate('/');
               }
             }}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-all active:scale-95 flex-1 ${
+            className={`shell-nav-btn shell-nav-btn-active-scale ${
               isEventsPage
-                ? "text-blue-500"
-                : "text-gray-300 hover:text-white"
+                ? "shell-nav-btn-blue"
+                : "shell-nav-btn-inactive"
             }`}
           >
-            <i className="ri-calendar-line text-xl mb-0.5"></i>
-            <span className="text-xs">이벤트 달력</span>
+            <i className="ri-calendar-line shell-nav-icon"></i>
+            <span className="shell-nav-label">이벤트 달력</span>
           </button>
 
           {/* 소셜 버튼 */}
           <button
             onClick={() => navigate('/social')}
-            className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors flex-1 relative ${
+            className={`shell-nav-btn ${
               isSocialPage
-                ? "text-green-500"
-                : "text-gray-300 hover:text-white"
+                ? "shell-nav-btn-green"
+                : "shell-nav-btn-inactive"
             }`}
           >
-            <i className="ri-map-pin-line text-xl mb-0.5"></i>
-            <span className="text-xs">소셜</span>
-            <span className="absolute top-0 right-1 text-[9px] text-orange-400 font-semibold no-select">
+            <i className="ri-map-pin-line shell-nav-icon"></i>
+            <span className="shell-nav-label">소셜</span>
+            <span className="shell-nav-badge no-select">
               공사중
             </span>
           </button>
@@ -320,63 +318,60 @@ export function MobileShell() {
           {/* 연습실 버튼 */}
           <button
             onClick={() => navigate('/practice')}
-            className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors flex-1 ${
+            className={`shell-nav-btn ${
               isPracticePage
-                ? "text-blue-500"
-                : "text-gray-300 hover:text-white"
+                ? "shell-nav-btn-blue"
+                : "shell-nav-btn-inactive"
             }`}
           >
-            <i className="ri-music-2-line text-xl mb-0.5"></i>
-            <span className="text-xs">연습실</span>
+            <i className="ri-music-2-line shell-nav-icon"></i>
+            <span className="shell-nav-label">연습실</span>
           </button>
 
           {/* 쇼핑 버튼 */}
           <button
             onClick={() => navigate('/shopping')}
-            className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors flex-1 ${
+            className={`shell-nav-btn ${
               isShoppingPage
-                ? "text-yellow-500"
-                : "text-gray-300 hover:text-white"
+                ? "shell-nav-btn-yellow"
+                : "shell-nav-btn-inactive"
             }`}
           >
-            <i className="ri-shopping-bag-line text-xl mb-0.5"></i>
-            <span className="text-xs">쇼핑</span>
+            <i className="ri-shopping-bag-line shell-nav-icon"></i>
+            <span className="shell-nav-label">쇼핑</span>
           </button>
 
           {/* 게시판 버튼 */}
           <button
             onClick={() => navigate('/board')}
-            className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors flex-1 ${
+            className={`shell-nav-btn ${
               isBoardPage
-                ? "text-purple-500"
-                : "text-gray-300 hover:text-white"
+                ? "shell-nav-btn-purple"
+                : "shell-nav-btn-inactive"
             }`}
           >
-            <i className="ri-chat-3-line text-xl mb-0.5"></i>
-            <span className="text-xs">게시판</span>
+            <i className="ri-chat-3-line shell-nav-icon"></i>
+            <span className="shell-nav-label">게시판</span>
           </button>
 
           {/* 안내 버튼 */}
           <button
             onClick={() => navigate('/guide')}
-            className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors flex-1 ${
+            className={`shell-nav-btn ${
               isGuidePage
-                ? "text-blue-500"
-                : "text-gray-300 hover:text-white"
+                ? "shell-nav-btn-blue"
+                : "shell-nav-btn-inactive"
             }`}
           >
-            <i className="ri-information-line text-xl mb-0.5"></i>
-            <span className="text-xs">안내</span>
+            <i className="ri-information-line shell-nav-icon"></i>
+            <span className="shell-nav-label">안내</span>
           </button>
         </div>
         
         {/* 관리자 패널 - 빠른 접근 */}
         {isAdmin && showAdminPanel && (
-          <div 
-            className="border-t border-[#22262a] bg-gray-800 p-3 space-y-2"
-            style={{ maxHeight: '200px', overflowY: 'auto' }}
-          >
-            <div className="text-xs text-gray-400 font-bold mb-2">관리자 패널</div>
+          <div className="shell-admin-panel">
+            <div className="shell-admin-panel-title">관리자 패널</div>
             <button
               onClick={() => {
                 setShowAdminPanel(false);
@@ -385,7 +380,7 @@ export function MobileShell() {
                   window.dispatchEvent(new CustomEvent('openBillboardSettings'));
                 }, 100);
               }}
-              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+              className="shell-admin-panel-btn"
             >
               <i className="ri-image-2-line"></i>
               광고판 설정
@@ -398,7 +393,7 @@ export function MobileShell() {
                   window.dispatchEvent(new CustomEvent('openBillboardUserManagement'));
                 }, 100);
               }}
-              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+              className="shell-admin-panel-btn"
             >
               <i className="ri-user-settings-line"></i>
               빌보드 사용자 관리
@@ -411,7 +406,7 @@ export function MobileShell() {
                   window.dispatchEvent(new CustomEvent('openDefaultThumbnailSettings'));
                 }, 100);
               }}
-              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+              className="shell-admin-panel-btn"
             >
               <i className="ri-image-line"></i>
               기본 썸네일 설정
@@ -424,7 +419,7 @@ export function MobileShell() {
                   window.dispatchEvent(new CustomEvent('openColorSettings'));
                 }, 100);
               }}
-              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+              className="shell-admin-panel-btn"
             >
               <i className="ri-palette-line"></i>
               색상 설정
@@ -437,7 +432,7 @@ export function MobileShell() {
                   window.dispatchEvent(new CustomEvent('openBoardUserManagement'));
                 }, 100);
               }}
-              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+              className="shell-admin-panel-btn"
             >
               <i className="ri-group-line"></i>
               게시판 회원 관리
@@ -450,7 +445,7 @@ export function MobileShell() {
                   window.dispatchEvent(new CustomEvent('openPrefixManagement'));
                 }, 100);
               }}
-              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+              className="shell-admin-panel-btn"
             >
               <i className="ri-price-tag-3-line"></i>
               머릿말 관리
@@ -463,7 +458,7 @@ export function MobileShell() {
                   window.dispatchEvent(new CustomEvent('openRegistrationFormPreview'));
                 }, 100);
               }}
-              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+              className="shell-admin-panel-btn"
             >
               <i className="ri-file-edit-line"></i>
               회원가입 폼 미리보기
@@ -476,7 +471,7 @@ export function MobileShell() {
                   window.dispatchEvent(new CustomEvent('openSettings'));
                 }, 100);
               }}
-              className="w-full text-left text-white hover:bg-gray-700 px-3 py-2 rounded text-xs flex items-center gap-2"
+              className="shell-admin-panel-btn"
             >
               <i className="ri-settings-3-line"></i>
               전체 설정
