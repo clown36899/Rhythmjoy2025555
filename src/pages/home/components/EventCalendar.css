@@ -421,3 +421,81 @@
 .cal-hover-text-white:hover {
   color: var(--text-primary);
 }
+
+/* ===== 위치 (Position) ===== */
+.cal-relative {
+  position: relative;
+}
+
+.cal-absolute {
+  position: absolute;
+}
+
+.cal-inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* Top */
+.cal-top-0 {
+  top: 0;
+}
+
+.cal-top-px {
+  top: 1px;
+}
+
+.cal-top-0-5 {
+  top: 0.125rem;
+}
+
+.cal-top-1 {
+  top: 0.25rem;
+}
+
+/* Left */
+.cal-left-0 {
+  left: 0;
+}
+
+.cal-left-0-5 {
+  left: 0.125rem;
+}
+
+.cal-left-2 {
+  left: 0.5rem;
+}
+
+/* Right */
+.cal-right-0 {
+  right: 0;
+}
+
+.cal-right-0-5 {
+  right: 0.125rem;
+}
+
+/* ===== Z-Index ===== */
+.cal-z-10 {
+  z-index: 10;
+}
+
+.cal-z-20 {
+  z-index: 20;
+}
+
+.cal-z-30 {
+  z-index: 30;
+}
+
+/* ===== 포인터 이벤트 ===== */
+.cal-pointer-events-none {
+  pointer-events: none;
+}
+
+/* ===== 정렬 ===== */
+.cal-self-end {
+  align-self: end;
+}
