@@ -375,7 +375,7 @@ export default function EventDetailModal({
                                 <i
                                   className={`${contactInfo.icon} contact-icon`}
                                 ></i>
-                                <div className="text-left">
+                                <div className="edm-text-left">
                                   <div className="contact-text">
                                     {contactInfo.displayText}
                                   </div>

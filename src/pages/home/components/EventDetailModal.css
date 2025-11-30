@@ -548,3 +548,8 @@
   align-items: center;
   gap: 0.25rem;
 }
+
+/* ===== 텍스트 정렬 유틸리티 ===== */
+.edm-text-left {
+  text-align: left;
+}
