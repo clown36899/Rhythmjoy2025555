@@ -97,7 +97,7 @@ export default function HomePage() {
   const [eventJustCreated, setEventJustCreated] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isRandomBlinking, setIsRandomBlinking] = useState(false);
-  
+
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
   const [isBillboardOpen, setIsBillboardOpen] = useState(false);
@@ -154,14 +154,14 @@ export default function HomePage() {
   // 모달이 열렸을 때 배경 컨텐츠의 상호작용을 막기 위한 `inert` 속성 관리
   useEffect(() => {
     const isAnyModalOpen = isEventListModalOpen ||
-                           showSearchModal ||
-                           showSortModal ||
-                           showRegistrationModal ||
-                           isBillboardSettingsOpen ||
-                           isFullscreenDateModalOpen ||
-                           !!selectedEvent ||
-                           showEditModal ||
-                           showPasswordModal;
+      showSearchModal ||
+      showSortModal ||
+      showRegistrationModal ||
+      isBillboardSettingsOpen ||
+      isFullscreenDateModalOpen ||
+      !!selectedEvent ||
+      showEditModal ||
+      showPasswordModal;
 
     const container = containerRef.current;
     if (container) {
@@ -215,8 +215,8 @@ export default function HomePage() {
 
   const isCurrentMonthVisible = (() => {
     const today = new Date();
-    return currentMonth.getFullYear() === today.getFullYear() && 
-           currentMonth.getMonth() === today.getMonth();
+    return currentMonth.getFullYear() === today.getFullYear() &&
+      currentMonth.getMonth() === today.getMonth();
   })();
 
   // --------------------------------------------------------------------------------
@@ -258,7 +258,7 @@ export default function HomePage() {
 
   const handleEditClick = (event: AppEvent, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    
+
     if (effectiveIsAdmin) {
       setEventToEdit(event);
       const hasEventDates = event.event_dates && event.event_dates.length > 0;
@@ -527,22 +527,22 @@ export default function HomePage() {
     <div
       ref={containerRef}
       className="home-container"
-      style={{ 
+      style={{
         backgroundColor: "var(--page-bg-color)",
-        touchAction: "pan-y" 
+        touchAction: "pan-y"
       }}
     >
       <div ref={headerRef} className="home-header" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
         <Header
           currentMonth={currentMonth}
           onNavigateMonth={(dir) => {
-             if(isAnimating) return; setIsAnimating(true);
-             const w = window.innerWidth;
-             setDragOffset(dir==="prev" ? w : -w);
-             const newM = new Date(currentMonth); newM.setDate(1);
-             if(viewMode==="year") newM.setFullYear(currentMonth.getFullYear()+(dir==="prev"?-1:1));
-             else newM.setMonth(currentMonth.getMonth()+(dir==="prev"?-1:1));
-             setTimeout(() => { setCurrentMonth(newM); setDragOffset(0); setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); setIsAnimating(false); }, 250);
+            if (isAnimating) return; setIsAnimating(true);
+            const w = window.innerWidth;
+            setDragOffset(dir === "prev" ? w : -w);
+            const newM = new Date(currentMonth); newM.setDate(1);
+            if (viewMode === "year") newM.setFullYear(currentMonth.getFullYear() + (dir === "prev" ? -1 : 1));
+            else newM.setMonth(currentMonth.getMonth() + (dir === "prev" ? -1 : 1));
+            setTimeout(() => { setCurrentMonth(newM); setDragOffset(0); setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); setIsAnimating(false); }, 250);
           }}
           onDateChange={(m) => { setCurrentMonth(m); setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }}
           onAdminModeToggle={handleAdminModeToggle}
@@ -593,11 +593,11 @@ export default function HomePage() {
               calendarHeightPx={isDragging ? liveCalendarHeight : getTargetHeight()}
               calendarMode={calendarMode}
               selectedCategory={selectedCategory}
-              
+
             />
           </div>
 
-          <div ref={calendarControlBarRef} className="w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none",padding:"0 9px" }}>
+          <div ref={calendarControlBarRef} className="w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none", padding: "0 9px" }}>
             <div className="home-toolbar">
               <button
                 onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : prev === "fullscreen" ? "expanded" : "collapsed")}
@@ -623,22 +623,6 @@ export default function HomePage() {
               <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`flex items-center justify-center h-6 w-8 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${calendarMode === "fullscreen" ? "bg-blue-600 text-white" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i></button>
             </div>
           </div>
-          <div ref={calendarCategoryButtonsRef} data-id="bottom-nav" className="home-calendar-buttons" style={{ 
-            backgroundColor: "var(--calendar-bg-color)",
-            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
-          }}>
-            <button onClick={() => navigateWithCategory('all')} className={`text-lg font-bold transition-colors ${selectedCategory === 'all' ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
-              <span>전체</span>
-            </button>
-            <span className="home-divider">|</span>
-            <button onClick={() => navigateWithCategory('event')} className={`text-lg font-bold transition-colors ${selectedCategory === 'event' ? 'text-blue-300' : 'text-gray-400 hover:text-white'}`}>
-              <span>행사</span>
-            </button>
-            <span className="home-divider">|</span>
-            <button onClick={() => navigateWithCategory('class')} className={`text-lg font-bold transition-colors ${selectedCategory === 'class' ? 'text-purple-300' : 'text-gray-400 hover:text-white'}`}>
-              <span>강습</span>
-            </button>
-          </div>
         </div>
 
         <div
@@ -659,7 +643,6 @@ export default function HomePage() {
             <EventList
               key={eventJustCreated || undefined}
               selectedDate={selectedDate}
-              selectedCategory={selectedCategory}
               currentMonth={currentMonth}
               isAdminMode={effectiveIsAdmin}
               adminType={adminType}
@@ -683,7 +666,7 @@ export default function HomePage() {
               slideContainerRef={eventListSlideContainerRef}
               onMonthChange={(date) => setCurrentMonth(date)}
               onModalStateChange={setIsEventListModalOpen}
-               />
+            />
           )}
           <Footer />
         </div>
@@ -691,14 +674,16 @@ export default function HomePage() {
 
       {/* Modals */}
       {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}
-      <AdminBillboardModal isOpen={isBillboardSettingsOpen} onClose={() => { handleBillboardSettingsClose(); if(adminType==="sub") setTimeout(()=>window.dispatchEvent(new CustomEvent("reopenAdminSettings")),100); }} settings={settings} onUpdateSettings={updateSettings} onResetSettings={resetSettings} adminType={billboardUserId?"sub":isAdmin?"super":null} billboardUserId={billboardUserId} billboardUserName={billboardUserName} />
-      {showRegistrationModal && selectedDate && <EventRegistrationModal isOpen={showRegistrationModal} onClose={() => { setShowRegistrationModal(false); if(fromBanner) setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }} selectedDate={selectedDate} onMonthChange={(d)=>setCurrentMonth(d)} onEventCreated={(d, id)=>{ setShowRegistrationModal(false); setFromBanner(false); setBannerMonthBounds(null); setCurrentMonth(d); setEventJustCreated(Date.now()); setHighlightEvent({id:id||0, nonce:Date.now()}); }} fromBanner={fromBanner} bannerMonthBounds={bannerMonthBounds ?? undefined} />}
+      <AdminBillboardModal isOpen={isBillboardSettingsOpen} onClose={() => { handleBillboardSettingsClose(); if (adminType === "sub") setTimeout(() => window.dispatchEvent(new CustomEvent("reopenAdminSettings")), 100); }} settings={settings} onUpdateSettings={updateSettings} onResetSettings={resetSettings} adminType={billboardUserId ? "sub" : isAdmin ? "super" : null} billboardUserId={billboardUserId} billboardUserName={billboardUserName} />
+      {showRegistrationModal && selectedDate && <EventRegistrationModal isOpen={showRegistrationModal} onClose={() => { setShowRegistrationModal(false); if (fromBanner) setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }} selectedDate={selectedDate} onMonthChange={(d) => setCurrentMonth(d)} onEventCreated={(d, id) => { setShowRegistrationModal(false); setFromBanner(false); setBannerMonthBounds(null); setCurrentMonth(d); setEventJustCreated(Date.now()); setHighlightEvent({ id: id || 0, nonce: Date.now() }); }} fromBanner={fromBanner} bannerMonthBounds={bannerMonthBounds ?? undefined} />}
       {isFullscreenDateModalOpen && fullscreenSelectedDate && <FullscreenDateEventsModal isOpen={isFullscreenDateModalOpen} onClose={() => { setIsFullscreenDateModalOpen(false); setFullscreenSelectedDate(null); setFullscreenClickPosition(undefined); }} selectedDate={fullscreenSelectedDate} clickPosition={fullscreenClickPosition} onEventClick={handleDailyModalEventClick} />}
       <EventDetailModal isOpen={!!selectedEvent} event={selectedEvent} onClose={closeModal} onEdit={handleEditClick} onDelete={handleDeleteClick} isAdminMode={effectiveIsAdmin} />
-      {showPasswordModal && eventToEdit && (
-        <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
-      )}
+      {
+        showPasswordModal && eventToEdit && (
+          <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
+        )
+      }
       {/* 여기에 수정 모달(Edit Modal)의 JSX 코드가 위치합니다. 코드가 매우 길어 생략되었지만, 관련 로직은 모두 이곳으로 이동되었습니다. */}
-    </div>
+    </div >
   );
 }

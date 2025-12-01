@@ -149,6 +149,17 @@ export function MobileShell() {
   const isGuidePage = location.pathname === '/guide';
   const category = searchParams.get('category') || 'all';
 
+  // 카테고리 변경 (이벤트 페이지 전용)
+  const handleCategoryChange = (newCategory: string) => {
+    // 전체 버튼 클릭 시 날짜 선택 해제
+    if (newCategory === 'all') {
+      window.dispatchEvent(new CustomEvent('clearSelectedDate'));
+      navigate('/');
+    } else {
+      navigate(`/?category=${newCategory}`);
+    }
+  };
+
   return (
     <div className="shell-container">
       {/* Main Content */}
@@ -166,9 +177,28 @@ export function MobileShell() {
             }}
           >
             <div className="shell-top-bar-content">
-              {/* 행사 버튼 (앞으로 이동) */}
-              <div className="shell-text-hint">
-                날짜를 클릭하여 일정을 추가하세요
+              {/* 카테고리 필터 버튼 (HomePage에서 이동됨) */}
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => handleCategoryChange('all')}
+                  className={`text-sm font-bold transition-colors ${category === 'all' ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}
+                >
+                  <span>전체</span>
+                </button>
+                <span className="text-gray-600 text-xs">|</span>
+                <button
+                  onClick={() => handleCategoryChange('event')}
+                  className={`text-sm font-bold transition-colors ${category === 'event' ? 'text-blue-300' : 'text-gray-400 hover:text-white'}`}
+                >
+                  <span>행사</span>
+                </button>
+                <span className="text-gray-600 text-xs">|</span>
+                <button
+                  onClick={() => handleCategoryChange('class')}
+                  className={`text-sm font-bold transition-colors ${category === 'class' ? 'text-purple-300' : 'text-gray-400 hover:text-white'}`}
+                >
+                  <span>강습</span>
+                </button>
               </div>
 
               {/* 등록 버튼 - 날짜 선택 시에만 표시 */}
