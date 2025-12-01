@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import type { Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
@@ -34,12 +35,12 @@ function buildVersionPlugin(): Plugin {
         buildTime: BUILD_TIME,
         date: new Date().toISOString()
       };
-      
+
       // dist 폴더가 없으면 생성 (Netlify 빌드 안정성)
       if (!existsSync('dist')) {
         mkdirSync('dist', { recursive: true });
       }
-      
+
       writeFileSync('dist/version.json', JSON.stringify(version));
       console.log('✅ version.json 생성됨:', version.date);
     }
@@ -157,5 +158,10 @@ export default defineConfig({
       'X-Frame-Options': 'ALLOWALL',
       'Content-Security-Policy': "frame-ancestors *",
     },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.ts',
   },
 });
