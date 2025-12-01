@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import "./MobileShell.css";
+import { BottomNavigation } from "./BottomNavigation";
 
 export function MobileShell() {
   const location = useLocation();
@@ -25,7 +26,7 @@ export function MobileShell() {
     };
 
     window.addEventListener('calendarMonthChanged', handleCalendarMonthChanged as EventListener);
-    
+
     return () => {
       window.removeEventListener('calendarMonthChanged', handleCalendarMonthChanged as EventListener);
     };
@@ -50,7 +51,7 @@ export function MobileShell() {
     };
 
     window.addEventListener('selectedDateChanged', handleSelectedDateChanged as EventListener);
-    
+
     return () => {
       window.removeEventListener('selectedDateChanged', handleSelectedDateChanged as EventListener);
     };
@@ -63,14 +64,14 @@ export function MobileShell() {
         const { data: events } = await supabase
           .from('events')
           .select('category, date, start_date, end_date');
-        
+
         if (events) {
           // 현재 달력에 표시된 월/년에 해당하는 이벤트만 필터링
           const filteredEvents = events.filter(event => {
             const eventDate = new Date(event.start_date || event.date);
             const eventYear = eventDate.getFullYear();
             const eventMonth = eventDate.getMonth();
-            
+
             if (calendarView.viewMode === 'year') {
               // 년 단위 표시: 해당 년도의 모든 이벤트
               return eventYear === calendarView.year;
@@ -79,7 +80,7 @@ export function MobileShell() {
               return eventYear === calendarView.year && eventMonth === calendarView.month;
             }
           });
-          
+
           const classCount = filteredEvents.filter(e => e.category === 'class').length;
           const eventCount = filteredEvents.filter(e => e.category === 'event').length;
           setEventCounts({ class: classCount, event: eventCount });
@@ -91,16 +92,16 @@ export function MobileShell() {
 
     if (location.pathname === '/') {
       loadEventCounts();
-      
+
       // 이벤트 변경 시 개수 업데이트
       const handleEventChange = () => {
         loadEventCounts();
       };
-      
+
       window.addEventListener('eventCreated', handleEventChange);
       window.addEventListener('eventUpdated', handleEventChange);
       window.addEventListener('eventDeleted', handleEventChange);
-      
+
       return () => {
         window.removeEventListener('eventCreated', handleEventChange);
         window.removeEventListener('eventUpdated', handleEventChange);
@@ -148,17 +149,6 @@ export function MobileShell() {
   const isGuidePage = location.pathname === '/guide';
   const category = searchParams.get('category') || 'all';
 
-  // 카테고리 변경 (이벤트 페이지 전용)
-  const handleCategoryChange = (newCategory: string) => {
-    // 전체 버튼 클릭 시 날짜 선택 해제
-    if (newCategory === 'all') {
-      window.dispatchEvent(new CustomEvent('clearSelectedDate'));
-      navigate('/');
-    } else {
-      navigate(`/?category=${newCategory}`);
-    }
-  };
-
   return (
     <div className="shell-container">
       {/* Main Content */}
@@ -168,9 +158,9 @@ export function MobileShell() {
       <div data-id="bottom-nav" className="shell-bottom-nav">
         {/* Category Filter Badges - 홈 페이지에서만 표시 */}
         {isEventsPage && (
-          <div 
+          <div
             className="shell-top-bar"
-            style={{ 
+            style={{
               backgroundColor: "var(--header-bg-color)",
               minHeight: '32px'
             }}
@@ -178,8 +168,8 @@ export function MobileShell() {
             <div className="shell-top-bar-content">
               {/* 행사 버튼 (앞으로 이동) */}
               <div className="shell-text-hint">
-            날짜를 클릭하여 일정을 추가하세요
-          </div>
+                날짜를 클릭하여 일정을 추가하세요
+              </div>
 
               {/* 등록 버튼 - 날짜 선택 시에만 표시 */}
               {selectedDate && (
@@ -194,7 +184,7 @@ export function MobileShell() {
                 </button>
               )}
             </div>
-            
+
             {isAdmin && (
               <button
                 onClick={() => setShowAdminPanel(!showAdminPanel)}
@@ -205,12 +195,12 @@ export function MobileShell() {
             )}
           </div>
         )}
-        
+
         {/* 관리자 상태 표시 - 모든 페이지 공통 */}
         {!isEventsPage && (
-          <div 
+          <div
             className="shell-top-bar"
-            style={{ 
+            style={{
               backgroundColor: "var(--header-bg-color)",
               minHeight: '32px'
             }}
@@ -245,129 +235,9 @@ export function MobileShell() {
             </div>
           </div>
         )}
-        
-        <div className="shell-nav-bar no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
-          {/* 이벤트 달력 버튼 */}
-          <button
-            onClick={(e) => {
-              if (isEventsPage) {
-                // 버튼 눌림 효과
-                const btn = e.currentTarget;
-                btn.style.transform = 'scale(0.95)';
-                btn.style.opacity = '0.7';
-                
-                // 로딩 오버레이 표시
-                const overlay = document.createElement('div');
-                overlay.style.cssText = `
-                  position: fixed;
-                  top: 0;
-                  left: 0;
-                  right: 0;
-                  bottom: 0;
-                  background: rgba(0, 0, 0, 0.8);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  z-index: 9999;
-                  max-width: 650px;
-                  margin: 0 auto;
-                `;
-                overlay.innerHTML = `
-                  <div style="text-align: center;">
-                    <i class="ri-loader-4-line" style="font-size: 48px; color: #3b82f6; animation: spin 1s linear infinite;"></i>
-                    <div style="color: white; margin-top: 16px; font-size: 14px;">새로고침 중...</div>
-                  </div>
-                `;
-                document.body.appendChild(overlay);
-                
-                // 약간의 딜레이 후 새로고침
-                setTimeout(() => {
-                  window.location.reload();
-                }, 150);
-              } else {
-                // 다른 페이지면 이동
-                navigate('/');
-              }
-            }}
-            className={`shell-nav-btn shell-nav-btn-active-scale ${
-              isEventsPage
-                ? "shell-nav-btn-blue"
-                : "shell-nav-btn-inactive"
-            }`}
-          >
-            <i className="ri-calendar-line shell-nav-icon"></i>
-            <span className="shell-nav-label">이벤트 달력</span>
-          </button>
 
-          {/* 소셜 버튼 */}
-          <button
-            onClick={() => navigate('/social')}
-            className={`shell-nav-btn ${
-              isSocialPage
-                ? "shell-nav-btn-green"
-                : "shell-nav-btn-inactive"
-            }`}
-          >
-            <i className="ri-map-pin-line shell-nav-icon"></i>
-            <span className="shell-nav-label">소셜</span>
-            <span className="shell-nav-badge no-select">
-              공사중
-            </span>
-          </button>
+        <BottomNavigation />
 
-          {/* 연습실 버튼 */}
-          <button
-            onClick={() => navigate('/practice')}
-            className={`shell-nav-btn ${
-              isPracticePage
-                ? "shell-nav-btn-blue"
-                : "shell-nav-btn-inactive"
-            }`}
-          >
-            <i className="ri-music-2-line shell-nav-icon"></i>
-            <span className="shell-nav-label">연습실</span>
-          </button>
-
-          {/* 쇼핑 버튼 */}
-          <button
-            onClick={() => navigate('/shopping')}
-            className={`shell-nav-btn ${
-              isShoppingPage
-                ? "shell-nav-btn-yellow"
-                : "shell-nav-btn-inactive"
-            }`}
-          >
-            <i className="ri-shopping-bag-line shell-nav-icon"></i>
-            <span className="shell-nav-label">쇼핑</span>
-          </button>
-
-          {/* 게시판 버튼 */}
-          <button
-            onClick={() => navigate('/board')}
-            className={`shell-nav-btn ${
-              isBoardPage
-                ? "shell-nav-btn-purple"
-                : "shell-nav-btn-inactive"
-            }`}
-          >
-            <i className="ri-chat-3-line shell-nav-icon"></i>
-            <span className="shell-nav-label">게시판</span>
-          </button>
-
-          {/* 안내 버튼 */}
-          <button
-            onClick={() => navigate('/guide')}
-            className={`shell-nav-btn ${
-              isGuidePage
-                ? "shell-nav-btn-blue"
-                : "shell-nav-btn-inactive"
-            }`}
-          >
-            <i className="ri-information-line shell-nav-icon"></i>
-            <span className="shell-nav-label">안내</span>
-          </button>
-        </div>
-        
         {/* 관리자 패널 - 빠른 접근 */}
         {isAdmin && showAdminPanel && (
           <div className="shell-admin-panel">
