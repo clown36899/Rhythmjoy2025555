@@ -106,6 +106,9 @@ export default defineConfig({
       dts: true,
     }),
   ],
+  css: {
+    devSourcemap: true,
+  },
   base,
   build: {
     sourcemap: false, // 프로덕션 빌드: sourcemap 비활성화 (파일 크기 감소)
