@@ -145,10 +145,10 @@ export default function EventList({
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
   const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
 
-  
+
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -211,7 +211,7 @@ export default function EventList({
     VideoThumbnailOption[]
   >([]);
   const [tempDateInput, setTempDateInput] = useState<string>("");
-  
+
   const [showEditCropModal, setShowEditCropModal] = useState(false);
   const [editCropImageUrl, setEditCropImageUrl] = useState<string>("");
   const [editOriginalImageFile, setEditOriginalImageFile] = useState<File | null>(null);
@@ -257,7 +257,7 @@ export default function EventList({
       const tomorrow = new Date(now);
       tomorrow.setHours(24, 0, 0, 0); // 다음 자정
       const msUntilMidnight = tomorrow.getTime() - now.getTime();
-      
+
       return setTimeout(() => {
         setCurrentDay(new Date().toDateString());
         // 자정 이후 다음 자정을 위해 재귀적으로 스케줄링
@@ -286,7 +286,7 @@ export default function EventList({
     sortedEventsCache.current = {};
   }, [selectedCategory, sortBy, events, currentDay]);
 
-  
+
   // 슬라이드 높이 측정 및 업데이트 (애니메이션과 동시에)
   // ⚠️ 높이 자동 조정 기능 비활성화 - 푸터가 올라오는 문제 해결
   // useEffect(() => {
@@ -369,7 +369,7 @@ export default function EventList({
           const monthToUse = targetMonth || currentMonth || new Date();
           const seed = monthToUse.getFullYear() * 12 + monthToUse.getMonth();
           const random = seededRandom(seed);
-          
+
           const shuffled = [...group];
           for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(random() * (i + 1));
@@ -520,7 +520,7 @@ export default function EventList({
     setSearchParams(newSearchParams);
     setActiveDropdown(null);
   };
- const handleGenreSuggestionClick = (genre: string) => {
+  const handleGenreSuggestionClick = (genre: string) => {
     setEditFormData(prev => ({ ...prev, genre }));
     setGenreSuggestions([]);
   };
@@ -680,11 +680,11 @@ export default function EventList({
     if (sharedEventId && events.length > 0) {
       console.log('[공유 링크] 이벤트 ID:', sharedEventId);
       console.log('[공유 링크] 로드된 이벤트 수:', events.length);
-      
+
       const event = events.find(e => e.id === sharedEventId);
-      
+
       console.log('[공유 링크] 찾은 이벤트:', event ? event.title : '없음');
-      
+
       if (event) {
         // 상세 모달 자동 열기
         console.log('[공유 링크] 상세 모달 열기 시도');
@@ -827,7 +827,7 @@ export default function EventList({
         "touchmove",
       ];
       eventTypes.forEach((event) => {
-        window.removeEventListener(event, () => {});
+        window.removeEventListener(event, () => { });
       });
     };
   }, [highlightEvent?.id, highlightEvent?.nonce]);
@@ -1072,6 +1072,104 @@ export default function EventList({
     viewMode,
   ]);
 
+  // 카테고리별 이벤트 개수 계산 (현재 필터 조건 기준, 카테고리만 제외)
+  const categoryCounts = useMemo(() => {
+    // 기본 필터링 로직 (카테고리 제외)
+    const baseFilter = (event: Event) => {
+      // 장르 필터
+      const matchesGenre = (() => {
+        if (!selectedGenre) return true;
+        if (!event.genre) return false;
+        return event.genre.trim().toLowerCase() === selectedGenre.trim().toLowerCase();
+      })();
+
+      // 검색어 필터
+      const matchesSearch =
+        (event.title && event.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (event.location && event.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (event.organizer && event.organizer.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (event.genre && event.genre.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      // 날짜 필터
+      let matchesDate = true;
+
+      // 검색어가 있을 때는 3년치 데이터만 필터링 (월 필터 무시)
+      if (searchTerm.trim()) {
+        const currentYear = new Date().getFullYear();
+        const eventDate = event.start_date || event.date;
+        if (!eventDate) return false;
+        const eventYear = new Date(eventDate).getFullYear();
+        const matchesYearRange = eventYear >= currentYear - 1 && eventYear <= currentYear + 1;
+        return matchesGenre && matchesSearch && matchesYearRange;
+      }
+
+      // 특정 날짜가 선택된 경우
+      if (selectedDate) {
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+        const day = String(selectedDate.getDate()).padStart(2, "0");
+        const selectedDateString = `${year}-${month}-${day}`;
+
+        if (event.event_dates && event.event_dates.length > 0) {
+          matchesDate = event.event_dates.includes(selectedDateString);
+        } else {
+          const startDate = event.start_date || event.date;
+          const endDate = event.end_date || event.date;
+          if (!startDate || !endDate) return false;
+          matchesDate = selectedDateString >= startDate && selectedDateString <= endDate;
+        }
+      }
+      // 월간/연간 보기
+      else if (currentMonth) {
+        if (event.event_dates && event.event_dates.length > 0) {
+          const currentYear = currentMonth.getFullYear();
+          const currentMonthNum = currentMonth.getMonth() + 1;
+
+          if (viewMode === "year") {
+            matchesDate = event.event_dates.some((dateStr) => {
+              const year = parseInt(dateStr.split("-")[0]);
+              return year === currentYear;
+            });
+          } else {
+            const monthPrefix = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`;
+            matchesDate = event.event_dates.some((dateStr) => dateStr.startsWith(monthPrefix));
+          }
+        } else {
+          const startDate = event.start_date || event.date;
+          const endDate = event.end_date || event.date;
+
+          if (!startDate || !endDate) {
+            matchesDate = false;
+          } else {
+            if (viewMode === "year") {
+              const yearStart = new Date(currentMonth.getFullYear(), 0, 1);
+              const yearEnd = new Date(currentMonth.getFullYear(), 11, 31);
+              const eventStartDate = new Date(startDate);
+              const eventEndDate = new Date(endDate);
+              matchesDate = eventStartDate <= yearEnd && eventEndDate >= yearStart;
+            } else {
+              const currentYear = currentMonth.getFullYear();
+              const currentMonthNum = currentMonth.getMonth() + 1;
+              const monthStartStr = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-01`;
+              const monthEndStr = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-${new Date(currentYear, currentMonthNum, 0).getDate()}`;
+              matchesDate = startDate <= monthEndStr && endDate >= monthStartStr;
+            }
+          }
+        }
+      }
+
+      return matchesGenre && matchesSearch && matchesDate;
+    };
+
+    const baseEvents = events.filter(baseFilter);
+
+    return {
+      all: baseEvents.length,
+      event: baseEvents.filter(e => e.category === 'event').length,
+      class: baseEvents.filter(e => e.category === 'class').length
+    };
+  }, [events, selectedGenre, searchTerm, selectedDate, currentMonth, viewMode]);
+
   // 필터링된 이벤트를 정렬 (캐싱으로 슬라이드 시 재정렬 방지 및 랜덤 순서 유지)
   const sortedPrevEvents = useMemo(() => {
     if (!prevMonthKey || !currentMonth) return [];
@@ -1188,7 +1286,7 @@ export default function EventList({
 
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    
+
     if (isAdminMode) {
       // 개발자 모드(관리자 모드)에서는 비밀번호 없이 바로 수정 모달 열기
       setEventToEdit(event);
@@ -1245,7 +1343,7 @@ export default function EventList({
     }
   };
 
- 
+
   const handleDeleteClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
 
@@ -1301,7 +1399,7 @@ export default function EventList({
       setIsDeleting(false);
     }
   };
-   
+
 
   const handlePasswordSubmit = async () => {
     if (eventToEdit && eventPassword === eventToEdit.password) {
@@ -1397,10 +1495,10 @@ export default function EventList({
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleEditOpenCropForFile = async () => {
     if (!editImagePreview) return;
-    
+
     // Supabase URL인 경우 blob으로 변환 (CORS 문제 해결)
     if (editImagePreview.startsWith('http')) {
       try {
@@ -1409,7 +1507,7 @@ export default function EventList({
           alert('이미지 로드에 실패했습니다.');
           return;
         }
-        
+
         // 원본 보관 (최초 편집 시만)
         if (!editOriginalImageFile) {
           const file = new File([blob], 'existing-image.jpg', { type: 'image/jpeg' });
@@ -1420,7 +1518,7 @@ export default function EventList({
           };
           reader.readAsDataURL(file);
         }
-        
+
         const blobUrl = URL.createObjectURL(blob);
         setEditCropImageUrl(blobUrl);
         setShowEditCropModal(true);
@@ -1434,7 +1532,7 @@ export default function EventList({
       setShowEditCropModal(true);
     }
   };
-  
+
   const handleEditOpenCropForThumbnail = async (thumbnailUrl: string) => {
     try {
       const blob = await downloadThumbnailAsBlob(thumbnailUrl);
@@ -1442,7 +1540,7 @@ export default function EventList({
         alert('썸네일 다운로드에 실패했습니다.');
         return;
       }
-      
+
       if (!editOriginalImageFile) {
         const file = new File([blob], 'youtube-thumbnail.jpg', { type: 'image/jpeg' });
         setEditOriginalImageFile(file);
@@ -1452,7 +1550,7 @@ export default function EventList({
         };
         reader.readAsDataURL(file);
       }
-      
+
       const blobUrl = URL.createObjectURL(blob);
       setEditCropImageUrl(blobUrl);
       setShowEditCropModal(true);
@@ -1462,24 +1560,24 @@ export default function EventList({
       alert('썸네일 다운로드 중 오류가 발생했습니다.');
     }
   };
-  
+
   const handleEditCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
     setEditImageFile(croppedFile);
     setEditImagePreview(croppedPreviewUrl);
-    
+
     if (editCropImageUrl.startsWith('blob:')) {
       URL.revokeObjectURL(editCropImageUrl);
     }
     setEditCropImageUrl('');
   };
-  
+
   const handleEditCropDiscard = () => {
     if (editCropImageUrl.startsWith('blob:')) {
       URL.revokeObjectURL(editCropImageUrl);
     }
     setEditCropImageUrl('');
   };
-  
+
   const handleEditRestoreOriginal = () => {
     if (editOriginalImagePreview) {
       if (editCropImageUrl.startsWith('blob:')) {
@@ -1604,7 +1702,7 @@ export default function EventList({
             const paths = files.map(f => `${eventToEdit.storage_path}/${f.name}`);
             await supabase.storage.from("images").remove(paths);
           }
-        } 
+        }
         // [레거시 방식] 기존 이미지가 URL 방식이면 개별 파일 삭제
         else if (eventToEdit.image || eventToEdit.image_full) {
           console.log("[수정] 기존 개별 파일 삭제");
@@ -1630,7 +1728,7 @@ export default function EventList({
         // 새 이미지 업로드 (폴더 생성)
         const resizedImages = await createResizedImages(editImageFile);
         const timestamp = Date.now();
-        
+
         const sanitizeFileName = (fileName: string): string => {
           const nameWithoutExt = fileName.split(".")[0];
           let normalized = nameWithoutExt.replace(/[\uFF01-\uFF5E]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0));
@@ -1659,7 +1757,7 @@ export default function EventList({
         updateData.image_medium = urls.medium;
         updateData.image_full = urls.full;
         updateData.storage_path = newFolderPath;
-      } 
+      }
       // Case 2: 기존 이미지가 삭제된 경우 (새 이미지 없음)
       else if (!editImagePreview && (eventToEdit.image || eventToEdit.image_full)) {
         console.log("[수정] 이미지 삭제 감지. 기존 파일 정리.");
@@ -1670,7 +1768,8 @@ export default function EventList({
         updateData.image_thumbnail = null;
         updateData.image_medium = null;
         updateData.image_full = null;
-        updateData.storage_path = null;  }
+        updateData.storage_path = null;
+      }
 
       const { error } = await supabase
         .from("events")
@@ -1754,18 +1853,21 @@ export default function EventList({
               className={`evt-category-btn ${selectedCategory === 'all' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
             >
               전체
+              <span className="evt-count-badge">{categoryCounts.all}</span>
             </button>
             <button
               onClick={() => handleCategoryChange('event')}
               className={`evt-category-btn ${selectedCategory === 'event' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
             >
               행사
+              <span className="evt-count-badge">{categoryCounts.event}</span>
             </button>
             <button
               onClick={() => handleCategoryChange('class')}
               className={`evt-category-btn ${selectedCategory === 'class' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
             >
               강습
+              <span className="evt-count-badge">{categoryCounts.class}</span>
             </button>
           </div>
 
@@ -1797,10 +1899,10 @@ export default function EventList({
         </div>
       </div>
       {isDeleting && createPortal(
-        <div 
+        <div
           className="evt-delete-overlay"
           // 이벤트 전파를 막아 하단 컨텐츠 클릭 방지
-          onClick={(e) => e.stopPropagation()} 
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="evt-loading-spinner-outer">
             <div className="evt-loading-spinner-base evt-loading-spinner-gray"></div>
@@ -2030,7 +2132,7 @@ export default function EventList({
                 }}
               >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
-                    <div className="evt-grid-3-4-10">
+                  <div className="evt-grid-3-4-10">
                     {sortedCurrentEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -2065,7 +2167,7 @@ export default function EventList({
                     </div>
                   </div>
                 ) : (
-                    <div className="evt-grid-3-4-10-tight">
+                  <div className="evt-grid-3-4-10-tight">
                     {/* 등록 버튼 배너만 표시 */}
                     <div
                       onClick={() => {
@@ -2166,136 +2268,135 @@ export default function EventList({
 
       {/* 정렬 모달 */}
       {showSortModal && (
-      createPortal(
-        <div className="evt-modal-overlay">
-          <div className="evt-modal-container">
-            <div className="evt-modal-body">
-              <div className="evt-flex evt-justify-between evt-items-center evt-mb-4">
-                <h3 className="evt-modal-title">정렬 방식</h3>
-                <button
-                  onClick={() => setShowSortModal(false)}
-                  className="evt-modal-close-btn"
-                >
-                  <i className="ri-close-line evt-icon-xl"></i>
-                </button>
-              </div>
-
-              <div className="evt-space-y-2">
-                {sortOptions.map((option) => (
+        createPortal(
+          <div className="evt-modal-overlay">
+            <div className="evt-modal-container">
+              <div className="evt-modal-body">
+                <div className="evt-flex evt-justify-between evt-items-center evt-mb-4">
+                  <h3 className="evt-modal-title">정렬 방식</h3>
                   <button
-                    key={option.id}
-                    onClick={() =>
-                      handleSortChange(
-                        option.id as "random" | "time" | "title",
-                      )
-                    }
-                    className={`evt-sort-option ${
-                      sortBy === option.id
+                    onClick={() => setShowSortModal(false)}
+                    className="evt-modal-close-btn"
+                  >
+                    <i className="ri-close-line evt-icon-xl"></i>
+                  </button>
+                </div>
+
+                <div className="evt-space-y-2">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() =>
+                        handleSortChange(
+                          option.id as "random" | "time" | "title",
+                        )
+                      }
+                      className={`evt-sort-option ${sortBy === option.id
                         ? "evt-sort-option-active"
                         : ""
-                    }`}
-                  >
-                    <i className={`${option.icon} evt-sort-option-icon`}></i>
-                    <span className="evt-sort-option-text">{option.name}</span>
-                    {sortBy === option.id && (
-                      <i className="ri-check-line evt-sort-check-icon"></i>
-                    )}
-                  </button>
-                ))}
+                        }`}
+                    >
+                      <i className={`${option.icon} evt-sort-option-icon`}></i>
+                      <span className="evt-sort-option-text">{option.name}</span>
+                      {sortBy === option.id && (
+                        <i className="ri-check-line evt-sort-check-icon"></i>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </div>, document.body
-      )
+          </div>, document.body
+        )
       )}
 
       {/* 검색 모달 */}
       {showSearchModal && (
-     createPortal(
-      <div className="evt-modal-overlay">
-        <div className="evt-modal-container">
-          <div className="evt-modal-body">
-            <div className="evt-flex evt-justify-between evt-items-center evt-mb-4">
-              <h3 className="evt-modal-title">이벤트 검색</h3>
-              <button
-                onClick={() => {
-                  setShowSearchModal(false);
-                  setSearchQuery("");
-                  setSearchSuggestions([]);
-                  setSearchTerm("");
-                }}
-                className="evt-modal-close-btn"
-              >
-                <i className="ri-close-line evt-icon-xl"></i>
-              </button>
-            </div>
+        createPortal(
+          <div className="evt-modal-overlay">
+            <div className="evt-modal-container">
+              <div className="evt-modal-body">
+                <div className="evt-flex evt-justify-between evt-items-center evt-mb-4">
+                  <h3 className="evt-modal-title">이벤트 검색</h3>
+                  <button
+                    onClick={() => {
+                      setShowSearchModal(false);
+                      setSearchQuery("");
+                      setSearchSuggestions([]);
+                      setSearchTerm("");
+                    }}
+                    className="evt-modal-close-btn"
+                  >
+                    <i className="ri-close-line evt-icon-xl"></i>
+                  </button>
+                </div>
 
-            <div className="evt-space-y-4">
-              {/* 검색 입력창 */}
-              <div className="evt-relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearchQueryChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleSearchSubmit();
-                    }
-                  }}
-                  className="evt-form-input-with-icon"
-                  placeholder="이벤트 제목, 장소, 주최자로 검색..."
-                  autoFocus
-                />
-                <i className="ri-search-line evt-icon-absolute-left"></i>
-              </div>
+                <div className="evt-space-y-4">
+                  {/* 검색 입력창 */}
+                  <div className="evt-relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => handleSearchQueryChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleSearchSubmit();
+                        }
+                      }}
+                      className="evt-form-input-with-icon"
+                      placeholder="이벤트 제목, 장소, 주최자로 검색..."
+                      autoFocus
+                    />
+                    <i className="ri-search-line evt-icon-absolute-left"></i>
+                  </div>
 
-              {/* 자동완성 제안 */}
-              {searchSuggestions.length > 0 && (
-                <div className="evt-space-y-1">
-                  <p className="evt-info-text-xs evt-mb-2">추천 검색어</p>
-                  <div className="evt-max-h-48 evt-overflow-y-auto evt-space-y-1">
-                    {searchSuggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="evt-search-suggestion-item"
-                      >
-                        <i className="ri-search-line evt-icon-text-xs evt-icon-mr-2 evt-text-gray-400"></i>
-                        {suggestion}
-                      </button>
-                    ))}
+                  {/* 자동완성 제안 */}
+                  {searchSuggestions.length > 0 && (
+                    <div className="evt-space-y-1">
+                      <p className="evt-info-text-xs evt-mb-2">추천 검색어</p>
+                      <div className="evt-max-h-48 evt-overflow-y-auto evt-space-y-1">
+                        {searchSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="evt-search-suggestion-item"
+                          >
+                            <i className="ri-search-line evt-icon-text-xs evt-icon-mr-2 evt-text-gray-400"></i>
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 검색 버튼 */}
+                  <div className="evt-flex evt-space-x-3">
+                    <button
+                      onClick={() => {
+                        setShowSearchModal(false);
+                        setSearchQuery("");
+                        setSearchSuggestions([]);
+                        setSearchTerm("");
+                      }}
+                      className="evt-flex-1 evt-btn-base evt-btn-gray"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleSearchSubmit}
+                      className="evt-flex-1 evt-btn-base evt-btn-blue evt-whitespace-nowrap"
+                    >
+                      검색
+                    </button>
                   </div>
                 </div>
-              )}
-
-              {/* 검색 버튼 */}
-              <div className="evt-flex evt-space-x-3">
-                <button
-                  onClick={() => {
-                    setShowSearchModal(false);
-                    setSearchQuery("");
-                    setSearchSuggestions([]);
-                    setSearchTerm("");
-                  }}
-                  className="evt-flex-1 evt-btn-base evt-btn-gray"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleSearchSubmit}
-                  className="evt-flex-1 evt-btn-base evt-btn-blue evt-whitespace-nowrap"
-                >
-                  검색
-                </button>
               </div>
             </div>
-          </div>
-        </div>
-      </div>, document.body
-    )
+          </div>, document.body
+        )
       )}
 
-<EventDetailModal
+      <EventDetailModal
         isOpen={!!selectedEvent}
         event={selectedEvent}
         onClose={closeModal}
@@ -2321,28 +2422,28 @@ export default function EventList({
 
       {/* Edit Modal */}
       {showEditModal && eventToEdit && createPortal(
-          <div 
-            className="evt-fixed-inset-edit-modal"
-            onTouchStartCapture={(e) => {
+        <div
+          className="evt-fixed-inset-edit-modal"
+          onTouchStartCapture={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchMoveCapture={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
               e.stopPropagation();
-            }}
-            onTouchMoveCapture={(e) => {
-              if (e.target === e.currentTarget) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
-            onTouchEndCapture={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <div className="evt-modal-container-lg">
-              {/* 헤더 */}
+            }
+          }}
+          onTouchEndCapture={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <div className="evt-modal-container-lg">
+            {/* 헤더 */}
             <div className="evt-modal-header">
               <div className="evt-modal-header-content">
-              <h2 className="evt-modal-title">
-                    이벤트 수정
-                  </h2>
+                <h2 className="evt-modal-title">
+                  이벤트 수정
+                </h2>
                 <button
                   onClick={() => {
                     setShowEditModal(false);
@@ -2376,7 +2477,7 @@ export default function EventList({
                   />
                 </div>
 
-              
+
                 <div className="evt-relative">
 
                   <label className="evt-form-label">
@@ -2390,10 +2491,10 @@ export default function EventList({
                       setEditFormData((prev) => ({ ...prev, genre: value }));
                       const suggestions = value
                         ? allGenres.filter(
-                            (genre) =>
-                              genre.toLowerCase().includes(value.toLowerCase()) &&
-                              genre.toLowerCase() !== value.toLowerCase(),
-                          )
+                          (genre) =>
+                            genre.toLowerCase().includes(value.toLowerCase()) &&
+                            genre.toLowerCase() !== value.toLowerCase(),
+                        )
                         : allGenres; // 입력값이 없으면 전체 목록 보여주기
                       setGenreSuggestions(suggestions);
                     }}
@@ -2405,7 +2506,7 @@ export default function EventList({
                     autoComplete="off"
 
                   />
-                      {isGenreInputFocused && genreSuggestions.length > 0 && (
+                  {isGenreInputFocused && genreSuggestions.length > 0 && (
                     <div className="evt-autocomplete-dropdown">
                       {genreSuggestions.map((genre) => (
                         <div key={genre} onMouseDown={() => handleGenreSuggestionClick(genre)} className="evt-autocomplete-genre-item">
@@ -2415,7 +2516,7 @@ export default function EventList({
                     </div>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="evt-form-label">
                     카테고리
@@ -2865,7 +2966,7 @@ export default function EventList({
                     {editFormData.videoUrl && editVideoPreview.provider && (
                       <>
                         {editVideoPreview.provider === "youtube" ||
-                        editVideoPreview.provider === "vimeo" ? (
+                          editVideoPreview.provider === "vimeo" ? (
                           <button
                             type="button"
                             onClick={async () => {
@@ -2961,7 +3062,7 @@ export default function EventList({
                         </button>
                       </div>
                     )}
-                    
+
                     {/* 영상 URL 입력창 - 항상 표시 */}
                     <div>
                       <label className="evt-block evt-text-gray-400 evt-text-xs evt-mb-1">
@@ -3124,12 +3225,12 @@ export default function EventList({
                 </div>
               </div>
             </div>
-            </div>
-          </div>,
-          document.body
+          </div>
+        </div>,
+        document.body
       )}
 
-   
+
 
       {/* 이미지 크롭 모달 */}
       <ImageCropModal
