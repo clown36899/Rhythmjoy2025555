@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+
+
+
 import EventCalendar from "./components/EventCalendar";
 import EventList from "./components/EventList";
 import Header from "./components/Header";
@@ -10,10 +13,11 @@ import EventRegistrationModal from "../../components/EventRegistrationModal";
 import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
 import EventDetailModal from "./components/EventDetailModal";
 import EventPasswordModal from "./components/EventPasswordModal";
+import EventEditModal from "./components/EventEditModal";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
-import { parseVideoUrl } from "../../utils/videoEmbed";
+
 import { supabase } from "../../lib/supabase";
 import type { Event as AppEvent } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
@@ -26,6 +30,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const selectedCategory = searchParams.get("category") || "all";
   const { isAdmin } = useAuth();
+
 
   registerLocale("ko", ko);
 
@@ -114,32 +119,19 @@ export default function HomePage() {
   const [eventToEdit, setEventToEdit] = useState<AppEvent | null>(null);
   const [eventPassword, setEventPassword] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editFormData, setEditFormData] = useState({
-    title: "",
-    description: "",
-    time: "",
-    location: "",
-    locationLink: "",
-    category: "",
-    organizer: "",
-    organizerName: "",
-    organizerPhone: "",
-    contact: "",
-    link1: "",
-    link2: "",
-    link3: "",
-    linkName1: "",
-    linkName2: "",
-    linkName3: "",
-    image: "",
-    start_date: "",
-    end_date: "",
-    event_dates: [] as string[],
-    dateMode: "range" as "range" | "specific",
-    videoUrl: "",
-    showTitleOnBillboard: true,
-  });
-  const [editVideoPreview, setEditVideoPreview] = useState<{ provider: string | null; embedUrl: string | null; }>({ provider: null, embedUrl: null });
+  const [allGenres, setAllGenres] = useState<string[]>([]);
+
+  // 장르 목록 로드 (자동완성용)
+  useEffect(() => {
+    const fetchGenres = async () => {
+      const { data, error } = await supabase.from('events').select('genre');
+      if (data && !error) {
+        const uniqueGenres = [...new Set(data.map(item => item.genre).filter(g => g))] as string[];
+        setAllGenres(uniqueGenres);
+      }
+    };
+    fetchGenres();
+  }, []);
 
   // Refs
   const calendarRef = useRef<HTMLDivElement>(null!);
@@ -261,38 +253,6 @@ export default function HomePage() {
 
     if (effectiveIsAdmin) {
       setEventToEdit(event);
-      const hasEventDates = event.event_dates && event.event_dates.length > 0;
-      setEditFormData({
-        title: event.title,
-        description: event.description || "",
-        time: event.time,
-        location: event.location,
-        locationLink: event.location_link || "",
-        category: event.category,
-        organizer: event.organizer,
-        organizerName: event.organizer_name || "",
-        organizerPhone: event.organizer_phone || "",
-        contact: event.contact || "",
-        link1: event.link1 || "",
-        link2: event.link2 || "",
-        link3: event.link3 || "",
-        linkName1: event.link_name1 || "",
-        linkName2: event.link_name2 || "",
-        linkName3: event.link_name3 || "",
-        image: event?.image || "",
-        start_date: event.start_date || event.date || "",
-        end_date: event.end_date || event.date || "",
-        event_dates: event.event_dates || [],
-        dateMode: hasEventDates ? "specific" : "range",
-        showTitleOnBillboard: event.show_title_on_billboard ?? true,
-        videoUrl: event?.video_url || "",
-      });
-      if (event?.video_url) {
-        const videoInfo = parseVideoUrl(event.video_url);
-        setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
-      } else {
-        setEditVideoPreview({ provider: null, embedUrl: null });
-      }
       setShowEditModal(true);
       setSelectedEvent(null);
     } else {
@@ -340,38 +300,6 @@ export default function HomePage() {
         const { data: fullEvent, error } = await supabase.from("events").select("*").eq("id", eventToEdit.id).single();
         if (error) throw error;
         if (fullEvent) {
-          const hasEventDates = fullEvent.event_dates && fullEvent.event_dates.length > 0;
-          setEditFormData({
-            title: fullEvent.title,
-            description: fullEvent.description || "",
-            time: fullEvent.time,
-            location: fullEvent.location,
-            locationLink: fullEvent.location_link || "",
-            category: fullEvent.category,
-            organizer: fullEvent.organizer,
-            organizerName: fullEvent.organizer_name || "",
-            organizerPhone: fullEvent.organizer_phone || "",
-            contact: fullEvent.contact || "",
-            link1: fullEvent.link1 || "",
-            link2: fullEvent.link2 || "",
-            link3: fullEvent.link3 || "",
-            linkName1: fullEvent.link_name1 || "",
-            linkName2: fullEvent.link_name2 || "",
-            linkName3: fullEvent.link_name3 || "",
-            image: fullEvent.image || "",
-            start_date: fullEvent.start_date || fullEvent.date || "",
-            end_date: fullEvent.end_date || fullEvent.date || "",
-            event_dates: fullEvent.event_dates || [],
-            dateMode: hasEventDates ? "specific" : "range",
-            videoUrl: fullEvent.video_url || "",
-            showTitleOnBillboard: fullEvent.show_title_on_billboard ?? true,
-          });
-          if (fullEvent.video_url) {
-            const videoInfo = parseVideoUrl(fullEvent.video_url);
-            setEditVideoPreview({ provider: videoInfo.provider, embedUrl: videoInfo.embedUrl });
-          } else {
-            setEditVideoPreview({ provider: null, embedUrl: null });
-          }
           setEventToEdit(fullEvent);
         }
       } catch (error) {
@@ -633,40 +561,42 @@ export default function HomePage() {
             overscrollBehaviorY: "contain"
           }}
         >
-          {/* <div className="p-0 bg-[#222] rounded-none no-select">
-            <p className="text-gray-300 text-13px text-center no-select"><i className="ri-information-line mr-1"></i>날짜를 클릭하면 이벤트를 등록할 수 있습니다</p>
-          </div> */}
+
 
           {qrLoading ? (
             <div className="flex items-center justify-center h-full"><div className="text-gray-400">이벤트 로딩 중...</div></div>
           ) : (
-            <EventList
-              key={eventJustCreated || undefined}
-              selectedDate={selectedDate}
-              currentMonth={currentMonth}
-              isAdminMode={effectiveIsAdmin}
-              adminType={adminType}
-              viewMode={viewMode}
-              onEventHover={setHoveredEventId}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              onSearchStart={handleSearchStart}
-              showSearchModal={showSearchModal}
-              setShowSearchModal={setShowSearchModal}
-              showSortModal={showSortModal}
-              setShowSortModal={setShowSortModal}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              highlightEvent={highlightEvent}
-              onHighlightComplete={handleHighlightComplete}
-              sharedEventId={sharedEventId}
-              onSharedEventOpened={() => setSharedEventId(null)}
-              dragOffset={dragOffset}
-              isAnimating={isAnimating}
-              slideContainerRef={eventListSlideContainerRef}
-              onMonthChange={(date) => setCurrentMonth(date)}
-              onModalStateChange={setIsEventListModalOpen}
-            />
+            <>
+
+
+              <EventList
+                key={eventJustCreated || undefined}
+                selectedDate={selectedDate}
+                currentMonth={currentMonth}
+                isAdminMode={effectiveIsAdmin}
+                adminType={adminType}
+                viewMode={viewMode}
+                onEventHover={setHoveredEventId}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                onSearchStart={handleSearchStart}
+                showSearchModal={showSearchModal}
+                setShowSearchModal={setShowSearchModal}
+                showSortModal={showSortModal}
+                setShowSortModal={setShowSortModal}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                highlightEvent={highlightEvent}
+                onHighlightComplete={handleHighlightComplete}
+                sharedEventId={sharedEventId}
+                onSharedEventOpened={() => setSharedEventId(null)}
+                dragOffset={dragOffset}
+                isAnimating={isAnimating}
+                slideContainerRef={eventListSlideContainerRef}
+                onMonthChange={(date) => setCurrentMonth(date)}
+                onModalStateChange={setIsEventListModalOpen}
+              />
+            </>
           )}
           <Footer />
         </div>
@@ -683,7 +613,20 @@ export default function HomePage() {
           <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
         )
       }
-      {/* 여기에 수정 모달(Edit Modal)의 JSX 코드가 위치합니다. 코드가 매우 길어 생략되었지만, 관련 로직은 모두 이곳으로 이동되었습니다. */}
+      {showEditModal && eventToEdit && (
+        <EventEditModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEventToEdit(null);
+          }}
+          event={eventToEdit}
+          isAdminMode={effectiveIsAdmin}
+          onEventUpdated={() => window.dispatchEvent(new CustomEvent("eventUpdated"))}
+          onDelete={handleDeleteClick}
+          allGenres={allGenres}
+        />
+      )}
     </div >
   );
 }
