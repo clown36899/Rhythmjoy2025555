@@ -210,13 +210,17 @@
 /* ===== 배지 스타일 ===== */
 .card-badge {
   position: absolute;
-  top: var(--spacing-1-5);
-  right: var(--spacing-1-5);
-  padding: 0.125rem var(--spacing-1-5);
+  top: 7px;
+  right: -30px;
+  width: 80px;
+  transform: rotate(45deg);
+  text-align: center;
+  padding: 0.15rem 0;
   color: white;
   font-size: 10px;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
 }
 
 .card-badge-past {
