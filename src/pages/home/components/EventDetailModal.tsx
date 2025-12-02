@@ -104,40 +104,40 @@ export default function EventDetailModal({
                 }}
               >
                 {/* 이미지 영역 (스크롤과 함께 사라짐) */}
-                <div
-                  className={`image-area ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-pattern"}`}
-                  style={{
-                    height: "256px",
-                    ...(!(
-                      selectedEvent.image_medium ||
-                      selectedEvent.image ||
-                      getEventThumbnail(
-                        selectedEvent,
-                        defaultThumbnailClass,
-                        defaultThumbnailEvent,
-                      )
-                    )
-                      ? { backgroundImage: "url(/grunge.png)" } // This remains as it's dynamic
-                      : {}),
-                  }}
-                >
-                  {(() => {
-                    const detailImageUrl =
-                      selectedEvent.image_medium ||
-                      selectedEvent.image ||
-                      getEventThumbnail(
-                        selectedEvent,
-                        defaultThumbnailClass,
-                        defaultThumbnailEvent,
-                      );
-                    const isDefaultThumbnail =
-                      !selectedEvent.image_medium &&
-                      !selectedEvent.image &&
-                      detailImageUrl;
+                {/* 이미지 영역 (스크롤과 함께 사라짐) */}
+                {(() => {
+                  const detailImageUrl =
+                    selectedEvent.image_medium ||
+                    selectedEvent.image ||
+                    getEventThumbnail(
+                      selectedEvent,
+                      defaultThumbnailClass,
+                      defaultThumbnailEvent,
+                    );
+                  const isDefaultThumbnail =
+                    !selectedEvent.image_medium &&
+                    !selectedEvent.image &&
+                    detailImageUrl;
+                  const hasImage = !!detailImageUrl;
 
-                    if (detailImageUrl) {
-                      return (
+                  return (
+                    <div
+                      className={`image-area ${hasImage ? "bg-black" : "bg-pattern"}`}
+                      style={{
+                        ...(!hasImage
+                          ? { backgroundImage: "url(/grunge.png)" }
+                          : {}),
+                      }}
+                    >
+                      {hasImage ? (
                         <>
+                          {/* Blurred Background */}
+                          <div
+                            className="image-blur-bg"
+                            style={{ backgroundImage: `url(${detailImageUrl})` }}
+                          />
+
+                          {/* Main Image */}
                           <img
                             src={detailImageUrl}
                             alt={selectedEvent.title}
@@ -145,6 +145,10 @@ export default function EventDetailModal({
                             decoding="async"
                             className="detail-image"
                           />
+
+                          {/* Gradient Overlay */}
+                          <div className="image-gradient-overlay" />
+
                           {isDefaultThumbnail && (
                             <div className="default-thumbnail-overlay">
                               <span className="default-thumbnail-text">
@@ -163,28 +167,26 @@ export default function EventDetailModal({
                             크게 보기
                           </button>
                         </>
-                      );
-                    }
+                      ) : (
+                        <>
+                          <div
+                            className={`category-bg-overlay ${selectedEvent.category === "class" ? "class" : "event"}`}
+                          ></div>
+                          <span className="category-bg-text">
+                            {selectedEvent.category === "class" ? "강습" : "행사"}
+                          </span>
+                        </>
+                      )}
 
-                    return (
-                      <>
-                        <div
-                          className={`category-bg-overlay ${selectedEvent.category === "class" ? "class" : "event"}`}
-                        ></div>
-                        <span className="category-bg-text">
-                          {selectedEvent.category === "class" ? "강습" : "행사"}
-                        </span>
-                      </>
-                    );
-                  })()}
-
-                  {/* 카테고리 배지 - 좌측 하단 */}
-                  <div
-                    className={`category-badge ${selectedEvent.category === "class" ? "class" : "event"}`}
-                  >
-                    {selectedEvent.category === "class" ? "강습" : "행사"}
-                  </div>
-                </div>
+                      {/* 카테고리 배지 - 좌측 하단 */}
+                      <div
+                        className={`category-badge ${selectedEvent.category === "class" ? "class" : "event"}`}
+                      >
+                        {selectedEvent.category === "class" ? "강습" : "행사"}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* 제목 - Sticky Header */}
                 <div
