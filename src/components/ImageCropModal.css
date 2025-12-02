@@ -9,30 +9,30 @@
   --color-gray-700: #374151;
   --color-gray-800: #1f2937;
   --color-gray-900: #111827;
-  
+
   --color-blue-600: #2563eb;
   --color-blue-700: #1d4ed8;
-  
+
   --color-green-600: #16a34a;
   --color-green-700: #15803d;
-  
+
   --color-yellow-600: #ca8a04;
   --color-yellow-700: #a16207;
-  
+
   /* 간격 */
   --spacing-2: 0.5rem;
   --spacing-3: 0.75rem;
   --spacing-4: 1rem;
   --spacing-6: 1.5rem;
-  
+
   /* Border Radius */
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
-  
+
   /* Z-index */
   --z-crop-modal: 10000001;
   --z-crop-header: 10;
-  
+
   /* 트랜지션 */
   --transition-colors: color 0.2s ease, background-color 0.2s ease;
 }
@@ -59,7 +59,9 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   width: 100%;
   max-width: 56rem;
-  max-height: 90vh;
+  height: 90dvh;
+  /* Use dynamic viewport height */
+  max-height: 90dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -67,8 +69,6 @@
 
 /* ===== 모달 헤더 ===== */
 .crop-modal-header {
-  position: sticky;
-  top: 0;
   background-color: var(--color-gray-900);
   border-bottom: 1px solid var(--color-gray-700);
   padding: var(--spacing-4) var(--spacing-6);
@@ -76,6 +76,8 @@
   align-items: center;
   justify-content: space-between;
   z-index: var(--z-crop-header);
+  flex-shrink: 0;
+  /* Prevent shrinking */
 }
 
 .crop-modal-title {
@@ -112,10 +114,15 @@
   justify-content: center;
   align-items: center;
   background-color: black;
-  height: calc(90vh - 240px);
+  flex: 1;
+  /* Take all available space */
+  min-height: 0;
+  /* Allow shrinking */
+  overflow: hidden;
 }
 
 .crop-area-wrapper {
+  width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
@@ -123,18 +130,20 @@
 }
 
 .crop-image {
-  max-height: calc(90vh - 240px);
+  max-height: 100%;
+  max-width: 100%;
   width: auto;
   height: auto;
+  object-fit: contain;
 }
 
 /* ===== 모달 푸터 ===== */
 .crop-modal-footer {
-  position: sticky;
-  bottom: 0;
   background-color: var(--color-gray-900);
   border-top: 1px solid var(--color-gray-700);
   padding: var(--spacing-3) var(--spacing-4);
+  flex-shrink: 0;
+  /* Prevent shrinking */
 }
 
 .crop-footer-content {

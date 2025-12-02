@@ -30,7 +30,7 @@ async function createCroppedImage(
   // 정수로 반올림하고 이미지 경계 내로 제한 (clamp)
   const imgWidth = image.naturalWidth;
   const imgHeight = image.naturalHeight;
-  
+
   const cropX = Math.max(0, Math.min(Math.round(pixelCrop.x), imgWidth - 1));
   const cropY = Math.max(0, Math.min(Math.round(pixelCrop.y), imgHeight - 1));
   const cropWidth = Math.max(1, Math.min(Math.round(pixelCrop.width), imgWidth - cropX));
@@ -180,7 +180,7 @@ export default function ImageCropModal({
       // 3:4 세로: height 기준
       cropHeight = imgHeight * 0.7;
       cropWidth = cropHeight * targetAspect;
-      
+
       // 너비가 이미지를 초과하면 width 기준으로 재계산
       if (cropWidth > imgWidth) {
         cropWidth = imgWidth * 0.7;
@@ -211,7 +211,7 @@ export default function ImageCropModal({
   const handleAspectRatioChange = (mode: 'free' | '3:4' | '1:1') => {
     setCompletedCrop(undefined);
     setAspectRatioMode(mode);
-    
+
     // 정확한 비율의 크롭 영역 계산 및 설정
     requestAnimationFrame(() => {
       const newCrop = calculateCropForAspect(mode);
@@ -258,7 +258,7 @@ export default function ImageCropModal({
                   // display 크기 기준 픽셀을 natural 크기로 변환
                   const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
                   const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-                  
+
                   const naturalPixelCrop: PixelCrop = {
                     unit: 'px',
                     x: displayPixelCrop.x * scaleX,
@@ -266,7 +266,7 @@ export default function ImageCropModal({
                     width: displayPixelCrop.width * scaleX,
                     height: displayPixelCrop.height * scaleY,
                   };
-                  
+
                   setCompletedCrop(naturalPixelCrop);
                 }
               }}
@@ -290,39 +290,36 @@ export default function ImageCropModal({
             <div className="crop-button-row">
               <button
                 onClick={() => handleAspectRatioChange('free')}
-                className={`crop-ratio-btn ${
-                  aspectRatioMode === 'free'
+                className={`crop-ratio-btn ${aspectRatioMode === 'free'
                     ? 'crop-ratio-btn-active'
                     : 'crop-ratio-btn-inactive'
-                }`}
+                  }`}
                 disabled={isProcessing}
               >
                 자유
               </button>
               <button
                 onClick={() => handleAspectRatioChange('3:4')}
-                className={`crop-ratio-btn ${
-                  aspectRatioMode === '3:4'
+                className={`crop-ratio-btn ${aspectRatioMode === '3:4'
                     ? 'crop-ratio-btn-active'
                     : 'crop-ratio-btn-inactive'
-                }`}
+                  }`}
                 disabled={isProcessing}
               >
                 3:4
               </button>
               <button
                 onClick={() => handleAspectRatioChange('1:1')}
-                className={`crop-ratio-btn ${
-                  aspectRatioMode === '1:1'
+                className={`crop-ratio-btn ${aspectRatioMode === '1:1'
                     ? 'crop-ratio-btn-active'
                     : 'crop-ratio-btn-inactive'
-                }`}
+                  }`}
                 disabled={isProcessing}
               >
                 1:1
               </button>
             </div>
-            
+
             {/* 액션 버튼 */}
             <div className="crop-button-row">
               <button
@@ -346,7 +343,7 @@ export default function ImageCropModal({
                 className="crop-action-btn crop-confirm-btn"
                 disabled={isProcessing}
               >
-                {isProcessing ? '처리 중...' : '자르기 완료'}
+                {isProcessing ? '처리 중...' : '완료'}
               </button>
             </div>
           </div>

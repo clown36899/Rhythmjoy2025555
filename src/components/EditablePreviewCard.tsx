@@ -18,7 +18,7 @@ interface EditablePreviewCardProps {
     onEditEnd: () => void;
     onUpdate: (field: string, value: string) => void;
     onEditImage: () => void;
-    onEditDate: () => void;
+    onEditDate?: () => void;
     onEditCategory: () => void;
     suggestions?: string[];
     onSelectGenre?: (genre: string) => void;

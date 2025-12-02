@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../lib/supabase';
 import { useDefaultThumbnail } from '../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../utils/getEventThumbnail';
+import DatePicker, { registerLocale } from "react-datepicker";
+import { ko } from "date-fns/locale/ko";
+import "react-datepicker/dist/react-datepicker.css";
 import "../styles/components/EventDetailModal.css";
 import "../styles/components/InteractivePreview.css";
+
+// Register locale
+registerLocale("ko", ko);
 
 interface Event extends BaseEvent {
     storage_path?: string | null;
@@ -14,7 +21,6 @@ interface EditableEventDetailProps {
     event: Event;
     onUpdate: (field: string, value: any) => void;
     onImageUpload: () => void;
-    onDateClick: () => void;
     genreSuggestions: string[];
     className?: string;
     style?: React.CSSProperties;
@@ -28,6 +34,11 @@ interface EditableEventDetailProps {
     onRegister?: () => void;
     onClose?: () => void;
     isSubmitting?: boolean;
+    // DatePicker props
+    date?: Date | null;
+    setDate?: (date: Date | null) => void;
+    endDate?: Date | null;
+    setEndDate?: (date: Date | null) => void;
 }
 
 const genreColorPalette = [
@@ -58,39 +69,65 @@ export default function EditableEventDetail({
     event,
     onUpdate,
     onImageUpload,
-    onDateClick,
     genreSuggestions,
     className = "",
-    style = {},
-    password = "",
+    password,
     setPassword,
-    link = "",
+    link,
     setLink,
-    linkName = "",
+    linkName,
     setLinkName,
     onRegister,
     onClose,
-    isSubmitting = false
+    isSubmitting,
+    date,
+    setDate,
+    endDate,
+    setEndDate,
 }: EditableEventDetailProps) {
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
-    const [activeModal, setActiveModal] = useState<string | null>(null);
+    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | null>(null);
+    const titleRef = React.useRef<HTMLTextAreaElement>(null);
+
+    // Auto-resize and font scaling for Title
+    useEffect(() => {
+        const textarea = titleRef.current;
+        if (!textarea) return;
+
+        // Reset to auto to correctly calculate scrollHeight
+        textarea.style.height = 'auto';
+
+        // Start with max size
+        let currentFontSize = 1.75; // rem
+        textarea.style.fontSize = `${currentFontSize}rem`;
+
+        // Target max height for 2 lines:
+        // 1.75rem * 1.3 (line-height) * 2 lines = ~4.55rem (~72.8px at 16px root)
+        // We want to keep the visual height around this value even if text wraps more.
+        const MAX_HEIGHT_PX = 75;
+
+        // Iteratively reduce font size if scrollHeight exceeds target
+        while (textarea.scrollHeight > MAX_HEIGHT_PX && currentFontSize > 1.0) {
+            currentFontSize -= 0.1;
+            textarea.style.fontSize = `${currentFontSize}rem`;
+        }
+
+        // Set final height
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }, [event.title]);
 
     // Local state for modals
-    const [tempTitle, setTempTitle] = useState("");
     const [tempLocation, setTempLocation] = useState("");
     const [tempLocationLink, setTempLocationLink] = useState("");
-    const [tempDescription, setTempDescription] = useState("");
     const [customGenreInput, setCustomGenreInput] = useState("");
     const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
 
     // Initialize local state when modal opens
     useEffect(() => {
-        if (activeModal === 'title') setTempTitle(event.title);
         if (activeModal === 'location') {
             setTempLocation(event.location);
             setTempLocationLink(event.location_link || "");
         }
-        if (activeModal === 'description') setTempDescription(event.description);
         if (activeModal === 'genre') {
             setShowCustomGenreInput(false);
             setCustomGenreInput("");
@@ -108,14 +145,18 @@ export default function EditableEventDetail({
     return (
         <div
             className={`event-detail-modal-container ${className}`}
-            style={{ borderColor: "rgb(89, 89, 89)", ...style }}
+            style={{ borderColor: "rgb(89, 89, 89)" }}
             onClick={() => setActiveModal(null)} // Close modals on background click
         >
+            {/* Backdrop for Modals (Only if not using portal for some reason, but we are) */}
+            {/* Keeping this as a fallback or for non-portal modals if any */}
+
             <div
                 className="modal-scroll-container"
                 style={{
                     overscrollBehavior: 'contain',
-                    WebkitOverflowScrolling: 'touch'
+                    WebkitOverflowScrolling: 'touch',
+                    paddingBottom: '120px' // Increased padding for footer
                 }}
             >
                 {/* Image Area */}
@@ -182,106 +223,114 @@ export default function EditableEventDetail({
                             {event.genre || <span className="text-gray-500 text-sm">장르 선택</span>}
                         </p>
 
-                        {/* Genre Modal */}
-                        {activeModal === 'genre' && (
-                            <div
-                                className="absolute top-full left-0 mt-2 bg-gray-800 border border-gray-700 p-3 rounded-lg shadow-xl z-50 w-64"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <h3 className="text-white font-bold mb-2 text-xs">장르 선택</h3>
-                                {showCustomGenreInput ? (
-                                    <div className="flex gap-2">
-                                        <input
-                                            value={customGenreInput}
-                                            onChange={(e) => setCustomGenreInput(e.target.value)}
-                                            className="flex-1 bg-gray-900 text-white px-2 py-1 rounded text-sm border border-gray-700 outline-none"
-                                            placeholder="직접 입력"
-                                            autoFocus
-                                        />
-                                        <button
-                                            onClick={() => handleSave('genre', customGenreInput)}
-                                            className="bg-blue-600 text-white px-2 py-1 rounded text-xs"
-                                        >
-                                            확인
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                                        <button
-                                            onClick={() => setShowCustomGenreInput(true)}
-                                            className="text-left px-2 py-1.5 text-blue-400 hover:bg-gray-700 rounded text-sm font-bold"
-                                        >
-                                            + 직접 입력
-                                        </button>
-                                        {genreSuggestions.map(g => (
-                                            <button
-                                                key={g}
-                                                onClick={() => handleSave('genre', g)}
-                                                className="text-left px-2 py-1.5 text-gray-300 hover:bg-gray-700 rounded text-sm"
-                                            >
-                                                {g}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Title */}
-                    <div
-                        className="relative group cursor-pointer mt-1"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveModal('title');
-                        }}
-                    >
-                        <EditBadge />
-                        <h2 className="modal-title">
-                            {event.title || <span className="text-gray-500">제목을 입력하세요</span>}
-                        </h2>
-
-                        {/* Title Modal */}
-                        {activeModal === 'title' && (
-                            <div
-                                className="absolute top-full left-0 mt-2 bg-gray-800 border border-gray-700 p-3 rounded-lg shadow-xl z-50 w-full"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <h3 className="text-white font-bold mb-2 text-xs">제목 입력</h3>
-                                <input
-                                    value={tempTitle}
-                                    onChange={(e) => setTempTitle(e.target.value)}
-                                    className="w-full bg-gray-900 text-white px-3 py-2 rounded text-sm border border-gray-700 outline-none mb-2"
-                                    placeholder="제목"
-                                    autoFocus
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSave('title', tempTitle)}
+                        {/* Genre Bottom Sheet Portal */}
+                        {activeModal === 'genre' && createPortal(
+                            <div className="bottom-sheet-portal">
+                                {/* Backdrop */}
+                                <div
+                                    className="bottom-sheet-backdrop"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveModal(null);
+                                    }}
                                 />
-                                <div className="flex justify-end">
-                                    <button
-                                        onClick={() => handleSave('title', tempTitle)}
-                                        className="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium"
-                                    >
-                                        확인
-                                    </button>
+                                {/* Content */}
+                                <div
+                                    className="bottom-sheet-content"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="bottom-sheet-handle"></div>
+                                    <h3 className="bottom-sheet-header">
+                                        <i className="ri-music-2-line"></i>
+                                        장르 선택
+                                    </h3>
+
+                                    <div className="bottom-sheet-body">
+                                        {showCustomGenreInput ? (
+                                            <div className="genre-input-row">
+                                                <input
+                                                    value={customGenreInput}
+                                                    onChange={(e) => setCustomGenreInput(e.target.value)}
+                                                    className="bottom-sheet-input"
+                                                    placeholder="직접 입력"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={() => handleSave('genre', customGenreInput)}
+                                                    className="bottom-sheet-button"
+                                                    style={{ width: 'auto', whiteSpace: 'nowrap' }}
+                                                >
+                                                    확인
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => setShowCustomGenreInput(true)}
+                                                    className="genre-direct-btn"
+                                                >
+                                                    <i className="ri-add-circle-line text-xl"></i>
+                                                    직접 입력
+                                                </button>
+                                                <div className="genre-grid">
+                                                    {genreSuggestions.map(g => (
+                                                        <button
+                                                            key={g}
+                                                            onClick={() => handleSave('genre', g)}
+                                                            className="genre-grid-btn"
+                                                        >
+                                                            {g}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            </div>,
+                            document.body
                         )}
                     </div>
+                </div>
+
+                {/* Title */}
+                <div className="relative group mt-3">
+                    <EditBadge />
+                    <textarea
+                        ref={titleRef}
+                        value={event.title}
+                        onChange={(e) => {
+                            onUpdate('title', e.target.value);
+                        }}
+                        onFocus={(e) => {
+                            // Scroll into view to prevent keyboard hiding it
+                            setTimeout(() => {
+                                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 300);
+                        }}
+                        className="title-textarea"
+                        placeholder="제목을 입력하세요"
+                        rows={1}
+                        style={{
+                            fontSize: '1.75rem',
+                            height: 'auto'
+                        }}
+                    />
                 </div>
 
                 {/* Info Section */}
                 <div className="info-section">
                     {/* Date */}
                     <div
-                        className="info-item cursor-pointer relative group"
+                        className="info-item cursor-pointer relative group hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors"
                         onClick={(e) => {
                             e.stopPropagation();
-                            onDateClick();
+                            setActiveModal('date');
                         }}
                     >
                         <EditBadge />
-                        <i className="ri-calendar-line info-icon"></i>
-                        <span>
+                        <i className="ri-calendar-line info-icon text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
+                        <span className="group-hover:text-white transition-colors text-base">
                             {event.start_date ? (
                                 (() => {
                                     const start = new Date(event.start_date);
@@ -296,106 +345,165 @@ export default function EditableEventDetail({
                                 <span className="text-gray-500">날짜를 선택하세요</span>
                             )}
                         </span>
+
+                        {/* Date Picker Bottom Sheet Portal */}
+                        {activeModal === 'date' && setDate && setEndDate && createPortal(
+                            <div className="bottom-sheet-portal">
+                                {/* Backdrop */}
+                                <div
+                                    className="bottom-sheet-backdrop"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveModal(null);
+                                    }}
+                                />
+                                {/* Content */}
+                                <div
+                                    className="bottom-sheet-content"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="bottom-sheet-handle"></div>
+                                    <h3 className="bottom-sheet-header">
+                                        <i className="ri-calendar-check-line"></i>
+                                        날짜 선택
+                                    </h3>
+
+                                    <div className="bottom-sheet-body flex justify-center pb-8">
+                                        <DatePicker
+                                            selected={date}
+                                            onChange={(dates) => {
+                                                const [start, end] = dates as [Date | null, Date | null];
+                                                setDate(start);
+                                                setEndDate(end);
+                                                // Don't close immediately on range selection start, only on end or if user clicks confirm
+                                                // But for better UX, maybe just let them click confirm?
+                                                // Or close if end date is selected?
+                                                // Let's keep it open until they click confirm or backdrop for now, or close on end date if range.
+                                                // Actually, standard behavior for range is to keep open.
+                                            }}
+                                            startDate={date}
+                                            endDate={endDate}
+                                            selectsRange
+                                            locale={ko}
+                                            inline
+                                        />
+                                    </div>
+                                    <div className="bottom-sheet-actions">
+                                        <button
+                                            onClick={() => setActiveModal(null)}
+                                            className="bottom-sheet-button"
+                                        >
+                                            확인
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>,
+                            document.body
+                        )}
                     </div>
 
                     {/* Location */}
                     <div
-                        className="info-item relative group cursor-pointer"
+                        className="info-item relative group cursor-pointer hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors"
                         onClick={(e) => {
                             e.stopPropagation();
                             setActiveModal('location');
                         }}
                     >
                         <EditBadge />
-                        <i className="ri-map-pin-line info-icon"></i>
+                        <i className="ri-map-pin-line info-icon text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
                         <div className="info-flex-gap-1 w-full">
-                            <span>{event.location || <span className="text-gray-500">장소를 입력하세요</span>}</span>
+                            <span className="group-hover:text-white transition-colors text-base">{event.location || <span className="text-gray-500">장소를 입력하세요</span>}</span>
                             {event.location_link && (
-                                <span className="location-link text-blue-400">
-                                    <i className="ri-external-link-line location-link-icon"></i>
+                                <span className="location-link text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full text-xs">
+                                    <i className="ri-map-2-line mr-1"></i>
+                                    지도
                                 </span>
                             )}
                         </div>
 
-                        {/* Location Modal */}
-                        {activeModal === 'location' && (
-                            <div
-                                className="absolute top-full left-0 mt-2 bg-gray-800 border border-gray-700 p-3 rounded-lg shadow-xl z-50 w-72"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <h3 className="text-white font-bold mb-2 text-xs">장소 입력</h3>
-                                <div className="flex flex-col gap-2">
-                                    <input
-                                        value={tempLocation}
-                                        onChange={(e) => setTempLocation(e.target.value)}
-                                        className="w-full bg-gray-900 text-white px-3 py-2 rounded text-sm border border-gray-700 outline-none"
-                                        placeholder="장소명 (예: 강남역 1번출구)"
-                                        autoFocus
-                                    />
-                                    <input
-                                        value={tempLocationLink}
-                                        onChange={(e) => setTempLocationLink(e.target.value)}
-                                        className="w-full bg-gray-900 text-white px-3 py-2 rounded text-sm border border-gray-700 outline-none"
-                                        placeholder="지도 링크 (선택)"
-                                    />
-                                    <div className="flex justify-end mt-1">
-                                        <button
-                                            onClick={() => {
-                                                onUpdate('location', tempLocation);
-                                                onUpdate('location_link', tempLocationLink);
-                                                setActiveModal(null);
-                                            }}
-                                            className="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium"
-                                        >
-                                            확인
-                                        </button>
+                        {/* Location Bottom Sheet Portal */}
+                        {activeModal === 'location' && createPortal(
+                            <div className="bottom-sheet-portal">
+                                {/* Backdrop */}
+                                <div
+                                    className="bottom-sheet-backdrop"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveModal(null);
+                                    }}
+                                />
+                                {/* Content */}
+                                <div
+                                    className="bottom-sheet-content"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="bottom-sheet-handle"></div>
+                                    <h3 className="bottom-sheet-header">
+                                        <i className="ri-map-pin-user-line"></i>
+                                        장소 정보 입력
+                                    </h3>
+
+                                    <div className="bottom-sheet-body">
+                                        <div className="bottom-sheet-input-group">
+                                            <label className="bottom-sheet-label">장소명</label>
+                                            <input
+                                                value={tempLocation}
+                                                onChange={(e) => setTempLocation(e.target.value)}
+                                                className="bottom-sheet-input"
+                                                placeholder="예: 강남역 1번출구, 00댄스스튜디오"
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <div className="bottom-sheet-input-group">
+                                            <label className="bottom-sheet-label">지도 링크 (선택)</label>
+                                            <div className="bottom-sheet-input-wrapper">
+                                                <i className="ri-link bottom-sheet-input-icon"></i>
+                                                <input
+                                                    value={tempLocationLink}
+                                                    onChange={(e) => setTempLocationLink(e.target.value)}
+                                                    className="bottom-sheet-input has-icon"
+                                                    placeholder="네이버/카카오맵 URL"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="bottom-sheet-actions">
+                                            <button
+                                                onClick={() => {
+                                                    onUpdate('location', tempLocation);
+                                                    onUpdate('location_link', tempLocationLink);
+                                                    setActiveModal(null);
+                                                }}
+                                                className="bottom-sheet-button"
+                                            >
+                                                저장
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div>,
+                            document.body
                         )}
                     </div>
 
                     {/* Description */}
                     <div className="info-divider">
-                        <div
-                            className="info-item items-start relative group cursor-pointer"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveModal('description');
-                            }}
-                        >
+                        <div className="info-item items-start relative group hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors">
                             <EditBadge />
-                            <i className="ri-file-text-line info-icon mt-1"></i>
+                            <i className="ri-file-text-line info-icon mt-1.5 text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
                             <div className="info-item-content w-full">
-                                <p className="whitespace-pre-wrap text-gray-300 min-h-[3rem]">
-                                    {event.description || <span className="text-gray-500">내용을 입력하세요...</span>}
-                                </p>
+                                <textarea
+                                    value={event.description}
+                                    onChange={(e) => {
+                                        onUpdate('description', e.target.value);
+                                        // Auto-expand height
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                    }}
+                                    className="w-full bg-transparent text-gray-300 resize-none outline-none min-h-[200px] overflow-hidden placeholder-gray-600 leading-relaxed text-base"
+                                    placeholder="행사 내용을 상세히 입력해주세요..."
+                                />
                             </div>
-
-                            {/* Description Modal */}
-                            {activeModal === 'description' && (
-                                <div
-                                    className="absolute top-8 left-0 right-0 bg-gray-800 border border-gray-700 p-3 rounded-lg shadow-xl z-50"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <h3 className="text-white font-bold mb-2 text-xs">내용 입력</h3>
-                                    <textarea
-                                        value={tempDescription}
-                                        onChange={(e) => setTempDescription(e.target.value)}
-                                        className="w-full bg-gray-900 text-white px-3 py-2 rounded text-sm border border-gray-700 outline-none min-h-[150px]"
-                                        placeholder="내용을 입력하세요..."
-                                        autoFocus
-                                    />
-                                    <div className="flex justify-end mt-2">
-                                        <button
-                                            onClick={() => handleSave('description', tempDescription)}
-                                            className="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium"
-                                        >
-                                            확인
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -410,51 +518,71 @@ export default function EditableEventDetail({
                             e.stopPropagation();
                             setActiveModal(activeModal === 'link' ? null : 'link');
                         }}
-                        className="footer-link relative"
+                        className="footer-link relative hover:bg-white/5 rounded-lg transition-colors p-2"
                         title={link ? "링크 수정" : "링크 추가"}
                     >
-                        <i className="ri-external-link-line footer-link-icon"></i>
-                        <span className="footer-link-text">
+                        <i className={`ri-external-link-line footer-link-icon text-xl ${link ? 'text-blue-400' : 'text-gray-400'}`}></i>
+                        <span className={`footer-link-text text-sm ml-2 ${link ? 'text-blue-100' : 'text-gray-400'}`}>
                             {linkName || (link ? "링크" : "링크 추가")}
                         </span>
 
-                        {/* Link Input Popover */}
-                        {activeModal === 'link' && (
-                            <div
-                                className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-gray-700 p-4 rounded-lg shadow-xl z-50 w-72"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <h3 className="text-white font-bold mb-3 text-sm">링크 입력</h3>
-                                <div className="flex flex-col gap-3">
-                                    <div>
-                                        <label className="text-xs text-gray-400 mb-1 block">링크 명 (예: 신청서, 인스타)</label>
-                                        <input
-                                            value={linkName}
-                                            onChange={(e) => setLinkName?.(e.target.value)}
-                                            placeholder="링크 이름"
-                                            className="w-full bg-gray-900 text-white px-3 py-2 rounded text-sm border border-gray-700 focus:border-blue-500 outline-none"
-                                            autoFocus
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-gray-400 mb-1 block">URL (https://...)</label>
-                                        <input
-                                            value={link}
-                                            onChange={(e) => setLink?.(e.target.value)}
-                                            placeholder="URL을 입력하세요"
-                                            className="w-full bg-gray-900 text-white px-3 py-2 rounded text-sm border border-gray-700 focus:border-blue-500 outline-none"
-                                        />
-                                    </div>
-                                    <div className="flex justify-end gap-2 mt-1">
-                                        <button
-                                            onClick={() => setActiveModal(null)}
-                                            className="px-3 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700"
-                                        >
-                                            완료
-                                        </button>
+                        {/* Link Bottom Sheet Portal */}
+                        {activeModal === 'link' && createPortal(
+                            <div className="bottom-sheet-portal">
+                                {/* Backdrop */}
+                                <div
+                                    className="bottom-sheet-backdrop"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveModal(null);
+                                    }}
+                                />
+                                {/* Content */}
+                                <div
+                                    className="bottom-sheet-content"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="bottom-sheet-handle"></div>
+                                    <h3 className="bottom-sheet-header">
+                                        <i className="ri-link-m"></i>
+                                        외부 링크 연결
+                                    </h3>
+
+                                    <div className="bottom-sheet-body">
+                                        <div className="bottom-sheet-input-group">
+                                            <label className="bottom-sheet-label">버튼 이름</label>
+                                            <input
+                                                value={linkName}
+                                                onChange={(e) => setLinkName?.(e.target.value)}
+                                                placeholder="예: 신청서 작성, 인스타그램"
+                                                className="bottom-sheet-input"
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <div className="bottom-sheet-input-group">
+                                            <label className="bottom-sheet-label">URL 주소</label>
+                                            <div className="bottom-sheet-input-wrapper">
+                                                <i className="ri-global-line bottom-sheet-input-icon"></i>
+                                                <input
+                                                    value={link}
+                                                    onChange={(e) => setLink?.(e.target.value)}
+                                                    placeholder="https://..."
+                                                    className="bottom-sheet-input has-icon"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="bottom-sheet-actions">
+                                            <button
+                                                onClick={() => setActiveModal(null)}
+                                                className="bottom-sheet-button"
+                                            >
+                                                완료
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div>,
+                            document.body
                         )}
                     </button>
                 </div>
@@ -462,15 +590,18 @@ export default function EditableEventDetail({
                 <div className="footer-actions-container">
                     {/* Password Input */}
                     <div className="flex items-center gap-2">
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword?.(e.target.value)}
-                            placeholder="비밀번호"
-                            className="bg-gray-800 text-white px-2 py-1.5 rounded text-xs border border-gray-700 focus:border-blue-500 outline-none w-20 text-center h-12"
-                            maxLength={4}
-                            onClick={(e) => e.stopPropagation()}
-                        />
+                        <div className="relative">
+                            <i className="ri-lock-line absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword?.(e.target.value)}
+                                placeholder="비밀번호"
+                                className="bg-gray-800/50 text-white pl-7 pr-2 py-2 rounded-lg text-xs border border-gray-700/50 focus:border-blue-500/50 focus:bg-gray-800 outline-none w-24 text-center h-10 transition-all placeholder-gray-600"
+                                maxLength={4}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
                     </div>
 
                     {/* Close Button */}

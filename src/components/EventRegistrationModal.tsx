@@ -8,9 +8,6 @@ import {
 } from "../utils/videoEmbed";
 import { useAuth } from "../contexts/AuthContext";
 import ImageCropModal from "./ImageCropModal";
-import DatePicker, { registerLocale } from "react-datepicker";
-import { ko } from "date-fns/locale/ko";
-import "react-datepicker/dist/react-datepicker.css";
 import "../styles/components/InteractivePreview.css";
 import "./EventRegistrationModal.css";
 import { EditablePreviewCard } from "./EditablePreviewCard";
@@ -39,8 +36,7 @@ const formatDateForInput = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-// 한국어 locale 등록
-registerLocale("ko", ko);
+// 한국어 locale 등록 moved to EditableEventDetail
 
 // ForwardRef 커스텀 입력 컴포넌트
 interface CustomInputProps {
@@ -116,9 +112,6 @@ export default function EventRegistrationModal({
   const [password, setPassword] = useState("");
   const [link1, setLink1] = useState("");
   const [linkName1, setLinkName1] = useState("");
-
-  // Date Picker State
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   // Video State (Billboard only)
   const [videoUrl, setVideoUrl] = useState("");
@@ -468,9 +461,13 @@ export default function EventRegistrationModal({
               event={previewEvent}
               onUpdate={handleDetailUpdate}
               onImageUpload={() => fileInputRef.current?.click()}
-              onDateClick={() => setIsDatePickerOpen(true)}
               genreSuggestions={allGenres}
               className="h-full"
+              // DatePicker Props
+              date={date}
+              setDate={setDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
               // Footer Props
               password={password}
               setPassword={setPassword}
@@ -504,7 +501,7 @@ export default function EventRegistrationModal({
                   onEditEnd={() => setEditingField(null)}
                   onUpdate={handleInteractiveUpdate}
                   onEditImage={() => fileInputRef.current?.click()}
-                  onEditDate={() => setIsDatePickerOpen(true)}
+                  // Date picker logic is now handled in EditableEventDetail
                   onEditCategory={() => {
                     setCategory(prev => prev === 'class' ? 'event' : 'class');
                   }}
@@ -581,25 +578,7 @@ export default function EventRegistrationModal({
             </div>
           )}
 
-          {/* Hidden Date Picker for Logic */}
-          <div className="hidden" id="hidden-date-picker-wrapper">
-            <DatePicker
-              selected={date}
-              onChange={(dates) => {
-                const [start, end] = dates as [Date | null, Date | null];
-                setDate(start);
-                setEndDate(end);
-                if (end) setIsDatePickerOpen(false); // Close on end date selection
-              }}
-              startDate={date}
-              endDate={endDate}
-              selectsRange
-              locale={ko}
-              withPortal
-              open={isDatePickerOpen}
-              onClickOutside={() => setIsDatePickerOpen(false)}
-            />
-          </div>
+          {/* DatePicker logic moved to EditableEventDetail */}
         </div>
 
 
