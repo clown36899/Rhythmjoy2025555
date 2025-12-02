@@ -141,7 +141,8 @@ export default function EventDetailModal({
                           <img
                             src={detailImageUrl}
                             alt={selectedEvent.title}
-                            loading="lazy"
+                            fetchPriority="high"
+                            decoding="async"
                             className="detail-image"
                           />
                           {isDefaultThumbnail && (
