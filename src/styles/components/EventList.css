@@ -858,10 +858,10 @@
 .evt-sticky-header {
   position: sticky;
   top: 0;
+  background-color: #2f2f2f;
   z-index: 20;
-
   backdrop-filter: blur(4px);
-  padding: 0.5rem;
+  padding: 0.4rem;
 }
 
 /* ===== 비디오 관련 추가 스타일 ===== */

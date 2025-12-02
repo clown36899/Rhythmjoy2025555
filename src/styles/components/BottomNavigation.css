@@ -5,24 +5,13 @@
     align-items: center;
     justify-content: space-around;
     padding: 0.5rem 0.5rem;
-
-    /* Glassmorphism Effect */
-    background: rgba(31, 41, 55, 0.85);
-    /* --bg-primary with opacity */
-    backdrop-filter: blur(12px);
+    background: rgb(47 47 47);
+    backdrop-filter: blur(1px);
     -webkit-backdrop-filter: blur(12px);
-
-    /* Border */
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-
-    /* Safe Area Support */
     padding-bottom: env(safe-area-inset-bottom, 0.5rem);
-
-    /* Positioning */
     position: relative;
     z-index: 50;
-
-    /* Disable selection */
     user-select: none;
     -webkit-user-select: none;
 }
