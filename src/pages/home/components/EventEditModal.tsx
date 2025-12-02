@@ -49,6 +49,7 @@ interface EventEditModalProps {
     allGenres: string[];
 }
 
+import "../../../styles/components/EventEditModal.css";
 export default function EventEditModal({
     isOpen,
     onClose,

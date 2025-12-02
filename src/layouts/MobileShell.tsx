@@ -2,7 +2,7 @@ import { Outlet, useLocation, useNavigate, useSearchParams } from "react-router-
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
-import "./MobileShell.css";
+import '../styles/components/MobileShell.css';
 import { BottomNavigation } from "./BottomNavigation";
 
 export function MobileShell() {

@@ -6,7 +6,7 @@ import DefaultThumbnailSettingsModal from "../../../components/DefaultThumbnailS
 import InvitationManagementModal from "../../../components/InvitationManagementModal";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
-import "./Header.css";
+import "../../../styles/components/Header.css";
 
 interface HeaderProps {
   currentMonth?: Date;
@@ -51,9 +51,9 @@ export default function Header({
     // localStorage에서 개발자 프리패스 상태 복원
     return localStorage.getItem('isDevAdmin') === 'true';
   });
-  
+
   const { isAdmin, billboardUserId, billboardUserName, setBillboardUser, signOut, signInWithKakao, signInAsDevAdmin } = useAuth();
-  
+
   // isDevAdmin 상태 변경 시 localStorage 동기화
   useEffect(() => {
     if (isDevAdmin) {
@@ -62,7 +62,7 @@ export default function Header({
       localStorage.removeItem('isDevAdmin');
     }
   }, [isDevAdmin]);
-  
+
   // 실제 관리자 또는 개발자 프리패스
   const isEffectiveAdmin = isAdmin || isDevAdmin;
   const [showQRModal, setShowQRModal] = useState(false);
@@ -135,11 +135,11 @@ export default function Header({
     setLoginLoading(true);
     try {
       const result = await signInWithKakao();
-      
+
       // 서버 응답에 따라 자동으로 권한 설정
       let loginTypeText = '';
       let isBillboardAdmin = false;
-      
+
       if (result.isAdmin) {
         // 슈퍼 관리자
         onAdminModeToggle?.(true, "super", null, "");
@@ -158,10 +158,10 @@ export default function Header({
         // 에러 메시지는 표시하지 않고 조용히 닫기
         return;
       }
-      
+
       setLoginSuccessName(result.name);
       setLoginSuccessType(loginTypeText);
-      
+
       if (isBillboardAdmin) {
         // 서브 관리자는 성공 모달 없이 바로 관리 패널 유지
         // 설정 모달이 닫혔다가 다시 열리면서 관리 패널이 표시됨
@@ -185,13 +185,13 @@ export default function Header({
 
   const handleAdminLogout = async () => {
     console.log('[로그아웃] 시작');
-    
+
     // 로그아웃 플래그 설정 (AuthContext 세션 체크 스킵용)
     localStorage.setItem('isLoggingOut', 'true');
-    
+
     // 모달 먼저 닫기
     setShowSettingsModal(false);
-    
+
     try {
       // Supabase 로그아웃 - 모든 세션 제거
       console.log('[로그아웃] Supabase signOut 호출');
@@ -200,7 +200,7 @@ export default function Header({
     } catch (error) {
       console.error('[로그아웃] signOut 에러:', error);
     }
-    
+
     // localStorage 강제 정리
     console.log('[로그아웃] localStorage 정리');
     const keys = Object.keys(localStorage);
@@ -210,7 +210,7 @@ export default function Header({
         console.log('[로그아웃] 제거:', key);
       }
     });
-    
+
     // sessionStorage 정리 (PWA 대응)
     console.log('[로그아웃] sessionStorage 정리');
     try {
@@ -218,7 +218,7 @@ export default function Header({
     } catch (e) {
       console.warn('[로그아웃] sessionStorage 정리 실패:', e);
     }
-    
+
     // PWA 캐시 정리
     console.log('[로그아웃] PWA 캐시 정리');
     if ('caches' in window) {
@@ -234,16 +234,16 @@ export default function Header({
         console.warn('[로그아웃] 캐시 정리 실패:', e);
       }
     }
-    
+
     // 로컬 상태 초기화
     setIsDevAdmin(false); // 개발자 프리패스 상태 초기화 (localStorage도 자동 삭제)
     onAdminModeToggle?.(false, null, null, "");
     // Billboard 사용자 정보는 AuthContext의 signOut에서 초기화됨
-    
+
     // 강제 새로고침 (PWA 캐시 무시)
     console.log('[로그아웃] 강제 새로고침');
     window.location.replace('/');
-    
+
     // 추가 안전장치: 0.5초 후 강제 리로드
     setTimeout(() => {
       window.location.reload();
@@ -408,9 +408,9 @@ export default function Header({
                 }}
                 className="header-logo-btn"
               >
-                <img 
-                  src="/dangong-logo.png" 
-                  alt="DANGONG Logo" 
+                <img
+                  src="/dangong-logo.png"
+                  alt="DANGONG Logo"
                   className="header-logo-img"
                 />
               </button>
@@ -458,16 +458,15 @@ export default function Header({
               {/* 로그인 상태 표시 */}
               {(isEffectiveAdmin || billboardUserId !== null) && (
                 <div className="header-login-status">
-                  <i className={`header-login-icon ${
-                    isDevAdmin 
-                      ? 'ri-code-s-slash-line header-login-icon-dev' 
+                  <i className={`header-login-icon ${isDevAdmin
+                      ? 'ri-code-s-slash-line header-login-icon-dev'
                       : billboardUserId !== null
                         ? 'ri-user-line header-login-icon-billboard'
                         : 'ri-kakao-talk-fill header-login-icon-admin'
-                  }`}></i>
+                    }`}></i>
                   <span className="header-login-text">
-                    {isDevAdmin 
-                      ? '개발자' 
+                    {isDevAdmin
+                      ? '개발자'
                       : billboardUserId !== null
                         ? billboardUserName
                         : '관리자'
@@ -503,7 +502,7 @@ export default function Header({
                   <p className="header-modal-text-sm">
                     관리자만 로그인 가능합니다.
                   </p>
-                  
+
                   <div className="header-btn-group-vertical">
                     <button
                       onClick={handleKakaoLogin}
@@ -522,7 +521,7 @@ export default function Header({
                         </>
                       )}
                     </button>
-                    
+
                     {signInAsDevAdmin && (
                       <button
                         onClick={() => {
@@ -541,7 +540,7 @@ export default function Header({
                         개발자 프리패스 🔓
                       </button>
                     )}
-                    
+
                     <button
                       onClick={() => setShowSettingsModal(false)}
                       className="header-btn-sm header-btn-gray header-mt-4"
@@ -562,7 +561,7 @@ export default function Header({
                       ? "모든 콘텐츠를 관리할 수 있습니다."
                       : "자신의 빌보드 설정을 관리할 수 있습니다."}
                   </p>
-                  
+
                   {/* 서브 관리자 전용 레이아웃 */}
                   {billboardUserId !== null ? (
                     <div className="header-btn-group-vertical">
@@ -578,7 +577,7 @@ export default function Header({
                           <i className="ri-image-2-line header-icon-lg"></i>
                           광고판 설정
                         </button>
-                        
+
                         {/* 주소 복사 (2/3) + 공유 (1/3) */}
                         <div className="header-billboard-row">
                           <button
@@ -596,7 +595,7 @@ export default function Header({
                           <button
                             onClick={async () => {
                               const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
-                              
+
                               // Web Share API 지원 확인
                               if (navigator.share) {
                                 try {
@@ -629,7 +628,7 @@ export default function Header({
                           </button>
                         </div>
                       </div>
-                      
+
                       {/* 닫기 + 로그아웃 - 컨테이너 하단에 붙임 */}
                       <div className="header-grid-2 header-gap-2">
                         <button
@@ -658,104 +657,104 @@ export default function Header({
                         <i className="ri-image-2-line header-icon-base"></i>
                         광고판 설정
                       </button>
-                    {isEffectiveAdmin && billboardUserId === null && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setShowBillboardUserManagement(true);
-                          }}
-                          className="header-btn-admin header-btn-orange"
-                        >
-                          <i className="ri-user-settings-line header-icon-base"></i>
-                          빌보드 사용자 관리
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowInvitationManagement(true);
-                            setShowSettingsModal(false);
-                          }}
-                          className="header-btn-admin header-btn-yellow-bg"
-                        >
-                          <i className="ri-mail-send-line header-icon-base"></i>
-                          초대 관리
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowDefaultThumbnailSettings(true);
-                          }}
-                          className="header-btn-admin header-btn-purple"
-                        >
-                          <i className="ri-image-2-line header-icon-base"></i>
-                          기본 썸네일 설정
-                        </button>
-                        <button
-                          onClick={() => setShowColorPanel(!showColorPanel)}
-                          className="header-btn-admin header-btn-green"
-                        >
-                          <i className="ri-palette-line header-icon-base"></i>
-                          색상 설정
-                        </button>
-                      </>
-                    )}
-                    
-                    {/* 개발자 모드 섹션 */}
-                    {isDevAdmin && (
-                      <>
-                        <div className="header-admin-section">
-                          <p className="header-admin-label">🔧 개발자 모드</p>
+                      {isEffectiveAdmin && billboardUserId === null && (
+                        <>
                           <button
-                            onClick={async () => {
-                              // 서브 관리자 목록 가져오기
-                              console.log('[개발 모드] 서브 관리자 목록 조회 시작');
-                              const { data, error } = await supabase
-                                .from('billboard_users')
-                                .select('id, name, is_active')
-                                .eq('is_active', true)
-                                .order('created_at', { ascending: true });
-                              
-                              console.log('[개발 모드] 조회 결과:', { data, error });
-                              
-                              if (error) {
-                                console.error('[개발 모드] 조회 에러:', error);
-                                alert(`서브 관리자 목록을 불러올 수 없습니다.\n에러: ${error.message}`);
-                                return;
-                              }
-                              
-                              if (!data || data.length === 0) {
-                                alert('등록된 서브 관리자가 없습니다.');
-                                return;
-                              }
-                              
-                              setBillboardUsers(data);
-                              setShowSubAdminSelector(true);
+                            onClick={() => {
+                              setShowBillboardUserManagement(true);
                             }}
                             className="header-btn-admin header-btn-orange"
                           >
                             <i className="ri-user-settings-line header-icon-base"></i>
-                            서브관리자로그인테스트
+                            빌보드 사용자 관리
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowInvitationManagement(true);
+                              setShowSettingsModal(false);
+                            }}
+                            className="header-btn-admin header-btn-yellow-bg"
+                          >
+                            <i className="ri-mail-send-line header-icon-base"></i>
+                            초대 관리
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowDefaultThumbnailSettings(true);
+                            }}
+                            className="header-btn-admin header-btn-purple"
+                          >
+                            <i className="ri-image-2-line header-icon-base"></i>
+                            기본 썸네일 설정
+                          </button>
+                          <button
+                            onClick={() => setShowColorPanel(!showColorPanel)}
+                            className="header-btn-admin header-btn-green"
+                          >
+                            <i className="ri-palette-line header-icon-base"></i>
+                            색상 설정
+                          </button>
+                        </>
+                      )}
+
+                      {/* 개발자 모드 섹션 */}
+                      {isDevAdmin && (
+                        <>
+                          <div className="header-admin-section">
+                            <p className="header-admin-label">🔧 개발자 모드</p>
+                            <button
+                              onClick={async () => {
+                                // 서브 관리자 목록 가져오기
+                                console.log('[개발 모드] 서브 관리자 목록 조회 시작');
+                                const { data, error } = await supabase
+                                  .from('billboard_users')
+                                  .select('id, name, is_active')
+                                  .eq('is_active', true)
+                                  .order('created_at', { ascending: true });
+
+                                console.log('[개발 모드] 조회 결과:', { data, error });
+
+                                if (error) {
+                                  console.error('[개발 모드] 조회 에러:', error);
+                                  alert(`서브 관리자 목록을 불러올 수 없습니다.\n에러: ${error.message}`);
+                                  return;
+                                }
+
+                                if (!data || data.length === 0) {
+                                  alert('등록된 서브 관리자가 없습니다.');
+                                  return;
+                                }
+
+                                setBillboardUsers(data);
+                                setShowSubAdminSelector(true);
+                              }}
+                              className="header-btn-admin header-btn-orange"
+                            >
+                              <i className="ri-user-settings-line header-icon-base"></i>
+                              서브관리자로그인테스트
+                            </button>
+                          </div>
+                        </>
+                      )}
+
+                      {/* 닫기 + 로그아웃 - 컨테이너 하단에 붙임 */}
+                      <div className="header-section-divider header-mt-3">
+                        <div className="header-grid-2 header-gap-2">
+                          <button
+                            onClick={() => setShowSettingsModal(false)}
+                            className="header-btn-sm header-btn-gray"
+                          >
+                            닫기
+                          </button>
+                          <button
+                            onClick={handleAdminLogout}
+                            className="header-btn-sm header-btn-red"
+                          >
+                            로그아웃
                           </button>
                         </div>
-                      </>
-                    )}
-                    
-                    {/* 닫기 + 로그아웃 - 컨테이너 하단에 붙임 */}
-                    <div className="header-section-divider header-mt-3">
-                      <div className="header-grid-2 header-gap-2">
-                        <button
-                          onClick={() => setShowSettingsModal(false)}
-                          className="header-btn-sm header-btn-gray"
-                        >
-                          닫기
-                        </button>
-                        <button
-                          onClick={handleAdminLogout}
-                          className="header-btn-sm header-btn-red"
-                        >
-                          로그아웃
-                        </button>
                       </div>
                     </div>
-                  </div>
                   )}
                 </div>
               )}
@@ -1049,16 +1048,14 @@ export default function Header({
             >
               <div className="header-success-container">
                 <div className="header-success-icon-wrapper">
-                  <div className={`header-success-icon-circle ${
-                    loginSuccessType.includes('프리패스')
+                  <div className={`header-success-icon-circle ${loginSuccessType.includes('프리패스')
                       ? 'header-success-icon-red'
                       : 'header-success-icon-purple'
-                  }`}>
-                    <i className={`header-icon-3xl ${
-                      loginSuccessType.includes('프리패스')
+                    }`}>
+                    <i className={`header-icon-3xl ${loginSuccessType.includes('프리패스')
                         ? 'ri-shield-keyhole-line'
                         : 'ri-shield-check-line'
-                    }`} style={{ color: 'white' }}></i>
+                      }`} style={{ color: 'white' }}></i>
                   </div>
                 </div>
                 <h3 className="header-success-title">
@@ -1078,11 +1075,10 @@ export default function Header({
                   onClick={() => {
                     setShowLoginSuccessModal(false);
                   }}
-                  className={`header-btn-base ${
-                    loginSuccessType.includes('프리패스')
+                  className={`header-btn-base ${loginSuccessType.includes('프리패스')
                       ? 'header-btn-gradient-red'
                       : 'header-btn-gradient-purple'
-                  }`}
+                    }`}
                 >
                   시작하기
                 </button>
@@ -1094,17 +1090,17 @@ export default function Header({
 
       {/* 서브 관리자 선택 모달 (개발자 모드) */}
       {showSubAdminSelector && isDevAdmin && createPortal(
-        <div 
+        <div
           className="header-modal-overlay-ultra"
           onClick={() => setShowSubAdminSelector(false)}
         >
-          <div 
+          <div
             className="header-modal-md"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="header-modal-title-xl">서브 관리자 선택</h3>
             <p className="header-modal-text header-modal-text-center">테스트할 서브 관리자를 선택하세요</p>
-            
+
             <div className="header-user-list">
               {billboardUsers.length === 0 ? (
                 <p className="header-empty-state">등록된 서브 관리자가 없습니다.</p>
@@ -1122,13 +1118,13 @@ export default function Header({
                         billboardUserId,
                         billboardUserName
                       });
-                      
+
                       console.log('[개발 모드] setBillboardUser:', user.id, user.name);
                       setBillboardUser(user.id, user.name);
-                      
+
                       console.log('[개발 모드] setIsDevAdmin(false) - 슈퍼 관리자 해제');
                       setIsDevAdmin(false);
-                      
+
                       console.log('[개발 모드] onAdminModeToggle 호출:', {
                         isAdminMode: true,
                         type: "sub",
@@ -1136,16 +1132,16 @@ export default function Header({
                         userName: user.name
                       });
                       onAdminModeToggle?.(true, "sub", user.id, user.name);
-                      
+
                       console.log('[개발 모드] 모달 닫기');
                       setShowSubAdminSelector(false);
                       setShowSettingsModal(false);
-                      
+
                       // 서브 관리자는 성공 모달 없이 바로 관리 패널 표시
                       setTimeout(() => {
                         setShowSettingsModal(true);
                       }, 100);
-                      
+
                       console.log('[개발 모드] ========== 서브 관리자 전환 완료 ==========');
                     }}
                     className="header-user-item"
@@ -1159,7 +1155,7 @@ export default function Header({
                 ))
               )}
             </div>
-            
+
             <button
               onClick={() => setShowSubAdminSelector(false)}
               className="header-btn-sm header-btn-gray header-mt-4"

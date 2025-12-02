@@ -5,7 +5,7 @@ import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
 import { QRCodeSVG } from 'qrcode.react';
-import './EventDetailModal.css';
+import "../../../styles/components/EventDetailModal.css";
 
 interface Event extends BaseEvent {
   storage_path?: string | null;

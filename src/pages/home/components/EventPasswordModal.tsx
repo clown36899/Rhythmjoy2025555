@@ -1,6 +1,6 @@
 import type { Event } from "../../../lib/supabase";
 import { createPortal } from "react-dom";
-import "./EventPasswordModal.css";
+import "../../../styles/components/EventPasswordModal.css";
 
 interface EventPasswordModalProps {
   event: Event;
@@ -19,7 +19,7 @@ export default function EventPasswordModal({
 }: EventPasswordModalProps) {
   return createPortal(
     (
-      <div 
+      <div
         className="epm-modal-overlay"
         onTouchStartCapture={(e) => {
           e.stopPropagation();

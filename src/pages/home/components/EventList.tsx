@@ -23,7 +23,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { EventCard } from "./EventCard";
 import EventPasswordModal from "./EventPasswordModal";
 import EventDetailModal from "./EventDetailModal";
-import "./EventList.css";
+import "../../../styles/components/EventList.css";
 
 registerLocale("ko", ko);
 

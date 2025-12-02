@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
-import "./EventCalendar.css";
+import "../../../styles/components/EventCalendar.css";
 
 interface EventCalendarProps {
   selectedDate: Date | null;
