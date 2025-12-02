@@ -138,15 +138,22 @@
 .evt-add-banner-card {
   position: relative;
   aspect-ratio: 3/4;
-  border: 2px dashed #000000;
-  border-radius: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
   overflow: hidden;
-  transition: var(--transition-all);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .evt-add-banner-card:hover {
-  border-color: var(--color-blue-500);
-  background-color: rgba(59, 130, 246, 0.05);
+  border-color: rgba(129, 140, 248, 0.5);
+  background-color: rgba(129, 140, 248, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
 }
 
 .evt-add-banner-icon {
@@ -862,10 +869,12 @@
 .evt-sticky-header {
   position: sticky;
   top: 0;
-  background-color: #2f2f2f;
+  background-color: rgba(20, 20, 20, 0.85);
   z-index: 20;
-  backdrop-filter: blur(4px);
-  padding: 0.4rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* ===== 비디오 관련 추가 스타일 ===== */
@@ -1121,34 +1130,51 @@
 
 /* ===== 카테고리 필터 버튼 ===== */
 .evt-category-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: var(--transition-colors);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  border: none;
-  line-height: 1.2;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.evt-category-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f3f4f6;
+  transform: translateY(-1px);
 }
 
 .evt-category-btn-active {
-  background-color: var(--color-blue-500);
+  background-color: #818cf8;
+  border-color: #818cf8;
   color: white;
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
 }
 
 .evt-category-btn-inactive {
-  color: var(--text-secondary);
-  background: none;
+  background-color: transparent;
+  color: #9ca3af;
 }
 
 .evt-category-btn-inactive:hover {
-  background-color: var(--color-gray-600);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f3f4f6;
 }
 
 /* ===== 검색 결과 배지 ===== */
+.evt-list-bg-container {
+  /* margin: 2px 0; */
+  /* border-radius: 11px; */
+  background-color: #161616;
+}
+
 .evt-search-badge {
   display: inline-flex;
   align-items: center;

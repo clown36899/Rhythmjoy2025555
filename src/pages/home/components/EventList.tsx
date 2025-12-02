@@ -1920,13 +1920,7 @@ export default function EventList({
       {/* 검색 키워드 배너 (Compact Style) */}
       {searchTerm && (
         <div
-          className="evt-p-0-4rem"
-          style={{
-            margin: "2px 0",
-
-            borderRadius: "11px",
-            backgroundColor: "var(--event-list-outer-bg-color)",
-          }}
+          className="evt-p-0-4rem evt-list-bg-container"
         >
           <div className="evt-search-result-badge">
             <button
@@ -1956,11 +1950,8 @@ export default function EventList({
       {searchTerm.trim() || selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none') ? (
         // 검색 또는 날짜 선택 시: 단일 뷰
         <div
-          className="evt-p-0-4rem evt-single-view-scroll"
+          className="evt-p-0-4rem evt-single-view-scroll evt-list-bg-container"
           style={{
-            margin: "2px 0",
-            borderRadius: "11px",
-            backgroundColor: "var(--event-list-outer-bg-color)",
             flex: 1,
             overflowY: "auto",
             paddingBottom: "5rem"
@@ -2059,12 +2050,7 @@ export default function EventList({
             {/* 이전 달 - 독립 컨테이너 */}
             <div key={prevMonthKey} ref={prevMonthRef} className="evt-slide-item">
               <div
-                className="evt-p-0-4rem"
-                style={{
-                  margin: "2px 0",
-                  borderRadius: "11px",
-                  backgroundColor: "var(--event-list-outer-bg-color)",
-                }}
+                className="evt-p-0-4rem evt-list-bg-container"
               >
                 {sortedPrevEvents.length > 0 || externalIsAnimating ? (
                   <div className="evt-grid-3-4-10">
@@ -2137,12 +2123,7 @@ export default function EventList({
               className="evt-slide-item"
             >
               <div
-                className="evt-p-0-4rem"
-                style={{
-                  margin: "2px 0",
-                  borderRadius: "11px",
-                  backgroundColor: "var(--event-list-outer-bg-color)",
-                }}
+                className="evt-p-0-4rem evt-list-bg-container"
               >
                 {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
                   <div className="evt-grid-3-4-10">
@@ -2207,12 +2188,7 @@ export default function EventList({
             {/* 다음 달 - 독립 컨테이너 */}
             <div key={nextMonthKey} ref={nextMonthRef} className="evt-slide-item">
               <div
-                className="evt-p-0-4rem"
-                style={{
-                  margin: "2px 0",
-                  borderRadius: "11px",
-                  backgroundColor: "var(--event-list-outer-bg-color)",
-                }}
+                className="evt-p-0-4rem evt-list-bg-container"
               >
                 {sortedNextEvents.length > 0 || externalIsAnimating ? (
                   <div className="evt-grid-3-4-10">
