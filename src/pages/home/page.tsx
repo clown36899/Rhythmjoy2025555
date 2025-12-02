@@ -6,7 +6,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import EventCalendar from "./components/EventCalendar";
 import EventList from "./components/EventList";
 import Header from "./components/Header";
-import Footer from "./components/Footer";
+
 import FullscreenBillboard from "../../components/FullscreenBillboard";
 import AdminBillboardModal from "./components/AdminBillboardModal";
 import EventRegistrationModal from "../../components/EventRegistrationModal";
@@ -598,7 +598,7 @@ export default function HomePage() {
               />
             </>
           )}
-          <Footer />
+
         </div>
       </div>
 

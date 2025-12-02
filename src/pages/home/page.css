@@ -33,8 +33,8 @@
   margin: 0 auto;
   margin-top: -1px;
   background-color: #1f1f1f;
-  overflow-y: auto;
-  padding-bottom: 5rem;
+  overflow-y: hidden;
+  position: relative;
 }
 
 /* ===== 달력/카테고리 버튼 영역 ===== */
@@ -131,6 +131,7 @@
   align-items: center;
   justify-content: center;
   height: 1.5rem;
+  border: 0;
   width: 2rem;
   background-color: #242424;
   color: #d1d5db;

@@ -23,6 +23,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { EventCard } from "./EventCard";
 import EventPasswordModal from "./EventPasswordModal";
 import EventDetailModal from "./EventDetailModal";
+import Footer from "./Footer";
 import "../../../styles/components/EventList.css";
 
 registerLocale("ko", ko);
@@ -643,12 +644,17 @@ export default function EventList({
   }, [fetchEvents]);
 
   // 달 변경 및 카테고리 변경 시 스크롤 위치 리셋
-  // 슬라이드 또는 강습/행사 버튼 클릭 시 스크롤을 맨 위로 올림
   useEffect(() => {
-    // 이벤트 리스트 컨테이너 스크롤 (이제 body가 아니라 컨테이너만 스크롤)
-    const scrollContainer = document.querySelector(".overflow-y-auto");
-    if (scrollContainer) {
-      scrollContainer.scrollTop = 0;
+    // 슬라이드 아이템들의 스크롤을 초기화
+    const slideItems = document.querySelectorAll(".evt-slide-item");
+    slideItems.forEach(item => {
+      item.scrollTop = 0;
+    });
+
+    // 단일 뷰 스크롤 초기화
+    const singleView = document.querySelector(".evt-single-view-scroll");
+    if (singleView) {
+      singleView.scrollTop = 0;
     }
   }, [currentMonth, selectedCategory]);
 
@@ -1842,7 +1848,7 @@ export default function EventList({
   }
 
   return (
-    <div className="no-select pb-24">
+    <div className="no-select" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* 삭제 로딩 오버레이 */}
       <div className="evt-sticky-header" ref={filterDropdownRef}>
         <div className="evt-flex evt-items-center evt-gap-2">
@@ -1950,11 +1956,14 @@ export default function EventList({
       {searchTerm.trim() || selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none') ? (
         // 검색 또는 날짜 선택 시: 단일 뷰
         <div
-          className="evt-p-0-4rem"
+          className="evt-p-0-4rem evt-single-view-scroll"
           style={{
             margin: "2px 0",
             borderRadius: "11px",
             backgroundColor: "var(--event-list-outer-bg-color)",
+            flex: 1,
+            overflowY: "auto",
+            paddingBottom: "5rem"
           }}
         >
           {/* Grid layout with 3 columns - poster ratio */}
@@ -2022,6 +2031,7 @@ export default function EventList({
               </p>
             </div>
           )}
+          <Footer />
         </div>
       ) : (
         // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
@@ -2031,6 +2041,7 @@ export default function EventList({
             {
               // height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
               // transition: 'height 0.3s ease-out'
+              flex: 1
             }
           }
         >
@@ -2046,7 +2057,7 @@ export default function EventList({
             }}
           >
             {/* 이전 달 - 독립 컨테이너 */}
-            <div ref={prevMonthRef} className="evt-slide-item">
+            <div key={prevMonthKey} ref={prevMonthRef} className="evt-slide-item">
               <div
                 className="evt-p-0-4rem"
                 style={{
@@ -2116,10 +2127,12 @@ export default function EventList({
                   </div>
                 )}
               </div>
+              <Footer />
             </div>
 
             {/* 현재 달 - 독립 컨테이너 */}
             <div
+              key={currentMonthKey}
               ref={currentMonthRef}
               className="evt-slide-item"
             >
@@ -2188,10 +2201,11 @@ export default function EventList({
                   </div>
                 )}
               </div>
+              <Footer />
             </div>
 
             {/* 다음 달 - 독립 컨테이너 */}
-            <div ref={nextMonthRef} className="evt-slide-item">
+            <div key={nextMonthKey} ref={nextMonthRef} className="evt-slide-item">
               <div
                 className="evt-p-0-4rem"
                 style={{
@@ -2261,6 +2275,7 @@ export default function EventList({
                   </div>
                 )}
               </div>
+              <Footer />
             </div>
           </div>
         </div>

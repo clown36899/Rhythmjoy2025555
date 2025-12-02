@@ -233,7 +233,7 @@
 
 /* ===== 텍스트 컨테이너 ===== */
 .card-text-container {
-  padding-top: var(--spacing-2);
+  padding-top: 0.125rem;
 }
 
 /* ===== 장르 텍스트 ===== */
@@ -243,7 +243,9 @@
   white-space: nowrap;
   font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 0.125rem;
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 /* ===== 제목 텍스트 ===== */
@@ -254,16 +256,20 @@
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-gray-100);
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 /* ===== 날짜 컨테이너 ===== */
 .card-date-container {
-  margin-top: var(--spacing-1);
+  margin-top: 0;
   display: flex;
   align-items: center;
-  gap: var(--spacing-1-5);
+  gap: var(--spacing-1);
   font-size: 0.75rem;
   color: var(--color-gray-400);
+  letter-spacing: -0.01em;
 }
 
 /* ===== 날짜 인디케이터 ===== */
