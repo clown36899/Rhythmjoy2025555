@@ -753,7 +753,7 @@ export default function EventEditModal({
                                                                     }));
                                                                 }
                                                             }}
-                                                            className="evt-ml-2 hover:evt-text-red-400"
+                                                            className="evt-ml-2 evt-btn-close-red"
                                                         >
                                                             <i className="ri-close-line"></i>
                                                         </button>

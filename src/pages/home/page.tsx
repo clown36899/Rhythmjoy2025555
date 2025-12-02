@@ -434,7 +434,7 @@ export default function HomePage() {
   // --------------------------------------------------------------------------------
   // 7. 렌더링
   // --------------------------------------------------------------------------------
-  const EXPANDED_HEIGHT = 280;
+  const EXPANDED_HEIGHT = 200;
 
   const renderHeight = useMemo(() => {
     if (isDragging) return `${liveCalendarHeight}px`;
@@ -448,8 +448,8 @@ export default function HomePage() {
     return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이
   }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
   const isFixed = calendarMode === "fullscreen" || (isDragging && liveCalendarHeight > 300);
-  const buttonBgClass = calendarMode === "collapsed" ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white";
-  const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-up-s-line home-icon-sm text-white font-bold"></i> : <i className="ri-arrow-down-s-line home-icon-sm text-blue-400 font-bold"></i>;
+  const buttonBgClass = calendarMode === "collapsed" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark";
+  const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-up-s-line home-icon-sm home-icon-arrow-up"></i> : <i className="ri-arrow-down-s-line home-icon-sm home-icon-arrow-down"></i>;
 
   return (
     <div
@@ -485,7 +485,7 @@ export default function HomePage() {
       <div className="home-main">
         <div
           ref={calendarRef}
-          className="w-full"
+          className="home-calendar-wrapper"
           style={{
             backgroundColor: "var(--calendar-bg-color)",
             touchAction: "pan-y",
@@ -497,7 +497,7 @@ export default function HomePage() {
         >
           <div
             ref={calendarContentRef}
-            className="overflow-hidden"
+            className="home-calendar-content"
             style={{
               height: renderHeight,
               transition: isDragging ? "none" : "height 0.3s cubic-bezier(0.33, 1, 0.68, 1)",
@@ -525,11 +525,11 @@ export default function HomePage() {
             />
           </div>
 
-          <div ref={calendarControlBarRef} className="w-full border-b border-[#22262a]" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none", padding: "0 9px" }}>
+          <div ref={calendarControlBarRef} className="home-calendar-control-bar" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none", padding: "0 9px" }}>
             <div className="home-toolbar">
               <button
                 onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : prev === "fullscreen" ? "expanded" : "collapsed")}
-                className={`flex items-center justify-center gap-1 h-6 px-2 ${buttonBgClass} rounded-lg transition-colors cursor-pointer flex-shrink-0`}
+                className={`home-toolbar-btn ${buttonBgClass}`}
               >
                 <i className={`${calendarMode === "collapsed" ? "ri-calendar-line" : "ri-calendar-close-line"} home-icon-sm`}></i>
                 <span className="home-toolbar-text">{calendarMode === "collapsed" ? "이벤트 등록달력" : "달력 접기"}</span>
@@ -544,11 +544,11 @@ export default function HomePage() {
                   {!isCurrentMonthVisible && (
                     <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="home-btn-today"><span>오늘</span><i className="ri-calendar-check-line home-text-10px"></i></button>
                   )}
-                  <button onClick={() => setShowSortModal(true)} className={`flex items-center justify-center h-6 gap-1 px-2 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${sortBy === "random" && isRandomBlinking ? "bg-blue-500 text-white animate-pulse" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${getSortIcon()} home-icon-sm`}></i><span className="home-text-xs">{getSortLabel()}</span></button>
+                  <button onClick={() => setShowSortModal(true)} className={`home-toolbar-btn ${sortBy === "random" && isRandomBlinking ? "home-toolbar-btn-pulse" : "home-toolbar-btn-dark"}`}><i className={`${getSortIcon()} home-icon-sm`}></i><span className="home-text-xs">{getSortLabel()}</span></button>
                   <button onClick={() => setShowSearchModal(true)} className="home-btn-search"><i className="ri-search-line home-icon-sm"></i></button>
                 </>
               )}
-              <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`flex items-center justify-center h-6 w-8 rounded-lg transition-colors cursor-pointer flex-shrink-0 ${calendarMode === "fullscreen" ? "bg-blue-600 text-white" : "bg-242424 hover:bg-gray-600 text-gray-300 hover:text-white"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i></button>
+              <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`home-toolbar-btn home-toolbar-btn-fullscreen ${calendarMode === "fullscreen" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i></button>
             </div>
           </div>
         </div>
@@ -564,7 +564,7 @@ export default function HomePage() {
 
 
           {qrLoading ? (
-            <div className="flex items-center justify-center h-full"><div className="text-gray-400">이벤트 로딩 중...</div></div>
+            <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
           ) : (
             <>
 

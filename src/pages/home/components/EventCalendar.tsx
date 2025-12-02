@@ -52,7 +52,7 @@ export default function EventCalendar({
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
 
   // 달력 셀 높이 계산 (전체 높이에서 헤더 높이를 빼고 6행으로 나눔)
-  const cellHeight = calendarHeightPx 
+  const cellHeight = calendarHeightPx
     ? Math.max(30, (calendarHeightPx - 16) / 6) // 헤더 16px 제외, 최소 30px
     : 50; // 기본 높이 50px
 
@@ -99,16 +99,16 @@ export default function EventCalendar({
       if (event.event_dates && event.event_dates.length > 0) {
         return event.event_dates.some(dateStr => dateStr.startsWith(monthStr));
       }
-      
+
       // start_date/end_date 체크
       const startDate = event.start_date || event.date || '';
       const endDate = event.end_date || event.date || '';
-      
+
       if (!startDate || !endDate) return false;
-      
+
       const monthStart = `${monthStr}-01`;
       const monthEnd = `${monthStr}-31`;
-      
+
       return (startDate <= monthEnd && endDate >= monthStart);
     });
 
@@ -129,7 +129,7 @@ export default function EventCalendar({
       // 일반 모드: 카테고리별 색상
       return category === 'class' ? 'cal-bg-green-500' : 'cal-bg-blue-500';
     }
-    
+
     // 전체화면 모드: 맵에서 색상 가져오기
     return eventColorMap.get(eventId) || 'cal-bg-gray-500';
   };
@@ -143,12 +143,12 @@ export default function EventCalendar({
 
   // 현재 월/뷰모드 변경 시 이벤트 발생 (MobileShell의 카운트 업데이트용)
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('calendarMonthChanged', { 
-      detail: { 
-        year: currentMonth.getFullYear(), 
+    window.dispatchEvent(new CustomEvent('calendarMonthChanged', {
+      detail: {
+        year: currentMonth.getFullYear(),
         month: currentMonth.getMonth(),
-        viewMode 
-      } 
+        viewMode
+      }
     }));
   }, [currentMonth, viewMode]);
 
@@ -221,7 +221,7 @@ export default function EventCalendar({
 
     // Always show 6 rows (42 cells)
     const remainingCells = 42 - days.length;
-    
+
     // Add days from next month
     for (let i = 1; i <= remainingCells; i++) {
       days.push(new Date(year, month + 1, i));
@@ -387,7 +387,7 @@ export default function EventCalendar({
       const clickPosition = clickEvent
         ? { x: clickEvent.clientX, y: clickEvent.clientY }
         : undefined;
-      
+
       window.dispatchEvent(
         new CustomEvent("fullscreenDateClick", {
           detail: { date, clickPosition },
@@ -552,15 +552,15 @@ export default function EventCalendar({
 
           const selectedDateEventIds = selectedDate
             ? new Set(
-                getEventsForDate(selectedDate)
-                  .filter((e) => {
-                    if (e.event_dates && e.event_dates.length > 0) return false;
-                    const sd = e.start_date || e.date || "";
-                    const ed = e.end_date || e.date || "";
-                    return sd !== ed;
-                  })
-                  .map((e) => e.id),
-              )
+              getEventsForDate(selectedDate)
+                .filter((e) => {
+                  if (e.event_dates && e.event_dates.length > 0) return false;
+                  const sd = e.start_date || e.date || "";
+                  const ed = e.end_date || e.date || "";
+                  return sd !== ed;
+                })
+                .map((e) => e.id),
+            )
             : null;
 
           const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
@@ -613,7 +613,7 @@ export default function EventCalendar({
               }}
             >
               <span
-                className="cal-text-[10px] cal-font-medium cal-text-white cal-truncate"
+                className="cal-text-10px cal-font-medium cal-text-white cal-truncate"
                 style={{
                   lineHeight: `${barHeight}px`,
                 }}
@@ -665,19 +665,19 @@ export default function EventCalendar({
       // 선택된 날짜에 속한 이벤트 ID 목록
       const selectedDateEventIds = selectedDate
         ? new Set(
-            getEventsForDate(selectedDate)
-              .filter((event) => {
-                // 특정 날짜 모드는 제외
-                if (event.event_dates && event.event_dates.length > 0) {
-                  return false;
-                }
+          getEventsForDate(selectedDate)
+            .filter((event) => {
+              // 특정 날짜 모드는 제외
+              if (event.event_dates && event.event_dates.length > 0) {
+                return false;
+              }
 
-                const startDate = event.start_date || event.date || "";
-                const endDate = event.end_date || event.date || "";
-                return startDate !== endDate;
-              })
-              .map((event) => event.id),
-          )
+              const startDate = event.start_date || event.date || "";
+              const endDate = event.end_date || event.date || "";
+              return startDate !== endDate;
+            })
+            .map((event) => event.id),
+        )
         : null;
 
       // 연속 이벤트 바 정보 계산 (레인 맵 기반, 최대 3개 레인)
@@ -736,24 +736,21 @@ export default function EventCalendar({
         <div
           key={`${monthDate.getMonth()}-${index}`}
           data-calendar-date={dateString}
-          className={`calendar-day-cell cal-relative no-select cal-transition-all cal-duration-300 ${
-            !isOtherMonth && !isSelected ? 'cal-hover-bg-gray-700' : ''
-          }`}
-          style={{ backgroundColor: bgColor }}
+          className={`calendar-day-cell cal-relative no-select cal-transition-all cal-duration-300 ${!isOtherMonth && !isSelected ? 'cal-hover-bg-gray-700' : ''
+            }`}
+          style={{ backgroundColor: bgColor, minWidth: 0 }}
           onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
         >
           <div
-            className={`cal-w-full cal-h-full cal-cursor-pointer cal-relative cal-overflow-visible no-select ${
-              isSelected ? "cal-text-white cal-z-10" : "cal-text-gray-300"
-            }`}
+            className={`cal-w-full cal-h-full cal-cursor-pointer cal-relative cal-overflow-visible no-select ${isSelected ? "cal-text-white cal-z-10" : "cal-text-gray-300"
+              }`}
           >
             {/* 날짜 숫자 - 왼쪽 위로 완전히 붙임 */}
-            <span 
-              className={`cal-absolute cal-font-bold cal-z-30 no-select ${
-                todayFlag 
-                  ? "cal-flex cal-items-center cal-justify-center cal-rounded-full cal-bg-blue-500 cal-text-white" 
-                  : ""
-              } ${calendarMode === 'fullscreen' ? 'cal-top-px cal-left-0.5' : 'cal-top-1 cal-left-2'}`}
+            <span
+              className={`cal-absolute cal-font-bold cal-z-30 no-select ${todayFlag
+                ? "cal-flex cal-items-center cal-justify-center cal-rounded-full cal-bg-blue-500 cal-text-white"
+                : ""
+                } ${calendarMode === 'fullscreen' ? 'cal-top-px cal-left-0.5' : 'cal-top-1 cal-left-2'}`}
               style={{
                 opacity: isOtherMonth ? 0.15 : undefined,
                 fontSize: calendarMode === 'fullscreen' ? (todayFlag ? '9px' : '10px') : (todayFlag ? '11px' : `${dateFontSize}px`),
@@ -780,11 +777,10 @@ export default function EventCalendar({
                   // 작을 때: 숫자로 표시 (기존 방식)
                   return (
                     <span
-                      className={`cal-absolute cal-top-0.5 cal-right-0.5 cal-rounded-full cal-px-1 cal-flex cal-items-center cal-justify-center cal-font-medium cal-transition-all cal-duration-200 cal-z-30 no-select ${
-                        isHoveredSingle
-                          ? "cal-bg-blue-500 cal-text-white cal-scale-110"
-                          : "cal-bg-gray-600 cal-text-gray-300"
-                      }`}
+                      className={`cal-absolute cal-top-0.5 cal-right-0.5 cal-rounded-full cal-px-1 cal-flex cal-items-center cal-justify-center cal-font-medium cal-transition-all cal-duration-200 cal-z-30 no-select ${isHoveredSingle
+                        ? "cal-bg-blue-500 cal-text-white cal-scale-110"
+                        : "cal-bg-gray-600 cal-text-gray-300"
+                        }`}
                       style={{
                         fontSize: `${eventCountFontSize}px`,
                         minWidth: `${eventCountFontSize * 1.7}px`,
@@ -802,26 +798,63 @@ export default function EventCalendar({
           </div>
 
           {/* 단일 이벤트 바 표시 - 셀이 클 때만 */}
-          {cellHeight > 55 && singleDayEvents.length > 0 && (
-            <div 
-              className={`cal-absolute cal-flex cal-flex-col cal-gap-0.5 cal-pointer-events-none ${
-                calendarMode === 'fullscreen' ? 'cal-left-0.5 cal-right-0.5' : 'cal-left-1 cal-right-1'
-              }`} 
-              style={{ top: calendarMode === 'fullscreen' ? '16px' : '28px' }}
+          {(cellHeight > 55 || calendarMode === 'fullscreen') && singleDayEvents.length > 0 && (
+            <div
+              className={`${calendarMode === 'fullscreen' ? 'cal-relative cal-mt-6 cal-mx-0.5' : 'cal-absolute cal-flex cal-flex-col cal-gap-0.5 cal-pointer-events-none cal-left-1 cal-right-1'}`}
+              style={{
+                top: calendarMode === 'fullscreen' ? 'auto' : '28px',
+                pointerEvents: calendarMode === 'fullscreen' ? 'auto' : 'none'
+              }}
             >
-              {singleDayEvents.slice(0, Math.floor((cellHeight - (calendarMode === 'fullscreen' ? 18 : 30)) / 16)).map((event) => {
+              {(calendarMode === 'fullscreen'
+                ? singleDayEvents
+                : singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16))
+              ).map((event) => {
                 const categoryColor = getEventColor(event.id, event.category);
                 const isHovered = viewMode === "month" && hoveredEventId === event.id;
-                
+
+                if (calendarMode === 'fullscreen') {
+                  return (
+                    <div
+                      key={event.id}
+                      className="cal-flex cal-flex-col cal-gap-1 cal-bg-gray-800 cal-rounded cal-p-1 cal-mb-1 cal-cursor-pointer cal-hover-bg-gray-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // 이벤트 클릭 처리 (상세 모달 등)
+                        window.dispatchEvent(
+                          new CustomEvent("eventSelected", { detail: event })
+                        );
+                      }}
+                    >
+                      {/* 이미지 (있으면 표시) */}
+                      {event.image ? (
+                        <div className="cal-w-full cal-aspect-square cal-rounded cal-overflow-hidden cal-bg-gray-700" style={{ maxWidth: '6rem', margin: '0 auto' }}>
+                          <img src={event.image} alt="" className="cal-w-full cal-h-full cal-object-cover" />
+                        </div>
+                      ) : (
+                        <div className={`cal-w-full cal-aspect-square cal-rounded cal-flex cal-items-center cal-justify-center ${categoryColor} cal-text-white cal-text-xs`} style={{ maxWidth: '6rem', margin: '0 auto' }}>
+                          {event.title.charAt(0)}
+                        </div>
+                      )}
+
+                      {/* 제목 */}
+                      <div className="cal-w-full">
+                        <div className="cal-text-10px cal-text-white cal-font-medium cal-truncate cal-text-center">
+                          {event.title}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={event.id}
-                    className={`cal-rounded-full cal-text-[10px] cal-font-medium cal-truncate cal-transition-all cal-duration-200 ${categoryColor} ${
-                      isHovered ? 'cal-opacity-100 cal-scale-105' : 'cal-opacity-80'
-                    } ${calendarMode === 'fullscreen' ? 'cal-px-1' : 'cal-px-1.5'}`}
-                    style={{ 
-                      height: calendarMode === 'fullscreen' ? '13px' : '14px',
-                      lineHeight: calendarMode === 'fullscreen' ? '13px' : '14px',
+                    className={`cal-rounded-full cal-text-10px cal-font-medium cal-truncate cal-transition-all cal-duration-200 ${categoryColor} ${isHovered ? 'cal-opacity-100 cal-scale-105' : 'cal-opacity-80'
+                      } cal-px-1.5`}
+                    style={{
+                      height: '14px',
+                      lineHeight: '14px',
                       color: 'white'
                     }}
                   >
@@ -832,8 +865,8 @@ export default function EventCalendar({
             </div>
           )}
 
-          {/* 멀티데이 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 */}
-          {eventBarsData.some((bar) => bar !== null) && (
+          {/* 멀티데이 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 (전체화면 모드에서는 제외) */}
+          {calendarMode !== 'fullscreen' && eventBarsData.some((bar) => bar !== null) && (
             <div className="cal-absolute cal-bottom-0 cal-left-0 cal-right-0 cal-h-5 cal-pointer-events-none">
               {eventBarsData.map((bar, i) => {
                 const isHovered =
@@ -846,25 +879,22 @@ export default function EventCalendar({
                 return (
                   <div
                     key={i}
-                    className={`cal-absolute cal-bottom-0 cal-left-0 cal-right-0 cal-transition-all cal-duration-200 ${
-                      bar.categoryColor
-                    } ${
-                      bar.isStart && bar.isEnd
+                    className={`cal-absolute cal-bottom-0 cal-left-0 cal-right-0 cal-transition-all cal-duration-200 ${bar.categoryColor
+                      } ${bar.isStart && bar.isEnd
                         ? "cal-rounded-full"
                         : bar.isStart
                           ? "cal-rounded-l-full"
                           : bar.isEnd
                             ? "cal-rounded-r-full"
                             : ""
-                    } ${
-                      bar.isFaded
+                      } ${bar.isFaded
                         ? "cal-opacity-20 cal-h-1.5 cal-z-0"
                         : isHovered
                           ? "cal-opacity-100 cal-h-5 cal-z-10"
                           : cellHeight > 55
                             ? "cal-opacity-80 cal-h-3.5 cal-z-0"
                             : "cal-opacity-60 cal-h-1.5 cal-z-0"
-                    }`}
+                      }`}
                     style={{
                       paddingLeft: (bar.isStart || (bar.isStart && bar.isEnd)) ? '6px' : '0',
                       paddingRight: (bar.isEnd && !bar.isStart) ? '6px' : '0'
@@ -908,11 +938,10 @@ export default function EventCalendar({
                   onDateSelect(null);
                   // viewMode는 "year"로 유지되어 해당 년도의 모든 이벤트 표시
                 }}
-                className={`cal-py-2 cal-px-3 cal-rounded-lg cal-text-sm cal-font-bold cal-transition-all cal-cursor-pointer ${
-                  isSelected
-                    ? "cal-bg-blue-600 cal-text-white"
-                    : "cal-bg-gray-700 cal-text-gray-300 cal-hover-bg-gray-600 cal-hover-text-white"
-                }`}
+                className={`cal-py-2 cal-px-3 cal-rounded-lg cal-text-sm cal-font-bold cal-transition-all cal-cursor-pointer ${isSelected
+                  ? "cal-bg-blue-600 cal-text-white"
+                  : "cal-bg-gray-700 cal-text-gray-300 cal-hover-bg-gray-600 cal-hover-text-white"
+                  }`}
               >
                 {year}년
               </button>
@@ -956,11 +985,10 @@ export default function EventCalendar({
                           <button
                             key={index}
                             onClick={() => navigateToMonth(index)}
-                            className={`cal-w-full cal-text-left cal-px-4 cal-py-2 cal-hover-bg-gray-600 cal-transition-colors cal-cursor-pointer cal-first-rounded-t-lg cal-last-rounded-b-lg ${
-                              index === currentMonth.getMonth()
-                                ? "cal-bg-blue-600 cal-text-white"
-                                : "cal-text-gray-300"
-                            }`}
+                            className={`cal-w-full cal-text-left cal-px-4 cal-py-2 cal-hover-bg-gray-600 cal-transition-colors cal-cursor-pointer cal-first-rounded-t-lg cal-last-rounded-b-lg ${index === currentMonth.getMonth()
+                              ? "cal-bg-blue-600 cal-text-white"
+                              : "cal-text-gray-300"
+                              }`}
                           >
                             {month}
                           </button>
@@ -999,7 +1027,7 @@ export default function EventCalendar({
                 {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
                   <div
                     key={day}
-                    className="calendar-day-header cal-text-center cal-text-gray-400 cal-font-semibold cal-py-0 cal-text-[9px] cal-flex cal-items-center cal-justify-center no-select"
+                    className="calendar-day-header cal-text-center cal-text-gray-400 cal-font-semibold cal-py-0 cal-text-9px cal-flex cal-items-center cal-justify-center no-select"
                     style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
                   >
                     {day}
@@ -1009,7 +1037,7 @@ export default function EventCalendar({
             </div>
 
             {/* Calendar grid - 3개 달력 캐러셀 */}
-            <div className="cal-overflow-hidden cal-flex-1">
+            <div className={`cal-flex-1 ${calendarMode === 'fullscreen' ? 'cal-overflow-y-auto cal-pb-40' : 'cal-overflow-hidden'}`}>
               <div
                 className="cal-flex"
                 style={{
@@ -1017,6 +1045,8 @@ export default function EventCalendar({
                   transition: externalIsAnimating
                     ? "transform 0.25s ease-out"
                     : "none",
+                  height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                  minHeight: '100%'
                 }}
               >
                 {/* 이전 달 */}
@@ -1025,16 +1055,19 @@ export default function EventCalendar({
                   className="cal-pb-0 cal-flex-shrink-0 cal-relative"
                   style={{ width: "100%" }}
                 >
-                  <div 
+                  <div
                     className="cal-grid cal-grid-cols-7 cal-gap-0 calendar-grid-container"
-                    style={{ 
-                      gridAutoRows: `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                    style={{
+                      gridAutoRows: calendarMode === 'fullscreen'
+                        ? 'minmax(40px, auto)'
+                        : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
                       '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
                     } as React.CSSProperties}
                   >
                     {renderCalendarGrid(prevDays, prevMonth)}
+                    {calendarMode === 'fullscreen' && <div className="cal-h-20 cal-w-full cal-col-span-7"></div>}
                   </div>
-                  {renderMultiDayTitlesOverlay(prevDays, prevMonth)}
+                  {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(prevDays, prevMonth)}
                 </div>
 
                 {/* 현재 달 */}
@@ -1043,16 +1076,19 @@ export default function EventCalendar({
                   className="cal-pb-0 cal-flex-shrink-0 cal-relative"
                   style={{ width: "100%" }}
                 >
-                  <div 
+                  <div
                     className="cal-grid cal-grid-cols-7 cal-gap-0 calendar-grid-container"
-                    style={{ 
-                      gridAutoRows: `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                    style={{
+                      gridAutoRows: calendarMode === 'fullscreen'
+                        ? 'minmax(40px, auto)'
+                        : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
                       '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
                     } as React.CSSProperties}
                   >
                     {renderCalendarGrid(currentDays, currentMonth)}
+                    {calendarMode === 'fullscreen' && <div className="cal-h-20 cal-w-full cal-col-span-7"></div>}
                   </div>
-                  {renderMultiDayTitlesOverlay(currentDays, currentMonth)}
+                  {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(currentDays, currentMonth)}
                 </div>
 
                 {/* 다음 달 */}
@@ -1061,16 +1097,19 @@ export default function EventCalendar({
                   className="cal-pb-0 cal-flex-shrink-0 cal-relative"
                   style={{ width: "100%" }}
                 >
-                  <div 
+                  <div
                     className="cal-grid cal-grid-cols-7 cal-gap-0 calendar-grid-container"
-                    style={{ 
-                      gridAutoRows: `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                    style={{
+                      gridAutoRows: calendarMode === 'fullscreen'
+                        ? 'minmax(40px, auto)'
+                        : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
                       '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
                     } as React.CSSProperties}
                   >
                     {renderCalendarGrid(nextDays, nextMonth)}
+                    {calendarMode === 'fullscreen' && <div className="cal-h-20 cal-w-full cal-col-span-7"></div>}
                   </div>
-                  {renderMultiDayTitlesOverlay(nextDays, nextMonth)}
+                  {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(nextDays, nextMonth)}
                 </div>
               </div>
             </div>

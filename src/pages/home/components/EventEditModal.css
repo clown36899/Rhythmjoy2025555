@@ -1,0 +1,147 @@
+/* EventEditModal.css - EventEditModal 컴포넌트 전용 스타일 */
+
+/* ===== 유틸리티 클래스 ===== */
+.evt-block {
+    display: block;
+}
+
+.evt-flex {
+    display: flex;
+}
+
+.evt-flex-wrap {
+    flex-wrap: wrap;
+}
+
+.evt-items-center {
+    align-items: center;
+}
+
+.evt-flex-1 {
+    flex: 1;
+}
+
+.evt-relative {
+    position: relative;
+}
+
+.evt-cursor-pointer {
+    cursor: pointer;
+}
+
+/* 간격 */
+.evt-space-y-2>*+* {
+    margin-top: 0.5rem;
+}
+
+.evt-space-y-3>*+* {
+    margin-top: 0.75rem;
+}
+
+.evt-gap-2 {
+    gap: 0.5rem;
+}
+
+.evt-gap-3 {
+    gap: 0.75rem;
+}
+
+.evt-gap-4 {
+    gap: 1rem;
+}
+
+.evt-mt-2 {
+    margin-top: 0.5rem;
+}
+
+.evt-mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.evt-mb-3 {
+    margin-bottom: 0.75rem;
+}
+
+.evt-ml-2 {
+    margin-left: 0.5rem;
+}
+
+.evt-mr-2 {
+    margin-right: 0.5rem;
+}
+
+/* 텍스트 */
+.evt-text-xs {
+    font-size: 0.75rem;
+}
+
+.evt-text-sm {
+    font-size: 0.875rem;
+}
+
+.evt-font-medium {
+    font-weight: 500;
+}
+
+.evt-text-gray-400 {
+    color: #9ca3af;
+}
+
+.evt-text-red-400 {
+    color: #f87171;
+}
+
+/* 호버 효과 대체 클래스 */
+.evt-btn-close-red:hover {
+    color: #f87171;
+}
+
+/* 추가 스타일 */
+.evt-fixed-inset-edit-modal {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+}
+
+.evt-date-badge {
+    display: flex;
+    align-items: center;
+    background-color: #374151;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    color: white;
+}
+
+.evt-video-btn {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.evt-video-btn:hover {
+    background-color: #1d4ed8;
+}
+
+.evt-autocomplete-genre-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    color: white;
+}
+
+.evt-autocomplete-genre-item:hover {
+    background-color: #3b82f6;
+}

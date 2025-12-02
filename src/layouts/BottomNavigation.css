@@ -1,0 +1,116 @@
+/* BottomNavigation.css - Premium Design */
+
+.bottom-nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0.5rem 0.5rem;
+
+    /* Glassmorphism Effect */
+    background: rgba(31, 41, 55, 0.85);
+    /* --bg-primary with opacity */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    /* Border */
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+    /* Safe Area Support */
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+
+    /* Positioning */
+    position: relative;
+    z-index: 50;
+
+    /* Disable selection */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    position: relative;
+
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.75rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-nav-item:active {
+    transform: scale(0.92);
+}
+
+/* Icon Styles */
+.bottom-nav-icon {
+    font-size: 1.25rem;
+    /* 20px */
+    margin-bottom: 0.125rem;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+/* Label Styles */
+.bottom-nav-label {
+    font-size: 0.625rem;
+    /* 10px */
+    font-weight: 500;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+/* State: Inactive */
+.bottom-nav-item.inactive .bottom-nav-icon,
+.bottom-nav-item.inactive .bottom-nav-label {
+    color: var(--text-tertiary);
+    /* #9ca3af */
+}
+
+.bottom-nav-item.inactive:hover .bottom-nav-icon,
+.bottom-nav-item.inactive:hover .bottom-nav-label {
+    color: var(--text-primary);
+    /* #ffffff */
+}
+
+/* State: Active */
+.bottom-nav-item.active .bottom-nav-icon {
+    transform: translateY(-1px);
+}
+
+.bottom-nav-item.active .bottom-nav-label {
+    font-weight: 600;
+}
+
+/* Badge Styles */
+.bottom-nav-badge {
+    position: absolute;
+    top: 0;
+    right: 25%;
+    /* Adjust based on icon width */
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+
+    background-color: var(--color-red-500);
+    color: white;
+    font-size: 0.5625rem;
+    /* 9px */
+    font-weight: 700;
+    line-height: 1;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.85);
+    /* Match bg for cutout effect */
+
+    z-index: 10;
+}

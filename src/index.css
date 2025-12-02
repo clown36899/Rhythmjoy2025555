@@ -2,13 +2,11 @@
 @import './styles/base.css';
 @import './styles/utilities.css';
 
-/* Tailwind - 단계적 마이그레이션 중 (모든 컴포넌트 변환 후 제거) */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
 
 /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
-html, body {
+html,
+body {
   max-width: 650px !important;
   margin: 0 auto !important;
   overflow-x: hidden !important;
@@ -29,7 +27,8 @@ html, body {
   /* overflow-x 제거 - sticky가 작동하려면 필요 */
 }
 
-body, html {
+body,
+html {
   background-color: var(--bg-color);
 }
 
@@ -38,6 +37,7 @@ body, html {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -54,6 +54,7 @@ body, html {
     opacity: 0;
     transform: scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -227,7 +228,7 @@ body, html {
 }
 
 /* 2개월 표시 시 간격 조정 */
-.react-datepicker__month-container + .react-datepicker__month-container {
+.react-datepicker__month-container+.react-datepicker__month-container {
   margin-left: 0.5rem !important;
 }
 

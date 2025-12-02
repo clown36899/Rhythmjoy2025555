@@ -10,7 +10,7 @@ interface UseCalendarGestureProps {
   isYearView: boolean;
 }
 
-const EXPANDED_HEIGHT = 280;
+const EXPANDED_HEIGHT = 200;
 const FOOTER_HEIGHT = 80;
 const MIN_SWIPE_DISTANCE = 50;
 
@@ -176,9 +176,18 @@ export function useCalendarGesture({
         const fullscreenH = calculateFullscreenHeight();
         let nextMode = latestStateRef.current.calendarMode;
 
-        if (diffY > 50) nextMode = endHeight < EXPANDED_HEIGHT ? 'expanded' : 'fullscreen';
-        else if (diffY < -50) nextMode = endHeight > EXPANDED_HEIGHT ? 'expanded' : 'collapsed';
-        else {
+        if (diffY > 50) {
+          // Dragging down
+          if (latestStateRef.current.calendarMode === 'collapsed') nextMode = 'expanded';
+          else if (latestStateRef.current.calendarMode === 'expanded') nextMode = 'fullscreen';
+          else nextMode = 'fullscreen'; // Already fullscreen or dragging further
+        } else if (diffY < -50) {
+          // Dragging up
+          if (latestStateRef.current.calendarMode === 'fullscreen') nextMode = 'expanded';
+          else if (latestStateRef.current.calendarMode === 'expanded') nextMode = 'collapsed';
+          else nextMode = 'collapsed';
+        } else {
+          // Snap to nearest
           const dists = {
             collapsed: Math.abs(endHeight - 0),
             expanded: Math.abs(endHeight - EXPANDED_HEIGHT),

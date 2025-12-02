@@ -8,13 +8,13 @@
   --color-gray-500: #6b7280;
   --color-gray-800: #1f2937;
   --color-gray-900: #111827;
-  
+
   --color-blue-500: #3b82f6;
   --color-blue-600: #2563eb;
-  
+
   --color-purple-500: #a855f7;
   --color-purple-600: #9333ea;
-  
+
   --color-red-400: #f87171;
   --color-orange-400: #fb923c;
   --color-amber-400: #fbbf24;
@@ -30,12 +30,12 @@
   --color-fuchsia-400: #e879f9;
   --color-pink-400: #f472b6;
   --color-rose-400: #fb7185;
-  
+
   /* 간격 */
   --spacing-1: 0.25rem;
   --spacing-1-5: 0.375rem;
   --spacing-2: 0.5rem;
-  
+
   /* Border Radius */
   --radius-sm: 0.125rem;
   --radius-md: 0.375rem;
@@ -273,4 +273,12 @@
   border-radius: var(--radius-full);
   background-color: var(--color-blue-500);
   flex-shrink: 0;
+}
+
+.card-absolute-inset-0 {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }

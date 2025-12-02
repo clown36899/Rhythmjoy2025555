@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NAVIGATION_ITEMS } from '../config/navigation';
+import './BottomNavigation.css';
 
 export function BottomNavigation() {
     const navigate = useNavigate();
@@ -41,30 +42,37 @@ export function BottomNavigation() {
     };
 
     return (
-        <div className="flex items-center justify-around px-2 py-2 border-t border-[#22262a] no-select" style={{ backgroundColor: "var(--header-bg-color)" }}>
+        <div className="bottom-nav-container">
             {NAVIGATION_ITEMS.map((item) => {
                 const isActive = item.path === '/'
                     ? currentPath === '/'
                     : currentPath.startsWith(item.path);
 
+                // Determine active color class (fallback to blue if not specified)
+                const activeColorClass = item.activeColor || 'text-blue-500';
+                // Extract the color part (e.g., 'text-blue-500' -> 'blue-500')
+                // This is a bit of a hack to reuse existing config, ideally config should specify color variable
+                const activeColorStyle = isActive ? { color: `var(--color-${activeColorClass.replace('text-', '')})` } : {};
+
                 return (
                     <button
                         key={item.path}
-                        onClick={(e) => {
-                            if (isActive) {
-                                const btn = e.currentTarget;
-                                btn.style.transform = 'scale(0.95)';
-                                btn.style.opacity = '0.7';
-                            }
-                            handleNavigation(item.path);
-                        }}
-                        className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-all active:scale-95 flex-1 relative ${isActive ? item.activeColor : "text-gray-300 hover:text-white"
-                            }`}
+                        onClick={() => handleNavigation(item.path)}
+                        className={`bottom-nav-item ${isActive ? 'active' : 'inactive'}`}
                     >
-                        <i className={`${item.icon} text-xl mb-0.5`}></i>
-                        <span className="text-xs">{item.label}</span>
+                        <i
+                            className={`${item.icon} bottom-nav-icon`}
+                            style={activeColorStyle}
+                        ></i>
+                        <span
+                            className="bottom-nav-label"
+                            style={activeColorStyle}
+                        >
+                            {item.label}
+                        </span>
+
                         {item.badge && (
-                            <span className="absolute top-0 right-1 text-[9px] text-orange-400 font-semibold no-select">
+                            <span className="bottom-nav-badge">
                                 {item.badge}
                             </span>
                         )}

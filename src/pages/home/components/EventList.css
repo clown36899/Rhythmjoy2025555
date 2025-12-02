@@ -4,7 +4,7 @@
 :root {
   /* 이벤트 리스트 배경 색상 */
   --event-list-outer-bg-color: #1a1a1a;
-  
+
   /* 색상 변수 */
   --color-gray-400: #9ca3af;
   --color-gray-500: #6b7280;
@@ -12,25 +12,25 @@
   --color-gray-700: #374151;
   --color-gray-800: #1f2937;
   --color-gray-900: #111827;
-  
+
   --color-blue-400: #60a5fa;
   --color-blue-500: #3b82f6;
   --color-blue-600: #2563eb;
   --color-blue-700: #1d4ed8;
-  
+
   --color-green-400: #4ade80;
   --color-green-500: #22c55e;
-  
+
   --color-red-400: #f87171;
   --color-red-500: #ef4444;
   --color-red-600: #dc2626;
   --color-red-700: #b91c1c;
-  
+
   --color-orange-300: #fdba74;
   --color-orange-400: #fb923c;
   --color-orange-700: #c2410c;
   --color-orange-900: #7c2d12;
-  
+
   /* 간격 */
   --spacing-1: 0.25rem;
   --spacing-2: 0.5rem;
@@ -39,12 +39,12 @@
   --spacing-6: 1.5rem;
   --spacing-8: 2rem;
   --spacing-10: 2.5rem;
-  
+
   /* Border Radius */
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
   --radius-full: 9999px;
-  
+
   /* 트랜지션 */
   --transition-colors: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   --transition-all: all 0.2s ease;
@@ -859,7 +859,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background-color: rgba(17, 24, 39, 0.8);
+
   backdrop-filter: blur(4px);
   padding: 0.5rem;
 }
@@ -1180,6 +1180,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -1386,23 +1387,23 @@
 }
 
 /* ===== Space 유틸리티 ===== */
-.evt-space-x-3 > * + * {
+.evt-space-x-3>*+* {
   margin-left: 0.75rem;
 }
 
-.evt-space-y-1 > * + * {
+.evt-space-y-1>*+* {
   margin-top: 0.25rem;
 }
 
-.evt-space-y-2 > * + * {
+.evt-space-y-2>*+* {
   margin-top: 0.5rem;
 }
 
-.evt-space-y-3 > * + * {
+.evt-space-y-3>*+* {
   margin-top: 0.75rem;
 }
 
-.evt-space-y-4 > * + * {
+.evt-space-y-4>*+* {
   margin-top: 1rem;
 }
 

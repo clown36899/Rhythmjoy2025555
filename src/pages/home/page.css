@@ -198,10 +198,100 @@
 
 /* ===== 애니메이션 ===== */
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
+}
+
+/* ===== Refactored Classes (Tailwind Removal) ===== */
+.home-calendar-wrapper {
+  width: 100%;
+}
+
+.home-calendar-content {
+  overflow: hidden;
+}
+
+.home-calendar-control-bar {
+  width: 100%;
+  border-bottom: 1px solid #22262a;
+}
+
+.home-loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.home-loading-text {
+  color: #9ca3af;
+  /* gray-400 */
+}
+
+.home-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  height: 1.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: none;
+}
+
+.home-toolbar-btn-blue {
+  background-color: #2563eb;
+  /* blue-600 */
+  color: white;
+}
+
+.home-toolbar-btn-blue:hover {
+  background-color: #1d4ed8;
+  /* blue-700 */
+}
+
+.home-toolbar-btn-dark {
+  background-color: #242424;
+  color: #d1d5db;
+  /* gray-300 */
+}
+
+.home-toolbar-btn-dark:hover {
+  background-color: #4b5563;
+  /* gray-600 */
+  color: white;
+}
+
+.home-toolbar-btn-fullscreen {
+  width: 2rem;
+  /* w-8 */
+}
+
+.home-icon-arrow-up {
+  color: white;
+  font-weight: 700;
+}
+
+.home-icon-arrow-down {
+  color: #60a5fa;
+  /* blue-400 */
+  font-weight: 700;
+}
+
+.home-toolbar-btn-pulse {
+  background-color: #3b82f6;
+  /* blue-500 */
+  color: white;
+  animation: pulse 1s infinite;
 }

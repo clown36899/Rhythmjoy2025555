@@ -95,329 +95,329 @@ export default function EventDetailModal({
               style={{ borderColor: "rgb(89, 89, 89)" }}
               onClick={(e) => e.stopPropagation()}
             >
-            {/* 스크롤 가능한 전체 영역 */}
-            <div
-              className="modal-scroll-container"
-              style={{
-                overscrollBehavior: 'contain',
-                WebkitOverflowScrolling: 'touch'
-              }}
-            >
-              {/* 이미지 영역 (스크롤과 함께 사라짐) */}
+              {/* 스크롤 가능한 전체 영역 */}
               <div
-                className={`image-area ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-pattern"}`}
+                className="modal-scroll-container"
                 style={{
-                  height: "256px",
-                  ...(!(
-                    selectedEvent.image_medium ||
-                    selectedEvent.image ||
-                    getEventThumbnail(
-                      selectedEvent,
-                      defaultThumbnailClass,
-                      defaultThumbnailEvent,
-                    )
-                  )
-                    ? { backgroundImage: "url(/grunge.png)" } // This remains as it's dynamic
-                    : {}),
+                  overscrollBehavior: 'contain',
+                  WebkitOverflowScrolling: 'touch'
                 }}
               >
-                {(() => {
-                  const detailImageUrl =
-                    selectedEvent.image_medium ||
-                    selectedEvent.image ||
-                    getEventThumbnail(
-                      selectedEvent,
-                      defaultThumbnailClass,
-                      defaultThumbnailEvent,
-                    );
-                  const isDefaultThumbnail =
-                    !selectedEvent.image_medium &&
-                    !selectedEvent.image &&
-                    detailImageUrl;
+                {/* 이미지 영역 (스크롤과 함께 사라짐) */}
+                <div
+                  className={`image-area ${selectedEvent.image_medium || selectedEvent.image || getEventThumbnail(selectedEvent, defaultThumbnailClass, defaultThumbnailEvent) ? "bg-black" : "bg-pattern"}`}
+                  style={{
+                    height: "256px",
+                    ...(!(
+                      selectedEvent.image_medium ||
+                      selectedEvent.image ||
+                      getEventThumbnail(
+                        selectedEvent,
+                        defaultThumbnailClass,
+                        defaultThumbnailEvent,
+                      )
+                    )
+                      ? { backgroundImage: "url(/grunge.png)" } // This remains as it's dynamic
+                      : {}),
+                  }}
+                >
+                  {(() => {
+                    const detailImageUrl =
+                      selectedEvent.image_medium ||
+                      selectedEvent.image ||
+                      getEventThumbnail(
+                        selectedEvent,
+                        defaultThumbnailClass,
+                        defaultThumbnailEvent,
+                      );
+                    const isDefaultThumbnail =
+                      !selectedEvent.image_medium &&
+                      !selectedEvent.image &&
+                      detailImageUrl;
 
-                  if (detailImageUrl) {
+                    if (detailImageUrl) {
+                      return (
+                        <>
+                          <img
+                            src={detailImageUrl}
+                            alt={selectedEvent.title}
+                            loading="lazy"
+                            className="detail-image"
+                          />
+                          {isDefaultThumbnail && (
+                            <div className="default-thumbnail-overlay">
+                              <span className="default-thumbnail-text">
+                                {selectedEvent.category === "class"
+                                  ? "강습"
+                                  : "행사"}
+                              </span>
+                            </div>
+                          )}
+                          {/* 크게보기 버튼 */}
+                          <button
+                            onClick={() => setShowFullscreenImage(true)}
+                            className="fullscreen-button"
+                          >
+                            <i className="ri-zoom-in-line"></i>
+                            크게 보기
+                          </button>
+                        </>
+                      );
+                    }
+
                     return (
                       <>
-                        <img
-                          src={detailImageUrl}
-                          alt={selectedEvent.title}
-                          loading="lazy"
-                          className="detail-image"
-                        />
-                        {isDefaultThumbnail && (
-                          <div className="default-thumbnail-overlay">
-                            <span className="default-thumbnail-text">
-                              {selectedEvent.category === "class"
-                                ? "강습"
-                                : "행사"}
-                            </span>
-                          </div>
-                        )}
-                        {/* 크게보기 버튼 */}
-                        <button
-                          onClick={() => setShowFullscreenImage(true)}
-                          className="fullscreen-button"
-                        >
-                          <i className="ri-zoom-in-line"></i>
-                          크게 보기
-                        </button>
-                      </>
-                    );
-                  }
-
-                  return (
-                    <>
-                      <div
-                        className={`category-bg-overlay ${selectedEvent.category === "class" ? "class" : "event"}`}
-                      ></div>
-                      <span className="category-bg-text">
-                        {selectedEvent.category === "class" ? "강습" : "행사"}
-                      </span>
-                    </>
-                  );
-                })()}
-
-                {/* 카테고리 배지 - 좌측 하단 */}
-                <div
-                  className={`category-badge ${selectedEvent.category === "class" ? "class" : "event"}`}
-                >
-                  {selectedEvent.category === "class" ? "강습" : "행사"}
-                </div>
-              </div>
-
-              {/* 제목 - Sticky Header */}
-              <div
-                className="sticky-header"
-                style={{
-                  padding: "16px",
-                }}
-              >
-                {/* 장르 표시 */}
-                {selectedEvent.genre && (
-                  <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
-                    {selectedEvent.genre}
-                  </p>
-                )}
-                <h2 className="modal-title">
-                  {selectedEvent.title}
-                </h2>
-              </div>
-
-              {/* 세부 정보 */}
-              <div className="info-section">
-                <div className="info-item">
-                  <i className="ri-calendar-line info-icon"></i>
-                  <span>
-                    {(() => {
-                      // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                      if (
-                        selectedEvent.event_dates &&
-                        selectedEvent.event_dates.length > 0
-                      ) {
-                        const dates = selectedEvent.event_dates.map(
-                          (dateStr) => new Date(dateStr),
-                        );
-                        const firstDate = dates[0];
-                        const year = firstDate.getFullYear();
-                        const month = firstDate.toLocaleDateString("ko-KR", {
-                          month: "long",
-                        });
-
-                        // 같은 년월인지 확인
-                        const sameYearMonth = dates.every(
-                          (d) =>
-                            d.getFullYear() === year &&
-                            d.toLocaleDateString("ko-KR", { month: "long" }) ===
-                              month,
-                        );
-
-                        if (sameYearMonth) {
-                          // 같은 년월: "2025년 10월 11일, 25일, 31일"
-                          const days = dates
-                            .map((d) => d.getDate())
-                            .join("일, ");
-                          return `${year}년 ${month} ${days}일`;
-                        } else {
-                          // 다른 년월: "10/11, 11/25, 12/31"
-                          return dates
-                            .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
-                            .join(", ");
-                        }
-                      }
-
-                      // 연속 기간 모드
-                      const startDate =
-                        selectedEvent.start_date || selectedEvent.date;
-                      const endDate = selectedEvent.end_date;
-
-                      if (!startDate) return "날짜 미정";
-
-                      const start = new Date(startDate);
-                      const startYear = start.getFullYear();
-                      const startMonth = start.toLocaleDateString("ko-KR", {
-                        month: "long",
-                      });
-                      const startDay = start.getDate();
-
-                      if (endDate && endDate !== startDate) {
-                        const end = new Date(endDate);
-                        const endYear = end.getFullYear();
-                        const endMonth = end.toLocaleDateString("ko-KR", {
-                          month: "long",
-                        });
-                        const endDay = end.getDate();
-
-                        if (startYear === endYear && startMonth === endMonth) {
-                          return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
-                        } else if (startYear === endYear) {
-                          return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
-                        } else {
-                          return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
-                        }
-                      }
-
-                      return `${startYear}년 ${startMonth} ${startDay}일`;
-                    })()}
-                  </span>
-                </div>
-
-                {selectedEvent.organizer && (
-                  <div className="info-item">
-                    <i className="ri-user-line info-icon"></i>
-                    <span>{selectedEvent.organizer}</span>
-                  </div>
-                )}
-
-                {selectedEvent.location && (
-                  <div className="info-item">
-                    <i className="ri-map-pin-line info-icon"></i>
-                    <div className="info-flex-gap-1">
-                      <span>{selectedEvent.location}</span>
-                      {selectedEvent.location_link && (
-                        <a
-                          href={selectedEvent.location_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="location-link"
-                          title="지도 보기"
-                        >
-                          <i className="ri-external-link-line location-link-icon"></i>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {selectedEvent.description && (
-                  <div className="info-divider">
-                    <div className="info-item">
-                      <i className="ri-file-text-line info-icon"></i>
-                      <div className="info-item-content">
-                        <p>
-                          {selectedEvent.description
-                            .split(/(\bhttps?:\/\/[^\s]+)/g)
-                            .map((part, idx) => {
-                              if (part.match(/^https?:\/\//)) {
-                                return (
-                                  <a
-                                    key={idx}
-                                    href={part}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="info-link"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {part}
-                                  </a>
-                                );
-                              }
-                              return <span key={idx}>{part}</span>;
-                            })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedEvent.contact &&
-                  (() => {
-                    const contactInfos = parseMultipleContacts(
-                      selectedEvent.contact,
-                    );
-
-                    return (
-                      <div className="space-y-2">
-                        <span className="contact-label">
-                          문의
+                        <div
+                          className={`category-bg-overlay ${selectedEvent.category === "class" ? "class" : "event"}`}
+                        ></div>
+                        <span className="category-bg-text">
+                          {selectedEvent.category === "class" ? "강습" : "행사"}
                         </span>
-                        <div className="contact-buttons-container">
-                          {contactInfos.map((contactInfo, index) => {
-                            const handleContactClick = async () => {
-                              if (contactInfo.link) {
-                                window.open(contactInfo.link, "_blank");
-                              } else {
-                                try {
-                                  await copyToClipboard(contactInfo.value);
-                                  alert(`복사되었습니다: ${contactInfo.value}`);
-                                } catch (err) {
-                                  console.error("복사 실패:", err);
-                                  alert("복사에 실패했습니다.");
-                                }
-                              }
-                            };
-
-                            return (
-                              <button
-                                key={index}
-                                onClick={handleContactClick}
-                                className="contact-button"
-                              >
-                                <i
-                                  className={`${contactInfo.icon} contact-icon`}
-                                ></i>
-                                <div className="edm-text-left">
-                                  <div className="contact-text">
-                                    {contactInfo.displayText}
-                                  </div>
-                                  <div className="contact-subtext">
-                                    {contactInfo.link
-                                      ? "탭하여 열기"
-                                      : "탭하여 복사"}
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
+                      </>
                     );
                   })()}
 
-                {isAdminMode &&
-                  (selectedEvent.organizer_name ||
-                    selectedEvent.organizer_phone) && (
-                    <div className="admin-info-section">
-                      <div className="admin-info-header">
-                        <i className="ri-admin-line"></i>
-                        <span>등록자 정보 (관리자 전용)</span>
-                      </div>
-                      {selectedEvent.organizer_name && (
-                        <div className="admin-info-item">
-                          <i className="ri-user-star-line"></i>
-                          <span>{selectedEvent.organizer_name}</span>
-                        </div>
-                      )}
-                      {selectedEvent.organizer_phone && (
-                        <div className="admin-info-item">
-                          <i className="ri-phone-line"></i>
-                          <span>{selectedEvent.organizer_phone}</span>
-                        </div>
-                      )}
+                  {/* 카테고리 배지 - 좌측 하단 */}
+                  <div
+                    className={`category-badge ${selectedEvent.category === "class" ? "class" : "event"}`}
+                  >
+                    {selectedEvent.category === "class" ? "강습" : "행사"}
+                  </div>
+                </div>
+
+                {/* 제목 - Sticky Header */}
+                <div
+                  className="sticky-header"
+                  style={{
+                    padding: "16px",
+                  }}
+                >
+                  {/* 장르 표시 */}
+                  {selectedEvent.genre && (
+                    <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
+                      {selectedEvent.genre}
+                    </p>
+                  )}
+                  <h2 className="modal-title">
+                    {selectedEvent.title}
+                  </h2>
+                </div>
+
+                {/* 세부 정보 */}
+                <div className="info-section">
+                  <div className="info-item">
+                    <i className="ri-calendar-line info-icon"></i>
+                    <span>
+                      {(() => {
+                        // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                        if (
+                          selectedEvent.event_dates &&
+                          selectedEvent.event_dates.length > 0
+                        ) {
+                          const dates = selectedEvent.event_dates.map(
+                            (dateStr) => new Date(dateStr),
+                          );
+                          const firstDate = dates[0];
+                          const year = firstDate.getFullYear();
+                          const month = firstDate.toLocaleDateString("ko-KR", {
+                            month: "long",
+                          });
+
+                          // 같은 년월인지 확인
+                          const sameYearMonth = dates.every(
+                            (d) =>
+                              d.getFullYear() === year &&
+                              d.toLocaleDateString("ko-KR", { month: "long" }) ===
+                              month,
+                          );
+
+                          if (sameYearMonth) {
+                            // 같은 년월: "2025년 10월 11일, 25일, 31일"
+                            const days = dates
+                              .map((d) => d.getDate())
+                              .join("일, ");
+                            return `${year}년 ${month} ${days}일`;
+                          } else {
+                            // 다른 년월: "10/11, 11/25, 12/31"
+                            return dates
+                              .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
+                              .join(", ");
+                          }
+                        }
+
+                        // 연속 기간 모드
+                        const startDate =
+                          selectedEvent.start_date || selectedEvent.date;
+                        const endDate = selectedEvent.end_date;
+
+                        if (!startDate) return "날짜 미정";
+
+                        const start = new Date(startDate);
+                        const startYear = start.getFullYear();
+                        const startMonth = start.toLocaleDateString("ko-KR", {
+                          month: "long",
+                        });
+                        const startDay = start.getDate();
+
+                        if (endDate && endDate !== startDate) {
+                          const end = new Date(endDate);
+                          const endYear = end.getFullYear();
+                          const endMonth = end.toLocaleDateString("ko-KR", {
+                            month: "long",
+                          });
+                          const endDay = end.getDate();
+
+                          if (startYear === endYear && startMonth === endMonth) {
+                            return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
+                          } else if (startYear === endYear) {
+                            return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                          } else {
+                            return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
+                          }
+                        }
+
+                        return `${startYear}년 ${startMonth} ${startDay}일`;
+                      })()}
+                    </span>
+                  </div>
+
+                  {selectedEvent.organizer && (
+                    <div className="info-item">
+                      <i className="ri-user-line info-icon"></i>
+                      <span>{selectedEvent.organizer}</span>
                     </div>
                   )}
 
-                {/* This section was commented out in the original file, but I've added classes just in case */}
-                {/* {selectedEvent.link1 && (
+                  {selectedEvent.location && (
+                    <div className="info-item">
+                      <i className="ri-map-pin-line info-icon"></i>
+                      <div className="info-flex-gap-1">
+                        <span>{selectedEvent.location}</span>
+                        {selectedEvent.location_link && (
+                          <a
+                            href={selectedEvent.location_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="location-link"
+                            title="지도 보기"
+                          >
+                            <i className="ri-external-link-line location-link-icon"></i>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedEvent.description && (
+                    <div className="info-divider">
+                      <div className="info-item">
+                        <i className="ri-file-text-line info-icon"></i>
+                        <div className="info-item-content">
+                          <p>
+                            {selectedEvent.description
+                              .split(/(\bhttps?:\/\/[^\s]+)/g)
+                              .map((part, idx) => {
+                                if (part.match(/^https?:\/\//)) {
+                                  return (
+                                    <a
+                                      key={idx}
+                                      href={part}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="info-link"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {part}
+                                    </a>
+                                  );
+                                }
+                                return <span key={idx}>{part}</span>;
+                              })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedEvent.contact &&
+                    (() => {
+                      const contactInfos = parseMultipleContacts(
+                        selectedEvent.contact,
+                      );
+
+                      return (
+                        <div className="edm-space-y-2">
+                          <span className="contact-label">
+                            문의
+                          </span>
+                          <div className="contact-buttons-container">
+                            {contactInfos.map((contactInfo, index) => {
+                              const handleContactClick = async () => {
+                                if (contactInfo.link) {
+                                  window.open(contactInfo.link, "_blank");
+                                } else {
+                                  try {
+                                    await copyToClipboard(contactInfo.value);
+                                    alert(`복사되었습니다: ${contactInfo.value}`);
+                                  } catch (err) {
+                                    console.error("복사 실패:", err);
+                                    alert("복사에 실패했습니다.");
+                                  }
+                                }
+                              };
+
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={handleContactClick}
+                                  className="contact-button"
+                                >
+                                  <i
+                                    className={`${contactInfo.icon} contact-icon`}
+                                  ></i>
+                                  <div className="edm-text-left">
+                                    <div className="contact-text">
+                                      {contactInfo.displayText}
+                                    </div>
+                                    <div className="contact-subtext">
+                                      {contactInfo.link
+                                        ? "탭하여 열기"
+                                        : "탭하여 복사"}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                  {isAdminMode &&
+                    (selectedEvent.organizer_name ||
+                      selectedEvent.organizer_phone) && (
+                      <div className="admin-info-section">
+                        <div className="admin-info-header">
+                          <i className="ri-admin-line"></i>
+                          <span>등록자 정보 (관리자 전용)</span>
+                        </div>
+                        {selectedEvent.organizer_name && (
+                          <div className="admin-info-item">
+                            <i className="ri-user-star-line"></i>
+                            <span>{selectedEvent.organizer_name}</span>
+                          </div>
+                        )}
+                        {selectedEvent.organizer_phone && (
+                          <div className="admin-info-item">
+                            <i className="ri-phone-line"></i>
+                            <span>{selectedEvent.organizer_phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  {/* This section was commented out in the original file, but I've added classes just in case */}
+                  {/* {selectedEvent.link1 && (
                   <div className="info-divider">
                     <div className="link-container">
                       <a
@@ -426,8 +426,8 @@ export default function EventDetailModal({
                         rel="noopener noreferrer"
                         className="main-link-button"
                       >
-                        <i className="ri-external-link-line text-lg"></i>
-                        <span className="font-medium">
+                        <i className="ri-external-link-line edm-text-lg"></i>
+                        <span className="edm-font-medium">
                           {selectedEvent.link_name1 || "바로가기"}
                         </span>
                       </a>
@@ -449,141 +449,141 @@ export default function EventDetailModal({
                   </div>
                 )} */}
 
-                {isAdminMode && selectedEvent.created_at && (
-                  <div className="created-at-text">
-                    <span>
-                      등록:{" "}
-                      {new Date(selectedEvent.created_at).toLocaleDateString(
-                        "ko-KR",
-                        {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        },
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="modal-footer">
-              <div className="footer-links-container">
-                {selectedEvent.link1 && (
-                  <a
-                    href={selectedEvent.link1}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="footer-link"
-                    title={selectedEvent.link_name1 || "바로가기 1"}
-                  >
-                    <i className="ri-external-link-line footer-link-icon"></i>
-                    <span className="footer-link-text">
-                      {selectedEvent.link_name1 || "링크1"}
-                    </span>
-                  </a>
-                )}
-                {selectedEvent.link2 && (
-                  <a
-                    href={selectedEvent.link2}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="footer-link"
-                    title={selectedEvent.link_name2 || "바로가기 2"}
-                  >
-                    <i className="ri-external-link-line footer-link-icon"></i>
-                    <span className="footer-link-text">
-                      {selectedEvent.link_name2 || "링크2"}
-                    </span>
-                  </a>
-                )}
-                {selectedEvent.link3 && (
-                  <a
-                    href={selectedEvent.link3}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="footer-link"
-                    title={selectedEvent.link_name3 || "바로가기 3"}
-                  >
-                    <i className="ri-external-link-line footer-link-icon"></i>
-                    <span className="footer-link-text">
-                      {selectedEvent.link_name3 || "링크3"}
-                    </span>
-                  </a>
-                )}
+                  {isAdminMode && selectedEvent.created_at && (
+                    <div className="created-at-text">
+                      <span>
+                        등록:{" "}
+                        {new Date(selectedEvent.created_at).toLocaleDateString(
+                          "ko-KR",
+                          {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="footer-actions-container">
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('event', selectedEvent.id.toString());
-                    const shareUrl = url.toString();
-                    
-                    const shareTitle = selectedEvent.title;
-                    const shareText = `${selectedEvent.title}\n📍 ${selectedEvent.location}\n📅 ${selectedEvent.date || selectedEvent.start_date}`;
-                    
-                    try {
-                      if (navigator.share) {
-                        await navigator.share({
-                          title: shareTitle,
-                          text: shareText,
-                          url: shareUrl,
-                        });
-                      } else {
-                        await navigator.clipboard.writeText(shareUrl);
-                        const button = e.currentTarget;
-                        button.classList.remove('share');
-                        button.classList.add('share', 'copied');
-                        const icon = button.querySelector('i');
-                        if (icon) {
-                          icon.classList.remove('ri-share-line');
-                          icon.classList.add('ri-check-line');
-                        }
-                        setTimeout(() => {
-                          button.classList.remove('copied');
+              <div className="modal-footer">
+                <div className="footer-links-container">
+                  {selectedEvent.link1 && (
+                    <a
+                      href={selectedEvent.link1}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="footer-link"
+                      title={selectedEvent.link_name1 || "바로가기 1"}
+                    >
+                      <i className="ri-external-link-line footer-link-icon"></i>
+                      <span className="footer-link-text">
+                        {selectedEvent.link_name1 || "링크1"}
+                      </span>
+                    </a>
+                  )}
+                  {selectedEvent.link2 && (
+                    <a
+                      href={selectedEvent.link2}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="footer-link"
+                      title={selectedEvent.link_name2 || "바로가기 2"}
+                    >
+                      <i className="ri-external-link-line footer-link-icon"></i>
+                      <span className="footer-link-text">
+                        {selectedEvent.link_name2 || "링크2"}
+                      </span>
+                    </a>
+                  )}
+                  {selectedEvent.link3 && (
+                    <a
+                      href={selectedEvent.link3}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="footer-link"
+                      title={selectedEvent.link_name3 || "바로가기 3"}
+                    >
+                      <i className="ri-external-link-line footer-link-icon"></i>
+                      <span className="footer-link-text">
+                        {selectedEvent.link_name3 || "링크3"}
+                      </span>
+                    </a>
+                  )}
+                </div>
+
+                <div className="footer-actions-container">
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('event', selectedEvent.id.toString());
+                      const shareUrl = url.toString();
+
+                      const shareTitle = selectedEvent.title;
+                      const shareText = `${selectedEvent.title}\n📍 ${selectedEvent.location}\n📅 ${selectedEvent.date || selectedEvent.start_date}`;
+
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({
+                            title: shareTitle,
+                            text: shareText,
+                            url: shareUrl,
+                          });
+                        } else {
+                          await navigator.clipboard.writeText(shareUrl);
+                          const button = e.currentTarget;
+                          button.classList.remove('share');
+                          button.classList.add('share', 'copied');
+                          const icon = button.querySelector('i');
                           if (icon) {
-                            icon.classList.remove('ri-check-line');
-                            icon.classList.add('ri-share-line');
+                            icon.classList.remove('ri-share-line');
+                            icon.classList.add('ri-check-line');
                           }
-                        }, 2000);
+                          setTimeout(() => {
+                            button.classList.remove('copied');
+                            if (icon) {
+                              icon.classList.remove('ri-check-line');
+                              icon.classList.add('ri-share-line');
+                            }
+                          }, 2000);
+                        }
+                      } catch (err) {
+                        if ((err as Error).name !== 'AbortError') {
+                          console.error("공유 실패:", err);
+                          alert("카카오톡에서는 공유 기능이 제한됩니다.\n\n우측 상단 메뉴(⋮)에서\n'다른 브라우저로 열기'를 선택한 후\n공유해주세요.");
+                        }
                       }
-                    } catch (err) {
-                      if ((err as Error).name !== 'AbortError') {
-                        console.error("공유 실패:", err);
-                        alert("카카오톡에서는 공유 기능이 제한됩니다.\n\n우측 상단 메뉴(⋮)에서\n'다른 브라우저로 열기'를 선택한 후\n공유해주세요.");
-                      }
-                    }
-                  }}
-                  className="action-button share"
-                  title="공유하기"
-                >
-                  <i className="ri-share-line action-icon"></i>
-                </button>
-                
-                <button
-                  onClick={(e) => onEdit(selectedEvent, e)}
-                  className="action-button edit"
-                  title="이벤트 수정"
-                >
-                  <i className="ri-edit-line action-icon"></i>
-                </button>
-                
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClose();
-                  }}
-                  className="close-button"
-                  title="닫기"
-                >
-                  <i className="ri-close-line action-icon"></i>
-                </button>
+                    }}
+                    className="action-button share"
+                    title="공유하기"
+                  >
+                    <i className="ri-share-line action-icon"></i>
+                  </button>
+
+                  <button
+                    onClick={(e) => onEdit(selectedEvent, e)}
+                    className="action-button edit"
+                    title="이벤트 수정"
+                  >
+                    <i className="ri-edit-line action-icon"></i>
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                    }}
+                    className="close-button"
+                    title="닫기"
+                  >
+                    <i className="ri-close-line action-icon"></i>
+                  </button>
+                </div>
               </div>
-            </div>
             </div>
           </div>
         ), document.body
@@ -597,20 +597,20 @@ export default function EventDetailModal({
             defaultThumbnailClass,
             defaultThumbnailEvent,
           )) && (
-            createPortal(
-              <div
-                className="fullscreen-overlay"
-                onClick={() => setShowFullscreenImage(false)}
-                onTouchStartCapture={(e) => e.stopPropagation()}
-                onTouchMoveCapture={(e) => {
-                  if (e.target === e.currentTarget) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }
-                }}
-                onTouchEndCapture={(e) => e.stopPropagation()}
+          createPortal(
+            <div
+              className="fullscreen-overlay"
+              onClick={() => setShowFullscreenImage(false)}
+              onTouchStartCapture={(e) => e.stopPropagation()}
+              onTouchMoveCapture={(e) => {
+                if (e.target === e.currentTarget) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+              onTouchEndCapture={(e) => e.stopPropagation()}
             >
-             <button
+              <button
                 onClick={() => setShowFullscreenImage(false)}
                 className="fullscreen-close-button"
               >
@@ -627,7 +627,7 @@ export default function EventDetailModal({
                   )
                 }
                 alt={selectedEvent.title}
-                 loading="lazy"
+                loading="lazy"
                 className="fullscreen-image"
                 onClick={(e) => e.stopPropagation()}
               />

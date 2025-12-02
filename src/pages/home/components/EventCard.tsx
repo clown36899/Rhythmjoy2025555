@@ -144,11 +144,10 @@ export const EventCard = memo(({
       className={`card-container ${isPast ? "card-container-past" : ""}`}
     >
       <div
-        className={`card-image-wrapper ${
-          isHighlighted ? "card-image-wrapper-highlighted" : ""
-        }`}
-        style={{ 
-          "--highlight-color": isHighlighted ? highlightBorderColor : "transparent" 
+        className={`card-image-wrapper ${isHighlighted ? "card-image-wrapper-highlighted" : ""
+          }`}
+        style={{
+          "--highlight-color": isHighlighted ? highlightBorderColor : "transparent"
         } as React.CSSProperties}
       >
         {thumbnailUrl ? (
@@ -176,11 +175,10 @@ export const EventCard = memo(({
             }}
           >
             <div
-              className={`absolute inset-0 ${
-                event.category === "class"
+              className={`card-absolute-inset-0 ${event.category === "class"
                   ? "card-bg-overlay-purple"
                   : "card-bg-overlay-blue"
-              }`}
+                }`}
             ></div>
             <span className="card-overlay-text-faint">
               {event.category === "class" ? "강습" : "행사"}
@@ -189,13 +187,12 @@ export const EventCard = memo(({
         )}
 
         <div
-          className={`card-badge ${
-            isPast
+          className={`card-badge ${isPast
               ? "card-badge-past"
               : event.category === "class"
                 ? "card-badge-class"
                 : "card-badge-event"
-          }`}
+            }`}
         >
           {isPast ? "종료" : event.category === "class" ? "강습" : "행사"}
         </div>
