@@ -442,8 +442,8 @@ export default function HomePage() {
     if (calendarMode === 'fullscreen') {
       const containerHeight = calculateFullscreenHeight();
       const controlBarHeight = calendarControlBarRef.current?.offsetHeight || 32;
-      const categoryButtonsHeight = calendarCategoryButtonsRef.current?.offsetHeight || 42;
-      return `${Math.max(0, containerHeight - controlBarHeight - categoryButtonsHeight)}px`;
+      // categoryButtons는 존재하지 않으므로 빼지 않음
+      return `${Math.max(0, containerHeight - controlBarHeight)}px`;
     }
     return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이
   }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
@@ -527,14 +527,16 @@ export default function HomePage() {
 
           <div ref={calendarControlBarRef} className="home-calendar-control-bar" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none", padding: "0 9px" }}>
             <div className="home-toolbar">
-              <button
-                onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : prev === "fullscreen" ? "expanded" : "collapsed")}
-                className={`home-toolbar-btn ${buttonBgClass}`}
-              >
-                <i className={`${calendarMode === "collapsed" ? "ri-calendar-line" : "ri-calendar-close-line"} home-icon-sm`}></i>
-                <span className="home-toolbar-text">{calendarMode === "collapsed" ? "이벤트 등록달력" : "달력 접기"}</span>
-                {arrowIconContent}
-              </button>
+              {calendarMode !== "fullscreen" && (
+                <button
+                  onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : prev === "fullscreen" ? "expanded" : "collapsed")}
+                  className={`home-toolbar-btn ${buttonBgClass}`}
+                >
+                  <i className={`${calendarMode === "collapsed" ? "ri-calendar-line" : "ri-calendar-close-line"} home-icon-sm`}></i>
+                  <span className="home-toolbar-text">{calendarMode === "collapsed" ? "이벤트 등록달력" : "달력 접기"}</span>
+                  {arrowIconContent}
+                </button>
+              )}
               <div className="home-toolbar-spacer"></div>
               {calendarMode === "fullscreen" ? (
                 null
@@ -548,7 +550,7 @@ export default function HomePage() {
                   <button onClick={() => setShowSearchModal(true)} className="home-btn-search"><i className="ri-search-line home-icon-sm"></i></button>
                 </>
               )}
-              <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "expanded" : "fullscreen")} className={`home-toolbar-btn home-toolbar-btn-fullscreen ${calendarMode === "fullscreen" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i></button>
+              <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "collapsed" : "fullscreen")} className={`home-toolbar-btn home-toolbar-btn-fullscreen ${calendarMode === "fullscreen" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i></button>
             </div>
           </div>
         </div>

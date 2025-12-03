@@ -28,6 +28,7 @@ export function useCalendarGesture({
   const [liveCalendarHeight, setLiveCalendarHeight] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 600);
 
   const swipeAnimationRef = useRef<number | null>(null);
 
@@ -36,12 +37,32 @@ export function useCalendarGesture({
     latestStateRef.current = { isAnimating, calendarMode, isYearView };
   }, [isAnimating, calendarMode, isYearView]);
 
+  // Track viewport height changes (mobile address bar hide/show)
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportHeight(window.innerHeight);
+    };
+
+    window.addEventListener('resize', handleResize);
+    // Also listen to visualViewport for better mobile support
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
+
   const calculateFullscreenHeight = useCallback(() => {
     if (typeof window === 'undefined') return 600;
-    const mainNavButtons = document.querySelector<HTMLElement>('[data-id="main-nav-buttons"]');
-    const mainNavButtonsHeight = mainNavButtons ? mainNavButtons.offsetHeight : FOOTER_HEIGHT;
-    return window.innerHeight - headerHeight - mainNavButtonsHeight;
-  }, [headerHeight]);
+    const bottomNav = document.querySelector<HTMLElement>('.shell-bottom-nav');
+    const bottomNavHeight = bottomNav ? bottomNav.offsetHeight : FOOTER_HEIGHT;
+    return viewportHeight - headerHeight - bottomNavHeight;
+  }, [headerHeight, viewportHeight]);
 
   const getTargetHeight = useCallback(() => {
     if (calendarMode === "collapsed") return 0;
@@ -144,7 +165,7 @@ export function useCalendarGesture({
       } else if (currentLock === 'vertical-resize') {
         if (e.cancelable) e.preventDefault();
         // Apply damping factor for "gum-like" resistance
-        const DAMPING_FACTOR = 0.35;
+        const DAMPING_FACTOR = 0.12; //저항력
         const dampedDiffY = diffY * DAMPING_FACTOR;
         const newHeight = startHeight + dampedDiffY;
 
