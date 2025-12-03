@@ -434,7 +434,7 @@ export default function HomePage() {
   // --------------------------------------------------------------------------------
   // 7. 렌더링
   // --------------------------------------------------------------------------------
-  const EXPANDED_HEIGHT = 200;
+  const EXPANDED_HEIGHT = 173;
 
   const renderHeight = useMemo(() => {
     if (isDragging) return `${liveCalendarHeight}px`;
@@ -515,7 +515,8 @@ export default function HomePage() {
               height: renderHeight,
               transition: isDragging ? "none" : "height 0.3s cubic-bezier(0.33, 1, 0.68, 1)",
               willChange: isDragging ? "height" : undefined,
-              touchAction: viewMode === "year" ? "auto" : "none"
+              touchAction: (viewMode === "year" || calendarMode === "fullscreen") ? "pan-y" : "none",
+              overflowY: calendarMode === "fullscreen" ? "auto" : "hidden"
             }}
           >
             <EventCalendar

@@ -1034,10 +1034,12 @@ export default function EventCalendar({
                     <div
                       className="calendar-grid-container"
                       style={{
-                        gridAutoRows: calendarMode === 'fullscreen'
-                          ? 'auto'
-                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px)) / 6))`,
-                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px)) / 6))`
+                        gridTemplateRows: calendarMode === 'fullscreen'
+                          ? 'none'
+                          : 'repeat(6, calc(173px / 6))',
+                        gridAutoRows: calendarMode === 'fullscreen' ? 'auto' : undefined,
+                        height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                        '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
                       {renderCalendarGrid(prevDays, prevMonth)}
@@ -1055,10 +1057,12 @@ export default function EventCalendar({
                     <div
                       className="calendar-grid-container"
                       style={{
-                        gridAutoRows: calendarMode === 'fullscreen'
-                          ? 'auto'
-                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px)) / 6))`,
-                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px)) / 6))`
+                        gridTemplateRows: calendarMode === 'fullscreen'
+                          ? 'none'
+                          : 'repeat(6, calc(173px / 6))',
+                        gridAutoRows: calendarMode === 'fullscreen' ? 'auto' : undefined,
+                        height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                        '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
                       {renderCalendarGrid(currentDays, currentMonth)}
@@ -1076,10 +1080,12 @@ export default function EventCalendar({
                     <div
                       className="calendar-grid-container"
                       style={{
-                        gridAutoRows: calendarMode === 'fullscreen'
-                          ? 'auto'
-                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
-                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
+                        gridTemplateRows: calendarMode === 'fullscreen'
+                          ? 'none'
+                          : 'repeat(6, calc(173px / 6))',
+                        gridAutoRows: calendarMode === 'fullscreen' ? 'auto' : undefined,
+                        height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                        '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
                       {renderCalendarGrid(nextDays, nextMonth)}
