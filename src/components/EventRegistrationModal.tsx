@@ -11,7 +11,7 @@ import ImageCropModal from "./ImageCropModal";
 import "../styles/components/InteractivePreview.css";
 import "./EventRegistrationModal.css";
 import { EditablePreviewCard } from "./EditablePreviewCard";
-import EditableEventDetail from "./EditableEventDetail";
+import EditableEventDetail, { type EditableEventDetailRef } from './EditableEventDetail';
 import type { Event as AppEvent } from "../lib/supabase";
 
 // Extended Event type for preview
@@ -106,6 +106,9 @@ export default function EventRegistrationModal({
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Ref for EditableEventDetail to trigger modals
+  const detailRef = useRef<EditableEventDetailRef>(null);
 
   // Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -210,10 +213,28 @@ export default function EventRegistrationModal({
   const handleSubmit = async () => {
     if (!title.trim()) {
       alert("제목을 입력해주세요.");
+      detailRef.current?.openModal('title');
+      return;
+    }
+
+    if (!genre) {
+      alert("장르를 선택해주세요.");
+      detailRef.current?.openModal('genre');
+      return;
+    }
+
+    if (!date) {
+      alert("날짜를 선택해주세요.");
+      detailRef.current?.openModal('date');
       return;
     }
     if (!password.trim() && !isAdmin) {
       alert("비밀번호를 입력해주세요.");
+      // Scroll to password input
+      const passwordSection = document.getElementById('password-input-section');
+      if (passwordSection) {
+        passwordSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
@@ -391,34 +412,26 @@ export default function EventRegistrationModal({
   return createPortal(
     <div className="reg-modal-overlay">
       {/* Ceiling Switcher - Detached */}
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-[300px] flex justify-center pointer-events-none">
-        <div className="flex bg-gray-800/90 backdrop-blur-md rounded-full p-1 border border-white/10 shadow-lg pointer-events-auto">
+      {/* Ceiling Switcher - Detached */}
+      <div className="ceiling-switcher-container">
+        <div className="ceiling-switcher-wrapper">
           <button
             onClick={() => setPreviewMode('detail')}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${previewMode === 'detail'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+            className={`switcher-btn ${previewMode === 'detail' ? 'active' : 'inactive'}`}
           >
             <i className="ri-file-list-line"></i>
             <span className="hidden sm:inline">상세</span>
           </button>
           <button
             onClick={() => setPreviewMode('card')}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${previewMode === 'card'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+            className={`switcher-btn ${previewMode === 'card' ? 'active' : 'inactive'}`}
           >
             <i className="ri-gallery-view-2"></i>
             <span className="hidden sm:inline">카드</span>
           </button>
           <button
             onClick={() => setPreviewMode('billboard')}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${previewMode === 'billboard'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+            className={`switcher-btn ${previewMode === 'billboard' ? 'active' : 'inactive'}`}
           >
             <i className="ri-billboard-line"></i>
             <span className="hidden sm:inline">전광판</span>
@@ -429,16 +442,10 @@ export default function EventRegistrationModal({
       <div className="reg-modal-container">
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto bg-gray-900 relative rounded-xl overflow-hidden">
+        {/* Main Content Area */}
+        <div className="reg-main-content">
 
-          {/* Hidden File Input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageSelect}
-            accept="image/*"
-            className="hidden"
-          />
+
 
           {/* Mode: Detail (Editing) */}
           {previewMode === 'detail' && (
@@ -448,6 +455,7 @@ export default function EventRegistrationModal({
               onImageUpload={() => fileInputRef.current?.click()}
               genreSuggestions={allGenres}
               className="h-full"
+              ref={detailRef}
               // DatePicker Props
               date={date}
               setDate={setDate}
@@ -504,61 +512,50 @@ export default function EventRegistrationModal({
 
           {/* Mode: Billboard Preview & Video Input */}
           {previewMode === 'billboard' && (
-            <div className="flex flex-col h-full">
+            <div className="billboard-preview-container">
               {/* Video Input Section */}
-              <div className="p-4 bg-gray-800 border-b border-gray-700">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  동영상 링크 입력 (YouTube, Instagram)
-                </label>
-                <input
-                  type="text"
-                  value={videoUrl}
-                  onChange={handleVideoUrlChange}
-                  placeholder="https://..."
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 outline-none"
-                />
-              </div>
+
 
               {/* Billboard Preview */}
-              <div className="flex-1 flex items-center justify-center p-4 bg-black relative overflow-hidden">
+              <div className="billboard-preview-area">
                 {/* Background Image/Video */}
-                <div className="absolute inset-0 opacity-50">
+                <div className="billboard-bg-layer">
                   {imageFile ? (
-                    <img src={URL.createObjectURL(imageFile)} alt="bg" className="w-full h-full object-cover blur-sm" />
+                    <img src={URL.createObjectURL(imageFile)} alt="bg" className="billboard-bg-image" />
                   ) : (
-                    <div className="w-full h-full bg-gray-900" />
+                    <div className="billboard-bg-placeholder" />
                   )}
                 </div>
 
                 {/* Content */}
-                <div className="relative z-10 w-full max-w-md aspect-[9/16] bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col">
+                <div className="billboard-content-card">
                   {/* Video/Image Area */}
-                  <div className="flex-1 relative bg-black">
+                  <div className="billboard-media-area">
                     {isValidVideo && videoId ? (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500">
+                      <div className="billboard-media-placeholder">
                         <div className="text-center">
                           <i className={`ri-${videoProvider === 'youtube' ? 'youtube' : 'instagram'}-fill text-4xl mb-2`}></i>
                           <p>동영상 미리보기</p>
                         </div>
                       </div>
                     ) : imageFile ? (
-                      <img src={URL.createObjectURL(imageFile)} alt="preview" className="w-full h-full object-cover" />
+                      <img src={URL.createObjectURL(imageFile)} alt="preview" className="billboard-media-image" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-600">
+                      <div className="billboard-media-placeholder">
                         <i className="ri-image-line text-4xl"></i>
                       </div>
                     )}
 
                     {/* QR Code Placeholder */}
-                    <div className="absolute bottom-4 right-4 w-16 h-16 bg-white p-1 rounded">
+                    <div className="billboard-qr-placeholder">
                       <i className="ri-qr-code-line text-5xl text-black"></i>
                     </div>
                   </div>
 
                   {/* Bottom Info */}
-                  <div className="p-4 bg-gradient-to-t from-black to-transparent absolute bottom-0 left-0 right-0">
-                    <h3 className="text-white text-xl font-bold mb-1">{title || "제목"}</h3>
-                    <p className="text-gray-300 text-sm">{date ? formatDateForInput(date) : "날짜"}</p>
+                  <div className="billboard-info-overlay">
+                    <h3 className="billboard-info-title">{title || "제목"}</h3>
+                    <p className="billboard-info-date">{date ? formatDateForInput(date) : "날짜"}</p>
                   </div>
                 </div>
               </div>

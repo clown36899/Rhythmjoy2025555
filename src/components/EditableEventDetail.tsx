@@ -68,7 +68,11 @@ const EditBadge = ({ isStatic = false }: { isStatic?: boolean }) => (
     </div>
 );
 
-export default function EditableEventDetail({
+export interface EditableEventDetailRef {
+    openModal: (modalType: 'genre' | 'location' | 'link' | 'date' | 'title') => void;
+}
+
+const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEventDetailProps>(({
     event,
     onUpdate,
     onImageUpload,
@@ -89,9 +93,15 @@ export default function EditableEventDetail({
     setEndDate,
     eventDates = [],
     setEventDates,
-}: EditableEventDetailProps) {
+}, ref) => {
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
     const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | null>(null);
+
+    React.useImperativeHandle(ref, () => ({
+        openModal: (modalType) => {
+            setActiveModal(modalType);
+        }
+    }));
     // const titleRef = React.useRef<HTMLTextAreaElement>(null); // No longer needed
 
     // Date Picker Mode
@@ -144,24 +154,13 @@ export default function EditableEventDetail({
             >
                 {/* Image Area */}
                 <div
-                    className={`image-area ${hasImage ? "bg-black" : "bg-pattern"} relative group cursor-pointer`}
+                    className={`event-image-area image-area ${hasImage ? "bg-black" : "bg-pattern"} group`}
                     onClick={(e) => {
                         e.stopPropagation();
                         onImageUpload();
                     }}
                 >
-                    {/* Category Badge */}
-                    <div
-                        className={`category-badge ${event.category === "class" ? "class" : "event"} relative group flex items-center gap-1`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onUpdate('category', event.category === 'class' ? 'event' : 'class');
-                        }}
-                        style={{ zIndex: 20 }}
-                    >
-                        {event.category === "class" ? "강습" : "행사"}
-                        <EditBadge isStatic />
-                    </div>
+
 
                     {hasImage ? (
                         <>
@@ -196,94 +195,110 @@ export default function EditableEventDetail({
                     className="sticky-header"
                     style={{ padding: "16px" }}
                 >
-                    {/* Genre */}
-                    <div
-                        className="relative inline-flex items-center gap-2 group cursor-pointer"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setShowCustomGenreInput(false);
-                            setCustomGenreInput("");
-                            setActiveModal('genre');
-                        }}
-                    >
-                        <p className={`genre-text ${getGenreColor(event.genre || '')}`}>
-                            {event.genre || <span className="text-gray-500 text-sm">장르 선택</span>}
-                        </p>
-                        <EditBadge isStatic />
+                    <div className="header-selectors-container">
+                        {/* Category Badge - Moved here */}
+                        <div
+                            className={`category-selector category-badge ${event.category === "class" ? "class" : "event"} group`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdate('category', event.category === 'class' ? 'event' : 'class');
+                            }}
+                            style={{ zIndex: 20 }}
+                        >
+                            {event.category === "class" ? "강습" : "행사"}
+                            <EditBadge isStatic />
+                        </div>
 
-                        {/* Genre Bottom Sheet Portal */}
-                        {activeModal === 'genre' && createPortal(
-                            <div className="bottom-sheet-portal">
-                                {/* Backdrop */}
-                                <div
-                                    className="bottom-sheet-backdrop"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveModal(null);
-                                    }}
-                                />
-                                {/* Content */}
-                                <div
-                                    className="bottom-sheet-content"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <div className="bottom-sheet-handle"></div>
-                                    <h3 className="bottom-sheet-header">
-                                        <i className="ri-music-2-line"></i>
-                                        장르 선택
-                                    </h3>
+                        {/* Genre */}
+                        <div
+                            id="genre-selector-section"
+                            className="genre-selector group"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowCustomGenreInput(false);
+                                setCustomGenreInput("");
+                                setActiveModal('genre');
+                            }}
+                        >
+                            <div className={`genre-text ${getGenreColor(event.genre || '')}`}>
+                                {event.genre || <span className="text-gray-500 text-sm">장르 선택</span>}
+                            </div>
+                            <EditBadge isStatic />
 
-                                    <div className="bottom-sheet-body">
-                                        {showCustomGenreInput ? (
-                                            <div className="genre-input-row">
-                                                <input
-                                                    value={customGenreInput}
-                                                    onChange={(e) => setCustomGenreInput(e.target.value)}
-                                                    className="bottom-sheet-input"
-                                                    placeholder="직접 입력"
-                                                    autoFocus
-                                                />
-                                                <button
-                                                    onClick={() => handleSave('genre', customGenreInput)}
-                                                    className="bottom-sheet-button"
-                                                    style={{ width: 'auto', whiteSpace: 'nowrap' }}
-                                                >
-                                                    확인
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <button
-                                                    onClick={() => setShowCustomGenreInput(true)}
-                                                    className="genre-direct-btn"
-                                                >
-                                                    <i className="ri-add-circle-line text-xl"></i>
-                                                    직접 입력
-                                                </button>
-                                                <div className="genre-grid">
-                                                    {genreSuggestions.map(g => (
-                                                        <button
-                                                            key={g}
-                                                            onClick={() => handleSave('genre', g)}
-                                                            className="genre-grid-btn"
-                                                        >
-                                                            {g}
-                                                        </button>
-                                                    ))}
+                            {/* Genre Bottom Sheet Portal */}
+                            {activeModal === 'genre' && createPortal(
+                                <div className="bottom-sheet-portal">
+                                    {/* Backdrop */}
+                                    <div
+                                        className="bottom-sheet-backdrop"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveModal(null);
+                                        }}
+                                    />
+                                    {/* Content */}
+                                    <div
+                                        className="bottom-sheet-content"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="bottom-sheet-handle"></div>
+                                        <h3 className="bottom-sheet-header">
+                                            <i className="ri-music-2-line"></i>
+                                            장르 선택
+                                        </h3>
+
+                                        <div className="bottom-sheet-body">
+                                            {showCustomGenreInput ? (
+                                                <div className="genre-input-row">
+                                                    <input
+                                                        value={customGenreInput}
+                                                        onChange={(e) => setCustomGenreInput(e.target.value)}
+                                                        className="bottom-sheet-input"
+                                                        placeholder="직접 입력"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        onClick={() => handleSave('genre', customGenreInput)}
+                                                        className="bottom-sheet-button"
+                                                        style={{ width: 'auto', whiteSpace: 'nowrap' }}
+                                                    >
+                                                        확인
+                                                    </button>
                                                 </div>
-                                            </>
-                                        )}
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => setShowCustomGenreInput(true)}
+                                                        className="genre-direct-btn"
+                                                    >
+                                                        <i className="ri-add-circle-line text-xl"></i>
+                                                        직접 입력
+                                                    </button>
+                                                    <div className="genre-grid">
+                                                        {genreSuggestions.map(g => (
+                                                            <button
+                                                                key={g}
+                                                                onClick={() => handleSave('genre', g)}
+                                                                className="genre-grid-btn"
+                                                            >
+                                                                {g}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            </div>,
-                            document.body
-                        )}
+                                </div>,
+                                document.body
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Title */}
                 <div
-                    className="relative group mt-3 cursor-pointer flex items-center gap-2"
+                    className="title-editor-container group"
                     onClick={(e) => {
                         e.stopPropagation();
                         setTempTitle(event.title);
@@ -362,7 +377,8 @@ export default function EditableEventDetail({
                 <div className="info-section">
                     {/* Date                    */}
                     <div
-                        className="info-item cursor-pointer relative group hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors flex items-center"
+                        id="date-selector-section"
+                        className="date-selector-row info-item group"
                         onClick={(e) => {
                             e.stopPropagation();
                             if (eventDates && eventDates.length > 0) {
@@ -536,7 +552,7 @@ export default function EditableEventDetail({
 
                     {/* Location                    */}
                     <div
-                        className="info-item relative group cursor-pointer hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors flex items-center"
+                        className="location-selector-row info-item group"
                         onClick={(e) => {
                             e.stopPropagation();
                             setTempLocation(event.location);
@@ -622,7 +638,7 @@ export default function EditableEventDetail({
 
                     {/* Description */}
                     <div className="info-divider">
-                        <div className="info-item items-start relative group hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors flex">
+                        <div className="description-editor-row info-item group">
                             <i className="ri-file-text-line info-icon mt-1.5 text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
                             <div className="info-item-content w-full">
                                 <textarea
@@ -640,6 +656,24 @@ export default function EditableEventDetail({
                             <EditBadge isStatic />
                         </div>
                     </div>
+
+                    {/* Password Input - Moved below content */}
+                    <div className="info-divider">
+                        <div id="password-input-section" className="password-input-row info-item group" style={{ justifyContent: 'flex-end' }}>
+                            <div className="password-input-container">
+                                <i className="ri-lock-line text-gray-500 text-sm mr-1.5"></i>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword?.(e.target.value)}
+                                    placeholder="비밀번호"
+                                    className="password-input-field"
+                                    maxLength={4}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div >
             </div >
 
@@ -652,14 +686,14 @@ export default function EditableEventDetail({
                             e.stopPropagation();
                             setActiveModal(activeModal === 'link' ? null : 'link');
                         }}
-                        className="action-button"
+                        className="link-action-btn action-button group"
                         title={link ? "링크 수정" : "링크 추가"}
-                        style={{ width: 'auto', padding: '0 0.75rem', gap: '0.5rem', flexShrink: 1, minWidth: 0 }}
                     >
                         <i className={`ri-external-link-line action-icon ${link ? 'text-blue-400' : 'text-gray-400'}`} style={{ fontSize: '1.25rem' }}></i>
                         <span className={`text-sm font-medium ${link ? 'text-blue-100' : 'text-gray-400'} truncate`}>
-                            {linkName || (link ? "링크" : "링크")}
+                            링크
                         </span>
+                        <EditBadge isStatic />
 
                         {/* Link Bottom Sheet Portal */}
                         {activeModal === 'link' && createPortal(
@@ -721,19 +755,7 @@ export default function EditableEventDetail({
                         )}
                     </button>
 
-                    {/* Password Input - Redesigned */}
-                    <div className="flex items-center justify-center bg-white/5 rounded-xl px-2 h-12 border border-white/5">
-                        <i className="ri-lock-line text-gray-500 text-sm mr-1.5"></i>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword?.(e.target.value)}
-                            placeholder="PW"
-                            className="bg-transparent text-white text-sm outline-none w-8 text-center placeholder-gray-600 font-medium"
-                            maxLength={4}
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    </div>
+
 
                     {/* Close Button */}
                     <button
@@ -741,7 +763,7 @@ export default function EditableEventDetail({
                             e.stopPropagation();
                             onClose?.();
                         }}
-                        className="close-button hover:bg-red-600/20 hover:text-red-400"
+                        className="close-action-btn close-button"
                         title="닫기"
                     >
                         <i className="ri-close-line action-icon"></i>
@@ -754,9 +776,8 @@ export default function EditableEventDetail({
                             onRegister?.();
                         }}
                         disabled={isSubmitting}
-                        className={`close-button ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500'}`}
+                        className={`register-action-btn close-button ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="등록하기"
-                        style={{ width: 'auto', padding: '0 1.5rem', fontSize: '1rem', fontWeight: 'bold', marginLeft: '0.5rem' }}
                     >
                         {isSubmitting ? '등록 중...' : '등록'}
                     </button>
@@ -764,4 +785,6 @@ export default function EditableEventDetail({
             </div >
         </div >
     );
-}
+});
+
+export default EditableEventDetail;

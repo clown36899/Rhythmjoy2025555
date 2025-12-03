@@ -1,0 +1,46 @@
+/* EventSearchModal.css */
+
+.search-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.search-modal-body-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.search-input-container {
+    position: relative;
+}
+
+.search-suggestions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.search-suggestions-list {
+    max-height: 12rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.search-modal-footer {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.search-modal-btn-cancel {
+    flex: 1;
+}
+
+.search-modal-btn-confirm {
+    flex: 1;
+    white-space: nowrap;
+}

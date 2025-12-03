@@ -264,10 +264,7 @@
 
 .category-badge {
   position: absolute;
-  bottom: 1rem;
-  /* bottom-4 */
-  left: 1rem;
-  /* left-4 */
+
   padding: 0.25rem 0.75rem;
   /* px-3 py-1 */
   color: white;
@@ -724,9 +721,7 @@
   /* text-sm */
   line-height: 1.25rem;
   font-weight: 700;
-  /* font-bold */
-  margin-bottom: 0.125rem;
-  /* mb-1 */
+
 }
 
 /* ===== 위치 링크 스타일 ===== */
@@ -874,13 +869,13 @@
     background-color: #374151;
     /* gray-700 */
     border-radius: 9999px;
-    margin: 0 auto 1.5rem auto;
+    margin: 0 auto 0.5rem auto;
   }
 
   .bottom-sheet-header {
     color: white;
     font-weight: 700;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
     font-size: 1.125rem;
     display: flex;
     align-items: center;
@@ -1251,7 +1246,7 @@
   /* ===== Selected Dates Display ===== */
   .selected-dates-container {
     width: 100%;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.3rem;
     padding: 0 0.5rem;
   }
 
@@ -1426,3 +1421,160 @@
     color: white;
     box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
   }
+
+}
+
+/* Semantic Class Refactoring Styles */
+
+/* Header & Image Area */
+.event-image-area {
+  position: relative;
+  cursor: pointer;
+}
+
+.category-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  /* gap-1 */
+}
+
+.genre-selector {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* gap-2 */
+  cursor: pointer;
+}
+
+.header-selectors-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title-editor-container {
+  position: relative;
+  margin-top: 0.75rem;
+  /* mt-3 */
+  padding: 0 1em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* gap-2 */
+}
+
+/* Info Section Rows */
+.date-selector-row,
+.location-selector-row {
+  cursor: pointer;
+  position: relative;
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  margin-left: -0.5rem;
+  /* -mx-2 */
+  margin-right: -0.5rem;
+  padding: 0.5rem;
+  /* px-2 py-2 */
+  transition: background-color 0.15s;
+  /* transition-colors */
+  display: flex;
+  align-items: center;
+}
+
+.description-editor-row {
+  align-items: flex-start;
+  /* items-start */
+  position: relative;
+  border-radius: 0.5rem;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding: 0.5rem;
+  transition: background-color 0.15s;
+  display: flex;
+}
+
+.date-selector-row:hover,
+.location-selector-row:hover,
+.description-editor-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  /* hover:bg-white/5 */
+}
+
+/* Footer Actions */
+.link-action-btn {
+  width: auto !important;
+  padding: 0 0.75rem !important;
+  gap: 0.5rem !important;
+  flex-shrink: 1 !important;
+  min-width: 0 !important;
+}
+
+.password-input-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  /* bg-white/5 */
+  border-radius: 0.75rem;
+  /* rounded-xl */
+  padding-left: 0.5rem;
+  /* px-2 */
+  padding-right: 0.5rem;
+  height: 3rem;
+  /* h-12 */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  /* border-white/5 */
+}
+
+.password-input-field {
+  background-color: transparent;
+  color: white;
+  font-size: 0.875rem;
+  border: 0;
+  /* text-sm */
+  outline: none;
+  width: 4rem;
+  /* w-16 */
+  text-align: center;
+  font-weight: 500;
+  /* font-medium */
+}
+
+.password-input-field::placeholder {
+  color: #6b7280;
+  /* placeholder-gray-500 */
+}
+
+.close-action-btn:hover {
+  background-color: rgba(220, 38, 38, 0.2);
+  /* hover:bg-red-600/20 */
+  color: #f87171;
+  /* hover:text-red-400 */
+}
+
+.register-action-btn {
+  width: auto !important;
+  padding: 0 1.5rem !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  margin-left: 0.5rem !important;
+  background-color: #2563eb;
+  /* bg-blue-600 */
+  color: white;
+  border-color: #3b82f6;
+  /* border-blue-500 */
+}
+
+.register-action-btn:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  /* hover:bg-blue-700 */
+}
+
+.register-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import "../../../styles/components/EventSortModal.css";
 
 interface EventSortModalProps {
     isOpen: boolean;
@@ -22,30 +23,30 @@ export default function EventSortModal({
     ];
 
     return createPortal(
-        <div className="evt-modal-overlay">
-            <div className="evt-modal-container">
-                <div className="evt-modal-body">
-                    <div className="evt-flex evt-justify-between evt-items-center evt-mb-4">
-                        <h3 className="evt-modal-title">정렬 방식</h3>
-                        <button onClick={onClose} className="evt-modal-close-btn">
-                            <i className="ri-close-line evt-icon-xl"></i>
+        <div className="sort-modal-overlay">
+            <div className="sort-modal-container">
+                <div className="sort-modal-body">
+                    <div className="sort-modal-header">
+                        <h3 className="sort-modal-title">정렬 방식</h3>
+                        <button onClick={onClose} className="sort-modal-close-btn">
+                            <i className="ri-close-line sort-modal-close-icon"></i>
                         </button>
                     </div>
 
-                    <div className="evt-space-y-2">
+                    <div className="sort-options-list">
                         {sortOptions.map((option) => (
                             <button
                                 key={option.id}
                                 onClick={() =>
                                     onSortChange(option.id as "random" | "time" | "title")
                                 }
-                                className={`evt-sort-option ${sortBy === option.id ? "evt-sort-option-active" : ""
+                                className={`sort-option-btn ${sortBy === option.id ? "active" : ""
                                     }`}
                             >
-                                <i className={`${option.icon} evt-sort-option-icon`}></i>
-                                <span className="evt-sort-option-text">{option.name}</span>
+                                <i className={`${option.icon} sort-option-icon`}></i>
+                                <span className="sort-option-text">{option.name}</span>
                                 {sortBy === option.id && (
-                                    <i className="ri-check-line evt-sort-check-icon"></i>
+                                    <i className="ri-check-line sort-check-icon"></i>
                                 )}
                             </button>
                         ))}

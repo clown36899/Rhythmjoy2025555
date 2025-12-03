@@ -448,82 +448,40 @@ export default function EventEditModal({
                 {/* 스크롤 가능한 폼 영역 */}
                 <div className="evt-modal-body-scroll">
                     {/* Live Preview Section */}
-                    <div className="evt-mb-6">
-                        <div className="evt-flex evt-justify-between evt-items-center" style={{ marginBottom: '1rem' }}>
-                            <label className="evt-form-label" style={{ marginBottom: 0, fontSize: '1rem', fontWeight: 600 }}>미리보기</label>
-                            <div style={{ display: 'flex', gap: '4px', backgroundColor: 'rgba(55, 65, 81, 0.9)', borderRadius: '8px', padding: '4px', border: '1px solid rgba(75, 85, 99, 1)' }}>
+                    <div className="live-preview-section">
+                        <div className="preview-header">
+                            <label className="evt-form-label preview-label">미리보기</label>
+                            <div className="preview-toggle-container">
                                 <button
                                     type="button"
                                     onClick={() => setPreviewMode('card')}
-                                    style={{
-                                        padding: '6px 16px',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 500,
-                                        borderRadius: '6px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        backgroundColor: previewMode === 'card' ? '#3b82f6' : 'transparent',
-                                        color: previewMode === 'card' ? 'white' : '#9ca3af',
-                                        boxShadow: previewMode === 'card' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
-                                    }}
+                                    className={`preview-toggle-btn ${previewMode === 'card' ? 'active' : 'inactive'}`}
                                 >
                                     카드
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setPreviewMode('billboard')}
-                                    style={{
-                                        padding: '6px 16px',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 500,
-                                        borderRadius: '6px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        backgroundColor: previewMode === 'billboard' ? '#3b82f6' : 'transparent',
-                                        color: previewMode === 'billboard' ? 'white' : '#9ca3af',
-                                        boxShadow: previewMode === 'billboard' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
-                                    }}
+                                    className={`preview-toggle-btn ${previewMode === 'billboard' ? 'active' : 'inactive'}`}
                                 >
                                     빌보드
                                 </button>
                             </div>
                         </div>
 
-                        <div className="evt-list-bg-container evt-p-4 evt-flex evt-justify-center evt-rounded-xl evt-overflow-hidden evt-relative" style={{ maxHeight: '50vh' }}>
+                        <div className="preview-container">
                             {previewMode === 'card' ? (
-                                <div style={{ width: '100%', maxWidth: '250px', position: 'relative' }} className="group">
+                                <div className="card-preview-wrapper group">
                                     {(!previewEvent.image || previewEvent.image === "") ? (
                                         <div
                                             onClick={() => {
                                                 const fileInput = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement;
                                                 fileInput?.click();
                                             }}
-                                            style={{
-                                                width: '100%',
-                                                aspectRatio: '3/4',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                backgroundColor: 'rgba(31, 41, 55, 0.4)',
-                                                cursor: 'pointer',
-                                                borderRadius: '12px',
-                                                border: '2px dashed rgba(75, 85, 99, 0.6)',
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = 'rgba(31, 41, 55, 0.6)';
-                                                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.6)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = 'rgba(31, 41, 55, 0.4)';
-                                                e.currentTarget.style.borderColor = 'rgba(75, 85, 99, 0.6)';
-                                            }}
+                                            className="empty-image-placeholder"
                                         >
-                                            <i className="ri-image-add-line" style={{ fontSize: '3.75rem', color: '#6b7280', marginBottom: '0.75rem' }}></i>
-                                            <span style={{ color: '#9ca3af', fontSize: '0.875rem', fontWeight: 500 }}>클릭하여 이미지 등록</span>
+                                            <i className="ri-image-add-line empty-image-icon"></i>
+                                            <span className="empty-image-text">클릭하여 이미지 등록</span>
                                         </div>
                                     ) : (
                                         <>
@@ -541,7 +499,7 @@ export default function EventEditModal({
                                                         const fileInput = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement;
                                                         fileInput?.click();
                                                     }}
-                                                    className="evt-absolute evt-top-2 evt-right-2 evt-bg-black/60 evt-text-white evt-p-2 evt-rounded-full evt-opacity-0 group-hover:evt-opacity-100 evt-transition-opacity hover:evt-bg-black/80"
+                                                    className="edit-thumbnail-btn"
                                                     title="썸네일 편집"
                                                 >
                                                     <i className="ri-crop-line"></i>
@@ -552,29 +510,13 @@ export default function EventEditModal({
                                 </div>
                             ) : (
                                 /* Mini Billboard Preview */
-                                <div
-                                    style={{
-                                        width: '100%',
-                                        maxWidth: '250px',
-                                        aspectRatio: '9/16',
-                                        backgroundColor: 'black',
-                                        position: 'relative',
-                                        overflow: 'hidden',
-                                        borderRadius: '8px',
-                                        margin: '0 auto'
-                                    }}
-                                >
+                                <div className="mini-billboard-preview">
                                     {/* Background Image */}
                                     {previewEvent.image ? (
                                         <img
                                             src={previewEvent.image}
                                             alt="Billboard Preview"
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'contain',
-                                                opacity: 0.8
-                                            }}
+                                            className="mini-billboard-image"
                                         />
                                     ) : (
                                         <div
@@ -582,7 +524,7 @@ export default function EventEditModal({
                                                 const fileInput = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement;
                                                 fileInput?.click();
                                             }}
-                                            className="evt-w-full evt-h-full evt-flex evt-flex-col evt-items-center evt-justify-center evt-text-gray-400 evt-cursor-pointer hover:evt-text-gray-200 hover:evt-bg-gray-900/30 evt-transition-colors"
+                                            className="mini-billboard-empty"
                                         >
                                             <i className="ri-image-add-line evt-text-5xl evt-mb-3"></i>
                                             <span className="evt-text-lg evt-font-medium">이미지 등록</span>
@@ -590,56 +532,23 @@ export default function EventEditModal({
                                     )}
 
                                     {/* Bottom Info Overlay */}
-                                    <div
-                                        style={{
-                                            position: 'absolute',
-                                            bottom: 0,
-                                            left: 0,
-                                            right: 0,
-                                            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 40%, transparent 100%)',
-                                            padding: '1rem',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'flex-end',
-                                            minHeight: '40%'
-                                        }}
-                                    >
-                                        <h3
-                                            style={{
-                                                color: 'white',
-                                                fontSize: '1.2rem',
-                                                fontWeight: 900,
-                                                textAlign: 'center',
-                                                lineHeight: 1.2,
-                                                textShadow: "0 2px 10px rgba(0,0,0,0.8)",
-                                                marginBottom: '0.5rem',
-                                                whiteSpace: 'pre-line'
-                                            }}
-                                        >
+                                    <div className="mini-billboard-info">
+                                        <h3 className="mini-billboard-title">
                                             {previewEvent.title}
                                         </h3>
 
-                                        <div className="evt-flex evt-gap-2 evt-items-center">
-                                            <span className="evt-text-xs evt-bg-blue-600 evt-text-white evt-px-2 evt-py-1 evt-rounded-full">상세보기</span>
-                                            <div className="evt-bg-white evt-p-1 evt-rounded-sm">
-                                                <div className="evt-w-4 evt-h-4 evt-bg-black"></div>
+                                        <div className="mini-billboard-badge">
+                                            <span className="mini-billboard-badge-text">상세보기</span>
+                                            <div className="mini-billboard-indicator">
+                                                <div className="mini-billboard-indicator-dot"></div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Top Info Overlay */}
-                                    <div style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', pointerEvents: 'none' }}>
-                                        <div style={{
-                                            width: '2rem',
-                                            height: '2rem',
-                                            border: '2px solid rgba(255,255,255,0.3)',
-                                            borderRadius: '50%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}>
-                                            <span className="evt-text-white evt-text-[10px] evt-font-bold">1/1</span>
+                                    <div className="mini-billboard-counter">
+                                        <div className="mini-billboard-counter-box">
+                                            <span className="mini-billboard-counter-text">1/1</span>
                                         </div>
                                     </div>
                                 </div>
@@ -791,11 +700,11 @@ export default function EventEditModal({
                         </div>
 
                         {/* 날짜 선택 섹션 (통합 박스) */}
-                        <div className="evt-billboard-option-box evt-space-y-3">
+                        <div className="date-selection-box">
                             <label className="evt-block evt-text-gray-400 evt-text-xs evt-font-medium">
                                 날짜 선택 방식
                             </label>
-                            <div className="evt-flex evt-gap-4">
+                            <div className="date-mode-toggle-group">
                                 <label className="evt-flex evt-items-center evt-cursor-pointer">
                                     <input
                                         type="radio"
@@ -955,7 +864,7 @@ export default function EventEditModal({
                                     <label className="evt-block evt-text-gray-400 evt-text-sm evt-font-medium evt-mb-2">
                                         선택된 날짜 ({editFormData.event_dates.length}개)
                                     </label>
-                                    <div className="evt-flex evt-flex-wrap evt-gap-2 evt-mb-3">
+                                    <div className="specific-date-list">
                                         {editFormData.event_dates
                                             .sort((a, b) => a.localeCompare(b))
                                             .map((dateStr, index) => {
@@ -985,7 +894,7 @@ export default function EventEditModal({
                                                 );
                                             })}
                                     </div>
-                                    <div className="evt-flex evt-gap-2 evt-mb-2">
+                                    <div className="specific-date-input-row">
                                         <input
                                             type="date"
                                             value={tempDateInput}
@@ -1103,15 +1012,15 @@ export default function EventEditModal({
                             <label className="evt-form-label">
                                 이벤트 이미지 (선택사항)
                             </label>
-                            <div className="evt-space-y-2">
+                            <div className="image-section-container">
                                 {editImagePreview && (
-                                    <div className="evt-relative">
+                                    <div className="image-preview-container">
                                         <img
                                             src={editImagePreview}
                                             alt="이벤트 이미지"
-                                            className="evt-img-full-h48"
+                                            className="image-preview-img"
                                         />
-                                        <div className="evt-absolute evt-top-2 evt-right-2 evt-flex evt-gap-2">
+                                        <div className="image-action-buttons">
                                             {/* <button
                         type="button"
                         onClick={handleEditOpenCropForFile}
@@ -1131,7 +1040,7 @@ export default function EventEditModal({
                                                         link.click();
                                                         document.body.removeChild(link);
                                                     }}
-                                                    className="evt-thumbnail-btn"
+                                                    className="thumbnail-download-btn"
                                                 >
                                                     <i className="ri-download-line evt-mr-1"></i>
                                                     다운로드
@@ -1147,7 +1056,7 @@ export default function EventEditModal({
                                                         image: "",
                                                     }));
                                                 }}
-                                                className="evt-thumbnail-remove-btn"
+                                                className="thumbnail-remove-btn"
                                             >
                                                 이미지 삭제
                                             </button>
@@ -1220,18 +1129,18 @@ export default function EventEditModal({
 
                         <div>
                             <label className="evt-form-label">영상 URL (선택사항)</label>
-                            <div className="evt-space-y-2">
+                            <div className="video-section-container">
                                 {/* 영상 프리뷰 */}
                                 {editVideoPreview.provider && editVideoPreview.embedUrl && (
                                     <div className="evt-relative">
-                                        <div className="evt-flex evt-items-center evt-gap-2 evt-text-sm evt-text-green-400 evt-mb-2">
+                                        <div className="video-status-badge">
                                             <i className="ri-check-line"></i>
                                             <span>영상 인식됨 - 빌보드에서 재생됩니다</span>
                                         </div>
-                                        <div className="evt-video-preview-wrapper">
+                                        <div className="video-preview-wrapper">
                                             <iframe
                                                 src={editVideoPreview.embedUrl}
-                                                className="evt-video-preview-iframe"
+                                                className="video-preview-iframe"
                                                 frameBorder="0"
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                 allowFullScreen
@@ -1304,7 +1213,7 @@ export default function EventEditModal({
                                         placeholder="YouTube 링크만 가능"
                                     />
                                 </div>
-                                <div className="evt-mt-2 evt-space-y-1">
+                                <div className="video-info-box">
                                     <p className="evt-text-xs evt-text-gray-400">
                                         <i className="ri-information-line evt-mr-1"></i>
                                         영상은 전면 빌보드에서 자동재생됩니다.

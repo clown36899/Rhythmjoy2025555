@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { Event } from "../../../lib/supabase";
+import "../../../styles/components/EventSearchModal.css";
 
 interface EventSearchModalProps {
     isOpen: boolean;
@@ -122,16 +123,16 @@ export default function EventSearchModal({
         <div className="evt-modal-overlay">
             <div className="evt-modal-container">
                 <div className="evt-modal-body">
-                    <div className="evt-flex evt-justify-between evt-items-center evt-mb-4">
+                    <div className="search-modal-header">
                         <h3 className="evt-modal-title">이벤트 검색</h3>
                         <button onClick={onClose} className="evt-modal-close-btn">
                             <i className="ri-close-line evt-icon-xl"></i>
                         </button>
                     </div>
 
-                    <div className="evt-space-y-4">
+                    <div className="search-modal-body-content">
                         {/* 검색 입력창 */}
-                        <div className="evt-relative">
+                        <div className="search-input-container">
                             <input
                                 type="text"
                                 value={searchQuery}
@@ -150,9 +151,9 @@ export default function EventSearchModal({
 
                         {/* 자동완성 제안 */}
                         {searchSuggestions.length > 0 && (
-                            <div className="evt-space-y-1">
+                            <div className="search-suggestions-container">
                                 <p className="evt-info-text-xs evt-mb-2">추천 검색어</p>
-                                <div className="evt-max-h-48 evt-overflow-y-auto evt-space-y-1">
+                                <div className="search-suggestions-list">
                                     {searchSuggestions.map((suggestion, index) => (
                                         <button
                                             key={index}
@@ -168,16 +169,16 @@ export default function EventSearchModal({
                         )}
 
                         {/* 검색 버튼 */}
-                        <div className="evt-flex evt-space-x-3">
+                        <div className="search-modal-footer">
                             <button
                                 onClick={onClose}
-                                className="evt-flex-1 evt-btn-base evt-btn-gray"
+                                className="search-modal-btn-cancel evt-btn-base evt-btn-gray"
                             >
                                 취소
                             </button>
                             <button
                                 onClick={handleSearchSubmit}
-                                className="evt-flex-1 evt-btn-base evt-btn-blue evt-whitespace-nowrap"
+                                className="search-modal-btn-confirm evt-btn-base evt-btn-blue"
                             >
                                 검색
                             </button>
