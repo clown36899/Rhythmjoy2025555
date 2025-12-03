@@ -33,7 +33,7 @@ const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return `${year} -${month} -${day} `;
 };
 
 // 한국어 locale 등록 moved to EditableEventDetail
@@ -231,8 +231,8 @@ export default function EventRegistrationModal({
 
       if (imageFile) {
         const fileExt = imageFile.name.split(".").pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
+        const fileName = `${Math.random()}.${fileExt} `;
+        const filePath = `${fileName} `;
 
         const { error: uploadError } = await supabase.storage
           .from("event-images")
@@ -251,7 +251,7 @@ export default function EventRegistrationModal({
           const resizedImages = await createResizedImages(imageFile);
 
           // Upload thumbnail
-          const thumbFileName = `thumb_${fileName}`;
+          const thumbFileName = `thumb_${fileName} `;
           await supabase.storage
             .from("event-images")
             .upload(thumbFileName, resizedImages.thumbnail);
@@ -260,7 +260,7 @@ export default function EventRegistrationModal({
             .getPublicUrl(thumbFileName).data.publicUrl;
 
           // Upload medium
-          const mediumFileName = `medium_${fileName}`;
+          const mediumFileName = `medium_${fileName} `;
           await supabase.storage
             .from("event-images")
             .upload(mediumFileName, resizedImages.medium);
@@ -269,7 +269,7 @@ export default function EventRegistrationModal({
             .getPublicUrl(mediumFileName).data.publicUrl;
 
           // Upload full
-          const fullFileName = `full_${fileName}`;
+          const fullFileName = `full_${fileName} `;
           await supabase.storage
             .from("event-images")
             .upload(fullFileName, resizedImages.full);
@@ -382,21 +382,21 @@ export default function EventRegistrationModal({
         <div className="ceiling-switcher-wrapper">
           <button
             onClick={() => setPreviewMode('detail')}
-            className={`switcher-btn ${previewMode === 'detail' ? 'active' : 'inactive'}`}
+            className={`switcher-btn ${previewMode === 'detail' ? 'active' : 'inactive'} `}
           >
             <i className="ri-file-list-line"></i>
             <span className="switcher-label">상세</span>
           </button>
           <button
             onClick={() => setPreviewMode('card')}
-            className={`switcher-btn ${previewMode === 'card' ? 'active' : 'inactive'}`}
+            className={`switcher-btn ${previewMode === 'card' ? 'active' : 'inactive'} `}
           >
             <i className="ri-gallery-view-2"></i>
             <span className="switcher-label">카드</span>
           </button>
           <button
             onClick={() => setPreviewMode('billboard')}
-            className={`switcher-btn ${previewMode === 'billboard' ? 'active' : 'inactive'}`}
+            className={`switcher-btn ${previewMode === 'billboard' ? 'active' : 'inactive'} `}
           >
             <i className="ri-billboard-line"></i>
             <span className="switcher-label">전광판</span>
@@ -459,7 +459,7 @@ export default function EventRegistrationModal({
 
                 {/* Dummy Cards - Only render if real events exist */}
                 {dummyEvents.slice(0, 5).map((realEvent, idx) => (
-                  <div key={`dummy-${idx}`} className="dummy-card-wrapper">
+                  <div key={`dummy - ${idx} `} className="dummy-card-wrapper">
                     <EditablePreviewCard
                       event={{
                         ...realEvent,
@@ -497,7 +497,7 @@ export default function EventRegistrationModal({
                     {isValidVideo && videoId ? (
                       <div className="billboard-media-placeholder">
                         <div className="billboard-video-placeholder-content">
-                          <i className={`ri-${videoProvider === 'youtube' ? 'youtube' : 'instagram'}-fill billboard-video-icon`}></i>
+                          <i className={`ri - ${videoProvider === 'youtube' ? 'youtube' : 'instagram'} -fill billboard - video - icon`}></i>
                           <p>동영상 미리보기</p>
                         </div>
                       </div>

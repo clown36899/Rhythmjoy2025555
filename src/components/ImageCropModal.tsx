@@ -122,7 +122,25 @@ export default function ImageCropModal({
   }, [isOpen, imageUrl]);
 
   const handleCropConfirm = async () => {
-    if (!completedCrop || !imgRef.current) {
+    if (!imgRef.current) {
+      return;
+    }
+
+    // completedCrop이 없으면 현재 crop 상태(퍼센트)를 기반으로 계산
+    let pixelCrop = completedCrop;
+
+    if (!pixelCrop && crop.width && crop.height) {
+      const img = imgRef.current;
+      pixelCrop = {
+        unit: 'px',
+        x: (crop.x / 100) * img.naturalWidth,
+        y: (crop.y / 100) * img.naturalHeight,
+        width: (crop.width / 100) * img.naturalWidth,
+        height: (crop.height / 100) * img.naturalHeight,
+      };
+    }
+
+    if (!pixelCrop) {
       alert('크롭 영역을 선택해주세요.');
       return;
     }
@@ -131,7 +149,7 @@ export default function ImageCropModal({
     try {
       const { file, previewUrl } = await createCroppedImage(
         imgRef.current,
-        completedCrop,
+        pixelCrop,
         fileName
       );
 
