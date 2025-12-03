@@ -1578,3 +1578,92 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* --- Image Control Overlay --- */
+.image-control-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.image-control-buttons {
+  display: flex;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+.image-control-btn {
+  color: white;
+  font-weight: 700;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.image-control-btn:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.image-control-btn i {
+  margin-right: 0.5rem;
+}
+
+/* --- Reposition Mode Overlay --- */
+.reposition-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.reposition-confirm-btn {
+  background-color: #2563eb;
+  /* bg-blue-600 */
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s;
+  cursor: pointer;
+  border: none;
+  pointer-events: auto;
+}
+
+.reposition-confirm-btn:hover {
+  background-color: #3b82f6;
+  /* hover:bg-blue-500 */
+}
+
+.reposition-hint {
+  position: absolute;
+  top: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: rgba(0, 0, 0, 0.4);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.cursor-move {
+  cursor: move;
+}

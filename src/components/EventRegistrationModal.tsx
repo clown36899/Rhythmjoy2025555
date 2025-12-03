@@ -71,9 +71,9 @@ export default function EventRegistrationModal({
   const [videoProvider, setVideoProvider] = useState<"youtube" | "instagram" | null>(null);
   const [videoId, setVideoId] = useState<string | null>(null);
 
-  // Image State
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 }); // Offset (0,0) by default
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +199,7 @@ export default function EventRegistrationModal({
       setVideoUrl("");
       setImageFile(null);
       setOriginalImageFile(null);
+      setImagePosition({ x: 0, y: 0 });
       setPreviewMode('detail');
     }
   }, [isOpen, selectedDate]);
@@ -225,6 +226,7 @@ export default function EventRegistrationModal({
       const file = e.target.files[0];
       setOriginalImageFile(file);
       setImageFile(file); // Initially set as current image
+      setImagePosition({ x: 0, y: 0 }); // Reset position
       setTempImageSrc(URL.createObjectURL(file));
       setIsCropModalOpen(true);
     }
@@ -496,6 +498,8 @@ export default function EventRegistrationModal({
               event={previewEvent}
               onUpdate={handleDetailUpdate}
               onImageUpload={handleImageClick}
+              imagePosition={imagePosition}
+              onImagePositionChange={setImagePosition}
               genreSuggestions={allGenres}
               className="h-full"
               ref={detailRef}

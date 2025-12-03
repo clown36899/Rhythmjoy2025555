@@ -42,6 +42,9 @@ interface EditableEventDetailProps {
     setEndDate?: (date: Date | null) => void;
     eventDates?: string[];
     setEventDates?: (dates: string[]) => void;
+    // Image Position
+    imagePosition?: { x: number; y: number };
+    onImagePositionChange?: (pos: { x: number; y: number }) => void;
 }
 
 const genreColorPalette = [
@@ -93,6 +96,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     setEndDate,
     eventDates = [],
     setEventDates,
+    imagePosition = { x: 0, y: 0 },
+    onImagePositionChange,
 }, ref) => {
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
     const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | null>(null);
@@ -116,7 +121,84 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     const [customGenreInput, setCustomGenreInput] = useState("");
     const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
 
-    // Initialize local state when modal opens
+    // Repositioning State
+    const [isRepositioning, setIsRepositioning] = useState(false);
+    const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+    const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
+    const imageRef = React.useRef<HTMLImageElement>(null);
+
+    const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isRepositioning) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+        setDragStart({ x: clientX, y: clientY });
+        setStartPos({ ...imagePosition });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isRepositioning || !dragStart || !startPos || !imageRef.current) return;
+
+        // Prevent scrolling on touch to ensure image moves smoothly
+        if (e.cancelable && 'touches' in e) {
+            e.preventDefault();
+        }
+
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+        const deltaY = clientY - dragStart.y;
+
+        // Calculate delta as percentage of the IMAGE size (not container)
+        // because transform % is relative to the element itself.
+        const imgHeight = imageRef.current.offsetHeight || 1;
+        const containerHeight = imageRef.current.parentElement?.offsetHeight || imgHeight; // Fallback if parent not found
+
+        const deltaYPercent = (deltaY / imgHeight) * 100;
+
+        // Direct movement: Drag Down -> Move Down (+Delta)
+        // Lock X axis (Vertical movement only)
+        let newX = startPos.x;
+        let newY = startPos.y + deltaYPercent;
+
+        // Calculate limits to prevent image from detaching from edges
+        // Limit is the max offset allowed from center (0).
+        // It corresponds to half the difference between image and container height.
+        const limitYPixels = Math.abs(imgHeight - containerHeight) / 2;
+        const limitYPercent = (limitYPixels / imgHeight) * 100;
+
+        // Clamp Y between -limit and +limit
+        newY = Math.max(-limitYPercent, Math.min(limitYPercent, newY));
+
+        onImagePositionChange?.({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = () => {
+        setDragStart(null);
+        setStartPos(null);
+    };
+
+    // Attach global listeners for drag when active
+    React.useEffect(() => {
+        if (isRepositioning) {
+            const handleGlobalMove = (e: any) => handleMouseMove(e);
+            const handleGlobalUp = () => handleMouseUp();
+
+            window.addEventListener('mousemove', handleGlobalMove);
+            window.addEventListener('mouseup', handleGlobalUp);
+            window.addEventListener('touchmove', handleGlobalMove, { passive: false });
+            window.addEventListener('touchend', handleGlobalUp);
+
+            return () => {
+                window.removeEventListener('mousemove', handleGlobalMove);
+                window.removeEventListener('mouseup', handleGlobalUp);
+                window.removeEventListener('touchmove', handleGlobalMove);
+                window.removeEventListener('touchend', handleGlobalUp);
+            };
+        }
+    }, [isRepositioning, dragStart, startPos]);
 
 
     const detailImageUrl = event.image || getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
@@ -157,7 +239,11 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     className={`event-image-area image-area ${hasImage ? "bg-black" : "bg-pattern"} group`}
                     onClick={(e) => {
                         e.stopPropagation();
-                        onImageUpload();
+                        // Only allow click to upload if there is NO image.
+                        // If image exists, user must use the specific buttons.
+                        if (!hasImage && !isRepositioning) {
+                            onImageUpload();
+                        }
                     }}
                 >
 
@@ -165,15 +251,65 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     {hasImage ? (
                         <>
                             <div className="image-blur-bg" style={{ backgroundImage: `url(${detailImageUrl})` }} />
-                            <img src={detailImageUrl} alt={event.title} className="detail-image" />
+                            <img
+                                ref={imageRef}
+                                src={detailImageUrl}
+                                alt={event.title}
+                                className={`detail-image ${isRepositioning ? 'cursor-move' : ''}`}
+                                style={{
+                                    transform: `translate3d(${imagePosition.x}%, ${imagePosition.y}%, 0)`,
+                                    transition: isRepositioning ? 'none' : 'transform 0.2s ease-out'
+                                }}
+                                onMouseDown={handleMouseDown}
+                                onTouchStart={handleMouseDown}
+                            />
                             <div className="image-gradient-overlay" />
-                            {/* Hover Overlay for changing image */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                                <span className="text-white font-bold border border-white/30 px-4 py-2 rounded-full backdrop-blur-sm flex items-center">
-                                    <i className="ri-image-edit-line mr-2"></i>
-                                    이미지 변경
-                                </span>
-                            </div>
+
+                            {/* Reposition Controls */}
+                            {isRepositioning ? (
+                                <div className="reposition-overlay">
+                                    <div className="pointer-events-auto flex gap-2 mt-auto mb-6">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsRepositioning(false);
+                                            }}
+                                            className="reposition-confirm-btn"
+                                        >
+                                            완료
+                                        </button>
+                                    </div>
+                                    <div className="reposition-hint">
+                                        드래그하여 위치 이동
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Image Control Overlay - Always visible */
+                                <div className="image-control-overlay">
+                                    <div className="image-control-buttons">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onImageUpload();
+                                            }}
+                                            className="image-control-btn"
+                                        >
+                                            <i className="ri-image-edit-line"></i>
+                                            이미지 변경
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsRepositioning(true);
+                                            }}
+                                            className="image-control-btn"
+                                        >
+                                            <i className="ri-drag-move-2-line"></i>
+                                            위치 이동
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </>
                     ) : (
                         <>
