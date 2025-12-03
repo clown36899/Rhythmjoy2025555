@@ -60,10 +60,11 @@
   width: 100%;
   max-width: 56rem;
   height: 90dvh;
-  /* Use dynamic viewport height */
   max-height: 90dvh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* Use Grid for robust layout */
+  grid-template-rows: auto 1fr auto;
+  /* Header, Content, Footer */
   overflow: hidden;
 }
 
@@ -71,13 +72,13 @@
 .crop-modal-header {
   background-color: var(--color-gray-900);
   border-bottom: 1px solid var(--color-gray-700);
-  padding: var(--spacing-4) var(--spacing-6);
+  padding: var(--spacing-2) var(--spacing-6);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  z-index: var(--z-crop-header);
+  z-index: 50;
+  /* Ensure strictly above content */
   flex-shrink: 0;
-  /* Prevent shrinking */
 }
 
 .crop-modal-title {
@@ -109,32 +110,62 @@
 
 /* ===== 크롭 영역 ===== */
 .crop-area-container {
-  padding: var(--spacing-4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  padding: 5px;
+  /* User requested exactly 5px padding */
   background-color: black;
-  flex: 1;
-  /* Take all available space */
-  min-height: 0;
-  /* Allow shrinking */
-  overflow: hidden;
-}
-
-.crop-area-wrapper {
   width: 100%;
   height: 100%;
+  /* Fill the grid cell */
+  min-height: 0;
+  /* CRITICAL for grid child scrolling/sizing */
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  z-index: 10;
+  position: relative;
+}
+
+/* crop-area-wrapper 제거됨 */
+
+/* ReactCrop 컴포넌트 스타일 오버라이드 */
+/* ReactCrop 컴포넌트 스타일 오버라이드 */
+/* ReactCrop 컴포넌트 스타일 오버라이드 */
+/* ReactCrop 컴포넌트 스타일 오버라이드 */
+.ReactCrop {
+  display: flex !important;
+  /* Change to flex to better handle child sizing */
+  max-width: 100% !important;
+  max-height: 100% !important;
+  justify-content: center;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  position: relative;
 }
 
 .crop-image {
-  max-height: 100%;
-  max-width: 100%;
+  display: block;
+  max-width: 100% !important;
+  /* Fallback calculation: 90dvh - 180px (User confirmed safety margin) */
+  max-height: calc(90dvh - 180px) !important;
   width: auto;
   height: auto;
-  object-fit: contain;
+  /* Image will physically shrink to fit the constraints */
+}
+
+/* Ensure image scales down within the flex container */
+
+/* Ensure header and footer are above image */
+.crop-modal-header,
+.crop-modal-footer {
+  z-index: 50;
+  /* Ensure strictly above content */
+  position: relative;
+  background-color: var(--color-gray-900);
+  flex-shrink: 0;
 }
 
 /* ===== 모달 푸터 ===== */

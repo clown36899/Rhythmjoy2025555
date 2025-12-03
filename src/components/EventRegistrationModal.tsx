@@ -530,6 +530,16 @@ export default function EventRegistrationModal({
 
 
 
+        {/* Hidden File Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageSelect}
+          accept="image/*"
+          className="hidden"
+          style={{ display: 'none' }}
+        />
+
         {/* Image Crop Modal */}
         <ImageCropModal
           isOpen={isCropModalOpen}

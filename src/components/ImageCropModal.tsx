@@ -111,10 +111,10 @@ export default function ImageCropModal({
     if (isOpen) {
       setCrop({
         unit: '%',
-        x: 25,
-        y: 25,
-        width: 50,
-        height: 50,
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
       });
       setCompletedCrop(undefined);
       setAspectRatioMode('free');
@@ -222,14 +222,7 @@ export default function ImageCropModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div
-      className="crop-modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isProcessing) {
-          handleCancel();
-        }
-      }}
-    >
+    <div className="crop-modal-overlay">
       <div className="crop-modal-container">
         {/* 헤더 */}
         <div className="crop-modal-header">
@@ -248,39 +241,37 @@ export default function ImageCropModal({
 
         {/* 크롭 영역 */}
         <div className="crop-area-container">
-          <div className="crop-area-wrapper">
-            <ReactCrop
-              crop={crop}
-              onChange={(c) => setCrop(c)}
-              onComplete={(displayPixelCrop) => {
-                // ReactCrop의 첫 번째 파라미터가 display 기준 픽셀 크롭
-                if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
-                  // display 크기 기준 픽셀을 natural 크기로 변환
-                  const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-                  const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+          <ReactCrop
+            crop={crop}
+            onChange={(c) => setCrop(c)}
+            onComplete={(displayPixelCrop) => {
+              // ReactCrop의 첫 번째 파라미터가 display 기준 픽셀 크롭
+              if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
+                // display 크기 기준 픽셀을 natural 크기로 변환
+                const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+                const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
 
-                  const naturalPixelCrop: PixelCrop = {
-                    unit: 'px',
-                    x: displayPixelCrop.x * scaleX,
-                    y: displayPixelCrop.y * scaleY,
-                    width: displayPixelCrop.width * scaleX,
-                    height: displayPixelCrop.height * scaleY,
-                  };
+                const naturalPixelCrop: PixelCrop = {
+                  unit: 'px',
+                  x: displayPixelCrop.x * scaleX,
+                  y: displayPixelCrop.y * scaleY,
+                  width: displayPixelCrop.width * scaleX,
+                  height: displayPixelCrop.height * scaleY,
+                };
 
-                  setCompletedCrop(naturalPixelCrop);
-                }
-              }}
-              aspect={aspectRatio}
-            >
-              <img
-                ref={imgRef}
-                src={imageUrl}
-                alt="크롭할 이미지"
-                className="crop-image"
-                crossOrigin="anonymous"
-              />
-            </ReactCrop>
-          </div>
+                setCompletedCrop(naturalPixelCrop);
+              }
+            }}
+            aspect={aspectRatio}
+          >
+            <img
+              ref={imgRef}
+              src={imageUrl}
+              alt="크롭할 이미지"
+              className="crop-image"
+              crossOrigin="anonymous"
+            />
+          </ReactCrop>
         </div>
 
         {/* 푸터 */}
@@ -291,8 +282,8 @@ export default function ImageCropModal({
               <button
                 onClick={() => handleAspectRatioChange('free')}
                 className={`crop-ratio-btn ${aspectRatioMode === 'free'
-                    ? 'crop-ratio-btn-active'
-                    : 'crop-ratio-btn-inactive'
+                  ? 'crop-ratio-btn-active'
+                  : 'crop-ratio-btn-inactive'
                   }`}
                 disabled={isProcessing}
               >
@@ -301,18 +292,18 @@ export default function ImageCropModal({
               <button
                 onClick={() => handleAspectRatioChange('3:4')}
                 className={`crop-ratio-btn ${aspectRatioMode === '3:4'
-                    ? 'crop-ratio-btn-active'
-                    : 'crop-ratio-btn-inactive'
+                  ? 'crop-ratio-btn-active'
+                  : 'crop-ratio-btn-inactive'
                   }`}
                 disabled={isProcessing}
               >
-                3:4
+                3:4 (썸네일)
               </button>
               <button
                 onClick={() => handleAspectRatioChange('1:1')}
                 className={`crop-ratio-btn ${aspectRatioMode === '1:1'
-                    ? 'crop-ratio-btn-active'
-                    : 'crop-ratio-btn-inactive'
+                  ? 'crop-ratio-btn-active'
+                  : 'crop-ratio-btn-inactive'
                   }`}
                 disabled={isProcessing}
               >
