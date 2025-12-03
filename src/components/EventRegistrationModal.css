@@ -332,8 +332,9 @@
 .billboard-content-card {
   position: relative;
   z-index: 10;
-  width: 100%;
-  max-width: 28rem;
+  width: 90%;
+  max-width: min(28rem, 90vw);
+  max-height: 85vh;
   aspect-ratio: 9/16;
   background-color: var(--color-gray-900);
   border-radius: var(--radius-xl);
@@ -394,7 +395,51 @@
 
 .billboard-info-date {
   color: var(--color-gray-300);
-  font-size: 0.875rem;
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+}
+
+/* New Billboard Preview Layout - Match Real Billboard */
+.billboard-bottom-section {
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  background-color: var(--color-gray-900);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.5vw, 1rem);
+}
+
+.billboard-preview-title {
+  color: white;
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 700;
+  text-align: center;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.billboard-preview-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.billboard-preview-date {
+  color: var(--color-gray-400);
+  font-size: clamp(0.875rem, 2.5vw, 1.125rem);
+  flex: 1;
+}
+
+.billboard-preview-qr {
+  background-color: white;
+  padding: clamp(0.25rem, 0.5vw, 0.5rem);
+  border-radius: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(3rem, 10vw, 5rem);
+  height: clamp(3rem, 10vw, 5rem);
 }
 
 .reg-upload-spinner {
