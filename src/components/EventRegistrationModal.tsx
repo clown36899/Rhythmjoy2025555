@@ -53,8 +53,8 @@ export default function EventRegistrationModal({
 
   // Form State
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState<Date | null>(selectedDate);
-  const [endDate, setEndDate] = useState<Date | null>(selectedDate);
+  const [date, setDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [eventDates, setEventDates] = useState<string[]>([]); // For individual dates
   const [location, setLocation] = useState("");
   const [locationLink, setLocationLink] = useState("");
@@ -137,8 +137,8 @@ export default function EventRegistrationModal({
   useEffect(() => {
     if (isOpen) {
       setTitle("");
-      setDate(selectedDate);
-      setEndDate(selectedDate);
+      setDate(null);
+      setEndDate(null);
       // setEventDates([]); // Commented out to prevent reset on re-render
       setLocation("");
       setLocationLink("");
@@ -445,43 +445,30 @@ export default function EventRegistrationModal({
           {previewMode === 'card' && (
             <div className="flex items-center justify-center h-full overflow-y-auto">
               <div className="card-preview-grid">
-                {[0, 1, 2, 3, 4, 5].map((index) => {
-                  // Index 1 is the active card (Top Center) - READ ONLY for preview
-                  if (index === 1) {
-                    return (
-                      <div key="active" className="active-card-wrapper">
-                        <EditablePreviewCard
-                          event={{
-                            ...previewEvent,
-                            category: previewEvent.category as 'class' | 'event'
-                          }}
-                          readOnly={true}
-                        />
-                      </div>
-                    );
-                  }
+                {/* Active Card - Always show at index 1 (top center) */}
+                <div key="active" className="active-card-wrapper">
+                  <EditablePreviewCard
+                    event={{
+                      ...previewEvent,
+                      category: previewEvent.category as 'class' | 'event'
+                    }}
+                    readOnly={true}
+                    showPlaceholders={true}
+                  />
+                </div>
 
-                  // Use real events from this month for dummy cards
-                  const dummyIndex = index > 1 ? index - 1 : index;
-                  const realEvent = dummyEvents[dummyIndex];
-
-                  // If no real event, skip rendering
-                  if (!realEvent) {
-                    return null;
-                  }
-
-                  return (
-                    <div key={index} className="dummy-card-wrapper">
-                      <EditablePreviewCard
-                        event={{
-                          ...realEvent,
-                          category: realEvent.category as 'class' | 'event'
-                        }}
-                        readOnly={true}
-                      />
-                    </div>
-                  );
-                })}
+                {/* Dummy Cards - Only render if real events exist */}
+                {dummyEvents.slice(0, 5).map((realEvent, idx) => (
+                  <div key={`dummy-${idx}`} className="dummy-card-wrapper">
+                    <EditablePreviewCard
+                      event={{
+                        ...realEvent,
+                        category: realEvent.category as 'class' | 'event'
+                      }}
+                      readOnly={true}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           )}

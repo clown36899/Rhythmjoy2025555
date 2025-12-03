@@ -562,8 +562,6 @@
   /* Dim dummy cards slightly to highlight active one */
   pointer-events: none;
   /* Prevent interaction with dummy cards */
-  transform: scale(0.9);
-  /* Slightly smaller? Or same size? User said "like actual". Let's keep same size but maybe dim. */
 }
 
 .active-card-wrapper {

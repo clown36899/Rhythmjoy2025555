@@ -23,6 +23,7 @@ interface EditablePreviewCardProps {
     suggestions?: string[];
     onSelectGenre?: (genre: string) => void;
     readOnly?: boolean;
+    showPlaceholders?: boolean;
 }
 
 const genreColorPalette = [
@@ -51,9 +52,10 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
     onEditImage,
     onEditDate,
     onEditCategory,
-    suggestions,
+    suggestions = [],
     onSelectGenre,
-    readOnly = false
+    readOnly = false,
+    showPlaceholders = false
 }) => {
     // Format date text
     let dateText = "";
@@ -61,7 +63,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
     const endDate = event.end_date || event.date;
 
     if (!startDate) {
-        dateText = "날짜 미정";
+        dateText = showPlaceholders ? "날짜" : "";
     } else {
         const formatDate = (dateStr: string) => {
             const date = new Date(dateStr);
@@ -90,12 +92,26 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                         className="card-image"
                     />
                 ) : (
-                    <div
-                        className="card-placeholder-bg"
-                        style={{ backgroundImage: "url(/event_upload_placeholder_ko.png)" }}
-                    >
+                    <div className="card-placeholder-bg">
                         <div className={`card-absolute-inset-0 ${event.category === "class" ? "card-bg-overlay-purple" : "card-bg-overlay-blue"
-                            }`}></div>
+                            }`}>
+                            {/* Show "미리보기" text only if showPlaceholders is true or not readOnly */}
+                            {(showPlaceholders || !readOnly) && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    color: 'white',
+                                    fontSize: 'clamp(0.8rem, 3vw, 1.2rem)',
+                                    fontWeight: 600,
+                                    opacity: 0.8,
+                                    whiteSpace: 'nowrap'
+                                }}>
+                                    미리보기
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -199,17 +215,20 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                         )}
                     </div>
                 ) : (
-                    <p
-                        className={`card-genre-text ${getGenreColor(event.genre || '')} ${!readOnly ? 'editable-section' : ''}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            !readOnly && onEditStart?.('genre');
-                        }}
-                        title={!readOnly ? "장르 편집" : undefined}
-                        style={{ minHeight: '1.2em', cursor: !readOnly ? 'text' : 'default' }}
-                    >
-                        {event.genre || <span style={{ opacity: 0.5, fontSize: '0.8rem', fontWeight: 'normal' }}>장르 (직접 입력/선택)</span>}
-                    </p>
+                    // Only render genre element if it exists OR if in edit mode OR showPlaceholders is true
+                    (event.genre || !readOnly || showPlaceholders) && (
+                        <p
+                            className={`card-genre-text ${getGenreColor(event.genre || '')} ${!readOnly ? 'editable-section' : ''}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                !readOnly && onEditStart?.('genre');
+                            }}
+                            title={!readOnly ? "장르 편집" : undefined}
+                            style={{ minHeight: '1.2em', cursor: !readOnly ? 'text' : 'default' }}
+                        >
+                            {event.genre || ((!readOnly || showPlaceholders) && <span style={{ opacity: 0.5, fontWeight: 'normal' }}>장르</span>)}
+                        </p>
+                    )
                 )}
 
                 {/* Title - Inline Edit */}
@@ -237,26 +256,31 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                         }}
                     />
                 ) : (
-                    <h3
-                        className={`card-title-text ${!readOnly ? 'editable-section' : ''}`}
-                        onClick={() => !readOnly && onEditStart?.('title')}
-                        title={!readOnly ? "제목 편집" : undefined}
-                        style={{ minHeight: '1em', cursor: !readOnly ? 'text' : 'default' }}
-                    >
-                        {event.title || <span style={{ opacity: 0.5 }}>제목을 입력하세요</span>}
-                        {!readOnly && <i className="ri-edit-line edit-inline-icon"></i>}
-                    </h3>
+                    // Only render title if it exists OR if in edit mode OR showPlaceholders is true
+                    (event.title || !readOnly || showPlaceholders) && (
+                        <h3
+                            className={`card-title-text ${!readOnly ? 'editable-section' : ''}`}
+                            onClick={() => !readOnly && onEditStart?.('title')}
+                            title={!readOnly ? "제목 편집" : undefined}
+                            style={{ minHeight: '1em', cursor: !readOnly ? 'text' : 'default' }}
+                        >
+                            {event.title || ((!readOnly || showPlaceholders) && <span style={{ opacity: 0.5 }}>제목</span>)}
+                            {!readOnly && <i className="ri-edit-line edit-inline-icon"></i>}
+                        </h3>
+                    )
                 )}
 
                 {/* Date - Clickable */}
-                <div
-                    className={`card-date-container ${!readOnly ? 'editable-section' : ''}`}
-                    onClick={() => !readOnly && onEditDate?.()}
-                    title={!readOnly ? "날짜 편집" : undefined}
-                >
-                    <span>{dateText}</span>
-                    {!readOnly && <i className="ri-edit-line edit-inline-icon"></i>}
-                </div>
+                {(startDate || !readOnly || showPlaceholders) && (
+                    <div
+                        className={`card-date-container ${!readOnly ? 'editable-section' : ''}`}
+                        onClick={() => !readOnly && onEditDate?.()}
+                        title={!readOnly ? "날짜 편집" : undefined}
+                    >
+                        <span>{(!startDate && showPlaceholders) ? <span style={{ opacity: 0.5 }}>{dateText}</span> : dateText}</span>
+                        {!readOnly && <i className="ri-edit-line edit-inline-icon"></i>}
+                    </div>
+                )}
             </div>
         </div>
     );
