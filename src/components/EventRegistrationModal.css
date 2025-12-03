@@ -105,6 +105,28 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* Mobile Fullscreen */
+/* Mobile Fullscreen Overrides Removed to match Detail View */
+@media (max-width: 768px) {
+  .reg-modal-overlay {
+    padding: 1rem;
+    align-items: center;
+    /* Center vertically like desktop */
+  }
+
+  .reg-modal-container {
+    max-width: 100%;
+    max-height: 90vh;
+    /* Keep max-height consistent */
+    height: auto;
+    /* Allow auto height */
+    border-radius: var(--radius-lg);
+    /* Restore radius */
+    margin: 0;
+  }
 }
 
 .reg-modal-shadow {

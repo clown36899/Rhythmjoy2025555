@@ -30,7 +30,11 @@ interface SimpleEvent {
   id: number;
   title: string;
   start_date: string;
+  end_date?: string | null;
   date: string;
+  image_full?: string | null;
+  image?: string | null;
+  video_url?: string | null;
 }
 
 export default function AdminBillboardModal({
@@ -1036,7 +1040,7 @@ export default function AdminBillboardModal({
 
                   // Storage 업로드
                   const fileName = `default-thumbnail-class-${Date.now()}.webp`;
-                  const { data, error } = await supabase.storage
+                  const { error } = await supabase.storage
                     .from('images')
                     .upload(`default-thumbnails/${fileName}`, targetImage, {
                       contentType: 'image/webp',
@@ -1067,7 +1071,7 @@ export default function AdminBillboardModal({
                   if (!targetImage) throw new Error("Image resizing failed");
 
                   const fileName = `default-thumbnail-event-${Date.now()}.webp`;
-                  const { data, error } = await supabase.storage
+                  const { error } = await supabase.storage
                     .from('images')
                     .upload(`default-thumbnails/${fileName}`, targetImage, {
                       contentType: 'image/webp',

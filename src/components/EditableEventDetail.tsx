@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../lib/supabase';
 import { useDefaultThumbnail } from '../hooks/useDefaultThumbnail';
@@ -62,8 +62,8 @@ function getGenreColor(genre: string): string {
 }
 
 // Edit Badge Component
-const EditBadge = () => (
-    <div className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-md z-10 border border-white/20">
+const EditBadge = ({ isStatic = false }: { isStatic?: boolean }) => (
+    <div className={`${isStatic ? "relative ml-1" : "absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2"} bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-md z-10 border border-white/20 shrink-0`}>
         <i className="ri-add-line text-xs font-bold"></i>
     </div>
 );
@@ -91,64 +91,23 @@ export default function EditableEventDetail({
     setEventDates,
 }: EditableEventDetailProps) {
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
-    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | null>(null);
-    const titleRef = React.useRef<HTMLTextAreaElement>(null);
+    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | null>(null);
+    // const titleRef = React.useRef<HTMLTextAreaElement>(null); // No longer needed
 
     // Date Picker Mode
     const [dateMode, setDateMode] = useState<'range' | 'dates'>('range');
 
-    // Auto-resize and font scaling for Title
-    useEffect(() => {
-        const textarea = titleRef.current;
-        if (!textarea) return;
-
-        // Reset to auto to correctly calculate scrollHeight
-        textarea.style.height = 'auto';
-
-        // Start with max size
-        let currentFontSize = 1.75; // rem
-        textarea.style.fontSize = `${currentFontSize}rem`;
-
-        // Target max height for 2 lines:
-        // 1.75rem * 1.3 (line-height) * 2 lines = ~4.55rem (~72.8px at 16px root)
-        // We want to keep the visual height around this value even if text wraps more.
-        const MAX_HEIGHT_PX = 75;
-
-        // Iteratively reduce font size if scrollHeight exceeds target
-        while (textarea.scrollHeight > MAX_HEIGHT_PX && currentFontSize > 1.0) {
-            currentFontSize -= 0.1;
-            textarea.style.fontSize = `${currentFontSize}rem`;
-        }
-
-        // Set final height
-        textarea.style.height = textarea.scrollHeight + 'px';
-    }, [event.title]);
+    // Auto-resize effect removed as we now use a modal
 
     // Local state for modals
     const [tempLocation, setTempLocation] = useState("");
     const [tempLocationLink, setTempLocationLink] = useState("");
+    const [tempTitle, setTempTitle] = useState("");
     const [customGenreInput, setCustomGenreInput] = useState("");
     const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
 
     // Initialize local state when modal opens
-    useEffect(() => {
-        if (activeModal === 'location') {
-            setTempLocation(event.location);
-            setTempLocationLink(event.location_link || "");
-        }
-        if (activeModal === 'genre') {
-            setShowCustomGenreInput(false);
-            setCustomGenreInput("");
-        }
-        // Initialize date mode based on existing data
-        if (activeModal === 'date') {
-            if (eventDates && eventDates.length > 0) {
-                setDateMode('dates');
-            } else {
-                setDateMode('range');
-            }
-        }
-    }, [activeModal, event, eventDates]);
+
 
     const detailImageUrl = event.image || getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
     const hasImage = !!event.image;
@@ -191,6 +150,19 @@ export default function EditableEventDetail({
                         onImageUpload();
                     }}
                 >
+                    {/* Category Badge */}
+                    <div
+                        className={`category-badge ${event.category === "class" ? "class" : "event"} relative group flex items-center gap-1`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdate('category', event.category === 'class' ? 'event' : 'class');
+                        }}
+                        style={{ zIndex: 20 }}
+                    >
+                        {event.category === "class" ? "강습" : "행사"}
+                        <EditBadge isStatic />
+                    </div>
+
                     {hasImage ? (
                         <>
                             <div className="image-blur-bg" style={{ backgroundImage: `url(${detailImageUrl})` }} />
@@ -208,25 +180,15 @@ export default function EditableEventDetail({
                         <>
                             <div className={`category-bg-overlay ${event.category === "class" ? "class" : "event"}`}></div>
                             {/* Explicit Upload Prompt */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
-                                <i className="ri-image-add-line text-4xl mb-2 opacity-80"></i>
-                                <span className="font-bold text-lg opacity-90">클릭해서 이미지 등록</span>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 p-6 text-center">
+                                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 backdrop-blur-sm border border-white/20">
+                                    <i className="ri-image-add-line text-3xl"></i>
+                                </div>
+                                <span className="font-bold text-lg opacity-90">대표 이미지 등록</span>
+                                <span className="text-sm opacity-70 mt-1">클릭하여 사진을 업로드하세요</span>
                             </div>
                         </>
                     )}
-
-                    {/* Category Badge */}
-                    <div
-                        className={`category-badge ${event.category === "class" ? "class" : "event"} relative group`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onUpdate('category', event.category === 'class' ? 'event' : 'class');
-                        }}
-                        style={{ zIndex: 20 }}
-                    >
-                        {event.category === "class" ? "강습" : "행사"}
-                        <EditBadge />
-                    </div>
                 </div>
 
                 {/* Sticky Header */}
@@ -236,16 +198,18 @@ export default function EditableEventDetail({
                 >
                     {/* Genre */}
                     <div
-                        className="relative inline-block group cursor-pointer"
+                        className="relative inline-flex items-center gap-2 group cursor-pointer"
                         onClick={(e) => {
                             e.stopPropagation();
+                            setShowCustomGenreInput(false);
+                            setCustomGenreInput("");
                             setActiveModal('genre');
                         }}
                     >
-                        <EditBadge />
                         <p className={`genre-text ${getGenreColor(event.genre || '')}`}>
                             {event.genre || <span className="text-gray-500 text-sm">장르 선택</span>}
                         </p>
+                        <EditBadge isStatic />
 
                         {/* Genre Bottom Sheet Portal */}
                         {activeModal === 'genre' && createPortal(
@@ -318,43 +282,99 @@ export default function EditableEventDetail({
                 </div>
 
                 {/* Title */}
-                <div className="relative group mt-3">
-                    <EditBadge />
-                    <textarea
-                        ref={titleRef}
-                        value={event.title}
-                        onChange={(e) => {
-                            onUpdate('title', e.target.value);
-                        }}
-                        onFocus={(e) => {
-                            // Scroll into view to prevent keyboard hiding it
-                            setTimeout(() => {
-                                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }, 300);
-                        }}
-                        className="title-textarea"
-                        placeholder="제목을 입력하세요"
-                        rows={1}
+                <div
+                    className="relative group mt-3 cursor-pointer flex items-center gap-2"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setTempTitle(event.title);
+                        setActiveModal('title');
+                    }}
+                >
+                    <h2
+                        className="title-text"
                         style={{
                             fontSize: '1.75rem',
-                            height: 'auto'
+                            minHeight: '2.5rem',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            lineHeight: '1.3',
+                            fontWeight: '700',
+                            color: event.title ? 'white' : '#4b5563'
                         }}
-                    />
+                    >
+                        {event.title || "제목을 입력하세요"}
+                    </h2>
+                    <EditBadge isStatic />
+
+                    {/* Title Bottom Sheet Portal */}
+                    {activeModal === 'title' && createPortal(
+                        <div className="bottom-sheet-portal">
+                            {/* Backdrop */}
+                            <div
+                                className="bottom-sheet-backdrop"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveModal(null);
+                                }}
+                            />
+                            {/* Content */}
+                            <div
+                                className="bottom-sheet-content"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="bottom-sheet-handle"></div>
+                                <h3 className="bottom-sheet-header">
+                                    <i className="ri-text"></i>
+                                    제목 입력
+                                </h3>
+
+                                <div className="bottom-sheet-body">
+                                    <div className="bottom-sheet-input-group">
+                                        <textarea
+                                            value={tempTitle}
+                                            onChange={(e) => setTempTitle(e.target.value)}
+                                            className="bottom-sheet-input"
+                                            placeholder="행사 제목을 입력하세요"
+                                            autoFocus
+                                            rows={3}
+                                            style={{ resize: 'none', minHeight: '100px' }}
+                                        />
+                                    </div>
+                                    <div className="bottom-sheet-actions">
+                                        <button
+                                            onClick={() => {
+                                                onUpdate('title', tempTitle);
+                                                setActiveModal(null);
+                                            }}
+                                            className="bottom-sheet-button"
+                                        >
+                                            저장
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
                 </div>
 
                 {/* Info Section */}
                 <div className="info-section">
-                    {/* Date */}
+                    {/* Date                    */}
                     <div
-                        className="info-item cursor-pointer relative group hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors"
+                        className="info-item cursor-pointer relative group hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors flex items-center"
                         onClick={(e) => {
                             e.stopPropagation();
+                            if (eventDates && eventDates.length > 0) {
+                                setDateMode('dates');
+                            } else {
+                                setDateMode('range');
+                            }
                             setActiveModal('date');
                         }}
                     >
-                        <EditBadge />
                         <i className="ri-calendar-line info-icon text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
-                        <span className="group-hover:text-white transition-colors text-base">
+                        <span className="group-hover:text-white transition-colors text-base flex-1">
                             {eventDates && eventDates.length > 0 ? (
                                 // Multiple Dates Display
                                 <span className="text-sm">
@@ -378,6 +398,7 @@ export default function EditableEventDetail({
                                 <span className="text-gray-500">날짜를 선택하세요</span>
                             )}
                         </span>
+                        <EditBadge isStatic />
 
                         {/* Date Picker Bottom Sheet Portal */}
                         {activeModal === 'date' && setDate && setEndDate && setEventDates && createPortal(
@@ -425,38 +446,79 @@ export default function EditableEventDetail({
                                         </div>
                                     </div>
 
-                                    <div className="bottom-sheet-body flex justify-center pb-8">
-                                        {dateMode === 'range' ? (
-                                            <DatePicker
-                                                selected={date}
-                                                onChange={(dates) => {
-                                                    const [start, end] = dates as [Date | null, Date | null];
-                                                    setDate(start);
-                                                    setEndDate(end);
-                                                }}
-                                                startDate={date}
-                                                endDate={endDate}
-                                                selectsRange
-                                                locale={ko}
-                                                inline
-                                            />
-                                        ) : (
-                                            <DatePicker
-                                                selected={null}
-                                                onChange={(d: Date | null) => {
-                                                    if (!d) return;
-                                                    const dateStr = formatDateStr(d);
-                                                    const newDates = eventDates.includes(dateStr)
-                                                        ? eventDates.filter(ed => ed !== dateStr)
-                                                        : [...eventDates, dateStr].sort();
-                                                    setEventDates && setEventDates(newDates);
-                                                }}
-                                                highlightDates={eventDates.map(d => new Date(d))}
-                                                locale={ko}
-                                                inline
-                                                shouldCloseOnSelect={false}
-                                            />
-                                        )}
+                                    <div className="bottom-sheet-body flex flex-col items-center pb-8">
+                                        {/* Selected Dates Display */}
+                                        <div className="selected-dates-container">
+                                            {dateMode === 'range' ? (
+                                                <div className="date-range-display">
+                                                    <div className={`date-display-box ${date ? 'active' : ''}`}>
+                                                        <span className="label">시작</span>
+                                                        <span className="value">{date ? formatDateStr(date) : '-'}</span>
+                                                    </div>
+                                                    <i className="ri-arrow-right-line separator"></i>
+                                                    <div className={`date-display-box ${endDate ? 'active' : ''}`}>
+                                                        <span className="label">종료</span>
+                                                        <span className="value">{endDate ? formatDateStr(endDate) : '-'}</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="selected-dates-list">
+                                                    {eventDates.length > 0 ? (
+                                                        eventDates.map(d => (
+                                                            <div key={d} className="selected-date-chip">
+                                                                <span>{d.substring(5)}</span>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const newDates = eventDates.filter(ed => ed !== d);
+                                                                        setEventDates && setEventDates(newDates);
+                                                                    }}
+                                                                    className="remove-date-btn"
+                                                                >
+                                                                    <i className="ri-close-line"></i>
+                                                                </button>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <span className="no-dates-text">날짜를 선택해주세요</span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="calendar-wrapper">
+                                            {dateMode === 'range' ? (
+                                                <DatePicker
+                                                    selected={date}
+                                                    onChange={(dates) => {
+                                                        const [start, end] = dates as [Date | null, Date | null];
+                                                        setDate(start);
+                                                        setEndDate(end);
+                                                    }}
+                                                    startDate={date}
+                                                    endDate={endDate}
+                                                    selectsRange
+                                                    locale={ko}
+                                                    inline
+                                                />
+                                            ) : (
+                                                <DatePicker
+                                                    selected={null}
+                                                    onChange={(d: Date | null) => {
+                                                        if (!d) return;
+                                                        const dateStr = formatDateStr(d);
+                                                        const newDates = eventDates.includes(dateStr)
+                                                            ? eventDates.filter(ed => ed !== dateStr)
+                                                            : [...eventDates, dateStr].sort();
+                                                        setEventDates && setEventDates(newDates);
+                                                    }}
+                                                    highlightDates={eventDates.map(d => new Date(d))}
+                                                    locale={ko}
+                                                    inline
+                                                    shouldCloseOnSelect={false}
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="bottom-sheet-actions">
                                         <button
@@ -472,17 +534,18 @@ export default function EditableEventDetail({
                         )}
                     </div>
 
-                    {/* Location */}
+                    {/* Location                    */}
                     <div
-                        className="info-item relative group cursor-pointer hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors"
+                        className="info-item relative group cursor-pointer hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors flex items-center"
                         onClick={(e) => {
                             e.stopPropagation();
+                            setTempLocation(event.location);
+                            setTempLocationLink(event.location_link || "");
                             setActiveModal('location');
                         }}
                     >
-                        <EditBadge />
                         <i className="ri-map-pin-line info-icon text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
-                        <div className="info-flex-gap-1 w-full">
+                        <div className="info-flex-gap-1 w-full flex-1">
                             <span className="group-hover:text-white transition-colors text-base">{event.location || <span className="text-gray-500">장소를 입력하세요</span>}</span>
                             {event.location_link && (
                                 <span className="location-link text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full text-xs">
@@ -491,6 +554,7 @@ export default function EditableEventDetail({
                                 </span>
                             )}
                         </div>
+                        <EditBadge isStatic />
 
                         {/* Location Bottom Sheet Portal */}
                         {activeModal === 'location' && createPortal(
@@ -558,8 +622,7 @@ export default function EditableEventDetail({
 
                     {/* Description */}
                     <div className="info-divider">
-                        <div className="info-item items-start relative group hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors">
-                            <EditBadge />
+                        <div className="info-item items-start relative group hover:bg-white/5 rounded-lg -mx-2 px-2 py-2 transition-colors flex">
                             <i className="ri-file-text-line info-icon mt-1.5 text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
                             <div className="info-item-content w-full">
                                 <textarea
@@ -574,26 +637,28 @@ export default function EditableEventDetail({
                                     placeholder="행사 내용을 상세히 입력해주세요..."
                                 />
                             </div>
+                            <EditBadge isStatic />
                         </div>
                     </div>
-                </div>
-            </div>
+                </div >
+            </div >
 
             {/* Footer Actions */}
-            <div className="modal-footer">
-                <div className="footer-links-container">
+            < div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
+                <div className="footer-actions-container">
                     {/* Link Input Button */}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             setActiveModal(activeModal === 'link' ? null : 'link');
                         }}
-                        className="footer-link relative hover:bg-white/5 rounded-lg transition-colors p-2"
+                        className="action-button"
                         title={link ? "링크 수정" : "링크 추가"}
+                        style={{ width: 'auto', padding: '0 0.75rem', gap: '0.5rem', flexShrink: 1, minWidth: 0 }}
                     >
-                        <i className={`ri-external-link-line footer-link-icon text-xl ${link ? 'text-blue-400' : 'text-gray-400'}`}></i>
-                        <span className={`footer-link-text text-sm ml-2 ${link ? 'text-blue-100' : 'text-gray-400'}`}>
-                            {linkName || (link ? "링크" : "링크 추가")}
+                        <i className={`ri-external-link-line action-icon ${link ? 'text-blue-400' : 'text-gray-400'}`} style={{ fontSize: '1.25rem' }}></i>
+                        <span className={`text-sm font-medium ${link ? 'text-blue-100' : 'text-gray-400'} truncate`}>
+                            {linkName || (link ? "링크" : "링크")}
                         </span>
 
                         {/* Link Bottom Sheet Portal */}
@@ -655,23 +720,19 @@ export default function EditableEventDetail({
                             document.body
                         )}
                     </button>
-                </div>
 
-                <div className="footer-actions-container">
-                    {/* Password Input */}
-                    <div className="flex items-center gap-2">
-                        <div className="relative">
-                            <i className="ri-lock-line absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword?.(e.target.value)}
-                                placeholder="비밀번호"
-                                className="bg-gray-800/50 text-white pl-7 pr-2 py-2 rounded-lg text-xs border border-gray-700/50 focus:border-blue-500/50 focus:bg-gray-800 outline-none w-24 text-center h-10 transition-all placeholder-gray-600"
-                                maxLength={4}
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        </div>
+                    {/* Password Input - Redesigned */}
+                    <div className="flex items-center justify-center bg-white/5 rounded-xl px-2 h-12 border border-white/5">
+                        <i className="ri-lock-line text-gray-500 text-sm mr-1.5"></i>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword?.(e.target.value)}
+                            placeholder="PW"
+                            className="bg-transparent text-white text-sm outline-none w-8 text-center placeholder-gray-600 font-medium"
+                            maxLength={4}
+                            onClick={(e) => e.stopPropagation()}
+                        />
                     </div>
 
                     {/* Close Button */}
@@ -695,12 +756,12 @@ export default function EditableEventDetail({
                         disabled={isSubmitting}
                         className={`close-button ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500'}`}
                         title="등록하기"
-                        style={{ width: 'auto', padding: '0 1.5rem', fontSize: '1rem', fontWeight: 'bold' }}
+                        style={{ width: 'auto', padding: '0 1.5rem', fontSize: '1rem', fontWeight: 'bold', marginLeft: '0.5rem' }}
                     >
                         {isSubmitting ? '등록 중...' : '등록'}
                     </button>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
