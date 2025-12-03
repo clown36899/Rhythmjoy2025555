@@ -72,7 +72,7 @@ export function useCalendarGesture({
 
   const gestureRef = useRef<{
     startX: number; startY: number; startHeight: number;
-    isLocked: 'horizontal' | 'vertical-resize' | 'vertical-scroll' | null;
+    isLocked: 'horizontal' | 'vertical-resize' | 'vertical-scroll' | 'native-scroll' | null;
     initialScrollTop: number;
   }>({ startX: 0, startY: 0, startHeight: 0, isLocked: null, initialScrollTop: 0 });
 
@@ -93,7 +93,9 @@ export function useCalendarGesture({
     const handleGestureStart = (e: TouchEvent | MouseEvent) => {
       if (latestStateRef.current.isAnimating || (e instanceof TouchEvent && e.touches.length > 1)) return;
       const target = e.target as HTMLElement;
-      if (target.closest('button, a, input, select, .clickable, [role="button"]')) return;
+      if (target.closest('button, a, input, select, .clickable, [role="button"]')) {
+        return;
+      }
       if (latestStateRef.current.isYearView && calendarContentRef.current?.contains(target)) return;
 
       const coords = getCoords(e);
@@ -121,10 +123,16 @@ export function useCalendarGesture({
       const diffY = coords.clientY - startY;
 
       if (!isLocked) {
+        // If the browser has already claimed the event for scrolling, we can't lock it.
+        // However, we should still try to detect if it's a horizontal swipe we want to capture.
+
         const absX = Math.abs(diffX);
         const absY = Math.abs(diffY);
-        if (absX > 10 || absY > 10) {
-          if (absX > absY * 1.5) {
+
+        // Lower deadzone (10 -> 5) for faster response
+        if (absX > 5 || absY > 5) {
+          // Reverted threshold to 1.2 to avoid blocking vertical scroll
+          if (absX > absY * 1.2) {
             gestureRef.current.isLocked = 'horizontal';
           } else if (absY > absX) {
             const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
@@ -142,9 +150,9 @@ export function useCalendarGesture({
             const isPullingDownBeyondThreshold = isAtTop && diffY > PULL_DOWN_THRESHOLD;
 
             // Allow resize if:
-            // 1. Touching calendar directly, OR
+            // 1. Touching calendar directly AND NOT in fullscreen mode (to allow scrolling), OR
             // 2. Touching event list AND at top AND pulled down beyond threshold
-            const shouldResize = isTouchingCalendar || (isTouchingEventList && isPullingDownBeyondThreshold);
+            const shouldResize = (isTouchingCalendar && latestStateRef.current.calendarMode !== 'fullscreen') || (isTouchingEventList && isPullingDownBeyondThreshold);
 
             if (shouldResize) {
               gestureRef.current.isLocked = 'vertical-resize';
@@ -152,6 +160,9 @@ export function useCalendarGesture({
               setLiveCalendarHeight(startHeight);
             } else if (e instanceof MouseEvent) {
               gestureRef.current.isLocked = 'vertical-scroll';
+            } else {
+              // Explicitly lock as native-scroll to prevent re-evaluation
+              gestureRef.current.isLocked = 'native-scroll';
             }
           }
         }

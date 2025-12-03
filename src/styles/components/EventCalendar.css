@@ -79,7 +79,7 @@
 
 .calendar-wrapper {
   width: 100%;
-  touch-action: none;
+  touch-action: pan-y;
 
   top: 0;
   left: 0;
@@ -910,22 +910,18 @@
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 1px;
-  background-color: #1f2937;
+  background-color: var(--calendar-bg);
   /* gray-800 */
-  border: 1px solid #1f2937;
+  border: 1px solid var(--calendar-cell-border);
   border-radius: 0.5rem;
   overflow: hidden;
 }
 
-.calendar-weekday-header {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  margin-bottom: 0.5rem;
-}
+
 
 .calendar-weekday-item {
   text-align: center;
-  color: #9ca3af;
+  color: var(--text-muted);
   /* gray-400 */
   font-size: 0.875rem;
   /* 14px */
@@ -945,7 +941,7 @@
 
 
 .calendar-cell-hoverable:hover {
-  background-color: #374151;
+  background-color: var(--bg-hover);
   /* gray-700 */
 }
 
@@ -1016,13 +1012,10 @@
 }
 
 .calendar-mode-fullscreen {
-  overflow-y: auto;
+  overflow-y: hidden;
+  /* Disable container scroll */
   overflow-x: hidden;
-  /* Prevent horizontal scroll */
   height: 100%;
-  /* Ensure it takes full height */
-  -webkit-overflow-scrolling: touch;
-  /* Smooth scrolling on iOS */
 }
 
 .calendar-mode-normal {
@@ -1031,28 +1024,27 @@
 
 .calendar-carousel-track {
   display: flex;
-  height: 100%;
+  /* height: 100%; Removed to allow growth */
   min-height: 100%;
   flex-shrink: 0;
   /* Critical: Prevent track from shrinking to container width */
+  touch-action: pan-y;
 }
 
 .calendar-month-slide {
   padding-bottom: 0;
   flex-shrink: 0;
   position: relative;
-  height: auto;
-  /* Allow height to grow based on content */
-  min-height: 100%;
-  /* Ensure it fills at least the container */
+  height: 100%;
+  /* Match container height */
+  overflow-y: auto;
+  /* Enable independent scroll */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  /* Explicitly allow vertical pan, let JS handle horizontal */
 }
 
-.calendar-fullscreen-spacer {
-  height: 5rem;
-  /* 80px */
-  width: 100%;
-  grid-column: span 7 / span 7;
-}
+
 
 /* Multi-Day Titles Overlay */
 .calendar-overlay-container {
@@ -1109,9 +1101,9 @@
 }
 
 .calendar-year-button.default {
-  background-color: #374151;
+  background-color: var(--bg-secondary);
   /* gray-700 */
-  color: #d1d5db;
+  color: var(--text-secondary);
   /* gray-300 */
 }
 
@@ -1207,7 +1199,10 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  user-select: none;
+  height: 100%;
+  /* Ensure it fills the parent */
+  overflow: hidden;
+  /* Prevent container scroll */
 }
 
 /* Navigation Icons */
@@ -1217,6 +1212,35 @@
 }
 
 /* Event Container (Normal Mode) */
+.calendar-event-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 18px;
+}
+
+/* Weekday Header */
+.calendar-weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.75rem;
+  /* text-xs */
+  font-weight: 600;
+  /* font-semibold */
+  color: var(--text-muted);
+  /* gray-400 */
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--calendar-cell-border);
+  /* gray-700 */
+  flex-shrink: 0;
+  /* Prevent header from shrinking */
+  background-color: var(--calendar-header-bg);
+  /* Ensure background covers scrolling content */
+  z-index: 10;
+}
+
 .calendar-event-container-normal {
   position: absolute;
   display: flex;
@@ -1568,14 +1592,12 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 100px;
+  /* min-height: 100px; */
+  /* min-height: 100px; */
   /* Minimum height for fullscreen cells */
-  background-color: #1f2937;
-  /* gray-800 default */
-  border-right: 1px solid #374151;
-  /* gray-700 */
-  border-bottom: 1px solid #374151;
-  /* gray-700 */
+  background-color: var(--calendar-bg);
+  border-right: 1px solid var(--calendar-cell-border);
+  border-bottom: 1px solid var(--calendar-cell-border);
   overflow: hidden;
   position: relative;
 }
@@ -1610,18 +1632,17 @@
 .calendar-fullscreen-event-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background-color: #1f2937;
-  /* gray-800 */
+  /* gap: 4px; */
+  background-color: var(--bg-primary);
   border-radius: 4px;
-  padding: 4px;
-  margin-bottom: 4px;
+  padding: 0px 2px;
+  margin-bottom: 0;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .calendar-fullscreen-event-card:hover {
-  background-color: #374151;
+  background-color: var(--bg-hover);
   /* gray-700 */
 }
 
@@ -1630,7 +1651,7 @@
   aspect-ratio: 1 / 1;
   border-radius: 4px;
   overflow: hidden;
-  background-color: #374151;
+  background-color: var(--bg-secondary);
   /* gray-700 */
 }
 

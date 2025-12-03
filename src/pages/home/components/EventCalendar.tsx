@@ -1007,18 +1007,17 @@ export default function EventCalendar({
             // 월간 보기
             <>
               {/* Days of week header */}
-              <div className="no-select">
-                <div className="calendar-weekday-header">
-                  {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
-                    <div
-                      key={day}
-                      className="calendar-weekday-item"
-                      style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
-                    >
-                      {day}
-                    </div>
-                  ))}
-                </div>
+              {/* Days of week header */}
+              <div className="calendar-weekday-header no-select">
+                {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
+                  <div
+                    key={day}
+                    className="calendar-weekday-item"
+                    style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
+                  >
+                    {day}
+                  </div>
+                ))}
               </div>
 
               {/* Calendar grid - 3개 달력 캐러셀 */}
@@ -1032,7 +1031,7 @@ export default function EventCalendar({
                     transition: externalIsAnimating
                       ? "transform 0.3s ease-out"
                       : "none",
-                    height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                    height: '100%',
                     minHeight: '100%'
                   }}
                 >
@@ -1052,7 +1051,7 @@ export default function EventCalendar({
                       } as React.CSSProperties}
                     >
                       {renderCalendarGrid(prevDays, prevMonth)}
-                      {calendarMode === 'fullscreen' && <div className="calendar-fullscreen-spacer"></div>}
+
                     </div>
                     {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(prevDays, prevMonth)}
                   </div>
@@ -1073,7 +1072,7 @@ export default function EventCalendar({
                       } as React.CSSProperties}
                     >
                       {renderCalendarGrid(currentDays, currentMonth)}
-                      {calendarMode === 'fullscreen' && <div className="calendar-fullscreen-spacer"></div>}
+
                     </div>
                     {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(currentDays, currentMonth)}
                   </div>
@@ -1094,7 +1093,7 @@ export default function EventCalendar({
                       } as React.CSSProperties}
                     >
                       {renderCalendarGrid(nextDays, nextMonth)}
-                      {calendarMode === 'fullscreen' && <div className="calendar-fullscreen-spacer"></div>}
+
                     </div>
                     {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(nextDays, nextMonth)}
                   </div>
