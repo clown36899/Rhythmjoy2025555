@@ -154,14 +154,17 @@ export function useCalendarGesture({
             // 2. Touching event list AND at top AND pulled down beyond threshold
             const shouldResize = (isTouchingCalendar && latestStateRef.current.calendarMode !== 'fullscreen') || (isTouchingEventList && isPullingDownBeyondThreshold);
 
+            // Check if we are potentially pulling down to resize (but haven't reached threshold yet)
+            const isPotentialPullDown = isTouchingEventList && isAtTop && diffY > 0;
+
             if (shouldResize) {
               gestureRef.current.isLocked = 'vertical-resize';
               setIsDragging(true);
               setLiveCalendarHeight(startHeight);
             } else if (e instanceof MouseEvent) {
               gestureRef.current.isLocked = 'vertical-scroll';
-            } else {
-              // Explicitly lock as native-scroll to prevent re-evaluation
+            } else if (!isPotentialPullDown) {
+              // Only lock to native-scroll if we are NOT potentially pulling down to resize
               gestureRef.current.isLocked = 'native-scroll';
             }
           }

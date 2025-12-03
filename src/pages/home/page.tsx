@@ -495,6 +495,19 @@ export default function HomePage() {
             zIndex: isFixed ? 30 : 15,
           }}
         >
+          {/* Weekday Header (Fixed) */}
+          <div className="calendar-weekday-header no-select">
+            {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
+              <div
+                key={day}
+                className="calendar-weekday-item"
+                style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
           <div
             ref={calendarContentRef}
             className="home-calendar-content"

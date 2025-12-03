@@ -1007,18 +1007,8 @@ export default function EventCalendar({
             // 월간 보기
             <>
               {/* Days of week header */}
-              {/* Days of week header */}
-              <div className="calendar-weekday-header no-select">
-                {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
-                  <div
-                    key={day}
-                    className="calendar-weekday-item"
-                    style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
+              {/* Days of week header moved to parent component */}
+
 
               {/* Calendar grid - 3개 달력 캐러셀 */}
               <div className={`calendar-carousel-container ${calendarMode === 'fullscreen' ? 'calendar-mode-fullscreen' : 'calendar-mode-normal'}`}>
@@ -1046,8 +1036,8 @@ export default function EventCalendar({
                       style={{
                         gridAutoRows: calendarMode === 'fullscreen'
                           ? 'auto'
-                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
-                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
+                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px)) / 6))`,
+                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px)) / 6))`
                       } as React.CSSProperties}
                     >
                       {renderCalendarGrid(prevDays, prevMonth)}
@@ -1067,8 +1057,8 @@ export default function EventCalendar({
                       style={{
                         gridAutoRows: calendarMode === 'fullscreen'
                           ? 'auto'
-                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
-                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
+                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px)) / 6))`,
+                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px)) / 6))`
                       } as React.CSSProperties}
                     >
                       {renderCalendarGrid(currentDays, currentMonth)}

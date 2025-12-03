@@ -913,7 +913,10 @@
   background-color: var(--calendar-bg);
   /* gray-800 */
   border: 1px solid var(--calendar-cell-border);
-  border-radius: 0.5rem;
+  border-top: none;
+  /* Remove top border as header has bottom border */
+  border-radius: 0 0 0.5rem 0.5rem;
+  /* Only round bottom corners */
   overflow: hidden;
 }
 
