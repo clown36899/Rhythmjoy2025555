@@ -442,9 +442,43 @@
   transition: width 0.3s ease;
 }
 
-.reg-upload-progress-text {
-  font-size: 0.75rem;
-  color: var(--color-gray-400);
+/* ===== Semantic Refactoring (Tailwind Replacements) ===== */
+
+.switcher-label {}
+
+@media (min-width: 640px) {
+  .switcher-label {
+    display: inline;
+  }
+}
+
+.card-preview-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 1rem;
+}
+
+.billboard-video-placeholder-content {
+  text-align: center;
+}
+
+.billboard-video-icon {
+  font-size: 2.25rem;
+  /* text-4xl */
+  margin-bottom: 0.5rem;
+}
+
+.billboard-empty-icon {
+  font-size: 2.25rem;
+  /* text-4xl */
+}
+
+.billboard-qr-icon {
+  font-size: 3rem;
+  /* text-5xl */
+  color: black;
 }
 
 /* ===== 폼 요소 ===== */

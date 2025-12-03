@@ -420,21 +420,21 @@ export default function EventRegistrationModal({
             className={`switcher-btn ${previewMode === 'detail' ? 'active' : 'inactive'}`}
           >
             <i className="ri-file-list-line"></i>
-            <span className="hidden sm:inline">상세</span>
+            <span className="switcher-label">상세</span>
           </button>
           <button
             onClick={() => setPreviewMode('card')}
             className={`switcher-btn ${previewMode === 'card' ? 'active' : 'inactive'}`}
           >
             <i className="ri-gallery-view-2"></i>
-            <span className="hidden sm:inline">카드</span>
+            <span className="switcher-label">카드</span>
           </button>
           <button
             onClick={() => setPreviewMode('billboard')}
             className={`switcher-btn ${previewMode === 'billboard' ? 'active' : 'inactive'}`}
           >
             <i className="ri-billboard-line"></i>
-            <span className="hidden sm:inline">전광판</span>
+            <span className="switcher-label">전광판</span>
           </button>
         </div>
       </div>
@@ -478,7 +478,7 @@ export default function EventRegistrationModal({
 
           {/* Mode: Card Preview */}
           {previewMode === 'card' && (
-            <div className="flex items-center justify-center h-full p-4">
+            <div className="card-preview-container">
               <div style={{
                 width: '100%',
                 maxWidth: '300px',
@@ -533,8 +533,8 @@ export default function EventRegistrationModal({
                   <div className="billboard-media-area">
                     {isValidVideo && videoId ? (
                       <div className="billboard-media-placeholder">
-                        <div className="text-center">
-                          <i className={`ri-${videoProvider === 'youtube' ? 'youtube' : 'instagram'}-fill text-4xl mb-2`}></i>
+                        <div className="billboard-video-placeholder-content">
+                          <i className={`ri-${videoProvider === 'youtube' ? 'youtube' : 'instagram'}-fill billboard-video-icon`}></i>
                           <p>동영상 미리보기</p>
                         </div>
                       </div>
@@ -542,13 +542,13 @@ export default function EventRegistrationModal({
                       <img src={URL.createObjectURL(imageFile)} alt="preview" className="billboard-media-image" />
                     ) : (
                       <div className="billboard-media-placeholder">
-                        <i className="ri-image-line text-4xl"></i>
+                        <i className="ri-image-line billboard-empty-icon"></i>
                       </div>
                     )}
 
                     {/* QR Code Placeholder */}
                     <div className="billboard-qr-placeholder">
-                      <i className="ri-qr-code-line text-5xl text-black"></i>
+                      <i className="ri-qr-code-line billboard-qr-icon"></i>
                     </div>
                   </div>
 
