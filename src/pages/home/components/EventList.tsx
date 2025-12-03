@@ -606,10 +606,16 @@ export default function EventList({
           최근3개: eventList.slice(-3).map((e: Event) => ({
             id: e.id,
             title: e.title,
-            image_thumbnail: e.image_thumbnail,
-            image: e.image
+            hasThumbnail: !!e.image_thumbnail,
+            thumbnailLength: e.image_thumbnail?.length,
+            originalImageLength: e.image?.length
           }))
         });
+
+        // Analyze image usage
+        const totalEvents = eventList.length;
+        const withThumbnail = eventList.filter(e => e.image_thumbnail).length;
+        console.log(`[📊 이미지 분석] 총 ${totalEvents}개 중 ${withThumbnail}개(${Math.round(withThumbnail / totalEvents * 100)}%)가 썸네일 보유`);
         setEvents(eventList);
       }
     } catch (error: any) {

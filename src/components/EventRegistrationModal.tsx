@@ -104,6 +104,7 @@ export default function EventRegistrationModal({
   const [title, setTitle] = useState("");
   const [date, setDate] = useState<Date | null>(selectedDate);
   const [endDate, setEndDate] = useState<Date | null>(selectedDate);
+  const [eventDates, setEventDates] = useState<string[]>([]); // For individual dates
   const [location, setLocation] = useState("");
   const [locationLink, setLocationLink] = useState("");
   const [description, setDescription] = useState("");
@@ -171,6 +172,7 @@ export default function EventRegistrationModal({
       setTitle("");
       setDate(selectedDate);
       setEndDate(selectedDate);
+      // setEventDates([]); // Commented out to prevent reset on re-render
       setLocation("");
       setLocationLink("");
       setDescription("");
@@ -304,6 +306,7 @@ export default function EventRegistrationModal({
         date: date ? formatDateForInput(date) : null,
         start_date: date ? formatDateForInput(date) : null,
         end_date: endDate ? formatDateForInput(endDate) : null,
+        event_dates: eventDates.length > 0 ? eventDates : null, // Include individual dates
         location,
         location_link: locationLink,
         description,
@@ -349,6 +352,7 @@ export default function EventRegistrationModal({
     date: date ? formatDateForInput(date) : undefined,
     start_date: date ? formatDateForInput(date) : undefined,
     end_date: endDate ? formatDateForInput(endDate) : undefined,
+    event_dates: eventDates.length > 0 ? eventDates : undefined,
     location: location,
     location_link: locationLink,
     organizer: '익명',
@@ -468,6 +472,8 @@ export default function EventRegistrationModal({
               setDate={setDate}
               endDate={endDate}
               setEndDate={setEndDate}
+              eventDates={eventDates}
+              setEventDates={setEventDates}
               // Footer Props
               password={password}
               setPassword={setPassword}

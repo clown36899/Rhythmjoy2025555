@@ -15,6 +15,7 @@ registerLocale("ko", ko);
 interface Event extends BaseEvent {
     storage_path?: string | null;
     genre?: string | null;
+    event_dates?: string[];
 }
 
 interface EditableEventDetailProps {
@@ -26,11 +27,11 @@ interface EditableEventDetailProps {
     style?: React.CSSProperties;
     // Footer Props
     password?: string;
-    setPassword?: (value: string) => void;
+    setPassword?: (password: string) => void;
     link?: string;
-    setLink?: (value: string) => void;
+    setLink?: (link: string) => void;
     linkName?: string;
-    setLinkName?: (value: string) => void;
+    setLinkName?: (linkName: string) => void;
     onRegister?: () => void;
     onClose?: () => void;
     isSubmitting?: boolean;
@@ -39,17 +40,19 @@ interface EditableEventDetailProps {
     setDate?: (date: Date | null) => void;
     endDate?: Date | null;
     setEndDate?: (date: Date | null) => void;
+    eventDates?: string[];
+    setEventDates?: (dates: string[]) => void;
 }
 
 const genreColorPalette = [
-    'genre-color-red', 'genre-color-orange', 'genre-color-amber', 'genre-color-yellow',
-    'genre-color-lime', 'genre-color-green', 'genre-color-emerald', 'genre-color-teal',
-    'genre-color-cyan', 'genre-color-sky', 'genre-color-blue', 'genre-color-indigo',
-    'genre-color-violet', 'genre-color-purple', 'genre-color-fuchsia', 'genre-color-pink', 'genre-color-rose',
+    'card-genre-red', 'card-genre-orange', 'card-genre-amber', 'card-genre-yellow',
+    'card-genre-lime', 'card-genre-green', 'card-genre-emerald', 'card-genre-teal',
+    'card-genre-cyan', 'card-genre-sky', 'card-genre-blue', 'card-genre-indigo',
+    'card-genre-violet', 'card-genre-purple', 'card-genre-fuchsia', 'card-genre-pink', 'card-genre-rose',
 ];
 
 function getGenreColor(genre: string): string {
-    if (!genre) return 'genre-color-gray';
+    if (!genre) return 'card-genre-gray';
     let hash = 0;
     for (let i = 0; i < genre.length; i++) {
         hash = genre.charCodeAt(i) + ((hash << 5) - hash);
@@ -84,10 +87,15 @@ export default function EditableEventDetail({
     setDate,
     endDate,
     setEndDate,
+    eventDates = [],
+    setEventDates,
 }: EditableEventDetailProps) {
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
     const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | null>(null);
     const titleRef = React.useRef<HTMLTextAreaElement>(null);
+
+    // Date Picker Mode
+    const [dateMode, setDateMode] = useState<'range' | 'dates'>('range');
 
     // Auto-resize and font scaling for Title
     useEffect(() => {
@@ -132,7 +140,15 @@ export default function EditableEventDetail({
             setShowCustomGenreInput(false);
             setCustomGenreInput("");
         }
-    }, [activeModal, event]);
+        // Initialize date mode based on existing data
+        if (activeModal === 'date') {
+            if (eventDates && eventDates.length > 0) {
+                setDateMode('dates');
+            } else {
+                setDateMode('range');
+            }
+        }
+    }, [activeModal, event, eventDates]);
 
     const detailImageUrl = event.image || getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
     const hasImage = !!event.image;
@@ -140,6 +156,14 @@ export default function EditableEventDetail({
     const handleSave = (field: string, value: any) => {
         onUpdate(field, value);
         setActiveModal(null);
+    };
+
+    // Helper to format date string YYYY-MM-DD
+    const formatDateStr = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     return (
@@ -331,7 +355,16 @@ export default function EditableEventDetail({
                         <EditBadge />
                         <i className="ri-calendar-line info-icon text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
                         <span className="group-hover:text-white transition-colors text-base">
-                            {event.start_date ? (
+                            {eventDates && eventDates.length > 0 ? (
+                                // Multiple Dates Display
+                                <span className="text-sm">
+                                    {eventDates.length}일 선택됨: {eventDates.map(d => {
+                                        const dateObj = new Date(d);
+                                        return `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+                                    }).join(', ')}
+                                </span>
+                            ) : event.start_date ? (
+                                // Range Display
                                 (() => {
                                     const start = new Date(event.start_date);
                                     const end = event.end_date ? new Date(event.end_date) : null;
@@ -347,7 +380,7 @@ export default function EditableEventDetail({
                         </span>
 
                         {/* Date Picker Bottom Sheet Portal */}
-                        {activeModal === 'date' && setDate && setEndDate && createPortal(
+                        {activeModal === 'date' && setDate && setEndDate && setEventDates && createPortal(
                             <div className="bottom-sheet-portal">
                                 {/* Backdrop */}
                                 <div
@@ -363,30 +396,67 @@ export default function EditableEventDetail({
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <div className="bottom-sheet-handle"></div>
-                                    <h3 className="bottom-sheet-header">
-                                        <i className="ri-calendar-check-line"></i>
-                                        날짜 선택
-                                    </h3>
+                                    <div className="flex items-center justify-between bottom-sheet-header">
+                                        <h3 className="flex items-center gap-2">
+                                            <i className="ri-calendar-check-line"></i>
+                                            날짜 선택
+                                        </h3>
+                                        {/* Toggle Switch */}
+                                        <div className="date-mode-toggle">
+                                            <button
+                                                onClick={() => {
+                                                    setDateMode('range');
+                                                    setEventDates && setEventDates([]);
+                                                }}
+                                                className={`date-mode-btn ${dateMode === 'range' ? 'active' : ''}`}
+                                            >
+                                                기간
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setDateMode('dates');
+                                                    setDate && setDate(null);
+                                                    setEndDate && setEndDate(null);
+                                                }}
+                                                className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
+                                            >
+                                                개별
+                                            </button>
+                                        </div>
+                                    </div>
 
                                     <div className="bottom-sheet-body flex justify-center pb-8">
-                                        <DatePicker
-                                            selected={date}
-                                            onChange={(dates) => {
-                                                const [start, end] = dates as [Date | null, Date | null];
-                                                setDate(start);
-                                                setEndDate(end);
-                                                // Don't close immediately on range selection start, only on end or if user clicks confirm
-                                                // But for better UX, maybe just let them click confirm?
-                                                // Or close if end date is selected?
-                                                // Let's keep it open until they click confirm or backdrop for now, or close on end date if range.
-                                                // Actually, standard behavior for range is to keep open.
-                                            }}
-                                            startDate={date}
-                                            endDate={endDate}
-                                            selectsRange
-                                            locale={ko}
-                                            inline
-                                        />
+                                        {dateMode === 'range' ? (
+                                            <DatePicker
+                                                selected={date}
+                                                onChange={(dates) => {
+                                                    const [start, end] = dates as [Date | null, Date | null];
+                                                    setDate(start);
+                                                    setEndDate(end);
+                                                }}
+                                                startDate={date}
+                                                endDate={endDate}
+                                                selectsRange
+                                                locale={ko}
+                                                inline
+                                            />
+                                        ) : (
+                                            <DatePicker
+                                                selected={null}
+                                                onChange={(d: Date | null) => {
+                                                    if (!d) return;
+                                                    const dateStr = formatDateStr(d);
+                                                    const newDates = eventDates.includes(dateStr)
+                                                        ? eventDates.filter(ed => ed !== dateStr)
+                                                        : [...eventDates, dateStr].sort();
+                                                    setEventDates && setEventDates(newDates);
+                                                }}
+                                                highlightDates={eventDates.map(d => new Date(d))}
+                                                locale={ko}
+                                                inline
+                                                shouldCloseOnSelect={false}
+                                            />
+                                        )}
                                     </div>
                                     <div className="bottom-sheet-actions">
                                         <button
