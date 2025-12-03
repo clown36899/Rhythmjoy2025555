@@ -234,18 +234,29 @@ export default function PracticeRoomModal({
       }
 
       try {
-        const ext = item.file.name.split(".").pop();
-        const filename = `${Date.now()}_${idx}.${ext}`;
+        // 이미지 리사이징 (트래픽 최적화)
+        const { createResizedImages } = await import("../utils/imageResize");
+        const resized = await createResizedImages(item.file);
+
+        // 연습실 이미지는 퀄리티가 중요하므로 full(1280px) 또는 medium(1080px) 사용
+        const targetImage = resized.full || resized.medium || resized.thumbnail;
+
+        if (!targetImage) throw new Error("Image resizing failed");
+
+        const filename = `${Date.now()}_${idx}.webp`;
         const filePath = `practice-rooms/${filename}`;
 
         const { error: uploadError } = await supabase.storage
           .from("images")
-          .upload(filePath, item.file, {
-            cacheControl: '31536000'
+          .upload(filePath, targetImage, {
+            contentType: 'image/webp',
+            cacheControl: '31536000',
+            upsert: true
           });
 
         if (uploadError) {
           console.error("Storage upload error:", uploadError);
+          // 실패 시 원본 시도 (혹은 플레이스홀더)
           return `https://readdy.ai/api/search-image?query=modern%20music%20practice%20room%20interior%20with%20professional%20equipment%2C%20soundproof%20walls%2C%20musical%20instruments%2C%20clean%20and%20bright%20lighting%2C%20professional%20studio%20setup&width=400&height=300&seq=${Date.now()}_${idx}&orientation=landscape`;
         }
 
@@ -333,7 +344,7 @@ export default function PracticeRoomModal({
         images: [] as string[],
       });
       setImageItems([]);
-      
+
       // initialRoom이나 openToForm으로 열린 경우 모달 닫기, 아니면 목록 새로고침
       if (initialRoom || externalSelectedRoom || openToForm) {
         onClose();
@@ -352,7 +363,7 @@ export default function PracticeRoomModal({
   const handleEdit = (room: PracticeRoom) => {
     // 상세 보기 닫기
     setSelectedRoom(null);
-    
+
     setEditingRoom(room);
     setFormData({
       name: room.name,
@@ -535,7 +546,7 @@ export default function PracticeRoomModal({
           >
             <i className="ri-close-line room-close-icon"></i>
           </button>
-          
+
           {/* Header with navigation buttons */}
           <div className="room-detail-header">
             {/* 관리자 버튼 */}
@@ -603,11 +614,10 @@ export default function PracticeRoomModal({
                           <button
                             key={idx}
                             onClick={() => goToImage(idx)}
-                            className={`room-gallery-indicator ${
-                              idx === selectedImageIndex
-                                ? "room-gallery-indicator-active"
-                                : ""
-                            }`}
+                            className={`room-gallery-indicator ${idx === selectedImageIndex
+                              ? "room-gallery-indicator-active"
+                              : ""
+                              }`}
                           />
                         ))}
                       </div>
@@ -622,11 +632,10 @@ export default function PracticeRoomModal({
                       <button
                         key={index}
                         onClick={() => setSelectedImageIndex(index)}
-                        className={`room-thumbnail-btn ${
-                          selectedImageIndex === index
-                            ? "room-thumbnail-btn-active"
-                            : "room-thumbnail-btn-inactive"
-                        }`}
+                        className={`room-thumbnail-btn ${selectedImageIndex === index
+                          ? "room-thumbnail-btn-active"
+                          : "room-thumbnail-btn-inactive"
+                          }`}
                       >
                         <img
                           src={image}
@@ -712,12 +721,95 @@ export default function PracticeRoomModal({
             <h2 className="room-list-title">추천연습실</h2>
             <div className="room-list-header-btns">
               {isAdminMode && (
-                <button
-                  onClick={() => setIsFormOpen(true)}
-                  className="room-register-btn"
-                >
-                  등록
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={async () => {
+                      if (!confirm("모든 연습실 이미지를 최적화(WebP 변환)하시겠습니까?\n이 작업은 시간이 걸릴 수 있습니다.")) return;
+
+                      setLoading(true);
+                      try {
+                        const { data: allRooms } = await supabase.from("practice_rooms").select("*");
+                        if (!allRooms) return;
+
+                        let totalUpdated = 0;
+                        const { createResizedImages } = await import("../utils/imageResize");
+
+                        for (const room of allRooms) {
+                          let images = typeof room.images === 'string' ? JSON.parse(room.images) : room.images || [];
+                          let changed = false;
+                          const newImages = [];
+
+                          for (let i = 0; i < images.length; i++) {
+                            const url = images[i];
+                            // 이미 WebP이면 건너뛰기 (선택사항)
+                            if (url.includes('.webp')) {
+                              newImages.push(url);
+                              continue;
+                            }
+
+                            try {
+                              // Fetch blob
+                              const response = await fetch(url);
+                              const blob = await response.blob();
+                              const file = new File([blob], "image.jpg", { type: blob.type });
+
+                              // Resize
+                              const resized = await createResizedImages(file);
+                              const targetImage = resized.full || resized.medium || resized.thumbnail;
+
+                              // Upload
+                              const filename = `practice-rooms/optimized_${room.id}_${i}_${Date.now()}.webp`;
+                              const { error: uploadError } = await supabase.storage
+                                .from("images")
+                                .upload(filename, targetImage, {
+                                  contentType: 'image/webp',
+                                  cacheControl: '31536000',
+                                  upsert: true
+                                });
+
+                              if (uploadError) throw uploadError;
+
+                              const { data } = supabase.storage.from("images").getPublicUrl(filename);
+                              newImages.push(data.publicUrl);
+                              changed = true;
+                            } catch (e) {
+                              console.error(`Failed to optimize image for room ${room.id}:`, e);
+                              newImages.push(url); // Keep original if failed
+                            }
+                          }
+
+                          if (changed) {
+                            await supabase
+                              .from("practice_rooms")
+                              .update({
+                                images: JSON.stringify(newImages),
+                                image: newImages[0] // Update main image too
+                              })
+                              .eq("id", room.id);
+                            totalUpdated++;
+                          }
+                        }
+                        alert(`작업 완료! 총 ${totalUpdated}개의 연습실 정보가 업데이트되었습니다.`);
+                        fetchRooms();
+                      } catch (e) {
+                        console.error(e);
+                        alert("이미지 최적화 중 오류가 발생했습니다.");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="room-register-btn"
+                    style={{ backgroundColor: '#10b981' }}
+                  >
+                    이미지 전체 최적화
+                  </button>
+                  <button
+                    onClick={() => setIsFormOpen(true)}
+                    className="room-register-btn"
+                  >
+                    등록
+                  </button>
+                </div>
               )}
               <button
                 onClick={onClose}
@@ -926,9 +1018,8 @@ export default function PracticeRoomModal({
                         {imageItems.map((item, index) => (
                           <div
                             key={item.id}
-                            className={`room-image-item ${
-                              draggedIndex === index ? "room-image-item-dragging" : ""
-                            }`}
+                            className={`room-image-item ${draggedIndex === index ? "room-image-item-dragging" : ""
+                              }`}
                             draggable
                             onDragStart={(e) => handleDragStart(e, index)}
                             onDragOver={handleDragOver}

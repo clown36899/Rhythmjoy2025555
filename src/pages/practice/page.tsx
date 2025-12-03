@@ -11,7 +11,7 @@ export default function PracticeRoomsPage() {
   const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">("random");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
-  
+
   const { isAdmin } = useAuth();
   const isDevAdmin = localStorage.getItem('isDevAdmin') === 'true';
   const isEffectiveAdmin = isAdmin || isDevAdmin;
@@ -26,7 +26,7 @@ export default function PracticeRoomsPage() {
     };
 
     window.addEventListener('practiceRoomRegister', handleRegisterEvent);
-    
+
     return () => {
       window.removeEventListener('practiceRoomRegister', handleRegisterEvent);
     };
@@ -45,7 +45,7 @@ export default function PracticeRoomsPage() {
       {/* Practice Room List - 달력 없음 */}
       <div className="practice-main-content">
         <PracticeRoomList
-          adminType={null}
+          adminType={isEffectiveAdmin ? "super" : null}
           showSearchModal={showSearchModal}
           setShowSearchModal={setShowSearchModal}
           showSortModal={showSortModal}

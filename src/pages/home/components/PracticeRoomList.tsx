@@ -29,7 +29,7 @@ interface PracticeRoomListProps {
   setSortBy: (sortBy: "random" | "time" | "title") => void;
 }
 
-export default function PracticeRoomList({ 
+export default function PracticeRoomList({
   adminType = null,
   showSearchModal,
   setShowSearchModal,
@@ -97,7 +97,7 @@ export default function PracticeRoomList({
     // 먼저 필터링
     let filtered = rooms.filter((room) => {
       if (!searchQuery.trim()) return true;
-      
+
       const query = searchQuery.toLowerCase();
       return (
         room.name.toLowerCase().includes(query) ||
@@ -222,7 +222,89 @@ export default function PracticeRoomList({
     <>
       <div className="prl-main-container">
         {adminType === "super" && (
-          <div className="prl-admin-section">
+          <div className="prl-admin-section" style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={async () => {
+                if (!confirm("모든 연습실 이미지를 최적화(WebP 변환)하시겠습니까?\n이 작업은 시간이 걸릴 수 있습니다.")) return;
+
+                setLoading(true);
+                try {
+                  const { data: allRooms } = await supabase.from("practice_rooms").select("*");
+                  if (!allRooms) return;
+
+                  let totalUpdated = 0;
+                  const { createResizedImages } = await import("../../../utils/imageResize");
+
+                  for (const room of allRooms) {
+                    let images = typeof room.images === 'string' ? JSON.parse(room.images) : room.images || [];
+                    let changed = false;
+                    const newImages = [];
+
+                    for (let i = 0; i < images.length; i++) {
+                      const url = images[i];
+                      // 이미 WebP이면 건너뛰기
+                      if (url.includes('.webp')) {
+                        newImages.push(url);
+                        continue;
+                      }
+
+                      try {
+                        // Fetch blob
+                        const response = await fetch(url);
+                        const blob = await response.blob();
+                        const file = new File([blob], "image.jpg", { type: blob.type });
+
+                        // Resize
+                        const resized = await createResizedImages(file);
+                        const targetImage = resized.full || resized.medium || resized.thumbnail;
+
+                        // Upload
+                        const filename = `practice-rooms/optimized_${room.id}_${i}_${Date.now()}.webp`;
+                        const { error: uploadError } = await supabase.storage
+                          .from("images")
+                          .upload(filename, targetImage, {
+                            contentType: 'image/webp',
+                            cacheControl: '31536000',
+                            upsert: true
+                          });
+
+                        if (uploadError) throw uploadError;
+
+                        const { data } = supabase.storage.from("images").getPublicUrl(filename);
+                        newImages.push(data.publicUrl);
+                        changed = true;
+                      } catch (e) {
+                        console.error(`Failed to optimize image for room ${room.id}:`, e);
+                        newImages.push(url); // Keep original if failed
+                      }
+                    }
+
+                    if (changed) {
+                      await supabase
+                        .from("practice_rooms")
+                        .update({
+                          images: JSON.stringify(newImages),
+                          image: newImages[0] // Update main image too
+                        })
+                        .eq("id", room.id);
+                      totalUpdated++;
+                    }
+                  }
+                  alert(`작업 완료! 총 ${totalUpdated}개의 연습실 정보가 업데이트되었습니다.`);
+                  fetchRooms();
+                } catch (e) {
+                  console.error(e);
+                  alert("이미지 최적화 중 오류가 발생했습니다.");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="prl-add-room-btn"
+              style={{ backgroundColor: '#10b981' }}
+            >
+              <i className="ri-image-edit-line"></i>
+              <span>이미지 전체 최적화</span>
+            </button>
             <button
               onClick={handleAddNewRoom}
               className="prl-add-room-btn"
@@ -258,44 +340,44 @@ export default function PracticeRoomList({
         ) : (
           <div className="prl-grid">
             {filteredAndSortedRooms.map((room, index) => (
-            <div
-              key={room.id}
-              onClick={() => handleRoomClick(room)}
-              className="prl-card animate-fadeIn"
-              style={{
-                animationDelay: `${index * 100}ms`
-              }}
-            >
-              {/* 왼쪽: 정보 */}
-              <div className="prl-card-info">
-                <h3 className="prl-card-name">
-                  {room.name}
-                </h3>
-                {room.address && (
-                  <p className="prl-card-address">
-                    <i className="ri-map-pin-line prl-card-address-icon"></i>
-                    <span className="prl-card-address-text">{room.address}</span>
-                  </p>
-                )}
-                {room.description && (
-                  <p className="prl-card-description">
-                    {room.description}
-                  </p>
+              <div
+                key={room.id}
+                onClick={() => handleRoomClick(room)}
+                className="prl-card animate-fadeIn"
+                style={{
+                  animationDelay: `${index * 100}ms`
+                }}
+              >
+                {/* 왼쪽: 정보 */}
+                <div className="prl-card-info">
+                  <h3 className="prl-card-name">
+                    {room.name}
+                  </h3>
+                  {room.address && (
+                    <p className="prl-card-address">
+                      <i className="ri-map-pin-line prl-card-address-icon"></i>
+                      <span className="prl-card-address-text">{room.address}</span>
+                    </p>
+                  )}
+                  {room.description && (
+                    <p className="prl-card-description">
+                      {room.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* 오른쪽: 정사각형 이미지 */}
+                {room.images && room.images.length > 0 && (
+                  <div className="prl-card-image-wrapper">
+                    <img
+                      src={room.images[0]}
+                      alt={room.name}
+                      className="prl-card-image"
+                    />
+                  </div>
                 )}
               </div>
-              
-              {/* 오른쪽: 정사각형 이미지 */}
-              {room.images && room.images.length > 0 && (
-                <div className="prl-card-image-wrapper">
-                  <img
-                    src={room.images[0]}
-                    alt={room.name}
-                    className="prl-card-image"
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
           </div>
         )}
       </div>
@@ -420,11 +502,10 @@ export default function PracticeRoomList({
                     setSortBy("random");
                     setShowSortModal(false);
                   }}
-                  className={`prl-sort-option flex items-center gap-3 ${
-                    sortBy === "random"
+                  className={`prl-sort-option flex items-center gap-3 ${sortBy === "random"
                       ? "prl-sort-option-active"
                       : ""
-                  }`}
+                    }`}
                 >
                   <i className="ri-shuffle-line"></i>
                   <span>랜덤</span>
@@ -435,11 +516,10 @@ export default function PracticeRoomList({
                     setSortBy("title");
                     setShowSortModal(false);
                   }}
-                  className={`prl-sort-option flex items-center gap-3 ${
-                    sortBy === "title"
+                  className={`prl-sort-option flex items-center gap-3 ${sortBy === "title"
                       ? "prl-sort-option-active"
                       : ""
-                  }`}
+                    }`}
                 >
                   <i className="ri-sort-alphabet-asc"></i>
                   <span>이름순</span>
