@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../lib/supabase';
 import { useDefaultThumbnail } from '../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../utils/getEventThumbnail';
+import { formatDateForInput } from '../utils/fileUtils';
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
@@ -110,9 +111,15 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     // const titleRef = React.useRef<HTMLTextAreaElement>(null); // No longer needed
 
     // Date Picker Mode
-    const [dateMode, setDateMode] = useState<'range' | 'dates'>('range');
-
-    // Auto-resize effect removed as we now use a modal
+    const [dateMode, setDateMode] = useState<'single' | 'range' | 'dates'>(() => {
+        if (eventDates && eventDates.length > 0) {
+            return 'dates';
+        } else if (date && endDate && date.getTime() !== endDate.getTime()) {
+            return 'range';
+        } else {
+            return 'single';
+        }
+    });
 
     // Local state for modals
     const [tempLocation, setTempLocation] = useState("");
@@ -559,8 +566,10 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             e.stopPropagation();
                             if (eventDates && eventDates.length > 0) {
                                 setDateMode('dates');
-                            } else {
+                            } else if (date && endDate && date.getTime() !== endDate.getTime()) {
                                 setDateMode('range');
+                            } else {
+                                setDateMode('single');
                             }
                             setActiveModal('date');
                         }}
@@ -618,12 +627,25 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         <div className="date-mode-toggle">
                                             <button
                                                 onClick={() => {
+                                                    setDateMode('single');
+                                                    setEventDates && setEventDates([]);
+                                                    setDate && setDate(null);
+                                                    setEndDate && setEndDate(null);
+                                                }}
+                                                className={`date-mode-btn ${dateMode === 'single' ? 'active' : ''}`}
+                                            >
+                                                하루
+                                            </button>
+                                            <button
+                                                onClick={() => {
                                                     setDateMode('range');
                                                     setEventDates && setEventDates([]);
+                                                    setDate && setDate(null);
+                                                    setEndDate && setEndDate(null);
                                                 }}
                                                 className={`date-mode-btn ${dateMode === 'range' ? 'active' : ''}`}
                                             >
-                                                기간
+                                                연속
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -641,7 +663,12 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                     <div className="bottom-sheet-body flex flex-col items-center pb-8">
                                         {/* Selected Dates Display */}
                                         <div className="selected-dates-container">
-                                            {dateMode === 'range' ? (
+                                            {dateMode === 'single' ? (
+                                                <div className="date-display-box active">
+                                                    <span className="label">선택일</span>
+                                                    <span className="value">{date ? formatDateStr(date) : '-'}</span>
+                                                </div>
+                                            ) : dateMode === 'range' ? (
                                                 <div className="date-range-display">
                                                     <div className={`date-display-box ${date ? 'active' : ''}`}>
                                                         <span className="label">시작</span>
@@ -678,14 +705,27 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                             )}
                                         </div>
 
-                                        <div className="calendar-wrapper">
-                                            {dateMode === 'range' ? (
+                                        <div className="calendar-wrapper" style={{ minHeight: '340px' }}>
+                                            {dateMode === 'single' ? (
+                                                <DatePicker
+                                                    selected={date}
+                                                    onChange={(d: Date | null) => {
+                                                        if (d) {
+                                                            setDate && setDate(d);
+                                                            setEndDate && setEndDate(d);
+                                                            setEventDates && setEventDates([]);
+                                                        }
+                                                    }}
+                                                    locale={ko}
+                                                    inline
+                                                />
+                                            ) : dateMode === 'range' ? (
                                                 <DatePicker
                                                     selected={date}
                                                     onChange={(dates) => {
                                                         const [start, end] = dates as [Date | null, Date | null];
-                                                        setDate(start);
-                                                        setEndDate(end);
+                                                        setDate && setDate(start);
+                                                        setEndDate && setEndDate(end);
                                                     }}
                                                     startDate={date}
                                                     endDate={endDate}
@@ -714,8 +754,24 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                     </div>
                                     <div className="bottom-sheet-actions">
                                         <button
-                                            onClick={() => setActiveModal(null)}
+                                            onClick={() => {
+                                                if (dateMode === 'single' || dateMode === 'range') {
+                                                    if (date && endDate) {
+                                                        onUpdate('date', formatDateForInput(date));
+                                                        onUpdate('end_date', formatDateForInput(endDate));
+                                                        onUpdate('event_dates', []); // Clear multiple dates
+                                                        setActiveModal(null);
+                                                    }
+                                                } else {
+                                                    // Multiple dates mode
+                                                    onUpdate('event_dates', eventDates);
+                                                    onUpdate('date', null); // Clear range dates
+                                                    onUpdate('end_date', null);
+                                                    setActiveModal(null);
+                                                }
+                                            }}
                                             className="bottom-sheet-button"
+                                            disabled={(dateMode === 'range' && (!date || !endDate)) || (dateMode === 'single' && !date)}
                                         >
                                             확인
                                         </button>

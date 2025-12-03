@@ -6,28 +6,28 @@
   --calendar-bg: #1a1a1a;
   --calendar-header-bg: #252525;
   --calendar-cell-border: #15151575;
-  
+
   /* 텍스트 색상 */
   --text-primary: #ffffff;
   --text-secondary: #d1d5db;
   --text-muted: #9ca3af;
   --text-dark: #6b7280;
-  
+
   /* 배경 색상 */
   --bg-primary: #1f2937;
   --bg-secondary: #374151;
   --bg-hover: #4b5563;
   --bg-selected: #3b82f6;
-  
+
   /* 이벤트 색상 - 카테고리별 */
   --event-class-primary: #a855f7;
   --event-class-secondary: #9333ea;
   --event-class-tertiary: #c084fc;
-  
+
   --event-event-primary: #3b82f6;
   --event-event-secondary: #2563eb;
   --event-event-tertiary: #60a5fa;
-  
+
   /* 전체화면 모드 이벤트 색상 팔레트 */
   --color-red-500: #ef4444;
   --color-orange-500: #f97316;
@@ -46,14 +46,14 @@
   --color-fuchsia-500: #d946ef;
   --color-pink-500: #ec4899;
   --color-rose-500: #f43f5e;
-  
+
   /* 간격 */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
-  
+
   /* 트랜지션 */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.2s ease;
@@ -80,7 +80,7 @@
 .calendar-wrapper {
   width: 100%;
   touch-action: none;
-  position: fixed;
+
   top: 0;
   left: 0;
   right: 0;
@@ -250,36 +250,125 @@
 }
 
 /* 배경 색상 - 전체화면 모드 색상 팔레트 */
-.cal-bg-red-500 { background-color: var(--color-red-500); }
-.cal-bg-red-600 { background-color: #dc2626; }
-.cal-bg-orange-500 { background-color: var(--color-orange-500); }
-.cal-bg-orange-600 { background-color: #ea580c; }
-.cal-bg-amber-500 { background-color: var(--color-amber-500); }
-.cal-bg-amber-600 { background-color: #d97706; }
-.cal-bg-yellow-500 { background-color: var(--color-yellow-500); }
-.cal-bg-yellow-600 { background-color: #ca8a04; }
-.cal-bg-lime-500 { background-color: var(--color-lime-500); }
-.cal-bg-lime-600 { background-color: #65a30d; }
-.cal-bg-green-600 { background-color: #16a34a; }
-.cal-bg-emerald-500 { background-color: var(--color-emerald-500); }
-.cal-bg-emerald-600 { background-color: #059669; }
-.cal-bg-teal-500 { background-color: var(--color-teal-500); }
-.cal-bg-teal-600 { background-color: #0d9488; }
-.cal-bg-cyan-500 { background-color: var(--color-cyan-500); }
-.cal-bg-cyan-600 { background-color: #0891b2; }
-.cal-bg-sky-500 { background-color: var(--color-sky-500); }
-.cal-bg-sky-600 { background-color: #0284c7; }
-.cal-bg-indigo-500 { background-color: var(--color-indigo-500); }
-.cal-bg-indigo-600 { background-color: #4f46e5; }
-.cal-bg-violet-500 { background-color: var(--color-violet-500); }
-.cal-bg-violet-600 { background-color: #7c3aed; }
-.cal-bg-fuchsia-500 { background-color: var(--color-fuchsia-500); }
-.cal-bg-fuchsia-600 { background-color: #c026d3; }
-.cal-bg-pink-500 { background-color: var(--color-pink-500); }
-.cal-bg-pink-600 { background-color: #db2777; }
-.cal-bg-rose-500 { background-color: var(--color-rose-500); }
-.cal-bg-rose-600 { background-color: #e11d48; }
-.cal-bg-gray-500 { background-color: #6b7280; }
+.cal-bg-red-500 {
+  background-color: var(--color-red-500);
+}
+
+.cal-bg-red-600 {
+  background-color: #dc2626;
+}
+
+.cal-bg-orange-500 {
+  background-color: var(--color-orange-500);
+}
+
+.cal-bg-orange-600 {
+  background-color: #ea580c;
+}
+
+.cal-bg-amber-500 {
+  background-color: var(--color-amber-500);
+}
+
+.cal-bg-amber-600 {
+  background-color: #d97706;
+}
+
+.cal-bg-yellow-500 {
+  background-color: var(--color-yellow-500);
+}
+
+.cal-bg-yellow-600 {
+  background-color: #ca8a04;
+}
+
+.cal-bg-lime-500 {
+  background-color: var(--color-lime-500);
+}
+
+.cal-bg-lime-600 {
+  background-color: #65a30d;
+}
+
+.cal-bg-green-600 {
+  background-color: #16a34a;
+}
+
+.cal-bg-emerald-500 {
+  background-color: var(--color-emerald-500);
+}
+
+.cal-bg-emerald-600 {
+  background-color: #059669;
+}
+
+.cal-bg-teal-500 {
+  background-color: var(--color-teal-500);
+}
+
+.cal-bg-teal-600 {
+  background-color: #0d9488;
+}
+
+.cal-bg-cyan-500 {
+  background-color: var(--color-cyan-500);
+}
+
+.cal-bg-cyan-600 {
+  background-color: #0891b2;
+}
+
+.cal-bg-sky-500 {
+  background-color: var(--color-sky-500);
+}
+
+.cal-bg-sky-600 {
+  background-color: #0284c7;
+}
+
+.cal-bg-indigo-500 {
+  background-color: var(--color-indigo-500);
+}
+
+.cal-bg-indigo-600 {
+  background-color: #4f46e5;
+}
+
+.cal-bg-violet-500 {
+  background-color: var(--color-violet-500);
+}
+
+.cal-bg-violet-600 {
+  background-color: #7c3aed;
+}
+
+.cal-bg-fuchsia-500 {
+  background-color: var(--color-fuchsia-500);
+}
+
+.cal-bg-fuchsia-600 {
+  background-color: #c026d3;
+}
+
+.cal-bg-pink-500 {
+  background-color: var(--color-pink-500);
+}
+
+.cal-bg-pink-600 {
+  background-color: #db2777;
+}
+
+.cal-bg-rose-500 {
+  background-color: var(--color-rose-500);
+}
+
+.cal-bg-rose-600 {
+  background-color: #e11d48;
+}
+
+.cal-bg-gray-500 {
+  background-color: #6b7280;
+}
 
 /* ===== 간격 클래스 (Spacing) ===== */
 
@@ -530,11 +619,11 @@
 }
 
 /* ===== 추가 레이아웃 클래스 ===== */
-.cal-space-x-1 > * + * {
+.cal-space-x-1>*+* {
   margin-left: 0.25rem;
 }
 
-.cal-space-x-2 > * + * {
+.cal-space-x-2>*+* {
   margin-left: 0.5rem;
 }
 
@@ -840,11 +929,11 @@
 }
 
 /* Space Between */
-.cal-space-x-1 > * + * {
+.cal-space-x-1>*+* {
   margin-left: 0.25rem;
 }
 
-.cal-space-x-2 > * + * {
+.cal-space-x-2>*+* {
   margin-left: 0.5rem;
 }
 

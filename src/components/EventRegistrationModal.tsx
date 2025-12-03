@@ -286,7 +286,7 @@ export default function EventRegistrationModal({
       return;
     }
 
-    if (!date) {
+    if (!date && (!eventDates || eventDates.length === 0)) {
       alert("날짜를 선택해주세요.");
       detailRef.current?.openModal('date');
       return;
@@ -372,11 +372,16 @@ export default function EventRegistrationModal({
         }
       }
 
+      // Determine effective start and end dates
+      const sortedDates = eventDates.length > 0 ? [...eventDates].sort() : [];
+      const effectiveStartDate = date ? formatDateForInput(date) : (sortedDates.length > 0 ? sortedDates[0] : null);
+      const effectiveEndDate = endDate ? formatDateForInput(endDate) : (sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : null);
+
       const eventData = {
         title,
-        date: date ? formatDateForInput(date) : null,
-        start_date: date ? formatDateForInput(date) : null,
-        end_date: endDate ? formatDateForInput(endDate) : null,
+        date: effectiveStartDate,
+        start_date: effectiveStartDate,
+        end_date: effectiveEndDate,
         event_dates: eventDates.length > 0 ? eventDates : null, // Include individual dates
         location,
         location_link: locationLink,
