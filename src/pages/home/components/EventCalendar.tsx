@@ -745,12 +745,9 @@ export default function EventCalendar({
             className={`cal-w-full cal-h-full cal-cursor-pointer cal-relative cal-overflow-visible no-select ${isSelected ? "cal-text-white cal-z-10" : "cal-text-gray-300"
               }`}
           >
-            {/* 날짜 숫자 - 왼쪽 위로 완전히 붙임 */}
+            {/* 날짜 숫자 */}
             <span
-              className={`cal-absolute cal-font-bold cal-z-30 no-select ${todayFlag
-                ? "cal-flex cal-items-center cal-justify-center cal-rounded-full cal-bg-blue-500 cal-text-white"
-                : ""
-                } ${calendarMode === 'fullscreen' ? 'cal-top-px cal-left-0.5' : 'cal-top-1 cal-left-2'}`}
+              className={`calendar-date-number ${todayFlag ? "calendar-date-number-today" : ""}`}
               style={{
                 opacity: isOtherMonth ? 0.15 : undefined,
                 fontSize: calendarMode === 'fullscreen' ? (todayFlag ? '9px' : '10px') : (todayFlag ? '11px' : `${dateFontSize}px`),
@@ -777,15 +774,10 @@ export default function EventCalendar({
                   // 작을 때: 숫자로 표시 (기존 방식)
                   return (
                     <span
-                      className={`cal-absolute cal-top-0.5 cal-right-0.5 cal-rounded-full cal-px-1 cal-flex cal-items-center cal-justify-center cal-font-medium cal-transition-all cal-duration-200 cal-z-30 no-select ${isHoveredSingle
-                        ? "cal-bg-blue-500 cal-text-white cal-scale-110"
-                        : "cal-bg-gray-600 cal-text-gray-300"
+                      className={`calendar-event-count ${isHoveredSingle
+                        ? "calendar-event-count-hovered"
+                        : "calendar-event-count-default"
                         }`}
-                      style={{
-                        fontSize: `${eventCountFontSize}px`,
-                        minWidth: `${eventCountFontSize * 1.7}px`,
-                        height: `${eventCountFontSize * 1.7}px`,
-                      }}
                     >
                       +{singleDayEvents.length}
                     </span>

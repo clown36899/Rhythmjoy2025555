@@ -802,6 +802,10 @@
 .calendar-date-number {
   font-weight: 700;
   z-index: 30;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .calendar-date-number-today {
@@ -815,14 +819,18 @@
 
 .calendar-event-count {
   position: absolute;
-  top: 0.125rem;
-  right: 0.125rem;
+  top: 1px;
+  right: 0;
   border-radius: 9999px;
-  padding: 0 0.25rem;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 500;
+  font-size: 7px;
+  line-height: 14px;
+  min-width: 14px;
+  height: 14px;
   transition: all 0.2s ease;
   z-index: 30;
 }
