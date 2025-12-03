@@ -15,7 +15,7 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
   const [password, setPassword] = useState(''); // 비밀번호 상태 추가
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
-  
+
   const [places, setPlaces] = useState<{ id: number; name: string; }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,9 +38,22 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
   };
 
   const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `social-event-images/${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('images').upload(fileName, file);
+    // 이미지 리사이징 (트래픽 최적화)
+    const { createResizedImages } = await import('../../../utils/imageResize');
+    const resized = await createResizedImages(file);
+
+    // 소셜 이벤트는 단일 이미지만 사용하므로 medium(1080px) 또는 full(1280px) 사용
+    // 1:1 비율 권장이므로 1080px 정도면 충분히 고화질
+    const targetImage = resized.medium || resized.full || resized.thumbnail;
+
+    if (!targetImage) throw new Error("Image resizing failed");
+
+    const fileName = `social-event-images/${Date.now()}.webp`;
+    const { error: uploadError } = await supabase.storage.from('images').upload(fileName, targetImage, {
+      contentType: 'image/webp',
+      upsert: true
+    });
+
     if (uploadError) throw uploadError;
     const { data } = supabase.storage.from('images').getPublicUrl(fileName);
     return data.publicUrl;
@@ -87,22 +100,22 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
       <div className="sem-modal-container" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit} className="sem-modal-form">
           <h2 className="sem-modal-title">새 소셜 일정 등록</h2>
-          
+
           <input type="text" placeholder="일정 제목 *" value={title} onChange={(e) => setTitle(e.target.value)} required className="sem-form-input" />
           <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required className="sem-form-input" />
-          
+
           <select value={placeId} onChange={(e) => setPlaceId(Number(e.target.value))} required className="sem-form-select">
             <option value="" disabled>장소 선택 *</option>
             {places.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
 
           <textarea placeholder="간단한 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="sem-form-textarea" rows={2}></textarea>
-          
+
           <input type="password" placeholder="비밀번호 (수정/삭제 시 필요) *" value={password} onChange={(e) => setPassword(e.target.value)} required className="sem-form-input" />
 
           <div>
             <label className="sem-form-label">일정 이미지 (1:1 비율) *</label>
-            <input type="file" accept="image/*" onChange={handleImageChange} required className="sem-form-input" style={{padding: '0.3rem'}} />
+            <input type="file" accept="image/*" onChange={handleImageChange} required className="sem-form-input" style={{ padding: '0.3rem' }} />
             {imagePreview && <img src={imagePreview} alt="이미지 미리보기" className="sem-image-preview" />}
           </div>
 

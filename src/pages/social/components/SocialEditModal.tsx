@@ -109,9 +109,21 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
   };
 
   const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `social-event-images/${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('images').upload(fileName, file);
+    // 이미지 리사이징 (트래픽 최적화)
+    const { createResizedImages } = await import('../../../utils/imageResize');
+    const resized = await createResizedImages(file);
+
+    // 소셜 이벤트는 단일 이미지만 사용하므로 medium(1080px) 또는 full(1280px) 사용
+    const targetImage = resized.medium || resized.full || resized.thumbnail;
+
+    if (!targetImage) throw new Error("Image resizing failed");
+
+    const fileName = `social-event-images/${Date.now()}.webp`;
+    const { error: uploadError } = await supabase.storage.from('images').upload(fileName, targetImage, {
+      contentType: 'image/webp',
+      upsert: true
+    });
+
     if (uploadError) throw uploadError;
     const { data } = supabase.storage.from('images').getPublicUrl(fileName);
     return data.publicUrl;
@@ -231,7 +243,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
         .from(tableName)
         .delete()
         .eq('id', item.id);
-      
+
       if (deleteError) throw deleteError;
       alert('삭제되었습니다.');
       onSuccess();
@@ -250,9 +262,9 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
       <div className="sed-modal-container" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit} className="sed-modal-form">
           <h2 className="sed-modal-title">일정 수정</h2>
-          
+
           <input type="text" name="title" placeholder="일정 제목 *" value={formData.title || ''} onChange={handleInputChange} required className="sed-form-input" />
-          
+
           {itemType === 'event' ? (
             <>
               <input type="date" name="event_date" value={formData.event_date || ''} onChange={handleInputChange} required className="sed-form-input" />
@@ -273,13 +285,13 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
           )}
 
           <textarea name="description" placeholder="간단한 설명" value={formData.description || ''} onChange={handleInputChange} className="sed-form-textarea" rows={2}></textarea>
-          
+
           <input type="password" name="password" placeholder="비밀번호 확인 *" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required className="sed-password-input" />
 
           {itemType === 'event' && (
             <div>
               <label className="sed-form-label">일정 이미지 (1:1 비율)</label>
-              <input type="file" accept="image/*" onChange={handleImageChange} className="sed-form-input" style={{padding: '0.3rem'}} />
+              <input type="file" accept="image/*" onChange={handleImageChange} className="sed-form-input" style={{ padding: '0.3rem' }} />
               {imagePreview && (
                 <div className="sed-image-preview-container">
                   <img src={imagePreview} alt="이미지 미리보기" className="sed-image-preview" />

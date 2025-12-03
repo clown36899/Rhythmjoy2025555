@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
 import "./AdminBillboardModal.css";
@@ -49,7 +49,7 @@ export default function AdminBillboardModal({
   const [mainBillboardEvents, setMainBillboardEvents] = useState<SimpleEvent[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  
+
   // 한국 시간 기준 오늘 날짜 (KST = UTC+9)
   const getTodayKST = () => {
     const today = new Date();
@@ -189,9 +189,9 @@ export default function AdminBillboardModal({
 
   const loadUserSettings = async () => {
     if (!billboardUserId) return;
-    
+
     console.log('[서브관리자 설정] 로드 시작:', billboardUserId);
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -215,13 +215,13 @@ export default function AdminBillboardModal({
         auto_slide_interval: 5000,
         play_order: 'sequential',
       };
-      
+
       console.log('[서브관리자 설정] 로드 완료:', {
         excluded_event_ids: settings.excluded_event_ids || [],
         count: (settings.excluded_event_ids || []).length,
         date_filter_start: settings.date_filter_start
       });
-      
+
       setUserSettings(settings);
     } catch (error) {
       console.error("설정 불러오기 오류:", error);
@@ -236,11 +236,11 @@ export default function AdminBillboardModal({
     if (!userSettings) return;
     const newSettings = { ...userSettings, ...updates };
     setUserSettings(newSettings);
-    
+
     // 요일/날짜 필터가 변경되면 이벤트 목록 다시 로드
-    if (updates.excluded_weekdays !== undefined || 
-        updates.date_filter_start !== undefined || 
-        updates.date_filter_end !== undefined) {
+    if (updates.excluded_weekdays !== undefined ||
+      updates.date_filter_start !== undefined ||
+      updates.date_filter_end !== undefined) {
       // 다음 렌더링에서 useEffect가 실행되도록 하기 위해
       // 여기서는 아무것도 하지 않음 (useEffect가 처리)
     }
@@ -249,22 +249,22 @@ export default function AdminBillboardModal({
   // 특정 이벤트 제외 토글
   const toggleEventExclusion = (eventId: number) => {
     if (!userSettings) return;
-    
+
     console.log('[서브 이벤트 토글] 시작:', eventId);
-    
+
     const currentExcluded = userSettings.excluded_event_ids || [];
     const isCurrentlyExcluded = currentExcluded.includes(eventId);
     const newExcluded = isCurrentlyExcluded
       ? currentExcluded.filter(id => id !== eventId)
       : [...currentExcluded, eventId];
-    
+
     console.log('[서브 이벤트 토글] 완료:', {
       eventId,
       action: isCurrentlyExcluded ? '제거' : '추가',
       이전: currentExcluded,
       새로운: newExcluded
     });
-    
+
     updateLocalSettings({ excluded_event_ids: newExcluded });
   };
 
@@ -296,7 +296,7 @@ export default function AdminBillboardModal({
         );
 
       if (error) throw error;
-      
+
       setSuccessMessage("설정이 저장되었습니다.");
       setShowSuccessModal(true);
       setTimeout(() => {
@@ -399,11 +399,10 @@ export default function AdminBillboardModal({
                         : [...excluded, day.value];
                       updateLocalSettings({ excluded_weekdays: newExcluded });
                     }}
-                    className={`abm-weekday-btn ${
-                      (userSettings.excluded_weekdays || []).includes(day.value)
-                        ? "abm-weekday-btn-excluded"
-                        : "abm-weekday-btn-normal"
-                    }`}
+                    className={`abm-weekday-btn ${(userSettings.excluded_weekdays || []).includes(day.value)
+                      ? "abm-weekday-btn-excluded"
+                      : "abm-weekday-btn-normal"
+                      }`}
                   >
                     {day.label.substring(0, 1)}
                   </button>
@@ -443,22 +442,20 @@ export default function AdminBillboardModal({
               <div className="abm-play-order-grid">
                 <button
                   onClick={() => updateLocalSettings({ play_order: 'sequential' })}
-                  className={`abm-play-order-btn ${
-                    userSettings.play_order === 'sequential'
-                      ? "abm-play-order-btn-active"
-                      : "abm-play-order-btn-inactive"
-                  }`}
+                  className={`abm-play-order-btn ${userSettings.play_order === 'sequential'
+                    ? "abm-play-order-btn-active"
+                    : "abm-play-order-btn-inactive"
+                    }`}
                 >
                   <div className="abm-play-order-title">순차 재생</div>
                   <div className="abm-play-order-subtitle">등록 순서대로</div>
                 </button>
                 <button
                   onClick={() => updateLocalSettings({ play_order: 'random' })}
-                  className={`abm-play-order-btn ${
-                    userSettings.play_order === 'random'
-                      ? "abm-play-order-btn-active"
-                      : "abm-play-order-btn-inactive"
-                  }`}
+                  className={`abm-play-order-btn ${userSettings.play_order === 'random'
+                    ? "abm-play-order-btn-active"
+                    : "abm-play-order-btn-inactive"
+                    }`}
                 >
                   <div className="abm-play-order-title">30분 랜덤</div>
                   <div className="abm-play-order-subtitle">30분마다 재배열</div>
@@ -492,11 +489,10 @@ export default function AdminBillboardModal({
                     </div>
                     <button
                       onClick={() => updateLocalSettings({ date_filter_start: null })}
-                      className={`abm-date-clear-btn ${
-                        !userSettings.date_filter_start
-                          ? 'abm-date-clear-btn-active'
-                          : 'abm-date-clear-btn-normal'
-                      }`}
+                      className={`abm-date-clear-btn ${!userSettings.date_filter_start
+                        ? 'abm-date-clear-btn-active'
+                        : 'abm-date-clear-btn-normal'
+                        }`}
                       title="시작 날짜 제한 없음"
                     >
                       지정 안 함
@@ -525,11 +521,10 @@ export default function AdminBillboardModal({
                     </div>
                     <button
                       onClick={() => updateLocalSettings({ date_filter_end: null })}
-                      className={`abm-date-clear-btn ${
-                        !userSettings.date_filter_end
-                          ? 'abm-date-clear-btn-active'
-                          : 'abm-date-clear-btn-normal'
-                      }`}
+                      className={`abm-date-clear-btn ${!userSettings.date_filter_end
+                        ? 'abm-date-clear-btn-active'
+                        : 'abm-date-clear-btn-normal'
+                        }`}
                       title="종료 날짜 제한 없음"
                     >
                       지정 안 함
@@ -577,17 +572,16 @@ export default function AdminBillboardModal({
                     const weekday = weekdayNames[eventDate.getDay()];
                     const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
                     const isExcluded = (userSettings.excluded_event_ids || []).includes(event.id);
-                    
+
                     return (
                       <label
                         key={event.id}
-                        className={`abm-event-item ${
-                          hasMedia 
-                            ? (isExcluded 
-                              ? 'abm-event-item-excluded' 
-                              : 'abm-event-item-media')
-                            : 'abm-event-item-no-media'
-                        }`}
+                        className={`abm-event-item ${hasMedia
+                          ? (isExcluded
+                            ? 'abm-event-item-excluded'
+                            : 'abm-event-item-media')
+                          : 'abm-event-item-no-media'
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -596,11 +590,10 @@ export default function AdminBillboardModal({
                           disabled={!hasMedia}
                           className="abm-event-checkbox"
                         />
-                        <span className={`abm-event-text ${
-                          hasMedia 
-                            ? (isExcluded ? 'abm-event-text-excluded' : 'abm-event-text-media')
-                            : 'abm-event-text-no-media'
-                        }`}>
+                        <span className={`abm-event-text ${hasMedia
+                          ? (isExcluded ? 'abm-event-text-excluded' : 'abm-event-text-media')
+                          : 'abm-event-text-no-media'
+                          }`}>
                           {event.title}
                           <span className="abm-event-date">
                             ({event.start_date} {weekday})
@@ -671,440 +664,571 @@ export default function AdminBillboardModal({
         onClick={handleBackdropClick}
       >
         <div className="abm-super-container">
-        {/* Header - 상단 고정 */}
-        <div className="abm-super-header">
-          <h2 className="abm-super-title">
-            <i className="ri-image-2-line"></i>
-            메인 광고판 설정
-          </h2>
-        </div>
-
-        {/* Content - 스크롤 가능 */}
-        <div className="abm-super-content"><div className="abm-super-content-inner">
-          {/* 광고판 활성화/비활성화 */}
-          <div className="abm-toggle-container">
-            <div className="abm-toggle-content">
-              <label className="abm-toggle-label">광고판 활성화</label>
-              <p className="abm-toggle-desc">
-                광고판 기능을 전체적으로 켜거나 끕니다
-              </p>
-            </div>
-            <button
-              onClick={() => onUpdateSettings({ enabled: !settings.enabled })}
-              className={`abm-toggle-switch ${
-                settings.enabled ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
-              }`}
-            >
-              <span
-                className={`abm-toggle-thumb ${
-                  settings.enabled ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
-                }`}
-              />
-            </button>
+          {/* Header - 상단 고정 */}
+          <div className="abm-super-header">
+            <h2 className="abm-super-title">
+              <i className="ri-image-2-line"></i>
+              메인 광고판 설정
+            </h2>
           </div>
 
-          {/* 자동 슬라이드 시간 (슬라이더) */}
-          <div className="abm-slider-section">
-            <div className="abm-slider-header">
-              <label className="abm-slider-label">자동 슬라이드 시간</label>
-              <span className="abm-slider-value">
-                {formatTime(settings.autoSlideInterval)}
-              </span>
-            </div>
-            <p className="abm-slider-desc">
-              광고판 이미지가 자동으로 넘어가는 시간 간격 (1초 ~ 30초)
-            </p>
-            <input
-              type="range"
-              min="1000"
-              max="30000"
-              step="500"
-              value={settings.autoSlideInterval}
-              onChange={(e) =>
-                onUpdateSettings({ autoSlideInterval: parseInt(e.target.value) })
-              }
-              className="abm-slider-input slider-purple"
-            />
-            <div className="abm-slider-marks">
-              <span>1초</span>
-              <span>15초</span>
-              <span>30초</span>
-            </div>
-          </div>
-
-          {/* 비활동 타이머 (슬라이더) */}
-          <div className="abm-slider-section">
-            <div className="abm-slider-header">
-              <label className="abm-slider-label">비활동 후 자동 표시</label>
-              <span className="abm-slider-value">
-                {formatTime(settings.inactivityTimeout)}
-              </span>
-            </div>
-            <p className="abm-slider-desc">
-              사용자 활동이 없을 때 광고판을 자동으로 표시하는 시간 (0분 = 비활성 ~ 60분)
-            </p>
-            <input
-              type="range"
-              min="0"
-              max="3600000"
-              step="60000"
-              value={settings.inactivityTimeout}
-              onChange={(e) =>
-                onUpdateSettings({ inactivityTimeout: parseInt(e.target.value) })
-              }
-              className="abm-slider-input slider-purple"
-            />
-            <div className="abm-slider-marks">
-              <span>비활성</span>
-              <span>30분</span>
-              <span>60분</span>
-            </div>
-          </div>
-
-          {/* 첫 방문 시 자동 표시 */}
-          <div className="abm-toggle-container">
-            <div className="abm-toggle-content">
-              <label className="abm-toggle-label">첫 방문 시 자동 표시</label>
-              <p className="abm-toggle-desc">
-                페이지를 처음 열 때 광고판을 자동으로 표시합니다
-              </p>
-            </div>
-            <button
-              onClick={() =>
-                onUpdateSettings({ autoOpenOnLoad: !settings.autoOpenOnLoad })
-              }
-              className={`abm-toggle-switch ${
-                settings.autoOpenOnLoad ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
-              }`}
-            >
-              <span
-                className={`abm-toggle-thumb ${
-                  settings.autoOpenOnLoad ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* 전환 효과 속도 (슬라이더) */}
-          <div className="abm-slider-section">
-            <div className="abm-slider-header">
-              <label className="abm-slider-label">전환 효과 속도</label>
-              <span className="abm-slider-value">
-                {formatTime(settings.transitionDuration)}
-              </span>
-            </div>
-            <p className="abm-slider-desc">
-              이미지가 전환될 때 페이드 인/아웃 효과의 속도 (0.1초 ~ 2초)
-            </p>
-            <input
-              type="range"
-              min="100"
-              max="2000"
-              step="50"
-              value={settings.transitionDuration}
-              onChange={(e) =>
-                onUpdateSettings({ transitionDuration: parseInt(e.target.value) })
-              }
-              className="abm-slider-input slider-purple"
-            />
-            <div className="abm-slider-marks">
-              <span>0.1초</span>
-              <span>1초</span>
-              <span>2초</span>
-            </div>
-          </div>
-
-          {/* 재생 순서 */}
-          <div className="abm-playorder-section">
-            <label className="abm-playorder-label">재생 순서</label>
-            <p className="abm-playorder-desc">
-              광고판 이미지를 표시하는 순서를 설정합니다
-            </p>
-            <div className="abm-playorder-grid">
+          {/* Content - 스크롤 가능 */}
+          <div className="abm-super-content"><div className="abm-super-content-inner">
+            {/* 광고판 활성화/비활성화 */}
+            <div className="abm-toggle-container">
+              <div className="abm-toggle-content">
+                <label className="abm-toggle-label">광고판 활성화</label>
+                <p className="abm-toggle-desc">
+                  광고판 기능을 전체적으로 켜거나 끕니다
+                </p>
+              </div>
               <button
-                onClick={() => handlePlayOrderChange('sequential')}
-                className={`abm-playorder-btn ${
-                  settings.playOrder === 'sequential'
-                    ? 'abm-playorder-btn-active'
-                    : 'abm-playorder-btn-inactive'
-                }`}
+                onClick={() => onUpdateSettings({ enabled: !settings.enabled })}
+                className={`abm-toggle-switch ${settings.enabled ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
+                  }`}
               >
-                <div className="abm-playorder-btn-content">
-                  <i className="abm-playorder-btn-icon ri-sort-asc"></i>
-                  <span className="abm-playorder-btn-title">순차 재생</span>
-                </div>
-                <p className="abm-playorder-btn-subtitle">등록 순서대로</p>
-              </button>
-              <button
-                onClick={() => handlePlayOrderChange('random')}
-                className={`abm-playorder-btn ${
-                  settings.playOrder === 'random'
-                    ? 'abm-playorder-btn-active'
-                    : 'abm-playorder-btn-inactive'
-                }`}
-              >
-                <div className="abm-playorder-btn-content">
-                  <i className="abm-playorder-btn-icon ri-shuffle-line"></i>
-                  <span className="abm-playorder-btn-title">30분 랜덤</span>
-                </div>
-                <p className="abm-playorder-btn-subtitle">30분마다 재배열</p>
+                <span
+                  className={`abm-toggle-thumb ${settings.enabled ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
+                    }`}
+                />
               </button>
             </div>
-          </div>
 
-          {/* 날짜 범위 필터 */}
-          <div className="abm-daterange-section">
-            <label className="abm-daterange-label">일정 날짜 범위</label>
-            <p className="abm-daterange-desc">
-              특정 기간의 일정만 광고판에 표시합니다 (미설정 시 전체 표시)
-            </p>
-            <div className="abm-daterange-inputs">
-              <div className="abm-daterange-input-group">
-                <label className="abm-daterange-input-label">시작 날짜</label>
-                <div className="abm-daterange-input-row">
-                  <div className="abm-daterange-input-wrapper">
-                    <input
-                      type="date"
-                      value={settings.dateRangeStart || todayKST}
-                      min={todayKST}
-                      onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
-                      className="abm-daterange-input"
-                    />
-                  </div>
-                  <button
-                    onClick={() => onUpdateSettings({ dateRangeStart: null })}
-                    className={`abm-daterange-clear-btn ${
-                      !settings.dateRangeStart
-                        ? 'abm-daterange-clear-btn-active'
-                        : 'abm-daterange-clear-btn-inactive'
-                    }`}
-                    title="시작 날짜 초기화"
-                  >
-                    <i className="abm-daterange-clear-icon ri-close-line"></i>
-                  </button>
-                </div>
+            {/* 자동 슬라이드 시간 (슬라이더) */}
+            <div className="abm-slider-section">
+              <div className="abm-slider-header">
+                <label className="abm-slider-label">자동 슬라이드 시간</label>
+                <span className="abm-slider-value">
+                  {formatTime(settings.autoSlideInterval)}
+                </span>
               </div>
-              <div className="abm-daterange-input-group">
-                <label className="abm-daterange-input-label">종료 날짜</label>
-                <div className="abm-daterange-input-row">
-                  <div className="abm-daterange-input-wrapper">
-                    <input
-                      type="date"
-                      value={settings.dateRangeEnd || ''}
-                      min={settings.dateRangeStart || undefined}
-                      onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
-                      className="abm-daterange-input"
-                      style={!settings.dateRangeEnd ? { color: 'transparent' } : {}}
-                    />
-                    {!settings.dateRangeEnd && (
-                      <span className="abm-daterange-placeholder">
-                        지정안함
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => onUpdateSettings({ dateRangeEnd: null })}
-                    className={`abm-daterange-clear-btn ${
-                      !settings.dateRangeEnd
-                        ? 'abm-daterange-clear-btn-active'
-                        : 'abm-daterange-clear-btn-inactive'
-                    }`}
-                    title="종료 날짜 초기화"
-                  >
-                    <i className="abm-daterange-clear-icon ri-close-line"></i>
-                  </button>
-                </div>
+              <p className="abm-slider-desc">
+                광고판 이미지가 자동으로 넘어가는 시간 간격 (1초 ~ 30초)
+              </p>
+              <input
+                type="range"
+                min="1000"
+                max="30000"
+                step="500"
+                value={settings.autoSlideInterval}
+                onChange={(e) =>
+                  onUpdateSettings({ autoSlideInterval: parseInt(e.target.value) })
+                }
+                className="abm-slider-input slider-purple"
+              />
+              <div className="abm-slider-marks">
+                <span>1초</span>
+                <span>15초</span>
+                <span>30초</span>
               </div>
             </div>
-            
-            {/* 날짜 범위 표시 여부 */}
-            <div className="abm-daterange-toggle-container">
-              <div className="abm-daterange-toggle-content">
-                <label className="abm-daterange-toggle-label">날짜 범위 표시</label>
-                <p className="abm-daterange-toggle-desc">
-                  광고판에 날짜 범위를 표시합니다
+
+            {/* 비활동 타이머 (슬라이더) */}
+            <div className="abm-slider-section">
+              <div className="abm-slider-header">
+                <label className="abm-slider-label">비활동 후 자동 표시</label>
+                <span className="abm-slider-value">
+                  {formatTime(settings.inactivityTimeout)}
+                </span>
+              </div>
+              <p className="abm-slider-desc">
+                사용자 활동이 없을 때 광고판을 자동으로 표시하는 시간 (0분 = 비활성 ~ 60분)
+              </p>
+              <input
+                type="range"
+                min="0"
+                max="3600000"
+                step="60000"
+                value={settings.inactivityTimeout}
+                onChange={(e) =>
+                  onUpdateSettings({ inactivityTimeout: parseInt(e.target.value) })
+                }
+                className="abm-slider-input slider-purple"
+              />
+              <div className="abm-slider-marks">
+                <span>비활성</span>
+                <span>30분</span>
+                <span>60분</span>
+              </div>
+            </div>
+
+            {/* 첫 방문 시 자동 표시 */}
+            <div className="abm-toggle-container">
+              <div className="abm-toggle-content">
+                <label className="abm-toggle-label">첫 방문 시 자동 표시</label>
+                <p className="abm-toggle-desc">
+                  페이지를 처음 열 때 광고판을 자동으로 표시합니다
                 </p>
               </div>
               <button
                 onClick={() =>
-                  onUpdateSettings({ showDateRange: !settings.showDateRange })
+                  onUpdateSettings({ autoOpenOnLoad: !settings.autoOpenOnLoad })
                 }
-                className={`abm-toggle-switch ${
-                  settings.showDateRange ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
-                }`}
+                className={`abm-toggle-switch ${settings.autoOpenOnLoad ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
+                  }`}
               >
                 <span
-                  className={`abm-toggle-thumb ${
-                    settings.showDateRange ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
-                  }`}
+                  className={`abm-toggle-thumb ${settings.autoOpenOnLoad ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
+                    }`}
                 />
               </button>
             </div>
-          </div>
 
-          {/* 제외 요일 */}
-          <div className="abm-weekdays-section">
-            <label className="abm-weekdays-label">제외 요일</label>
-            <p className="abm-weekdays-desc">선택한 요일의 이벤트는 표시되지 않습니다</p>
-            <div className="abm-weekdays-grid">
-              {[
-                { value: 0, label: "일요일" },
-                { value: 1, label: "월요일" },
-                { value: 2, label: "화요일" },
-                { value: 3, label: "수요일" },
-                { value: 4, label: "목요일" },
-                { value: 5, label: "금요일" },
-                { value: 6, label: "토요일" },
-              ].map((day) => (
+            {/* 전환 효과 속도 (슬라이더) */}
+            <div className="abm-slider-section">
+              <div className="abm-slider-header">
+                <label className="abm-slider-label">전환 효과 속도</label>
+                <span className="abm-slider-value">
+                  {formatTime(settings.transitionDuration)}
+                </span>
+              </div>
+              <p className="abm-slider-desc">
+                이미지가 전환될 때 페이드 인/아웃 효과의 속도 (0.1초 ~ 2초)
+              </p>
+              <input
+                type="range"
+                min="100"
+                max="2000"
+                step="50"
+                value={settings.transitionDuration}
+                onChange={(e) =>
+                  onUpdateSettings({ transitionDuration: parseInt(e.target.value) })
+                }
+                className="abm-slider-input slider-purple"
+              />
+              <div className="abm-slider-marks">
+                <span>0.1초</span>
+                <span>1초</span>
+                <span>2초</span>
+              </div>
+            </div>
+
+            {/* 재생 순서 */}
+            <div className="abm-playorder-section">
+              <label className="abm-playorder-label">재생 순서</label>
+              <p className="abm-playorder-desc">
+                광고판 이미지를 표시하는 순서를 설정합니다
+              </p>
+              <div className="abm-playorder-grid">
                 <button
-                  key={day.value}
-                  onClick={() => {
-                    const excluded = settings.excludedWeekdays || [];
-                    const newExcluded = excluded.includes(day.value)
-                      ? excluded.filter((d) => d !== day.value)
-                      : [...excluded, day.value];
-                    onUpdateSettings({ excludedWeekdays: newExcluded });
-                  }}
-                  className={`abm-weekdays-btn ${
-                    (settings.excludedWeekdays || []).includes(day.value)
+                  onClick={() => handlePlayOrderChange('sequential')}
+                  className={`abm-playorder-btn ${settings.playOrder === 'sequential'
+                    ? 'abm-playorder-btn-active'
+                    : 'abm-playorder-btn-inactive'
+                    }`}
+                >
+                  <div className="abm-playorder-btn-content">
+                    <i className="abm-playorder-btn-icon ri-sort-asc"></i>
+                    <span className="abm-playorder-btn-title">순차 재생</span>
+                  </div>
+                  <p className="abm-playorder-btn-subtitle">등록 순서대로</p>
+                </button>
+                <button
+                  onClick={() => handlePlayOrderChange('random')}
+                  className={`abm-playorder-btn ${settings.playOrder === 'random'
+                    ? 'abm-playorder-btn-active'
+                    : 'abm-playorder-btn-inactive'
+                    }`}
+                >
+                  <div className="abm-playorder-btn-content">
+                    <i className="abm-playorder-btn-icon ri-shuffle-line"></i>
+                    <span className="abm-playorder-btn-title">30분 랜덤</span>
+                  </div>
+                  <p className="abm-playorder-btn-subtitle">30분마다 재배열</p>
+                </button>
+              </div>
+            </div>
+
+            {/* 날짜 범위 필터 */}
+            <div className="abm-daterange-section">
+              <label className="abm-daterange-label">일정 날짜 범위</label>
+              <p className="abm-daterange-desc">
+                특정 기간의 일정만 광고판에 표시합니다 (미설정 시 전체 표시)
+              </p>
+              <div className="abm-daterange-inputs">
+                <div className="abm-daterange-input-group">
+                  <label className="abm-daterange-input-label">시작 날짜</label>
+                  <div className="abm-daterange-input-row">
+                    <div className="abm-daterange-input-wrapper">
+                      <input
+                        type="date"
+                        value={settings.dateRangeStart || todayKST}
+                        min={todayKST}
+                        onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
+                        className="abm-daterange-input"
+                      />
+                    </div>
+                    <button
+                      onClick={() => onUpdateSettings({ dateRangeStart: null })}
+                      className={`abm-daterange-clear-btn ${!settings.dateRangeStart
+                        ? 'abm-daterange-clear-btn-active'
+                        : 'abm-daterange-clear-btn-inactive'
+                        }`}
+                      title="시작 날짜 초기화"
+                    >
+                      <i className="abm-daterange-clear-icon ri-close-line"></i>
+                    </button>
+                  </div>
+                </div>
+                <div className="abm-daterange-input-group">
+                  <label className="abm-daterange-input-label">종료 날짜</label>
+                  <div className="abm-daterange-input-row">
+                    <div className="abm-daterange-input-wrapper">
+                      <input
+                        type="date"
+                        value={settings.dateRangeEnd || ''}
+                        min={settings.dateRangeStart || undefined}
+                        onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
+                        className="abm-daterange-input"
+                        style={!settings.dateRangeEnd ? { color: 'transparent' } : {}}
+                      />
+                      {!settings.dateRangeEnd && (
+                        <span className="abm-daterange-placeholder">
+                          지정안함
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => onUpdateSettings({ dateRangeEnd: null })}
+                      className={`abm-daterange-clear-btn ${!settings.dateRangeEnd
+                        ? 'abm-daterange-clear-btn-active'
+                        : 'abm-daterange-clear-btn-inactive'
+                        }`}
+                      title="종료 날짜 초기화"
+                    >
+                      <i className="abm-daterange-clear-icon ri-close-line"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 날짜 범위 표시 여부 */}
+              <div className="abm-daterange-toggle-container">
+                <div className="abm-daterange-toggle-content">
+                  <label className="abm-daterange-toggle-label">날짜 범위 표시</label>
+                  <p className="abm-daterange-toggle-desc">
+                    광고판에 날짜 범위를 표시합니다
+                  </p>
+                </div>
+                <button
+                  onClick={() =>
+                    onUpdateSettings({ showDateRange: !settings.showDateRange })
+                  }
+                  className={`abm-toggle-switch ${settings.showDateRange ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
+                    }`}
+                >
+                  <span
+                    className={`abm-toggle-thumb ${settings.showDateRange ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
+                      }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* 제외 요일 */}
+            <div className="abm-weekdays-section">
+              <label className="abm-weekdays-label">제외 요일</label>
+              <p className="abm-weekdays-desc">선택한 요일의 이벤트는 표시되지 않습니다</p>
+              <div className="abm-weekdays-grid">
+                {[
+                  { value: 0, label: "일요일" },
+                  { value: 1, label: "월요일" },
+                  { value: 2, label: "화요일" },
+                  { value: 3, label: "수요일" },
+                  { value: 4, label: "목요일" },
+                  { value: 5, label: "금요일" },
+                  { value: 6, label: "토요일" },
+                ].map((day) => (
+                  <button
+                    key={day.value}
+                    onClick={() => {
+                      const excluded = settings.excludedWeekdays || [];
+                      const newExcluded = excluded.includes(day.value)
+                        ? excluded.filter((d) => d !== day.value)
+                        : [...excluded, day.value];
+                      onUpdateSettings({ excludedWeekdays: newExcluded });
+                    }}
+                    className={`abm-weekdays-btn ${(settings.excludedWeekdays || []).includes(day.value)
                       ? "abm-weekdays-btn-excluded"
                       : "abm-weekdays-btn-normal"
-                  }`}
-                >
-                  {day.label.substring(0, 1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 특정 이벤트 제외 */}
-          <div className="abm-events-section">
-            <label className="abm-events-label">
-              🚫 제외할 이벤트
-            </label>
-            <p className="abm-events-desc">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
-            <div className="abm-events-list"><div className="abm-events-list-inner">
-              {mainBillboardEvents.length === 0 ? (
-                <p className="abm-events-empty">표시할 이벤트가 없습니다.</p>
-              ) : (
-                mainBillboardEvents.map((event) => {
-                  const eventDate = new Date(event?.start_date);
-                  const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
-                  const weekday = weekdayNames[eventDate.getDay()];
-                  const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
-                  
-                  return (
-                    <label
-                      key={event.id}
-                      className={`abm-events-item ${
-                        hasMedia ? 'abm-events-item-media' : 'abm-events-item-no-media'
                       }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={(settings.excludedEventIds || []).includes(event.id)}
-                        onChange={() => {
-                          const excluded = settings.excludedEventIds || [];
-                          const newExcluded = excluded.includes(event.id)
-                            ? excluded.filter(id => id !== event.id)
-                            : [...excluded, event.id];
-                          onUpdateSettings({ excludedEventIds: newExcluded });
-                        }}
-                        disabled={!hasMedia}
-                        className="abm-events-checkbox"
-                      />
-                      <span className={`abm-events-text ${hasMedia ? 'abm-events-text-white' : 'abm-events-text-gray'}`}>
-                        {event.title}
-                        <span className="abm-events-date">
-                          ({event.start_date} {weekday})
-                        </span>
-                        {!hasMedia && (
-                          <span className="abm-events-badge">
-                            [이미지 없음 - 광고판 미노출]
-                          </span>
-                        )}
-                      </span>
-                    </label>
-                  );
-                })
-              )}
-            </div></div>
-          </div>
-
-          {/* 현재 설정 요약 */}
-          <div className="abm-summary-section">
-            <h4 className="abm-summary-header">
-              <i className="ri-information-line"></i>
-              현재 설정
-            </h4>
-            <div className="abm-summary-list">
-              <div className="abm-summary-row">
-                <span>광고판:</span>
-                <span className={settings.enabled ? "abm-summary-value-green" : "abm-summary-value-red"}>
-                  {settings.enabled ? "활성화" : "비활성화"}
-                </span>
-              </div>
-              <div className="abm-summary-row">
-                <span>슬라이드 간격:</span>
-                <span className="abm-summary-value-purple">{formatTime(settings.autoSlideInterval)}</span>
-              </div>
-              <div className="abm-summary-row">
-                <span>비활동 타이머:</span>
-                <span className="abm-summary-value-purple">{formatTime(settings.inactivityTimeout)}</span>
-              </div>
-              <div className="abm-summary-row">
-                <span>자동 표시:</span>
-                <span className={settings.autoOpenOnLoad ? "abm-summary-value-green" : "abm-summary-value-gray"}>
-                  {settings.autoOpenOnLoad ? "켜짐" : "꺼짐"}
-                </span>
-              </div>
-              <div className="abm-summary-row">
-                <span>전환 속도:</span>
-                <span className="abm-summary-value-purple">{formatTime(settings.transitionDuration)}</span>
-              </div>
-              <div className="abm-summary-row">
-                <span>재생 순서:</span>
-                <span className="abm-summary-value-purple">
-                  {settings.playOrder === 'random' ? '랜덤' : '순차'}
-                </span>
-              </div>
-              <div className="abm-summary-row">
-                <span>날짜 범위:</span>
-                <span className="abm-summary-value-purple">
-                  {settings.dateRangeStart && settings.dateRangeEnd
-                    ? `${settings.dateRangeStart} ~ ${settings.dateRangeEnd}`
-                    : '전체'}
-                </span>
-              </div>
-              <div className="abm-summary-row">
-                <span>날짜 표시:</span>
-                <span className={settings.showDateRange ? "abm-summary-value-green" : "abm-summary-value-gray"}>
-                  {settings.showDateRange ? "켜짐" : "꺼짐"}
-                </span>
+                  >
+                    {day.label.substring(0, 1)}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        </div></div>
 
-        {/* Footer - 하단 고정 */}
-        <div className="abm-super-footer">
+            {/* 특정 이벤트 제외 */}
+            <div className="abm-events-section">
+              <label className="abm-events-label">
+                🚫 제외할 이벤트
+              </label>
+              <p className="abm-events-desc">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
+              <div className="abm-events-list"><div className="abm-events-list-inner">
+                {mainBillboardEvents.length === 0 ? (
+                  <p className="abm-events-empty">표시할 이벤트가 없습니다.</p>
+                ) : (
+                  mainBillboardEvents.map((event) => {
+                    const eventDate = new Date(event?.start_date);
+                    const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                    const weekday = weekdayNames[eventDate.getDay()];
+                    const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
+
+                    return (
+                      <label
+                        key={event.id}
+                        className={`abm-events-item ${hasMedia ? 'abm-events-item-media' : 'abm-events-item-no-media'
+                          }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(settings.excludedEventIds || []).includes(event.id)}
+                          onChange={() => {
+                            const excluded = settings.excludedEventIds || [];
+                            const newExcluded = excluded.includes(event.id)
+                              ? excluded.filter(id => id !== event.id)
+                              : [...excluded, event.id];
+                            onUpdateSettings({ excludedEventIds: newExcluded });
+                          }}
+                          disabled={!hasMedia}
+                          className="abm-events-checkbox"
+                        />
+                        <span className={`abm-events-text ${hasMedia ? 'abm-events-text-white' : 'abm-events-text-gray'}`}>
+                          {event.title}
+                          <span className="abm-events-date">
+                            ({event.start_date} {weekday})
+                          </span>
+                          {!hasMedia && (
+                            <span className="abm-events-badge">
+                              [이미지 없음 - 광고판 미노출]
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    );
+                  })
+                )}
+              </div></div>
+            </div>
+
+            {/* 기본 썸네일 설정 */}
+            <div className="abm-section-box" style={{ marginTop: '20px', marginBottom: '20px' }}>
+              <h4 className="abm-summary-header">
+                <i className="ri-image-edit-line"></i>
+                기본 썸네일 설정
+              </h4>
+              <p className="abm-section-desc">
+                이미지가 없는 이벤트에 표시될 기본 이미지를 설정합니다. (자동 최적화 적용됨)
+              </p>
+
+              <DefaultThumbnailUploader
+                label="강습(Class) 기본 썸네일"
+                currentUrl={settings.defaultThumbnailClass}
+                onUpload={async (file) => {
+                  const { createResizedImages } = await import('../../../utils/imageResize');
+                  const resized = await createResizedImages(file);
+                  // 썸네일용(400px) 이미지만 사용하거나, 원본 대신 최적화된 full 이미지를 사용
+                  // 여기서는 트래픽 절감을 위해 'thumbnail' 버전(400px)을 기본 이미지로 저장
+                  const targetImage = resized.thumbnail || resized.medium || resized.full;
+
+                  if (!targetImage) throw new Error("Image resizing failed");
+
+                  // Storage 업로드
+                  const fileName = `default-thumbnail-class-${Date.now()}.webp`;
+                  const { data, error } = await supabase.storage
+                    .from('images')
+                    .upload(`default-thumbnails/${fileName}`, targetImage, {
+                      contentType: 'image/webp',
+                      upsert: true
+                    });
+
+                  if (error) throw error;
+
+                  // Public URL 가져오기
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('images')
+                    .getPublicUrl(`default-thumbnails/${fileName}`);
+
+                  onUpdateSettings({ defaultThumbnailClass: publicUrl });
+                }}
+              />
+
+              <div style={{ height: '16px' }} />
+
+              <DefaultThumbnailUploader
+                label="행사(Event) 기본 썸네일"
+                currentUrl={settings.defaultThumbnailEvent}
+                onUpload={async (file) => {
+                  const { createResizedImages } = await import('../../../utils/imageResize');
+                  const resized = await createResizedImages(file);
+                  const targetImage = resized.thumbnail || resized.medium || resized.full;
+
+                  if (!targetImage) throw new Error("Image resizing failed");
+
+                  const fileName = `default-thumbnail-event-${Date.now()}.webp`;
+                  const { data, error } = await supabase.storage
+                    .from('images')
+                    .upload(`default-thumbnails/${fileName}`, targetImage, {
+                      contentType: 'image/webp',
+                      upsert: true
+                    });
+
+                  if (error) throw error;
+
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('images')
+                    .getPublicUrl(`default-thumbnails/${fileName}`);
+
+                  onUpdateSettings({ defaultThumbnailEvent: publicUrl });
+                }}
+              />
+            </div>
+
+            {/* 현재 설정 요약 */}
+            <div className="abm-summary-section">
+              <h4 className="abm-summary-header">
+                <i className="ri-information-line"></i>
+                현재 설정
+              </h4>
+              <div className="abm-summary-list">
+                <div className="abm-summary-row">
+                  <span>광고판:</span>
+                  <span className={settings.enabled ? "abm-summary-value-green" : "abm-summary-value-red"}>
+                    {settings.enabled ? "활성화" : "비활성화"}
+                  </span>
+                </div>
+                <div className="abm-summary-row">
+                  <span>슬라이드 간격:</span>
+                  <span className="abm-summary-value-purple">{formatTime(settings.autoSlideInterval)}</span>
+                </div>
+                <div className="abm-summary-row">
+                  <span>비활동 타이머:</span>
+                  <span className="abm-summary-value-purple">{formatTime(settings.inactivityTimeout)}</span>
+                </div>
+                <div className="abm-summary-row">
+                  <span>자동 표시:</span>
+                  <span className={settings.autoOpenOnLoad ? "abm-summary-value-green" : "abm-summary-value-gray"}>
+                    {settings.autoOpenOnLoad ? "켜짐" : "꺼짐"}
+                  </span>
+                </div>
+                <div className="abm-summary-row">
+                  <span>전환 속도:</span>
+                  <span className="abm-summary-value-purple">{formatTime(settings.transitionDuration)}</span>
+                </div>
+                <div className="abm-summary-row">
+                  <span>재생 순서:</span>
+                  <span className="abm-summary-value-purple">
+                    {settings.playOrder === 'random' ? '랜덤' : '순차'}
+                  </span>
+                </div>
+                <div className="abm-summary-row">
+                  <span>날짜 범위:</span>
+                  <span className="abm-summary-value-purple">
+                    {settings.dateRangeStart && settings.dateRangeEnd
+                      ? `${settings.dateRangeStart} ~ ${settings.dateRangeEnd}`
+                      : '전체'}
+                  </span>
+                </div>
+                <div className="abm-summary-row">
+                  <span>날짜 표시:</span>
+                  <span className={settings.showDateRange ? "abm-summary-value-green" : "abm-summary-value-gray"}>
+                    {settings.showDateRange ? "켜짐" : "꺼짐"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div></div>
+
+          {/* Footer - 하단 고정 */}
+          <div className="abm-super-footer">
+            <button
+              onClick={onResetSettings}
+              className="abm-super-reset-btn"
+            >
+              <i className="ri-refresh-line"></i>
+              기본값으로 초기화
+            </button>
+            <button
+              onClick={onClose}
+              className="abm-super-close-btn"
+            >
+              완료
+            </button>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
+// ----------------------------------------------------------------------
+// Helper Component: Default Thumbnail Uploader
+// ----------------------------------------------------------------------
+function DefaultThumbnailUploader({
+  label,
+  currentUrl,
+  onUpload,
+}: {
+  label: string;
+  currentUrl?: string;
+  onUpload: (file: File) => Promise<void>;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      await onUpload(file);
+      alert('기본 썸네일이 변경되었습니다.');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="abm-thumbnail-uploader">
+      <label className="abm-thumbnail-label">{label}</label>
+      <div className="abm-thumbnail-preview-area">
+        {currentUrl ? (
+          <img src={currentUrl} alt={label} className="abm-thumbnail-preview" />
+        ) : (
+          <div className="abm-thumbnail-placeholder">이미지 없음</div>
+        )}
+        <div className="abm-thumbnail-actions">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
           <button
-            onClick={onResetSettings}
-            className="abm-super-reset-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="abm-thumbnail-upload-btn"
           >
-            <i className="ri-refresh-line"></i>
-            기본값으로 초기화
+            {uploading ? '업로드 중...' : '변경하기'}
           </button>
-          <button
-            onClick={onClose}
-            className="abm-super-close-btn"
-          >
-            완료
-          </button>
+          <p className="abm-thumbnail-desc">
+            * 업로드 시 자동으로 20KB 내외로 최적화됩니다.
+          </p>
         </div>
       </div>
     </div>
-    </>,
-    document.body
   );
 }

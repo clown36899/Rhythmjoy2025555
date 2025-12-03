@@ -13,6 +13,8 @@ export interface BillboardSettings {
   playOrder: 'sequential' | 'random'; // 재생 순서
   excludedWeekdays: number[]; // 제외할 요일 (0=일요일 ~ 6=토요일)
   excludedEventIds: number[]; // 제외할 이벤트 ID 목록
+  defaultThumbnailClass?: string; // 강습 기본 썸네일
+  defaultThumbnailEvent?: string; // 행사 기본 썸네일
 }
 
 // 오늘 날짜 (YYYY-MM-DD 형식)
@@ -80,6 +82,8 @@ export function useBillboardSettings() {
             playOrder: data.play_order ?? DEFAULT_SETTINGS.playOrder,
             excludedWeekdays: data.excluded_weekdays ?? DEFAULT_SETTINGS.excludedWeekdays,
             excludedEventIds: data.excluded_event_ids ?? DEFAULT_SETTINGS.excludedEventIds,
+            defaultThumbnailClass: data.default_thumbnail_class,
+            defaultThumbnailEvent: data.default_thumbnail_event,
           });
         }
       } catch (error) {
@@ -96,7 +100,7 @@ export function useBillboardSettings() {
   const updateSettings = async (updates: Partial<BillboardSettings>) => {
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
-    
+
     try {
       // DB 형식으로 변환
       const dbData = {
@@ -112,6 +116,8 @@ export function useBillboardSettings() {
         play_order: newSettings.playOrder,
         excluded_weekdays: newSettings.excludedWeekdays,
         excluded_event_ids: newSettings.excludedEventIds,
+        default_thumbnail_class: newSettings.defaultThumbnailClass,
+        default_thumbnail_event: newSettings.defaultThumbnailEvent,
         updated_at: new Date().toISOString(),
       };
 
@@ -129,7 +135,7 @@ export function useBillboardSettings() {
 
   const resetSettings = async () => {
     setSettings(DEFAULT_SETTINGS);
-    
+
     try {
       const dbData = {
         id: 1,
