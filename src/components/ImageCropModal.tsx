@@ -8,9 +8,10 @@ interface ImageCropModalProps {
   isOpen: boolean;
   imageUrl: string;  // blob URL 또는 data URL
   onClose: () => void;
-  onCropComplete: (croppedFile: File, croppedPreviewUrl: string) => void;
+  onCropComplete: (croppedFile: File, croppedPreviewUrl: string, isModified: boolean) => void;
   onDiscard?: () => void;  // 취소 시 호출 (메모리 정리용)
   onRestoreOriginal?: () => void;  // 원본으로 되돌리기
+  onChangeImage?: () => void; // 이미지 변경 (파일 선택창 열기)
   hasOriginal?: boolean;  // 원본이 있는지 여부
   fileName?: string;
 }
@@ -89,6 +90,7 @@ export default function ImageCropModal({
   onCropComplete,
   onDiscard,
   onRestoreOriginal,
+  onChangeImage,
   hasOriginal = false,
   fileName = 'cropped.jpg',
 }: ImageCropModalProps) {
@@ -153,7 +155,12 @@ export default function ImageCropModal({
         fileName
       );
 
-      onCropComplete(file, previewUrl);
+      // Check if the crop is effectively the full image
+      const isFullWidth = Math.abs(pixelCrop.width - imgRef.current.naturalWidth) < 2; // 2px tolerance
+      const isFullHeight = Math.abs(pixelCrop.height - imgRef.current.naturalHeight) < 2;
+      const isModified = !(isFullWidth && isFullHeight);
+
+      onCropComplete(file, previewUrl, isModified);
       onClose();
     } catch (error) {
       console.error('이미지 크롭 실패:', error);
@@ -345,6 +352,15 @@ export default function ImageCropModal({
                   disabled={isProcessing}
                 >
                   원본 되돌리기
+                </button>
+              )}
+              {onChangeImage && (
+                <button
+                  onClick={onChangeImage}
+                  className="crop-action-btn crop-change-btn"
+                  disabled={isProcessing}
+                >
+                  이미지 변경
                 </button>
               )}
               <button

@@ -247,12 +247,21 @@
 }
 
 .crop-restore-btn {
-  background-color: var(--color-yellow-600);
+  background-color: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
-.crop-restore-btn:hover:not(:disabled) {
-  background-color: var(--color-yellow-700);
+.crop-restore-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.crop-change-btn {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.crop-change-btn:hover {
+  background-color: rgba(59, 130, 246, 0.3);
 }
 
 .crop-confirm-btn {

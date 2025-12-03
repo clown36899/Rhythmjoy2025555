@@ -52,6 +52,11 @@
   /* 트랜지션 */
   --transition-colors: color 0.2s ease, background-color 0.2s ease;
   --transition-all: all 0.2s ease;
+  --transition-all: all 0.2s ease;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 
 /* ===== CustomDateInput 버튼 스타일 ===== */

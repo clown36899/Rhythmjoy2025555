@@ -73,6 +73,7 @@ export default function EventRegistrationModal({
 
   // Image State
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -195,7 +196,9 @@ export default function EventRegistrationModal({
       setLink1("");
       setLinkName1("");
       setVideoUrl("");
+      setVideoUrl("");
       setImageFile(null);
+      setOriginalImageFile(null);
       setPreviewMode('detail');
     }
   }, [isOpen, selectedDate]);
@@ -220,22 +223,51 @@ export default function EventRegistrationModal({
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        setTempImageSrc(reader.result as string);
-        setIsCropModalOpen(true);
-      };
-      reader.readAsDataURL(file);
+      setOriginalImageFile(file);
+      setImageFile(file); // Initially set as current image
+      setTempImageSrc(URL.createObjectURL(file));
+      setIsCropModalOpen(true);
     }
     // Reset input value to allow selecting same file again
     e.target.value = '';
   };
 
-  const handleCropComplete = async (croppedBlob: Blob) => {
+  const handleCropComplete = async (croppedBlob: Blob, previewUrl: string, isModified: boolean) => {
+    // If not modified (full image) and we have the original, revert to original
+    if (!isModified && originalImageFile) {
+      setImageFile(originalImageFile);
+      setTempImageSrc(null);
+      setIsCropModalOpen(false);
+      return;
+    }
+
     const file = new File([croppedBlob], "cropped-image.jpg", { type: "image/jpeg" });
     setImageFile(file);
     setIsCropModalOpen(false);
     setTempImageSrc(null);
+  };
+
+  const handleRestoreOriginal = () => {
+    if (originalImageFile) {
+      setImageFile(originalImageFile);
+      setTempImageSrc(URL.createObjectURL(originalImageFile));
+      // Don't close modal, just update the image being cropped
+    }
+  };
+
+  const handleReEditImage = () => {
+    if (imageFile) {
+      setTempImageSrc(URL.createObjectURL(imageFile));
+      setIsCropModalOpen(true);
+    }
+  };
+
+  const handleImageClick = () => {
+    if (imageFile) {
+      handleReEditImage();
+    } else {
+      fileInputRef.current?.click();
+    }
   };
 
   // Submit Handler
@@ -463,7 +495,7 @@ export default function EventRegistrationModal({
             <EditableEventDetail
               event={previewEvent}
               onUpdate={handleDetailUpdate}
-              onImageUpload={() => fileInputRef.current?.click()}
+              onImageUpload={handleImageClick}
               genreSuggestions={allGenres}
               className="h-full"
               ref={detailRef}
@@ -548,7 +580,12 @@ export default function EventRegistrationModal({
                         </div>
                       </div>
                     ) : imageFile ? (
-                      <img src={URL.createObjectURL(imageFile)} alt="preview" className="billboard-media-image" />
+                      <img
+                        src={URL.createObjectURL(imageFile)}
+                        alt="preview"
+                        className="billboard-media-image cursor-pointer"
+                        onClick={handleReEditImage}
+                      />
                     ) : (
                       <div className="billboard-media-placeholder">
                         <i className="ri-image-line billboard-empty-icon"></i>
@@ -592,6 +629,9 @@ export default function EventRegistrationModal({
           onClose={() => setIsCropModalOpen(false)}
           imageUrl={tempImageSrc || ''}
           onCropComplete={handleCropComplete}
+          onRestoreOriginal={handleRestoreOriginal}
+          onChangeImage={() => fileInputRef.current?.click()}
+          hasOriginal={!!originalImageFile && imageFile !== originalImageFile}
         />
       </div>
     </div>,
