@@ -17,7 +17,18 @@ import * as readline from 'readline';
 const SUPABASE_URL = 'https://mkoryudscamnopvxdelk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rb3J5dWRzY2Ftbm9wdnhkZWxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0ODA0ODIsImV4cCI6MjA3NTA1NjQ4Mn0.EgapnMjdLh9Wb7pWA4OKyaOZ0GpmJLZ_KHKcBaqc160';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// For deletion operations, we need the service role key
+// Get it from: Supabase Dashboard > Project Settings > API > service_role key
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_SERVICE_KEY) {
+    console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable is required for cleanup operations.');
+    console.error('   Get your service role key from: Supabase Dashboard > Project Settings > API');
+    console.error('   Then run: SUPABASE_SERVICE_ROLE_KEY=your_key_here node scripts/cleanup-storage.js --cleanup');
+    process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 // Helper to prompt user for confirmation
 function prompt(question) {
@@ -45,36 +56,58 @@ function extractStoragePath(url) {
     }
 }
 
-// Get all files from Supabase storage
-async function getAllStorageFiles() {
-    console.log('📦 Fetching all files from Supabase storage...');
+// Recursively scan a folder and all its subfolders
+async function scanFolder(path = '') {
+    const files = [];
 
-    const allFiles = [];
-    const folders = ['', 'practice-rooms', 'social-event-images', 'default-thumbnails'];
+    const { data, error } = await supabase.storage
+        .from('images')
+        .list(path, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
 
-    for (const folder of folders) {
-        const { data, error } = await supabase.storage
-            .from('images')
-            .list(folder, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
-
-        if (error) {
-            console.error(`Error listing ${folder}:`, error);
-            continue;
-        }
-
-        if (data) {
-            data.forEach(file => {
-                if (file.name && !file.id) { // Skip folders
-                    const path = folder ? `${folder}/${file.name}` : file.name;
-                    allFiles.push({
-                        path,
-                        size: file.metadata?.size || 0,
-                        created: file.created_at
-                    });
-                }
-            });
-        }
+    if (error) {
+        console.error(`Error listing ${path}:`, error);
+        return files;
     }
+
+    if (!data) return files;
+
+    // Separate folders and files
+    const folders = data.filter(item => item.id === null);
+    const actualFiles = data.filter(item => item.id !== null);
+
+    // Add actual files to the list
+    actualFiles.forEach(file => {
+        const filePath = path ? `${path}/${file.name}` : file.name;
+        const hasExtension = filePath.includes('.');
+        const size = file.metadata?.size || 0;
+
+        // Skip if it looks like a folder (no extension and zero size)
+        if (!hasExtension && size === 0) {
+            return;
+        }
+
+        files.push({
+            path: filePath,
+            size,
+            created: file.created_at
+        });
+    });
+
+    // Recursively scan subfolders
+    for (const folder of folders) {
+        const subPath = path ? `${path}/${folder.name}` : folder.name;
+        const subFiles = await scanFolder(subPath);
+        files.push(...subFiles);
+    }
+
+    return files;
+}
+
+// Get all files from Supabase storage (recursively)
+async function getAllStorageFiles() {
+    console.log('📦 Fetching all files from Supabase storage (including subfolders)...');
+
+    const allFiles = await scanFolder('');
 
     console.log(`✅ Found ${allFiles.length} files in storage`);
     return allFiles;
