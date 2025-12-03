@@ -58,7 +58,7 @@ export default function EventCalendar({
 
   // 날짜 폰트 크기 계산 (작게 고정)
   const dateFontSize = 13; // 고정 크기로 작게
-  const eventCountFontSize = Math.max(7, Math.min(10, cellHeight * 0.15)); // 작은 폰트
+  // const eventCountFontSize = cellHeight < 60 ? '10px' : '12px';Math.min(10, cellHeight * 0.15)); // 작은 폰트
 
   // 카테고리에 따라 이벤트 필터링
   const filteredEvents = useMemo(() => {
@@ -236,15 +236,20 @@ export default function EventCalendar({
     const day = String(date.getDate()).padStart(2, "0");
     const dateString = `${year}-${month}-${day}`;
 
+    // 디버깅용 로그 (1일, 3일 등 특정 날짜에 대해서만 출력)
+    if (day === "01" || day === "03") {
+      // console.log(`[Calendar] getEventsForDate ${dateString}: checking ${filteredEvents.length} events`);
+    }
+
     return filteredEvents.filter((event) => {
       // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
       if (event.event_dates && event.event_dates.length > 0) {
-        return event.event_dates.includes(dateString);
+        return event.event_dates.some((d: string) => d.startsWith(dateString));
       }
 
       // 연속 기간 모드: 기존 로직
-      const startDate = event.start_date || event.date || "";
-      const endDate = event.end_date || event.date || "";
+      const startDate = (event.start_date || event.date || "").substring(0, 10);
+      const endDate = (event.end_date || event.date || "").substring(0, 10);
 
       return (
         startDate && endDate && dateString >= startDate && dateString <= endDate
@@ -388,6 +393,8 @@ export default function EventCalendar({
         ? { x: clickEvent.clientX, y: clickEvent.clientY }
         : undefined;
 
+      console.log(`[Calendar] Fullscreen click on: ${date.toString()} (ISO: ${date.toISOString()})`);
+
       window.dispatchEvent(
         new CustomEvent("fullscreenDateClick", {
           detail: { date, clickPosition },
@@ -482,7 +489,7 @@ export default function EventCalendar({
   ];
 
   // 주 레벨 장기일정 제목 오버레이 렌더링
-  const renderMultiDayTitlesOverlay = (days: Date[], monthDate: Date) => {
+  const renderMultiDayTitlesOverlay = (days: Date[], _monthDate: Date) => {
     if (cellHeight <= 55) return null; // 셀이 작으면 제목 표시 안 함
 
     const titleSegments: Array<{
@@ -583,12 +590,7 @@ export default function EventCalendar({
 
     return (
       <div
-        className="cal-absolute cal-inset-0 cal-pointer-events-none"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gridTemplateRows: 'repeat(6, 1fr)',
-        }}
+        className="calendar-overlay-container"
       >
         {titleSegments.map((segment, idx) => {
           const barHeight = segment.isHovered ? 20 : 14;
@@ -597,7 +599,7 @@ export default function EventCalendar({
           return (
             <div
               key={`${segment.eventId}-${segment.weekRow}-${idx}`}
-              className="cal-flex cal-items-center"
+              className="calendar-overlay-item"
               style={{
                 gridColumn: `${segment.startCol + 1} / span ${segment.span}`,
                 gridRow: segment.weekRow + 1,
@@ -613,7 +615,7 @@ export default function EventCalendar({
               }}
             >
               <span
-                className="cal-text-10px cal-font-medium cal-text-white cal-truncate"
+                className="calendar-overlay-title"
                 style={{
                   lineHeight: `${barHeight}px`,
                 }}
@@ -627,10 +629,98 @@ export default function EventCalendar({
     );
   };
 
-  // 달력 렌더링 함수
-  const renderCalendarGrid = (days: Date[], monthDate: Date) => {
-    return days.map((day, index) => {
+  // 전체화면 모드 그리드 렌더링
+  const renderFullscreenGrid = (days: Date[], monthDate: Date) => {
+    return days.map((day) => {
+      const year = day.getFullYear();
+      const month = String(day.getMonth() + 1).padStart(2, "0");
+      const dayNum = String(day.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${dayNum}`;
+      const todayFlag = isToday(day);
+      const isOtherMonth = day.getMonth() !== monthDate.getMonth();
+      const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
 
+      // 배경색 결정
+      let bgColor = '#1f2937'; // default gray-800
+      if (isOtherMonth) {
+        bgColor = '#111827'; // darker for other month
+      } else if (isSelected) {
+        bgColor = '#1e3a8a'; // blue-900 for selected
+      }
+
+      // 해당 날짜의 모든 이벤트 가져오기 (필터링 없이)
+      const dayEvents = getEventsForDate(day);
+
+      return (
+        <div
+          key={dateString}
+          onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
+          className="calendar-cell-fullscreen"
+          style={{ backgroundColor: bgColor }}
+        >
+          {/* 헤더: 날짜 숫자 */}
+          <div className="calendar-cell-fullscreen-header">
+            <span
+              className={`calendar-date-number-fullscreen ${todayFlag ? "calendar-date-number-today" : ""}`}
+              style={{
+                opacity: isOtherMonth ? 0.3 : 1,
+                color: isOtherMonth ? '#6b7280' : '#e5e7eb', // gray-500 vs gray-200
+                fontSize: '12px',
+                fontWeight: 700,
+                width: todayFlag ? '20px' : undefined,
+                height: todayFlag ? '20px' : undefined,
+              }}
+            >
+              {day.getDate()}
+            </span>
+          </div>
+
+          {/* 바디: 이벤트 리스트 */}
+          <div className="calendar-cell-fullscreen-body">
+            {dayEvents.map((event) => {
+              const categoryColor = getEventColor(event.id, event.category);
+              return (
+                <div
+                  key={event.id}
+                  className="calendar-fullscreen-event-card"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.dispatchEvent(
+                      new CustomEvent("eventSelected", { detail: event })
+                    );
+                  }}
+                >
+                  {/* 이미지 (있으면 표시) */}
+                  {event.image ? (
+                    <div className="calendar-fullscreen-image-container">
+                      <img src={event.image} alt="" className="calendar-fullscreen-image" />
+                    </div>
+                  ) : (
+                    <div className={`calendar-fullscreen-placeholder ${categoryColor}`}>
+                      <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                        {event.title.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 제목 */}
+                  <div className="calendar-fullscreen-title-container">
+                    <div className="calendar-fullscreen-title">
+                      {event.title}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    });
+  };
+
+  // 일반 모드 그리드 렌더링
+  const renderNormalGrid = (days: Date[], monthDate: Date) => {
+    return days.map((day) => {
       const dayEvents = getEventsForDate(day);
       const todayFlag = isToday(day);
 
@@ -641,24 +731,16 @@ export default function EventCalendar({
 
       // 연속 이벤트와 단일 이벤트 분리
       const multiDayEvents = dayEvents.filter((event) => {
-        // 특정 날짜 모드는 단일 이벤트로 처리
-        if (event.event_dates && event.event_dates.length > 0) {
-          return false;
-        }
-
-        const startDate = event.start_date || event.date || "";
-        const endDate = event.end_date || event.date || "";
+        if (event.event_dates && event.event_dates.length > 0) return false;
+        const startDate = (event.start_date || event.date || "").substring(0, 10);
+        const endDate = (event.end_date || event.date || "").substring(0, 10);
         return startDate !== endDate;
       });
 
       const singleDayEvents = dayEvents.filter((event) => {
-        // 특정 날짜 모드는 단일 이벤트로 처리
-        if (event.event_dates && event.event_dates.length > 0) {
-          return true;
-        }
-
-        const startDate = event.start_date || event.date || "";
-        const endDate = event.end_date || event.date || "";
+        if (event.event_dates && event.event_dates.length > 0) return true;
+        const startDate = (event.start_date || event.date || "").substring(0, 10);
+        const endDate = (event.end_date || event.date || "").substring(0, 10);
         return startDate === endDate;
       });
 
@@ -667,13 +749,9 @@ export default function EventCalendar({
         ? new Set(
           getEventsForDate(selectedDate)
             .filter((event) => {
-              // 특정 날짜 모드는 제외
-              if (event.event_dates && event.event_dates.length > 0) {
-                return false;
-              }
-
-              const startDate = event.start_date || event.date || "";
-              const endDate = event.end_date || event.date || "";
+              if (event.event_dates && event.event_dates.length > 0) return false;
+              const startDate = (event.start_date || event.date || "").substring(0, 10);
+              const endDate = (event.end_date || event.date || "").substring(0, 10);
               return startDate !== endDate;
             })
             .map((event) => event.id),
@@ -681,29 +759,18 @@ export default function EventCalendar({
         : null;
 
       // 연속 이벤트 바 정보 계산 (레인 맵 기반, 최대 3개 레인)
-      const eventBarsMap = new Map<
-        number,
-        {
-          eventId: number;
-          isStart: boolean;
-          isEnd: boolean;
-          categoryColor: string;
-          isFaded: boolean;
-        }
-      >();
+      const eventBarsMap = new Map<number, any>();
 
       multiDayEvents.forEach((event) => {
         const laneInfo = eventLaneMap.get(event.id);
-        if (!laneInfo || laneInfo.lane >= 3) return; // 최대 3개 레인만
+        if (!laneInfo || laneInfo.lane >= 3) return;
 
-        const startDate = event.start_date || event.date || "";
-        const endDate = event.end_date || event.date || "";
+        const startDate = (event.start_date || event.date || "").substring(0, 10);
+        const endDate = (event.end_date || event.date || "").substring(0, 10);
         const isStart = dateString === startDate;
         const isEnd = dateString === endDate;
 
-        // 선택된 날짜가 있고 해당 이벤트가 선택된 날짜에 속하지 않으면 흐리게
-        const isFaded =
-          selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
+        const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
 
         eventBarsMap.set(laneInfo.lane, {
           eventId: event.id,
@@ -714,17 +781,12 @@ export default function EventCalendar({
         });
       });
 
-      // 레인 0, 1, 2를 순서대로 배열로 변환 (빈 레인은 null)
-      const eventBarsData = [0, 1, 2].map((lane) => {
-        const bar = eventBarsMap.get(lane);
-        return bar || null;
-      });
+      // 레인 0, 1, 2를 순서대로 배열로 변환
+      const eventBarsData = [0, 1, 2].map((lane) => eventBarsMap.get(lane) || null);
 
-      // 현재 달이 아닌 날짜인지 확인
       const isOtherMonth = day.getMonth() !== monthDate.getMonth();
       const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
 
-      // 배경색 결정
       let bgColor = undefined;
       if (isOtherMonth) {
         bgColor = '#252525';
@@ -734,121 +796,58 @@ export default function EventCalendar({
 
       return (
         <div
-          key={`${monthDate.getMonth()}-${index}`}
-          data-calendar-date={dateString}
-          className={`calendar-day-cell cal-relative no-select cal-transition-all cal-duration-300 ${!isOtherMonth && !isSelected ? 'cal-hover-bg-gray-700' : ''
-            }`}
-          style={{ backgroundColor: bgColor, minWidth: 0 }}
+          key={dateString}
           onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
+          className={`calendar-cell-base ${!isOtherMonth && !isSelected ? 'calendar-cell-hoverable' : ''}`}
+          style={{
+            minHeight: 'var(--calendar-cell-height, 100px)',
+            height: '100%',
+            backgroundColor: bgColor
+          }}
         >
-          <div
-            className={`cal-w-full cal-h-full cal-cursor-pointer cal-relative cal-overflow-visible no-select ${isSelected ? "cal-text-white cal-z-10" : "cal-text-gray-300"
-              }`}
-          >
-            {/* 날짜 숫자 */}
+          <div className={`calendar-cell-content ${isSelected ? "calendar-cell-selected" : "calendar-cell-default"}`}>
             <span
               className={`calendar-date-number ${todayFlag ? "calendar-date-number-today" : ""}`}
               style={{
                 opacity: isOtherMonth ? 0.15 : undefined,
-                fontSize: calendarMode === 'fullscreen' ? (todayFlag ? '9px' : '10px') : (todayFlag ? '11px' : `${dateFontSize}px`),
-                width: todayFlag ? (calendarMode === 'fullscreen' ? '16px' : '22px') : undefined,
-                height: todayFlag ? (calendarMode === 'fullscreen' ? '16px' : '22px') : undefined,
+                fontSize: todayFlag ? '11px' : `${dateFontSize}px`,
+                width: todayFlag ? '22px' : undefined,
+                height: todayFlag ? '22px' : undefined,
               }}
             >
               {day.getDate()}
             </span>
 
             {/* 단일 이벤트 표시 - 크기에 따라 숫자 또는 바 */}
-            {singleDayEvents.length > 0 &&
-              (() => {
-                // 호버된 이벤트가 이 날짜의 단일 이벤트인지 확인
-                const isHoveredSingle =
-                  viewMode === "month" &&
-                  hoveredEventId !== null &&
-                  singleDayEvents.some((e) => e.id === hoveredEventId);
+            {singleDayEvents.length > 0 && (() => {
+              const isHoveredSingle = viewMode === "month" && hoveredEventId !== null && singleDayEvents.some((e) => e.id === hoveredEventId);
+              const showAsBars = cellHeight > 55;
 
-                // 셀 높이가 크면 바로 표시, 작으면 숫자로 표시
-                const showAsBars = cellHeight > 55;
-
-                if (!showAsBars) {
-                  // 작을 때: 숫자로 표시 (기존 방식)
-                  return (
-                    <span
-                      className={`calendar-event-count ${isHoveredSingle
-                        ? "calendar-event-count-hovered"
-                        : "calendar-event-count-default"
-                        }`}
-                    >
-                      +{singleDayEvents.length}
-                    </span>
-                  );
-                } else {
-                  // 클 때: 바 형태로 표시 (아래 별도 렌더링)
-                  return null;
-                }
-              })()}
+              if (!showAsBars) {
+                return (
+                  <span className={`calendar-event-count ${isHoveredSingle ? "calendar-event-count-hovered" : "calendar-event-count-default"}`}>
+                    +{singleDayEvents.length}
+                  </span>
+                );
+              } else {
+                return null;
+              }
+            })()}
           </div>
 
           {/* 단일 이벤트 바 표시 - 셀이 클 때만 */}
-          {(cellHeight > 55 || calendarMode === 'fullscreen') && singleDayEvents.length > 0 && (
+          {cellHeight > 55 && singleDayEvents.length > 0 && (
             <div
-              className={`${calendarMode === 'fullscreen' ? 'cal-relative cal-mt-6 cal-mx-0.5' : 'cal-absolute cal-flex cal-flex-col cal-gap-0.5 cal-pointer-events-none cal-left-1 cal-right-1'}`}
-              style={{
-                top: calendarMode === 'fullscreen' ? 'auto' : '28px',
-                pointerEvents: calendarMode === 'fullscreen' ? 'auto' : 'none'
-              }}
+              className="calendar-event-container-normal"
+              style={{ top: '28px', pointerEvents: 'none' }}
             >
-              {(calendarMode === 'fullscreen'
-                ? singleDayEvents
-                : singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16))
-              ).map((event) => {
+              {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event) => {
                 const categoryColor = getEventColor(event.id, event.category);
                 const isHovered = viewMode === "month" && hoveredEventId === event.id;
-
-                if (calendarMode === 'fullscreen') {
-                  return (
-                    <div
-                      key={event.id}
-                      className="cal-flex cal-flex-col cal-gap-1 cal-bg-gray-800 cal-rounded cal-p-1 cal-mb-1 cal-cursor-pointer cal-hover-bg-gray-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // 이벤트 클릭 처리 (상세 모달 등)
-                        window.dispatchEvent(
-                          new CustomEvent("eventSelected", { detail: event })
-                        );
-                      }}
-                    >
-                      {/* 이미지 (있으면 표시) */}
-                      {event.image ? (
-                        <div className="cal-w-full cal-aspect-square cal-rounded cal-overflow-hidden cal-bg-gray-700" style={{ maxWidth: '6rem', margin: '0 auto' }}>
-                          <img src={event.image} alt="" className="cal-w-full cal-h-full cal-object-cover" />
-                        </div>
-                      ) : (
-                        <div className={`cal-w-full cal-aspect-square cal-rounded cal-flex cal-items-center cal-justify-center ${categoryColor} cal-text-white cal-text-xs`} style={{ maxWidth: '6rem', margin: '0 auto' }}>
-                          {event.title.charAt(0)}
-                        </div>
-                      )}
-
-                      {/* 제목 */}
-                      <div className="cal-w-full">
-                        <div className="cal-text-10px cal-text-white cal-font-medium cal-truncate cal-text-center">
-                          {event.title}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
                 return (
                   <div
                     key={event.id}
-                    className={`cal-rounded-full cal-text-10px cal-font-medium cal-truncate cal-transition-all cal-duration-200 ${categoryColor} ${isHovered ? 'cal-opacity-100 cal-scale-105' : 'cal-opacity-80'
-                      } cal-px-1.5`}
-                    style={{
-                      height: '14px',
-                      lineHeight: '14px',
-                      color: 'white'
-                    }}
+                    className={`calendar-event-chip ${categoryColor} ${isHovered ? "hovered" : "default"}`}
                   >
                     {event.title}
                   </div>
@@ -857,42 +856,28 @@ export default function EventCalendar({
             </div>
           )}
 
-          {/* 멀티데이 이벤트 바 표시 - 날짜 칸 하단에 겹쳐서 배치 (전체화면 모드에서는 제외) */}
-          {calendarMode !== 'fullscreen' && eventBarsData.some((bar) => bar !== null) && (
-            <div className="cal-absolute cal-bottom-0 cal-left-0 cal-right-0 cal-h-5 cal-pointer-events-none">
-              {eventBarsData.map((bar, i) => {
-                const isHovered =
-                  viewMode === "month" &&
-                  hoveredEventId !== null &&
-                  bar?.eventId === hoveredEventId;
-
+          {/* 연속 이벤트 바 표시 (일반 모드에서만) */}
+          {calendarMode !== 'fullscreen' && (
+            <div className="calendar-event-bar-container">
+              {eventBarsData.map((bar, index) => {
                 if (!bar) return null;
+                const isHovered =
+                  viewMode === "month" && hoveredEventId === bar.eventId;
+
+                // 바 위치 계산 (아래에서부터 쌓임)
+                const bottomOffset = index * 6 + 2; // 2px base + 6px per lane
 
                 return (
                   <div
-                    key={i}
-                    className={`cal-absolute cal-bottom-0 cal-left-0 cal-right-0 cal-transition-all cal-duration-200 ${bar.categoryColor
-                      } ${bar.isStart && bar.isEnd
-                        ? "cal-rounded-full"
-                        : bar.isStart
-                          ? "cal-rounded-l-full"
-                          : bar.isEnd
-                            ? "cal-rounded-r-full"
-                            : ""
-                      } ${bar.isFaded
-                        ? "cal-opacity-20 cal-h-1.5 cal-z-0"
-                        : isHovered
-                          ? "cal-opacity-100 cal-h-5 cal-z-10"
-                          : cellHeight > 55
-                            ? "cal-opacity-80 cal-h-3.5 cal-z-0"
-                            : "cal-opacity-60 cal-h-1.5 cal-z-0"
+                    key={`${dateString}-bar-${index}`}
+                    className={`calendar-event-bar-segment ${bar.categoryColor} ${bar.isFaded ? "faded" : isHovered ? "hovered" : "default"
+                      } ${bar.isStart ? "rounded-l" : ""} ${bar.isEnd ? "rounded-r" : ""
                       }`}
                     style={{
-                      paddingLeft: (bar.isStart || (bar.isStart && bar.isEnd)) ? '6px' : '0',
-                      paddingRight: (bar.isEnd && !bar.isStart) ? '6px' : '0'
+                      bottom: `${bottomOffset}px`,
+                      left: bar.isStart ? "2px" : "0",
+                      right: bar.isEnd ? "2px" : "0",
                     }}
-                    data-event-id={bar.eventId}
-                    data-lane={i}
                   />
                 );
               })}
@@ -903,14 +888,23 @@ export default function EventCalendar({
     });
   };
 
+  // 통합 렌더링 함수 (모드에 따라 분기)
+  const renderCalendarGrid = (days: Date[], monthDate: Date) => {
+    if (calendarMode === 'fullscreen') {
+      return renderFullscreenGrid(days, monthDate);
+    } else {
+      return renderNormalGrid(days, monthDate);
+    }
+  };
+
   // 연간 보기용 년도 리스트 렌더링
   const renderYearView = () => {
     const years = Array.from({ length: 11 }, (_, i) => yearRangeBase - 5 + i); // yearRangeBase ±5년
     const selectedYear = currentMonth.getFullYear();
 
     return (
-      <div className="cal-p-2">
-        <div className="cal-grid cal-grid-cols-3 cal-gap-2">
+      <div className="calendar-year-view-container">
+        <div className="calendar-year-grid">
           {years.map((year) => {
             const isSelected = selectedYear === year;
 
@@ -930,10 +924,7 @@ export default function EventCalendar({
                   onDateSelect(null);
                   // viewMode는 "year"로 유지되어 해당 년도의 모든 이벤트 표시
                 }}
-                className={`cal-py-2 cal-px-3 cal-rounded-lg cal-text-sm cal-font-bold cal-transition-all cal-cursor-pointer ${isSelected
-                  ? "cal-bg-blue-600 cal-text-white"
-                  : "cal-bg-gray-700 cal-text-gray-300 cal-hover-bg-gray-600 cal-hover-text-white"
-                  }`}
+                className={`calendar-year-button ${isSelected ? "selected" : "default"}`}
               >
                 {year}년
               </button>
@@ -948,37 +939,38 @@ export default function EventCalendar({
     <>
       <div
         data-calendar
-        className="cal-rounded-none cal-p-0 cal-flex cal-flex-col no-select"
+        className="calendar-main-container"
         style={{ backgroundColor: "var(--calendar-bg-color)" }}
       >
         {/* Desktop Header */}
+        {/* Desktop Header */}
         {showHeader && (
-          <div className="cal-hidden cal-items-center cal-justify-between cal-mb-6">
-            <h2 className="cal-text-2xl cal-font-bold cal-text-white">
+          <div className="calendar-header">
+            <h2 className="calendar-header-title">
               {viewMode === "year" ? (
                 `${currentMonth.getFullYear()}년`
               ) : (
                 <>
                   {currentMonth.getFullYear()}년{" "}
-                  <div className="cal-relative cal-inline-block">
+                  <div className="calendar-month-dropdown-wrapper">
                     <button
                       onClick={toggleMonthDropdown}
-                      className="cal-hover-text-blue-400 cal-transition-colors cal-cursor-pointer cal-flex cal-items-center cal-space-x-1"
+                      className="calendar-nav-button"
                     >
                       <span>{monthNames[currentMonth.getMonth()]}</span>
                       <i
-                        className={`ri-arrow-down-s-line cal-transition-transform ${showMonthDropdown ? "cal-rotate-180" : ""}`}
+                        className={`ri-arrow-down-s-line calendar-month-dropdown-icon ${showMonthDropdown ? "rotated" : ""}`}
                       ></i>
                     </button>
 
                     {showMonthDropdown && (
-                      <div className="cal-absolute cal-top-full cal-left-0 cal-mt-2 cal-bg-gray-700 cal-rounded-lg cal-shadow-lg cal-z-10 cal-min-w-120">
+                      <div className="calendar-month-dropdown">
                         {monthNames.map((month, index) => (
                           <button
                             key={index}
                             onClick={() => navigateToMonth(index)}
-                            className={`cal-w-full cal-text-left cal-px-4 cal-py-2 cal-hover-bg-gray-600 cal-transition-colors cal-cursor-pointer cal-first-rounded-t-lg cal-last-rounded-b-lg ${index === currentMonth.getMonth()
-                              ? "cal-bg-blue-600 cal-text-white"
+                            className={`calendar-month-option ${index === currentMonth.getMonth()
+                              ? "selected"
                               : "cal-text-gray-300"
                               }`}
                           >
@@ -991,133 +983,139 @@ export default function EventCalendar({
                 </>
               )}
             </h2>
-            <div className="cal-flex cal-space-x-2">
+            <div className="calendar-nav-group">
               <button
                 onClick={() => navigateMonth("prev")}
-                className="cal-p-2 cal-text-gray-400 cal-hover-text-white cal-transition-colors cal-cursor-pointer"
+                className="calendar-nav-button"
               >
-                <i className="ri-arrow-left-s-line cal-text-xl"></i>
+                <i className="ri-arrow-left-s-line calendar-nav-icon"></i>
               </button>
               <button
                 onClick={() => navigateMonth("next")}
-                className="cal-p-2 cal-text-gray-400 cal-hover-text-white cal-transition-colors cal-cursor-pointer"
+                className="calendar-nav-button"
               >
-                <i className="ri-arrow-right-s-line cal-text-xl"></i>
+                <i className="ri-arrow-right-s-line calendar-nav-icon"></i>
               </button>
             </div>
           </div>
         )}
-        {viewMode === "year" ? (
-          // 연간 보기
-          <div className="cal-flex-1 cal-overflow-y-auto">{renderYearView()}</div>
-        ) : (
-          // 월간 보기
-          <>
-            {/* Days of week header */}
-            <div className="no-select">
-              <div className="cal-grid cal-grid-cols-7 cal-gap-0 cal-h-4 calendar-grid-container">
-                {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
-                  <div
-                    key={day}
-                    className="calendar-day-header cal-text-center cal-text-gray-400 cal-font-semibold cal-py-0 cal-text-9px cal-flex cal-items-center cal-justify-center no-select"
-                    style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Calendar grid - 3개 달력 캐러셀 */}
-            <div className={`cal-flex-1 ${calendarMode === 'fullscreen' ? 'cal-overflow-y-auto cal-pb-40' : 'cal-overflow-hidden'}`}>
-              <div
-                className="cal-flex"
-                style={{
-                  transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
-                  transition: externalIsAnimating
-                    ? "transform 0.25s ease-out"
-                    : "none",
-                  height: calendarMode === 'fullscreen' ? 'auto' : '100%',
-                  minHeight: '100%'
-                }}
-              >
-                {/* 이전 달 */}
-                <div
-                  key={`${prevMonth.getFullYear()}-${prevMonth.getMonth()}`}
-                  className="cal-pb-0 cal-flex-shrink-0 cal-relative"
-                  style={{ width: "100%" }}
-                >
-                  <div
-                    className="cal-grid cal-grid-cols-7 cal-gap-0 calendar-grid-container"
-                    style={{
-                      gridAutoRows: calendarMode === 'fullscreen'
-                        ? 'minmax(40px, auto)'
-                        : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
-                      '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
-                    } as React.CSSProperties}
-                  >
-                    {renderCalendarGrid(prevDays, prevMonth)}
-                    {calendarMode === 'fullscreen' && <div className="cal-h-20 cal-w-full cal-col-span-7"></div>}
-                  </div>
-                  {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(prevDays, prevMonth)}
-                </div>
-
-                {/* 현재 달 */}
-                <div
-                  key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
-                  className="cal-pb-0 cal-flex-shrink-0 cal-relative"
-                  style={{ width: "100%" }}
-                >
-                  <div
-                    className="cal-grid cal-grid-cols-7 cal-gap-0 calendar-grid-container"
-                    style={{
-                      gridAutoRows: calendarMode === 'fullscreen'
-                        ? 'minmax(40px, auto)'
-                        : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
-                      '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
-                    } as React.CSSProperties}
-                  >
-                    {renderCalendarGrid(currentDays, currentMonth)}
-                    {calendarMode === 'fullscreen' && <div className="cal-h-20 cal-w-full cal-col-span-7"></div>}
-                  </div>
-                  {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(currentDays, currentMonth)}
-                </div>
-
-                {/* 다음 달 */}
-                <div
-                  key={`${nextMonth.getFullYear()}-${nextMonth.getMonth()}`}
-                  className="cal-pb-0 cal-flex-shrink-0 cal-relative"
-                  style={{ width: "100%" }}
-                >
-                  <div
-                    className="cal-grid cal-grid-cols-7 cal-gap-0 calendar-grid-container"
-                    style={{
-                      gridAutoRows: calendarMode === 'fullscreen'
-                        ? 'minmax(40px, auto)'
-                        : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
-                      '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
-                    } as React.CSSProperties}
-                  >
-                    {renderCalendarGrid(nextDays, nextMonth)}
-                    {calendarMode === 'fullscreen' && <div className="cal-h-20 cal-w-full cal-col-span-7"></div>}
-                  </div>
-                  {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(nextDays, nextMonth)}
+        {
+          viewMode === "year" ? (
+            // 연간 보기
+            <div className="cal-flex-1 cal-overflow-y-auto">{renderYearView()}</div>
+          ) : (
+            // 월간 보기
+            <>
+              {/* Days of week header */}
+              <div className="no-select">
+                <div className="calendar-weekday-header">
+                  {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
+                    <div
+                      key={day}
+                      className="calendar-weekday-item"
+                      style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
+                    >
+                      {day}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          </>
-        )}
-      </div>
+
+              {/* Calendar grid - 3개 달력 캐러셀 */}
+              <div className={`calendar-carousel-container ${calendarMode === 'fullscreen' ? 'calendar-mode-fullscreen' : 'calendar-mode-normal'}`}>
+                <div
+                  className="calendar-carousel-track"
+                  style={{
+                    width: '300%',
+                    display: 'flex',
+                    transform: `translateX(calc(-33.3333% + ${externalDragOffset}px))`,
+                    transition: externalIsAnimating
+                      ? "transform 0.3s ease-out"
+                      : "none",
+                    height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                    minHeight: '100%'
+                  }}
+                >
+                  {/* 이전 달 */}
+                  <div
+                    key={`${prevMonth.getFullYear()}-${prevMonth.getMonth()}`}
+                    className="calendar-month-slide"
+                    style={{ width: "33.3333%" }}
+                  >
+                    <div
+                      className="calendar-grid-container"
+                      style={{
+                        gridAutoRows: calendarMode === 'fullscreen'
+                          ? 'auto'
+                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
+                      } as React.CSSProperties}
+                    >
+                      {renderCalendarGrid(prevDays, prevMonth)}
+                      {calendarMode === 'fullscreen' && <div className="calendar-fullscreen-spacer"></div>}
+                    </div>
+                    {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(prevDays, prevMonth)}
+                  </div>
+
+                  {/* 현재 달 */}
+                  <div
+                    key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
+                    className="calendar-month-slide"
+                    style={{ width: "33.3333%" }}
+                  >
+                    <div
+                      className="calendar-grid-container"
+                      style={{
+                        gridAutoRows: calendarMode === 'fullscreen'
+                          ? 'auto'
+                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
+                      } as React.CSSProperties}
+                    >
+                      {renderCalendarGrid(currentDays, currentMonth)}
+                      {calendarMode === 'fullscreen' && <div className="calendar-fullscreen-spacer"></div>}
+                    </div>
+                    {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(currentDays, currentMonth)}
+                  </div>
+
+                  {/* 다음 달 */}
+                  <div
+                    key={`${nextMonth.getFullYear()}-${nextMonth.getMonth()}`}
+                    className="calendar-month-slide"
+                    style={{ width: "33.3333%" }}
+                  >
+                    <div
+                      className="calendar-grid-container"
+                      style={{
+                        gridAutoRows: calendarMode === 'fullscreen'
+                          ? 'auto'
+                          : `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`,
+                        '--calendar-cell-height': `max(30px, calc((var(--live-calendar-height, ${calendarHeightPx || 300}px) - 16px) / 6))`
+                      } as React.CSSProperties}
+                    >
+                      {renderCalendarGrid(nextDays, nextMonth)}
+                      {calendarMode === 'fullscreen' && <div className="calendar-fullscreen-spacer"></div>}
+                    </div>
+                    {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(nextDays, nextMonth)}
+                  </div>
+                </div>
+              </div>
+            </>
+          )
+        }
+      </div >
 
       {/* 이벤트 등록 모달 */}
-      {showRegistrationModal && selectedDate && (
-        <EventRegistrationModal
-          isOpen={showRegistrationModal}
-          onClose={() => setShowRegistrationModal(false)}
-          selectedDate={selectedDate}
-          onEventCreated={handleEventCreated}
-        />
-      )}
+      {
+        showRegistrationModal && selectedDate && (
+          <EventRegistrationModal
+            isOpen={showRegistrationModal}
+            onClose={() => setShowRegistrationModal(false)}
+            selectedDate={selectedDate}
+            onEventCreated={handleEventCreated}
+          />
+        )
+      }
     </>
   );
 }

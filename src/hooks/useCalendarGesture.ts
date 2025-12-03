@@ -201,15 +201,16 @@ export function useCalendarGesture({
 
       if (isLocked === 'horizontal') {
         if (Math.abs(diffX) > MIN_SWIPE_DISTANCE) {
+          const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
           const direction = diffX < 0 ? "next" : "prev";
-          const targetOffset = diffX < 0 ? -window.innerWidth : window.innerWidth;
+          const targetOffset = diffX < 0 ? -containerWidth : containerWidth;
           setDragOffset(targetOffset);
           setIsAnimating(true);
           setTimeout(() => {
             onHorizontalSwipe(direction);
             setDragOffset(0);
             setIsAnimating(false);
-          }, 200);
+          }, 300);
         } else {
           setDragOffset(0);
         }

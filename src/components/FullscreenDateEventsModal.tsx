@@ -10,6 +10,7 @@ interface FullscreenDateEventsModalProps {
   selectedDate: Date;
   clickPosition?: { x: number; y: number };
   onEventClick: (event: AppEvent) => void;
+  selectedCategory?: string;
 }
 
 export default function FullscreenDateEventsModal({
@@ -18,6 +19,7 @@ export default function FullscreenDateEventsModal({
   selectedDate,
   clickPosition,
   onEventClick,
+  selectedCategory = "all",
 }: FullscreenDateEventsModalProps) {
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,10 @@ export default function FullscreenDateEventsModal({
         const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
         const day = String(selectedDate.getDate()).padStart(2, '0');
         const dateStr = `${year}-${month}-${day}`;
-        
+
+        console.log(`[Modal] Fetching events for: ${dateStr} (Original: ${selectedDate.toString()})`);
+        console.log(`[Modal] Selected Category: ${selectedCategory}`);
+
         // 모든 이벤트를 가져온 후 클라이언트에서 필터링
         const { data, error } = await supabase
           .from("events")
@@ -42,18 +47,23 @@ export default function FullscreenDateEventsModal({
           .order("time", { ascending: true });
 
         if (error) throw error;
-        
+
         // 클라이언트에서 정확하게 필터링
         const filteredEvents = (data || []).filter((event: any) => {
+          // 카테고리 필터링
+          if (selectedCategory && selectedCategory !== "all" && event.category !== selectedCategory) {
+            return false;
+          }
+
           // event_dates 배열로 정의된 이벤트 체크
           if (event.event_dates && event.event_dates.length > 0) {
             return event.event_dates.includes(dateStr);
           }
-          
+
           // start_date/end_date 범위로 정의된 이벤트 체크
           const startDate = event.start_date || event.date;
           const endDate = event.end_date || event.start_date || event.date;
-          
+
           return (
             startDate &&
             endDate &&
@@ -61,7 +71,18 @@ export default function FullscreenDateEventsModal({
             dateStr <= endDate
           );
         });
-        
+
+        console.log(`[Modal] Filtered events count: ${filteredEvents.length}`);
+        if (filteredEvents.length > 0) {
+          console.log(`[Modal] First event match:`, {
+            title: filteredEvents[0].title,
+            start_date: filteredEvents[0].start_date,
+            end_date: filteredEvents[0].end_date,
+            date: filteredEvents[0].date,
+            event_dates: filteredEvents[0].event_dates,
+            dateStr_used: dateStr
+          });
+        }
         setEvents(filteredEvents);
       } catch (error) {
         console.error("Error fetching events:", error);
@@ -102,11 +123,11 @@ export default function FullscreenDateEventsModal({
 
   const animationOrigin = clickPosition
     ? {
-        transformOrigin: `${clickPosition.x}px ${clickPosition.y}px`,
-      }
+      transformOrigin: `${clickPosition.x}px ${clickPosition.y}px`,
+    }
     : {
-        transformOrigin: "center center",
-      };
+      transformOrigin: "center center",
+    };
 
   return createPortal(
     <div
@@ -179,11 +200,10 @@ export default function FullscreenDateEventsModal({
                     <div className="fsde-event-content">
                       <div className="fsde-event-meta">
                         <span
-                          className={`fsde-badge ${
-                            event.category === "class"
-                              ? "fsde-badge-class"
-                              : "fsde-badge-event"
-                          }`}
+                          className={`fsde-badge ${event.category === "class"
+                            ? "fsde-badge-class"
+                            : "fsde-badge-event"
+                            }`}
                         >
                           {event.category === "class" ? "강습" : "행사"}
                         </span>
