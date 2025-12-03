@@ -107,8 +107,25 @@ export function useCalendarGesture({
             gestureRef.current.isLocked = 'horizontal';
           } else if (absY > absX) {
             const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
-            const isPullingDown = initialScrollTop <= 2 && diffY > 0;
-            if (isTouchingCalendar || isPullingDown) {
+            const isTouchingEventList = eventListElementRef.current?.contains(e.target as Node);
+
+            // Check if user is at the TOP of the event list and pulling down BEYOND a threshold
+            const eventList = eventListElementRef.current;
+            const isAtTop = eventList
+              ? (eventList.scrollTop <= 2)
+              : false;
+
+            // Require pulling down at least 30px beyond the top to trigger calendar resize
+            // This allows normal scrolling to work first
+            const PULL_DOWN_THRESHOLD = 30;
+            const isPullingDownBeyondThreshold = isAtTop && diffY > PULL_DOWN_THRESHOLD;
+
+            // Allow resize if:
+            // 1. Touching calendar directly, OR
+            // 2. Touching event list AND at top AND pulled down beyond threshold
+            const shouldResize = isTouchingCalendar || (isTouchingEventList && isPullingDownBeyondThreshold);
+
+            if (shouldResize) {
               gestureRef.current.isLocked = 'vertical-resize';
               setIsDragging(true);
               setLiveCalendarHeight(startHeight);
@@ -126,7 +143,11 @@ export function useCalendarGesture({
         swipeAnimationRef.current = requestAnimationFrame(() => setDragOffset(diffX));
       } else if (currentLock === 'vertical-resize') {
         if (e.cancelable) e.preventDefault();
-        const newHeight = startHeight + diffY;
+        // Apply damping factor for "gum-like" resistance
+        const DAMPING_FACTOR = 0.35;
+        const dampedDiffY = diffY * DAMPING_FACTOR;
+        const newHeight = startHeight + dampedDiffY;
+
         const maxAllowedHeight = calculateFullscreenHeight();
         const clampedHeight = Math.max(0, Math.min(newHeight, maxAllowedHeight));
         if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
@@ -173,27 +194,31 @@ export function useCalendarGesture({
         }
       } else if (isLocked === 'vertical-resize') {
         const endHeight = liveCalendarHeight;
-        const fullscreenH = calculateFullscreenHeight();
         let nextMode = latestStateRef.current.calendarMode;
 
-        if (diffY > 50) {
-          // Dragging down
+        // Increased threshold for "pull more" behavior (50 -> 120)
+        const DRAG_THRESHOLD = 90;
+
+        if (diffY > DRAG_THRESHOLD) {
+          // Dragging down - only allow collapsed -> expanded
           if (latestStateRef.current.calendarMode === 'collapsed') nextMode = 'expanded';
-          else if (latestStateRef.current.calendarMode === 'expanded') nextMode = 'fullscreen';
-          else nextMode = 'fullscreen'; // Already fullscreen or dragging further
-        } else if (diffY < -50) {
-          // Dragging up
-          if (latestStateRef.current.calendarMode === 'fullscreen') nextMode = 'expanded';
-          else if (latestStateRef.current.calendarMode === 'expanded') nextMode = 'collapsed';
-          else nextMode = 'collapsed';
+          // If already expanded or fullscreen, stay in current mode
+        } else if (diffY < -DRAG_THRESHOLD) {
+          // Dragging up - only allow expanded -> collapsed
+          if (latestStateRef.current.calendarMode === 'expanded') nextMode = 'collapsed';
+          // If already collapsed or fullscreen, stay in current mode
         } else {
-          // Snap to nearest
-          const dists = {
-            collapsed: Math.abs(endHeight - 0),
-            expanded: Math.abs(endHeight - EXPANDED_HEIGHT),
-            fullscreen: Math.abs(endHeight - fullscreenH),
-          };
-          nextMode = (Object.keys(dists) as (keyof typeof dists)[]).reduce((a, b) => dists[a] < dists[b] ? a : b);
+          // Snap to nearest (only between collapsed and expanded)
+          if (latestStateRef.current.calendarMode === 'fullscreen') {
+            // If in fullscreen, don't change mode on small drags
+            nextMode = 'fullscreen';
+          } else {
+            const dists = {
+              collapsed: Math.abs(endHeight - 0),
+              expanded: Math.abs(endHeight - EXPANDED_HEIGHT),
+            };
+            nextMode = (Object.keys(dists) as (keyof typeof dists)[]).reduce((a, b) => dists[a] < dists[b] ? a : b);
+          }
         }
         setCalendarMode(nextMode);
         setIsDragging(false);

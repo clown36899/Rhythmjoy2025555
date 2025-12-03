@@ -45,6 +45,7 @@
         "npm:react-router-dom@^7.6.3",
         "npm:react@^19.1.0",
         "npm:recharts@3.2.0",
+        "npm:sharp@~0.34.5",
         "npm:source-map@~0.7.6",
         "npm:typescript-eslint@^8.35.1",
         "npm:typescript@~5.8.3",
