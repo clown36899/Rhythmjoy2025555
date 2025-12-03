@@ -119,6 +119,8 @@
 .card-container {
   cursor: pointer;
   transition: all 0.2s ease;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .card-container-past {
@@ -260,7 +262,8 @@
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-gray-100);
-  margin: 0;
+  margin-top: 3px;
+  margin-bottom: 0;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }

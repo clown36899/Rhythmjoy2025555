@@ -85,7 +85,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.799);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -479,6 +479,55 @@
   font-size: 3rem;
   /* text-5xl */
   color: black;
+}
+
+/* ===== Mock Grid Preview ===== */
+.card-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.card-preview-grid>* {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Responsive grid for smaller screens if needed, though user asked for specific layout */
+@media (max-width: 768px) {
+  .card-preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Force active card to be first or prominent if layout breaks? 
+     For now, let's try to keep 3 columns if possible or scroll. 
+     Actually, user said "preview like actual screen". 
+     On mobile, actual screen is 1 column. 
+     But "6 cards example" implies desktop view simulation. 
+     I'll stick to 3 columns and scale it down if needed. */
+}
+
+.dummy-card-wrapper {
+  position: relative;
+  opacity: 0.6;
+  /* Dim dummy cards slightly to highlight active one */
+  pointer-events: none;
+  /* Prevent interaction with dummy cards */
+  transform: scale(0.9);
+  /* Slightly smaller? Or same size? User said "like actual". Let's keep same size but maybe dim. */
+}
+
+.active-card-wrapper {
+  position: relative;
+  z-index: 10;
+
+  /* Highlight active card */
+  /* Highlight border */
+  border-radius: var(--radius-xl);
 }
 
 /* ===== 폼 요소 ===== */

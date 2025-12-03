@@ -51,36 +51,6 @@ export default function EventRegistrationModal({
   // Preview Mode State
   const [previewMode, setPreviewMode] = useState<'detail' | 'card' | 'billboard'>('detail');
 
-  // Dynamic Preview Scale
-  const [previewScale, setPreviewScale] = useState(0.76);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const vh = window.innerHeight;
-      const vw = window.innerWidth;
-
-      // Available space calculation (approximate header/footer/padding)
-      const availableHeight = vh - 180; // Reduced top offset for ceiling switcher
-      const availableWidth = Math.min(vw - 40, 360); // Max width constraint for mobile view
-
-      const cardBaseHeight = 480; // Estimated card height
-      const cardBaseWidth = 280;  // Estimated card width
-
-      // Calculate scale to fit both width and height
-      const scaleHeight = availableHeight / cardBaseHeight;
-      const scaleWidth = availableWidth / cardBaseWidth;
-
-      // Use the smaller scale to ensure it fits, but cap at 1.05 to avoid too large
-      const newScale = Math.min(scaleHeight, scaleWidth, 1.05);
-
-      setPreviewScale(Math.max(newScale, 0.5)); // Minimum scale 0.5
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   // Form State
   const [title, setTitle] = useState("");
   const [date, setDate] = useState<Date | null>(selectedDate);
@@ -115,10 +85,33 @@ export default function EventRegistrationModal({
 
   // Genre Suggestions
   const [allGenres, setAllGenres] = useState<string[]>([]);
-  const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
 
-  // Editing Field State (for card preview interaction)
-  const [editingField, setEditingField] = useState<string | null>(null);
+  // Dummy Events State - fetch real events from this month
+  const [dummyEvents, setDummyEvents] = useState<ExtendedEvent[]>([]);
+
+  // Fetch real events for dummy cards
+  useEffect(() => {
+    if (isOpen) {
+      const fetchDummyEvents = async () => {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .gte('date', formatDateForInput(firstDay))
+          .lte('date', formatDateForInput(lastDay))
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (!error && data) {
+          setDummyEvents(data as ExtendedEvent[]);
+        }
+      };
+      fetchDummyEvents();
+    }
+  }, [isOpen]);
 
   // Fetch Genres
   useEffect(() => {
@@ -138,17 +131,7 @@ export default function EventRegistrationModal({
     }
   }, [isOpen]);
 
-  // Filter Genre Suggestions
-  useEffect(() => {
-    if (genre) {
-      const filtered = allGenres.filter(g =>
-        g.toLowerCase().includes(genre.toLowerCase()) && g !== genre
-      ).slice(0, 5);
-      setGenreSuggestions(filtered);
-    } else {
-      setGenreSuggestions([]);
-    }
-  }, [genre, allGenres]);
+
 
   // Reset Form
   useEffect(() => {
@@ -387,25 +370,7 @@ export default function EventRegistrationModal({
     }
   };
 
-  // Interactive Edit Handlers for Card Preview
-  const handleInteractiveUpdate = (field: string, value: string) => {
-    switch (field) {
-      case 'title': setTitle(value); break;
-      case 'genre':
-        setGenre(value);
-        // Filter suggestions
-        if (value) {
-          const filtered = allGenres.filter(g =>
-            g.toLowerCase().includes(value.toLowerCase()) && g !== value
-          ).slice(0, 5);
-          setGenreSuggestions(filtered);
-        } else {
-          setGenreSuggestions([]);
-        }
-        break;
-      case 'category': setCategory(value as 'class' | 'event'); break;
-    }
-  };
+
 
   if (!isOpen) return null;
 
@@ -478,34 +443,45 @@ export default function EventRegistrationModal({
 
           {/* Mode: Card Preview */}
           {previewMode === 'card' && (
-            <div className="card-preview-container">
-              <div style={{
-                width: '100%',
-                maxWidth: '300px',
-                transform: `scale(${previewScale})`,
-                transformOrigin: 'center center',
-                transition: 'transform 0.2s ease'
-              }}>
-                <EditablePreviewCard
-                  event={{
-                    ...previewEvent,
-                    category: previewEvent.category as 'class' | 'event'
-                  }}
-                  editingField={editingField}
-                  onEditStart={(field) => setEditingField(field)}
-                  onEditEnd={() => setEditingField(null)}
-                  onUpdate={handleInteractiveUpdate}
-                  onEditImage={() => fileInputRef.current?.click()}
-                  // Date picker logic is now handled in EditableEventDetail
-                  onEditCategory={() => {
-                    setCategory(prev => prev === 'class' ? 'event' : 'class');
-                  }}
-                  suggestions={editingField === 'genre' ? genreSuggestions : undefined}
-                  onSelectGenre={(g) => {
-                    setGenre(g);
-                    setEditingField(null);
-                  }}
-                />
+            <div className="flex items-center justify-center h-full overflow-y-auto">
+              <div className="card-preview-grid">
+                {[0, 1, 2, 3, 4, 5].map((index) => {
+                  // Index 1 is the active card (Top Center) - READ ONLY for preview
+                  if (index === 1) {
+                    return (
+                      <div key="active" className="active-card-wrapper">
+                        <EditablePreviewCard
+                          event={{
+                            ...previewEvent,
+                            category: previewEvent.category as 'class' | 'event'
+                          }}
+                          readOnly={true}
+                        />
+                      </div>
+                    );
+                  }
+
+                  // Use real events from this month for dummy cards
+                  const dummyIndex = index > 1 ? index - 1 : index;
+                  const realEvent = dummyEvents[dummyIndex];
+
+                  // If no real event, skip rendering
+                  if (!realEvent) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={index} className="dummy-card-wrapper">
+                      <EditablePreviewCard
+                        event={{
+                          ...realEvent,
+                          category: realEvent.category as 'class' | 'event'
+                        }}
+                        readOnly={true}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
