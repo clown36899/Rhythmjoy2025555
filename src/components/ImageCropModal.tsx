@@ -196,26 +196,20 @@ export default function ImageCropModal({
     // 목표 aspect ratio 계산
     const targetAspect = mode === '3:4' ? 3 / 4 : 1; // width/height
 
-    // 이미지 중앙에 목표 비율로 크롭 영역 생성
+    // 이미지 중앙에 목표 비율로 크롭 영역 생성 (최대 크기)
     let cropWidth: number;
     let cropHeight: number;
 
-    // 이미지 크기의 70%를 차지하도록 설정
-    if (mode === '3:4') {
-      // 3:4 세로: height 기준
-      cropHeight = imgHeight * 0.7;
-      cropWidth = cropHeight * targetAspect;
+    const imgAspect = imgWidth / imgHeight;
 
-      // 너비가 이미지를 초과하면 width 기준으로 재계산
-      if (cropWidth > imgWidth) {
-        cropWidth = imgWidth * 0.7;
-        cropHeight = cropWidth / targetAspect;
-      }
+    if (imgAspect > targetAspect) {
+      // 이미지가 더 넓음 -> 높이를 기준으로 최대화
+      cropHeight = imgHeight;
+      cropWidth = cropHeight * targetAspect;
     } else {
-      // 1:1: 작은 쪽 기준
-      const minDimension = Math.min(imgWidth, imgHeight);
-      cropWidth = minDimension * 0.7;
-      cropHeight = cropWidth; // 1:1
+      // 이미지가 더 높거나 같음 -> 너비를 기준으로 최대화
+      cropWidth = imgWidth;
+      cropHeight = cropWidth / targetAspect;
     }
 
     // 중앙 배치를 위한 x, y 계산 (픽셀)
