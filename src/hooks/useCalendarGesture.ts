@@ -229,33 +229,26 @@ export function useCalendarGesture({
           setDragOffset(0);
         }
       } else if (isLocked === 'vertical-resize') {
-        const endHeight = liveCalendarHeight;
+        // Calculate endHeight dynamically to avoid stale state closure issues
+        const DAMPING_FACTOR = 0.13;
+        const dampedDiffY = diffY * DAMPING_FACTOR;
+        const endHeight = gestureRef.current.startHeight + dampedDiffY;
+
         let nextMode = latestStateRef.current.calendarMode;
+        const VISUAL_THRESHOLD = 40; // 40px visual stretch required to trigger change
 
-        // Increased threshold for "pull more" behavior (50 -> 120)
-        const DRAG_THRESHOLD = 90;
-
-        if (diffY > DRAG_THRESHOLD) {
-          // Dragging down - only allow collapsed -> expanded
-          if (latestStateRef.current.calendarMode === 'collapsed') nextMode = 'expanded';
-          // If already expanded or fullscreen, stay in current mode
-        } else if (diffY < -DRAG_THRESHOLD) {
-          // Dragging up - only allow expanded -> collapsed
-          if (latestStateRef.current.calendarMode === 'expanded') nextMode = 'collapsed';
-          // If already collapsed or fullscreen, stay in current mode
-        } else {
-          // Snap to nearest (only between collapsed and expanded)
-          if (latestStateRef.current.calendarMode === 'fullscreen') {
-            // If in fullscreen, don't change mode on small drags
-            nextMode = 'fullscreen';
-          } else {
-            const dists = {
-              collapsed: Math.abs(endHeight - 0),
-              expanded: Math.abs(endHeight - EXPANDED_HEIGHT),
-            };
-            nextMode = (Object.keys(dists) as (keyof typeof dists)[]).reduce((a, b) => dists[a] < dists[b] ? a : b);
+        if (latestStateRef.current.calendarMode === 'collapsed') {
+          // Opening: require significant visual stretch
+          if (endHeight > VISUAL_THRESHOLD) {
+            nextMode = 'expanded';
+          }
+        } else if (latestStateRef.current.calendarMode === 'expanded') {
+          // Closing: require significant visual compression
+          if (endHeight < EXPANDED_HEIGHT - VISUAL_THRESHOLD) {
+            nextMode = 'collapsed';
           }
         }
+
         setCalendarMode(nextMode);
         setIsDragging(false);
       }
