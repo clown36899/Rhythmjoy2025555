@@ -311,17 +311,20 @@ export default function EventRegistrationModal({
 
       if (imageFile) {
         const fileExt = imageFile.name.split(".").pop();
-        const fileName = `${Math.random()}.${fileExt} `;
-        const filePath = `${fileName} `;
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 15);
+        const fileName = `${timestamp}_${randomString}.${fileExt}`;
+        const folderPath = `event-posters`;
+        const filePath = `${folderPath}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("event-images")
+          .from("images")
           .upload(filePath, imageFile);
 
         if (uploadError) throw uploadError;
 
         const { data: publicUrlData } = supabase.storage
-          .from("event-images")
+          .from("images")
           .getPublicUrl(filePath);
 
         imageUrl = publicUrlData.publicUrl;
@@ -331,31 +334,34 @@ export default function EventRegistrationModal({
           const resizedImages = await createResizedImages(imageFile);
 
           // Upload thumbnail
-          const thumbFileName = `thumb_${fileName} `;
+          const thumbFileName = `thumb_${fileName}`;
+          const thumbPath = `${folderPath}/${thumbFileName}`;
           await supabase.storage
-            .from("event-images")
-            .upload(thumbFileName, resizedImages.thumbnail);
+            .from("images")
+            .upload(thumbPath, resizedImages.thumbnail);
           imageThumbnailUrl = supabase.storage
-            .from("event-images")
-            .getPublicUrl(thumbFileName).data.publicUrl;
+            .from("images")
+            .getPublicUrl(thumbPath).data.publicUrl;
 
           // Upload medium
-          const mediumFileName = `medium_${fileName} `;
+          const mediumFileName = `medium_${fileName}`;
+          const mediumPath = `${folderPath}/${mediumFileName}`;
           await supabase.storage
-            .from("event-images")
-            .upload(mediumFileName, resizedImages.medium);
+            .from("images")
+            .upload(mediumPath, resizedImages.medium);
           imageMediumUrl = supabase.storage
-            .from("event-images")
-            .getPublicUrl(mediumFileName).data.publicUrl;
+            .from("images")
+            .getPublicUrl(mediumPath).data.publicUrl;
 
           // Upload full
-          const fullFileName = `full_${fileName} `;
+          const fullFileName = `full_${fileName}`;
+          const fullPath = `${folderPath}/${fullFileName}`;
           await supabase.storage
-            .from("event-images")
-            .upload(fullFileName, resizedImages.full);
+            .from("images")
+            .upload(fullPath, resizedImages.full);
           imageFullUrl = supabase.storage
-            .from("event-images")
-            .getPublicUrl(fullFileName).data.publicUrl;
+            .from("images")
+            .getPublicUrl(fullPath).data.publicUrl;
 
         } catch (resizeError) {
           console.error("Image resize failed:", resizeError);

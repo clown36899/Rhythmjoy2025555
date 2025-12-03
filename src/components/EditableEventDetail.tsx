@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../lib/supabase';
 import { useDefaultThumbnail } from '../hooks/useDefaultThumbnail';
@@ -216,6 +216,41 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
+
+    // Title Font Scaling Logic
+    const titleRef = useRef<HTMLHeadingElement>(null);
+    const [titleFontSize, setTitleFontSize] = useState(1.75); // Initial rem
+
+    React.useLayoutEffect(() => {
+        const adjustFontSize = () => {
+            const element = titleRef.current;
+            if (!element) return;
+
+            // Reset to max size first to measure correctly
+            element.style.fontSize = '1.75rem';
+
+            // Max height for 2 lines: 1.75rem * 1.3 (line-height) * 2 lines ≈ 4.55rem
+            // We can use scrollHeight vs clientHeight if we set a fixed max-height, 
+            // but here we want to fit into "2 lines" visually.
+            // Let's define max height in pixels roughly. 
+            // 1.75rem * 16px * 1.3 * 2 = 72.8px. Let's say 73px.
+            const MAX_HEIGHT = 74; // slightly more for tolerance
+
+            let currentSize = 1.75;
+            const MIN_SIZE = 1.0;
+            const STEP = 0.1;
+
+            // While content overflows max height and size is above min
+            while (element.scrollHeight > MAX_HEIGHT && currentSize > MIN_SIZE) {
+                currentSize -= STEP;
+                element.style.fontSize = `${currentSize}rem`;
+            }
+
+            setTitleFontSize(currentSize);
+        };
+
+        adjustFontSize();
+    }, [event.title]);
 
     return (
         <div
@@ -442,15 +477,20 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     }}
                 >
                     <h2
+                        ref={titleRef}
                         className="title-text"
                         style={{
-                            fontSize: '1.75rem',
+                            fontSize: `${titleFontSize}rem`,
                             minHeight: '2.5rem',
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
                             lineHeight: '1.3',
                             fontWeight: '700',
-                            color: event.title ? 'white' : '#4b5563'
+                            color: event.title ? 'white' : '#4b5563',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
                         }}
                     >
                         {event.title || "제목을 입력하세요"}
