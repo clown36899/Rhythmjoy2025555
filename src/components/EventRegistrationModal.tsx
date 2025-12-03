@@ -33,7 +33,7 @@ const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `${year} -${month} -${day} `;
+  return `${year}-${month}-${day}`;
 };
 
 // 한국어 locale 등록 moved to EditableEventDetail
@@ -106,7 +106,53 @@ export default function EventRegistrationModal({
           .limit(5);
 
         if (!error && data) {
-          setDummyEvents(data as ExtendedEvent[]);
+          const fetchedEvents = data as ExtendedEvent[];
+          const needed = 5 - fetchedEvents.length;
+
+          if (needed > 0) {
+            const mocks: ExtendedEvent[] = Array(needed).fill(null).map((_, i) => ({
+              id: -1 * (i + 1), // Negative IDs for mocks
+              created_at: new Date().toISOString(),
+              title: "예시 이벤트",
+              date: formatDateForInput(new Date()),
+              start_date: formatDateForInput(new Date()),
+              location: "장소 미정",
+              description: "이벤트 설명이 들어갑니다.",
+              category: "event",
+              genre: "K-POP",
+              organizer: "RhythmJoy",
+              image: "", // Placeholder will be used
+              organizer_name: "관리자",
+              time: "00:00",
+              price: "무료",
+              capacity: 100,
+              registered: 0
+            }));
+            setDummyEvents([...fetchedEvents, ...mocks]);
+          } else {
+            setDummyEvents(fetchedEvents);
+          }
+        } else {
+          // Fallback if query fails
+          const mocks: ExtendedEvent[] = Array(5).fill(null).map((_, i) => ({
+            id: -1 * (i + 1),
+            created_at: new Date().toISOString(),
+            title: "예시 이벤트",
+            date: formatDateForInput(new Date()),
+            start_date: formatDateForInput(new Date()),
+            location: "장소 미정",
+            description: "이벤트 설명이 들어갑니다.",
+            category: "event",
+            genre: "K-POP",
+            organizer: "RhythmJoy",
+            image: "",
+            organizer_name: "관리자",
+            time: "00:00",
+            price: "무료",
+            capacity: 100,
+            registered: 0
+          }));
+          setDummyEvents(mocks);
         }
       };
       fetchDummyEvents();
