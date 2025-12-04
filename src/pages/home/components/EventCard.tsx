@@ -104,7 +104,8 @@ export const EventCard = memo(({
   if (event.event_dates && event.event_dates.length > 0) {
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr);
-      return `${date.getMonth() + 1}/${date.getDate()}`;
+      const weekDay = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+      return `${date.getMonth() + 1}/${date.getDate()}(${weekDay})`;
     };
     if (variant === "sliding" && event.event_dates.length > 1) {
       dateText = `${formatDate(event.event_dates[0])} ~ 시작`;
@@ -120,7 +121,8 @@ export const EventCard = memo(({
     } else {
       const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
-        return `${date.getMonth() + 1}/${date.getDate()}`;
+        const weekDay = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+        return `${date.getMonth() + 1}/${date.getDate()}(${weekDay})`;
       };
 
       if (startDate !== endDate) {
@@ -176,8 +178,8 @@ export const EventCard = memo(({
           >
             <div
               className={`card-absolute-inset-0 ${event.category === "class"
-                  ? "card-bg-overlay-purple"
-                  : "card-bg-overlay-blue"
+                ? "card-bg-overlay-purple"
+                : "card-bg-overlay-blue"
                 }`}
             ></div>
             <span className="card-overlay-text-faint">
@@ -188,10 +190,10 @@ export const EventCard = memo(({
 
         <div
           className={`card-badge ${isPast
-              ? "card-badge-past"
-              : event.category === "class"
-                ? "card-badge-class"
-                : "card-badge-event"
+            ? "card-badge-past"
+            : event.category === "class"
+              ? "card-badge-class"
+              : "card-badge-event"
             }`}
         >
           {isPast ? "종료" : event.category === "class" ? "강습" : "행사"}

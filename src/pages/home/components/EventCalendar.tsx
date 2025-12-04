@@ -20,6 +20,7 @@ interface EventCalendarProps {
   calendarHeightPx?: number;
   calendarMode?: "collapsed" | "expanded" | "fullscreen";
   selectedCategory?: string;
+  isTransitioning?: boolean;
 }
 
 export default function EventCalendar({
@@ -37,6 +38,7 @@ export default function EventCalendar({
   calendarHeightPx,
   calendarMode = "expanded",
   selectedCategory = "all",
+  isTransitioning = false,
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
@@ -641,11 +643,11 @@ export default function EventCalendar({
       const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
 
       // 배경색 결정
-      let bgColor = '#1f2937'; // default gray-800
+      let bgColor = '#202020ff'; // default gray-800
       if (isOtherMonth) {
-        bgColor = '#111827'; // darker for other month
+        bgColor = '#141414ff'; // darker for other month
       } else if (isSelected) {
-        bgColor = '#1e3a8a'; // blue-900 for selected
+        bgColor = '#000000ff'; // blue-900 for selected
       }
 
       // 해당 날짜의 모든 이벤트 가져오기 (필터링 없이)
@@ -1011,7 +1013,7 @@ export default function EventCalendar({
 
 
               {/* Calendar grid - 3개 달력 캐러셀 */}
-              <div className={`calendar-carousel-container ${calendarMode === 'fullscreen' ? 'calendar-mode-fullscreen' : 'calendar-mode-normal'}`}>
+              <div className={`calendar-carousel-container ${calendarMode === 'fullscreen' ? 'calendar-mode-fullscreen' : 'calendar-mode-normal'} ${isTransitioning ? 'calendar-transitioning' : ''}`}>
                 <div
                   className="calendar-carousel-track"
                   style={{
@@ -1034,18 +1036,18 @@ export default function EventCalendar({
                     <div
                       className="calendar-grid-container"
                       style={{
-                        gridTemplateRows: calendarMode === 'fullscreen'
+                        gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
                           ? 'none'
-                          : 'repeat(6, calc(173px / 6))',
-                        gridAutoRows: calendarMode === 'fullscreen' ? 'auto' : undefined,
-                        height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                          : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
+                        gridAutoRows: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : undefined,
+                        height: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : '100%',
                         '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
-                      {renderCalendarGrid(prevDays, prevMonth)}
+                      {isTransitioning ? renderFullscreenGrid(prevDays, prevMonth) : renderCalendarGrid(prevDays, prevMonth)}
 
                     </div>
-                    {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(prevDays, prevMonth)}
+                    {calendarMode !== 'fullscreen' && !isTransitioning && renderMultiDayTitlesOverlay(prevDays, prevMonth)}
                   </div>
 
                   {/* 현재 달 */}
@@ -1057,18 +1059,18 @@ export default function EventCalendar({
                     <div
                       className="calendar-grid-container"
                       style={{
-                        gridTemplateRows: calendarMode === 'fullscreen'
+                        gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
                           ? 'none'
-                          : 'repeat(6, calc(173px / 6))',
-                        gridAutoRows: calendarMode === 'fullscreen' ? 'auto' : undefined,
-                        height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                          : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
+                        gridAutoRows: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : undefined,
+                        height: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : '100%',
                         '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
-                      {renderCalendarGrid(currentDays, currentMonth)}
+                      {isTransitioning ? renderFullscreenGrid(currentDays, currentMonth) : renderCalendarGrid(currentDays, currentMonth)}
 
                     </div>
-                    {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(currentDays, currentMonth)}
+                    {calendarMode !== 'fullscreen' && !isTransitioning && renderMultiDayTitlesOverlay(currentDays, currentMonth)}
                   </div>
 
                   {/* 다음 달 */}
@@ -1080,18 +1082,18 @@ export default function EventCalendar({
                     <div
                       className="calendar-grid-container"
                       style={{
-                        gridTemplateRows: calendarMode === 'fullscreen'
+                        gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
                           ? 'none'
-                          : 'repeat(6, calc(173px / 6))',
-                        gridAutoRows: calendarMode === 'fullscreen' ? 'auto' : undefined,
-                        height: calendarMode === 'fullscreen' ? 'auto' : '100%',
+                          : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
+                        gridAutoRows: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : undefined,
+                        height: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : '100%',
                         '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
-                      {renderCalendarGrid(nextDays, nextMonth)}
+                      {isTransitioning ? renderFullscreenGrid(nextDays, nextMonth) : renderCalendarGrid(nextDays, nextMonth)}
 
                     </div>
-                    {calendarMode !== 'fullscreen' && renderMultiDayTitlesOverlay(nextDays, nextMonth)}
+                    {calendarMode !== 'fullscreen' && !isTransitioning && renderMultiDayTitlesOverlay(nextDays, nextMonth)}
                   </div>
                 </div>
               </div>

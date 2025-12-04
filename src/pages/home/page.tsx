@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 
 
 
@@ -102,6 +103,11 @@ export default function HomePage() {
   const [eventJustCreated, setEventJustCreated] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isRandomBlinking, setIsRandomBlinking] = useState(false);
+  const [isFullscreenTransition, setIsFullscreenTransition] = useState(false);
+
+  // ... existing code ...
+
+
 
   const [billboardImages, setBillboardImages] = useState<string[]>([]);
   const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
@@ -450,7 +456,7 @@ export default function HomePage() {
   }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
   const isFixed = calendarMode === "fullscreen" || (isDragging && liveCalendarHeight > 300);
   const buttonBgClass = calendarMode === "collapsed" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark";
-  const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-up-s-line home-icon-sm home-icon-arrow-up"></i> : <i className="ri-arrow-down-s-line home-icon-sm home-icon-arrow-down"></i>;
+  const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-down-s-line home-icon-sm home-icon-arrow-down"></i> : <i className="ri-arrow-up-s-line home-icon-sm home-icon-arrow-up"></i>;
 
   return (
     <div
@@ -495,6 +501,11 @@ export default function HomePage() {
             left: 0, right: 0,
             zIndex: isFixed ? 30 : 15,
           }}
+          onTransitionEnd={() => {
+            if (isFullscreenTransition) {
+              setIsFullscreenTransition(false);
+            }
+          }}
         >
           {/* Weekday Header (Fixed) */}
           <div className="calendar-weekday-header no-select">
@@ -503,8 +514,6 @@ export default function HomePage() {
                 key={day}
                 className={`calendar-weekday-item ${selectedWeekday === index ? 'selected' : ''}`}
                 style={{
-                  color: selectedWeekday === index ? '#3b82f6' : index === 0 ? 'rgb(190, 0, 0)' : undefined,
-                  fontWeight: selectedWeekday === index ? 'bold' : undefined,
                   cursor: 'pointer'
                 }}
                 onClick={() => {
@@ -520,6 +529,9 @@ export default function HomePage() {
                 }}
               >
                 {day}
+                {selectedWeekday === index && (
+                  <i className="ri-close-line" style={{ fontSize: '10px', marginLeft: '1px', opacity: 0.8 }}></i>
+                )}
               </div>
             ))}
           </div>
@@ -551,37 +563,80 @@ export default function HomePage() {
               calendarHeightPx={isDragging ? liveCalendarHeight : getTargetHeight()}
               calendarMode={calendarMode}
               selectedCategory={selectedCategory}
-
+              isTransitioning={isFullscreenTransition}
             />
           </div>
+        </div>
 
-          <div ref={calendarControlBarRef} className="home-calendar-control-bar" style={{ backgroundColor: "var(--calendar-bg-color)", touchAction: "none", padding: "0 9px" }}>
-            <div className="home-toolbar">
-              {calendarMode !== "fullscreen" && (
+        <div ref={calendarControlBarRef} className="home-calendar-control-bar" style={{ backgroundColor: "#161616", touchAction: "none", padding: "0 9px" }}>
+          <div className="home-toolbar">
+            {/* Fullscreen Button Portal */}
+            {document.getElementById("mobile-shell-action-portal") && createPortal(
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '100%' }}>
+                {/* Calendar Toggle Button (Relocated) */}
+                {calendarMode !== "fullscreen" && (
+                  <button
+                    onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed")}
+                    className={`home-toolbar-btn ${buttonBgClass}`}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '0 4px',
+                      height: '24px', // Fixed height to prevent overflow
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    <i className="ri-calendar-line home-icon-sm"></i>
+                    <span style={{ fontSize: '12px', fontWeight: 500 }}>{calendarMode === "collapsed" ? "달력" : "달력접기"}</span>
+                    {arrowIconContent}
+                  </button>
+                )}
+
+                {/* Fullscreen Toggle Button */}
                 <button
-                  onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : prev === "fullscreen" ? "expanded" : "collapsed")}
-                  className={`home-toolbar-btn ${buttonBgClass}`}
+                  onClick={() => {
+                    if (calendarMode !== "fullscreen") {
+                      setIsFullscreenTransition(true);
+                      setCalendarMode("fullscreen");
+                    } else {
+                      setCalendarMode("collapsed");
+                    }
+                  }}
+                  className="home-toolbar-btn home-toolbar-btn-dark"
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '0 4px',
+                    height: '24px', // Fixed height to prevent overflow
+                    color: calendarMode === "fullscreen" ? '#3b82f6' : 'var(--text-secondary)'
+                  }}
                 >
-                  <i className={`${calendarMode === "collapsed" ? "ri-calendar-line" : "ri-calendar-close-line"} home-icon-sm`}></i>
-                  <span className="home-toolbar-text">{calendarMode === "collapsed" ? "이벤트 등록달력" : "달력 접기"}</span>
-                  {arrowIconContent}
+                  <i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i>
+                  <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
                 </button>
-              )}
-              <div className="home-toolbar-spacer"></div>
-              {calendarMode === "fullscreen" ? (
-                null
-              ) : (
-                <>
-                  {/* 오늘 버튼 조건부 렌더링 */}
-                  {!isCurrentMonthVisible && (
-                    <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="home-btn-today"><span>오늘</span><i className="ri-calendar-check-line home-text-10px"></i></button>
-                  )}
-                  <button onClick={() => setShowSortModal(true)} className={`home-toolbar-btn ${sortBy === "random" && isRandomBlinking ? "home-toolbar-btn-pulse" : "home-toolbar-btn-dark"}`}><i className={`${getSortIcon()} home-icon-sm`}></i><span className="home-text-xs">{getSortLabel()}</span></button>
-                  <button onClick={() => setShowSearchModal(true)} className="home-btn-search"><i className="ri-search-line home-icon-sm"></i></button>
-                </>
-              )}
-              <button onClick={() => setCalendarMode(prev => prev === "fullscreen" ? "collapsed" : "fullscreen")} className={`home-toolbar-btn home-toolbar-btn-fullscreen ${calendarMode === "fullscreen" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark"}`}><i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i></button>
-            </div>
+              </div>,
+              document.getElementById("mobile-shell-action-portal")!
+            )}
+
+            <div className="home-toolbar-spacer"></div>
+            {calendarMode === "fullscreen" ? (
+              null
+            ) : (
+              <>
+                {/* 오늘 버튼 조건부 렌더링 */}
+                {!isCurrentMonthVisible && (
+                  <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="home-btn-today"><span>오늘</span><i className="ri-calendar-check-line home-text-10px"></i></button>
+                )}
+                <button onClick={() => setShowSortModal(true)} className={`home-toolbar-btn ${sortBy === "random" && isRandomBlinking ? "home-toolbar-btn-pulse" : "home-toolbar-btn-dark"}`}><i className={`${getSortIcon()} home-icon-sm`}></i><span className="home-text-xs">{getSortLabel()}</span></button>
+                <button onClick={() => setShowSearchModal(true)} className="home-btn-search"><i className="ri-search-line home-icon-sm"></i></button>
+              </>
+            )}
           </div>
         </div>
 
@@ -593,14 +648,10 @@ export default function HomePage() {
             overscrollBehaviorY: "contain"
           }}
         >
-
-
           {qrLoading ? (
             <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
           ) : (
             <>
-
-
               <EventList
                 key={eventJustCreated || undefined}
                 selectedDate={selectedDate}
@@ -631,35 +682,34 @@ export default function HomePage() {
               />
             </>
           )}
-
         </div>
-      </div>
 
-      {/* Modals */}
-      {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}
-      <AdminBillboardModal isOpen={isBillboardSettingsOpen} onClose={() => { handleBillboardSettingsClose(); if (adminType === "sub") setTimeout(() => window.dispatchEvent(new CustomEvent("reopenAdminSettings")), 100); }} settings={settings} onUpdateSettings={updateSettings} onResetSettings={resetSettings} adminType={billboardUserId ? "sub" : isAdmin ? "super" : null} billboardUserId={billboardUserId} billboardUserName={billboardUserName} />
-      {showRegistrationModal && selectedDate && <EventRegistrationModal isOpen={showRegistrationModal} onClose={() => { setShowRegistrationModal(false); if (fromBanner) setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }} selectedDate={selectedDate} onMonthChange={(d) => setCurrentMonth(d)} onEventCreated={(d, id) => { setShowRegistrationModal(false); setFromBanner(false); setBannerMonthBounds(null); setCurrentMonth(d); setEventJustCreated(Date.now()); setHighlightEvent({ id: id || 0, nonce: Date.now() }); }} fromBanner={fromBanner} bannerMonthBounds={bannerMonthBounds ?? undefined} />}
-      {isFullscreenDateModalOpen && fullscreenSelectedDate && <FullscreenDateEventsModal isOpen={isFullscreenDateModalOpen} onClose={() => { setIsFullscreenDateModalOpen(false); setFullscreenSelectedDate(null); setFullscreenClickPosition(undefined); }} selectedDate={fullscreenSelectedDate} clickPosition={fullscreenClickPosition} onEventClick={handleDailyModalEventClick} selectedCategory={selectedCategory} />}
-      <EventDetailModal isOpen={!!selectedEvent} event={selectedEvent} onClose={closeModal} onEdit={handleEditClick} onDelete={handleDeleteClick} isAdminMode={effectiveIsAdmin} />
-      {
-        showPasswordModal && eventToEdit && (
-          <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
-        )
-      }
-      {showEditModal && eventToEdit && (
-        <EventEditModal
-          isOpen={showEditModal}
-          onClose={() => {
-            setShowEditModal(false);
-            setEventToEdit(null);
-          }}
-          event={eventToEdit}
-          isAdminMode={effectiveIsAdmin}
-          onEventUpdated={() => window.dispatchEvent(new CustomEvent("eventUpdated"))}
-          onDelete={handleDeleteClick}
-          allGenres={allGenres}
-        />
-      )}
-    </div >
+        {/* Modals */}
+        {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}
+        <AdminBillboardModal isOpen={isBillboardSettingsOpen} onClose={() => { handleBillboardSettingsClose(); if (adminType === "sub") setTimeout(() => window.dispatchEvent(new CustomEvent("reopenAdminSettings")), 100); }} settings={settings} onUpdateSettings={updateSettings} onResetSettings={resetSettings} adminType={billboardUserId ? "sub" : isAdmin ? "super" : null} billboardUserId={billboardUserId} billboardUserName={billboardUserName} />
+        {showRegistrationModal && selectedDate && <EventRegistrationModal isOpen={showRegistrationModal} onClose={() => { setShowRegistrationModal(false); if (fromBanner) setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }} selectedDate={selectedDate} onMonthChange={(d) => setCurrentMonth(d)} onEventCreated={(d, id) => { setShowRegistrationModal(false); setFromBanner(false); setBannerMonthBounds(null); setCurrentMonth(d); setEventJustCreated(Date.now()); setHighlightEvent({ id: id || 0, nonce: Date.now() }); }} fromBanner={fromBanner} bannerMonthBounds={bannerMonthBounds ?? undefined} />}
+        {isFullscreenDateModalOpen && fullscreenSelectedDate && <FullscreenDateEventsModal isOpen={isFullscreenDateModalOpen} onClose={() => { setIsFullscreenDateModalOpen(false); setFullscreenSelectedDate(null); setFullscreenClickPosition(undefined); }} selectedDate={fullscreenSelectedDate} clickPosition={fullscreenClickPosition} onEventClick={handleDailyModalEventClick} selectedCategory={selectedCategory} />}
+        <EventDetailModal isOpen={!!selectedEvent} event={selectedEvent} onClose={closeModal} onEdit={handleEditClick} onDelete={handleDeleteClick} isAdminMode={effectiveIsAdmin} />
+        {
+          showPasswordModal && eventToEdit && (
+            <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
+          )
+        }
+        {showEditModal && eventToEdit && (
+          <EventEditModal
+            isOpen={showEditModal}
+            onClose={() => {
+              setShowEditModal(false);
+              setEventToEdit(null);
+            }}
+            event={eventToEdit}
+            isAdminMode={effectiveIsAdmin}
+            onEventUpdated={() => window.dispatchEvent(new CustomEvent("eventUpdated"))}
+            onDelete={handleDeleteClick}
+            allGenres={allGenres}
+          />
+        )}
+      </div>
+    </div>
   );
 }

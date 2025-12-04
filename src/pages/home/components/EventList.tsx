@@ -120,7 +120,7 @@ export default function EventList({
   onModalStateChange,
   selectedWeekday,
 }: EventListProps) {
-  console.log(`[EventList] Rendered with selectedWeekday: ${selectedWeekday}`);
+  console.log(`[EventList] Rendered. selectedWeekday: ${selectedWeekday}`);
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') || 'all';
   const selectedGenre = searchParams.get('genre');
@@ -801,6 +801,7 @@ export default function EventList({
       // 요일 필터 (selectedWeekday가 있을 때만 적용)
       const matchesWeekday = (() => {
         if (selectedWeekday === undefined || selectedWeekday === null) return true;
+        // console.log(`[Filter] Checking event: ${event.title}, dates: ${event.date || event.start_date}`);
 
         const startDateStr = event.start_date || event.date;
         const endDateStr = event.end_date || event.date;
@@ -832,10 +833,12 @@ export default function EventList({
         // 기간 순회하며 요일 확인
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
           if (d.getDay() === selectedWeekday) {
+            console.log(`[Filter] Match found for ${event.title} on ${d.toDateString()}`);
             return true;
           }
         }
 
+        console.log(`[Filter] No match for ${event.title}`);
         return false;
       })();
 
@@ -951,9 +954,9 @@ export default function EventList({
     nextMonth.setMonth(nextMonth.getMonth() + 1);
 
     // 캐시 키 생성
-    const prevKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}`;
-    const currKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}`;
-    const nextKey = `${nextMonth.getFullYear()}-${nextMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}`;
+    const prevKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}-${selectedWeekday ?? 'all'}`;
+    const currKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}-${selectedWeekday ?? 'all'}`;
+    const nextKey = `${nextMonth.getFullYear()}-${nextMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}-${selectedWeekday ?? 'all'}`;
 
     // 각 달의 이벤트 필터링 함수
     const filterByMonth = (targetMonth: Date) => {
@@ -986,7 +989,44 @@ export default function EventList({
 
         const matchesDate =
           startDate <= monthEndStr && endDate >= monthStartStr;
-        return matchesCategory && matchesGenre && matchesDate;
+
+        // 요일 필터 추가
+        const matchesWeekday = (() => {
+          if (selectedWeekday === undefined || selectedWeekday === null) return true;
+
+          // 날짜 파싱 헬퍼 (YYYY-MM-DD 형식일 때만 T12:00:00 추가)
+          const parseDateSafe = (dateStr: string) => {
+            if (dateStr.length === 10) {
+              return new Date(`${dateStr}T12:00:00`);
+            }
+            return new Date(dateStr);
+          };
+
+          // 특정 날짜 배열이 있는 경우
+          if (event.event_dates && event.event_dates.length > 0) {
+            return event.event_dates.some(d => parseDateSafe(d).getDay() === selectedWeekday);
+          }
+
+          // 기간인 경우
+          const start = parseDateSafe(startDate);
+          const end = parseDateSafe(endDate);
+
+          // 7일 이상이면 무조건 해당 요일 포함
+          const oneDay = 24 * 60 * 60 * 1000;
+          const diffDays = Math.round(Math.abs((end.getTime() - start.getTime()) / oneDay));
+          if (diffDays >= 6) return true;
+
+          // 기간 순회하며 요일 확인
+          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            if (d.getDay() === selectedWeekday) {
+              return true;
+            }
+          }
+
+          return false;
+        })();
+
+        return matchesCategory && matchesGenre && matchesDate && matchesWeekday;
       });
     };
 
@@ -1007,6 +1047,7 @@ export default function EventList({
     selectedDate,
     filteredEvents,
     viewMode,
+    selectedWeekday,
   ]);
 
   // 카테고리별 이벤트 개수 계산 (현재 필터 조건 기준, 카테고리만 제외)
@@ -1095,7 +1136,47 @@ export default function EventList({
         }
       }
 
-      return matchesGenre && matchesSearch && matchesDate;
+      // 요일 필터 추가
+      const matchesWeekday = (() => {
+        if (selectedWeekday === undefined || selectedWeekday === null) return true;
+
+        // 날짜 파싱 헬퍼 (YYYY-MM-DD 형식일 때만 T12:00:00 추가)
+        const parseDateSafe = (dateStr: string) => {
+          if (dateStr.length === 10) {
+            return new Date(`${dateStr}T12:00:00`);
+          }
+          return new Date(dateStr);
+        };
+
+        // 특정 날짜 배열이 있는 경우
+        if (event.event_dates && event.event_dates.length > 0) {
+          return event.event_dates.some(d => parseDateSafe(d).getDay() === selectedWeekday);
+        }
+
+        // 기간인 경우
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+        if (!startDate || !endDate) return false;
+
+        const start = parseDateSafe(startDate);
+        const end = parseDateSafe(endDate);
+
+        // 7일 이상이면 무조건 해당 요일 포함
+        const oneDay = 24 * 60 * 60 * 1000;
+        const diffDays = Math.round(Math.abs((end.getTime() - start.getTime()) / oneDay));
+        if (diffDays >= 6) return true;
+
+        // 기간 순회하며 요일 확인
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          if (d.getDay() === selectedWeekday) {
+            return true;
+          }
+        }
+
+        return false;
+      })();
+
+      return matchesGenre && matchesSearch && matchesDate && matchesWeekday;
     };
 
     const baseEvents = events.filter(baseFilter);
@@ -1105,7 +1186,7 @@ export default function EventList({
       event: baseEvents.filter(e => e.category === 'event').length,
       class: baseEvents.filter(e => e.category === 'class').length
     };
-  }, [events, selectedGenre, searchTerm, selectedDate, currentMonth, viewMode]);
+  }, [events, selectedGenre, searchTerm, selectedDate, currentMonth, viewMode, selectedWeekday]);
 
   // 필터링된 이벤트를 정렬 (캐싱으로 슬라이드 시 재정렬 방지 및 랜덤 순서 유지)
   const sortedPrevEvents = useMemo(() => {
@@ -1789,7 +1870,9 @@ export default function EventList({
               onClick={() => handleCategoryChange('all')}
               className={`evt-category-btn ${selectedCategory === 'all' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
             >
-              전체
+              {selectedWeekday !== null && selectedWeekday !== undefined && currentMonth
+                ? `${currentMonth.getMonth() + 1}월(${['일', '월', '화', '수', '목', '금', '토'][selectedWeekday]})`
+                : '전체'}
               <span className="evt-count-badge">{categoryCounts.all}</span>
             </button>
             <button
