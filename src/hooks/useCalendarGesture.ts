@@ -59,9 +59,16 @@ export function useCalendarGesture({
 
   const calculateFullscreenHeight = useCallback(() => {
     if (typeof window === 'undefined') return 600;
+
+    // Use visualViewport for more accurate height (handles mobile address bar)
+    const actualViewportHeight = window.visualViewport
+      ? window.visualViewport.height
+      : viewportHeight;
+
     const bottomNav = document.querySelector<HTMLElement>('.shell-bottom-nav');
     const bottomNavHeight = bottomNav ? bottomNav.offsetHeight : FOOTER_HEIGHT;
-    return viewportHeight - headerHeight - bottomNavHeight;
+
+    return actualViewportHeight - headerHeight - bottomNavHeight;
   }, [headerHeight, viewportHeight]);
 
   const getTargetHeight = useCallback(() => {

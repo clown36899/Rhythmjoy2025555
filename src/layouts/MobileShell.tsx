@@ -168,11 +168,7 @@ export function MobileShell() {
             }}
           >
             <div className="shell-top-bar-content">
-              {/* 행사 버튼 (앞으로 이동) */}
-              <div className="shell-text-hint">
-                날짜를 클릭하여 일정을 추가하세요
-              </div>
-              <div id="mobile-shell-action-portal"></div>
+              <div id="mobile-shell-action-portal" style={{ marginLeft: 'auto' }}></div>
 
               {/* 등록 버튼 - 날짜 선택 시에만 표시 */}
               {selectedDate && (

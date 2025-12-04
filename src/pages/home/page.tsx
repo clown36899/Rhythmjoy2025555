@@ -103,6 +103,7 @@ export default function HomePage() {
   const [eventJustCreated, setEventJustCreated] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isRandomBlinking, setIsRandomBlinking] = useState(false);
+  const [topBarHeight, setTopBarHeight] = useState(32);
   const [isFullscreenTransition, setIsFullscreenTransition] = useState(false);
 
   // ... existing code ...
@@ -211,6 +212,29 @@ export default function HomePage() {
     onHorizontalSwipe: handleHorizontalSwipe,
     isYearView: viewMode === 'year',
   });
+
+  // Track top bar height for accurate positioning
+  useEffect(() => {
+    const updateTopBarHeight = () => {
+      const topBar = document.querySelector<HTMLElement>('.shell-top-bar');
+      if (topBar) {
+        setTopBarHeight(topBar.offsetHeight);
+      }
+    };
+
+    updateTopBarHeight();
+    window.addEventListener('resize', updateTopBarHeight);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateTopBarHeight);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateTopBarHeight);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', updateTopBarHeight);
+      }
+    };
+  }, []);
 
   const isCurrentMonthVisible = (() => {
     const today = new Date();
@@ -454,7 +478,7 @@ export default function HomePage() {
     }
     return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이
   }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
-  const isFixed = calendarMode === "fullscreen" || (isDragging && liveCalendarHeight > 300);
+  const isFixed = calendarMode !== "collapsed";
   const buttonBgClass = calendarMode === "collapsed" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark";
   const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-down-s-line home-icon-sm home-icon-arrow-down"></i> : <i className="ri-arrow-up-s-line home-icon-sm home-icon-arrow-up"></i>;
 
@@ -497,7 +521,7 @@ export default function HomePage() {
             backgroundColor: "var(--calendar-bg-color)",
             touchAction: "pan-y",
             position: isFixed ? "fixed" : "relative",
-            top: isFixed ? `${headerHeight}px` : undefined,
+            top: isFixed ? `${topBarHeight}px` : undefined,
             left: 0, right: 0,
             zIndex: isFixed ? 30 : 15,
           }}
@@ -544,7 +568,9 @@ export default function HomePage() {
               transition: isDragging ? "none" : "height 0.3s cubic-bezier(0.33, 1, 0.68, 1)",
               willChange: isDragging ? "height" : undefined,
               touchAction: (viewMode === "year" || calendarMode === "fullscreen") ? "pan-y" : "none",
-              overflowY: calendarMode === "fullscreen" ? "auto" : "hidden"
+              overflowY: calendarMode === "fullscreen" ? "auto" : "hidden",
+              overscrollBehavior: calendarMode === "fullscreen" ? "contain" : "auto",
+              WebkitOverflowScrolling: calendarMode === "fullscreen" ? "touch" : undefined
             }}
           >
             <EventCalendar
@@ -573,27 +599,34 @@ export default function HomePage() {
             {/* Fullscreen Button Portal */}
             {document.getElementById("mobile-shell-action-portal") && createPortal(
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '100%' }}>
-                {/* Calendar Toggle Button (Relocated) */}
-                {calendarMode !== "fullscreen" && (
-                  <button
-                    onClick={() => setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed")}
-                    className={`home-toolbar-btn ${buttonBgClass}`}
-                    style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '0 4px',
-                      height: '24px', // Fixed height to prevent overflow
-                      color: 'var(--text-secondary)'
-                    }}
-                  >
-                    <i className="ri-calendar-line home-icon-sm"></i>
-                    <span style={{ fontSize: '12px', fontWeight: 500 }}>{calendarMode === "collapsed" ? "달력" : "달력접기"}</span>
-                    {arrowIconContent}
-                  </button>
-                )}
+                {/* Calendar Toggle Button - Always visible */}
+                <button
+                  onClick={() => {
+                    // In fullscreen, go to expanded. Otherwise toggle between collapsed and expanded
+                    if (calendarMode === "fullscreen") {
+                      setCalendarMode("expanded");
+                    } else {
+                      setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed");
+                    }
+                  }}
+                  className={`home-toolbar-btn ${calendarMode === "fullscreen" ? "home-toolbar-btn-dark" : buttonBgClass}`}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '0 4px',
+                    height: '24px',
+                    color: 'var(--text-secondary)'
+                  }}
+                >
+                  <i className="ri-calendar-line home-icon-sm"></i>
+                  <span style={{ fontSize: '12px', fontWeight: 500 }}>
+                    {calendarMode === "fullscreen" ? "달력" : (calendarMode === "collapsed" ? "달력" : "달력접기")}
+                  </span>
+                  {calendarMode !== "fullscreen" && arrowIconContent}
+                </button>
 
                 {/* Fullscreen Toggle Button */}
                 <button
@@ -613,7 +646,7 @@ export default function HomePage() {
                     alignItems: 'center',
                     gap: '4px',
                     padding: '0 4px',
-                    height: '24px', // Fixed height to prevent overflow
+                    height: '24px',
                     color: calendarMode === "fullscreen" ? '#3b82f6' : 'var(--text-secondary)'
                   }}
                 >
