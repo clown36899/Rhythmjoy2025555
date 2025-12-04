@@ -231,12 +231,12 @@ export function useCalendarGesture({
         }
       } else if (isLocked === 'vertical-resize') {
         // Calculate endHeight dynamically to avoid stale state closure issues
-        const DAMPING_FACTOR = 0.12;
+        const DAMPING_FACTOR = 0.14; // Increased to 0.14 (lighter pull)
         const dampedDiffY = diffY * DAMPING_FACTOR;
         const endHeight = gestureRef.current.startHeight + dampedDiffY;
 
         let nextMode = latestStateRef.current.calendarMode;
-        const VISUAL_THRESHOLD = 30; // Reduced to 30px (requires ~250px drag)
+        const VISUAL_THRESHOLD = 15; // Reduced to 25px (requires ~178px drag)
 
         // Velocity check: Ignore flings (fast swipes)
         const duration = Date.now() - gestureRef.current.startTime;
