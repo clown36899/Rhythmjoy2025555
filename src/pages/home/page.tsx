@@ -478,9 +478,36 @@ export default function HomePage() {
     }
     return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이
   }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
-  const isFixed = calendarMode !== "collapsed";
+  const isFixed = calendarMode === "fullscreen";
   const buttonBgClass = calendarMode === "collapsed" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark";
   const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-down-s-line home-icon-sm home-icon-arrow-down"></i> : <i className="ri-arrow-up-s-line home-icon-sm home-icon-arrow-up"></i>;
+
+  // Calculate header height for home-main padding
+  useEffect(() => {
+    const updateMainPadding = () => {
+      const header = headerRef.current;
+      if (header) {
+        const headerHeight = header.offsetHeight;
+        const mainElement = document.querySelector('.home-main') as HTMLElement;
+        if (mainElement) {
+          mainElement.style.paddingTop = `${headerHeight}px`;
+        }
+      }
+    };
+
+    updateMainPadding();
+
+    // Update on calendar mode change
+    const timer = setTimeout(updateMainPadding, 350); // After calendar animation
+
+    window.addEventListener('resize', updateMainPadding);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateMainPadding);
+    };
+  }, [calendarMode]);
+
 
   return (
     <div
@@ -511,9 +538,8 @@ export default function HomePage() {
           onViewModeChange={handleViewModeChange}
           billboardEnabled={settings.enabled}
         />
-      </div>
 
-      <div className="home-main">
+        {/* Calendar Section - Inside Header */}
         <div
           ref={calendarRef}
           className="home-calendar-wrapper"
@@ -531,7 +557,7 @@ export default function HomePage() {
             }
           }}
         >
-          {/* Weekday Header (Fixed) */}
+          {/* Weekday Header */}
           <div className="calendar-weekday-header no-select">
             {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
               <div
@@ -548,7 +574,7 @@ export default function HomePage() {
                   } else {
                     console.log(`[Page] Selecting weekday: ${index}`);
                     setSelectedWeekday(index);
-                    setSelectedDate(null); // 요일 선택 시 날짜 선택 해제
+                    setSelectedDate(null);
                   }
                 }}
               >
@@ -574,12 +600,12 @@ export default function HomePage() {
             }}
           >
             <EventCalendar
+              currentMonth={currentMonth}
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
               onMonthChange={handleMonthChange}
               isAdminMode={effectiveIsAdmin}
               showHeader={false}
-              currentMonth={currentMonth}
               onEventsUpdate={handleEventsUpdate}
               viewMode={viewMode}
               onViewModeChange={handleViewModeChange}
@@ -592,130 +618,188 @@ export default function HomePage() {
               isTransitioning={isFullscreenTransition}
             />
           </div>
-        </div>
 
-        <div ref={calendarControlBarRef} className="home-calendar-control-bar" style={{ backgroundColor: "#161616", touchAction: "none", padding: "0 9px" }}>
-          <div className="home-toolbar">
-            {/* Fullscreen Button Portal */}
-            {document.getElementById("mobile-shell-action-portal") && createPortal(
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '100%' }}>
-                {/* Calendar Toggle Button - Always visible */}
-                <button
-                  onClick={() => {
-                    // In fullscreen, go to expanded. Otherwise toggle between collapsed and expanded
-                    if (calendarMode === "fullscreen") {
-                      setCalendarMode("expanded");
-                    } else {
-                      setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed");
-                    }
-                  }}
-                  className={`home-toolbar-btn ${calendarMode === "fullscreen" ? "home-toolbar-btn-dark" : buttonBgClass}`}
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '0 4px',
-                    height: '24px',
-                    color: 'var(--text-secondary)'
-                  }}
-                >
-                  <i className="ri-calendar-line home-icon-sm"></i>
-                  <span style={{ fontSize: '12px', fontWeight: 500 }}>
-                    {calendarMode === "fullscreen" ? "달력" : (calendarMode === "collapsed" ? "달력" : "달력접기")}
-                  </span>
-                  {calendarMode !== "fullscreen" && arrowIconContent}
-                </button>
+          <div ref={calendarControlBarRef} className="home-calendar-control-bar" style={{ backgroundColor: "#161616", touchAction: "none", padding: "0 9px" }}>
+            <div className="home-toolbar">
+              {/* Fullscreen Button Portal */}
+              {document.getElementById("mobile-shell-action-portal") && createPortal(
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '100%' }}>
+                  {/* Calendar Toggle Button - Always visible */}
+                  <button
+                    onClick={() => {
+                      // In fullscreen, go to expanded. Otherwise toggle between collapsed and expanded
+                      if (calendarMode === "fullscreen") {
+                        setCalendarMode("expanded");
+                      } else {
+                        setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed");
+                      }
+                    }}
+                    className={`home-toolbar-btn ${calendarMode === "fullscreen" ? "home-toolbar-btn-dark" : buttonBgClass}`}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '0 4px',
+                      height: '24px',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    <i className="ri-calendar-line home-icon-sm"></i>
+                    <span style={{ fontSize: '12px', fontWeight: 500 }}>
+                      {calendarMode === "fullscreen" ? "달력" : (calendarMode === "collapsed" ? "달력" : "달력접기")}
+                    </span>
+                    {calendarMode !== "fullscreen" && arrowIconContent}
+                  </button>
 
-                {/* Fullscreen Toggle Button */}
-                <button
-                  onClick={() => {
-                    if (calendarMode !== "fullscreen") {
-                      setIsFullscreenTransition(true);
-                      setCalendarMode("fullscreen");
-                    } else {
-                      setCalendarMode("collapsed");
-                    }
-                  }}
-                  className="home-toolbar-btn home-toolbar-btn-dark"
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '0 4px',
-                    height: '24px',
-                    color: calendarMode === "fullscreen" ? '#3b82f6' : 'var(--text-secondary)'
-                  }}
-                >
-                  <i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i>
-                  <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
-                </button>
-              </div>,
-              document.getElementById("mobile-shell-action-portal")!
-            )}
+                  {/* Fullscreen Toggle Button */}
+                  <button
+                    onClick={() => {
+                      if (calendarMode !== "fullscreen") {
+                        setIsFullscreenTransition(true);
+                        setCalendarMode("fullscreen");
+                      } else {
+                        setCalendarMode("collapsed");
+                      }
+                    }}
+                    className="home-toolbar-btn home-toolbar-btn-dark"
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '0 4px',
+                      height: '24px',
+                      color: calendarMode === "fullscreen" ? '#3b82f6' : 'var(--text-secondary)'
+                    }}
+                  >
+                    <i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i>
+                    <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
+                  </button>
+                </div>,
+                document.getElementById("mobile-shell-action-portal")!
+              )}
 
-            <div className="home-toolbar-spacer"></div>
-            {calendarMode === "fullscreen" ? (
-              null
-            ) : (
-              <>
-                {/* 오늘 버튼 조건부 렌더링 */}
-                {!isCurrentMonthVisible && (
-                  <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="home-btn-today"><span>오늘</span><i className="ri-calendar-check-line home-text-10px"></i></button>
-                )}
-                <button onClick={() => setShowSortModal(true)} className={`home-toolbar-btn ${sortBy === "random" && isRandomBlinking ? "home-toolbar-btn-pulse" : "home-toolbar-btn-dark"}`}><i className={`${getSortIcon()} home-icon-sm`}></i><span className="home-text-xs">{getSortLabel()}</span></button>
-                <button onClick={() => setShowSearchModal(true)} className="home-btn-search"><i className="ri-search-line home-icon-sm"></i></button>
-              </>
-            )}
+              <div className="home-toolbar-spacer"></div>
+              {calendarMode === "fullscreen" ? (
+                null
+              ) : (
+                <>
+                  {/* 오늘 버튼 조건부 렌더링 */}
+                  {!isCurrentMonthVisible && (
+                    <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="home-btn-today"><span>오늘</span><i className="ri-calendar-check-line home-text-10px"></i></button>
+                  )}
+                  <button onClick={() => setShowSortModal(true)} className={`home-toolbar-btn ${sortBy === "random" && isRandomBlinking ? "home-toolbar-btn-pulse" : "home-toolbar-btn-dark"}`}><i className={`${getSortIcon()} home-icon-sm`}></i><span className="home-text-xs">{getSortLabel()}</span></button>
+                  <button onClick={() => setShowSearchModal(true)} className="home-btn-search"><i className="ri-search-line home-icon-sm"></i></button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        <div
-          ref={eventListElementRef}
-          className="home-content-scroll"
-          style={{
-            marginTop: isFixed ? `${calculateFullscreenHeight()}px` : undefined,
-            overscrollBehaviorY: "contain"
-          }}
-        >
-          {qrLoading ? (
-            <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
-          ) : (
-            <>
-              <EventList
-                key={eventJustCreated || undefined}
-                selectedDate={selectedDate}
-                currentMonth={currentMonth}
-                isAdminMode={effectiveIsAdmin}
-                adminType={adminType}
-                viewMode={viewMode}
-                onEventHover={setHoveredEventId}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                onSearchStart={handleSearchStart}
-                showSearchModal={showSearchModal}
-                setShowSearchModal={setShowSearchModal}
-                showSortModal={showSortModal}
-                setShowSortModal={setShowSortModal}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                highlightEvent={highlightEvent}
-                onHighlightComplete={handleHighlightComplete}
-                sharedEventId={sharedEventId}
-                onSharedEventOpened={() => setSharedEventId(null)}
-                dragOffset={dragOffset}
-                isAnimating={isAnimating}
-                slideContainerRef={eventListSlideContainerRef}
-                onMonthChange={(date) => setCurrentMonth(date)}
-                onModalStateChange={setIsEventListModalOpen}
-                selectedWeekday={selectedWeekday}
-              />
-            </>
-          )}
+        {/* Filter Bar - 분류창 */}
+        <div className="evt-sticky-header" style={{ position: 'relative', zIndex: 20 }}>
+          <div className="evt-flex evt-items-center evt-gap-2">
+            {/* 카테고리 버튼 */}
+            <div className="evt-file-btn-group">
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  params.set('category', 'all');
+                  window.history.pushState({}, '', `?${params.toString()}`);
+                  window.dispatchEvent(new Event('popstate'));
+                }}
+                className={`evt-category-btn ${new URLSearchParams(window.location.search).get('category') === 'all' || !new URLSearchParams(window.location.search).get('category') ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
+              >
+                {selectedWeekday !== null && selectedWeekday !== undefined && currentMonth
+                  ? `${currentMonth.getMonth() + 1}월(${['일', '월', '화', '수', '목', '금', '토'][selectedWeekday]})`
+                  : '전체'}
+                <span className="evt-count-badge">0</span>
+              </button>
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  params.set('category', 'event');
+                  window.history.pushState({}, '', `?${params.toString()}`);
+                  window.dispatchEvent(new Event('popstate'));
+                }}
+                className={`evt-category-btn ${new URLSearchParams(window.location.search).get('category') === 'event' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
+              >
+                행사
+                <span className="evt-count-badge">0</span>
+              </button>
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  params.set('category', 'class');
+                  window.history.pushState({}, '', `?${params.toString()}`);
+                  window.dispatchEvent(new Event('popstate'));
+                }}
+                className={`evt-category-btn ${new URLSearchParams(window.location.search).get('category') === 'class' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
+              >
+                강습
+                <span className="evt-count-badge">0</span>
+              </button>
+            </div>
+
+            {/* 장르 드롭다운 */}
+            <div className="evt-relative">
+              <button
+                onClick={() => { }}
+                className="evt-genre-filter-btn"
+              >
+                <span className="evt-max-w-100 evt-truncate">장르</span>
+                <i className="ri-arrow-down-s-line evt-transition-transform"></i>
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div
+        className="home-main"
+        ref={eventListElementRef}
+        style={{
+          marginTop: isFixed ? `${calculateFullscreenHeight()}px` : undefined,
+          overscrollBehaviorY: "contain"
+        }}
+      >
+        {qrLoading ? (
+          <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
+        ) : (
+          <EventList
+            key={eventJustCreated || undefined}
+            selectedDate={selectedDate}
+            currentMonth={currentMonth}
+            isAdminMode={effectiveIsAdmin}
+            adminType={adminType}
+            viewMode={viewMode}
+            onEventHover={setHoveredEventId}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            onSearchStart={handleSearchStart}
+            showSearchModal={showSearchModal}
+            setShowSearchModal={setShowSearchModal}
+            showSortModal={showSortModal}
+            setShowSortModal={setShowSortModal}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            highlightEvent={highlightEvent}
+            onHighlightComplete={() => setHighlightEvent(null)}
+            sharedEventId={sharedEventId}
+            onSharedEventOpened={() => setSharedEventId(null)}
+            dragOffset={dragOffset}
+            isAnimating={isAnimating}
+            slideContainerRef={eventListSlideContainerRef}
+            onMonthChange={setCurrentMonth}
+            calendarMode={calendarMode}
+            onEventClickInFullscreen={handleDailyModalEventClick}
+            onModalStateChange={(isOpen) => { }}
+            selectedWeekday={selectedWeekday}
+          />
+        )}
 
         {/* Modals */}
         {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}

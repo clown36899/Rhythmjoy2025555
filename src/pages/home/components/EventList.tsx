@@ -1862,62 +1862,6 @@ export default function EventList({
   return (
     <div className="no-select" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* 삭제 로딩 오버레이 */}
-      <div className="evt-sticky-header" ref={filterDropdownRef}>
-        <div className="evt-flex evt-items-center evt-gap-2">
-          {/* 카테고리 버튼 */}
-          <div className="evt-file-btn-group">
-            <button
-              onClick={() => handleCategoryChange('all')}
-              className={`evt-category-btn ${selectedCategory === 'all' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
-            >
-              {selectedWeekday !== null && selectedWeekday !== undefined && currentMonth
-                ? `${currentMonth.getMonth() + 1}월(${['일', '월', '화', '수', '목', '금', '토'][selectedWeekday]})`
-                : '전체'}
-              <span className="evt-count-badge">{categoryCounts.all}</span>
-            </button>
-            <button
-              onClick={() => handleCategoryChange('event')}
-              className={`evt-category-btn ${selectedCategory === 'event' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
-            >
-              행사
-              <span className="evt-count-badge">{categoryCounts.event}</span>
-            </button>
-            <button
-              onClick={() => handleCategoryChange('class')}
-              className={`evt-category-btn ${selectedCategory === 'class' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
-            >
-              강습
-              <span className="evt-count-badge">{categoryCounts.class}</span>
-            </button>
-          </div>
-
-          {/* 장르 드롭다운 */}
-          <div className="evt-relative">
-            <button
-              onClick={() => setActiveDropdown(activeDropdown === 'genre' ? null : 'genre')}
-              className="evt-genre-filter-btn"
-            >
-              <span className="evt-max-w-100 evt-truncate">{selectedGenre || '장르'}</span>
-              <i className={`ri-arrow-down-s-line evt-transition-transform ${activeDropdown === 'genre' ? 'evt-rotate-180' : ''}`}></i>
-            </button>
-            {activeDropdown === 'genre' && (
-              <div className="evt-filter-dropdown">
-                <button onClick={() => handleGenreChange(null)} className="evt-filter-option">모든 장르</button>
-                {sortedAllGenres.map(genre => (
-                  <button
-                    key={genre}
-                    onClick={() => handleGenreChange(genre)}
-                    className="evt-filter-option"
-                    title={genre}
-                  >
-                    <span className="evt-truncate evt-block">{genre}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
       {isDeleting && createPortal(
         <div
           className="evt-delete-overlay"

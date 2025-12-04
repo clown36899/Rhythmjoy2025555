@@ -1225,30 +1225,16 @@
 
 /* Weekday Header */
 .calendar-weekday-header {
-  position: fixed;
-  top: 48px;
-  left: 0;
-  right: 0;
-  max-width: 650px;
-  margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
   font-size: 0.75rem;
-  /* text-xs */
   font-weight: 600;
-  /* font-semibold */
   color: var(--text-muted);
-  /* gray-400 */
-
   border-bottom: 0px solid var(--calendar-cell-border);
-  /* gray-700 */
   flex-shrink: 0;
-  /* Prevent header from shrinking */
   background-color: #2f2f2f;
-  /* Ensure background covers scrolling content */
   z-index: 35;
-
 }
 
 .calendar-weekday-item {

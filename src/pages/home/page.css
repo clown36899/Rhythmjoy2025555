@@ -2,9 +2,10 @@
 
 /* ===== 메인 컨테이너 ===== */
 .home-container {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* ===== 헤더 ===== */
@@ -13,10 +14,10 @@
   top: 0;
   left: 0;
   right: 0;
-  max-width: 650px;
-  margin: 0 auto;
   flex-shrink: 0;
   width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
   z-index: 40;
   border-bottom: 1px solid #22262a;
   touch-action: auto;
@@ -25,21 +26,20 @@
 
 /* ===== 메인 컨텐츠 영역 ===== */
 .home-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
-  padding-top: 48px;
 }
 
 /* ===== 컨텐츠 스크롤 영역 ===== */
 .home-content-scroll {
   flex: 1;
-  width: 100%;
-  margin: 0 auto;
-  margin-top: -1px;
-  background-color: #1f1f1f;
-  overflow-y: hidden;
-  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
 }
 
 /* ===== 달력/카테고리 버튼 영역 ===== */
@@ -218,7 +218,15 @@
 
 /* ===== Refactored Classes (Tailwind Removal) ===== */
 .home-calendar-wrapper {
+  position: fixed;
+
+  left: 0;
+  right: 0;
+  max-width: 650px;
+  margin: 0 auto;
   width: 100%;
+  z-index: 30;
+  background-color: var(--calendar-bg-color);
 }
 
 .home-calendar-content {
