@@ -27,9 +27,10 @@ import { useCalendarGesture } from "../../hooks/useCalendarGesture";
 import "./page.css";
 
 export default function HomePage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedCategory = searchParams.get("category") || "all";
+  const selectedGenre = searchParams.get("genre");
   const { isAdmin } = useAuth();
 
 
@@ -116,6 +117,22 @@ export default function HomePage() {
   const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isEventListModalOpen, setIsEventListModalOpen] = useState(false);
+  const [filterData, setFilterData] = useState<{
+    categoryCounts: { all: number; event: number; class: number };
+    genres: string[];
+  }>({
+    categoryCounts: { all: 0, event: 0, class: 0 },
+    genres: []
+  });
+
+  const handleFilterDataUpdate = useCallback((data: { categoryCounts: { all: number; event: number; class: number }; genres: string[] }) => {
+    setFilterData(data);
+  }, []);
+
+  const [showGenreDropdown, setShowGenreDropdown] = useState(false);
+
+
+
   const [isFullscreenDateModalOpen, setIsFullscreenDateModalOpen] = useState(false);
   const [fullscreenSelectedDate, setFullscreenSelectedDate] = useState<Date | null>(null);
   const [fullscreenClickPosition, setFullscreenClickPosition] = useState<{ x: number; y: number } | undefined>(undefined);
@@ -706,53 +723,80 @@ export default function HomePage() {
             <div className="evt-file-btn-group">
               <button
                 onClick={() => {
-                  const params = new URLSearchParams(window.location.search);
+                  const params = new URLSearchParams(searchParams);
                   params.set('category', 'all');
-                  window.history.pushState({}, '', `?${params.toString()}`);
-                  window.dispatchEvent(new Event('popstate'));
+                  setSearchParams(params);
                 }}
-                className={`evt-category-btn ${new URLSearchParams(window.location.search).get('category') === 'all' || !new URLSearchParams(window.location.search).get('category') ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
+                className={`evt-category-btn ${selectedCategory === 'all' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
               >
                 {selectedWeekday !== null && selectedWeekday !== undefined && currentMonth
                   ? `${currentMonth.getMonth() + 1}월(${['일', '월', '화', '수', '목', '금', '토'][selectedWeekday]})`
                   : '전체'}
-                <span className="evt-count-badge">0</span>
+                <span className="evt-count-badge">{filterData.categoryCounts.all}</span>
               </button>
               <button
                 onClick={() => {
-                  const params = new URLSearchParams(window.location.search);
+                  const params = new URLSearchParams(searchParams);
                   params.set('category', 'event');
-                  window.history.pushState({}, '', `?${params.toString()}`);
-                  window.dispatchEvent(new Event('popstate'));
+                  setSearchParams(params);
                 }}
-                className={`evt-category-btn ${new URLSearchParams(window.location.search).get('category') === 'event' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
+                className={`evt-category-btn ${selectedCategory === 'event' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
               >
                 행사
-                <span className="evt-count-badge">0</span>
+                <span className="evt-count-badge">{filterData.categoryCounts.event}</span>
               </button>
               <button
                 onClick={() => {
-                  const params = new URLSearchParams(window.location.search);
+                  const params = new URLSearchParams(searchParams);
                   params.set('category', 'class');
-                  window.history.pushState({}, '', `?${params.toString()}`);
-                  window.dispatchEvent(new Event('popstate'));
+                  setSearchParams(params);
                 }}
-                className={`evt-category-btn ${new URLSearchParams(window.location.search).get('category') === 'class' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
+                className={`evt-category-btn ${selectedCategory === 'class' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
               >
                 강습
-                <span className="evt-count-badge">0</span>
+                <span className="evt-count-badge">{filterData.categoryCounts.class}</span>
               </button>
             </div>
 
             {/* 장르 드롭다운 */}
             <div className="evt-relative">
               <button
-                onClick={() => { }}
+                onClick={() => setShowGenreDropdown(!showGenreDropdown)}
                 className="evt-genre-filter-btn"
               >
-                <span className="evt-max-w-100 evt-truncate">장르</span>
-                <i className="ri-arrow-down-s-line evt-transition-transform"></i>
+                <span className="evt-max-w-100 evt-truncate">{selectedGenre || '장르'}</span>
+                <i className={`ri-arrow-down-s-line evt-transition-transform ${showGenreDropdown ? 'evt-rotate-180' : ''}`}></i>
               </button>
+              {showGenreDropdown && (
+                <div className="evt-filter-dropdown">
+                  <button
+                    onClick={() => {
+                      const params = new URLSearchParams(searchParams);
+                      params.delete('genre');
+                      setSearchParams(params);
+                      setShowGenreDropdown(false);
+                    }}
+                    className="evt-filter-option"
+                  >
+                    모든 장르
+                  </button>
+                  {filterData.genres.map(genre => (
+                    <button
+                      key={genre}
+                      onClick={() => {
+                        const params = new URLSearchParams(searchParams);
+                        params.set('genre', genre);
+                        setSearchParams(params);
+                        setShowGenreDropdown(false);
+                      }}
+                      className="evt-filter-option"
+                      title={genre}
+                    >
+                      <span className="evt-truncate evt-block">{genre}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -798,6 +842,7 @@ export default function HomePage() {
             onEventClickInFullscreen={handleDailyModalEventClick}
             onModalStateChange={(isOpen) => { }}
             selectedWeekday={selectedWeekday}
+            onFilterDataUpdate={handleFilterDataUpdate}
           />
         )}
 

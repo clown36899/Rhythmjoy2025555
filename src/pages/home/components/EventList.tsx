@@ -89,6 +89,7 @@ interface EventListProps {
   onEventClickInFullscreen?: (event: Event) => void;
   onModalStateChange: (isModalOpen: boolean) => void;
   selectedWeekday?: number | null;
+  onFilterDataUpdate?: (data: { categoryCounts: { all: number; event: number; class: number }; genres: string[] }) => void;
 }
 
 export default function EventList({
@@ -119,6 +120,7 @@ export default function EventList({
   onEventClickInFullscreen,
   onModalStateChange,
   selectedWeekday,
+  onFilterDataUpdate,
 }: EventListProps) {
   console.log(`[EventList] Rendered. selectedWeekday: ${selectedWeekday}`);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -438,6 +440,7 @@ export default function EventList({
     });
     return Array.from(genres).sort((a, b) => a.localeCompare(b, 'ko'));
   }, [events]);
+
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -1187,6 +1190,17 @@ export default function EventList({
       class: baseEvents.filter(e => e.category === 'class').length
     };
   }, [events, selectedGenre, searchTerm, selectedDate, currentMonth, viewMode, selectedWeekday]);
+
+  // Send filter data to parent
+  useEffect(() => {
+    if (onFilterDataUpdate) {
+      onFilterDataUpdate({
+        categoryCounts,
+        genres: sortedAllGenres
+      });
+    }
+  }, [categoryCounts, sortedAllGenres, onFilterDataUpdate]);
+
 
   // 필터링된 이벤트를 정렬 (캐싱으로 슬라이드 시 재정렬 방지 및 랜덤 순서 유지)
   const sortedPrevEvents = useMemo(() => {
