@@ -137,26 +137,13 @@ export function useCalendarGesture({
             gestureRef.current.isLocked = 'horizontal';
           } else if (absY > absX) {
             const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
-            const isTouchingEventList = eventListElementRef.current?.contains(e.target as Node);
 
-            // Check if user is at the TOP of the event list and pulling down BEYOND a threshold
-            const eventList = eventListElementRef.current;
-            const isAtTop = eventList
-              ? (eventList.scrollTop <= 2)
-              : false;
+            // DISABLED: Pull-down to expand calendar from event list
+            // Users reported this feature was interfering with normal scrolling
+            // Only allow resize when directly touching the calendar area
 
-            // Require pulling down at least 50px beyond the top to trigger calendar resize
-            // This allows normal scrolling to work first
-            const PULL_DOWN_THRESHOLD = 50;
-            const isPullingDownBeyondThreshold = isAtTop && diffY > PULL_DOWN_THRESHOLD;
-
-            // Allow resize if:
-            // 1. Touching calendar directly AND NOT in fullscreen mode (to allow scrolling), OR
-            // 2. Touching event list AND at top AND pulled down beyond threshold
-            const shouldResize = (isTouchingCalendar && latestStateRef.current.calendarMode !== 'fullscreen') || (isTouchingEventList && isPullingDownBeyondThreshold);
-
-            // Check if we are potentially pulling down to resize (but haven't reached threshold yet)
-            const isPotentialPullDown = isTouchingEventList && isAtTop && diffY > 0;
+            // Allow resize ONLY if touching calendar directly AND NOT in fullscreen mode
+            const shouldResize = (isTouchingCalendar && latestStateRef.current.calendarMode !== 'fullscreen');
 
             if (shouldResize) {
               gestureRef.current.isLocked = 'vertical-resize';
@@ -164,8 +151,8 @@ export function useCalendarGesture({
               setLiveCalendarHeight(startHeight);
             } else if (e instanceof MouseEvent) {
               gestureRef.current.isLocked = 'vertical-scroll';
-            } else if (!isPotentialPullDown) {
-              // Only lock to native-scroll if we are NOT potentially pulling down to resize
+            } else {
+              // Allow native scrolling for event list
               gestureRef.current.isLocked = 'native-scroll';
             }
           }
