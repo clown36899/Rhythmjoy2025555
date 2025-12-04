@@ -35,14 +35,14 @@ export default function EventFilterBar({
 
     return (
         <div className="evt-sticky-header" ref={filterDropdownRef}>
-            <div className="evt-flex evt-items-center evt-gap-2">
+            <div className="evt-filter-bar-content">
                 {/* 카테고리 버튼 */}
                 <div className="evt-file-btn-group">
                     <button
                         onClick={() => onCategoryChange("all")}
                         className={`evt-category-btn ${selectedCategory === "all"
-                                ? "evt-category-btn-active"
-                                : "evt-category-btn-inactive"
+                            ? "evt-category-btn-active"
+                            : "evt-category-btn-inactive"
                             }`}
                     >
                         전체
@@ -50,8 +50,8 @@ export default function EventFilterBar({
                     <button
                         onClick={() => onCategoryChange("event")}
                         className={`evt-category-btn ${selectedCategory === "event"
-                                ? "evt-category-btn-active"
-                                : "evt-category-btn-inactive"
+                            ? "evt-category-btn-active"
+                            : "evt-category-btn-inactive"
                             }`}
                     >
                         행사
@@ -59,8 +59,8 @@ export default function EventFilterBar({
                     <button
                         onClick={() => onCategoryChange("class")}
                         className={`evt-category-btn ${selectedCategory === "class"
-                                ? "evt-category-btn-active"
-                                : "evt-category-btn-inactive"
+                            ? "evt-category-btn-active"
+                            : "evt-category-btn-inactive"
                             }`}
                     >
                         강습
@@ -68,18 +68,18 @@ export default function EventFilterBar({
                 </div>
 
                 {/* 장르 드롭다운 */}
-                <div className="evt-relative">
+                <div className="evt-genre-filter-wrapper">
                     <button
                         onClick={() =>
                             setActiveDropdown(activeDropdown === "genre" ? null : "genre")
                         }
                         className="evt-genre-filter-btn"
                     >
-                        <span className="evt-max-w-100 evt-truncate">
+                        <span className="evt-genre-btn-text">
                             {selectedGenre || "장르"}
                         </span>
                         <i
-                            className={`ri-arrow-down-s-line evt-transition-transform ${activeDropdown === "genre" ? "evt-rotate-180" : ""
+                            className={`ri-arrow-down-s-line evt-genre-arrow ${activeDropdown === "genre" ? "evt-rotate-180" : ""
                                 }`}
                         ></i>
                     </button>
@@ -104,7 +104,7 @@ export default function EventFilterBar({
                                     className="evt-filter-option"
                                     title={genre}
                                 >
-                                    <span className="evt-truncate evt-block">{genre}</span>
+                                    <span className="evt-genre-option-text">{genre}</span>
                                 </button>
                             ))}
                         </div>

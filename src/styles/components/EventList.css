@@ -877,6 +877,34 @@
   border-bottom: 1px solid #22262a;
 }
 
+.evt-filter-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.evt-genre-filter-wrapper {
+  position: relative;
+}
+
+.evt-genre-btn-text {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evt-genre-arrow {
+  transition: transform 0.2s ease;
+}
+
+.evt-genre-option-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ===== 비디오 관련 추가 스타일 ===== */
 .evt-video-placeholder {
   position: relative;

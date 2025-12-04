@@ -81,7 +81,8 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
-  const [headerHeight, setHeaderHeight] = useState(60);
+  // const [headerHeight, setHeaderHeight] = useState(60); // Removed: using fixed 50px
+  // const [headerDebugInfo, setHeaderDebugInfo] = useState<string>(""); // Removed: no longer measuring
 
   // 기타 상태
   const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
@@ -126,7 +127,10 @@ export default function HomePage() {
   });
 
   const handleFilterDataUpdate = useCallback((data: { categoryCounts: { all: number; event: number; class: number }; genres: string[] }) => {
-    setFilterData(data);
+    setFilterData(prev => {
+      if (JSON.stringify(prev) === JSON.stringify(data)) return prev;
+      return data;
+    });
   }, []);
 
   const [showGenreDropdown, setShowGenreDropdown] = useState(false);
@@ -221,16 +225,21 @@ export default function HomePage() {
     getTargetHeight,
     calculateFullscreenHeight,
   } = useCalendarGesture({
-    headerHeight,
+    headerHeight: 50, // 화면에 보이는 50px 고정값 사용 (측정값 159px 오류 방지)
     containerRef,
     calendarRef,
     calendarContentRef,
     eventListElementRef,
     onHorizontalSwipe: handleHorizontalSwipe,
     isYearView: viewMode === 'year',
+    // headerDebugInfo // Removed
   });
 
   // Track top bar height for accurate positioning
+  // useEffect(() => {
+  //   console.log(`[Page] STATE CHANGE: headerHeight=${headerHeight}, debugInfo="${headerDebugInfo}"`);
+  // }, [headerHeight, headerDebugInfo]);
+
   useEffect(() => {
     const updateTopBarHeight = () => {
       const topBar = document.querySelector<HTMLElement>('.shell-top-bar');
@@ -262,7 +271,7 @@ export default function HomePage() {
   // --------------------------------------------------------------------------------
   // 6. 핸들러 및 기타 로직
   // --------------------------------------------------------------------------------
-  useEffect(() => { if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight); }, []);
+  useEffect(() => { if (headerRef.current) { /* setHeaderHeight(headerRef.current.offsetHeight); */ } }, []);
   useEffect(() => { if (effectiveIsAdmin && !billboardUserId && adminType !== "super") setAdminType("super"); else if (!effectiveIsAdmin && !billboardUserId && adminType !== null) { setAdminType(null); setIsAdminModeOverride(false); } }, [effectiveIsAdmin, billboardUserId, adminType]);
   useEffect(() => { window.dispatchEvent(new CustomEvent("monthChanged", { detail: { month: currentMonth.toISOString() } })); }, [currentMonth]);
   useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode } })); }, [viewMode]);
@@ -488,12 +497,16 @@ export default function HomePage() {
     if (isDragging) return `${liveCalendarHeight}px`;
     if (calendarMode === 'collapsed') return '0px';
     if (calendarMode === 'fullscreen') {
+      // calculateFullscreenHeight() 결과값:
+      // 전체 화면 높이(Viewport) - 헤더 높이(50px) - 하단 네비게이션(BottomNav) - 필터 바(FilterBar)
+      // (ControlBar 높이는 차감하지 않음)
       const containerHeight = calculateFullscreenHeight();
-      const controlBarHeight = calendarControlBarRef.current?.offsetHeight || 32;
-      // categoryButtons는 존재하지 않으므로 빼지 않음
-      return `${Math.max(0, containerHeight - controlBarHeight)}px`;
+
+      // [수정 완료] 이중 차감 방지
+      // containerHeight에서 이미 ControlBar 높이가 빠져있으므로, 여기서 다시 빼지 않습니다.
+      return `${Math.max(0, containerHeight)}px`;
     }
-    return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이
+    return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이 (173px)
   }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
   const isFixed = calendarMode === "fullscreen";
   const buttonBgClass = calendarMode === "collapsed" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark";
@@ -501,6 +514,9 @@ export default function HomePage() {
 
   // Calculate header height for home-main padding
   useEffect(() => {
+    let animationFrameId: number;
+    let isAnimating = true;
+
     const updateMainPadding = () => {
       const header = headerRef.current;
       if (header) {
@@ -510,20 +526,34 @@ export default function HomePage() {
           mainElement.style.paddingTop = `${headerHeight}px`;
         }
       }
+
+      // Continue updating during animation
+      if (isAnimating) {
+        animationFrameId = requestAnimationFrame(updateMainPadding);
+      }
     };
 
+    // Start continuous updates
     updateMainPadding();
 
-    // Update on calendar mode change
-    const timer = setTimeout(updateMainPadding, 350); // After calendar animation
+    // Stop after animation completes (350ms)
+    const stopTimer = setTimeout(() => {
+      isAnimating = false;
+      cancelAnimationFrame(animationFrameId);
+      // Final update
+      updateMainPadding();
+    }, 350);
 
     window.addEventListener('resize', updateMainPadding);
 
     return () => {
-      clearTimeout(timer);
+      isAnimating = false;
+      cancelAnimationFrame(animationFrameId);
+      clearTimeout(stopTimer);
       window.removeEventListener('resize', updateMainPadding);
     };
   }, [calendarMode]);
+
 
 
   return (
@@ -564,7 +594,6 @@ export default function HomePage() {
             backgroundColor: "var(--calendar-bg-color)",
             touchAction: "pan-y",
             position: isFixed ? "fixed" : "relative",
-            top: isFixed ? `${topBarHeight}px` : undefined,
             left: 0, right: 0,
             zIndex: isFixed ? 30 : 15,
           }}
@@ -603,11 +632,19 @@ export default function HomePage() {
             ))}
           </div>
 
+          {/* 
+            [Height Connection Explanation]
+            This div is the main container for the calendar content.
+            - style.height: assigned to 'renderHeight'.
+            - 'renderHeight': comes from useCalendarGesture hook.
+              It is the result of: Viewport Height - Header Height (50px) - Bottom Nav - Control Bar - Filter Bar.
+              This ensures the calendar fills the remaining space exactly.
+          */}
           <div
             ref={calendarContentRef}
             className="home-calendar-content"
             style={{
-              height: renderHeight,
+              height: renderHeight, // <--- This is where the calculated height is applied!
               transition: isDragging ? "none" : "height 0.3s cubic-bezier(0.33, 1, 0.68, 1)",
               willChange: isDragging ? "height" : undefined,
               touchAction: (viewMode === "year" || calendarMode === "fullscreen") ? "pan-y" : "none",
@@ -629,6 +666,7 @@ export default function HomePage() {
               hoveredEventId={hoveredEventId}
               dragOffset={dragOffset}
               isAnimating={isAnimating}
+              // calendarHeightPx: Internal height used by EventCalendar for row calculations
               calendarHeightPx={isDragging ? liveCalendarHeight : getTargetHeight()}
               calendarMode={calendarMode}
               selectedCategory={selectedCategory}

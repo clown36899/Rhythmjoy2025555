@@ -376,7 +376,14 @@ export default function Header({
     <>
       <header
         className="header-container"
-        style={{ backgroundColor: "var(--header-bg-color)" }}
+        style={{
+          backgroundColor: "var(--header-bg-color)",
+          height: "50px",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "center"
+        }}
       >
         <div className="header-inner">
           <div className="header-content">
@@ -459,10 +466,10 @@ export default function Header({
               {(isEffectiveAdmin || billboardUserId !== null) && (
                 <div className="header-login-status">
                   <i className={`header-login-icon ${isDevAdmin
-                      ? 'ri-code-s-slash-line header-login-icon-dev'
-                      : billboardUserId !== null
-                        ? 'ri-user-line header-login-icon-billboard'
-                        : 'ri-kakao-talk-fill header-login-icon-admin'
+                    ? 'ri-code-s-slash-line header-login-icon-dev'
+                    : billboardUserId !== null
+                      ? 'ri-user-line header-login-icon-billboard'
+                      : 'ri-kakao-talk-fill header-login-icon-admin'
                     }`}></i>
                   <span className="header-login-text">
                     {isDevAdmin
@@ -1049,12 +1056,12 @@ export default function Header({
               <div className="header-success-container">
                 <div className="header-success-icon-wrapper">
                   <div className={`header-success-icon-circle ${loginSuccessType.includes('프리패스')
-                      ? 'header-success-icon-red'
-                      : 'header-success-icon-purple'
+                    ? 'header-success-icon-red'
+                    : 'header-success-icon-purple'
                     }`}>
                     <i className={`header-icon-3xl ${loginSuccessType.includes('프리패스')
-                        ? 'ri-shield-keyhole-line'
-                        : 'ri-shield-check-line'
+                      ? 'ri-shield-keyhole-line'
+                      : 'ri-shield-check-line'
                       }`} style={{ color: 'white' }}></i>
                   </div>
                 </div>
@@ -1076,8 +1083,8 @@ export default function Header({
                     setShowLoginSuccessModal(false);
                   }}
                   className={`header-btn-base ${loginSuccessType.includes('프리패스')
-                      ? 'header-btn-gradient-red'
-                      : 'header-btn-gradient-purple'
+                    ? 'header-btn-gradient-red'
+                    : 'header-btn-gradient-purple'
                     }`}
                 >
                   시작하기
