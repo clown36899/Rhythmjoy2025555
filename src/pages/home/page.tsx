@@ -112,6 +112,7 @@ export default function HomePage() {
   const [isFullscreenDateModalOpen, setIsFullscreenDateModalOpen] = useState(false);
   const [fullscreenSelectedDate, setFullscreenSelectedDate] = useState<Date | null>(null);
   const [fullscreenClickPosition, setFullscreenClickPosition] = useState<{ x: number; y: number } | undefined>(undefined);
+  const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
 
   // --- EventList에서 이동된 상태들 ---
   const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
@@ -227,8 +228,8 @@ export default function HomePage() {
   const handleBillboardSettingsClose = () => setIsBillboardSettingsOpen(false);
   const handleBillboardEventClick = (event: any) => { setIsBillboardOpen(false); if (event && event.id) { const eventDate = event.start_date || event.date; if (eventDate) setCurrentMonth(new Date(eventDate)); setTimeout(() => setHighlightEvent({ id: event.id, nonce: Date.now() }), 100); } };
   const handleHighlightComplete = () => setHighlightEvent(null);
-  const handleDateSelect = (date: Date | null, hasEvents?: boolean) => { setSelectedDate(date); if (date && hasEvents) navigateWithCategory("all"); };
-  const handleMonthChange = (month: Date) => { setCurrentMonth(month); setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); if (viewMode === "month") navigateWithCategory("all"); };
+  const handleDateSelect = (date: Date | null, hasEvents?: boolean) => { setSelectedDate(date); if (date) setSelectedWeekday(null); if (date && hasEvents) navigateWithCategory("all"); };
+  const handleMonthChange = (month: Date) => { setCurrentMonth(month); setSelectedDate(null); setSelectedWeekday(null); setFromBanner(false); setBannerMonthBounds(null); if (viewMode === "month") navigateWithCategory("all"); };
   const handleEventsUpdate = async (createdDate?: Date) => { if (createdDate) await handleDateSelect(createdDate); };
   const handleAdminModeToggle = (adminMode: boolean, type: "super" | "sub" | null = null, userId: string | null = null, userName: string = "") => { if (adminMode && type === "super" && !userId) setIsAdminModeOverride(true); else if (!adminMode) setIsAdminModeOverride(false); setAdminType(type ?? null); setBillboardUserId(userId ?? null); setBillboardUserName(userName ?? ""); };
   const getSortIcon = () => (sortBy === "random" ? "ri-shuffle-line" : sortBy === "time" ? "ri-time-line" : "ri-sort-alphabet-asc");
@@ -500,8 +501,23 @@ export default function HomePage() {
             {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
               <div
                 key={day}
-                className="calendar-weekday-item"
-                style={{ color: index === 0 ? 'rgb(190, 0, 0)' : undefined }}
+                className={`calendar-weekday-item ${selectedWeekday === index ? 'selected' : ''}`}
+                style={{
+                  color: selectedWeekday === index ? '#3b82f6' : index === 0 ? 'rgb(190, 0, 0)' : undefined,
+                  fontWeight: selectedWeekday === index ? 'bold' : undefined,
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  console.log(`[Page] Weekday clicked: ${day} (index: ${index})`);
+                  if (selectedWeekday === index) {
+                    console.log(`[Page] Deselecting weekday`);
+                    setSelectedWeekday(null);
+                  } else {
+                    console.log(`[Page] Selecting weekday: ${index}`);
+                    setSelectedWeekday(index);
+                    setSelectedDate(null); // 요일 선택 시 날짜 선택 해제
+                  }
+                }}
               >
                 {day}
               </div>
@@ -611,6 +627,7 @@ export default function HomePage() {
                 slideContainerRef={eventListSlideContainerRef}
                 onMonthChange={(date) => setCurrentMonth(date)}
                 onModalStateChange={setIsEventListModalOpen}
+                selectedWeekday={selectedWeekday}
               />
             </>
           )}

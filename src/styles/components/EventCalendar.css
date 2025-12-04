@@ -909,14 +909,11 @@
 .calendar-grid-container {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 1px;
+  gap: 0.5px;
   background-color: var(--calendar-bg);
-  /* gray-800 */
-  border: 1px solid var(--calendar-cell-border);
+  /* border: 1px solid var(--calendar-cell-border); */
   border-top: none;
-  /* Remove top border as header has bottom border */
-  border-radius: 0 0 0.5rem 0.5rem;
-  /* Only round bottom corners */
+  /* border-radius: 0 0 0.5rem 0.5rem; */
   overflow: hidden;
 }
 

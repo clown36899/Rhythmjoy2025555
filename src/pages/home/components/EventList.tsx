@@ -88,6 +88,7 @@ interface EventListProps {
   calendarMode?: "collapsed" | "expanded" | "fullscreen";
   onEventClickInFullscreen?: (event: Event) => void;
   onModalStateChange: (isModalOpen: boolean) => void;
+  selectedWeekday?: number | null;
 }
 
 export default function EventList({
@@ -117,7 +118,9 @@ export default function EventList({
   calendarMode,
   onEventClickInFullscreen,
   onModalStateChange,
+  selectedWeekday,
 }: EventListProps) {
+  console.log(`[EventList] Rendered with selectedWeekday: ${selectedWeekday}`);
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') || 'all';
   const selectedGenre = searchParams.get('genre');
@@ -795,6 +798,47 @@ export default function EventList({
         return matchesCategory && matchesGenre && matchesSelectedDate;
       }
 
+      // 요일 필터 (selectedWeekday가 있을 때만 적용)
+      const matchesWeekday = (() => {
+        if (selectedWeekday === undefined || selectedWeekday === null) return true;
+
+        const startDateStr = event.start_date || event.date;
+        const endDateStr = event.end_date || event.date;
+
+        if (!startDateStr) return false;
+
+        // 날짜 파싱 헬퍼 (YYYY-MM-DD 형식일 때만 T12:00:00 추가)
+        const parseDateSafe = (dateStr: string) => {
+          if (dateStr.length === 10) {
+            return new Date(`${dateStr}T12:00:00`);
+          }
+          return new Date(dateStr);
+        };
+
+        // 특정 날짜 배열이 있는 경우
+        if (event.event_dates && event.event_dates.length > 0) {
+          return event.event_dates.some(d => parseDateSafe(d).getDay() === selectedWeekday);
+        }
+
+        // 기간인 경우
+        const start = parseDateSafe(startDateStr);
+        const end = parseDateSafe(endDateStr || startDateStr);
+
+        // 7일 이상이면 무조건 해당 요일 포함
+        const oneDay = 24 * 60 * 60 * 1000;
+        const diffDays = Math.round(Math.abs((end.getTime() - start.getTime()) / oneDay));
+        if (diffDays >= 6) return true;
+
+        // 기간 순회하며 요일 확인
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          if (d.getDay() === selectedWeekday) {
+            return true;
+          }
+        }
+
+        return false;
+      })();
+
       // 날짜가 선택되지 않은 경우: 현재 달력 월 기준으로 필터링
       let matchesDate = true;
       const filterMonth = currentMonth;
@@ -853,7 +897,7 @@ export default function EventList({
         }
       }
 
-      return matchesCategory && matchesGenre && matchesDate;
+      return matchesCategory && matchesGenre && matchesSearch && matchesDate && matchesWeekday;
     });
   }, [
     events,
@@ -863,6 +907,7 @@ export default function EventList({
     searchTerm,
     currentMonth,
     viewMode,
+    selectedWeekday,
   ]);
 
   // 3개월치 이벤트 데이터 계산 (이전/현재/다음 달)

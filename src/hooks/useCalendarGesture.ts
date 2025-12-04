@@ -74,7 +74,8 @@ export function useCalendarGesture({
     startX: number; startY: number; startHeight: number;
     isLocked: 'horizontal' | 'vertical-resize' | 'vertical-scroll' | 'native-scroll' | null;
     initialScrollTop: number;
-  }>({ startX: 0, startY: 0, startHeight: 0, isLocked: null, initialScrollTop: 0 });
+    startTime: number;
+  }>({ startX: 0, startY: 0, startHeight: 0, isLocked: null, initialScrollTop: 0, startTime: 0 });
 
   useEffect(() => {
     const container = containerRef.current;
@@ -107,7 +108,7 @@ export function useCalendarGesture({
 
       gestureRef.current = {
         startX: coords.clientX, startY: coords.clientY, startHeight: currentHeight,
-        isLocked: null, initialScrollTop: scrollTop
+        isLocked: null, initialScrollTop: scrollTop, startTime: Date.now()
       };
       if (e instanceof MouseEvent) {
         window.addEventListener('mousemove', handleGestureMove, { passive: false });
@@ -144,9 +145,9 @@ export function useCalendarGesture({
               ? (eventList.scrollTop <= 2)
               : false;
 
-            // Require pulling down at least 30px beyond the top to trigger calendar resize
+            // Require pulling down at least 50px beyond the top to trigger calendar resize
             // This allows normal scrolling to work first
-            const PULL_DOWN_THRESHOLD = 30;
+            const PULL_DOWN_THRESHOLD = 50;
             const isPullingDownBeyondThreshold = isAtTop && diffY > PULL_DOWN_THRESHOLD;
 
             // Allow resize if:
@@ -230,22 +231,29 @@ export function useCalendarGesture({
         }
       } else if (isLocked === 'vertical-resize') {
         // Calculate endHeight dynamically to avoid stale state closure issues
-        const DAMPING_FACTOR = 0.13;
+        const DAMPING_FACTOR = 0.12;
         const dampedDiffY = diffY * DAMPING_FACTOR;
         const endHeight = gestureRef.current.startHeight + dampedDiffY;
 
         let nextMode = latestStateRef.current.calendarMode;
-        const VISUAL_THRESHOLD = 40; // 40px visual stretch required to trigger change
+        const VISUAL_THRESHOLD = 30; // Reduced to 30px (requires ~250px drag)
 
-        if (latestStateRef.current.calendarMode === 'collapsed') {
-          // Opening: require significant visual stretch
-          if (endHeight > VISUAL_THRESHOLD) {
-            nextMode = 'expanded';
-          }
-        } else if (latestStateRef.current.calendarMode === 'expanded') {
-          // Closing: require significant visual compression
-          if (endHeight < EXPANDED_HEIGHT - VISUAL_THRESHOLD) {
-            nextMode = 'collapsed';
+        // Velocity check: Ignore flings (fast swipes)
+        const duration = Date.now() - gestureRef.current.startTime;
+        const velocity = Math.abs(diffY) / duration;
+        const isFling = velocity > 1.5; // Increased to 1.5 to allow fast intentional drags
+
+        if (!isFling) {
+          if (latestStateRef.current.calendarMode === 'collapsed') {
+            // Opening: require significant visual stretch
+            if (endHeight > VISUAL_THRESHOLD) {
+              nextMode = 'expanded';
+            }
+          } else if (latestStateRef.current.calendarMode === 'expanded') {
+            // Closing: require significant visual compression
+            if (endHeight < EXPANDED_HEIGHT - VISUAL_THRESHOLD) {
+              nextMode = 'collapsed';
+            }
           }
         }
 
