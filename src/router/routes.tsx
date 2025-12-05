@@ -4,6 +4,7 @@ import { MobileShell } from '../layouts/MobileShell';
 
 // Lazy loading pages
 const HomePage = lazy(() => import('../pages/home/page'));
+const HomePageV2 = lazy(() => import('../pages/home/page-v2'));
 const SocialPage = lazy(() => import('../pages/social/page'));
 const PracticePage = lazy(() => import('../pages/practice/page'));
 const BoardPage = lazy(() => import('../pages/board/page'));
@@ -17,6 +18,7 @@ export const routes: RouteObject[] = [
         element: <MobileShell />,
         children: [
             { path: '/', element: <HomePage /> },
+            { path: '/v2', element: <HomePageV2 /> },
             { path: '/social', element: <SocialPage /> },
             { path: '/social/:placeId', element: <SocialPage /> },
             { path: '/practice', element: <PracticePage /> },

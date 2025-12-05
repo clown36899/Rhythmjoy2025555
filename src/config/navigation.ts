@@ -14,6 +14,12 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-blue-500',
     },
     {
+        label: 'V2 달력',
+        path: '/v2',
+        icon: 'ri-calendar-2-line',
+        activeColor: 'text-red-500',
+    },
+    {
         label: '소셜',
         path: '/social',
         icon: 'ri-map-pin-line',
