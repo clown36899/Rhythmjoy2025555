@@ -113,9 +113,7 @@ export default function EventList({
   onHighlightComplete,
   sharedEventId,
   onSharedEventOpened,
-  dragOffset: externalDragOffset = 0,
-  isAnimating: externalIsAnimating = false,
-  slideContainerRef,
+
   onMonthChange,
   calendarMode,
   onEventClickInFullscreen,
@@ -221,11 +219,7 @@ export default function EventList({
   // 현재 날짜 추적 (자정 지날 때 캐시 무효화를 위해)
   const [currentDay, setCurrentDay] = useState(() => new Date().toDateString());
 
-  // 슬라이드 높이 동적 조정을 위한 상태 및 ref
-  // const [slideContainerHeight, setSlideContainerHeight] = useState<number | null>(null);
-  const prevMonthRef = useRef<HTMLDivElement>(null);
-  const currentMonthRef = useRef<HTMLDivElement>(null);
-  const nextMonthRef = useRef<HTMLDivElement>(null);
+
 
   // 월별 정렬된 이벤트 캐시 (슬라이드 시 재로드 방지 및 랜덤 순서 유지)
   const sortedEventsCache = useRef<{
@@ -965,21 +959,13 @@ export default function EventList({
 
   // 3개월치 이벤트 데이터 계산 (이전/현재/다음 달)
   const {
-    prevMonthEvents,
     currentMonthEvents,
-    nextMonthEvents,
-    prevMonthKey,
     currentMonthKey,
-    nextMonthKey,
   } = useMemo(() => {
     if (!currentMonth) {
       return {
-        prevMonthEvents: [],
         currentMonthEvents: filteredEvents,
-        nextMonthEvents: [],
-        prevMonthKey: "",
         currentMonthKey: "",
-        nextMonthKey: "",
       };
     }
 
@@ -1250,19 +1236,7 @@ export default function EventList({
 
 
   // 필터링된 이벤트를 정렬 (캐싱으로 슬라이드 시 재정렬 방지 및 랜덤 순서 유지)
-  const sortedPrevEvents = useMemo(() => {
-    if (!prevMonthKey || !currentMonth) return [];
-    const cacheKey = `${prevMonthKey}-${sortBy}`;
-    if (sortedEventsCache.current[cacheKey]) {
-      return sortedEventsCache.current[cacheKey];
-    }
-    // 이전 달의 Date 객체 생성
-    const prevMonth = new Date(currentMonth.getTime());
-    prevMonth.setMonth(currentMonth.getMonth() - 1);
-    const sorted = sortEvents(prevMonthEvents, sortBy, prevMonth, false);
-    sortedEventsCache.current[cacheKey] = sorted;
-    return sorted;
-  }, [prevMonthEvents, sortBy, prevMonthKey, currentMonth]);
+
 
   const sortedCurrentEvents = useMemo(() => {
     if (!currentMonthKey) {
@@ -1283,19 +1257,7 @@ export default function EventList({
     return sorted;
   }, [currentMonthEvents, sortBy, currentMonthKey, currentMonth, viewMode]);
 
-  const sortedNextEvents = useMemo(() => {
-    if (!nextMonthKey || !currentMonth) return [];
-    const cacheKey = `${nextMonthKey}-${sortBy}`;
-    if (sortedEventsCache.current[cacheKey]) {
-      return sortedEventsCache.current[cacheKey];
-    }
-    // 다음 달의 Date 객체 생성
-    const nextMonth = new Date(currentMonth.getTime());
-    nextMonth.setMonth(currentMonth.getMonth() + 1);
-    const sorted = sortEvents(nextMonthEvents, sortBy, nextMonth, false);
-    sortedEventsCache.current[cacheKey] = sorted;
-    return sorted;
-  }, [nextMonthEvents, sortBy, nextMonthKey, currentMonth]);
+
 
   // 레거시 호환을 위해 sortedEvents는 현재 달 이벤트를 가리킴
   // 날짜 선택 시 해당 날짜 이벤트를 상단에 배치
@@ -2139,238 +2101,7 @@ export default function EventList({
           )}
           <Footer />
         </div>
-      ) : (
-        // 일반 월간 뷰: 3개월 슬라이드 (독립 컨테이너)
-        <div
-          className="evt-overflow-hidden"
-          style={
-            {
-              // height: slideContainerHeight ? `${slideContainerHeight}px` : 'auto',
-              // transition: 'height 0.3s ease-out'
-              flex: 1
-            }
-          }
-        >
-          <div
-            ref={slideContainerRef}
-            className="evt-slide-container"
-            style={{
-              transform: `translateX(calc(-100% + ${externalDragOffset}px))`,
-              transition: externalIsAnimating
-                ? "transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1)"
-                : "none",
-              willChange: "transform",
-            }}
-          >
-            {/* 이전 달 - 독립 컨테이너 */}
-            <div key={prevMonthKey} ref={prevMonthRef} className="evt-slide-item">
-              <div
-                className="evt-p-0-4rem evt-list-bg-container"
-              >
-                {sortedPrevEvents.length > 0 || externalIsAnimating ? (
-                  <div className="evt-grid-3-4-10">
-                    {sortedPrevEvents.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onClick={() => handleEventClick(event)}
-                        onMouseEnter={onEventHover}
-                        onMouseLeave={() => onEventHover?.(null)}
-                        isHighlighted={highlightEvent?.id === event.id}
-                        selectedDate={null}
-                        defaultThumbnailClass={defaultThumbnailClass}
-                        defaultThumbnailEvent={defaultThumbnailEvent}
-                        variant="sliding"
-                      />
-                    ))}
-
-                    {/* 등록 버튼 배너 */}
-                    <div
-                      onClick={() => {
-                        const monthDate = currentMonth || new Date();
-                        const prevMonth = new Date(monthDate);
-                        prevMonth.setMonth(prevMonth.getMonth() - 1);
-                        const firstDayOfMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1);
-                        window.dispatchEvent(new CustomEvent('createEventForDate', {
-                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
-                        }));
-                      }}
-                      className="evt-cursor-pointer"
-                    >
-                      <div className="evt-add-banner-card">
-                        <div className="evt-add-banner-icon">
-                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="evt-grid-3-4-10-tight">
-                    {/* 등록 버튼 배너만 표시 */}
-                    <div
-                      onClick={() => {
-                        const monthDate = currentMonth || new Date();
-                        const prevMonth = new Date(monthDate);
-                        prevMonth.setMonth(prevMonth.getMonth() - 1);
-                        const firstDayOfMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1);
-                        window.dispatchEvent(new CustomEvent('createEventForDate', {
-                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
-                        }));
-                      }}
-                      className="evt-cursor-pointer"
-                    >
-                      <div className="evt-add-banner-card">
-                        <div className="evt-add-banner-icon">
-                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <Footer />
-            </div>
-
-            {/* 현재 달 - 독립 컨테이너 */}
-            <div
-              key={currentMonthKey}
-              ref={currentMonthRef}
-              className="evt-slide-item"
-            >
-              <div
-                className="evt-p-0-4rem evt-list-bg-container"
-              >
-                {sortedCurrentEvents.length > 0 || externalIsAnimating ? (
-                  <div className="evt-grid-3-4-10">
-                    {sortedCurrentEvents.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onClick={() => handleEventClick(event)}
-                        onMouseEnter={onEventHover}
-                        onMouseLeave={() => onEventHover?.(null)}
-                        isHighlighted={highlightEvent?.id === event.id}
-                        selectedDate={null}
-                        defaultThumbnailClass={defaultThumbnailClass}
-                        defaultThumbnailEvent={defaultThumbnailEvent}
-                        variant="sliding"
-                      />
-                    ))}
-
-                    {/* 등록 버튼 배너 */}
-                    <div
-                      onClick={() => {
-                        const monthDate = currentMonth || new Date();
-                        const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-                        window.dispatchEvent(new CustomEvent('createEventForDate', {
-                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
-                        }));
-                      }}
-                      className="evt-cursor-pointer"
-                    >
-                      <div className="evt-add-banner-card">
-                        <div className="evt-add-banner-icon">
-                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="evt-grid-3-4-10-tight">
-                    {/* 등록 버튼 배너만 표시 */}
-                    <div
-                      onClick={() => {
-                        const monthDate = currentMonth || new Date();
-                        const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-                        window.dispatchEvent(new CustomEvent('createEventForDate', {
-                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
-                        }));
-                      }}
-                      className="evt-cursor-pointer"
-                    >
-                      <div className="evt-add-banner-card">
-                        <div className="evt-add-banner-icon">
-                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <Footer />
-            </div>
-
-            {/* 다음 달 - 독립 컨테이너 */}
-            <div key={nextMonthKey} ref={nextMonthRef} className="evt-slide-item">
-              <div
-                className="evt-p-0-4rem evt-list-bg-container"
-              >
-                {sortedNextEvents.length > 0 || externalIsAnimating ? (
-                  <div className="evt-grid-3-4-10">
-                    {sortedNextEvents.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onClick={() => handleEventClick(event)}
-                        onMouseEnter={onEventHover}
-                        onMouseLeave={() => onEventHover?.(null)}
-                        isHighlighted={highlightEvent?.id === event.id}
-                        selectedDate={null}
-                        defaultThumbnailClass={defaultThumbnailClass}
-                        defaultThumbnailEvent={defaultThumbnailEvent}
-                        variant="sliding"
-                      />
-                    ))}
-
-                    {/* 등록 버튼 배너 */}
-                    <div
-                      onClick={() => {
-                        const monthDate = currentMonth || new Date();
-                        const nextMonth = new Date(monthDate);
-                        nextMonth.setMonth(nextMonth.getMonth() + 1);
-                        const firstDayOfMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1);
-                        window.dispatchEvent(new CustomEvent('createEventForDate', {
-                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
-                        }));
-                      }}
-                      className="evt-cursor-pointer"
-                    >
-                      <div className="evt-add-banner-card">
-                        <div className="evt-add-banner-icon">
-                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="evt-grid-3-4-10-tight">
-                    {/* 등록 버튼 배너만 표시 */}
-                    <div
-                      onClick={() => {
-                        const monthDate = currentMonth || new Date();
-                        const nextMonth = new Date(monthDate);
-                        nextMonth.setMonth(nextMonth.getMonth() + 1);
-                        const firstDayOfMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1);
-                        window.dispatchEvent(new CustomEvent('createEventForDate', {
-                          detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
-                        }));
-                      }}
-                      className="evt-cursor-pointer"
-                    >
-                      <div className="evt-add-banner-card">
-                        <div className="evt-add-banner-icon">
-                          <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <Footer />
-            </div>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {/* 정렬 모달 */}
       {/* 정렬 모달 */}

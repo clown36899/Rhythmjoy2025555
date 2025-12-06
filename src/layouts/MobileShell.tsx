@@ -18,6 +18,10 @@ export function MobileShell() {
     month: new Date().getMonth(),
     viewMode: 'month'
   });
+  const [calendarMode, setCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen'>('collapsed');
+  const [sortBy, setSortBy] = useState<'random' | 'time' | 'title'>('random');
+  const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
+
 
   // 달력 월/뷰모드 변경 감지
   useEffect(() => {
@@ -54,6 +58,23 @@ export function MobileShell() {
 
     return () => {
       window.removeEventListener('selectedDateChanged', handleSelectedDateChanged as EventListener);
+    };
+  }, []);
+
+  // Page State Synchronization
+  useEffect(() => {
+    const handleCalendarModeChanged = (e: CustomEvent) => setCalendarMode(e.detail);
+    const handleSortByChanged = (e: CustomEvent) => setSortBy(e.detail);
+    const handleIsCurrentMonthVisibleChanged = (e: CustomEvent) => setIsCurrentMonthVisible(e.detail);
+
+    window.addEventListener('calendarModeChanged', handleCalendarModeChanged as EventListener);
+    window.addEventListener('sortByChanged', handleSortByChanged as EventListener);
+    window.addEventListener('isCurrentMonthVisibleChanged', handleIsCurrentMonthVisibleChanged as EventListener);
+
+    return () => {
+      window.removeEventListener('calendarModeChanged', handleCalendarModeChanged as EventListener);
+      window.removeEventListener('sortByChanged', handleSortByChanged as EventListener);
+      window.removeEventListener('isCurrentMonthVisibleChanged', handleIsCurrentMonthVisibleChanged as EventListener);
     };
   }, []);
 
@@ -149,6 +170,9 @@ export function MobileShell() {
   const isGuidePage = location.pathname === '/guide';
   const category = searchParams.get('category') || 'all';
 
+  const getSortIcon = () => (sortBy === "random" ? "ri-shuffle-line" : sortBy === "time" ? "ri-time-line" : "ri-sort-alphabet-asc");
+  const getSortLabel = () => (sortBy === "random" ? "랜덤" : sortBy === "time" ? "시간" : "제목");
+
 
 
   return (
@@ -168,20 +192,94 @@ export function MobileShell() {
             }}
           >
             <div className="shell-top-bar-content">
-              <div id="mobile-shell-action-portal" style={{ marginLeft: 'auto' }}></div>
-
-              {/* 등록 버튼 - 날짜 선택 시에만 표시 */}
-              {selectedDate && (
+              {/* Left Side: Calendar Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                {/* Calendar Toggle Button */}
                 <button
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('createEventForDate'));
+                  onClick={() => window.dispatchEvent(new CustomEvent('toggleCalendarMode'))}
+                  className="shell-top-bar-btn"
+                  style={{
+                    backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
+                    padding: '0 4px', height: '24px', color: 'var(--text-secondary)'
                   }}
-                  className="shell-btn-register"
                 >
-                  <i className="ri-add-line shell-icon-sm"></i>
-                  <span>등록</span>
+                  <i className="ri-calendar-line shell-icon-sm"></i>
+                  <span style={{ fontSize: '12px', fontWeight: 500 }}>
+                    {calendarMode === "fullscreen" ? "달력" : (calendarMode === "collapsed" ? "달력" : "달력접기")}
+                  </span>
+                  {calendarMode !== "fullscreen" && (
+                    <i className={`ri-arrow-${calendarMode === "collapsed" ? "down" : "up"}-s-line shell-icon-sm`}></i>
+                  )}
                 </button>
-              )}
+
+                {/* Fullscreen Toggle Button */}
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
+                  className="shell-top-bar-btn"
+                  style={{
+                    backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
+                    padding: '0 4px', height: '24px', color: calendarMode === "fullscreen" ? '#3b82f6' : 'var(--text-secondary)'
+                  }}
+                >
+                  <i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} shell-icon-sm`}></i>
+                  <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
+                </button>
+              </div>
+
+              {/* Right Side: Tools (Today, Sort, Search, Register, Admin) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {calendarMode !== "fullscreen" && (
+                  <>
+                    {/* 1. Today Button (Conditional) */}
+                    {!isCurrentMonthVisible && (
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
+                        style={{
+                          backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px',
+                          padding: '2px 8px', fontSize: '10px', height: '24px', display: 'flex', alignItems: 'center', gap: '2px'
+                        }}
+                      >
+                        <span>오늘</span>
+                        <i className="ri-calendar-check-line" style={{ fontSize: '10px' }}></i>
+                      </button>
+                    )}
+
+                    {/* 2. Sort Button */}
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('openSortModal'))}
+                      style={{
+                        backgroundColor: 'transparent', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '2px', height: '24px'
+                      }}
+                    >
+                      <i className={`${getSortIcon()} shell-icon-sm`}></i>
+                      <span style={{ fontSize: '10px' }}>{getSortLabel()}</span>
+                    </button>
+
+                    {/* 3. Search Button */}
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('openSearchModal'))}
+                      style={{
+                        backgroundColor: 'transparent', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px'
+                      }}
+                    >
+                      <i className="ri-search-line shell-icon-sm"></i>
+                    </button>
+                  </>
+                )}
+
+                {/* 4. Register Button (Date Selected) */}
+                {selectedDate && (
+                  <button
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('createEventForDate'));
+                    }}
+                    className="shell-btn-register"
+                  >
+                    <i className="ri-add-line shell-icon-sm"></i>
+                    <span>등록</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {isAdmin && (

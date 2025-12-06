@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { createPortal } from "react-dom";
+
 
 
 
@@ -104,7 +104,7 @@ export default function HomePageV2() {
     const [sharedEventId, setSharedEventId] = useState<number | null>(null);
     const [eventJustCreated, setEventJustCreated] = useState<number>(0);
     const [searchTerm, setSearchTerm] = useState("");
-    const [isRandomBlinking, setIsRandomBlinking] = useState(false);
+
 
     const [isFullscreenTransition, setIsFullscreenTransition] = useState(false);
 
@@ -153,7 +153,7 @@ export default function HomePageV2() {
     const eventListElementRef = useRef<HTMLDivElement>(null!);
     const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null);
     const headerRef = useRef<HTMLDivElement>(null);
-    const calendarControlBarRef = useRef<HTMLDivElement>(null);
+
 
 
     // 모달이 열렸을 때 배경 컨텐츠의 상호작용을 막기 위한 `inert` 속성 관리
@@ -238,6 +238,52 @@ export default function HomePageV2() {
     useEffect(() => { if (effectiveIsAdmin && !billboardUserId && adminType !== "super") setAdminType("super"); else if (!effectiveIsAdmin && !billboardUserId && adminType !== null) { setAdminType(null); setIsAdminModeOverride(false); } }, [effectiveIsAdmin, billboardUserId, adminType]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("monthChanged", { detail: { month: currentMonth.toISOString() } })); }, [currentMonth]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode } })); }, [viewMode]);
+    // Shell State Synchronization
+    useEffect(() => { window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: calendarMode })); }, [calendarMode]);
+    useEffect(() => { window.dispatchEvent(new CustomEvent("sortByChanged", { detail: sortBy })); }, [sortBy]);
+    useEffect(() => { window.dispatchEvent(new CustomEvent("isCurrentMonthVisibleChanged", { detail: isCurrentMonthVisible })); }, [isCurrentMonthVisible]);
+
+    // Shell Command Listeners
+    useEffect(() => {
+        const handleToggleCalendarMode = () => {
+            if (calendarMode === "fullscreen") setCalendarMode("expanded");
+            else setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed");
+        };
+        const handleSetFullscreenMode = () => {
+            if (calendarMode !== "fullscreen") {
+                setIsFullscreenTransition(true);
+                setCalendarMode("fullscreen");
+            } else {
+                setCalendarMode("collapsed");
+            }
+        };
+        const handleGoToToday = () => {
+            const today = new Date();
+            setCurrentMonth(today);
+            setSelectedDate(null);
+            navigateWithCategory("all");
+            // Trigger pulses if needed
+            if (sortBy === "random") {
+                // Pulse logic moved to Shell
+            }
+        };
+        const handleOpenSortModal = () => setShowSortModal(true);
+        const handleOpenSearchModal = () => setShowSearchModal(true);
+
+        window.addEventListener('toggleCalendarMode', handleToggleCalendarMode);
+        window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
+        window.addEventListener('goToToday', handleGoToToday);
+        window.addEventListener('openSortModal', handleOpenSortModal);
+        window.addEventListener('openSearchModal', handleOpenSearchModal);
+
+        return () => {
+            window.removeEventListener('toggleCalendarMode', handleToggleCalendarMode);
+            window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
+            window.removeEventListener('goToToday', handleGoToToday);
+            window.removeEventListener('openSortModal', handleOpenSortModal);
+            window.removeEventListener('openSearchModal', handleOpenSearchModal);
+        };
+    }, [calendarMode, sortBy]);
     const [fromQR] = useState(() => { const p = new URLSearchParams(window.location.search); const s = p.get("from"); return s === "qr" || s === "edit"; });
     const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
@@ -251,8 +297,7 @@ export default function HomePageV2() {
     const handleMonthChange = (month: Date) => { setCurrentMonth(month); setSelectedDate(null); setSelectedWeekday(null); setFromBanner(false); setBannerMonthBounds(null); if (viewMode === "month") navigateWithCategory("all"); };
     const handleEventsUpdate = async (createdDate?: Date) => { if (createdDate) await handleDateSelect(createdDate); };
     const handleAdminModeToggle = (adminMode: boolean, type: "super" | "sub" | null = null, userId: string | null = null, userName: string = "") => { if (adminMode && type === "super" && !userId) setIsAdminModeOverride(true); else if (!adminMode) setIsAdminModeOverride(false); setAdminType(type ?? null); setBillboardUserId(userId ?? null); setBillboardUserName(userName ?? ""); };
-    const getSortIcon = () => (sortBy === "random" ? "ri-shuffle-line" : sortBy === "time" ? "ri-time-line" : "ri-sort-alphabet-asc");
-    const getSortLabel = () => (sortBy === "random" ? "랜덤" : sortBy === "time" ? "시간" : "제목");
+
     const handleViewModeChange = (mode: "month" | "year") => { if (mode === "year") setSavedMonth(new Date(currentMonth)); else if (mode === "month" && savedMonth) setCurrentMonth(new Date(savedMonth)); setViewMode(mode); };
     const handleSearchStart = () => navigateWithCategory("all");
 
@@ -416,7 +461,7 @@ export default function HomePageV2() {
     useEffect(() => { if (selectedDate && !qrLoading) { const scrollContainer = document.querySelector(".overflow-y-auto"); if (scrollContainer) scrollContainer.scrollTop = 0; } }, [selectedDate, qrLoading]);
     useEffect(() => { const handleClearDate = () => { setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }; window.addEventListener("clearSelectedDate", handleClearDate); return () => window.removeEventListener("clearSelectedDate", handleClearDate); }, []);
     useEffect(() => {
-        const handleResetToToday = () => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } };
+        const handleResetToToday = () => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); };
         window.addEventListener("resetToToday", handleResetToToday); return () => window.removeEventListener("resetToToday", handleResetToToday);
     }, [navigateWithCategory, sortBy]);
 
@@ -472,8 +517,7 @@ export default function HomePageV2() {
         return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이 (173px)
     }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
     const isFixed = calendarMode === "fullscreen";
-    const buttonBgClass = calendarMode === "collapsed" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark";
-    const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-down-s-line home-icon-sm home-icon-arrow-down"></i> : <i className="ri-arrow-up-s-line home-icon-sm home-icon-arrow-up"></i>;
+
 
     // Calculate header height for home-main padding
     useEffect(() => {
@@ -637,84 +681,7 @@ export default function HomePageV2() {
                         />
                     </div>
 
-                    <div ref={calendarControlBarRef} className="home-calendar-control-bar" style={{ backgroundColor: "#161616", touchAction: "none", padding: "0 9px" }}>
-                        <div className="home-toolbar">
-                            {/* Fullscreen Button Portal */}
-                            {document.getElementById("mobile-shell-action-portal") && createPortal(
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '100%' }}>
-                                    {/* Calendar Toggle Button - Always visible */}
-                                    <button
-                                        onClick={() => {
-                                            // In fullscreen, go to expanded. Otherwise toggle between collapsed and expanded
-                                            if (calendarMode === "fullscreen") {
-                                                setCalendarMode("expanded");
-                                            } else {
-                                                setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed");
-                                            }
-                                        }}
-                                        className={`home-toolbar-btn ${calendarMode === "fullscreen" ? "home-toolbar-btn-dark" : buttonBgClass}`}
-                                        style={{
-                                            backgroundColor: 'transparent',
-                                            border: 'none',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            padding: '0 4px',
-                                            height: '24px',
-                                            color: 'var(--text-secondary)'
-                                        }}
-                                    >
-                                        <i className="ri-calendar-line home-icon-sm"></i>
-                                        <span style={{ fontSize: '12px', fontWeight: 500 }}>
-                                            {calendarMode === "fullscreen" ? "달력" : (calendarMode === "collapsed" ? "달력" : "달력접기")}
-                                        </span>
-                                        {calendarMode !== "fullscreen" && arrowIconContent}
-                                    </button>
 
-                                    {/* Fullscreen Toggle Button */}
-                                    <button
-                                        onClick={() => {
-                                            if (calendarMode !== "fullscreen") {
-                                                setIsFullscreenTransition(true);
-                                                setCalendarMode("fullscreen");
-                                            } else {
-                                                setCalendarMode("collapsed");
-                                            }
-                                        }}
-                                        className="home-toolbar-btn home-toolbar-btn-dark"
-                                        style={{
-                                            backgroundColor: 'transparent',
-                                            border: 'none',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            padding: '0 4px',
-                                            height: '24px',
-                                            color: calendarMode === "fullscreen" ? '#3b82f6' : 'var(--text-secondary)'
-                                        }}
-                                    >
-                                        <i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} home-icon-sm`}></i>
-                                        <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
-                                    </button>
-                                </div>,
-                                document.getElementById("mobile-shell-action-portal")!
-                            )}
-
-                            <div className="home-toolbar-spacer"></div>
-                            {calendarMode === "fullscreen" ? (
-                                null
-                            ) : (
-                                <>
-                                    {/* 오늘 버튼 조건부 렌더링 */}
-                                    {!isCurrentMonthVisible && (
-                                        <button onClick={() => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); if (sortBy === "random") { setIsRandomBlinking(true); setTimeout(() => setIsRandomBlinking(false), 500); } }} className="home-btn-today"><span>오늘</span><i className="ri-calendar-check-line home-text-10px"></i></button>
-                                    )}
-                                    <button onClick={() => setShowSortModal(true)} className={`home-toolbar-btn ${sortBy === "random" && isRandomBlinking ? "home-toolbar-btn-pulse" : "home-toolbar-btn-dark"}`}><i className={`${getSortIcon()} home-icon-sm`}></i><span className="home-text-xs">{getSortLabel()}</span></button>
-                                    <button onClick={() => setShowSearchModal(true)} className="home-btn-search"><i className="ri-search-line home-icon-sm"></i></button>
-                                </>
-                            )}
-                        </div>
-                    </div>
                 </div>
 
 
