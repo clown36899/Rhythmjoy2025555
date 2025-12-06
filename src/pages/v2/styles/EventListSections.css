@@ -45,7 +45,7 @@
 /* Card sizing */
 .evt-v2-horizontal-scroll>.card-container {
     flex: 0 0 auto;
-    width: 120px;
+    width: 25%;
 }
 
 /* Empty State */

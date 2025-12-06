@@ -27,10 +27,10 @@ import { useCalendarGesture } from "./hooks/useCalendarGesture";
 import "./styles/Page.css";
 
 export default function HomePageV2() {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const selectedCategory = searchParams.get("category") || "all";
-    const selectedGenre = searchParams.get("genre");
+
     const { isAdmin } = useAuth();
 
 
@@ -105,7 +105,7 @@ export default function HomePageV2() {
     const [eventJustCreated, setEventJustCreated] = useState<number>(0);
     const [searchTerm, setSearchTerm] = useState("");
     const [isRandomBlinking, setIsRandomBlinking] = useState(false);
-    const [topBarHeight, setTopBarHeight] = useState(32);
+
     const [isFullscreenTransition, setIsFullscreenTransition] = useState(false);
 
     // ... existing code ...
@@ -117,23 +117,7 @@ export default function HomePageV2() {
     const [isBillboardOpen, setIsBillboardOpen] = useState(false);
     const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
     const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [isEventListModalOpen, setIsEventListModalOpen] = useState(false);
-    const [filterData, setFilterData] = useState<{
-        categoryCounts: { all: number; event: number; class: number };
-        genres: string[];
-    }>({
-        categoryCounts: { all: 0, event: 0, class: 0 },
-        genres: []
-    });
 
-    const handleFilterDataUpdate = useCallback((data: { categoryCounts: { all: number; event: number; class: number }; genres: string[] }) => {
-        setFilterData(prev => {
-            if (JSON.stringify(prev) === JSON.stringify(data)) return prev;
-            return data;
-        });
-    }, []);
-
-    const [showGenreDropdown, setShowGenreDropdown] = useState(false);
 
 
 
@@ -170,12 +154,11 @@ export default function HomePageV2() {
     const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null);
     const headerRef = useRef<HTMLDivElement>(null);
     const calendarControlBarRef = useRef<HTMLDivElement>(null);
-    const calendarCategoryButtonsRef = useRef<HTMLDivElement>(null);
+
 
     // 모달이 열렸을 때 배경 컨텐츠의 상호작용을 막기 위한 `inert` 속성 관리
     useEffect(() => {
-        const isAnyModalOpen = isEventListModalOpen ||
-            showSearchModal ||
+        const isAnyModalOpen = showSearchModal ||
             showSortModal ||
             showRegistrationModal ||
             isBillboardSettingsOpen ||
@@ -192,7 +175,7 @@ export default function HomePageV2() {
         return () => {
             if (container) container.inert = false;
         };
-    }, [isEventListModalOpen, showSearchModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, isFullscreenDateModalOpen, selectedEvent, showEditModal, showPasswordModal]);
+    }, [showSearchModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, isFullscreenDateModalOpen, selectedEvent, showEditModal, showPasswordModal]);
 
     const handleHorizontalSwipe = (direction: 'next' | 'prev') => {
         setCurrentMonth((prev) => {
@@ -240,27 +223,7 @@ export default function HomePageV2() {
     //   console.log(`[Page] STATE CHANGE: headerHeight=${headerHeight}, debugInfo="${headerDebugInfo}"`);
     // }, [headerHeight, headerDebugInfo]);
 
-    useEffect(() => {
-        const updateTopBarHeight = () => {
-            const topBar = document.querySelector<HTMLElement>('.shell-top-bar');
-            if (topBar) {
-                setTopBarHeight(topBar.offsetHeight);
-            }
-        };
 
-        updateTopBarHeight();
-        window.addEventListener('resize', updateTopBarHeight);
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', updateTopBarHeight);
-        }
-
-        return () => {
-            window.removeEventListener('resize', updateTopBarHeight);
-            if (window.visualViewport) {
-                window.visualViewport.removeEventListener('resize', updateTopBarHeight);
-            }
-        };
-    }, []);
 
     const isCurrentMonthVisible = (() => {
         const today = new Date();
@@ -283,7 +246,7 @@ export default function HomePageV2() {
     const handleBillboardSettingsOpen = () => setIsBillboardSettingsOpen(true);
     const handleBillboardSettingsClose = () => setIsBillboardSettingsOpen(false);
     const handleBillboardEventClick = (event: any) => { setIsBillboardOpen(false); if (event && event.id) { const eventDate = event.start_date || event.date; if (eventDate) setCurrentMonth(new Date(eventDate)); setTimeout(() => setHighlightEvent({ id: event.id, nonce: Date.now() }), 100); } };
-    const handleHighlightComplete = () => setHighlightEvent(null);
+
     const handleDateSelect = (date: Date | null, hasEvents?: boolean) => { setSelectedDate(date); if (date) setSelectedWeekday(null); if (date && hasEvents) navigateWithCategory("all"); };
     const handleMonthChange = (month: Date) => { setCurrentMonth(month); setSelectedDate(null); setSelectedWeekday(null); setFromBanner(false); setBannerMonthBounds(null); if (viewMode === "month") navigateWithCategory("all"); };
     const handleEventsUpdate = async (createdDate?: Date) => { if (createdDate) await handleDateSelect(createdDate); };
@@ -754,90 +717,7 @@ export default function HomePageV2() {
                     </div>
                 </div>
 
-                {/* Filter Bar - 분류창 */}
-                <div className="evt-sticky-header" style={{ position: 'relative', zIndex: 20 }}>
-                    <div className="evt-flex evt-items-center evt-gap-2">
-                        {/* 카테고리 버튼 */}
-                        <div className="evt-file-btn-group">
-                            <button
-                                onClick={() => {
-                                    const params = new URLSearchParams(searchParams);
-                                    params.set('category', 'all');
-                                    setSearchParams(params);
-                                }}
-                                className={`evt-category-btn ${selectedCategory === 'all' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
-                            >
-                                {selectedWeekday !== null && selectedWeekday !== undefined && currentMonth
-                                    ? `${currentMonth.getMonth() + 1}월(${['일', '월', '화', '수', '목', '금', '토'][selectedWeekday]})`
-                                    : '전체'}
-                                <span className="evt-count-badge">{filterData.categoryCounts.all}</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const params = new URLSearchParams(searchParams);
-                                    params.set('category', 'event');
-                                    setSearchParams(params);
-                                }}
-                                className={`evt-category-btn ${selectedCategory === 'event' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
-                            >
-                                행사
-                                <span className="evt-count-badge">{filterData.categoryCounts.event}</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const params = new URLSearchParams(searchParams);
-                                    params.set('category', 'class');
-                                    setSearchParams(params);
-                                }}
-                                className={`evt-category-btn ${selectedCategory === 'class' ? 'evt-category-btn-active' : 'evt-category-btn-inactive'}`}
-                            >
-                                강습
-                                <span className="evt-count-badge">{filterData.categoryCounts.class}</span>
-                            </button>
-                        </div>
 
-                        {/* 장르 드롭다운 */}
-                        <div className="evt-relative">
-                            <button
-                                onClick={() => setShowGenreDropdown(!showGenreDropdown)}
-                                className="evt-genre-filter-btn"
-                            >
-                                <span className="evt-max-w-100 evt-truncate">{selectedGenre || '장르'}</span>
-                                <i className={`ri-arrow-down-s-line evt-transition-transform ${showGenreDropdown ? 'evt-rotate-180' : ''}`}></i>
-                            </button>
-                            {showGenreDropdown && (
-                                <div className="evt-filter-dropdown">
-                                    <button
-                                        onClick={() => {
-                                            const params = new URLSearchParams(searchParams);
-                                            params.delete('genre');
-                                            setSearchParams(params);
-                                            setShowGenreDropdown(false);
-                                        }}
-                                        className="evt-filter-option"
-                                    >
-                                        모든 장르
-                                    </button>
-                                    {filterData.genres.map(genre => (
-                                        <button
-                                            key={genre}
-                                            onClick={() => {
-                                                const params = new URLSearchParams(searchParams);
-                                                params.set('genre', genre);
-                                                setSearchParams(params);
-                                                setShowGenreDropdown(false);
-                                            }}
-                                            className="evt-filter-option"
-                                            title={genre}
-                                        >
-                                            <span className="evt-truncate evt-block">{genre}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div
@@ -878,9 +758,8 @@ export default function HomePageV2() {
                         onMonthChange={setCurrentMonth}
                         calendarMode={calendarMode}
                         onEventClickInFullscreen={handleDailyModalEventClick}
-                        onModalStateChange={(isOpen) => { }}
+                        onModalStateChange={() => { }}
                         selectedWeekday={selectedWeekday}
-                        onFilterDataUpdate={handleFilterDataUpdate}
                     />
                 )}
 

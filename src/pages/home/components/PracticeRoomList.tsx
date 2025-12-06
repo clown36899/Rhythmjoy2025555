@@ -25,8 +25,8 @@ interface PracticeRoomListProps {
   setShowSearchModal: (show: boolean) => void;
   showSortModal: boolean;
   setShowSortModal: (show: boolean) => void;
-  sortBy: "random" | "time" | "title";
-  setSortBy: (sortBy: "random" | "time" | "title") => void;
+  sortBy: "random" | "time" | "title" | "newest";
+  setSortBy: (sortBy: "random" | "time" | "title" | "newest") => void;
 }
 
 export default function PracticeRoomList({
@@ -503,8 +503,8 @@ export default function PracticeRoomList({
                     setShowSortModal(false);
                   }}
                   className={`prl-sort-option flex items-center gap-3 ${sortBy === "random"
-                      ? "prl-sort-option-active"
-                      : ""
+                    ? "prl-sort-option-active"
+                    : ""
                     }`}
                 >
                   <i className="ri-shuffle-line"></i>
@@ -517,8 +517,8 @@ export default function PracticeRoomList({
                     setShowSortModal(false);
                   }}
                   className={`prl-sort-option flex items-center gap-3 ${sortBy === "title"
-                      ? "prl-sort-option-active"
-                      : ""
+                    ? "prl-sort-option-active"
+                    : ""
                     }`}
                 >
                   <i className="ri-sort-alphabet-asc"></i>
