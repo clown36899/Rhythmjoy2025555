@@ -144,6 +144,10 @@ export default function EventList({
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
   const [eventPassword, setEventPassword] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Local state for expanded view filtering
+  const [viewCategory, setViewCategory] = useState<'all' | 'event' | 'class'>('all');
+
   const [internalShowSearchModal, setInternalShowSearchModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false); // 삭제 로딩 상태
   const [internalSortBy, setInternalSortBy] = useState<
@@ -1927,13 +1931,16 @@ export default function EventList({
         </div>
       )}
 
-      {/* New Section-based Layout (when no search/filter) */}
-      {!searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all') ? (
-        <div className="evt-list-bg-container" style={{ flex: 1, overflowY: "auto", paddingBottom: "5rem" }}>
+      {/* 
+        VIEW 1: 달력이 접혀있을 때 (collapsed) 
+        => '진행중인 행사/강습' 섹션 표시
+      */}
+      {calendarMode === 'collapsed' && !searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all' || selectedCategory === 'none') ? (
+        <div className="evt-ongoing-section">
           {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
           <div className="evt-v2-section">
             <div className="evt-v2-section-title">
-              <i className="ri-calendar-event-line"></i>
+              <i className="ri-flag-line"></i>
               <span>진행중인 행사</span>
               <span className="evt-v2-count">{futureEvents.length}</span>
             </div>
@@ -2101,7 +2108,137 @@ export default function EventList({
           )}
           <Footer />
         </div>
-      ) : null}
+      ) : (
+        // VIEW 2: 달력이 펼쳐졌을 때 (expanded/fullscreen)
+        // => '월간 전체 이벤트' 리스트 표시 (또는 검색 중일 때도 이쪽)
+        (calendarMode !== 'collapsed' && !searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all' || selectedCategory === 'none')) ? (
+          (() => {
+            // 1. First filter by Genre
+            const genreFilteredEvents = selectedGenre
+              ? sortedCurrentEvents.filter(e => e.genre === selectedGenre)
+              : sortedCurrentEvents;
+
+            // Calculate counts for tabs
+            const totalCount = genreFilteredEvents.length;
+            const eventCount = genreFilteredEvents.filter(e => e.category === 'event').length;
+            const classCount = genreFilteredEvents.filter(e => e.category === 'class').length;
+
+            // 2. Then filter by Category (Local State)
+            const finalFilteredEvents = viewCategory === 'all'
+              ? genreFilteredEvents
+              : genreFilteredEvents.filter(e => e.category === viewCategory);
+
+            return (
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  paddingBottom: "5rem"
+                }}
+              >
+                {/* Unified Filter Bar (Sticky) */}
+                <div className="evt-sticky-header" style={{ top: 0, zIndex: 10, marginBottom: '1rem', flexDirection: 'column', gap: '8px', padding: '12px 1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    {/* Category Tabs */}
+                    <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+                      <button
+                        onClick={() => setViewCategory('all')}
+                        className={`evt-filter-chip ${viewCategory === 'all' ? 'active' : ''}`}
+                        style={{ padding: '6px 12px', borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: viewCategory === 'all' ? 'var(--primary-color)' : 'transparent', color: viewCategory === 'all' ? 'white' : 'var(--text-secondary)', fontSize: '13px' }}
+                      >
+                        전체 {totalCount}
+                      </button>
+                      <button
+                        onClick={() => setViewCategory('event')}
+                        className={`evt-filter-chip ${viewCategory === 'event' ? 'active' : ''}`}
+                        style={{ padding: '6px 12px', borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: viewCategory === 'event' ? 'var(--primary-color)' : 'transparent', color: viewCategory === 'event' ? 'white' : 'var(--text-secondary)', fontSize: '13px' }}
+                      >
+                        행사 {eventCount}
+                      </button>
+                      <button
+                        onClick={() => setViewCategory('class')}
+                        className={`evt-filter-chip ${viewCategory === 'class' ? 'active' : ''}`}
+                        style={{ padding: '6px 12px', borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: viewCategory === 'class' ? 'var(--primary-color)' : 'transparent', color: viewCategory === 'class' ? 'white' : 'var(--text-secondary)', fontSize: '13px' }}
+                      >
+                        강습 {classCount}
+                      </button>
+                    </div>
+
+                    {/* Genre Dropdown (If genres exist) */}
+                    {allGenres.length > 0 && (
+                      <select
+                        value={selectedGenre || ''}
+                        onChange={(e) => {
+                          const params = new URLSearchParams(searchParams);
+                          if (e.target.value) {
+                            params.set('genre', e.target.value);
+                          } else {
+                            params.delete('genre');
+                          }
+                          setSearchParams(params);
+                        }}
+                        className="evt-genre-select"
+                        style={{ width: 'auto', minWidth: '100px' }}
+                      >
+                        <option value="">모든 장르</option>
+                        {allGenres.map(genre => (
+                          <option key={genre} value={genre}>{genre}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+
+                {/* Single Filtered Grid */}
+                {finalFilteredEvents.length > 0 ? (
+                  <div className="evt-grid-3-4-10" style={{ padding: '0 1rem' }}>
+                    {finalFilteredEvents.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => handleEventClick(event)}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={null}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="evt-v2-empty" style={{ marginTop: '2rem' }}>
+                    조건에 맞는 일정이 없습니다
+                  </div>
+                )}
+
+
+                {/* 등록 버튼 배너 (항상 마지막에 표시) */}
+                <div className="evt-grid-3-4-10" style={{ marginTop: '1rem', padding: '0 1rem' }}>
+                  <div
+                    onClick={() => {
+                      const monthDate = currentMonth || new Date();
+                      const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+                      window.dispatchEvent(new CustomEvent('createEventForDate', {
+                        detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                      }));
+                    }}
+                    className="evt-cursor-pointer"
+                  >
+                    <div className="evt-add-banner-card">
+                      <div className="evt-add-banner-icon">
+                        <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Footer />
+              </div>
+            );
+          })()
+        ) : null
+      )}
 
       {/* 정렬 모달 */}
       {/* 정렬 모달 */}

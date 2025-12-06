@@ -61,10 +61,9 @@
     position: sticky;
     top: 0;
     z-index: 11;
-    background-color: #1a1a1a;
-    padding: 12px 16px;
-    /* Match section title horizontal padding */
-    border-bottom: 1px solid #2d2d2d;
+    background-color: #1f1f1f;
+    /* padding: 12px 16px; */
+    border-top: 1px solid #2d2d2d;
 }
 
 .evt-filter-bar-content {
