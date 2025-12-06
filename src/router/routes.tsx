@@ -4,7 +4,7 @@ import { MobileShell } from '../layouts/MobileShell';
 
 // Lazy loading pages
 const HomePage = lazy(() => import('../pages/home/page'));
-const HomePageV2 = lazy(() => import('../pages/home/page-v2'));
+const HomePageV2 = lazy(() => import('../pages/v2/Page'));
 const SocialPage = lazy(() => import('../pages/social/page'));
 const PracticePage = lazy(() => import('../pages/practice/page'));
 const BoardPage = lazy(() => import('../pages/board/page'));

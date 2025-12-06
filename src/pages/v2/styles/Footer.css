@@ -1,0 +1,233 @@
+/* Footer.css - Footer 컴포넌트 전용 스타일 */
+
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --footer-bg-dark: #1f1f1f;
+  --footer-border-gray: #1f2937;
+  --footer-text-yellow: #facc15;
+  --footer-text-orange: #fb923c;
+  --footer-text-blue-light: #93c5fd;
+  
+  /* 간격 */
+  --footer-spacing-1-5: 0.375rem;
+  --footer-spacing-7: 1.75rem;
+  --footer-spacing-12: 3rem;
+  
+  /* Border Radius */
+  --footer-radius-lg: 0.5rem;
+  
+  /* Z-index */
+  --footer-z-1: 1;
+  
+  /* 트랜지션 */
+  --footer-transition-opacity: opacity 0.2s ease;
+  --footer-transition-all: all 0.2s ease;
+}
+
+/* ===== Footer 컨테이너 ===== */
+.footer-container {
+  background-color: var(--footer-bg-dark);
+  color: white;
+  padding-top: var(--footer-spacing-12);
+  padding-bottom: var(--footer-spacing-12);
+  position: relative;
+  z-index: var(--footer-z-1);
+  user-select: none;
+}
+
+.footer-max-w {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+/* ===== Grid Layout ===== */
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-8);
+}
+
+/* ===== 컨텐츠 섹션 ===== */
+.footer-content-section {
+  text-align: center;
+}
+
+.footer-content-inner {
+  margin-bottom: var(--spacing-6);
+}
+
+/* ===== 텍스트 스타일 ===== */
+.footer-text-yellow {
+  color: var(--footer-text-yellow);
+  margin-bottom: var(--spacing-4);
+  font-size: 1rem;
+  font-weight: 700;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  user-select: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.footer-text-gray {
+  color: var(--color-gray-400);
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-1);
+  user-select: none;
+}
+
+.footer-text-orange {
+  color: var(--footer-text-orange);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-4);
+  user-select: none;
+}
+
+/* ===== QR 공유 버튼 ===== */
+.footer-qr-btn-container {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-4);
+}
+
+.footer-qr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  transition: var(--footer-transition-opacity);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.footer-qr-btn-inner {
+  font-size: 0.75rem;
+  background-color: var(--color-blue-600);
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: var(--footer-spacing-1-5);
+  padding-bottom: var(--footer-spacing-1-5);
+  border-radius: var(--footer-radius-lg);
+  transition: var(--footer-transition-all);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  white-space: nowrap;
+  user-select: none;
+  color: white;
+}
+
+.footer-qr-btn:hover .footer-qr-btn-inner {
+  background-color: var(--color-blue-700);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.footer-qr-btn-content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--footer-spacing-1-5);
+  user-select: none;
+}
+
+.footer-qr-btn-text {
+  font-size: 0.875rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+.footer-qr-btn-icon {
+  font-size: 1rem;
+}
+
+/* ===== 구분선 ===== */
+.footer-divider {
+  border-top: 1px solid var(--footer-border-gray);
+  margin-top: var(--spacing-8);
+  padding-top: var(--spacing-8);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .footer-divider {
+    flex-direction: row;
+  }
+}
+
+/* ===== 저작권 정보 ===== */
+.footer-copyright {
+  text-align: center;
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .footer-copyright {
+    text-align: left;
+  }
+}
+
+.footer-copyright-text {
+  color: var(--color-gray-400);
+  font-size: 0.875rem;
+  user-select: none;
+}
+
+.footer-copyright-line {
+  font-size: 0.875rem;
+  user-select: none;
+}
+
+.footer-contact {
+  color: var(--color-gray-500);
+  font-size: 0.75rem;
+  margin-top: var(--spacing-1);
+  user-select: none;
+}
+
+.footer-contact-link {
+  color: var(--color-blue-400);
+  text-decoration: underline;
+  cursor: pointer;
+  user-select: none;
+}
+
+.footer-contact-link:hover {
+  color: var(--footer-text-blue-light);
+}
+
+/* ===== 웹사이트 빌더 링크 ===== */
+.footer-builder-link-container {
+  margin-top: var(--spacing-4);
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .footer-builder-link-container {
+    margin-top: 0;
+  }
+}
+
+.footer-builder-link {
+  color: var(--color-gray-400);
+  font-size: 0.875rem;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-builder-link:hover {
+  color: white;
+}

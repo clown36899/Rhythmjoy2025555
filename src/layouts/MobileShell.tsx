@@ -141,7 +141,7 @@ export function MobileShell() {
 
 
   // 현재 페이지와 카테고리 파악
-  const isEventsPage = location.pathname === '/';
+  const isEventsPage = location.pathname === '/' || location.pathname === '/v2';
   const isSocialPage = location.pathname.startsWith('/social');
   const isPracticePage = location.pathname === '/practice';
   const isBoardPage = location.pathname === '/board';
