@@ -28,21 +28,24 @@
     font-weight: 400;
 }
 
-/* Horizontal Scroll (Events) */
+/* Horizontal Scroll */
 .evt-v2-horizontal-scroll {
     display: flex;
     gap: 0.4rem;
-    padding: 0 0.4rem 0.4rem;
     overflow-x: auto;
-    scroll-snap-type: x mandatory;
+
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    /* Firefox */
 }
 
 .evt-v2-horizontal-scroll::-webkit-scrollbar {
     display: none;
-    /* Chrome, Safari */
+}
+
+/* Card sizing */
+.evt-v2-horizontal-scroll>.card-container {
+    flex: 0 0 auto;
+    width: 120px;
 }
 
 /* Empty State */
@@ -57,9 +60,10 @@
 .evt-sticky-header {
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 11;
     background-color: #1a1a1a;
     padding: 12px 16px;
+    /* Match section title horizontal padding */
     border-bottom: 1px solid #2d2d2d;
 }
 

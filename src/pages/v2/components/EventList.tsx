@@ -905,14 +905,11 @@ export default function EventList({
     selectedWeekday,
   ]);
 
-  // 진행중인 행사 (Future Events - Horizontal Scroll)
+  // 진행중인 행사 (Future Events - Grid)
   // Category: 'event'
-  // Date: From today to 1 year later
+  // Date: From today to future (no limit)
   const futureEvents = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const oneYearLater = new Date();
-    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-    const oneYearLaterStr = oneYearLater.toISOString().split('T')[0];
 
     return events.filter(event => {
       if (event.category !== 'event') return false;
@@ -922,9 +919,6 @@ export default function EventList({
 
       if (!startDate) return false;
 
-      // Event must start within the next year
-      if (startDate > oneYearLaterStr) return false;
-
       // Event must not have ended yet
       if (endDate && endDate < today) return false;
 
@@ -932,44 +926,30 @@ export default function EventList({
     });
   }, [events]);
 
-  // 강습 일정 (Current Classes - Grid)
+  // 진행중인 강습 (Future Classes - Horizontal Scroll)
   // Category: 'class'
-  // Respects: selectedDate OR currentMonth
+  // Date: From today to future (no limit)
   // Genre Filter Applied
-  const currentClasses = useMemo(() => {
+  const futureClasses = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+
     return events.filter(event => {
       if (event.category !== 'class') return false;
+
+      const startDate = event.start_date || event.date;
+      const endDate = event.end_date || event.date;
+
+      if (!startDate) return false;
+
+      // Class must not have ended yet
+      if (endDate && endDate < today) return false;
 
       // Genre Filter
       if (selectedGenre && event.genre !== selectedGenre) return false;
 
-      // Date Filter
-      if (selectedDate) {
-        const selectedDateStr = selectedDate.toISOString().split('T')[0];
-        if (event.event_dates && event.event_dates.length > 0) {
-          return event.event_dates.includes(selectedDateStr);
-        }
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
-        return startDate && endDate && startDate <= selectedDateStr && endDate >= selectedDateStr;
-      }
-
-      // Month Filter
-      if (currentMonth) {
-        const year = currentMonth.getFullYear();
-        const month = currentMonth.getMonth();
-        const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-        const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
-
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
-
-        return startDate && endDate && startDate <= monthEnd && endDate >= monthStart;
-      }
-
       return true;
     });
-  }, [events, selectedGenre, selectedDate, currentMonth]);
+  }, [events, selectedGenre]);
 
   // 장르 목록 추출 (강습만)
   const allGenres = useMemo(() => {
@@ -1988,7 +1968,7 @@ export default function EventList({
       {/* New Section-based Layout (when no search/filter) */}
       {!searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all') ? (
         <div className="evt-list-bg-container" style={{ flex: 1, overflowY: "auto", paddingBottom: "5rem" }}>
-          {/* Section 1: 진행중인 행사 (Grid) */}
+          {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
           <div className="evt-v2-section">
             <div className="evt-v2-section-title">
               <i className="ri-calendar-event-line"></i>
@@ -1997,7 +1977,8 @@ export default function EventList({
             </div>
 
             {futureEvents.length > 0 ? (
-              <div className="evt-grid-3-4-10" style={{ padding: "0 0.4rem 0.4rem" }}>
+              <div className="evt-v2-horizontal-scroll">
+                <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
                 {futureEvents.map(event => (
                   <EventCard
                     key={event.id}
@@ -2009,7 +1990,7 @@ export default function EventList({
                     selectedDate={selectedDate}
                     defaultThumbnailClass={defaultThumbnailClass}
                     defaultThumbnailEvent={defaultThumbnailEvent}
-                    variant="single"
+                    variant="sliding"
                   />
                 ))}
               </div>
@@ -2041,23 +2022,24 @@ export default function EventList({
                   ))}
                 </select>
                 <span className="evt-count-text">
-                  {currentClasses.length}개의 강습
+                  {futureClasses.length}개의 강습
                 </span>
               </div>
             </div>
           )}
 
-          {/* Section 2: 강습 일정 (Grid) */}
+          {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
           <div className="evt-v2-section">
             <div className="evt-v2-section-title">
               <i className="ri-graduation-cap-line"></i>
-              <span>강습 일정</span>
-              <span className="evt-v2-count">{currentClasses.length}</span>
+              <span>진행중인 강습</span>
+              <span className="evt-v2-count">{futureClasses.length}</span>
             </div>
 
-            {currentClasses.length > 0 ? (
-              <div className="evt-grid-3-4-10" style={{ padding: "0 0.4rem 0.4rem" }}>
-                {currentClasses.map(event => (
+            {futureClasses.length > 0 ? (
+              <div className="evt-v2-horizontal-scroll">
+                <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
+                {futureClasses.map(event => (
                   <EventCard
                     key={event.id}
                     event={event}
@@ -2068,12 +2050,12 @@ export default function EventList({
                     selectedDate={selectedDate}
                     defaultThumbnailClass={defaultThumbnailClass}
                     defaultThumbnailEvent={defaultThumbnailEvent}
-                    variant="single"
+                    variant="sliding"
                   />
                 ))}
               </div>
             ) : (
-              <div className="evt-v2-empty">강습 일정이 없습니다</div>
+              <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
             )}
           </div>
         </div>
