@@ -27,6 +27,7 @@ import EventSearchModal from "./EventSearchModal";
 import EventSortModal from "./EventSortModal";
 import Footer from "./Footer";
 import "../../../styles/components/EventList.css";
+import "../styles/EventListSections.css";
 
 registerLocale("ko", ko);
 
@@ -151,7 +152,6 @@ export default function EventList({
     "random" | "time" | "title"
   >("random");
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
-  const [allGenres, setAllGenres] = useState<string[]>([]);
   const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
   const [isGenreInputFocused, setIsGenreInputFocused] = useState(false);
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
@@ -254,18 +254,7 @@ export default function EventList({
 
     const timer = scheduleNextMidnight();
     return () => clearTimeout(timer);
-  }, []);
-  // 장르 목록 로드 (자동완성용)
-  useEffect(() => {
-    const fetchGenres = async () => {
-      const { data, error } = await supabase.from('events').select('genre');
-      if (data && !error) {
-        const uniqueGenres = [...new Set(data.map(item => item.genre).filter(g => g))] as string[];
-        setAllGenres(uniqueGenres);
-      }
-    };
-    fetchGenres();
-  }, []);
+  }, [currentDay]);
 
 
   // 카테고리, 정렬 기준, 이벤트 배열, 날짜 변경 시 캐시 초기화
@@ -915,6 +904,84 @@ export default function EventList({
     viewMode,
     selectedWeekday,
   ]);
+
+  // 진행중인 행사 (Future Events - Horizontal Scroll)
+  // Category: 'event'
+  // Date: From today to 1 year later
+  const futureEvents = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const oneYearLater = new Date();
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    const oneYearLaterStr = oneYearLater.toISOString().split('T')[0];
+
+    return events.filter(event => {
+      if (event.category !== 'event') return false;
+
+      const startDate = event.start_date || event.date;
+      const endDate = event.end_date || event.date;
+
+      if (!startDate) return false;
+
+      // Event must start within the next year
+      if (startDate > oneYearLaterStr) return false;
+
+      // Event must not have ended yet
+      if (endDate && endDate < today) return false;
+
+      return true;
+    });
+  }, [events]);
+
+  // 강습 일정 (Current Classes - Grid)
+  // Category: 'class'
+  // Respects: selectedDate OR currentMonth
+  // Genre Filter Applied
+  const currentClasses = useMemo(() => {
+    return events.filter(event => {
+      if (event.category !== 'class') return false;
+
+      // Genre Filter
+      if (selectedGenre && event.genre !== selectedGenre) return false;
+
+      // Date Filter
+      if (selectedDate) {
+        const selectedDateStr = selectedDate.toISOString().split('T')[0];
+        if (event.event_dates && event.event_dates.length > 0) {
+          return event.event_dates.includes(selectedDateStr);
+        }
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+        return startDate && endDate && startDate <= selectedDateStr && endDate >= selectedDateStr;
+      }
+
+      // Month Filter
+      if (currentMonth) {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
+
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+
+        return startDate && endDate && startDate <= monthEnd && endDate >= monthStart;
+      }
+
+      return true;
+    });
+  }, [events, selectedGenre, selectedDate, currentMonth]);
+
+  // 장르 목록 추출 (강습만)
+  const allGenres = useMemo(() => {
+    const genres = new Set<string>();
+    events.forEach(event => {
+      if (event.category === 'class' && event.genre) {
+        genres.add(event.genre);
+      }
+    });
+    return Array.from(genres).sort();
+  }, [events]);
+
 
   // 3개월치 이벤트 데이터 계산 (이전/현재/다음 달)
   const {
@@ -1917,6 +1984,100 @@ export default function EventList({
           </div>
         </div>
       )}
+
+      {/* New Section-based Layout (when no search/filter) */}
+      {!searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all') ? (
+        <div className="evt-list-bg-container" style={{ flex: 1, overflowY: "auto", paddingBottom: "5rem" }}>
+          {/* Section 1: 진행중인 행사 (Grid) */}
+          <div className="evt-v2-section">
+            <div className="evt-v2-section-title">
+              <i className="ri-calendar-event-line"></i>
+              <span>진행중인 행사</span>
+              <span className="evt-v2-count">{futureEvents.length}</span>
+            </div>
+
+            {futureEvents.length > 0 ? (
+              <div className="evt-grid-3-4-10" style={{ padding: "0 0.4rem 0.4rem" }}>
+                {futureEvents.map(event => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    onClick={() => handleEventClick(event)}
+                    onMouseEnter={onEventHover}
+                    onMouseLeave={() => onEventHover?.(null)}
+                    isHighlighted={highlightEvent?.id === event.id}
+                    selectedDate={selectedDate}
+                    defaultThumbnailClass={defaultThumbnailClass}
+                    defaultThumbnailEvent={defaultThumbnailEvent}
+                    variant="single"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
+            )}
+          </div>
+
+          {/* Filter Bar - Only for Classes */}
+          {allGenres.length > 0 && (
+            <div className="evt-sticky-header">
+              <div className="evt-filter-bar-content">
+                <select
+                  value={selectedGenre || ''}
+                  onChange={(e) => {
+                    const params = new URLSearchParams(searchParams);
+                    if (e.target.value) {
+                      params.set('genre', e.target.value);
+                    } else {
+                      params.delete('genre');
+                    }
+                    setSearchParams(params);
+                  }}
+                  className="evt-genre-select"
+                >
+                  <option value="">모든 장르</option>
+                  {allGenres.map(genre => (
+                    <option key={genre} value={genre}>{genre}</option>
+                  ))}
+                </select>
+                <span className="evt-count-text">
+                  {currentClasses.length}개의 강습
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Section 2: 강습 일정 (Grid) */}
+          <div className="evt-v2-section">
+            <div className="evt-v2-section-title">
+              <i className="ri-graduation-cap-line"></i>
+              <span>강습 일정</span>
+              <span className="evt-v2-count">{currentClasses.length}</span>
+            </div>
+
+            {currentClasses.length > 0 ? (
+              <div className="evt-grid-3-4-10" style={{ padding: "0 0.4rem 0.4rem" }}>
+                {currentClasses.map(event => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    onClick={() => handleEventClick(event)}
+                    onMouseEnter={onEventHover}
+                    onMouseLeave={() => onEventHover?.(null)}
+                    isHighlighted={highlightEvent?.id === event.id}
+                    selectedDate={selectedDate}
+                    defaultThumbnailClass={defaultThumbnailClass}
+                    defaultThumbnailEvent={defaultThumbnailEvent}
+                    variant="single"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="evt-v2-empty">강습 일정이 없습니다</div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {/* Events List - 3-month sliding layout */}
       {searchTerm.trim() || selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none') ? (
