@@ -27,6 +27,7 @@ import EventSearchModal from "./EventSearchModal";
 import EventSortModal from "./EventSortModal";
 import Footer from "./Footer";
 import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
+import { EditablePreviewCard } from "../../../components/EditablePreviewCard";
 import "../../../styles/components/EventList.css";
 import "../styles/EventListSections.css";
 
@@ -227,7 +228,9 @@ export default function EventList({
   const [editCropModalOpen, setEditCropModalOpen] = useState(false);
   const [editTempImageSrc, setEditTempImageSrc] = useState<string | null>(null);
   const [editOriginalImageForCrop, setEditOriginalImageForCrop] = useState<File | null>(null);
+  const [editOriginalImageUrl, setEditOriginalImageUrl] = useState<string | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+  const [editPreviewMode, setEditPreviewMode] = useState<'detail' | 'card' | 'billboard'>('detail');
 
   const { defaultThumbnailClass, defaultThumbnailEvent } =
     useDefaultThumbnail();
@@ -1410,7 +1413,12 @@ export default function EventList({
       setEditPassword(event.password || "");
       setEditLink(event.link1 || "");
       setEditLinkName(event.link_name1 || "");
-      setEditImagePosition({ x: 0, y: 0 }); // Reset or load from event if stored
+      setEditImagePosition({
+        x: (event as any).image_position_x || 0,
+        y: (event as any).image_position_y || 0
+      });
+      setEditOriginalImageUrl(event.image || null);
+      setEditOriginalImageForCrop(null);
 
       // Populate editFormData for the event object
       setEditFormData({
@@ -1456,7 +1464,13 @@ export default function EventList({
   };
 
   const handleEditImageUpload = () => {
-    editFileInputRef.current?.click();
+    // If there's already an image, open crop modal with it
+    if (editImageFile || editImagePreview) {
+      handleEditReEditImage();
+    } else {
+      // No image yet, open file picker
+      editFileInputRef.current?.click();
+    }
   };
 
   const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1491,12 +1505,20 @@ export default function EventList({
     if (editOriginalImageForCrop) {
       setEditImageFile(editOriginalImageForCrop);
       setEditTempImageSrc(URL.createObjectURL(editOriginalImageForCrop));
+    } else if (editOriginalImageUrl) {
+      // URL로 복원하는 경우, 이미지는 그대로 두고 미리보기만 변경
+      setEditImageFile(null); // 편집된 파일 제거
+      setEditImagePreview(editOriginalImageUrl);
+      setEditTempImageSrc(editOriginalImageUrl);
     }
   };
 
   const handleEditReEditImage = () => {
     if (editImageFile) {
       setEditTempImageSrc(URL.createObjectURL(editImageFile));
+      setEditCropModalOpen(true);
+    } else if (editImagePreview) {
+      setEditTempImageSrc(editImagePreview);
       setEditCropModalOpen(true);
     }
   };
@@ -1768,7 +1790,12 @@ export default function EventList({
           setEditPassword(fullEvent.password || "");
           setEditLink(fullEvent.link1 || "");
           setEditLinkName(fullEvent.link_name1 || "");
-          setEditImagePosition({ x: 0, y: 0 });
+          setEditImagePosition({
+            x: (fullEvent as any).image_position_x || 0,
+            y: (fullEvent as any).image_position_y || 0
+          });
+          setEditOriginalImageUrl(fullEvent.image || null);
+          setEditOriginalImageForCrop(null);
         }
       } catch (error) {
         console.error("Error:", error);
@@ -2654,56 +2681,180 @@ export default function EventList({
       {/* EditableEventDetail for editing */}
       {isEditingWithDetail && eventToEdit && createPortal(
         <div className="reg-modal-overlay">
+          {/* Ceiling Switcher */}
+          <div className="ceiling-switcher-container">
+            <div className="ceiling-switcher-wrapper">
+              <button
+                onClick={() => setEditPreviewMode('detail')}
+                className={`switcher-btn ${editPreviewMode === 'detail' ? 'active' : 'inactive'}`}
+              >
+                <i className="ri-file-list-line"></i>
+                <span className="switcher-label">상세</span>
+              </button>
+              <button
+                onClick={() => setEditPreviewMode('card')}
+                className={`switcher-btn ${editPreviewMode === 'card' ? 'active' : 'inactive'}`}
+              >
+                <i className="ri-gallery-view-2"></i>
+                <span className="switcher-label">카드</span>
+              </button>
+              <button
+                onClick={() => setEditPreviewMode('billboard')}
+                className={`switcher-btn ${editPreviewMode === 'billboard' ? 'active' : 'inactive'}`}
+              >
+                <i className="ri-billboard-line"></i>
+                <span className="switcher-label">전광판</span>
+              </button>
+            </div>
+          </div>
+
           <div className="reg-modal-container">
             <div className="reg-main-content">
-              <EditableEventDetail
-                event={{
-                  ...eventToEdit,
-                  ...editFormData,
-                  id: eventToEdit.id,
-                  created_at: eventToEdit.created_at,
-                  title: editFormData.title,
-                  date: editDate ? formatDateForInput(editDate) : undefined,
-                  start_date: editDate ? formatDateForInput(editDate) : undefined,
-                  end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
-                  event_dates: editEventDates.length > 0 ? editEventDates : undefined,
-                  location: editFormData.location,
-                  location_link: editFormData.locationLink,
-                  description: editFormData.description,
-                  category: editFormData.category as "class" | "event",
-                  genre: editFormData.genre,
-                  image: editImagePreview || editFormData.image,
-                  link1: editLink,
-                  link_name1: editLinkName,
-                  organizer: editFormData.organizer,
-                  organizer_name: editFormData.organizerName,
-                  time: editFormData.time,
-                  price: eventToEdit.price,
-                  capacity: eventToEdit.capacity,
-                  registered: eventToEdit.registered,
-                }}
-                onUpdate={handleEditDetailUpdate}
-                onImageUpload={handleEditImageUpload}
-                imagePosition={editImagePosition}
-                onImagePositionChange={setEditImagePosition}
-                genreSuggestions={allGenres}
-                ref={editDetailRef}
-                date={editDate}
-                setDate={setEditDate}
-                endDate={editEndDate}
-                setEndDate={setEditEndDate}
-                eventDates={editEventDates}
-                setEventDates={setEditEventDates}
-                password={editPassword}
-                setPassword={setEditPassword}
-                link={editLink}
-                setLink={setEditLink}
-                linkName={editLinkName}
-                setLinkName={setEditLinkName}
-                onRegister={handleEditSave}
-                onClose={handleEditCancel}
-                isSubmitting={isEditSubmitting}
-              />
+              {editPreviewMode === 'detail' && (
+                <EditableEventDetail
+                  event={{
+                    ...eventToEdit,
+                    ...editFormData,
+                    id: eventToEdit.id,
+                    created_at: eventToEdit.created_at,
+                    title: editFormData.title,
+                    date: editDate ? formatDateForInput(editDate) : undefined,
+                    start_date: editDate ? formatDateForInput(editDate) : undefined,
+                    end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
+                    event_dates: editEventDates.length > 0 ? editEventDates : undefined,
+                    location: editFormData.location,
+                    location_link: editFormData.locationLink,
+                    description: editFormData.description,
+                    category: editFormData.category as "class" | "event",
+                    genre: editFormData.genre,
+                    image: editImagePreview || editFormData.image,
+                    link1: editLink,
+                    link_name1: editLinkName,
+                    organizer: editFormData.organizer,
+                    organizer_name: editFormData.organizerName,
+                    time: editFormData.time,
+                    price: eventToEdit.price,
+                    capacity: eventToEdit.capacity,
+                    registered: eventToEdit.registered,
+                  }}
+                  onUpdate={handleEditDetailUpdate}
+                  onImageUpload={handleEditImageUpload}
+                  imagePosition={editImagePosition}
+                  onImagePositionChange={setEditImagePosition}
+                  genreSuggestions={allGenres}
+                  ref={editDetailRef}
+                  date={editDate}
+                  setDate={setEditDate}
+                  endDate={editEndDate}
+                  setEndDate={setEditEndDate}
+                  eventDates={editEventDates}
+                  setEventDates={setEditEventDates}
+                  password={editPassword}
+                  setPassword={setEditPassword}
+                  link={editLink}
+                  setLink={setEditLink}
+                  linkName={editLinkName}
+                  setLinkName={setEditLinkName}
+                  onRegister={handleEditSave}
+                  onClose={handleEditCancel}
+                  isSubmitting={isEditSubmitting}
+                />
+              )}
+
+              {editPreviewMode === 'card' && (
+                <div className="flex items-center justify-center h-full overflow-y-auto">
+                  <div className="card-preview-grid">
+                    {/* Active Card */}
+                    <div key="active" className="active-card-wrapper">
+                      <EditablePreviewCard
+                        event={{
+                          ...eventToEdit,
+                          ...editFormData,
+                          title: editFormData.title,
+                          date: editDate ? formatDateForInput(editDate) : undefined,
+                          start_date: editDate ? formatDateForInput(editDate) : undefined,
+                          end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
+                          location: editFormData.location,
+                          description: editFormData.description,
+                          category: editFormData.category as 'class' | 'event',
+                          genre: editFormData.genre,
+                          image: editImagePreview || editFormData.image,
+                          time: editFormData.time,
+                          price: eventToEdit.price,
+                          organizer: editFormData.organizer,
+                        } as any}
+                        readOnly={true}
+                        showPlaceholders={true}
+                      />
+                    </div>
+
+                    {/* Dummy Cards - show some real events from the list */}
+                    {events.slice(0, 5).map((realEvent, idx) => (
+                      <div key={`dummy-${idx}`} className="dummy-card-wrapper">
+                        <EditablePreviewCard
+                          event={{
+                            ...realEvent,
+                            category: realEvent.category as 'class' | 'event'
+                          }}
+                          readOnly={true}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {editPreviewMode === 'billboard' && (
+                <div className="billboard-preview-container">
+                  {/* Billboard Preview */}
+                  <div className="billboard-preview-area">
+                    {/* Background Image */}
+                    <div className="billboard-bg-layer">
+                      {editImagePreview || editFormData.image ? (
+                        <img
+                          src={editImagePreview || editFormData.image}
+                          alt="bg"
+                          className="billboard-bg-image"
+                        />
+                      ) : (
+                        <div className="billboard-bg-placeholder" />
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="billboard-content-card">
+                      {/* Video/Image Area */}
+                      <div className="billboard-media-area">
+                        {editImagePreview || editFormData.image ? (
+                          <img
+                            src={editImagePreview || editFormData.image}
+                            alt="preview"
+                            className="billboard-media-image cursor-pointer"
+                            onClick={handleEditReEditImage}
+                          />
+                        ) : (
+                          <div className="billboard-media-placeholder">
+                            <i className="ri-image-line billboard-empty-icon"></i>
+                          </div>
+                        )}
+
+                        {/* QR Code Placeholder */}
+                        <div className="billboard-qr-placeholder">
+                          <i className="ri-qr-code-line billboard-qr-icon"></i>
+                        </div>
+                      </div>
+
+                      {/* Bottom Info */}
+                      <div className="billboard-info-overlay">
+                        <h3 className="billboard-info-title">{editFormData.title || "제목"}</h3>
+                        <p className="billboard-info-date">
+                          {editDate ? formatDateForInput(editDate) : "날짜"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>,
@@ -2728,7 +2879,10 @@ export default function EventList({
         onCropComplete={handleEditCropComplete}
         onRestoreOriginal={handleEditRestoreCropOriginal}
         onChangeImage={() => editFileInputRef.current?.click()}
-        hasOriginal={!!editOriginalImageForCrop && editImageFile !== editOriginalImageForCrop}
+        hasOriginal={
+          (!!editOriginalImageForCrop && editImageFile !== editOriginalImageForCrop) ||
+          (!!editOriginalImageUrl && editImagePreview !== editOriginalImageUrl)
+        }
       />
 
       {/* Password Modal */}
