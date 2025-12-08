@@ -6,6 +6,7 @@ import {
   parseVideoUrl,
   isValidVideoUrl,
 } from "../utils/videoEmbed";
+import { downloadThumbnailAsBlob, getVideoThumbnail } from "../utils/videoThumbnail";
 import { useAuth } from "../contexts/AuthContext";
 import ImageCropModal from "./ImageCropModal";
 import "../styles/components/InteractivePreview.css";
@@ -196,7 +197,6 @@ export default function EventRegistrationModal({
       setLink1("");
       setLinkName1("");
       setVideoUrl("");
-      setVideoUrl("");
       setImageFile(null);
       setOriginalImageFile(null);
       setImagePosition({ x: 0, y: 0 });
@@ -205,8 +205,7 @@ export default function EventRegistrationModal({
   }, [isOpen, selectedDate]);
 
   // Video URL Handler
-  const handleVideoUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
+  const handleVideoChange = (url: string) => {
     setVideoUrl(url);
     const valid = isValidVideoUrl(url);
     setIsValidVideo(valid);
@@ -220,6 +219,46 @@ export default function EventRegistrationModal({
     }
   };
 
+  const handleExtractThumbnail = async () => {
+    if (!videoUrl || !isValidVideoUrl(videoUrl)) {
+      alert("유효한 유튜브 동영상 주소가 필요합니다.");
+      return;
+    }
+
+    try {
+      const thumbnailUrl = await getVideoThumbnail(videoUrl);
+      if (!thumbnailUrl) {
+        alert("썸네일을 가져올 수 없습니다.");
+        return;
+      }
+
+      const blob = await downloadThumbnailAsBlob(thumbnailUrl);
+      if (!blob) {
+        alert("썸네일 이미지를 다운로드할 수 없습니다.");
+        return;
+      }
+
+      const file = new File([blob], "video-thumbnail.jpg", { type: "image/jpeg" });
+      setOriginalImageFile(file);
+      setImageFile(file);
+      setImagePosition({ x: 0, y: 0 });
+      setTempImageSrc(URL.createObjectURL(file));
+      setIsCropModalOpen(true);
+    } catch (e) {
+      console.error("Failed to extract thumbnail", e);
+      alert("썸네일 추출 중 오류가 발생했습니다.");
+    }
+  };
+
+  // ... (lines 223 onwards are fine, but I need to make sure I don't break them)
+  // Actually I should just replace the handleVideoUrlChange function first.
+
+  // Wait, I can't do non-contiguous edits easily with replace_file_content if they are far apart.
+  // handleVideoUrlChange is at 208.
+  // EditableEventDetail usage is at 508.
+  // I should use multi_replace.
+
+
   // Image Handlers
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -228,25 +267,29 @@ export default function EventRegistrationModal({
       setImageFile(file); // Initially set as current image
       setImagePosition({ x: 0, y: 0 }); // Reset position
       setTempImageSrc(URL.createObjectURL(file));
-      setIsCropModalOpen(true);
+      // setIsCropModalOpen(true); // Already open if we clicked "Change" in modal
     }
     // Reset input value to allow selecting same file again
     e.target.value = '';
   };
 
-  const handleCropComplete = async (croppedBlob: Blob, previewUrl: string, isModified: boolean) => {
-    // If not modified (full image) and we have the original, revert to original
-    if (!isModified && originalImageFile) {
-      setImageFile(originalImageFile);
-      setTempImageSrc(null);
-      setIsCropModalOpen(false);
-      return;
-    }
-
-    const file = new File([croppedBlob], "cropped-image.jpg", { type: "image/jpeg" });
+  const handleImageUpdate = (file: File) => {
+    setOriginalImageFile(file);
     setImageFile(file);
-    setIsCropModalOpen(false);
+    setImagePosition({ x: 0, y: 0 });
+    setTempImageSrc(URL.createObjectURL(file));
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob, _previewUrl: string, isModified: boolean) => {
+
+
+    const croppedFile = new File([croppedBlob], originalImageFile?.name || "cropped.jpg", {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+    setImageFile(croppedFile);
     setTempImageSrc(null);
+    setIsCropModalOpen(false);
   };
 
   const handleRestoreOriginal = () => {
@@ -257,23 +300,31 @@ export default function EventRegistrationModal({
     }
   };
 
-  const handleReEditImage = () => {
+  const handleReEditImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (imageFile) {
       setTempImageSrc(URL.createObjectURL(imageFile));
-      setIsCropModalOpen(true);
+    } else if (originalImageFile) {
+      setTempImageSrc(URL.createObjectURL(originalImageFile));
     }
+    setIsCropModalOpen(true);
   };
 
   const handleImageClick = () => {
     if (imageFile) {
-      handleReEditImage();
+      setTempImageSrc(URL.createObjectURL(imageFile));
+    } else if (originalImageFile) {
+      setTempImageSrc(URL.createObjectURL(originalImageFile));
     } else {
-      fileInputRef.current?.click();
+      setTempImageSrc(null);
     }
+    setIsCropModalOpen(true);
   };
 
   // Submit Handler
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+
     if (!title.trim()) {
       alert("제목을 입력해주세요.");
       detailRef.current?.openModal('title');
@@ -531,6 +582,9 @@ export default function EventRegistrationModal({
               onRegister={handleSubmit}
               onClose={onClose}
               isSubmitting={isSubmitting}
+              videoUrl={videoUrl}
+              onVideoChange={handleVideoChange}
+              onExtractThumbnail={handleExtractThumbnail}
             />
           )}
 
@@ -588,11 +642,17 @@ export default function EventRegistrationModal({
                   {/* Video/Image Area */}
                   <div className="billboard-media-area">
                     {isValidVideo && videoId ? (
-                      <div className="billboard-media-placeholder">
-                        <div className="billboard-video-placeholder-content">
-                          <i className={`ri - ${videoProvider === 'youtube' ? 'youtube' : 'instagram'} -fill billboard - video - icon`}></i>
-                          <p>동영상 미리보기</p>
-                        </div>
+                      <div className="billboard-media-video-wrapper w-full h-full">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`}
+                          title="YouTube video player"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full object-cover"
+                        ></iframe>
                       </div>
                     ) : imageFile ? (
                       <img
@@ -640,13 +700,16 @@ export default function EventRegistrationModal({
 
         {/* Image Crop Modal */}
         <ImageCropModal
+          key={tempImageSrc || 'register-crop-modal'}
           isOpen={isCropModalOpen}
           onClose={() => setIsCropModalOpen(false)}
-          imageUrl={tempImageSrc || ''}
+          imageUrl={tempImageSrc}
+          videoUrl={isValidVideo ? videoUrl : undefined}
           onCropComplete={handleCropComplete}
           onRestoreOriginal={handleRestoreOriginal}
           onChangeImage={() => fileInputRef.current?.click()}
-          hasOriginal={!!originalImageFile && imageFile !== originalImageFile}
+          onImageUpdate={handleImageUpdate}
+          hasOriginal={!!originalImageFile}
         />
       </div>
     </div>,

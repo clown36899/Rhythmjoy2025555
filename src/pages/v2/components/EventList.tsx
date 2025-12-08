@@ -8,11 +8,10 @@ interface Event extends BaseEvent {
   storage_path?: string | null;
   genre?: string | null;
 }
-import { parseVideoUrl } from "../../../utils/videoEmbed";
+import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
 import {
-  getVideoThumbnailOptions,
+  getVideoThumbnail,
   downloadThumbnailAsBlob,
-  type VideoThumbnailOption,
 } from "../../../utils/videoThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 import ImageCropModal from "../../../components/ImageCropModal";
@@ -203,10 +202,6 @@ export default function EventList({
     provider: string | null;
     embedUrl: string | null;
   }>({ provider: null, embedUrl: null });
-  const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
-  const [thumbnailOptions, setThumbnailOptions] = useState<
-    VideoThumbnailOption[]
-  >([]);
   const [tempDateInput, setTempDateInput] = useState<string>("");
 
   const [showEditCropModal, setShowEditCropModal] = useState(false);
@@ -1464,13 +1459,14 @@ export default function EventList({
   };
 
   const handleEditImageUpload = () => {
-    // If there's already an image, open crop modal with it
-    if (editImageFile || editImagePreview) {
-      handleEditReEditImage();
+    if (editImageFile) {
+      setEditTempImageSrc(URL.createObjectURL(editImageFile));
+    } else if (editImagePreview) {
+      setEditTempImageSrc(editImagePreview);
     } else {
-      // No image yet, open file picker
-      editFileInputRef.current?.click();
+      setEditTempImageSrc(null);
     }
+    setEditCropModalOpen(true);
   };
 
   const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1480,25 +1476,32 @@ export default function EventList({
       setEditImageFile(file);
       setEditImagePosition({ x: 0, y: 0 });
       setEditTempImageSrc(URL.createObjectURL(file));
-      setEditCropModalOpen(true);
+      // Modal is already open
     }
     e.target.value = '';
   };
 
-  const handleEditCropComplete = async (croppedBlob: Blob, _previewUrl: string, isModified: boolean) => {
-    if (!isModified && editOriginalImageForCrop) {
-      setEditImageFile(editOriginalImageForCrop);
-      setEditImagePreview(URL.createObjectURL(editOriginalImageForCrop));
-      setEditTempImageSrc(null);
-      setEditCropModalOpen(false);
-      return;
-    }
-
-    const file = new File([croppedBlob], "cropped-image.jpg", { type: "image/jpeg" });
+  const handleEditImageUpdate = (file: File) => {
+    setEditOriginalImageForCrop(file);
     setEditImageFile(file);
-    setEditImagePreview(URL.createObjectURL(file));
-    setEditCropModalOpen(false);
+    setEditImagePosition({ x: 0, y: 0 });
+    setEditTempImageSrc(URL.createObjectURL(file));
+  };
+
+  const handleEditCropComplete = async (croppedBlob: Blob, _previewUrl: string, isModified: boolean) => {
+    // Save the cropped/current result regardless of modification flag relative to current view.
+    // This prevents re-edited images from reverting to the ancient original just because they weren't further modified.
+
+    // Create a new File from the blob
+    const croppedFile = new File([croppedBlob], editOriginalImageForCrop?.name || "cropped.jpg", {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+
+    setEditImageFile(croppedFile);
+    setEditImagePreview(URL.createObjectURL(croppedFile));
     setEditTempImageSrc(null);
+    setEditCropModalOpen(false);
   };
 
   const handleEditRestoreCropOriginal = () => {
@@ -1520,6 +1523,40 @@ export default function EventList({
     } else if (editImagePreview) {
       setEditTempImageSrc(editImagePreview);
       setEditCropModalOpen(true);
+    } else if (editOriginalImageUrl) {
+      setEditTempImageSrc(editOriginalImageUrl);
+      setEditCropModalOpen(true);
+    }
+  };
+
+  const handleEditExtractThumbnail = async () => {
+    if (!editFormData.videoUrl || !isValidVideoUrl(editFormData.videoUrl)) {
+      alert("유효한 유튜브 동영상 주소가 필요합니다.");
+      return;
+    }
+
+    try {
+      const thumbnailUrl = await getVideoThumbnail(editFormData.videoUrl);
+      if (!thumbnailUrl) {
+        alert("썸네일을 가져올 수 없습니다.");
+        return;
+      }
+
+      const blob = await downloadThumbnailAsBlob(thumbnailUrl);
+      if (!blob) {
+        alert("썸네일 이미지를 다운로드할 수 없습니다.");
+        return;
+      }
+
+      const file = new File([blob], "video-thumbnail.jpg", { type: "image/jpeg" });
+      setEditOriginalImageForCrop(file);
+      setEditImageFile(file);
+      setEditImagePosition({ x: 0, y: 0 });
+      setEditTempImageSrc(URL.createObjectURL(file));
+      setEditCropModalOpen(true);
+    } catch (e) {
+      console.error("Failed to extract thumbnail", e);
+      alert("썸네일 추출 중 오류가 발생했습니다.");
     }
   };
 
@@ -1627,6 +1664,7 @@ export default function EventList({
         image_full: imageFullUrl,
         image_position_x: editImagePosition.x,
         image_position_y: editImagePosition.y,
+        video_url: editFormData.videoUrl,
       };
 
       const { error } = await supabase
@@ -1700,9 +1738,11 @@ export default function EventList({
       }
 
       console.log(`[✅ 함수 호출] 'delete-event' 성공 (ID: ${eventId})`);
+      setIsEditingWithDetail(false); // Close edit modal immediately
+      setEventToEdit(null);
+      closeModal(); // Close detail modal if open
+      fetchEvents(); // Refresh list
       alert("이벤트가 삭제되었습니다.");
-      fetchEvents(); // 목록 새로고침
-      closeModal(); // 열려있는 상세 모달 닫기
     } catch (error: any) {
       console.error("Edge Function 호출 또는 이벤트 삭제 중 오류 발생:", error);
       alert(`이벤트 삭제 중 오류가 발생했습니다: ${error.context?.error_description || error.message || '알 수 없는 오류'}`);
@@ -1864,34 +1904,6 @@ export default function EventList({
       // data URL인 경우 바로 사용
       setEditCropImageUrl(editImagePreview);
       setShowEditCropModal(true);
-    }
-  };
-
-  const handleEditOpenCropForThumbnail = async (thumbnailUrl: string) => {
-    try {
-      const blob = await downloadThumbnailAsBlob(thumbnailUrl);
-      if (!blob) {
-        alert('썸네일 다운로드에 실패했습니다.');
-        return;
-      }
-
-      if (!editOriginalImageFile) {
-        const file = new File([blob], 'youtube-thumbnail.jpg', { type: 'image/jpeg' });
-        setEditOriginalImageFile(file);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setEditOriginalImagePreview(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-
-      const blobUrl = URL.createObjectURL(blob);
-      setEditCropImageUrl(blobUrl);
-      setShowEditCropModal(true);
-      setShowThumbnailSelector(false);
-    } catch (error) {
-      console.error('썸네일 다운로드 실패:', error);
-      alert('썸네일 다운로드 중 오류가 발생했습니다.');
     }
   };
 
@@ -2758,6 +2770,14 @@ export default function EventList({
                   onRegister={handleEditSave}
                   onClose={handleEditCancel}
                   isSubmitting={isEditSubmitting}
+                  onDelete={() => {
+                    if (eventToEdit) {
+                      handleDeleteClick(eventToEdit);
+                    }
+                  }}
+                  videoUrl={editFormData.videoUrl}
+                  onVideoChange={(url) => setEditFormData(prev => ({ ...prev, videoUrl: url }))}
+                  onExtractThumbnail={handleEditExtractThumbnail}
                 />
               )}
 
@@ -2825,7 +2845,20 @@ export default function EventList({
                     <div className="billboard-content-card">
                       {/* Video/Image Area */}
                       <div className="billboard-media-area">
-                        {editImagePreview || editFormData.image ? (
+                        {editFormData.videoUrl && isValidVideoUrl(editFormData.videoUrl) ? (
+                          <div className="billboard-media-video-wrapper w-full h-full">
+                            <iframe
+                              width="100%"
+                              height="100%"
+                              src={`https://www.youtube.com/embed/${parseVideoUrl(editFormData.videoUrl).videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${parseVideoUrl(editFormData.videoUrl).videoId}`}
+                              title="YouTube video player"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="w-full h-full object-cover"
+                            ></iframe>
+                          </div>
+                        ) : editImagePreview || editFormData.image ? (
                           <img
                             src={editImagePreview || editFormData.image}
                             alt="preview"
@@ -3442,57 +3475,7 @@ export default function EventList({
                       className="evt-file-input"
                     />
 
-                    {/* 썸네일 추출 버튼 (영상 URL이 있을 때만) */}
-                    {editFormData.videoUrl && editVideoPreview.provider && (
-                      <>
-                        {editVideoPreview.provider === "youtube" ||
-                          editVideoPreview.provider === "vimeo" ? (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                const options = await getVideoThumbnailOptions(
-                                  editFormData.videoUrl,
-                                );
-                                if (options.length > 0) {
-                                  setThumbnailOptions(options);
-                                  setShowThumbnailSelector(true);
-                                } else {
-                                  alert(
-                                    "이 영상에서 썸네일을 추출할 수 없습니다.",
-                                  );
-                                }
-                              } catch (error) {
-                                console.error("썸네일 추출 오류:", error);
-                                alert("썸네일 추출 중 오류가 발생했습니다.");
-                              }
-                            }}
-                            className="evt-btn-green-full"
-                          >
-                            <i className="ri-image-add-line evt-mr-1"></i>
-                            썸네일 추출하기{" "}
-                            {editVideoPreview.provider === "youtube" &&
-                              "(여러 장면 선택 가능)"}
-                          </button>
-                        ) : (
-                          <div className="evt-mt-2">
-                            <button
-                              type="button"
-                              disabled
-                              className="evt-btn-disabled"
-                            >
-                              <i className="ri-image-add-line evt-mr-1"></i>
-                              썸네일 추출 불가능
-                            </button>
-                            <p className="evt-text-xs evt-text-orange-400 evt-mt-2">
-                              <i className="ri-alert-line evt-mr-1"></i>
-                              Instagram/Facebook은 썸네일 자동 추출이 지원되지
-                              않습니다. 위 이미지로 썸네일을 직접 등록해주세요.
-                            </p>
-                          </div>
-                        )}
-                      </>
-                    )}
+
 
                     <p className="evt-text-xs evt-text-gray-400">
                       <i className="ri-information-line evt-mr-1"></i>
@@ -3712,72 +3695,21 @@ export default function EventList({
 
 
 
-      {/* 이미지 크롭 모달 */}
+      {/* Image Crop Modal for Edit Mode */}
       <ImageCropModal
-        isOpen={showEditCropModal}
-        imageUrl={editCropImageUrl}
-        onClose={() => setShowEditCropModal(false)}
+        key={editTempImageSrc || 'modal'}
+        isOpen={editCropModalOpen}
+        onClose={() => setEditCropModalOpen(false)}
+        imageUrl={editTempImageSrc || ''}
         onCropComplete={handleEditCropComplete}
-        onDiscard={handleEditCropDiscard}
-        onRestoreOriginal={handleEditRestoreOriginal}
-        hasOriginal={!!editOriginalImageFile}
-        fileName="cropped-edit-image.jpg"
+        onRestoreOriginal={handleEditRestoreCropOriginal}
+        onImageUpdate={handleEditImageUpdate}
+        onChangeImage={() => editFileInputRef.current?.click()}
+        hasOriginal={
+          (!!editOriginalImageForCrop && editImageFile !== editOriginalImageForCrop) ||
+          (!!editOriginalImageUrl && editImagePreview !== editOriginalImageUrl)
+        }
       />
-
-      {/* 썸네일 선택 모달 */}
-      {showThumbnailSelector && (
-        <div className="evt-thumbnail-modal-outer">
-          <div className="evt-thumbnail-modal-inner">
-            <div className="evt-thumbnail-modal-header">
-              <h2 className="evt-thumbnail-modal-title">썸네일 선택</h2>
-              <button
-                onClick={() => {
-                  setShowThumbnailSelector(false);
-                  setThumbnailOptions([]);
-                }}
-                className="evt-thumbnail-modal-close"
-              >
-                <i className="ri-close-line evt-text-2xl"></i>
-              </button>
-            </div>
-
-            <div className="evt-p-6">
-              <p className="evt-text-gray-400 evt-text-sm evt-mb-4">
-                원하는 썸네일을 선택하세요. YouTube 쇼츠도 지원됩니다.
-              </p>
-
-              <div className="evt-grid-cols-2 evt-gap-4">
-                {thumbnailOptions.map((option, index) => (
-                  <div
-                    key={index}
-                    onClick={() => handleEditOpenCropForThumbnail(option.url)}
-                    className="evt-thumbnail-selector-item"
-                  >
-                    <div className="evt-thumbnail-selector-img">
-                      <img
-                        src={option.url}
-                        alt={option.label}
-                        className="evt-w-full evt-h-full evt-img-cover"
-                      />
-                      <div className="evt-thumbnail-selector-overlay">
-                        <i className="ri-checkbox-circle-fill evt-icon-4xl evt-text-blue evt-thumbnail-selector-check"></i>
-                      </div>
-                    </div>
-                    <p className="evt-text-center evt-text-sm evt-text-gray-400 evt-mt-2">
-                      {option.label}
-                    </p>
-                    {option.quality === "high" && (
-                      <span className="evt-block evt-text-center evt-text-xs evt-text-green-400 evt-mt-1">
-                        고화질
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

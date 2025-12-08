@@ -14,48 +14,39 @@ export async function getVideoThumbnailOptions(videoUrl: string): Promise<VideoT
   const youtubeMatch = videoUrl.match(
     /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|(?:shorts\/))|(?:.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
   );
-  
+
   if (youtubeMatch && youtubeMatch[1]) {
     const videoId = youtubeMatch[1];
     const thumbnails: VideoThumbnailOption[] = [];
-    
-    // YouTube는 0.jpg, 1.jpg, 2.jpg, 3.jpg 형식으로 4개의 자동 생성 프레임 제공
-    // 그리고 maxresdefault, hqdefault도 제공
-    
-    // 먼저 고화질 옵션 확인
+
+    // YouTube 썸네일 URL 생성
     const maxResUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-    try {
-      const response = await fetch(maxResUrl);
-      if (response.ok) {
-        const blob = await response.blob();
-        if (blob.size > 5000) {
-          thumbnails.push({
-            url: maxResUrl,
-            label: '대표 썸네일 (고화질)',
-            quality: 'high'
-          });
-        }
-      }
-    } catch (e) {
-      // 무시
-    }
-    
-    // 4개의 자동 생성 프레임 (0, 1, 2, 3)
-    for (let i = 0; i < 4; i++) {
-      thumbnails.push({
-        url: `https://img.youtube.com/vi/${videoId}/${i}.jpg`,
-        label: `장면 ${i + 1}`,
-        quality: 'medium'
-      });
-    }
-    
-    // hqdefault 추가 (항상 존재)
+    const sdResUrl = `https://img.youtube.com/vi/${videoId}/sddefault.jpg`;
+    const hqResUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    const mqResUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+    const defResUrl = `https://img.youtube.com/vi/${videoId}/default.jpg`;
+
+    // 우선순위대로 배열 반환 (실제 존재 여부는 나중에 체크하거나 이미지 로드 시 결정됨)
+    // 여기서는 가장 높은 품질 하나만 반환하지 않고, 호출자가 선택할 수 있도록 하거나
+    // getVideoThumbnail 함수가 첫 번째 유효한 것을 찾도록 로직을 수정해야 함.
+    // 하지만 현재 구조상 리스트를 반환하므로 후보군을 다 넣어줌.
+
     thumbnails.push({
-      url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-      label: '기본 썸네일',
+      url: maxResUrl,
+      label: '최고화질 (MaxRes)',
+      quality: 'high'
+    });
+    thumbnails.push({
+      url: sdResUrl,
+      label: '고화질 (Standard)',
+      quality: 'high'
+    });
+    thumbnails.push({
+      url: hqResUrl,
+      label: '일반화질 (HQ)',
       quality: 'medium'
     });
-    
+
     return thumbnails;
   }
 
@@ -85,18 +76,48 @@ export async function getVideoThumbnailOptions(videoUrl: string): Promise<VideoT
   return [];
 }
 
-// 단일 썸네일 가져오기 (기존 호환성)
+// 단일 썸네일 가져오기 (가장 높은 화질 자동 선택)
 export async function getVideoThumbnail(videoUrl: string): Promise<string | null> {
-  const options = await getVideoThumbnailOptions(videoUrl);
-  return options.length > 0 ? options[0].url : null;
+  if (!videoUrl) return null;
+
+  // YouTube ID 추출
+  const youtubeMatch = videoUrl.match(
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|(?:shorts\/))|(?:.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+  );
+
+  if (!youtubeMatch || !youtubeMatch[1]) return null;
+  const videoId = youtubeMatch[1];
+
+  // 1. MaxRes 시도
+  const maxResUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  try {
+    const response = await fetch(maxResUrl, { mode: 'cors' });
+    if (response.ok) return maxResUrl;
+  } catch (e) {
+    console.log("MaxRes thumbnail not found or CORS error, trying HQ");
+  }
+
+  // 2. HQ 시도 (fallback)
+  const hqUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  try {
+    const response = await fetch(hqUrl, { mode: 'cors' });
+    if (response.ok) return hqUrl;
+  } catch (e) {
+    console.error("HQ thumbnail fetch failed", e);
+  }
+
+  return null;
 }
 
 // 썸네일 URL을 Blob으로 다운로드 (Supabase 업로드용)
 export async function downloadThumbnailAsBlob(thumbnailUrl: string): Promise<Blob | null> {
   try {
-    const response = await fetch(thumbnailUrl);
+    const response = await fetch(thumbnailUrl, {
+      mode: 'cors',
+      credentials: 'omit',
+    });
     if (!response.ok) return null;
-    
+
     const blob = await response.blob();
     return blob;
   } catch (e) {

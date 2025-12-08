@@ -4,6 +4,7 @@ import type { Event as BaseEvent } from '../lib/supabase';
 import { useDefaultThumbnail } from '../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../utils/getEventThumbnail';
 import { formatDateForInput } from '../utils/fileUtils';
+import { isValidVideoUrl } from '../utils/videoEmbed';
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
@@ -36,6 +37,7 @@ interface EditableEventDetailProps {
     onRegister?: () => void;
     onClose?: () => void;
     isSubmitting?: boolean;
+    onDelete?: () => void;
     // DatePicker props
     date?: Date | null;
     setDate?: (date: Date | null) => void;
@@ -46,6 +48,10 @@ interface EditableEventDetailProps {
     // Image Position
     imagePosition?: { x: number; y: number };
     onImagePositionChange?: (pos: { x: number; y: number }) => void;
+    // Video Props
+    videoUrl?: string;
+    onVideoChange?: (url: string) => void;
+    onExtractThumbnail?: () => void;
 }
 
 const genreColorPalette = [
@@ -73,7 +79,7 @@ const EditBadge = ({ isStatic = false }: { isStatic?: boolean }) => (
 );
 
 export interface EditableEventDetailRef {
-    openModal: (modalType: 'genre' | 'location' | 'link' | 'date' | 'title') => void;
+    openModal: (modalType: 'genre' | 'location' | 'link' | 'date' | 'title' | 'video') => void;
 }
 
 const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEventDetailProps>(({
@@ -91,6 +97,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     onRegister,
     onClose,
     isSubmitting,
+    onDelete,
     date,
     setDate,
     endDate,
@@ -99,13 +106,15 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     setEventDates,
     imagePosition = { x: 0, y: 0 },
     onImagePositionChange,
+    videoUrl,
+    onVideoChange,
 }, ref) => {
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
-    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | null>(null);
+    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | 'video' | 'imageSource' | null>(null);
 
     React.useImperativeHandle(ref, () => ({
         openModal: (modalType) => {
-            setActiveModal(modalType);
+            setActiveModal(modalType as any); // Cast to any to allow string but still type safe internal
         }
     }));
     // const titleRef = React.useRef<HTMLTextAreaElement>(null); // No longer needed
@@ -125,6 +134,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     const [tempLocation, setTempLocation] = useState("");
     const [tempLocationLink, setTempLocationLink] = useState("");
     const [tempTitle, setTempTitle] = useState("");
+    const [tempVideoUrl, setTempVideoUrl] = useState("");
     const [customGenreInput, setCustomGenreInput] = useState("");
     const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
 
@@ -281,13 +291,11 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     className={`event-image-area image-area ${hasImage ? "bg-black" : "bg-pattern"} group`}
                     onClick={(e) => {
                         e.stopPropagation();
-                        // Only allow click to upload if there is NO image.
-                        // If image exists, user must use the specific buttons.
-                        if (!hasImage && !isRepositioning) {
-                            onImageUpload();
-                        }
+                        // Clicking background does nothing specific now, buttons handle actions
                     }}
                 >
+                    {/* Video Indicator (if video exists) */}
+
 
 
                     {hasImage ? (
@@ -349,6 +357,17 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                             <i className="ri-drag-move-2-line"></i>
                                             위치 이동
                                         </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setTempVideoUrl(videoUrl || "");
+                                                setActiveModal('video');
+                                            }}
+                                            className={`image-control-btn ${videoUrl ? 'text-red-400' : ''}`}
+                                        >
+                                            <i className="ri-youtube-line"></i>
+                                            {videoUrl ? '동영상 수정' : '동영상 등록'}
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -357,15 +376,115 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         <>
                             <div className={`category-bg-overlay ${event.category === "class" ? "class" : "event"}`}></div>
                             {/* Explicit Upload Prompt */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 p-6 text-center">
-                                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 backdrop-blur-sm border border-white/20">
-                                    <i className="ri-image-add-line text-3xl"></i>
+                            <div className="absolute inset-0 flex flex-row items-center justify-center text-white z-10 p-6 gap-8">
+                                {/* Image Upload */}
+                                <div
+                                    className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onImageUpload();
+                                    }}
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 backdrop-blur-sm border border-white/20">
+                                        <i className="ri-image-add-line text-3xl"></i>
+                                    </div>
+                                    <span className="font-bold text-lg opacity-90">대표 이미지</span>
+                                    <span className="text-xs opacity-70 mt-1">클릭하여 업로드</span>
                                 </div>
-                                <span className="font-bold text-lg opacity-90">대표 이미지 등록</span>
-                                <span className="text-sm opacity-70 mt-1">클릭하여 사진을 업로드하세요</span>
+
+                                {/* Divider */}
+                                <div className="w-px h-16 bg-white/20"></div>
+
+                                {/* Video Upload */}
+                                <div
+                                    className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTempVideoUrl(videoUrl || "");
+                                        setActiveModal('video');
+                                    }}
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 backdrop-blur-sm border border-white/20">
+                                        <i className="ri-youtube-line text-3xl"></i>
+                                    </div>
+                                    <span className="font-bold text-lg opacity-90">{videoUrl ? '동영상 수정' : '동영상 등록'}</span>
+                                    <div className="flex flex-col items-center mt-1">
+                                        <span className="text-xs text-red-300 font-medium opacity-90">(유튜브만 가능)</span>
+                                        <span className="text-[10px] opacity-60">빌보드 전용</span>
+                                    </div>
+                                </div>
                             </div>
                         </>
                     )}
+
+                    {/* Video Modal Portal */}
+                    {activeModal === 'video' && createPortal(
+                        <div className="bottom-sheet-portal">
+                            <div
+                                className="bottom-sheet-backdrop"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveModal(null);
+                                }}
+                            />
+                            <div
+                                className="bottom-sheet-content"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="bottom-sheet-handle"></div>
+                                <h3 className="bottom-sheet-header">
+                                    <i className="ri-youtube-fill text-red-500"></i>
+                                    동영상 등록 (유튜브)
+                                </h3>
+                                <div className="bottom-sheet-body">
+                                    <p className="text-sm text-gray-500 mb-4 text-center">
+                                        유튜브 영상 주소를 입력해주세요.<br />
+                                        <span className="text-xs text-red-400 mt-1 block">
+                                            * 주소를 지우고 등록하면 영상이 삭제됩니다.
+                                        </span>
+                                    </p>
+                                    <div className="bottom-sheet-input-group">
+                                        <input
+                                            value={tempVideoUrl}
+                                            onChange={(e) => setTempVideoUrl(e.target.value)}
+                                            className="bottom-sheet-input"
+                                            placeholder="https://youtu.be/..."
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="bottom-sheet-actions">
+                                        <div className="flex gap-3 w-full">
+                                            <button
+                                                onClick={() => {
+                                                    setActiveModal(null);
+                                                }}
+                                                className="bottom-sheet-button flex-1 bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300 border-none"
+                                                style={{ backgroundColor: '#f3f4f6', color: '#4b5563' }}
+                                            >
+                                                취소
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (tempVideoUrl.trim() && !isValidVideoUrl(tempVideoUrl)) {
+                                                        alert("YouTube URL만 입력 가능합니다.");
+                                                        return;
+                                                    }
+                                                    onVideoChange?.(tempVideoUrl);
+                                                    setActiveModal(null);
+                                                }}
+                                                className="bottom-sheet-button flex-1 bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-md border-none"
+                                            >
+                                                등록
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
+
+
                 </div>
 
                 {/* Sticky Header */}
@@ -466,6 +585,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                 </>
                                             )}
                                         </div>
+
                                     </div>
                                 </div>,
                                 document.body
@@ -988,6 +1108,21 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     </button>
 
 
+
+                    {/* Delete Button */}
+                    {onDelete && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete();
+                            }}
+                            className="close-action-btn close-button"
+                            title="삭제하기"
+                            style={{ marginRight: '0.5rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                        >
+                            <i className="ri-delete-bin-line action-icon"></i>
+                        </button>
+                    )}
 
                     {/* Close Button */}
                     <button

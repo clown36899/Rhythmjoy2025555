@@ -3,15 +3,18 @@ import { createPortal } from 'react-dom';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import './ImageCropModal.css';
+import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from '../utils/videoThumbnail';
 
 interface ImageCropModalProps {
   isOpen: boolean;
-  imageUrl: string;  // blob URL 또는 data URL
+  imageUrl: string | null;  // blob URL 또는 data URL (null 허용)
+  videoUrl?: string; // 동영상 URL (썸네일 추출용)
   onClose: () => void;
   onCropComplete: (croppedFile: File, croppedPreviewUrl: string, isModified: boolean) => void;
   onDiscard?: () => void;  // 취소 시 호출 (메모리 정리용)
   onRestoreOriginal?: () => void;  // 원본으로 되돌리기
   onChangeImage?: () => void; // 이미지 변경 (파일 선택창 열기)
+  onImageUpdate?: (file: File) => void; // 썸네일 등으로 이미지 교체 시 부모에게 알림
   hasOriginal?: boolean;  // 원본이 있는지 여부
   fileName?: string;
 }
@@ -86,11 +89,13 @@ async function createCroppedImage(
 export default function ImageCropModal({
   isOpen,
   imageUrl,
+  videoUrl,
   onClose,
   onCropComplete,
   onDiscard,
   onRestoreOriginal,
   onChangeImage,
+  onImageUpdate,
   hasOriginal = false,
   fileName = 'cropped.jpg',
 }: ImageCropModalProps) {
@@ -106,11 +111,22 @@ export default function ImageCropModal({
   const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '3:4' | '1:1'>('free');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // View States
+  const [viewMode, setViewMode] = useState<'crop' | 'source-select' | 'thumbnail-select'>('crop');
+  const [thumbnails, setThumbnails] = useState<VideoThumbnailOption[]>([]);
+  const [loadingThumbnails, setLoadingThumbnails] = useState(false);
+
+  // Preview State (Separated from final complete)
+  const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string | null>(null);
+  const [croppedFile, setCroppedFile] = useState<File | null>(null);
+  const [isModified, setIsModified] = useState(false);
+
   const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '3:4' ? 3 / 4 : 1;
 
-  // 모달이 열릴 때마다 크롭 영역 초기화
+  // 모달이 열릴 때마다 초기화
   useEffect(() => {
     if (isOpen) {
+      setViewMode('crop');
       setCrop({
         unit: '%',
         x: 0,
@@ -120,13 +136,51 @@ export default function ImageCropModal({
       });
       setCompletedCrop(undefined);
       setAspectRatioMode('free');
+      setThumbnails([]);
+      // Reset preview state
+      setCroppedPreviewUrl(null);
+      setCroppedFile(null);
+      setIsModified(false);
     }
   }, [isOpen, imageUrl]);
 
-  const handleCropConfirm = async () => {
-    if (!imgRef.current) {
-      return;
+  const loadThumbnails = async () => {
+    if (!videoUrl) return;
+    setLoadingThumbnails(true);
+    try {
+      const options = await getVideoThumbnailOptions(videoUrl);
+      setThumbnails(options);
+      setViewMode('thumbnail-select');
+    } catch (e) {
+      console.error(e);
+      alert('썸네일을 불러오는데 실패했습니다.');
+    } finally {
+      setLoadingThumbnails(false);
     }
+  };
+
+  const handleThumbnailSelect = async (url: string) => {
+    setIsProcessing(true);
+    try {
+      const blob = await downloadThumbnailAsBlob(url);
+      if (blob && onImageUpdate) {
+        const file = new File([blob], "thumbnail.jpg", { type: "image/jpeg" });
+        onImageUpdate(file);
+        // 부모가 imageUrl을 업데이트하면 useEffect에 의해 'crop' 모드로 전환됨
+      } else {
+        alert('이미지를 다운로드할 수 없습니다.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('오류가 발생했습니다.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Step 1: Apply Crop (Cut) -> Show Preview
+  const handleApplyCrop = async () => {
+    if (!imgRef.current) return;
 
     // completedCrop이 없으면 현재 crop 상태(퍼센트)를 기반으로 계산
     let pixelCrop = completedCrop;
@@ -155,13 +209,14 @@ export default function ImageCropModal({
         fileName
       );
 
-      // Check if the crop is effectively the full image
-      const isFullWidth = Math.abs(pixelCrop.width - imgRef.current.naturalWidth) < 2; // 2px tolerance
+      // Detect modification
+      const isFullWidth = Math.abs(pixelCrop.width - imgRef.current.naturalWidth) < 2;
       const isFullHeight = Math.abs(pixelCrop.height - imgRef.current.naturalHeight) < 2;
-      const isModified = !(isFullWidth && isFullHeight);
+      const modified = !(isFullWidth && isFullHeight);
 
-      onCropComplete(file, previewUrl, isModified);
-      onClose();
+      setCroppedFile(file);
+      setCroppedPreviewUrl(previewUrl);
+      setIsModified(modified);
     } catch (error) {
       console.error('이미지 크롭 실패:', error);
       alert('이미지 크롭 중 오류가 발생했습니다.');
@@ -170,9 +225,36 @@ export default function ImageCropModal({
     }
   };
 
+  // Step 2: Restore (Back to Edit)
+  const handleRestoreCrop = () => {
+    setCroppedPreviewUrl(null);
+    setCroppedFile(null);
+  };
+
+  // Step 3: Final Save
+  const handleFinalSave = () => {
+    if (croppedFile && croppedPreviewUrl) {
+      onCropComplete(croppedFile, croppedPreviewUrl, isModified);
+      onClose();
+    }
+  };
+
   const handleCancel = () => {
+    if (viewMode === 'thumbnail-select' && !imageUrl) {
+      setViewMode('source-select'); // Should theoretically not reachable as we removed source-select view, but for safety
+      return;
+    }
+    if (viewMode === 'thumbnail-select' && imageUrl) {
+      setViewMode('crop');
+      return;
+    }
+    // If in preview mode, going back means restoring? Or closing?
+    // "Close" button usually closes the modal.
+    // If user wants to restore, they should use "Restore" button.
+    // So Close button closes.
+
     if (onDiscard) {
-      onDiscard();  // 메모리 정리
+      onDiscard();
     }
     onClose();
   };
@@ -181,7 +263,6 @@ export default function ImageCropModal({
   const calculateCropForAspect = (mode: 'free' | '3:4' | '1:1'): Crop => {
     const img = imgRef.current;
     if (!img) {
-      // 이미지 로드 전 기본값
       return { unit: '%', x: 20, y: 20, width: 60, height: 60 };
     }
 
@@ -189,34 +270,26 @@ export default function ImageCropModal({
     const imgHeight = img.naturalHeight;
 
     if (mode === 'free') {
-      // 자유 비율: 큰 영역
       return { unit: '%', x: 10, y: 10, width: 80, height: 80 };
     }
 
-    // 목표 aspect ratio 계산
-    const targetAspect = mode === '3:4' ? 3 / 4 : 1; // width/height
-
-    // 이미지 중앙에 목표 비율로 크롭 영역 생성 (최대 크기)
+    const targetAspect = mode === '3:4' ? 3 / 4 : 1;
     let cropWidth: number;
     let cropHeight: number;
 
     const imgAspect = imgWidth / imgHeight;
 
     if (imgAspect > targetAspect) {
-      // 이미지가 더 넓음 -> 높이를 기준으로 최대화
       cropHeight = imgHeight;
       cropWidth = cropHeight * targetAspect;
     } else {
-      // 이미지가 더 높거나 같음 -> 너비를 기준으로 최대화
       cropWidth = imgWidth;
       cropHeight = cropWidth / targetAspect;
     }
 
-    // 중앙 배치를 위한 x, y 계산 (픽셀)
     const cropX = (imgWidth - cropWidth) / 2;
     const cropY = (imgHeight - cropHeight) / 2;
 
-    // 픽셀을 퍼센트로 변환
     return {
       unit: '%',
       x: (cropX / imgWidth) * 100,
@@ -226,17 +299,15 @@ export default function ImageCropModal({
     };
   };
 
-  // 비율 변경 시 크롭 영역 재설정
   const handleAspectRatioChange = (mode: 'free' | '3:4' | '1:1') => {
     setCompletedCrop(undefined);
     setAspectRatioMode(mode);
-
-    // 정확한 비율의 크롭 영역 계산 및 설정
     requestAnimationFrame(() => {
       const newCrop = calculateCropForAspect(mode);
       setCrop(newCrop);
     });
   };
+
 
   if (!isOpen) return null;
 
@@ -247,7 +318,9 @@ export default function ImageCropModal({
         <div className="crop-modal-header">
           <h2 className="crop-modal-title">
             <i className="ri-crop-line crop-modal-title-icon"></i>
-            이미지 자르기
+            {croppedPreviewUrl
+              ? '편집 결과 확인'
+              : (viewMode === 'thumbnail-select' ? '썸네일 선택' : '이미지 편집')}
           </h2>
           <button
             onClick={handleCancel}
@@ -258,114 +331,211 @@ export default function ImageCropModal({
           </button>
         </div>
 
-        {/* 크롭 영역 */}
-        <div className="crop-area-container">
-          <ReactCrop
-            crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={(displayPixelCrop) => {
-              // ReactCrop의 첫 번째 파라미터가 display 기준 픽셀 크롭
-              if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
-                // display 크기 기준 픽셀을 natural 크기로 변환
-                const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-                const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+        {/* 메인 컨텐츠 영역 */}
+        <div className="crop-content-area">
+          {/* 1. 크롭된 미리보기 화면 (Final Result) */}
+          {croppedPreviewUrl ? (
+            <div className="crop-preview-container">
+              <img
+                src={croppedPreviewUrl}
+                alt="Cropped Result"
+                className="crop-preview-image"
+              />
+            </div>
+          ) : (
+            /* 2. 편집 화면 (Editing Mode) */
+            imageUrl ? (
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(displayPixelCrop) => {
+                  if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
+                    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+                    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
 
-                const naturalPixelCrop: PixelCrop = {
-                  unit: 'px',
-                  x: displayPixelCrop.x * scaleX,
-                  y: displayPixelCrop.y * scaleY,
-                  width: displayPixelCrop.width * scaleX,
-                  height: displayPixelCrop.height * scaleY,
-                };
+                    const naturalPixelCrop: PixelCrop = {
+                      unit: 'px',
+                      x: displayPixelCrop.x * scaleX,
+                      y: displayPixelCrop.y * scaleY,
+                      width: displayPixelCrop.width * scaleX,
+                      height: displayPixelCrop.height * scaleY,
+                    };
 
-                setCompletedCrop(naturalPixelCrop);
-              }
-            }}
-            aspect={aspectRatio}
-          >
-            <img
-              ref={imgRef}
-              src={imageUrl}
-              alt="크롭할 이미지"
-              className="crop-image"
-              crossOrigin="anonymous"
-            />
-          </ReactCrop>
+                    setCompletedCrop(naturalPixelCrop);
+                  }
+                }}
+                aspect={aspectRatio}
+                className="ReactCrop"
+              >
+                <img
+                  ref={imgRef}
+                  src={imageUrl}
+                  alt="크롭할 이미지"
+                  className="crop-image"
+                  crossOrigin="anonymous"
+                />
+              </ReactCrop>
+            ) : (
+              /* 3. 이미지 없음 (Placeholder) */
+              <div className="crop-placeholder-container">
+                <div className="crop-placeholder-icon-bg">
+                  <i className="ri-image-add-line crop-placeholder-icon"></i>
+                </div>
+                <p className="crop-placeholder-text">편집할 이미지가 없습니다</p>
+                <button
+                  onClick={onChangeImage}
+                  className="crop-upload-link"
+                >
+                  이미지 업로드
+                </button>
+              </div>
+            )
+          )}
+
+          {/* 썸네일 선택 오버레이 */}
+          {viewMode === 'thumbnail-select' && (
+            <div className="crop-thumbnail-overlay">
+              <div className="crop-thumbnail-header">
+                <h3 className="crop-thumbnail-title">썸네일 선택</h3>
+                <button onClick={() => setViewMode('crop')} className="crop-thumbnail-close">
+                  <i className="ri-close-line crop-icon-2xl"></i>
+                </button>
+              </div>
+              <div className="crop-thumbnail-list">
+                {loadingThumbnails ? (
+                  <div className="crop-loading-container">
+                    <div className="crop-spinner"></div>
+                  </div>
+                ) : thumbnails.length > 0 ? (
+                  <div className="crop-thumbnail-grid">
+                    {thumbnails.map((thumb, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleThumbnailSelect(thumb.url)}
+                        className="crop-thumbnail-item group"
+                      >
+                        <img src={thumb.url} alt={thumb.label} className="crop-thumbnail-img" />
+                        <div className="crop-thumbnail-overlay-info group-hover:opacity-100">
+                          <span className="crop-thumbnail-label">{thumb.label}</span>
+                          <span className="crop-thumbnail-select-text">선택</span>
+                        </div>
+                        <span className="crop-thumbnail-badge">
+                          {thumb.quality.toUpperCase()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="crop-empty-state">
+                    <i className="ri-error-warning-line crop-empty-icon"></i>
+                    <p className="crop-empty-text">가져올 수 있는 썸네일이 없습니다.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 푸터 */}
+        {/* Footer Area */}
         <div className="crop-modal-footer">
-          <div className="crop-footer-content">
-            {/* 비율 선택 */}
-            <div className="crop-button-row">
-              <button
-                onClick={() => handleAspectRatioChange('free')}
-                className={`crop-ratio-btn ${aspectRatioMode === 'free'
-                  ? 'crop-ratio-btn-active'
-                  : 'crop-ratio-btn-inactive'
-                  }`}
-                disabled={isProcessing}
-              >
-                자유
-              </button>
-              <button
-                onClick={() => handleAspectRatioChange('3:4')}
-                className={`crop-ratio-btn ${aspectRatioMode === '3:4'
-                  ? 'crop-ratio-btn-active'
-                  : 'crop-ratio-btn-inactive'
-                  }`}
-                disabled={isProcessing}
-              >
-                3:4 (썸네일)
-              </button>
-              <button
-                onClick={() => handleAspectRatioChange('1:1')}
-                className={`crop-ratio-btn ${aspectRatioMode === '1:1'
-                  ? 'crop-ratio-btn-active'
-                  : 'crop-ratio-btn-inactive'
-                  }`}
-                disabled={isProcessing}
-              >
-                1:1
-              </button>
-            </div>
 
-            {/* 액션 버튼 */}
+          {/* Phase 1: Editing Controls (Only visible when NOT in preview) */}
+          {!croppedPreviewUrl && (
+            <>
+              {/* Aspect Ratio Controls */}
+              <div className="crop-button-row" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
+                <button
+                  onClick={() => handleAspectRatioChange('free')}
+                  className={`crop-ratio-btn ${aspectRatioMode === 'free' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
+                  disabled={!imageUrl || isProcessing}
+                >
+                  자유
+                </button>
+                <button
+                  onClick={() => handleAspectRatioChange('3:4')}
+                  className={`crop-ratio-btn ${aspectRatioMode === '3:4' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
+                  disabled={!imageUrl || isProcessing}
+                >
+                  3:4
+                </button>
+                <button
+                  onClick={() => handleAspectRatioChange('1:1')}
+                  className={`crop-ratio-btn ${aspectRatioMode === '1:1' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
+                  disabled={!imageUrl || isProcessing}
+                >
+                  1:1
+                </button>
+              </div>
+
+              <div className="crop-footer-content">
+                {/* Source Selection */}
+                <div className="grid grid-cols-2 gap-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <button
+                    onClick={onChangeImage}
+                    className="crop-action-btn crop-change-btn"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <i className="ri-upload-cloud-2-line crop-icon-lg"></i>
+                    업로드
+                  </button>
+                  <button
+                    onClick={loadThumbnails}
+                    className="crop-action-btn crop-thumbnail-btn"
+                    disabled={!videoUrl}
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <i className="ri-youtube-fill crop-icon-lg"></i>
+                    썸네일 가져오기
+                  </button>
+                </div>
+
+                {/* Apply Action */}
+                <div className="crop-button-row">
+                  {/* Restore Original (Reset Image to original props) */}
+                  {hasOriginal && onRestoreOriginal && (
+                    <button
+                      onClick={onRestoreOriginal}
+                      className="crop-action-btn crop-restore-btn"
+                      disabled={isProcessing}
+                      style={{ flex: '0 0 auto' }}
+                    >
+                      원본 복구
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleApplyCrop} // Changed to Apply Crop
+                    className="crop-action-btn crop-apply-btn"
+                    disabled={isProcessing || !imageUrl}
+                  >
+                    {isProcessing ? '처리 중...' : '자르기'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Phase 2: Preview & Save Controls (Only visible when IN preview) */}
+          {croppedPreviewUrl && (
             <div className="crop-button-row">
               <button
-                onClick={handleCancel}
+                onClick={handleRestoreCrop}
                 className="crop-action-btn crop-cancel-btn"
                 disabled={isProcessing}
               >
-                취소
+                <i className="ri-arrow-go-back-line" style={{ marginRight: '0.5rem' }}></i>
+                되돌리기
               </button>
-              {hasOriginal && onRestoreOriginal && (
-                <button
-                  onClick={onRestoreOriginal}
-                  className="crop-action-btn crop-restore-btn"
-                  disabled={isProcessing}
-                >
-                  원본 되돌리기
-                </button>
-              )}
-              {onChangeImage && (
-                <button
-                  onClick={onChangeImage}
-                  className="crop-action-btn crop-change-btn"
-                  disabled={isProcessing}
-                >
-                  이미지 변경
-                </button>
-              )}
               <button
-                onClick={handleCropConfirm}
-                className="crop-action-btn crop-confirm-btn"
+                onClick={handleFinalSave}
+                className="crop-action-btn crop-save-btn"
                 disabled={isProcessing}
               >
-                {isProcessing ? '처리 중...' : '완료'}
+                <i className="ri-check-line" style={{ marginRight: '0.5rem' }}></i>
+                저장 (완료)
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>,
