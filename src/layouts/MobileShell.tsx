@@ -196,28 +196,20 @@ export function MobileShell() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                 {/* Calendar Toggle Button */}
 
-
-                {/* Fullscreen Toggle Button */}
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
-                  className="shell-top-bar-btn"
-                  style={{
-                    backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '0 4px', height: '24px', color: calendarMode === "fullscreen" ? '#3b82f6' : 'var(--text-secondary)'
-                  }}
-                >
-                  {calendarMode === "fullscreen" ? (
-                    <>
-                      <i className="ri-arrow-left-line shell-icon-sm"></i>
-                      <span style={{ fontSize: '13px', fontWeight: 600 }}>돌아가기</span>
-                    </>
-                  ) : (
-                    <>
-                      <i className="ri-fullscreen-line shell-icon-sm"></i>
-                      <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
-                    </>
-                  )}
-                </button>
+                {/* Fullscreen Toggle Button - 프리뷰 모드에서만 표시 */}
+                {calendarMode !== "fullscreen" && (
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
+                    className="shell-top-bar-btn"
+                    style={{
+                      backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '0 4px', height: '24px', color: 'var(--text-secondary)'
+                    }}
+                  >
+                    <i className="ri-fullscreen-line shell-icon-sm"></i>
+                    <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
+                  </button>
+                )}
               </div>
 
               {/* Right Side: Tools (Today, Sort, Search, Register, Admin) */}
@@ -238,16 +230,7 @@ export function MobileShell() {
                       </button>
                     )}
 
-                    {/* 2. Sort Button */}
-                    <button
-                      onClick={() => window.dispatchEvent(new CustomEvent('openSortModal'))}
-                      style={{
-                        backgroundColor: 'transparent', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '2px', height: '24px'
-                      }}
-                    >
-                      <i className={`${getSortIcon()} shell-icon-sm`}></i>
-                      <span style={{ fontSize: '10px' }}>{getSortLabel()}</span>
-                    </button>
+
 
                     {/* 3. Event Registration Button */}
                     <button
@@ -265,7 +248,7 @@ export function MobileShell() {
                       }}
                     >
                       <i className="ri-add-circle-line shell-icon-sm"></i>
-                      <span style={{ fontSize: '10px' }}>등록</span>
+                      <span style={{ fontSize: '1rem' }}>등록</span>
                     </button>
 
                     {/* 3. Search Button */}

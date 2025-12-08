@@ -922,7 +922,7 @@
 
 .calendar-weekday-item {
   text-align: center;
-  color: var(--text-muted);
+  color: #c7c7c7;
   /* gray-400 */
   font-size: 0.875rem;
   /* 14px */
@@ -993,12 +993,17 @@
 }
 
 .calendar-fullscreen-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 500;
   color: white;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  word-break: break-word;
+  line-height: 1.2;
+  text-align: center;
 }
 
 /* Carousel Styles */
@@ -1237,15 +1242,6 @@
   z-index: 35;
 }
 
-.calendar-weekday-item {
-  position: relative;
-  padding: 8px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-  transition: background-color 0.2s, color 0.2s;
-}
 
 .calendar-weekday-item:first-child {
   /* color: rgb(190, 0, 0); */
@@ -1710,16 +1706,8 @@
 
 .calendar-fullscreen-title-container {
   width: 100%;
-}
-
-.calendar-fullscreen-title {
-  font-size: 10px;
-  color: white;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
+  min-height: 24px;
+  /* 2줄 높이 확보 */
 }
 
 .calendar-event-count-default {

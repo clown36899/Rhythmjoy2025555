@@ -381,7 +381,7 @@ export default function Header({
                 </button>
               ) : (
                 // 프리뷰 모드: 제목
-                <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)", paddingLeft: "8px" }}>
+                <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)", paddingLeft: "6px" }}>
                   스윙빌보드
                 </span>
               )}

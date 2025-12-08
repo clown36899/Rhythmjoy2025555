@@ -1985,16 +1985,18 @@ export default function EventList({
                     onClick={() => onSectionViewModeChange?.('viewAll-events')}
                     style={{
                       marginLeft: 'auto',
-                      padding: '4px 12px',
-                      fontSize: '12px',
+                      fontSize: '20px',
+                      padding: '0 0 0 30%',
                       color: 'var(--text-secondary)',
                       background: 'transparent',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '12px',
-                      cursor: 'pointer'
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end'
                     }}
                   >
-                    전체보기 ❯
+                    ❯
                   </button>
                 )}
               </div>
@@ -2032,16 +2034,18 @@ export default function EventList({
                     onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
                     style={{
                       marginLeft: 'auto',
-                      padding: '4px 12px',
-                      fontSize: '12px',
+                      fontSize: '20px',
+                      padding: '0 0 0 30%',
                       color: 'var(--text-secondary)',
                       background: 'transparent',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '12px',
-                      cursor: 'pointer'
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end'
                     }}
                   >
-                    전체보기 ❯
+                    ❯
                   </button>
                 )}
               </div>
