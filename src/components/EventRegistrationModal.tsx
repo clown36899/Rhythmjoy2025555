@@ -280,7 +280,7 @@ export default function EventRegistrationModal({
     setTempImageSrc(URL.createObjectURL(file));
   };
 
-  const handleCropComplete = async (croppedBlob: Blob, _previewUrl: string, isModified: boolean) => {
+  const handleCropComplete = async (croppedBlob: Blob, _previewUrl: string, _isModified: boolean) => {
 
 
     const croppedFile = new File([croppedBlob], originalImageFile?.name || "cropped.jpg", {

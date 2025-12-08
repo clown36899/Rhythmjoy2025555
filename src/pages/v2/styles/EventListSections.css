@@ -52,8 +52,8 @@
     /* 성능 최적화 */
     will-change: scroll-position;
 
-    /* 터치 액션 최적화 */
-    touch-action: pan-x;
+    /* 터치 액션 최적화 - 가로와 세로 모두 허용 */
+    touch-action: pan-x pan-y;
 }
 
 .evt-v2-horizontal-scroll::-webkit-scrollbar {

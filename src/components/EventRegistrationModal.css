@@ -114,23 +114,53 @@
 }
 
 /* Mobile Fullscreen */
-/* Mobile Fullscreen Overrides Removed to match Detail View */
 @media (max-width: 768px) {
   .reg-modal-overlay {
     padding: 1rem;
-    align-items: center;
-    /* Center vertically like desktop */
+    padding-top: 3rem;
+    align-items: flex-start;
+    overflow-y: auto;
   }
 
   .reg-modal-container {
     max-width: 100%;
-    max-height: 90vh;
-    /* Keep max-height consistent */
+    max-height: calc(100svh - 4rem);
     height: auto;
-    /* Allow auto height */
     border-radius: var(--radius-lg);
-    /* Restore radius */
     margin: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .reg-modal-container .reg-main-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Make event-detail-modal-container fill available space and enable internal scrolling */
+  .reg-main-content .event-detail-modal-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* CRITICAL: This is where the actual scrolling happens */
+  .reg-main-content .modal-scroll-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 }
 
@@ -286,12 +316,13 @@
 
 /* ===== Main Content Area ===== */
 .reg-main-content {
-  flex: 1;
   overflow-y: auto;
   background-color: var(--color-gray-900);
   position: relative;
   border-radius: var(--radius-xl);
   overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* ===== Billboard Preview ===== */

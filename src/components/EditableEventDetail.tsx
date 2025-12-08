@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../lib/supabase';
 import { useDefaultThumbnail } from '../hooks/useDefaultThumbnail';
@@ -110,7 +110,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     onVideoChange,
 }, ref) => {
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
-    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | 'video' | 'imageSource' | null>(null);
+    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | 'video' | 'imageSource' | 'classification' | null>(null);
 
     React.useImperativeHandle(ref, () => ({
         openModal: (modalType) => {
@@ -156,67 +156,57 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
         setStartPos({ ...imagePosition });
     };
 
-    const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isRepositioning || !dragStart || !startPos || !imageRef.current) return;
 
-        // Prevent scrolling on touch to ensure image moves smoothly
-        if (e.cancelable && 'touches' in e) {
-            e.preventDefault();
-        }
+    // Use refs to store current values for event handlers to avoid stale closures
+    const dragStartRef = React.useRef(dragStart);
+    const startPosRef = React.useRef(startPos);
+    const imagePositionRef = React.useRef(imagePosition);
+    const onImagePositionChangeRef = React.useRef(onImagePositionChange);
 
-        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-
-        const deltaY = clientY - dragStart.y;
-
-        // Calculate delta as percentage of the IMAGE size (not container)
-        // because transform % is relative to the element itself.
-        const imgHeight = imageRef.current.offsetHeight || 1;
-        const containerHeight = imageRef.current.parentElement?.offsetHeight || imgHeight; // Fallback if parent not found
-
-        const deltaYPercent = (deltaY / imgHeight) * 100;
-
-        // Direct movement: Drag Down -> Move Down (+Delta)
-        // Lock X axis (Vertical movement only)
-        let newX = startPos.x;
-        let newY = startPos.y + deltaYPercent;
-
-        // Calculate limits to prevent image from detaching from edges
-        // Limit is the max offset allowed from center (0).
-        // It corresponds to half the difference between image and container height.
-        const limitYPixels = Math.abs(imgHeight - containerHeight) / 2;
-        const limitYPercent = (limitYPixels / imgHeight) * 100;
-
-        // Clamp Y between -limit and +limit
-        newY = Math.max(-limitYPercent, Math.min(limitYPercent, newY));
-
-        onImagePositionChange?.({ x: newX, y: newY });
-    };
-
-    const handleMouseUp = () => {
-        setDragStart(null);
-        setStartPos(null);
-    };
+    React.useEffect(() => {
+        dragStartRef.current = dragStart;
+        startPosRef.current = startPos;
+        imagePositionRef.current = imagePosition;
+        onImagePositionChangeRef.current = onImagePositionChange;
+    }, [dragStart, startPos, imagePosition, onImagePositionChange]);
 
     // Attach global listeners for drag when active
     React.useEffect(() => {
-        if (isRepositioning) {
-            const handleGlobalMove = (e: any) => handleMouseMove(e);
-            const handleGlobalUp = () => handleMouseUp();
+        if (!isRepositioning) return;
 
-            window.addEventListener('mousemove', handleGlobalMove);
-            window.addEventListener('mouseup', handleGlobalUp);
-            // passive: false is required to preventDefault on touchmove (scrolling)
-            window.addEventListener('touchmove', handleGlobalMove, { passive: false });
-            window.addEventListener('touchend', handleGlobalUp);
+        const handleGlobalMove = (e: MouseEvent) => {
+            const currentDragStart = dragStartRef.current;
+            const currentStartPos = startPosRef.current;
 
-            return () => {
-                window.removeEventListener('mousemove', handleGlobalMove);
-                window.removeEventListener('mouseup', handleGlobalUp);
-                window.removeEventListener('touchmove', handleGlobalMove);
-                window.removeEventListener('touchend', handleGlobalUp);
-            };
-        }
-    }, [isRepositioning, dragStart, startPos]);
+            if (!currentDragStart || !currentStartPos || !imageRef.current) return;
+
+            const clientY = (e as MouseEvent).clientY;
+            const deltaY = clientY - currentDragStart.y;
+            const imgHeight = imageRef.current.offsetHeight || 1;
+            const containerHeight = imageRef.current.parentElement?.offsetHeight || imgHeight;
+            const deltaYPercent = (deltaY / imgHeight) * 100;
+            let newX = currentStartPos.x;
+            let newY = currentStartPos.y + deltaYPercent;
+            const limitYPixels = Math.abs(imgHeight - containerHeight) / 2;
+            const limitYPercent = (limitYPixels / imgHeight) * 100;
+            newY = Math.max(-limitYPercent, Math.min(limitYPercent, newY));
+            onImagePositionChangeRef.current?.({ x: newX, y: newY });
+        };
+
+        const handleGlobalUp = () => {
+            setDragStart(null);
+            setStartPos(null);
+        };
+
+        // Only add mouse listeners globally - touch is handled on image element
+        window.addEventListener('mousemove', handleGlobalMove);
+        window.addEventListener('mouseup', handleGlobalUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleGlobalMove);
+            window.removeEventListener('mouseup', handleGlobalUp);
+        };
+    }, [isRepositioning]);
 
 
     const detailImageUrl = event.image || getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
@@ -273,7 +263,14 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     return (
         <div
             className={`event-detail-modal-container ${className}`}
-            style={{ borderColor: "rgb(89, 89, 89)" }}
+            style={{
+                borderColor: "rgb(89, 89, 89)",
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                minHeight: 0,
+                overflow: 'hidden'
+            }}
             onClick={() => setActiveModal(null)} // Close modals on background click
         >
             {/* Backdrop for Modals (Only if not using portal for some reason, but we are) */}
@@ -282,9 +279,13 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
             <div
                 className="modal-scroll-container"
                 style={{
+                    flex: '1 1 auto',
+                    minHeight: 0,
+                    overflowY: 'auto',
                     overscrollBehavior: 'contain',
                     WebkitOverflowScrolling: 'touch',
-                    paddingBottom: '120px' // Increased padding for footer
+                    touchAction: 'pan-y',
+                    paddingBottom: '120px'
                 }}
             >
                 {/* Image Area */}
@@ -309,10 +310,11 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                 className={`detail-image ${isRepositioning ? 'cursor-move' : ''}`}
                                 style={{
                                     transform: `translate3d(${imagePosition.x}%, ${imagePosition.y}%, 0)`,
-                                    transition: isRepositioning ? 'none' : 'transform 0.2s ease-out'
+                                    transition: isRepositioning ? 'none' : 'transform 0.2s ease-out',
+                                    touchAction: isRepositioning ? 'none' : 'auto' // Explicitly allow/disallow touch actions
                                 }}
-                                onMouseDown={handleMouseDown}
-                                onTouchStart={handleMouseDown}
+                                onMouseDown={isRepositioning ? handleMouseDown : undefined}
+                                onTouchStart={isRepositioning ? handleMouseDown : undefined}
                             />
                             <div className="image-gradient-overlay" />
 
@@ -494,39 +496,30 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     style={{ padding: "16px" }}
                 >
                     <div className="header-selectors-container">
-                        {/* Category Badge - Moved here */}
+                        {/* Unified Classification (Category + Genre) Selector */}
                         <div
-                            className={`category-selector category-badge ${!event.category ? "default" : (event.category === "class" ? "class" : "event")} group`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                // Toggle logic: Empty -> Event -> Class -> Event ...
-                                const nextCategory = !event.category ? 'event' : (event.category === 'event' ? 'class' : 'event');
-                                onUpdate('category', nextCategory);
-                            }}
-                            style={{ zIndex: 20 }}
-                        >
-                            {!event.category ? "분류" : (event.category === "class" ? "강습" : "행사")}
-                            <EditBadge isStatic />
-                        </div>
-
-                        {/* Genre */}
-                        <div
-                            id="genre-selector-section"
-                            className="genre-selector group"
+                            className="classification-selector group flex items-center gap-2 cursor-pointer"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setShowCustomGenreInput(false);
                                 setCustomGenreInput("");
-                                setActiveModal('genre');
+                                setActiveModal('classification');
                             }}
                         >
+                            {/* Category Badge part */}
+                            <div className={`category-selector category-badge ${!event.category ? "default" : (event.category === "class" ? "class" : "event")}`}>
+                                {!event.category ? "분류" : (event.category === "class" ? "강습" : "행사")}
+                            </div>
+
+                            {/* Genre Text part */}
                             <div className={`genre-text ${getGenreColor(event.genre || '')}`}>
                                 {event.genre || <span className="text-gray-500 text-sm">장르 선택</span>}
                             </div>
+
                             <EditBadge isStatic />
 
-                            {/* Genre Bottom Sheet Portal */}
-                            {activeModal === 'genre' && createPortal(
+                            {/* Classification (Category + Genre) Bottom Sheet Portal */}
+                            {activeModal === 'classification' && createPortal(
                                 <div className="bottom-sheet-portal">
                                     {/* Backdrop */}
                                     <div
@@ -544,10 +537,37 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         <div className="bottom-sheet-handle"></div>
                                         <h3 className="bottom-sheet-header">
                                             <i className="ri-music-2-line"></i>
-                                            장르 선택
+                                            분류 및 장르 선택
                                         </h3>
 
                                         <div className="bottom-sheet-body">
+                                            {/* Category Section */}
+                                            <div className="mb-6">
+                                                <label className="bottom-sheet-label">분류</label>
+                                                <div className="flex gap-3 w-full">
+                                                    <button
+                                                        onClick={() => onUpdate('category', 'event')}
+                                                        className={`flex-1 p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${event.category === 'event'
+                                                            ? 'bg-blue-900/40 border-blue-500 text-blue-300 ring-1 ring-blue-500'
+                                                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}
+                                                    >
+                                                        <span className="text-lg font-bold">행사</span>
+                                                        {event.category === 'event' && <i className="ri-check-line"></i>}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onUpdate('category', 'class')}
+                                                        className={`flex-1 p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${event.category === 'class'
+                                                            ? 'bg-violet-900/40 border-violet-500 text-violet-300 ring-1 ring-violet-500'
+                                                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}
+                                                    >
+                                                        <span className="text-lg font-bold">강습</span>
+                                                        {event.category === 'class' && <i className="ri-check-line"></i>}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Genre Section */}
+                                            <label className="bottom-sheet-label">장르</label>
                                             {showCustomGenreInput ? (
                                                 <div className="genre-input-row">
                                                     <input
