@@ -144,6 +144,9 @@ export default function EventDetailModal({
                             fetchPriority="high"
                             decoding="async"
                             className="detail-image"
+                            style={{
+                              transform: `translate3d(${(selectedEvent as any).image_position_x || 0}%, ${(selectedEvent as any).image_position_y || 0}%, 0)`
+                            }}
                           />
 
                           {/* Gradient Overlay */}

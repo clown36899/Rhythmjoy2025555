@@ -224,6 +224,10 @@ export default function EventList({
   const [editImagePosition, setEditImagePosition] = useState({ x: 0, y: 0 });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const editDetailRef = useRef<EditableEventDetailRef>(null);
+  const [editCropModalOpen, setEditCropModalOpen] = useState(false);
+  const [editTempImageSrc, setEditTempImageSrc] = useState<string | null>(null);
+  const [editOriginalImageForCrop, setEditOriginalImageForCrop] = useState<File | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const { defaultThumbnailClass, defaultThumbnailEvent } =
     useDefaultThumbnail();
@@ -1452,18 +1456,49 @@ export default function EventList({
   };
 
   const handleEditImageUpload = () => {
-    // Trigger file input for image upload
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        setEditImageFile(file);
-        setEditImagePreview(URL.createObjectURL(file));
-      }
-    };
-    fileInput.click();
+    editFileInputRef.current?.click();
+  };
+
+  const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setEditOriginalImageForCrop(file);
+      setEditImageFile(file);
+      setEditImagePosition({ x: 0, y: 0 });
+      setEditTempImageSrc(URL.createObjectURL(file));
+      setEditCropModalOpen(true);
+    }
+    e.target.value = '';
+  };
+
+  const handleEditCropComplete = async (croppedBlob: Blob, _previewUrl: string, isModified: boolean) => {
+    if (!isModified && editOriginalImageForCrop) {
+      setEditImageFile(editOriginalImageForCrop);
+      setEditImagePreview(URL.createObjectURL(editOriginalImageForCrop));
+      setEditTempImageSrc(null);
+      setEditCropModalOpen(false);
+      return;
+    }
+
+    const file = new File([croppedBlob], "cropped-image.jpg", { type: "image/jpeg" });
+    setEditImageFile(file);
+    setEditImagePreview(URL.createObjectURL(file));
+    setEditCropModalOpen(false);
+    setEditTempImageSrc(null);
+  };
+
+  const handleEditRestoreCropOriginal = () => {
+    if (editOriginalImageForCrop) {
+      setEditImageFile(editOriginalImageForCrop);
+      setEditTempImageSrc(URL.createObjectURL(editOriginalImageForCrop));
+    }
+  };
+
+  const handleEditReEditImage = () => {
+    if (editImageFile) {
+      setEditTempImageSrc(URL.createObjectURL(editImageFile));
+      setEditCropModalOpen(true);
+    }
   };
 
   const handleEditSave = async () => {
@@ -1568,6 +1603,8 @@ export default function EventList({
         image_thumbnail: imageThumbnailUrl,
         image_medium: imageMediumUrl,
         image_full: imageFullUrl,
+        image_position_x: editImagePosition.x,
+        image_position_y: editImagePosition.y,
       };
 
       const { error } = await supabase
@@ -1831,15 +1868,7 @@ export default function EventList({
     }
   };
 
-  const handleEditCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
-    setEditImageFile(croppedFile);
-    setEditImagePreview(croppedPreviewUrl);
 
-    if (editCropImageUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(editCropImageUrl);
-    }
-    setEditCropImageUrl('');
-  };
 
   const handleEditCropDiscard = () => {
     if (editCropImageUrl.startsWith('blob:')) {
@@ -2680,6 +2709,27 @@ export default function EventList({
         </div>,
         document.body
       )}
+
+      {/* Hidden File Input for Edit Mode */}
+      <input
+        type="file"
+        ref={editFileInputRef}
+        onChange={handleEditImageSelect}
+        accept="image/*"
+        className="hidden"
+        style={{ display: 'none' }}
+      />
+
+      {/* Image Crop Modal for Edit Mode */}
+      <ImageCropModal
+        isOpen={editCropModalOpen}
+        onClose={() => setEditCropModalOpen(false)}
+        imageUrl={editTempImageSrc || ''}
+        onCropComplete={handleEditCropComplete}
+        onRestoreOriginal={handleEditRestoreCropOriginal}
+        onChangeImage={() => editFileInputRef.current?.click()}
+        hasOriginal={!!editOriginalImageForCrop && editImageFile !== editOriginalImageForCrop}
+      />
 
       {/* Password Modal */}
       {showPasswordModal && eventToEdit && (
