@@ -277,6 +277,9 @@
   font-size: 0.75rem;
   color: var(--color-gray-400);
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===== 날짜 인디케이터 ===== */

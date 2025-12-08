@@ -50,8 +50,11 @@
     font-size: 0.625rem;
     /* 10px */
     font-weight: 500;
-    line-height: 1;
+    line-height: 1.25;
     transition: color 0.2s ease;
+    word-break: keep-all;
+    text-align: center;
+    white-space: pre-wrap;
 }
 
 /* State: Inactive */

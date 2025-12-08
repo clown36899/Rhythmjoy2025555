@@ -2272,7 +2272,7 @@ export default function EventList({
 
               {futureEvents.length > 0 ? (
                 <div className="evt-v2-horizontal-scroll">
-                  <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
+                  <div style={{ width: '9px', height: '1px', flexShrink: 0 }}></div>
                   {futureEvents.map(event => (
                     <EventCard
                       key={event.id}

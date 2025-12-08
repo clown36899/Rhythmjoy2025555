@@ -74,9 +74,13 @@
   overflow: hidden;
   white-space: nowrap;
   background-color: #282828 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-inner {
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   padding-left: 9px;
@@ -151,7 +155,7 @@
 .header-nav-btn {
   font-size: 17px !important;
   padding: var(--spacing-1);
-  color: var(--color-gray-400);
+  color: var(--text-secondary);
   transition: var(--transition-colors);
   cursor: pointer;
   background: none;

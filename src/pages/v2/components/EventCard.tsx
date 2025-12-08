@@ -108,7 +108,7 @@ export const EventCard = memo(({
       return `${date.getMonth() + 1}/${date.getDate()}(${weekDay})`;
     };
     if (variant === "sliding" && event.event_dates.length > 1) {
-      dateText = `${formatDate(event.event_dates[0])} ~ 시작`;
+      dateText = `${formatDate(event.event_dates[0])}~시작`;
     } else {
       dateText = event.event_dates.map(formatDate).join(", ");
     }
@@ -126,7 +126,7 @@ export const EventCard = memo(({
       };
 
       if (startDate !== endDate) {
-        dateText = `${formatDate(startDate)} ~ ${formatDate(endDate || startDate)}`;
+        dateText = `${formatDate(startDate)}~${formatDate(endDate || startDate)}`;
       } else {
         dateText = formatDate(startDate);
       }
