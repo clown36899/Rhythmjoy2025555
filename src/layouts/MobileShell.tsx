@@ -206,8 +206,17 @@ export function MobileShell() {
                     padding: '0 4px', height: '24px', color: calendarMode === "fullscreen" ? '#3b82f6' : 'var(--text-secondary)'
                   }}
                 >
-                  <i className={`${calendarMode === "fullscreen" ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"} shell-icon-sm`}></i>
-                  <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
+                  {calendarMode === "fullscreen" ? (
+                    <>
+                      <i className="ri-arrow-left-line shell-icon-sm"></i>
+                      <span style={{ fontSize: '13px', fontWeight: 600 }}>돌아가기</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="ri-fullscreen-line shell-icon-sm"></i>
+                      <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
+                    </>
+                  )}
                 </button>
               </div>
 

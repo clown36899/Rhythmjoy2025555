@@ -362,6 +362,21 @@ export default function Header({
                 >
                   <span>❮ 돌아가기</span>
                 </button>
+              ) : calendarMode === 'fullscreen' ? (
+                // 전체화면 달력 모드: 돌아가기 버튼 (제목 대신)
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
+                  className="header-nav-btn"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 8px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <span>❮ 돌아가기</span>
+                </button>
               ) : (
                 // 프리뷰 모드: 제목
                 <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)", paddingLeft: "8px" }}>

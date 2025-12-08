@@ -2007,7 +2007,7 @@ export default function EventList({
                 <span className="evt-v2-count">{futureClasses.length}</span>
                 {futureClasses.length > 0 && (
                   <button
-                    onClick={() => onSectionViewModeChange?.('viewAll-classes')}
+                    onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
                     style={{
                       marginLeft: 'auto',
                       padding: '4px 12px',
@@ -2091,7 +2091,7 @@ export default function EventList({
               return (
                 <div key={genre} className="evt-v2-section">
                   <div className="evt-v2-section-title">
-                    <i className="ri-music-2-line"></i>
+
                     <span>{genre}</span>
                     <span className="evt-v2-count">{genreEvents.length}</span>
                   </div>
