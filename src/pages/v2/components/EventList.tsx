@@ -1968,35 +1968,6 @@ export default function EventList({
             )}
           </div>
 
-          {/* Filter Bar - Only for Classes */}
-          {allGenres.length > 0 && (
-            <div className="evt-sticky-header">
-              <div className="evt-filter-bar-content">
-                <select
-                  value={selectedGenre || ''}
-                  onChange={(e) => {
-                    const params = new URLSearchParams(searchParams);
-                    if (e.target.value) {
-                      params.set('genre', e.target.value);
-                    } else {
-                      params.delete('genre');
-                    }
-                    setSearchParams(params);
-                  }}
-                  className="evt-genre-select"
-                >
-                  <option value="">모든 장르</option>
-                  {allGenres.map(genre => (
-                    <option key={genre} value={genre}>{genre}</option>
-                  ))}
-                </select>
-                <span className="evt-count-text">
-                  {futureClasses.length}개의 강습
-                </span>
-              </div>
-            </div>
-          )}
-
           {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
           <div className="evt-v2-section">
             <div className="evt-v2-section-title">
@@ -2004,6 +1975,35 @@ export default function EventList({
               <span>진행중인 강습</span>
               <span className="evt-v2-count">{futureClasses.length}</span>
             </div>
+
+            {/* Filter Bar - Only for Classes */}
+            {allGenres.length > 0 && (
+              <div className="evt-sticky-header">
+                <div className="evt-filter-bar-content">
+                  <select
+                    value={selectedGenre || ''}
+                    onChange={(e) => {
+                      const params = new URLSearchParams(searchParams);
+                      if (e.target.value) {
+                        params.set('genre', e.target.value);
+                      } else {
+                        params.delete('genre');
+                      }
+                      setSearchParams(params);
+                    }}
+                    className="evt-genre-select"
+                  >
+                    <option value="">모든 장르</option>
+                    {allGenres.map(genre => (
+                      <option key={genre} value={genre}>{genre}</option>
+                    ))}
+                  </select>
+                  <span className="evt-count-text">
+                    {futureClasses.length}개의 강습
+                  </span>
+                </div>
+              </div>
+            )}
 
             {futureClasses.length > 0 ? (
               <div className="evt-v2-horizontal-scroll">
