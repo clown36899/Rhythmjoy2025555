@@ -2730,176 +2730,167 @@ export default function EventList({
             </div>
           </div>
 
-          <div className="reg-modal-container">
-            <div className="reg-main-content">
-              {editPreviewMode === 'detail' && (
-                <EditableEventDetail
-                  event={{
-                    ...eventToEdit,
-                    ...editFormData,
-                    id: eventToEdit.id,
-                    created_at: eventToEdit.created_at,
-                    title: editFormData.title,
-                    date: editDate ? formatDateForInput(editDate) : undefined,
-                    start_date: editDate ? formatDateForInput(editDate) : undefined,
-                    end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
-                    event_dates: editEventDates.length > 0 ? editEventDates : undefined,
-                    location: editFormData.location,
-                    location_link: editFormData.locationLink,
-                    description: editFormData.description,
-                    category: editFormData.category as "class" | "event",
-                    genre: editFormData.genre,
-                    image: editImagePreview || editFormData.image,
-                    link1: editLink,
-                    link_name1: editLinkName,
-                    organizer: editFormData.organizer,
-                    organizer_name: editFormData.organizerName,
-                    time: editFormData.time,
-                    price: eventToEdit.price,
-                    capacity: eventToEdit.capacity,
-                    registered: eventToEdit.registered,
-                  }}
-                  onUpdate={handleEditDetailUpdate}
-                  onImageUpload={handleEditImageUpload}
-                  imagePosition={editImagePosition}
-                  onImagePositionChange={setEditImagePosition}
-                  genreSuggestions={allGenres}
-                  ref={editDetailRef}
-                  date={editDate}
-                  setDate={setEditDate}
-                  endDate={editEndDate}
-                  setEndDate={setEditEndDate}
-                  eventDates={editEventDates}
-                  setEventDates={setEditEventDates}
-                  password={editPassword}
-                  setPassword={setEditPassword}
-                  link={editLink}
-                  setLink={setEditLink}
-                  linkName={editLinkName}
-                  setLinkName={setEditLinkName}
-                  onRegister={handleEditSave}
-                  onClose={handleEditCancel}
-                  isSubmitting={isEditSubmitting}
-                  onDelete={() => {
-                    if (eventToEdit) {
-                      handleDeleteClick(eventToEdit);
-                    }
-                  }}
-                  videoUrl={editFormData.videoUrl}
-                  onVideoChange={(url) => setEditFormData(prev => ({ ...prev, videoUrl: url }))}
-                  onExtractThumbnail={handleEditExtractThumbnail}
-                />
-              )}
-
-              {editPreviewMode === 'card' && (
-                <div className="flex items-center justify-center h-full overflow-y-auto">
-                  <div className="card-preview-grid">
-                    {/* Active Card */}
-                    <div key="active" className="active-card-wrapper">
-                      <EditablePreviewCard
-                        event={{
-                          ...eventToEdit,
-                          ...editFormData,
-                          title: editFormData.title,
-                          date: editDate ? formatDateForInput(editDate) : undefined,
-                          start_date: editDate ? formatDateForInput(editDate) : undefined,
-                          end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
-                          location: editFormData.location,
-                          description: editFormData.description,
-                          category: editFormData.category as 'class' | 'event',
-                          genre: editFormData.genre,
-                          image: editImagePreview || editFormData.image,
-                          time: editFormData.time,
-                          price: eventToEdit.price,
-                          organizer: editFormData.organizer,
-                        } as any}
-                        readOnly={true}
-                        showPlaceholders={true}
-                      />
-                    </div>
-
-                    {/* Dummy Cards - show some real events from the list */}
-                    {events.slice(0, 5).map((realEvent, idx) => (
-                      <div key={`dummy-${idx}`} className="dummy-card-wrapper">
+          {editPreviewMode === 'detail' ? (
+            <EditableEventDetail
+              event={{
+                ...eventToEdit,
+                ...editFormData,
+                id: eventToEdit.id,
+                created_at: eventToEdit.created_at,
+                title: editFormData.title,
+                date: editDate ? formatDateForInput(editDate) : undefined,
+                start_date: editDate ? formatDateForInput(editDate) : undefined,
+                end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
+                event_dates: editEventDates.length > 0 ? editEventDates : undefined,
+                location: editFormData.location,
+                location_link: editFormData.locationLink,
+                description: editFormData.description,
+                category: editFormData.category as "class" | "event",
+                genre: editFormData.genre,
+                image: editImagePreview || editFormData.image,
+                link1: editLink,
+                link_name1: editLinkName,
+                organizer: editFormData.organizer,
+                organizer_name: editFormData.organizerName,
+                time: editFormData.time,
+                price: eventToEdit.price,
+                capacity: eventToEdit.capacity,
+                registered: eventToEdit.registered,
+              }}
+              onUpdate={handleEditDetailUpdate}
+              onImageUpload={handleEditImageUpload}
+              imagePosition={editImagePosition}
+              onImagePositionChange={setEditImagePosition}
+              genreSuggestions={allGenres}
+              ref={editDetailRef}
+              date={editDate}
+              setDate={setEditDate}
+              endDate={editEndDate}
+              setEndDate={setEditEndDate}
+              eventDates={editEventDates}
+              setEventDates={setEditEventDates}
+              password={editPassword}
+              setPassword={setEditPassword}
+              link={editLink}
+              setLink={setEditLink}
+              linkName={editLinkName}
+              setLinkName={setEditLinkName}
+              onRegister={handleEditSave}
+              onClose={handleEditCancel}
+              isSubmitting={isEditSubmitting}
+              onDelete={() => {
+                if (eventToEdit) {
+                  handleDeleteClick(eventToEdit);
+                }
+              }}
+              videoUrl={editFormData.videoUrl}
+              onVideoChange={(url) => setEditFormData(prev => ({ ...prev, videoUrl: url }))}
+              onExtractThumbnail={handleEditExtractThumbnail}
+            />
+          ) : (
+            <div className="reg-modal-container">
+              <div className="reg-main-content">
+                {editPreviewMode === 'card' && (
+                  <div className="flex items-center justify-center h-full overflow-y-auto">
+                    <div className="card-preview-grid">
+                      {/* Active Card */}
+                      <div key="active" className="active-card-wrapper">
                         <EditablePreviewCard
                           event={{
-                            ...realEvent,
-                            category: realEvent.category as 'class' | 'event'
-                          }}
+                            ...eventToEdit,
+                            ...editFormData,
+                            title: editFormData.title,
+                            date: editDate ? formatDateForInput(editDate) : undefined,
+                            start_date: editDate ? formatDateForInput(editDate) : undefined,
+                            end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
+                            location: editFormData.location,
+                            description: editFormData.description,
+                            category: editFormData.category as 'class' | 'event',
+                            genre: editFormData.genre,
+                            image: editImagePreview || editFormData.image,
+                            time: editFormData.time,
+                            price: eventToEdit.price,
+                            organizer: editFormData.organizer,
+                          } as any}
                           readOnly={true}
+                          showPlaceholders={true}
                         />
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {editPreviewMode === 'billboard' && (
-                <div className="billboard-preview-container">
-                  {/* Billboard Preview */}
-                  <div className="billboard-preview-area">
-                    {/* Background Image */}
-                    <div className="billboard-bg-layer">
-                      {editImagePreview || editFormData.image ? (
-                        <img
-                          src={editImagePreview || editFormData.image}
-                          alt="bg"
-                          className="billboard-bg-image"
-                        />
-                      ) : (
-                        <div className="billboard-bg-placeholder" />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="billboard-content-card">
-                      {/* Video/Image Area */}
-                      <div className="billboard-media-area">
-                        {editFormData.videoUrl && isValidVideoUrl(editFormData.videoUrl) ? (
-                          <div className="billboard-media-video-wrapper w-full h-full">
-                            <iframe
-                              width="100%"
-                              height="100%"
-                              src={`https://www.youtube.com/embed/${parseVideoUrl(editFormData.videoUrl).videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${parseVideoUrl(editFormData.videoUrl).videoId}`}
-                              title="YouTube video player"
-                              frameBorder="0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              className="w-full h-full object-cover"
-                            ></iframe>
-                          </div>
-                        ) : editImagePreview || editFormData.image ? (
-                          <img
-                            src={editImagePreview || editFormData.image}
-                            alt="preview"
-                            className="billboard-media-image cursor-pointer"
-                            onClick={handleEditReEditImage}
+                      {/* Dummy Cards - show some real events from the list */}
+                      {events.slice(0, 5).map((realEvent, idx) => (
+                        <div key={`dummy-${idx}`} className="dummy-card-wrapper">
+                          <EditablePreviewCard
+                            event={{
+                              ...realEvent,
+                              category: realEvent.category as 'class' | 'event'
+                            }}
+                            readOnly={true}
                           />
-                        ) : (
-                          <div className="billboard-media-placeholder">
-                            <i className="ri-image-line billboard-empty-icon"></i>
-                          </div>
-                        )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                        {/* QR Code Placeholder */}
-                        <div className="billboard-qr-placeholder">
-                          <i className="ri-qr-code-line billboard-qr-icon"></i>
+                {editPreviewMode === 'billboard' && (
+                  <div className="billboard-preview-container">
+                    {/* Billboard Preview */}
+                    <div className="billboard-preview-area">
+                      {/* Background Image */}
+                      {/* Background Image Removed as per User Request */}
+                      {/* <div className="billboard-bg-layer">...</div> */}
+
+                      {/* Content */}
+                      <div className="billboard-content-card">
+                        {/* Video/Image Area */}
+                        <div className="billboard-media-area">
+                          {editFormData.videoUrl && isValidVideoUrl(editFormData.videoUrl) ? (
+                            <div className="billboard-media-video-wrapper w-full h-full">
+                              <iframe
+                                width="100%"
+                                height="100%"
+                                src={`https://www.youtube.com/embed/${parseVideoUrl(editFormData.videoUrl).videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${parseVideoUrl(editFormData.videoUrl).videoId}`}
+                                title="YouTube video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="w-full h-full object-cover"
+                              ></iframe>
+                            </div>
+                          ) : editImagePreview || editFormData.image ? (
+                            <img
+                              src={editImagePreview || editFormData.image}
+                              alt="preview"
+                              className="billboard-media-image cursor-pointer"
+                              onClick={handleEditReEditImage}
+                            />
+                          ) : (
+                            <div className="billboard-media-placeholder">
+                              <i className="ri-image-line billboard-empty-icon"></i>
+                            </div>
+                          )}
+
+                          {/* QR Code Placeholder */}
+                          <div className="billboard-qr-placeholder">
+                            <i className="ri-qr-code-line billboard-qr-icon"></i>
+                          </div>
+                        </div>
+
+                        {/* Bottom Info */}
+                        <div className="billboard-info-overlay">
+                          <h3 className="billboard-info-title">{editFormData.title || "제목"}</h3>
+                          <p className="billboard-info-date">
+                            {editDate ? formatDateForInput(editDate) : "날짜"}
+                          </p>
                         </div>
                       </div>
-
-                      {/* Bottom Info */}
-                      <div className="billboard-info-overlay">
-                        <h3 className="billboard-info-title">{editFormData.title || "제목"}</h3>
-                        <p className="billboard-info-date">
-                          {editDate ? formatDateForInput(editDate) : "날짜"}
-                        </p>
-                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>,
         document.body
       )}

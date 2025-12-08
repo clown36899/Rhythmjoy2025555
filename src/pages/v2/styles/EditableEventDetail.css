@@ -1,0 +1,380 @@
+/* EditableEventDetail.css */
+
+/* Footer & Actions */
+.editable-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 1rem;
+    height: 80px;
+    background-color: rgba(20, 20, 20, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+
+.editable-footer-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
+    min-width: 0;
+}
+
+.editable-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* gap managed by children margin/padding or flex gap */
+    gap: 0.25rem;
+
+    background-color: rgba(255, 255, 255, 0.05);
+    width: auto;
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0 0.75rem;
+    /* for buttons with text */
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    color: #e5e7eb;
+    /* text-gray-200 */
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.editable-action-btn.icon-only {
+    padding: 0;
+    width: 3rem;
+}
+
+.editable-action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Link Button Specifics */
+.editable-link-btn-icon {
+    font-size: 1.25rem;
+    color: #9ca3af;
+    /* text-gray-400 */
+}
+
+.editable-link-btn-icon.active {
+    color: #60a5fa;
+    /* text-blue-400 */
+}
+
+.editable-link-btn-text {
+    font-size: 0.875rem;
+    /* text-sm */
+    font-weight: 500;
+    color: #9ca3af;
+    /* text-gray-400 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+.editable-link-btn-text.active {
+    color: #dbeafe;
+    /* text-blue-100 */
+}
+
+/* Delete Button Specifics */
+.editable-delete-btn {
+    color: #ef4444;
+    /* text-red-500 */
+    border-color: rgba(239, 68, 68, 0.3);
+    margin-right: 0.5rem;
+}
+
+.editable-delete-btn:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #f87171;
+    /* text-red-400 */
+}
+
+/* Register Button Specifics */
+.editable-register-btn {
+    font-weight: 600;
+    background-color: #2563eb;
+    /* bg-blue-600 */
+    color: white;
+    border: none;
+    padding: 0 1.25rem;
+}
+
+.editable-register-btn:hover {
+    background-color: #1d4ed8;
+    /* bg-blue-700 */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+}
+
+.editable-register-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.editable-action-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+/* Edit Badge Re-implementation */
+.editable-badge-wrapper {
+    position: relative;
+    margin-left: 0.25rem;
+    background-color: #2563eb;
+    /* bg-blue-600 */
+    color: white;
+    border-radius: 9999px;
+    /* rounded-full */
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+.editable-badge-icon {
+    font-size: 0.75rem;
+    /* text-xs */
+    font-weight: 700;
+}
+
+/* Video Modal Buttons */
+.editable-video-register-btn {
+    background-color: #2563eb;
+    /* bg-blue-600 */
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    /* shadow-md */
+    border: none;
+    transition: all 0.2s;
+}
+
+.editable-video-register-btn:hover {
+    background-color: #1d4ed8;
+    /* bg-blue-700 */
+}
+
+.editable-video-register-btn:active {
+    background-color: #1e40af;
+    /* bg-blue-800 */
+}
+
+.editable-video-cancel-btn {
+    background-color: #f3f4f6;
+    /* bg-gray-100 */
+    color: #4b5563;
+    /* text-gray-600 */
+    border: none;
+    transition: all 0.2s;
+}
+
+.editable-video-cancel-btn:hover {
+    background-color: #e5e7eb;
+    /* bg-gray-200 */
+}
+
+.editable-video-cancel-btn:active {
+    background-color: #d1d5db;
+    /* bg-gray-300 */
+}
+
+/* Category Selection Buttons */
+.editable-category-btn {
+    flex: 1;
+    padding: 0.75rem;
+    /* p-3 */
+    border-radius: 0.75rem;
+    /* rounded-xl */
+    border: 1px solid #374151;
+    /* border-gray-700 */
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    /* gap-2 */
+    background-color: #1f2937;
+    /* bg-gray-800 */
+    color: #9ca3af;
+    /* text-gray-400 */
+}
+
+.editable-category-btn:hover {
+    background-color: #374151;
+    /* bg-gray-700 */
+}
+
+.editable-category-btn.event-active {
+    background-color: rgba(30, 58, 138, 0.4);
+    /* bg-blue-900/40 */
+    border-color: #3b82f6;
+    /* border-blue-500 */
+    color: #93c5fd;
+    /* text-blue-300 */
+    box-shadow: 0 0 0 1px #3b82f6;
+    /* ring-1 ring-blue-500 */
+}
+
+.editable-category-btn.class-active {
+    background-color: rgba(76, 29, 149, 0.4);
+    /* bg-violet-900/40 */
+    border-color: #8b5cf6;
+    /* border-violet-500 */
+    color: #c4b5fd;
+    /* text-violet-300 */
+    box-shadow: 0 0 0 1px #8b5cf6;
+    /* ring-1 ring-violet-500 */
+}
+
+
+/* Location and Info Items */
+.editable-info-item {
+    cursor: pointer;
+}
+
+/* .group hover effect needs to be handled on children using parent selector or specific class toggle if strict CSS */
+/* However, standard CSS :hover on parent works for children. */
+.editable-info-item:hover .editable-info-icon {
+    color: #60a5fa;
+    /* text-blue-400 */
+}
+
+.editable-info-item:hover .editable-info-text-default {
+    color: white;
+}
+
+
+.editable-info-icon {
+    font-size: 1.25rem;
+    /* text-xl */
+    transition: color 0.15s ease;
+    color: #818cf8;
+    /* Indigo-400 */
+}
+
+.editable-info-text-default {
+    flex: 1;
+    /* flex-1 */
+    font-size: 1rem;
+    /* text-base */
+    transition: color 0.15s ease;
+    color: #e5e7eb;
+    /* text-gray-200 */
+}
+
+.editable-info-placeholder {
+    color: #6b7280;
+    /* text-gray-500 */
+}
+
+.editable-location-link-badge {
+    font-size: 0.75rem;
+    /* text-xs */
+    padding: 0.125rem 0.5rem;
+    /* px-2 py-0.5 */
+    border-radius: 9999px;
+    /* rounded-full */
+    background-color: rgba(96, 165, 250, 0.1);
+    /* bg-blue-400/10 */
+    color: #60a5fa;
+    /* text-blue-400 */
+    margin-left: 0.5rem;
+    /* ml-2 */
+    display: inline-flex;
+    align-items: center;
+}
+
+.editable-title-text {
+    font-size: 1.75rem;
+    min-height: 2.5rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.3;
+    font-weight: 700;
+    color: white;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.editable-title-text.placeholder {
+    color: #4b5563;
+    /* text-gray-600 */
+}
+
+.editable-info-content {
+    width: 100%;
+    /* w-full */
+    flex: 1;
+    /* flex-1 */
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+
+.editable-video-desc {
+    font-size: 0.875rem;
+    /* text-sm */
+    color: #6b7280;
+    /* text-gray-500 */
+    margin-bottom: 1rem;
+    /* mb-4 */
+    text-align: center;
+}
+
+.editable-genre-placeholder,
+.editable-date-placeholder {
+    color: #6b7280;
+    /* text-gray-500 */
+    font-size: 0.875rem;
+    /* text-sm */
+}
+
+.editable-description-textarea {
+    width: 100%;
+    background-color: transparent;
+    color: #e5e7eb;
+    /* text-gray-200 */
+    resize: vertical;
+    outline: none;
+    min-height: 200px;
+    overflow: hidden;
+    line-height: 1.625;
+    font-size: 1rem;
+    /* text-base */
+}
+
+.editable-description-textarea::placeholder {
+    color: #4b5563;
+    /* placeholder-gray-600 */
+}
+
+.editable-password-icon {
+    color: #6b7280;
+    /* text-gray-500 */
+    font-size: 0.875rem;
+    /* text-sm */
+    margin-right: 0.375rem;
+    /* mr-1.5 */
+}

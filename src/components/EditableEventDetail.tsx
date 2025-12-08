@@ -9,6 +9,7 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/components/EventDetailModal.css";
+import "../pages/v2/styles/EditableEventDetail.css";
 import "../styles/components/InteractivePreview.css";
 
 // Register locale
@@ -55,14 +56,14 @@ interface EditableEventDetailProps {
 }
 
 const genreColorPalette = [
-    'card-genre-red', 'card-genre-orange', 'card-genre-amber', 'card-genre-yellow',
-    'card-genre-lime', 'card-genre-green', 'card-genre-emerald', 'card-genre-teal',
-    'card-genre-cyan', 'card-genre-sky', 'card-genre-blue', 'card-genre-indigo',
-    'card-genre-violet', 'card-genre-purple', 'card-genre-fuchsia', 'card-genre-pink', 'card-genre-rose',
+    'genre-color-red', 'genre-color-orange', 'genre-color-amber', 'genre-color-yellow',
+    'genre-color-lime', 'genre-color-green', 'genre-color-emerald', 'genre-color-teal',
+    'genre-color-cyan', 'genre-color-sky', 'genre-color-blue', 'genre-color-indigo',
+    'genre-color-violet', 'genre-color-purple', 'genre-color-fuchsia', 'genre-color-pink', 'genre-color-rose',
 ];
 
 function getGenreColor(genre: string): string {
-    if (!genre) return 'card-genre-gray';
+    if (!genre) return 'genre-color-gray';
     let hash = 0;
     for (let i = 0; i < genre.length; i++) {
         hash = genre.charCodeAt(i) + ((hash << 5) - hash);
@@ -73,8 +74,8 @@ function getGenreColor(genre: string): string {
 
 // Edit Badge Component
 const EditBadge = ({ isStatic = false }: { isStatic?: boolean }) => (
-    <div className={`${isStatic ? "relative ml-1" : "absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2"} bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-md z-10 border border-white/20 shrink-0`}>
-        <i className="ri-add-line text-xs font-bold"></i>
+    <div className={isStatic ? "editable-badge-wrapper" : "absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 editable-badge-wrapper"}>
+        <i className="ri-add-line editable-badge-icon"></i>
     </div>
 );
 
@@ -227,7 +228,6 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
     // Title Font Scaling Logic
     const titleRef = useRef<HTMLHeadingElement>(null);
-    const [titleFontSize, setTitleFontSize] = useState(1.75); // Initial rem
 
     React.useLayoutEffect(() => {
         const adjustFontSize = () => {
@@ -253,8 +253,6 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                 currentSize -= STEP;
                 element.style.fontSize = `${currentSize}rem`;
             }
-
-            setTitleFontSize(currentSize);
         };
 
         adjustFontSize();
@@ -285,7 +283,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     overscrollBehavior: 'contain',
                     WebkitOverflowScrolling: 'touch',
                     touchAction: 'pan-y',
-                    paddingBottom: '120px'
+
                 }}
             >
                 {/* Image Area */}
@@ -440,7 +438,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                     동영상 등록 (유튜브)
                                 </h3>
                                 <div className="bottom-sheet-body">
-                                    <p className="text-sm text-gray-500 mb-4 text-center">
+                                    <p className="editable-video-desc">
                                         유튜브 영상 주소를 입력해주세요.<br />
                                         <span className="text-xs text-red-400 mt-1 block">
                                             * 주소를 지우고 등록하면 영상이 삭제됩니다.
@@ -461,8 +459,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                 onClick={() => {
                                                     setActiveModal(null);
                                                 }}
-                                                className="bottom-sheet-button flex-1 bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300 border-none"
-                                                style={{ backgroundColor: '#f3f4f6', color: '#4b5563' }}
+                                                className="bottom-sheet-button flex-1 editable-video-cancel-btn"
+                                                style={{ backgroundColor: '', color: '' }}
                                             >
                                                 취소
                                             </button>
@@ -475,7 +473,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                     onVideoChange?.(tempVideoUrl);
                                                     setActiveModal(null);
                                                 }}
-                                                className="bottom-sheet-button flex-1 bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-md border-none"
+                                                className="bottom-sheet-button flex-1 editable-video-register-btn"
                                             >
                                                 등록
                                             </button>
@@ -513,7 +511,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
                             {/* Genre Text part */}
                             <div className={`genre-text ${getGenreColor(event.genre || '')}`}>
-                                {event.genre || <span className="text-gray-500 text-sm">장르 선택</span>}
+                                {event.genre || <span className="editable-genre-placeholder">장르 선택</span>}
                             </div>
 
                             <EditBadge isStatic />
@@ -547,20 +545,16 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                 <div className="flex gap-3 w-full">
                                                     <button
                                                         onClick={() => onUpdate('category', 'event')}
-                                                        className={`flex-1 p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${event.category === 'event'
-                                                            ? 'bg-blue-900/40 border-blue-500 text-blue-300 ring-1 ring-blue-500'
-                                                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}
+                                                        className={`editable-category-btn ${event.category === 'event' ? 'event-active' : ''}`}
                                                     >
-                                                        <span className="text-lg font-bold">행사</span>
+                                                        <span className="editable-category-btn-text">행사</span>
                                                         {event.category === 'event' && <i className="ri-check-line"></i>}
                                                     </button>
                                                     <button
                                                         onClick={() => onUpdate('category', 'class')}
-                                                        className={`flex-1 p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${event.category === 'class'
-                                                            ? 'bg-violet-900/40 border-violet-500 text-violet-300 ring-1 ring-violet-500'
-                                                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}
+                                                        className={`editable-category-btn ${event.category === 'class' ? 'class-active' : ''}`}
                                                     >
-                                                        <span className="text-lg font-bold">강습</span>
+                                                        <span className="editable-category-btn-text">강습</span>
                                                         {event.category === 'class' && <i className="ri-check-line"></i>}
                                                     </button>
                                                 </div>
@@ -626,23 +620,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         setActiveModal('title');
                     }}
                 >
-                    <h2
-                        ref={titleRef}
-                        className="title-text"
-                        style={{
-                            fontSize: `${titleFontSize}rem`,
-                            minHeight: '2.5rem',
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                            lineHeight: '1.3',
-                            fontWeight: '700',
-                            color: event.title ? 'white' : '#4b5563',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                        }}
-                    >
+                    <h2 className={`title-text editable-title-text ${!event.title ? 'placeholder' : ''}`}>
                         {event.title || "제목을 입력하세요"}
                     </h2>
                     <EditBadge isStatic />
@@ -704,7 +682,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     {/* Date                    */}
                     <div
                         id="date-selector-section"
-                        className="date-selector-row info-item group"
+                        className="date-selector-row editable-info-item"
                         onClick={(e) => {
                             e.stopPropagation();
                             if (eventDates && eventDates.length > 0) {
@@ -717,8 +695,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             setActiveModal('date');
                         }}
                     >
-                        <i className="ri-calendar-line info-icon text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
-                        <span className="group-hover:text-white transition-colors text-base flex-1">
+                        <i className="ri-calendar-line editable-info-icon"></i>
+                        <span className="editable-info-text-default">
                             {eventDates && eventDates.length > 0 ? (
                                 // Multiple Dates Display
                                 <span className="text-sm">
@@ -739,7 +717,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                     return startStr;
                                 })()
                             ) : (
-                                <span className="text-gray-500">날짜를 선택하세요</span>
+                                <span className="editable-date-placeholder">날짜를 선택하세요</span>
                             )}
                         </span>
                         <EditBadge isStatic />
@@ -927,7 +905,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
                     {/* Location                    */}
                     <div
-                        className="location-selector-row info-item group"
+                        className="location-selector-row editable-info-item"
                         onClick={(e) => {
                             e.stopPropagation();
                             setTempLocation(event.location);
@@ -935,12 +913,12 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             setActiveModal('location');
                         }}
                     >
-                        <i className="ri-map-pin-line info-icon text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
-                        <div className="info-flex-gap-1 w-full flex-1">
-                            <span className="group-hover:text-white transition-colors text-base">{event.location || <span className="text-gray-500">장소를 입력하세요</span>}</span>
+                        <i className="ri-map-pin-line editable-info-icon"></i>
+                        <div className="editable-info-content">
+                            <span className="editable-info-text-default">{event.location || <span className="editable-info-placeholder">장소를 입력하세요</span>}</span>
                             {event.location_link && (
-                                <span className="location-link text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full text-xs">
-                                    <i className="ri-map-2-line mr-1"></i>
+                                <span className="editable-location-link-badge">
+                                    <i className="ri-map-2-line editable-location-link-icon"></i>
                                     지도
                                 </span>
                             )}
@@ -1013,8 +991,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
                     {/* Description */}
                     <div className="info-divider">
-                        <div className="description-editor-row info-item group">
-                            <i className="ri-file-text-line info-icon mt-1.5 text-gray-400 group-hover:text-blue-400 transition-colors text-xl"></i>
+                        <div className="description-editor-row editable-info-item">
+                            <i className="ri-file-text-line editable-info-icon mt-1.5"></i>
                             <div className="info-item-content w-full">
                                 <textarea
                                     value={event.description}
@@ -1024,7 +1002,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         e.target.style.height = 'auto';
                                         e.target.style.height = e.target.scrollHeight + 'px';
                                     }}
-                                    className="w-full bg-transparent text-gray-300 resize-none outline-none min-h-[200px] overflow-hidden placeholder-gray-600 leading-relaxed text-base"
+                                    className="editable-description-textarea"
                                     placeholder="행사 내용을 상세히 입력해주세요..."
                                 />
                             </div>
@@ -1036,7 +1014,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     <div className="info-divider">
                         <div id="password-input-section" className="password-input-row info-item group" style={{ justifyContent: 'flex-end' }}>
                             <div className="password-input-container">
-                                <i className="ri-lock-line text-gray-500 text-sm mr-1.5"></i>
+                                <i className="ri-lock-line editable-password-icon"></i>
                                 <input
                                     type="password"
                                     value={password}
@@ -1053,19 +1031,19 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
             </div >
 
             {/* Footer Actions */}
-            < div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
-                <div className="footer-actions-container">
+            <div className="editable-footer">
+                <div className="editable-footer-actions">
                     {/* Link Input Button */}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             setActiveModal(activeModal === 'link' ? null : 'link');
                         }}
-                        className="link-action-btn action-button group"
+                        className="editable-action-btn group"
                         title={link ? "링크 수정" : "링크 추가"}
                     >
-                        <i className={`ri-external-link-line action-icon ${link ? 'text-blue-400' : 'text-gray-400'}`} style={{ fontSize: '1.25rem' }}></i>
-                        <span className={`text-sm font-medium ${link ? 'text-blue-100' : 'text-gray-400'} truncate`}>
+                        <i className={`ri-external-link-line editable-link-btn-icon ${link ? 'active' : ''}`}></i>
+                        <span className={`editable-link-btn-text ${link ? 'active' : ''}`}>
                             링크
                         </span>
                         <EditBadge isStatic />
@@ -1139,11 +1117,10 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                 e.stopPropagation();
                                 onDelete();
                             }}
-                            className="close-action-btn close-button"
+                            className="editable-action-btn icon-only editable-delete-btn"
                             title="삭제하기"
-                            style={{ marginRight: '0.5rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
                         >
-                            <i className="ri-delete-bin-line action-icon"></i>
+                            <i className="ri-delete-bin-line editable-action-icon"></i>
                         </button>
                     )}
 
@@ -1153,10 +1130,10 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             e.stopPropagation();
                             onClose?.();
                         }}
-                        className="close-action-btn close-button"
+                        className="editable-action-btn icon-only"
                         title="닫기"
                     >
-                        <i className="ri-close-line action-icon"></i>
+                        <i className="ri-close-line editable-action-icon"></i>
                     </button>
 
                     {/* Register Button */}
@@ -1166,14 +1143,14 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             onRegister?.();
                         }}
                         disabled={isSubmitting}
-                        className={`register-action-btn close-button ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className="editable-action-btn editable-register-btn"
                         title="등록하기"
                     >
                         {isSubmitting ? '등록 중...' : '등록'}
                     </button>
                 </div>
-            </div >
-        </div >
+            </div>
+        </div>
     );
 });
 

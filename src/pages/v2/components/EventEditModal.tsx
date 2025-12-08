@@ -49,7 +49,9 @@ interface EventEditModalProps {
     allGenres: string[];
 }
 
-import "../../../styles/components/EventEditModal.css";
+import "../styles/EventEditModal.css";
+// import "../../../styles/components/EventEditModal.css"; // Removed as we want to fully rely on new styles, but double check if any are missing.
+// Based on my analysis, I moved most used styles. If something is missing, I can add it to the new file.
 import { EventCard } from "./EventCard";
 
 // ... existing imports ...
@@ -414,7 +416,7 @@ export default function EventEditModal({
 
     return createPortal(
         <div
-            className="evt-fixed-inset-edit-modal"
+            className="edit-modal-overlay"
             onTouchStartCapture={(e) => {
                 e.stopPropagation();
             }}
@@ -428,29 +430,29 @@ export default function EventEditModal({
                 e.stopPropagation();
             }}
         >
-            <div className="evt-modal-container-lg">
+            <div className="edit-modal-container">
                 {/* 헤더 */}
-                <div className="evt-modal-header">
-                    <div className="evt-modal-header-content">
-                        <h2 className="evt-modal-title">이벤트 수정</h2>
+                <div className="edit-modal-header">
+                    <div className="edit-modal-header-content">
+                        <h2 className="edit-modal-title">이벤트 수정</h2>
                         <button
                             onClick={() => {
                                 onClose();
                                 setEditVideoPreview({ provider: null, embedUrl: null });
                             }}
-                            className="evt-modal-close-btn"
+                            className="edit-modal-close-btn"
                         >
-                            <i className="ri-close-line evt-icon-xl"></i>
+                            <i className="ri-close-line edit-modal-icon-lg"></i>
                         </button>
                     </div>
                 </div>
 
                 {/* 스크롤 가능한 폼 영역 */}
-                <div className="evt-modal-body-scroll">
+                <div className="edit-modal-body">
                     {/* Live Preview Section */}
-                    <div className="live-preview-section">
-                        <div className="preview-header">
-                            <label className="evt-form-label preview-label">미리보기</label>
+                    <div className="edit-modal-preview-section">
+                        <div className="edit-modal-preview-header">
+                            <label className="edit-modal-group-label">미리보기</label>
                             <div className="preview-toggle-container">
                                 <button
                                     type="button"
@@ -559,10 +561,10 @@ export default function EventEditModal({
                     <form
                         id="edit-event-form"
                         onSubmit={handleEditSubmit}
-                        className="evt-space-y-3"
+                        className="edit-modal-form"
                     >
                         <div>
-                            <label className="evt-form-label">이벤트 제목</label>
+                            <label className="edit-modal-label">이벤트 제목</label>
                             <input
                                 type="text"
                                 value={editFormData.title}
@@ -572,12 +574,12 @@ export default function EventEditModal({
                                         title: e.target.value,
                                     }))
                                 }
-                                className="evt-form-input"
+                                className="edit-modal-input"
                             />
                         </div>
 
-                        <div className="evt-relative">
-                            <label className="evt-form-label">
+                        <div className="edit-modal-input-group">
+                            <label className="edit-modal-label">
                                 장르 (7자 이내, 선택사항)
                             </label>
                             <input
@@ -600,17 +602,17 @@ export default function EventEditModal({
                                     setTimeout(() => setIsGenreInputFocused(false), 150)
                                 }
                                 maxLength={7}
-                                className="evt-form-input"
+                                className="edit-modal-input"
                                 placeholder="예: 린디합, 발보아"
                                 autoComplete="off"
                             />
                             {isGenreInputFocused && genreSuggestions.length > 0 && (
-                                <div className="evt-autocomplete-dropdown">
+                                <div className="edit-modal-autocomplete-dropdown">
                                     {genreSuggestions.map((genre) => (
                                         <div
                                             key={genre}
                                             onMouseDown={() => handleGenreSuggestionClick(genre)}
-                                            className="evt-autocomplete-genre-item"
+                                            className="edit-modal-autocomplete-item"
                                         >
                                             {genre}
                                         </div>
@@ -620,7 +622,7 @@ export default function EventEditModal({
                         </div>
 
                         <div>
-                            <label className="evt-form-label">카테고리</label>
+                            <label className="edit-modal-label">카테고리</label>
                             <select
                                 value={editFormData.category}
                                 onChange={(e) =>
@@ -629,7 +631,7 @@ export default function EventEditModal({
                                         category: e.target.value,
                                     }))
                                 }
-                                className="evt-form-select"
+                                className="edit-modal-select"
                             >
                                 <option value="class">강습</option>
                                 <option value="event">행사</option>
@@ -637,11 +639,11 @@ export default function EventEditModal({
                         </div>
 
                         {/* 빌보드 표시 옵션 */}
-                        <div className="evt-billboard-option-box evt-space-y-2">
-                            <label className="evt-block evt-text-gray-400 evt-text-xs evt-font-medium">
+                        <div className="edit-modal-option-box">
+                            <label className="edit-modal-label-sub">
                                 빌보드 표시 옵션
                             </label>
-                            <div className="evt-flex evt-items-center">
+                            <div className="edit-modal-checkbox-wrapper">
                                 <input
                                     type="checkbox"
                                     id="editShowTitleOnBillboard"
@@ -654,11 +656,11 @@ export default function EventEditModal({
                                             showTitleOnBillboard: checked,
                                         }));
                                     }}
-                                    className="evt-form-checkbox"
+                                    className="edit-modal-checkbox"
                                 />
                                 <label
                                     htmlFor="editShowTitleOnBillboard"
-                                    className="evt-ml-2 evt-block evt-text-sm evt-text-gray-400"
+                                    className="edit-modal-checkbox-label"
                                 >
                                     빌보드에 제목, 날짜, 장소 정보 표시
                                 </label>
@@ -666,9 +668,9 @@ export default function EventEditModal({
                         </div>
 
                         {/* 장소 이름 & 주소 링크 (한 줄) */}
-                        <div className="evt-grid-cols-2 evt-gap-3">
+                        <div className="edit-modal-grid-row">
                             <div>
-                                <label className="evt-form-label">장소 이름</label>
+                                <label className="edit-modal-label">장소 이름</label>
                                 <input
                                     type="text"
                                     value={editFormData.location}
@@ -678,12 +680,12 @@ export default function EventEditModal({
                                             location: e.target.value,
                                         }))
                                     }
-                                    className="evt-form-input"
+                                    className="edit-modal-input"
                                     placeholder="예: 홍대 연습실"
                                 />
                             </div>
                             <div>
-                                <label className="evt-form-label">주소 링크 (선택)</label>
+                                <label className="edit-modal-label">주소 링크 (선택)</label>
                                 <input
                                     type="text"
                                     value={editFormData.locationLink}
@@ -693,19 +695,19 @@ export default function EventEditModal({
                                             locationLink: e.target.value,
                                         }))
                                     }
-                                    className="evt-form-input"
+                                    className="edit-modal-input"
                                     placeholder="지도 링크"
                                 />
                             </div>
                         </div>
 
                         {/* 날짜 선택 섹션 (통합 박스) */}
-                        <div className="date-selection-box">
-                            <label className="evt-block evt-text-gray-400 evt-text-xs evt-font-medium">
+                        <div className="edit-modal-date-box">
+                            <label className="edit-modal-label-sub">
                                 날짜 선택 방식
                             </label>
-                            <div className="date-mode-toggle-group">
-                                <label className="evt-flex evt-items-center evt-cursor-pointer">
+                            <div className="edit-modal-radio-group">
+                                <label className="edit-modal-radio-label">
                                     <input
                                         type="radio"
                                         name="edit-dateMode"
@@ -718,13 +720,13 @@ export default function EventEditModal({
                                                 event_dates: [],
                                             }));
                                         }}
-                                        className="evt-mr-2"
+                                        className="edit-modal-radio"
                                     />
-                                    <span className="evt-text-gray-400 evt-text-sm">
+                                    <span className="edit-modal-radio-text">
                                         연속 기간
                                     </span>
                                 </label>
-                                <label className="evt-flex evt-items-center evt-cursor-pointer">
+                                <label className="edit-modal-radio-label">
                                     <input
                                         type="radio"
                                         name="edit-dateMode"
@@ -736,18 +738,18 @@ export default function EventEditModal({
                                                 dateMode: "specific",
                                             }));
                                         }}
-                                        className="evt-mr-2"
+                                        className="edit-modal-radio"
                                     />
-                                    <span className="evt-text-gray-400 evt-text-sm">
+                                    <span className="edit-modal-radio-text">
                                         특정 날짜 선택
                                     </span>
                                 </label>
                             </div>
 
                             {editFormData.dateMode === "range" ? (
-                                <div className="evt-grid-cols-2 evt-gap-3">
+                                <div className="edit-modal-grid-row">
                                     <div>
-                                        <label className="evt-form-label">시작일</label>
+                                        <label className="edit-modal-label">시작일</label>
                                         <DatePicker
                                             selected={
                                                 editFormData.start_date
@@ -808,7 +810,7 @@ export default function EventEditModal({
                                         />
                                     </div>
                                     <div>
-                                        <label className="evt-form-label">종료일</label>
+                                        <label className="edit-modal-label">종료일</label>
                                         <DatePicker
                                             selected={
                                                 editFormData.end_date
@@ -824,16 +826,6 @@ export default function EventEditModal({
                                                     }));
                                                 }
                                             }}
-                                            startDate={
-                                                editFormData.start_date
-                                                    ? new Date(editFormData.start_date + "T00:00:00")
-                                                    : null
-                                            }
-                                            endDate={
-                                                editFormData.end_date
-                                                    ? new Date(editFormData.end_date + "T00:00:00")
-                                                    : null
-                                            }
                                             minDate={
                                                 editFormData.start_date
                                                     ? new Date(editFormData.start_date + "T00:00:00")
@@ -854,116 +846,262 @@ export default function EventEditModal({
                                             withPortal
                                             portalId="root-portal"
                                             renderCustomHeader={(props) => (
-                                                <CustomDatePickerHeader {...props} />
+                                                <CustomDatePickerHeader
+                                                    {...props}
+                                                    selectedDate={
+                                                        editFormData.end_date
+                                                            ? new Date(editFormData.end_date + "T00:00:00")
+                                                            : null
+                                                    }
+                                                    onTodayClick={() => {
+                                                        const today = new Date();
+                                                        props.changeMonth(today.getMonth());
+                                                        props.changeYear(today.getFullYear());
+                                                    }}
+                                                />
                                             )}
                                         />
                                     </div>
                                 </div>
                             ) : (
                                 <div>
-                                    <label className="evt-block evt-text-gray-400 evt-text-sm evt-font-medium evt-mb-2">
-                                        선택된 날짜 ({editFormData.event_dates.length}개)
+                                    <label className="edit-modal-label">
+                                        날짜 추가 (여러 번 선택 가능)
                                     </label>
-                                    <div className="specific-date-list">
-                                        {editFormData.event_dates
-                                            .sort((a, b) => a.localeCompare(b))
-                                            .map((dateStr, index) => {
-                                                const date = new Date(dateStr);
-                                                return (
-                                                    <div key={index} className="evt-date-badge">
-                                                        <span>
-                                                            {date.getMonth() + 1}/{date.getDate()}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (editFormData.event_dates.length > 1) {
-                                                                    setEditFormData((prev) => ({
-                                                                        ...prev,
-                                                                        event_dates: prev.event_dates.filter(
-                                                                            (_, i) => i !== index,
-                                                                        ),
-                                                                    }));
-                                                                }
-                                                            }}
-                                                            className="evt-ml-2 evt-btn-close-red"
-                                                        >
-                                                            <i className="ri-close-line"></i>
-                                                        </button>
-                                                    </div>
-                                                );
-                                            })}
-                                    </div>
-                                    <div className="specific-date-input-row">
-                                        <input
-                                            type="date"
-                                            value={tempDateInput}
-                                            className="evt-flex-1 evt-form-input"
-                                            onKeyDown={(e) => {
-                                                if (
-                                                    e.key !== "Tab" &&
-                                                    e.key !== "ArrowLeft" &&
-                                                    e.key !== "ArrowRight"
-                                                ) {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            onChange={(e) => {
-                                                setTempDateInput(e.target.value);
-                                            }}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (tempDateInput) {
-                                                    const newDate = tempDateInput;
-                                                    const isDuplicate =
-                                                        editFormData.event_dates.includes(newDate);
-                                                    if (!isDuplicate) {
+                                    <DatePicker
+                                        selected={null}
+                                        onChange={(date) => {
+                                            if (date) {
+                                                const dateStr = formatDateForInput(date);
+                                                setEditFormData((prev) => {
+                                                    if (prev.event_dates.includes(dateStr)) return prev;
+                                                    const newDates = [...prev.event_dates, dateStr].sort();
+                                                    return { ...prev, event_dates: newDates };
+                                                });
+                                                setTempDateInput(""); // Reset any temp input if needed
+                                            }
+                                        }}
+                                        locale="ko"
+                                        shouldCloseOnSelect={false}
+                                        customInput={
+                                            <CustomDateInput
+                                                value="날짜 추가하기"
+                                                onClick={() => { }}
+                                            />
+                                        }
+                                        calendarClassName="evt-calendar-bg"
+                                        withPortal
+                                        portalId="root-portal"
+                                        renderCustomHeader={(props) => (
+                                            <CustomDatePickerHeader
+                                                {...props}
+                                                selectedDate={new Date()}
+                                                onTodayClick={() => {
+                                                    const today = new Date();
+                                                    props.changeMonth(today.getMonth());
+                                                    props.changeYear(today.getFullYear());
+                                                }}
+                                            />
+                                        )}
+                                    />
+
+                                    {/* 선택된 날짜 목록 */}
+                                    <div className="specific-date-list" style={{ marginTop: '0.75rem' }}>
+                                        {editFormData.event_dates.map((dateStr, index) => (
+                                            <div key={index} className="edit-modal-date-badge">
+                                                <span>
+                                                    {new Date(dateStr).getMonth() + 1}.
+                                                    {new Date(dateStr).getDate()}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
                                                         setEditFormData((prev) => ({
                                                             ...prev,
-                                                            event_dates: [...prev.event_dates, newDate],
+                                                            event_dates: prev.event_dates.filter(
+                                                                (d) => d !== dateStr,
+                                                            ),
                                                         }));
-                                                    }
-                                                    setTempDateInput("");
-                                                }
-                                            }}
-                                            className="evt-video-btn"
-                                        >
-                                            추가
-                                        </button>
+                                                    }}
+                                                    className="edit-modal-badge-remove"
+                                                >
+                                                    <i className="ri-close-circle-fill"></i>
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <p className="evt-text-xs evt-text-gray-400">
-                                        예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수 있습니다
-                                    </p>
                                 </div>
                             )}
                         </div>
 
-                        {/* 문의 정보 (공개) */}
                         <div>
-                            <label className="evt-form-label">문의</label>
+                            <label className="edit-modal-label">시간</label>
                             <input
                                 type="text"
-                                value={editFormData.contact}
+                                value={editFormData.time}
                                 onChange={(e) =>
-                                    setEditFormData((prev) => ({
-                                        ...prev,
-                                        contact: e.target.value,
-                                    }))
+                                    setEditFormData((prev) => ({ ...prev, time: e.target.value }))
                                 }
-                                className="evt-form-input"
-                                placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
+                                maxLength={20}
+                                className="edit-modal-input"
+                                placeholder="예: 19:30 - 23:00"
                             />
-                            <p className="evt-text-xs evt-text-gray-400 evt-mt-1">
-                                <i className="ri-information-line evt-mr-1"></i>
-                                참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
-                            </p>
                         </div>
 
-                        {/* 내용 */}
+                        {/* 비디오 URL 입력 및 검색 */}
+                        <div className="video-section-container">
+                            <label className="edit-modal-label">비디오 URL</label>
+                            <div className="edit-modal-checkbox-wrapper" style={{ gap: '0.5rem' }}>
+                                <input
+                                    type="text"
+                                    value={editFormData.videoUrl}
+                                    onChange={(e) =>
+                                        setEditFormData((prev) => ({
+                                            ...prev,
+                                            videoUrl: e.target.value,
+                                        }))
+                                    }
+                                    className="edit-modal-input"
+                                    style={{ flex: 1 }}
+                                    placeholder="YouTube 또는 Instagram URL"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!editFormData.videoUrl) return;
+
+                                        const videoInfo = parseVideoUrl(editFormData.videoUrl);
+                                        if (videoInfo.provider && videoInfo.embedUrl) {
+                                            setEditVideoPreview({
+                                                provider: videoInfo.provider,
+                                                embedUrl: videoInfo.embedUrl,
+                                            });
+
+                                            // 썸네일 옵션 가져오기
+                                            const options = await getVideoThumbnailOptions(
+                                                editFormData.videoUrl,
+                                            );
+                                            setThumbnailOptions(options);
+                                            if (options.length > 0) {
+                                                setShowThumbnailSelector(true);
+                                            }
+                                        } else {
+                                            alert("지원하지 않는 URL 형식이거나 잘못된 URL입니다.");
+                                        }
+                                    }}
+                                    className="edit-modal-btn-video"
+                                >
+                                    썸네일 검색
+                                </button>
+                            </div>
+                            <p className="edit-modal-helper-text">
+                                * URL 입력 후 '썸네일 검색'을 누르면 썸네일을 자동 추출하여 등록할
+                                수 있습니다.
+                            </p>
+
+                            {/* 비디오 미리보기 */}
+                            {editVideoPreview.embedUrl && (
+                                <div className="video-preview-wrapper">
+                                    <iframe
+                                        src={editVideoPreview.embedUrl}
+                                        className="video-preview-iframe"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 이미지 업로드 섹션 */}
+                        <div className="image-section-container">
+                            <label className="edit-modal-label">이미지 (포스터)</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleEditImageChange}
+                                className="edit-modal-input"
+                            />
+
+                            {editImagePreview && (
+                                <div className="image-preview-container">
+                                    <img
+                                        src={editImagePreview}
+                                        alt="미리보기"
+                                        className="image-preview-img"
+                                    />
+                                    <div className="image-action-buttons">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (editImagePreview.startsWith("blob:")) {
+                                                    // Blob URL인 경우 다운로드 처리
+                                                    const a = document.createElement("a");
+                                                    a.href = editImagePreview;
+                                                    a.download = "thumbnail.jpg";
+                                                    a.click();
+                                                } else {
+                                                    // 원격 URL인 경우
+                                                    window.open(editImagePreview, "_blank");
+                                                }
+                                            }}
+                                            className="thumbnail-download-btn"
+                                            title="이미지 다운로드"
+                                        >
+                                            <i className="ri-download-line" style={{ marginRight: '4px' }}></i>
+                                            다운로드
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEditImageFile(null);
+                                                setEditImagePreview("");
+                                                // 폼 데이터에서도 이미지 제거
+                                                setEditFormData((prev) => ({ ...prev, image: "" }));
+                                            }}
+                                            className="thumbnail-remove-btn"
+                                        >
+                                            삭제
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="edit-modal-grid-row">
+                            <div>
+                                <label className="edit-modal-label">주최자 (선택)</label>
+                                <input
+                                    type="text"
+                                    value={editFormData.organizerName}
+                                    onChange={(e) =>
+                                        setEditFormData((prev) => ({
+                                            ...prev,
+                                            organizerName: e.target.value,
+                                        }))
+                                    }
+                                    className="edit-modal-input"
+                                    placeholder="주최자/단체명"
+                                />
+                            </div>
+                            <div>
+                                <label className="edit-modal-label">문의 (선택)</label>
+                                <input
+                                    type="text"
+                                    value={editFormData.organizerPhone}
+                                    onChange={(e) =>
+                                        setEditFormData((prev) => ({
+                                            ...prev,
+                                            organizerPhone: e.target.value,
+                                        }))
+                                    }
+                                    className="edit-modal-input"
+                                    placeholder="연락처/카톡ID"
+                                />
+                            </div>
+                        </div>
+
                         <div>
-                            <label className="evt-form-label">내용 (선택사항)</label>
+                            <label className="edit-modal-label">내용 (선택사항)</label>
                             <textarea
                                 value={editFormData.description}
                                 onChange={(e) =>
@@ -973,380 +1111,131 @@ export default function EventEditModal({
                                     }))
                                 }
                                 rows={4}
-                                className="evt-form-input"
-                                placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
-                            />
+                                className="edit-modal-input"
+                                placeholder="이벤트 상세 내용을 입력하세요"
+                            ></textarea>
                         </div>
 
-                        <div>
-                            <label className="evt-form-label">바로가기 링크</label>
-                            <div className="evt-grid-cols-2 evt-gap-2">
-                                <input
-                                    type="url"
-                                    value={editFormData.link1}
-                                    onChange={(e) =>
-                                        setEditFormData((prev) => ({
-                                            ...prev,
-                                            link1: e.target.value,
-                                        }))
-                                    }
-                                    className="evt-form-input"
-                                    placeholder="링크 URL"
-                                />
-                                <input
-                                    type="text"
-                                    value={editFormData.linkName1}
-                                    onChange={(e) =>
-                                        setEditFormData((prev) => ({
-                                            ...prev,
-                                            linkName1: e.target.value,
-                                        }))
-                                    }
-                                    className="evt-form-input"
-                                    placeholder="링크 이름"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="evt-form-label">
-                                이벤트 이미지 (선택사항)
+                        {/* 링크 입력 섹션 */}
+                        <div className="edit-modal-option-box">
+                            <label className="edit-modal-label-sub">
+                                추가 링크 (선택)
                             </label>
-                            <div className="image-section-container">
-                                {editImagePreview && (
-                                    <div className="image-preview-container">
-                                        <img
-                                            src={editImagePreview}
-                                            alt="이벤트 이미지"
-                                            className="image-preview-img"
-                                        />
-                                        <div className="image-action-buttons">
-                                            {/* <button
-                        type="button"
-                        onClick={handleEditOpenCropForFile}
-                        className="evt-btn-purple"
-                      >
-                        <i className="ri-crop-line evt-mr-1"></i>
-                        편집
-                      </button> */}
-                                            {isAdminMode && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const link = document.createElement("a");
-                                                        link.href = editImagePreview;
-                                                        link.download = `thumbnail-${Date.now()}.jpg`;
-                                                        document.body.appendChild(link);
-                                                        link.click();
-                                                        document.body.removeChild(link);
-                                                    }}
-                                                    className="thumbnail-download-btn"
-                                                >
-                                                    <i className="ri-download-line evt-mr-1"></i>
-                                                    다운로드
-                                                </button>
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setEditImagePreview("");
-                                                    setEditImageFile(null);
-                                                    setEditFormData((prev) => ({
-                                                        ...prev,
-                                                        image: "",
-                                                    }));
-                                                }}
-                                                className="thumbnail-remove-btn"
-                                            >
-                                                이미지 삭제
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleEditImageChange}
-                                    className="evt-file-input"
-                                />
 
-                                {/* 썸네일 추출 버튼 (영상 URL이 있을 때만) */}
-                                {editFormData.videoUrl && editVideoPreview.provider && (
-                                    <>
-                                        {editVideoPreview.provider === "youtube" ||
-                                            editVideoPreview.provider === "vimeo" ? (
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    try {
-                                                        const options = await getVideoThumbnailOptions(
-                                                            editFormData.videoUrl,
-                                                        );
-                                                        if (options.length > 0) {
-                                                            setThumbnailOptions(options);
-                                                            setShowThumbnailSelector(true);
-                                                        } else {
-                                                            alert("이 영상에서 썸네일을 추출할 수 없습니다.");
-                                                        }
-                                                    } catch (error) {
-                                                        console.error("썸네일 추출 오류:", error);
-                                                        alert("썸네일 추출 중 오류가 발생했습니다.");
-                                                    }
-                                                }}
-                                                className="evt-btn-green-full"
-                                            >
-                                                <i className="ri-image-add-line evt-mr-1"></i>
-                                                썸네일 추출하기{" "}
-                                                {editVideoPreview.provider === "youtube" &&
-                                                    "(여러 장면 선택 가능)"}
-                                            </button>
-                                        ) : (
-                                            <div className="evt-mt-2">
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    className="evt-btn-disabled"
-                                                >
-                                                    <i className="ri-image-add-line evt-mr-1"></i>
-                                                    썸네일 추출 불가능
-                                                </button>
-                                                <p className="evt-text-xs evt-text-orange-400 evt-mt-2">
-                                                    <i className="ri-alert-line evt-mr-1"></i>
-                                                    Instagram/Facebook은 썸네일 자동 추출이 지원되지
-                                                    않습니다. 위 이미지로 썸네일을 직접 등록해주세요.
-                                                </p>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-
-                                <p className="evt-text-xs evt-text-gray-400">
-                                    <i className="ri-information-line evt-mr-1"></i>
-                                    포스터 이미지는 이벤트 배너와 상세보기에 표시됩니다.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="evt-form-label">영상 URL (선택사항)</label>
-                            <div className="video-section-container">
-                                {/* 영상 프리뷰 */}
-                                {editVideoPreview.provider && editVideoPreview.embedUrl && (
-                                    <div className="evt-relative">
-                                        <div className="video-status-badge">
-                                            <i className="ri-check-line"></i>
-                                            <span>영상 인식됨 - 빌보드에서 재생됩니다</span>
-                                        </div>
-                                        <div className="video-preview-wrapper">
-                                            <iframe
-                                                src={editVideoPreview.embedUrl}
-                                                className="video-preview-iframe"
-                                                frameBorder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                            ></iframe>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setEditVideoPreview({
-                                                    provider: null,
-                                                    embedUrl: null,
-                                                });
+                            {[1, 2, 3].map((num) => (
+                                <div key={num} className="edit-modal-grid-row">
+                                    <div style={{ flex: 1 }}>
+                                        <input
+                                            type="text"
+                                            value={editFormData[`linkName${num}` as keyof typeof editFormData] as string}
+                                            onChange={(e) =>
                                                 setEditFormData((prev) => ({
                                                     ...prev,
-                                                    videoUrl: "",
-                                                }));
-                                                setEditImageFile(null);
-                                                setEditImagePreview("");
-                                            }}
-                                            className="evt-btn-red-abs"
-                                        >
-                                            영상 삭제
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* 영상 URL 입력창 - 항상 표시 */}
-                                <div>
-                                    <label className="evt-block evt-text-gray-400 evt-text-xs evt-mb-1">
-                                        {editVideoPreview.provider
-                                            ? "영상 주소 (복사/수정 가능)"
-                                            : "영상 주소 입력"}
-                                    </label>
-                                    <input
-                                        type="url"
-                                        value={editFormData.videoUrl}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            setEditFormData((prev) => ({
-                                                ...prev,
-                                                videoUrl: value,
-                                            }));
-
-                                            if (value.trim() === "") {
-                                                setEditVideoPreview({
-                                                    provider: null,
-                                                    embedUrl: null,
-                                                });
-                                            } else {
-                                                const videoInfo = parseVideoUrl(value);
-
-                                                // 유튜브만 허용
-                                                if (
-                                                    videoInfo.provider &&
-                                                    videoInfo.provider !== "youtube"
-                                                ) {
-                                                    setEditVideoPreview({
-                                                        provider: null,
-                                                        embedUrl: null,
-                                                    });
-                                                } else {
-                                                    setEditVideoPreview({
-                                                        provider: videoInfo.provider,
-                                                        embedUrl: videoInfo.embedUrl,
-                                                    });
-                                                }
+                                                    [`linkName${num}`]: e.target.value,
+                                                }))
                                             }
-                                        }}
-                                        className="evt-form-input"
-                                        placeholder="YouTube 링크만 가능"
-                                    />
+                                            className="edit-modal-input"
+                                            placeholder={`링크명 ${num}`}
+                                        />
+                                    </div>
+                                    <div style={{ flex: 2 }}>
+                                        <input
+                                            type="text"
+                                            value={editFormData[`link${num}` as keyof typeof editFormData] as string}
+                                            onChange={(e) =>
+                                                setEditFormData((prev) => ({
+                                                    ...prev,
+                                                    [`link${num}`]: e.target.value,
+                                                }))
+                                            }
+                                            className="edit-modal-input"
+                                            placeholder="URL"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="video-info-box">
-                                    <p className="evt-text-xs evt-text-gray-400">
-                                        <i className="ri-information-line evt-mr-1"></i>
-                                        영상은 전면 빌보드에서 자동재생됩니다.
-                                    </p>
-                                    <p className="evt-text-xs evt-text-green-400">
-                                        <i className="ri-check-line evt-mr-1"></i>
-                                        <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상
-                                        재생 가능
-                                    </p>
-                                    <p className="evt-text-xs evt-text-red-400">
-                                        <i className="ri-close-line evt-mr-1"></i>
-                                        <strong>Instagram, Vimeo는 지원하지 않습니다</strong>
-                                    </p>
-                                </div>
-                                {editFormData.videoUrl && !editVideoPreview.provider && (
-                                    <p className="evt-text-xs evt-text-red-400 evt-mt-1">
-                                        <i className="ri-alert-line evt-mr-1"></i>
-                                        YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수
-                                        없습니다.
-                                    </p>
-                                )}
-                            </div>
+                            ))}
                         </div>
 
-                        {/* 등록자 정보 (관리자 전용, 비공개) - 최하단 */}
-                        <div className="evt-registrant-box">
-                            <div className="evt-registrant-header">
-                                <i className="ri-lock-line evt-text-orange-400 evt-text-sm"></i>
-                                <h3 className="evt-registrant-title">
-                                    등록자 정보 (비공개 - 관리자만 확인 가능)
-                                </h3>
-                            </div>
-                            <div className="evt-grid-cols-2 evt-gap-3">
-                                <div>
-                                    <label className="evt-registrant-label">
-                                        등록자 이름 <span className="evt-text-red-400">*필수</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editFormData.organizerName}
-                                        onChange={(e) =>
-                                            setEditFormData((prev) => ({
-                                                ...prev,
-                                                organizerName: e.target.value,
-                                            }))
-                                        }
-                                        required
-                                        className="evt-form-input-orange"
-                                        placeholder="등록자 이름"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="evt-registrant-label">
-                                        등록자 전화번호{" "}
-                                        <span className="evt-text-red-400">*필수</span>
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        value={editFormData.organizerPhone}
-                                        onChange={(e) =>
-                                            setEditFormData((prev) => ({
-                                                ...prev,
-                                                organizerPhone: e.target.value,
-                                            }))
-                                        }
-                                        required
-                                        className="evt-form-input-orange"
-                                        placeholder="010-0000-0000"
-                                    />
-                                </div>
-                            </div>
-                            <p className="evt-registrant-info">
-                                <i className="ri-information-line evt-mr-1"></i>
-                                수정 등 문제가 있을 경우 연락받으실 번호입니다
-                            </p>
-                        </div>
-                    </form>
-                </div>
+                        <button
+                            type="submit"
+                            className="edit-modal-btn-primary"
+                        >
+                            수정하기
+                        </button>
 
-                {/* 하단 고정 버튼 */}
-                <div className="evt-footer-sticky">
-                    <div className="evt-flex evt-space-x-3">
                         <button
                             type="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                if (event) {
+                            onClick={() => {
+                                if (
+                                    window.confirm(
+                                        "정말 삭제하시겠습니까? (삭제 후 복구 불가)",
+                                    )
+                                ) {
                                     onDelete(event);
                                 }
                             }}
-                            className="evt-btn-red"
+                            className="edit-modal-btn-danger"
                         >
-                            삭제
+                            이벤트 삭제
                         </button>
-                        <button
-                            type="submit"
-                            form="edit-event-form"
-                            className="evt-btn-blue-full"
-                        >
-                            수정 완료
-                        </button>
-                    </div>
+                    </form>
                 </div>
             </div>
 
             {/* 썸네일 선택 모달 */}
             {showThumbnailSelector && (
-                <div className="evt-modal-overlay-z60">
-                    <div className="evt-modal-container">
-                        <div className="evt-modal-header">
-                            <h3 className="evt-modal-title">썸네일 선택</h3>
-                            <button
-                                onClick={() => setShowThumbnailSelector(false)}
-                                className="evt-modal-close-btn"
-                            >
-                                <i className="ri-close-line evt-icon-xl"></i>
-                            </button>
+                <div className="edit-modal-overlay" style={{ zIndex: 60 }}>
+                    <div className="edit-modal-container">
+                        <div className="edit-modal-header">
+                            <div className="edit-modal-header-content">
+                                <h3 className="edit-modal-title">썸네일 선택</h3>
+                                <button
+                                    onClick={() => setShowThumbnailSelector(false)}
+                                    className="edit-modal-close-btn"
+                                >
+                                    <i className="ri-close-line edit-modal-icon-lg"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div className="evt-modal-body">
-                            <div className="evt-grid-cols-2 evt-gap-2">
+                        <div className="edit-modal-body">
+                            <div className="edit-modal-grid-row">
                                 {thumbnailOptions.map((option, index) => (
                                     <div
                                         key={index}
                                         onClick={() => handleThumbnailSelect(option)}
-                                        className="evt-thumbnail-option"
+                                        style={{ cursor: 'pointer' }}
                                     >
-                                        <img
-                                            src={option.url}
-                                            alt={`Thumbnail ${index + 1}`}
-                                            className="evt-thumbnail-img"
-                                        />
-                                        <div className="evt-thumbnail-quality-badge">
-                                            {option.quality}
+                                        <div style={{
+                                            position: 'relative',
+                                            paddingBottom: '56.25%',
+                                            borderRadius: '0.5rem',
+                                            overflow: 'hidden',
+                                            border: '2px solid transparent',
+                                        }}>
+                                            <img
+                                                src={option.url}
+                                                alt={`Thumbnail ${index + 1}`}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover',
+                                                }}
+                                            />
+                                            <div className="thumbnail-quality-badge" style={{
+                                                position: 'absolute',
+                                                bottom: '0.25rem',
+                                                right: '0.25rem',
+                                                backgroundColor: 'rgba(0,0,0,0.7)',
+                                                color: 'white',
+                                                fontSize: '0.75rem',
+                                                padding: '0.125rem 0.375rem',
+                                                borderRadius: '0.25rem',
+                                            }}>
+                                                {option.quality}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -1355,7 +1244,6 @@ export default function EventEditModal({
                     </div>
                 </div>
             )}
-        </div>,
-        document.body,
+        </div>
     );
 }
