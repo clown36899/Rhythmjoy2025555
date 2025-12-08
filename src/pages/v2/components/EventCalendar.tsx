@@ -53,9 +53,23 @@ export default function EventCalendar({
   // 외부에서 전달된 currentMonth가 있으면 사용, 없으면 내부 상태 사용
   const currentMonth = externalCurrentMonth || internalCurrentMonth;
 
-  // 달력 셀 높이 계산 (전체 높이에서 헤더 높이를 빼고 6행으로 나눔)
+  // 실제 필요한 주 수 계산 (전체 달력 모드용)
+  const getActualWeeksCount = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startingDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    const totalDays = startingDayOfWeek + daysInMonth;
+    return Math.ceil(totalDays / 7);
+  };
+
+  // 달력 셀 높이 계산
   const cellHeight = calendarHeightPx
-    ? Math.max(30, (calendarHeightPx - 16) / 6) // 헤더 16px 제외, 최소 30px
+    ? calendarMode === 'fullscreen'
+      ? Math.max(30, (calendarHeightPx - 16) / getActualWeeksCount(currentMonth)) // 실제 주 수로 나눔
+      : Math.max(30, (calendarHeightPx - 16) / 6) // 일반 모드는 6행
     : 50; // 기본 높이 50px
 
   // 날짜 폰트 크기 계산 (작게 고정)
@@ -221,12 +235,24 @@ export default function EventCalendar({
       days.push(new Date(year, month, day));
     }
 
-    // Always show 6 rows (42 cells)
-    const remainingCells = 42 - days.length;
+    // 전체 달력 모드: 그 달의 마지막 날이 포함된 주까지만 표시
+    // 일반 모드: 항상 6주(42셀) 표시
+    if (calendarMode === 'fullscreen') {
+      // 마지막 날의 요일을 확인하여 그 주를 채움
+      const lastDayOfWeek = lastDay.getDay();
+      const daysToAdd = 6 - lastDayOfWeek; // 토요일까지 채우기
 
-    // Add days from next month
-    for (let i = 1; i <= remainingCells; i++) {
-      days.push(new Date(year, month + 1, i));
+      for (let i = 1; i <= daysToAdd; i++) {
+        days.push(new Date(year, month + 1, i));
+      }
+    } else {
+      // Always show 6 rows (42 cells) for normal mode
+      const remainingCells = 42 - days.length;
+
+      // Add days from next month
+      for (let i = 1; i <= remainingCells; i++) {
+        days.push(new Date(year, month + 1, i));
+      }
     }
 
     return days;
@@ -658,7 +684,10 @@ export default function EventCalendar({
           key={dateString}
           onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
           className="calendar-cell-fullscreen"
-          style={{ backgroundColor: bgColor }}
+          style={{
+            backgroundColor: bgColor,
+            minHeight: `${cellHeight}px`
+          }}
         >
           {/* 헤더: 날짜 숫자 */}
           <div className="calendar-cell-fullscreen-header">
@@ -1037,10 +1066,10 @@ export default function EventCalendar({
                       className="calendar-grid-container"
                       style={{
                         gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
-                          ? 'none'
+                          ? `repeat(${getActualWeeksCount(prevMonth)}, auto)`
                           : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
-                        gridAutoRows: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : undefined,
-                        height: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : '100%',
+                        gridAutoRows: undefined,
+                        minHeight: '100%',
                         '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
@@ -1060,10 +1089,10 @@ export default function EventCalendar({
                       className="calendar-grid-container"
                       style={{
                         gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
-                          ? 'none'
+                          ? `repeat(${getActualWeeksCount(currentMonth)}, auto)`
                           : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
-                        gridAutoRows: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : undefined,
-                        height: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : '100%',
+                        gridAutoRows: undefined,
+                        minHeight: '100%',
                         '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
@@ -1083,10 +1112,10 @@ export default function EventCalendar({
                       className="calendar-grid-container"
                       style={{
                         gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
-                          ? 'none'
+                          ? `repeat(${getActualWeeksCount(nextMonth)}, auto)`
                           : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
-                        gridAutoRows: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : undefined,
-                        height: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : '100%',
+                        gridAutoRows: undefined,
+                        minHeight: '100%',
                         '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >

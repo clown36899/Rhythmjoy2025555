@@ -574,43 +574,34 @@ export default function HomePageV2() {
         >
             <div ref={headerRef} className="home-header" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
                 <Header
-                    currentMonth={currentMonth}
-                    onNavigateMonth={(dir) => {
-                        if (isAnimating) return; setIsAnimating(true);
-                        const w = window.innerWidth;
-                        setDragOffset(dir === "prev" ? w : -w);
-                        const newM = new Date(currentMonth); newM.setDate(1);
-                        if (viewMode === "year") newM.setFullYear(currentMonth.getFullYear() + (dir === "prev" ? -1 : 1));
-                        else newM.setMonth(currentMonth.getMonth() + (dir === "prev" ? -1 : 1));
-                        setTimeout(() => { setCurrentMonth(newM); setDragOffset(0); setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); setIsAnimating(false); }, 250);
-                    }}
-                    onDateChange={(m) => { setCurrentMonth(m); setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }}
                     onAdminModeToggle={handleAdminModeToggle}
                     onBillboardOpen={handleBillboardOpen}
                     onBillboardSettingsOpen={handleBillboardSettingsOpen}
+                    billboardEnabled={settings.enabled}
+                    calendarMode={calendarMode}
+                    currentMonth={currentMonth}
+                    onNavigateMonth={(dir) => {
+                        const newM = new Date(currentMonth);
+                        newM.setDate(1);
+                        if (viewMode === "year") newM.setFullYear(currentMonth.getFullYear() + (dir === "prev" ? -1 : 1));
+                        else newM.setMonth(currentMonth.getMonth() + (dir === "prev" ? -1 : 1));
+                        setCurrentMonth(newM);
+                        setSelectedDate(null);
+                    }}
                     viewMode={viewMode}
                     onViewModeChange={handleViewModeChange}
-                    billboardEnabled={settings.enabled}
                 />
+            </div>
 
-                {/* Calendar Section - Inside Header */}
-                <div
-                    ref={calendarRef}
-                    className="home-calendar-wrapper"
-                    style={{
-                        backgroundColor: "var(--calendar-bg-color)",
-                        touchAction: "pan-y",
-                        position: isFixed ? "fixed" : "relative",
-                        left: 0, right: 0,
-                        zIndex: isFixed ? 30 : 15,
-                    }}
-                    onTransitionEnd={() => {
-                        if (isFullscreenTransition) {
-                            setIsFullscreenTransition(false);
-                        }
-                    }}
-                >
-                    {/* Weekday Header */}
+            {/* Sticky Weekday Header - Only visible in Fullscreen Mode */}
+            {calendarMode === 'fullscreen' && (
+                <div style={{
+                    position: 'sticky',
+                    top: '50px',
+                    zIndex: 20,
+                    backgroundColor: 'var(--calendar-bg-color)',
+                    borderBottom: '1px solid var(--border-color)'
+                }}>
                     <div className="calendar-weekday-header no-select">
                         {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
                             <div
@@ -620,12 +611,9 @@ export default function HomePageV2() {
                                     cursor: 'pointer'
                                 }}
                                 onClick={() => {
-                                    console.log(`[Page] Weekday clicked: ${day} (index: ${index})`);
                                     if (selectedWeekday === index) {
-                                        console.log(`[Page] Deselecting weekday`);
                                         setSelectedWeekday(null);
                                     } else {
-                                        console.log(`[Page] Selecting weekday: ${index}`);
                                         setSelectedWeekday(index);
                                         setSelectedDate(null);
                                     }
@@ -638,64 +626,63 @@ export default function HomePageV2() {
                             </div>
                         ))}
                     </div>
-
-                    {/* 
-            [Height Connection Explanation]
-            This div is the main container for the calendar content.
-            - style.height: assigned to 'renderHeight'.
-            - 'renderHeight': comes from useCalendarGesture hook.
-              It is the result of: Viewport Height - Header Height (50px) - Bottom Nav - Control Bar - Filter Bar.
-              This ensures the calendar fills the remaining space exactly.
-          */}
-                    <div
-                        ref={calendarContentRef}
-                        className="home-calendar-content"
-                        style={{
-                            height: renderHeight, // <--- This is where the calculated height is applied!
-                            transition: isDragging ? "none" : "height 0.3s cubic-bezier(0.33, 1, 0.68, 1)",
-                            willChange: isDragging ? "height" : undefined,
-                            touchAction: (viewMode === "year" || calendarMode === "fullscreen") ? "pan-y" : "none",
-                            overflowY: calendarMode === "fullscreen" ? "auto" : "hidden",
-                            overscrollBehavior: calendarMode === "fullscreen" ? "contain" : "auto",
-                            WebkitOverflowScrolling: calendarMode === "fullscreen" ? "touch" : undefined
-                        }}
-                    >
-                        <EventCalendar
-                            currentMonth={currentMonth}
-                            selectedDate={selectedDate}
-                            onDateSelect={handleDateSelect}
-                            onMonthChange={handleMonthChange}
-                            isAdminMode={effectiveIsAdmin}
-                            showHeader={false}
-                            onEventsUpdate={handleEventsUpdate}
-                            viewMode={viewMode}
-                            onViewModeChange={handleViewModeChange}
-                            hoveredEventId={hoveredEventId}
-                            dragOffset={dragOffset}
-                            isAnimating={isAnimating}
-                            // calendarHeightPx: Internal height used by EventCalendar for row calculations
-                            calendarHeightPx={isDragging ? liveCalendarHeight : getTargetHeight()}
-                            calendarMode={calendarMode}
-                            selectedCategory={selectedCategory}
-                            isTransitioning={isFullscreenTransition}
-                        />
-                    </div>
-
-
                 </div>
-
-
-            </div>
+            )}
 
             <div
                 className="home-main"
                 ref={eventListElementRef}
                 style={{
-                    marginTop: isFixed ? `${calculateFullscreenHeight()}px` : undefined,
-                    overscrollBehaviorY: "contain"
+                    overscrollBehaviorY: "contain",
+                    display: calendarMode === 'fullscreen' ? 'flex' : 'block',
+                    flexDirection: calendarMode === 'fullscreen' ? 'column' : undefined,
+                    minHeight: calendarMode === 'fullscreen' ? '100vh' : 'auto',
                 }}
             >
-                {qrLoading ? (
+                {/* Calendar Section - Inside Main Content */}
+                {calendarMode === 'fullscreen' && (
+                    <div
+                        ref={calendarRef}
+                        style={{
+                            backgroundColor: "var(--calendar-bg-color)",
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                        }}
+                    >
+                        {/* Calendar Content */}
+                        <div
+                            ref={calendarContentRef}
+                            style={{
+                                flex: 1,
+                                overflow: 'auto',
+                                paddingBottom: '130px', // FOOTER_HEIGHT와 동일
+                            }}
+                        >
+                            <EventCalendar
+                                currentMonth={currentMonth}
+                                selectedDate={selectedDate}
+                                onDateSelect={handleDateSelect}
+                                onMonthChange={handleMonthChange}
+                                isAdminMode={effectiveIsAdmin}
+                                showHeader={false}
+                                onEventsUpdate={handleEventsUpdate}
+                                viewMode={viewMode}
+                                onViewModeChange={handleViewModeChange}
+                                hoveredEventId={hoveredEventId}
+                                dragOffset={dragOffset}
+                                isAnimating={isAnimating}
+                                calendarHeightPx={getTargetHeight()}
+                                calendarMode={calendarMode}
+                                selectedCategory={selectedCategory}
+                                isTransitioning={false}
+                            />
+                        </div>
+                    </div>
+                )}
+                {/* Event List - Only visible when NOT in Fullscreen Mode */}
+                {calendarMode !== 'fullscreen' && (qrLoading ? (
                     <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
                 ) : (
                     <EventList
@@ -728,7 +715,7 @@ export default function HomePageV2() {
                         onModalStateChange={() => { }}
                         selectedWeekday={selectedWeekday}
                     />
-                )}
+                ))}
 
                 {/* Modals */}
                 {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}

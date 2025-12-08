@@ -12,7 +12,7 @@ interface UseCalendarGestureProps {
 }
 
 const EXPANDED_HEIGHT = 200;
-const FOOTER_HEIGHT = 80;
+const FOOTER_HEIGHT = 130; // 하단 네비게이션 고정 높이
 const MIN_SWIPE_DISTANCE = 50;
 
 export function useCalendarGesture({

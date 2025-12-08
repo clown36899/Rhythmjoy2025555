@@ -9,9 +9,6 @@ import { useAuth } from "../../../contexts/AuthContext";
 import "../../../styles/components/Header.css";
 
 interface HeaderProps {
-  currentMonth?: Date;
-  onNavigateMonth?: (direction: "prev" | "next") => void;
-  onDateChange?: (date: Date) => void;
   onAdminModeToggle?: (
     isAdmin: boolean,
     type?: "super" | "sub" | null,
@@ -20,29 +17,25 @@ interface HeaderProps {
   ) => void;
   onBillboardOpen?: () => void;
   onBillboardSettingsOpen?: () => void;
+  billboardEnabled?: boolean;
+  calendarMode?: "collapsed" | "expanded" | "fullscreen";
+  currentMonth?: Date;
+  onNavigateMonth?: (direction: "prev" | "next") => void;
   viewMode?: "month" | "year";
   onViewModeChange?: (mode: "month" | "year") => void;
-  billboardEnabled?: boolean;
 }
 
 export default function Header({
-  currentMonth,
-  onNavigateMonth,
-  onDateChange,
   onAdminModeToggle,
   onBillboardOpen: _onBillboardOpen,
   onBillboardSettingsOpen,
+  billboardEnabled: _billboardEnabled = true,
+  calendarMode = "collapsed",
+  currentMonth,
+  onNavigateMonth,
   viewMode = "month",
   onViewModeChange,
-  billboardEnabled: _billboardEnabled = true,
 }: HeaderProps) {
-  const [showDateModal, setShowDateModal] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(
-    currentMonth?.getFullYear() || new Date().getFullYear(),
-  );
-  const [selectedMonth, setSelectedMonth] = useState(
-    currentMonth?.getMonth() || new Date().getMonth(),
-  );
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccessType, setLoginSuccessType] = useState("");
@@ -85,47 +78,6 @@ export default function Header({
     event_list_outer_bg_color: "#1f2937",
     page_bg_color: "#111827",
   });
-
-  const monthNames = [
-    "1월",
-    "2월",
-    "3월",
-    "4월",
-    "5월",
-    "6월",
-    "7월",
-    "8월",
-    "9월",
-    "10월",
-    "11월",
-    "12월",
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
-
-  const handleDateModalOpen = () => {
-    if (currentMonth) {
-      setSelectedYear(currentMonth.getFullYear());
-      setSelectedMonth(currentMonth.getMonth());
-    }
-    setShowDateModal(true);
-  };
-
-  const handleDateConfirm = () => {
-    const newDate = new Date(selectedYear, selectedMonth, 1);
-    onDateChange?.(newDate);
-    setShowDateModal(false);
-  };
-
-  const handleDateCancel = () => {
-    setShowDateModal(false);
-  };
-
-  const handleNavigateMonth = (direction: "prev" | "next") => {
-    onNavigateMonth?.(direction);
-  };
-
 
   const handleSettingsClick = () => {
     setShowSettingsModal(true);
@@ -423,42 +375,49 @@ export default function Header({
               </button>
             </div>
 
-            {/* Calendar Controls - Center */}
-            {currentMonth && onNavigateMonth && (
-              <div className="header-center">
-                <button
-                  onClick={() => handleNavigateMonth("prev")}
-                  className="header-nav-btn"
-                >
-                  <i className="ri-arrow-left-s-line header-nav-icon"></i>
-                </button>
-                <button
-                  onClick={handleDateModalOpen}
-                  className="header-date-btn"
-                  style={{ fontSize: "1.4rem" }}
-                >
-                  {viewMode === "year"
-                    ? `${currentMonth.getFullYear().toString().slice(-2)}년 전체`
-                    : monthNames[currentMonth.getMonth()]}
-                </button>
-                {onViewModeChange && (
+            {/* Center: Dynamic Content */}
+            <div className="header-center">
+              {calendarMode === 'fullscreen' && currentMonth && onNavigateMonth ? (
+                /* Fullscreen Mode: Show month navigation */
+                <>
                   <button
-                    onClick={() =>
-                      onViewModeChange(viewMode === "month" ? "year" : "month")
-                    }
-                    className={viewMode === "year" ? "header-view-mode-btn header-view-mode-btn-year" : "header-view-mode-btn header-view-mode-btn-month"}
+                    onClick={() => onNavigateMonth("prev")}
+                    className="header-nav-btn"
                   >
-                    {viewMode === "month" ? "년" : "월"}
+                    <i className="ri-arrow-left-s-line header-nav-icon"></i>
                   </button>
-                )}
-                <button
-                  onClick={() => handleNavigateMonth("next")}
-                  className="header-nav-btn"
-                >
-                  <i className="ri-arrow-right-s-line header-nav-icon"></i>
-                </button>
-              </div>
-            )}
+                  <button
+                    className="header-date-btn"
+                    style={{ fontSize: "1.4rem", cursor: 'default' }}
+                  >
+                    {viewMode === "year"
+                      ? `${currentMonth.getFullYear()}년`
+                      : `${currentMonth.getMonth() + 1}월`}
+                  </button>
+                  {onViewModeChange && (
+                    <button
+                      onClick={() =>
+                        onViewModeChange(viewMode === "month" ? "year" : "month")
+                      }
+                      className={viewMode === "year" ? "header-view-mode-btn header-view-mode-btn-year" : "header-view-mode-btn header-view-mode-btn-month"}
+                    >
+                      {viewMode === "month" ? "년" : "월"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onNavigateMonth("next")}
+                    className="header-nav-btn"
+                  >
+                    <i className="ri-arrow-right-s-line header-nav-icon"></i>
+                  </button>
+                </>
+              ) : (
+                /* Preview Mode: Show app title */
+                <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                  스윙빌보드
+                </span>
+              )}
+            </div>
 
             {/* Right: Login Status & Settings Button */}
             <div className="header-right">
@@ -976,71 +935,6 @@ export default function Header({
 
       {/* QR Code Modal */}
       <QRCodeModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} />
-
-      {/* Date Selection Modal */}
-      {showDateModal &&
-        createPortal(
-          <div className="header-modal-overlay-date">
-            <div className="header-modal-md">
-              <h3 className="header-modal-title-xl">
-                날짜 선택
-              </h3>
-
-              {/* Year Selection */}
-              <div className="header-form-group">
-                <label className="header-form-label">
-                  년도
-                </label>
-                <div className="header-grid-5">
-                  {years.map((year) => (
-                    <button
-                      key={year}
-                      onClick={() => setSelectedYear(year)}
-                      className={selectedYear === year ? "header-year-btn header-year-btn-active" : "header-year-btn header-year-btn-inactive"}
-                    >
-                      {year}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Month Selection */}
-              <div className="header-form-group">
-                <label className="header-form-label">
-                  월
-                </label>
-                <div className="header-grid-4">
-                  {monthNames.map((month, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedMonth(index)}
-                      className={selectedMonth === index ? "header-year-btn header-year-btn-active" : "header-year-btn header-year-btn-inactive"}
-                    >
-                      {month}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="header-btn-group header-gap-3">
-                <button
-                  onClick={handleDateCancel}
-                  className="header-btn-sm header-btn-gray-dark header-flex-1"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleDateConfirm}
-                  className="header-btn-sm header-btn-blue header-flex-1"
-                >
-                  확인
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
 
       {/* 로그인 성공 모달 */}
       {showLoginSuccessModal &&
