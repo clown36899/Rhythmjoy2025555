@@ -1693,7 +1693,8 @@
 
 .reposition-hint {
   position: absolute;
-  top: 1rem;
+  top: auto;
+  bottom: 6rem;
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.875rem;
   font-weight: 500;

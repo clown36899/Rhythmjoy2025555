@@ -205,6 +205,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
             window.addEventListener('mousemove', handleGlobalMove);
             window.addEventListener('mouseup', handleGlobalUp);
+            // passive: false is required to preventDefault on touchmove (scrolling)
             window.addEventListener('touchmove', handleGlobalMove, { passive: false });
             window.addEventListener('touchend', handleGlobalUp);
 

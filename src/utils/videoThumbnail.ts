@@ -20,27 +20,49 @@ export async function getVideoThumbnailOptions(videoUrl: string): Promise<VideoT
     const thumbnails: VideoThumbnailOption[] = [];
 
     // YouTube 썸네일 URL 생성
-    const maxResUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-    const sdResUrl = `https://img.youtube.com/vi/${videoId}/sddefault.jpg`;
-    const hqResUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-    const mqResUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-    const defResUrl = `https://img.youtube.com/vi/${videoId}/default.jpg`;
+    const maxResUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+    const sdResUrl = `https://i.ytimg.com/vi/${videoId}/sddefault.jpg`;
+    const hqResUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-    // 우선순위대로 배열 반환 (실제 존재 여부는 나중에 체크하거나 이미지 로드 시 결정됨)
-    // 여기서는 가장 높은 품질 하나만 반환하지 않고, 호출자가 선택할 수 있도록 하거나
-    // getVideoThumbnail 함수가 첫 번째 유효한 것을 찾도록 로직을 수정해야 함.
-    // 하지만 현재 구조상 리스트를 반환하므로 후보군을 다 넣어줌.
+    // 이미지 존재 여부 확인 함수
+    const checkImageExists = async (url: string): Promise<boolean> => {
+      try {
+        const res = await fetch(url, { method: 'HEAD', mode: 'cors' });
+        return res.ok;
+      } catch (e) {
+        // HEAD 요청 실패 시 GET으로 재시도 (CORS 등 이유)
+        try {
+          const res = await fetch(url, { method: 'GET', mode: 'cors' });
+          return res.ok;
+        } catch (e2) {
+          return false;
+        }
+      }
+    };
 
-    thumbnails.push({
-      url: maxResUrl,
-      label: '최고화질 (MaxRes)',
-      quality: 'high'
-    });
-    thumbnails.push({
-      url: sdResUrl,
-      label: '고화질 (Standard)',
-      quality: 'high'
-    });
+    // 병렬로 존재 여부 확인
+    const [hasMaxRes, hasSdRes] = await Promise.all([
+      checkImageExists(maxResUrl),
+      checkImageExists(sdResUrl)
+    ]);
+
+    if (hasMaxRes) {
+      thumbnails.push({
+        url: maxResUrl,
+        label: '최고화질 (MaxRes)',
+        quality: 'high'
+      });
+    }
+
+    if (hasSdRes) {
+      thumbnails.push({
+        url: sdResUrl,
+        label: '고화질 (Standard)',
+        quality: 'high'
+      });
+    }
+
+    // HQ는 거의 항상 존재하므로 기본 fallback으로 추가
     thumbnails.push({
       url: hqResUrl,
       label: '일반화질 (HQ)',
