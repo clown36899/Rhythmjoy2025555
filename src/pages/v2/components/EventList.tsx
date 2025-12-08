@@ -26,6 +26,7 @@ import EventDetailModal from "./EventDetailModal";
 import EventSearchModal from "./EventSearchModal";
 import EventSortModal from "./EventSortModal";
 import Footer from "./Footer";
+import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
 import "../../../styles/components/EventList.css";
 import "../styles/EventListSections.css";
 
@@ -211,6 +212,18 @@ export default function EventList({
   const [editCropImageUrl, setEditCropImageUrl] = useState<string>("");
   const [editOriginalImageFile, setEditOriginalImageFile] = useState<File | null>(null);
   const [editOriginalImagePreview, setEditOriginalImagePreview] = useState<string>(""); // 편집 모달에서 특정 날짜 추가용
+
+  // EditableEventDetail state
+  const [isEditingWithDetail, setIsEditingWithDetail] = useState(false);
+  const [editDate, setEditDate] = useState<Date | null>(null);
+  const [editEndDate, setEditEndDate] = useState<Date | null>(null);
+  const [editEventDates, setEditEventDates] = useState<string[]>([]);
+  const [editPassword, setEditPassword] = useState("");
+  const [editLink, setEditLink] = useState("");
+  const [editLinkName, setEditLinkName] = useState("");
+  const [editImagePosition, setEditImagePosition] = useState({ x: 0, y: 0 });
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const editDetailRef = useRef<EditableEventDetailRef>(null);
 
   const { defaultThumbnailClass, defaultThumbnailEvent } =
     useDefaultThumbnail();
@@ -1368,11 +1381,34 @@ export default function EventList({
     e?.stopPropagation();
 
     if (isAdminMode) {
-      // 개발자 모드(관리자 모드)에서는 비밀번호 없이 바로 수정 모달 열기
+      // 개발자 모드(관리자 모드)에서는 비밀번호 없이 바로 EditableEventDetail 열기
       setEventToEdit(event);
-      // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
+
+      // Convert event dates to Date objects
       const hasEventDates = event.event_dates && event.event_dates.length > 0;
 
+      if (hasEventDates) {
+        // Individual dates mode
+        setEditEventDates(event.event_dates || []);
+        setEditDate(null);
+        setEditEndDate(null);
+      } else {
+        // Range or single date mode
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+
+        setEditDate(startDate ? new Date(startDate) : null);
+        setEditEndDate(endDate ? new Date(endDate) : null);
+        setEditEventDates([]);
+      }
+
+      // Set other edit states
+      setEditPassword(event.password || "");
+      setEditLink(event.link1 || "");
+      setEditLinkName(event.link_name1 || "");
+      setEditImagePosition({ x: 0, y: 0 }); // Reset or load from event if stored
+
+      // Populate editFormData for the event object
       setEditFormData({
         title: event.title,
         description: event.description || "",
@@ -1400,20 +1436,7 @@ export default function EventList({
         videoUrl: event?.video_url || "",
       });
 
-      // 영상 URL과 이미지를 모두 로드 (추출 썸네일 지원)
-      setEditImagePreview(event?.image || "");
-      setEditImageFile(null);
-
-      if (event?.video_url) {
-        const videoInfo = parseVideoUrl(event.video_url);
-        setEditVideoPreview({
-          provider: videoInfo.provider,
-          embedUrl: videoInfo.embedUrl,
-        });
-      } else {
-        setEditVideoPreview({ provider: null, embedUrl: null });
-      }
-      setShowEditModal(true);
+      setIsEditingWithDetail(true);
       setSelectedEvent(null); // 상세 모달 닫기
     } else {
       // 일반 모드에서는 비밀번호 확인
@@ -1421,6 +1444,155 @@ export default function EventList({
       setShowPasswordModal(true);
       setSelectedEvent(null); // 상세 모달 닫기
     }
+  };
+
+  // EditableEventDetail handlers
+  const handleEditDetailUpdate = (field: string, value: any) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditImageUpload = () => {
+    // Trigger file input for image upload
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setEditImageFile(file);
+        setEditImagePreview(URL.createObjectURL(file));
+      }
+    };
+    fileInput.click();
+  };
+
+  const handleEditSave = async () => {
+    if (!eventToEdit) return;
+
+    if (!editFormData.title.trim()) {
+      alert("제목을 입력해주세요.");
+      editDetailRef.current?.openModal('title');
+      return;
+    }
+
+    if (!editFormData.genre) {
+      alert("장르를 선택해주세요.");
+      editDetailRef.current?.openModal('genre');
+      return;
+    }
+
+    if (!editDate && (!editEventDates || editEventDates.length === 0)) {
+      alert("날짜를 선택해주세요.");
+      editDetailRef.current?.openModal('date');
+      return;
+    }
+
+    setIsEditSubmitting(true);
+
+    try {
+      let imageUrl = eventToEdit.image;
+      let imageThumbnailUrl = eventToEdit.image_thumbnail;
+      let imageMediumUrl = eventToEdit.image_medium;
+      let imageFullUrl = eventToEdit.image_full;
+
+      // Upload new image if changed
+      if (editImageFile) {
+        const fileExt = editImageFile.name.split(".").pop();
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 15);
+        const fileName = `${timestamp}_${randomString}.${fileExt}`;
+        const folderPath = `event-posters`;
+        const filePath = `${folderPath}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("images")
+          .upload(filePath, editImageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from("images")
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrlData.publicUrl;
+
+        // Resize images
+        try {
+          const resizedImages = await createResizedImages(editImageFile);
+
+          // Upload thumbnail
+          const thumbFileName = `thumb_${fileName}`;
+          const thumbPath = `${folderPath}/${thumbFileName}`;
+          await supabase.storage.from("images").upload(thumbPath, resizedImages.thumbnail);
+          imageThumbnailUrl = supabase.storage.from("images").getPublicUrl(thumbPath).data.publicUrl;
+
+          // Upload medium
+          const mediumFileName = `medium_${fileName}`;
+          const mediumPath = `${folderPath}/${mediumFileName}`;
+          await supabase.storage.from("images").upload(mediumPath, resizedImages.medium);
+          imageMediumUrl = supabase.storage.from("images").getPublicUrl(mediumPath).data.publicUrl;
+
+          // Upload full
+          const fullFileName = `full_${fileName}`;
+          const fullPath = `${folderPath}/${fullFileName}`;
+          await supabase.storage.from("images").upload(fullPath, resizedImages.full);
+          imageFullUrl = supabase.storage.from("images").getPublicUrl(fullPath).data.publicUrl;
+        } catch (resizeError) {
+          console.error("Image resize failed:", resizeError);
+          imageThumbnailUrl = imageUrl;
+          imageMediumUrl = imageUrl;
+          imageFullUrl = imageUrl;
+        }
+      }
+
+      // Determine effective start and end dates
+      const sortedDates = editEventDates.length > 0 ? [...editEventDates].sort() : [];
+      const effectiveStartDate = editDate ? formatDateForInput(editDate) : (sortedDates.length > 0 ? sortedDates[0] : null);
+      const effectiveEndDate = editEndDate ? formatDateForInput(editEndDate) : (sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : null);
+
+      const updateData = {
+        title: editFormData.title,
+        date: effectiveStartDate,
+        start_date: effectiveStartDate,
+        end_date: effectiveEndDate,
+        event_dates: editEventDates.length > 0 ? editEventDates : null,
+        location: editFormData.location,
+        location_link: editFormData.locationLink,
+        description: editFormData.description,
+        category: editFormData.category,
+        genre: editFormData.genre || undefined,
+        password: editPassword,
+        link1: editLink,
+        link_name1: editLinkName,
+        image: imageUrl,
+        image_thumbnail: imageThumbnailUrl,
+        image_medium: imageMediumUrl,
+        image_full: imageFullUrl,
+      };
+
+      const { error } = await supabase
+        .from("events")
+        .update(updateData)
+        .eq("id", eventToEdit.id);
+
+      if (error) throw error;
+
+      alert("이벤트가 수정되었습니다.");
+      setIsEditingWithDetail(false);
+      setEventToEdit(null);
+      fetchEvents(); // Refresh event list
+      window.dispatchEvent(new Event("eventUpdated"));
+    } catch (error) {
+      console.error("Error updating event:", error);
+      alert("이벤트 수정 중 오류가 발생했습니다.");
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setIsEditingWithDetail(false);
+    setEventToEdit(null);
   };
 
 
@@ -1542,6 +1714,24 @@ export default function EventList({
           }
           // 전체 이벤트 데이터로 업데이트
           setEventToEdit(fullEvent);
+
+          // Convert dates for EditableEventDetail
+          if (hasEventDates) {
+            setEditEventDates(fullEvent.event_dates || []);
+            setEditDate(null);
+            setEditEndDate(null);
+          } else {
+            const startDate = fullEvent.start_date || fullEvent.date;
+            const endDate = fullEvent.end_date || fullEvent.date;
+            setEditDate(startDate ? new Date(startDate) : null);
+            setEditEndDate(endDate ? new Date(endDate) : null);
+            setEditEventDates([]);
+          }
+
+          setEditPassword(fullEvent.password || "");
+          setEditLink(fullEvent.link1 || "");
+          setEditLinkName(fullEvent.link_name1 || "");
+          setEditImagePosition({ x: 0, y: 0 });
         }
       } catch (error) {
         console.error("Error:", error);
@@ -1550,7 +1740,7 @@ export default function EventList({
       }
 
       setShowPasswordModal(false);
-      setShowEditModal(true);
+      setIsEditingWithDetail(true);
       setEventPassword("");
     } else {
       alert("비밀번호가 올바르지 않습니다.");
@@ -2431,6 +2621,65 @@ export default function EventList({
         onDelete={handleDeleteClick}
         isAdminMode={isAdminMode}
       />
+
+      {/* EditableEventDetail for editing */}
+      {isEditingWithDetail && eventToEdit && createPortal(
+        <div className="reg-modal-overlay">
+          <div className="reg-modal-container">
+            <div className="reg-main-content">
+              <EditableEventDetail
+                event={{
+                  ...eventToEdit,
+                  ...editFormData,
+                  id: eventToEdit.id,
+                  created_at: eventToEdit.created_at,
+                  title: editFormData.title,
+                  date: editDate ? formatDateForInput(editDate) : undefined,
+                  start_date: editDate ? formatDateForInput(editDate) : undefined,
+                  end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
+                  event_dates: editEventDates.length > 0 ? editEventDates : undefined,
+                  location: editFormData.location,
+                  location_link: editFormData.locationLink,
+                  description: editFormData.description,
+                  category: editFormData.category as "class" | "event",
+                  genre: editFormData.genre,
+                  image: editImagePreview || editFormData.image,
+                  link1: editLink,
+                  link_name1: editLinkName,
+                  organizer: editFormData.organizer,
+                  organizer_name: editFormData.organizerName,
+                  time: editFormData.time,
+                  price: eventToEdit.price,
+                  capacity: eventToEdit.capacity,
+                  registered: eventToEdit.registered,
+                }}
+                onUpdate={handleEditDetailUpdate}
+                onImageUpload={handleEditImageUpload}
+                imagePosition={editImagePosition}
+                onImagePositionChange={setEditImagePosition}
+                genreSuggestions={allGenres}
+                ref={editDetailRef}
+                date={editDate}
+                setDate={setEditDate}
+                endDate={editEndDate}
+                setEndDate={setEditEndDate}
+                eventDates={editEventDates}
+                setEventDates={setEditEventDates}
+                password={editPassword}
+                setPassword={setEditPassword}
+                link={editLink}
+                setLink={setEditLink}
+                linkName={editLinkName}
+                setLinkName={setEditLinkName}
+                onRegister={handleEditSave}
+                onClose={handleEditCancel}
+                isSubmitting={isEditSubmitting}
+              />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Password Modal */}
       {showPasswordModal && eventToEdit && (
