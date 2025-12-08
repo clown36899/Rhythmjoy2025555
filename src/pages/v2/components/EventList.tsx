@@ -28,6 +28,7 @@ import Footer from "./Footer";
 import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
 import { EditablePreviewCard } from "../../../components/EditablePreviewCard";
 import "../../../styles/components/EventList.css";
+import "../../../components/EventRegistrationModal.css";
 import "../styles/EventListSections.css";
 
 registerLocale("ko", ko);
@@ -2702,7 +2703,7 @@ export default function EventList({
 
       {/* EditableEventDetail for editing */}
       {isEditingWithDetail && eventToEdit && createPortal(
-        <div className="reg-modal-overlay">
+        <div className={`reg-modal-overlay ${editPreviewMode === 'billboard' ? 'billboard-mode' : ''}`}>
           {/* Ceiling Switcher */}
           <div className="ceiling-switcher-container">
             <div className="ceiling-switcher-wrapper">
@@ -2787,113 +2788,98 @@ export default function EventList({
               onVideoChange={(url) => setEditFormData(prev => ({ ...prev, videoUrl: url }))}
               onExtractThumbnail={handleEditExtractThumbnail}
             />
+          ) : editPreviewMode === 'billboard' ? (
+            /* Billboard Mode: Directly Render Card */
+            <div className="billboard-content-card">
+              {/* Video/Image Area */}
+              <div className="billboard-media-area">
+                {editFormData.videoUrl && isValidVideoUrl(editFormData.videoUrl) ? (
+                  <div className="billboard-media-video-wrapper w-full h-full">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={`https://www.youtube.com/embed/${parseVideoUrl(editFormData.videoUrl).videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${parseVideoUrl(editFormData.videoUrl).videoId}`}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full object-cover"
+                    ></iframe>
+                  </div>
+                ) : editImagePreview || editFormData.image ? (
+                  <img
+                    src={editImagePreview || editFormData.image}
+                    alt="preview"
+                    className="billboard-media-image cursor-pointer"
+                    onClick={handleEditReEditImage}
+                  />
+                ) : (
+                  <div className="billboard-media-placeholder">
+                    <i className="ri-image-line billboard-empty-icon"></i>
+                  </div>
+                )}
+
+                {/* QR Code Placeholder */}
+                <div className="billboard-qr-placeholder">
+                  <i className="ri-qr-code-line billboard-qr-icon"></i>
+                </div>
+              </div>
+
+              {/* Bottom Info */}
+              <div className="billboard-info-overlay">
+                <h3 className="billboard-info-title">{editFormData.title || "제목"}</h3>
+                <p className="billboard-info-date">
+                  {editDate ? formatDateForInput(editDate) : "날짜"}
+                </p>
+              </div>
+            </div>
           ) : (
             <div className="reg-modal-container">
               <div className="reg-main-content">
-                {editPreviewMode === 'card' && (
-                  <div className="flex items-center justify-center h-full overflow-y-auto">
-                    <div className="card-preview-grid">
-                      {/* Active Card */}
-                      <div key="active" className="active-card-wrapper">
+                {/* Mode: Card Preview */}
+                <div className="card-preview-container">
+                  <div className="card-preview-grid">
+                    {/* Active Card - Always show at index 1 (top center) */}
+                    <div key="active" className="active-card-wrapper">
+                      <EditablePreviewCard
+                        event={{
+                          title: editFormData.title || "제목",
+                          category: editFormData.category as 'class' | 'event',
+                          genre: editFormData.genre,
+                          date: editDate ? formatDateForInput(editDate) : "날짜",
+                          start_date: editDate ? formatDateForInput(editDate) : undefined,
+                          end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
+                          image: editImagePreview || editFormData.image,
+                          time: editFormData.time,
+                          price: eventToEdit.price,
+                          organizer: editFormData.organizer,
+                        } as any}
+                        readOnly={true}
+                        showPlaceholders={true}
+                      />
+                    </div>
+
+                    {/* Dummy Cards - show some real events from the list */}
+                    {events.slice(0, 5).map((realEvent, idx) => (
+                      <div key={`dummy-${idx}`} className="dummy-card-wrapper">
                         <EditablePreviewCard
                           event={{
-                            ...eventToEdit,
-                            ...editFormData,
-                            title: editFormData.title,
-                            date: editDate ? formatDateForInput(editDate) : undefined,
-                            start_date: editDate ? formatDateForInput(editDate) : undefined,
-                            end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
-                            location: editFormData.location,
-                            description: editFormData.description,
-                            category: editFormData.category as 'class' | 'event',
-                            genre: editFormData.genre,
-                            image: editImagePreview || editFormData.image,
-                            time: editFormData.time,
-                            price: eventToEdit.price,
-                            organizer: editFormData.organizer,
-                          } as any}
+                            ...realEvent,
+                            category: realEvent.category as 'class' | 'event'
+                          }}
                           readOnly={true}
-                          showPlaceholders={true}
                         />
                       </div>
-
-                      {/* Dummy Cards - show some real events from the list */}
-                      {events.slice(0, 5).map((realEvent, idx) => (
-                        <div key={`dummy-${idx}`} className="dummy-card-wrapper">
-                          <EditablePreviewCard
-                            event={{
-                              ...realEvent,
-                              category: realEvent.category as 'class' | 'event'
-                            }}
-                            readOnly={true}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                    ))}
                   </div>
-                )}
-
-                {editPreviewMode === 'billboard' && (
-                  <div className="billboard-preview-container">
-                    {/* Billboard Preview */}
-                    <div className="billboard-preview-area">
-                      {/* Background Image */}
-                      {/* Background Image Removed as per User Request */}
-                      {/* <div className="billboard-bg-layer">...</div> */}
-
-                      {/* Content */}
-                      <div className="billboard-content-card">
-                        {/* Video/Image Area */}
-                        <div className="billboard-media-area">
-                          {editFormData.videoUrl && isValidVideoUrl(editFormData.videoUrl) ? (
-                            <div className="billboard-media-video-wrapper w-full h-full">
-                              <iframe
-                                width="100%"
-                                height="100%"
-                                src={`https://www.youtube.com/embed/${parseVideoUrl(editFormData.videoUrl).videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${parseVideoUrl(editFormData.videoUrl).videoId}`}
-                                title="YouTube video player"
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="w-full h-full object-cover"
-                              ></iframe>
-                            </div>
-                          ) : editImagePreview || editFormData.image ? (
-                            <img
-                              src={editImagePreview || editFormData.image}
-                              alt="preview"
-                              className="billboard-media-image cursor-pointer"
-                              onClick={handleEditReEditImage}
-                            />
-                          ) : (
-                            <div className="billboard-media-placeholder">
-                              <i className="ri-image-line billboard-empty-icon"></i>
-                            </div>
-                          )}
-
-                          {/* QR Code Placeholder */}
-                          <div className="billboard-qr-placeholder">
-                            <i className="ri-qr-code-line billboard-qr-icon"></i>
-                          </div>
-                        </div>
-
-                        {/* Bottom Info */}
-                        <div className="billboard-info-overlay">
-                          <h3 className="billboard-info-title">{editFormData.title || "제목"}</h3>
-                          <p className="billboard-info-date">
-                            {editDate ? formatDateForInput(editDate) : "날짜"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           )}
         </div>,
         document.body
-      )}
+      )
+      }
 
       {/* Hidden File Input for Edit Mode */}
       <input
@@ -2920,779 +2906,829 @@ export default function EventList({
       />
 
       {/* Password Modal */}
-      {showPasswordModal && eventToEdit && (
-        <EventPasswordModal
-          event={eventToEdit}
-          password={eventPassword}
-          onPasswordChange={setEventPassword}
-          onSubmit={handlePasswordSubmit}
-          onClose={() => {
-            setShowPasswordModal(false);
-            setEventPassword("");
-            setEventToEdit(null);
-          }}
-        />
-      )}
+      {
+        showPasswordModal && eventToEdit && (
+          <EventPasswordModal
+            event={eventToEdit}
+            password={eventPassword}
+            onPasswordChange={setEventPassword}
+            onSubmit={handlePasswordSubmit}
+            onClose={() => {
+              setShowPasswordModal(false);
+              setEventPassword("");
+              setEventToEdit(null);
+            }}
+          />
+        )
+      }
 
       {/* Edit Modal */}
-      {showEditModal && eventToEdit && createPortal(
-        <div
-          className="evt-fixed-inset-edit-modal"
-          onTouchStartCapture={(e) => {
-            e.stopPropagation();
-          }}
-          onTouchMoveCapture={(e) => {
-            if (e.target === e.currentTarget) {
-              e.preventDefault();
+      {
+        showEditModal && eventToEdit && createPortal(
+          <div
+            className={`evt-fixed-inset-edit-modal ${editPreviewMode === 'billboard' ? 'billboard-mode' : ''}`}
+            onTouchStartCapture={(e) => {
               e.stopPropagation();
-            }
-          }}
-          onTouchEndCapture={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          <div className="evt-modal-container-lg">
-            {/* 헤더 */}
-            <div className="evt-modal-header">
-              <div className="evt-modal-header-content">
-                <h2 className="evt-modal-title">
-                  이벤트 수정
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setEventToEdit(null);
-                    setEditVideoPreview({ provider: null, embedUrl: null });
-                  }}
-                  className="evt-modal-close-btn"
-                >
-                  <i className="ri-close-line evt-icon-xl"></i>
-                </button>
-              </div>
-            </div>
-
-            {/* 스크롤 가능한 폼 영역 */}
-            <div className="evt-modal-body-scroll">
-              <form id="edit-event-form" onSubmit={handleEditSubmit} className="evt-space-y-3">
-                <div>
-                  <label className="evt-form-label">
-                    이벤트 제목
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.title}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        title: e.target.value,
-                      }))
-                    }
-                    className="evt-form-input"
-                  />
-                </div>
-
-
-                <div className="evt-relative">
-
-                  <label className="evt-form-label">
-                    장르 (7자 이내, 선택사항)
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.genre}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setEditFormData((prev) => ({ ...prev, genre: value }));
-                      const suggestions = value
-                        ? allGenres.filter(
-                          (genre) =>
-                            genre.toLowerCase().includes(value.toLowerCase()) &&
-                            genre.toLowerCase() !== value.toLowerCase(),
-                        )
-                        : allGenres; // 입력값이 없으면 전체 목록 보여주기
-                      setGenreSuggestions(suggestions);
-                    }}
-                    onFocus={handleGenreFocus}
-                    onBlur={() => setTimeout(() => setIsGenreInputFocused(false), 150)}
-                    maxLength={7}
-                    className="evt-form-input"
-                    placeholder="예: 린디합, 발보아"
-                    autoComplete="off"
-
-                  />
-                  {isGenreInputFocused && genreSuggestions.length > 0 && (
-                    <div className="evt-autocomplete-dropdown">
-                      {genreSuggestions.map((genre) => (
-                        <div key={genre} onMouseDown={() => handleGenreSuggestionClick(genre)} className="evt-autocomplete-genre-item">
-                          {genre}
-                        </div>
-                      ))}
+            }}
+            onTouchMoveCapture={(e) => {
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            onTouchEndCapture={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {editPreviewMode === 'billboard' ? (
+              <div className="billboard-content-card">
+                {/* Video/Image Area */}
+                <div className="billboard-media-area">
+                  {editFormData.videoUrl && isValidVideoUrl(editFormData.videoUrl) ? (
+                    <div className="billboard-media-video-wrapper w-full h-full">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={`https://www.youtube.com/embed/${parseVideoUrl(editFormData.videoUrl).videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${parseVideoUrl(editFormData.videoUrl).videoId}`}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full object-cover"
+                      ></iframe>
                     </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="evt-form-label">
-                    카테고리
-                  </label>
-                  <select
-                    value={editFormData.category}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        category: e.target.value,
-                      }))
-                    }
-                    className="evt-form-select"
-                  >
-                    <option value="class">강습</option>
-                    <option value="event">행사</option>
-                  </select>
-                </div>
-
-                {/* 빌보드 표시 옵션 */}
-                <div className="evt-billboard-option-box evt-space-y-2">
-                  <label className="event-list-form-label">
-                    빌보드 표시 옵션
-                  </label>
-                  <div className="event-list-form-flex">
-                    <input
-                      type="checkbox"
-                      id="editShowTitleOnBillboard"
-                      name="showTitleOnBillboard"
-                      checked={editFormData.showTitleOnBillboard}
-                      onChange={(e) => {
-                        const { checked } = e.target;
-                        setEditFormData(prev => ({ ...prev, showTitleOnBillboard: checked }));
-                      }}
-                      className="evt-form-checkbox"
+                  ) : editImagePreview || editFormData.image ? (
+                    <img
+                      src={editImagePreview || editFormData.image}
+                      alt="preview"
+                      className="billboard-media-image cursor-pointer"
+                      onClick={handleEditReEditImage}
                     />
-                    <label htmlFor="editShowTitleOnBillboard" className="event-list-form-label-ml">
-                      빌보드에 제목, 날짜, 장소 정보 표시
-                    </label>
-                  </div>
-                </div>
-
-                {/* 장소 이름 & 주소 링크 (한 줄) */}
-                <div className="evt-grid-cols-2 evt-gap-3">
-                  <div>
-                    <label className="evt-form-label">
-                      장소 이름
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.location}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          location: e.target.value,
-                        }))
-                      }
-                      className="evt-form-input"
-                      placeholder="예: 홍대 연습실"
-                    />
-                  </div>
-                  <div>
-                    <label className="evt-form-label">
-                      주소 링크 (선택)
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.locationLink}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          locationLink: e.target.value,
-                        }))
-                      }
-                      className="evt-form-input"
-                      placeholder="지도 링크"
-                    />
-                  </div>
-                </div>
-
-                {/* 날짜 선택 섹션 (통합 박스) */}
-                <div className="evt-billboard-option-box evt-space-y-3">
-                  <label className="event-list-form-label">
-                    날짜 선택 방식
-                  </label>
-                  <div className="event-list-form-flex-gap">
-                    <label className="evt-flex evt-items-center evt-cursor-pointer">
-                      <input
-                        type="radio"
-                        name="edit-dateMode"
-                        value="range"
-                        checked={editFormData.dateMode === "range"}
-                        onChange={() => {
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            dateMode: "range",
-                            event_dates: [],
-                          }));
-                        }}
-                        className="evt-mr-2"
-                      />
-                      <span className="event-list-form-text-small">연속 기간</span>
-                    </label>
-                    <label className="evt-flex evt-items-center evt-cursor-pointer">
-                      <input
-                        type="radio"
-                        name="edit-dateMode"
-                        value="specific"
-                        checked={editFormData.dateMode === "specific"}
-                        onChange={() => {
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            dateMode: "specific",
-                          }));
-                        }}
-                        className="evt-mr-2"
-                      />
-                      <span className="event-list-form-text-small">
-                        특정 날짜 선택
-                      </span>
-                    </label>
-                  </div>
-
-                  {editFormData.dateMode === "range" ? (
-                    <div className="evt-grid-cols-2 evt-gap-3">
-                      <div>
-                        <label className="evt-form-label">
-                          시작일
-                        </label>
-                        <DatePicker
-                          selected={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
-                          onChange={(date) => {
-                            if (date) {
-                              const dateStr = formatDateForInput(date);
-                              setEditFormData((prev) => ({
-                                ...prev,
-                                start_date: dateStr,
-                                end_date: !prev.end_date || prev.end_date < dateStr ? dateStr : prev.end_date,
-                              }));
-                              if (onMonthChange) {
-                                onMonthChange(date);
-                              }
-                            }
-                          }}
-                          locale="ko"
-                          shouldCloseOnSelect={false}
-                          customInput={
-                            <CustomDateInput
-                              value={
-                                editFormData.start_date
-                                  ? `${new Date(editFormData.start_date + "T00:00:00").getMonth() + 1}.${new Date(editFormData.start_date + "T00:00:00").getDate()}`
-                                  : undefined
-                              }
-                            />
-                          }
-                          calendarClassName="evt-calendar-bg"
-                          withPortal
-                          portalId="root-portal"
-                          renderCustomHeader={(props) => (
-                            <CustomDatePickerHeader
-                              {...props}
-                              selectedDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
-                              onTodayClick={() => {
-                                const today = new Date();
-                                props.changeMonth(today.getMonth());
-                                props.changeYear(today.getFullYear());
-                                const todayStr = formatDateForInput(today);
-                                setEditFormData((prev) => ({
-                                  ...prev,
-                                  start_date: todayStr,
-                                  end_date: !prev.end_date || prev.end_date < todayStr ? todayStr : prev.end_date,
-                                }));
-                                if (onMonthChange) {
-                                  onMonthChange(today);
-                                }
-                              }}
-                            />
-                          )}
-                        />
-                      </div>
-                      <div>
-                        <label className="evt-form-label">
-                          종료일
-                        </label>
-                        <DatePicker
-                          selected={editFormData.end_date ? new Date(editFormData.end_date + "T00:00:00") : null}
-                          onChange={(date) => {
-                            if (date) {
-                              const dateStr = formatDateForInput(date);
-                              setEditFormData((prev) => ({
-                                ...prev,
-                                end_date: dateStr,
-                              }));
-                              if (onMonthChange) {
-                                onMonthChange(date);
-                              }
-                            }
-                          }}
-                          startDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
-                          endDate={editFormData.end_date ? new Date(editFormData.end_date + "T00:00:00") : null}
-                          minDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : undefined}
-                          locale="ko"
-                          shouldCloseOnSelect={false}
-                          customInput={
-                            <CustomDateInput
-                              value={
-                                editFormData.end_date
-                                  ? `${new Date(editFormData.end_date + "T00:00:00").getMonth() + 1}.${new Date(editFormData.end_date + "T00:00:00").getDate()}`
-                                  : undefined
-                              }
-                            />
-                          }
-                          calendarClassName="evt-calendar-bg"
-                          withPortal
-                          portalId="root-portal"
-                          renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
-                        />
-                      </div>
-                    </div>
                   ) : (
-                    <div>
-                      <label className="event-list-form-label-small">
-                        선택된 날짜 ({editFormData.event_dates.length}개)
-                      </label>
-                      <div className="event-list-form-flex-wrap">
-                        {editFormData.event_dates
-                          .sort((a, b) => a.localeCompare(b))
-                          .map((dateStr, index) => {
-                            const date = new Date(dateStr);
-                            return (
-                              <div
-                                key={index}
-                                className="evt-date-badge"
-                              >
-                                <span>
-                                  {date.getMonth() + 1}/{date.getDate()}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (editFormData.event_dates.length > 1) {
-                                      setEditFormData((prev) => ({
-                                        ...prev,
-                                        event_dates: prev.event_dates.filter(
-                                          (_, i) => i !== index,
-                                        ),
-                                      }));
-                                    }
-                                  }}
-                                  className="event-list-icon-hover"
-                                >
-                                  <i className="ri-close-line"></i>
-                                </button>
-                              </div>
-                            );
-                          })}
-                      </div>
-                      <div className="event-list-form-flex-wrap">
-                        <input
-                          type="date"
-                          value={tempDateInput}
-                          className="event-list-form-input-flex evt-form-input"
-                          onKeyDown={(e) => {
-                            if (
-                              e.key !== "Tab" &&
-                              e.key !== "ArrowLeft" &&
-                              e.key !== "ArrowRight"
-                            ) {
-                              e.preventDefault();
-                            }
-                          }}
-                          onChange={(e) => {
-                            setTempDateInput(e.target.value);
-                            // 달력 이동
-                            if (e.target.value && onMonthChange) {
-                              const newDate = new Date(e.target.value + "T00:00:00");
-                              onMonthChange(newDate);
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (tempDateInput) {
-                              const newDate = tempDateInput;
-                              const isDuplicate =
-                                editFormData.event_dates.includes(newDate);
-                              if (!isDuplicate) {
-                                setEditFormData((prev) => ({
-                                  ...prev,
-                                  event_dates: [...prev.event_dates, newDate],
-                                }));
-                              }
-                              setTempDateInput("");
-                            }
-                          }}
-                          className="evt-video-btn"
-                        >
-                          추가
-                        </button>
-                      </div>
-                      <p className="event-list-form-hint">
-                        예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수
-                        있습니다
-                      </p>
+                    <div className="billboard-media-placeholder">
+                      <i className="ri-image-line billboard-empty-icon"></i>
                     </div>
                   )}
+
+                  {/* QR Code Placeholder */}
+                  <div className="billboard-qr-placeholder">
+                    <i className="ri-qr-code-line billboard-qr-icon"></i>
+                  </div>
                 </div>
 
-                {/* 문의 정보 (공개) */}
-                <div>
-                  <label className="evt-form-label">
-                    문의
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.contact}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        contact: e.target.value,
-                      }))
-                    }
-                    className="evt-form-input"
-                    placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
-                  />
-                  <p className="event-list-form-hint-mt">
-                    <i className="ri-information-line evt-mr-1"></i>
-                    참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
+                {/* Bottom Info */}
+                <div className="billboard-info-overlay">
+                  <h3 className="billboard-info-title">{editFormData.title || "제목"}</h3>
+                  <p className="billboard-info-date">
+                    {editDate ? formatDateForInput(editDate) : "날짜"}
                   </p>
                 </div>
-
-                {/* 내용 */}
-                <div>
-                  <label className="evt-form-label">
-                    내용 (선택사항)
-                  </label>
-                  <textarea
-                    value={editFormData.description}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    rows={4}
-                    className="evt-form-input"
-                    placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
-                  />
-                </div>
-
-                <div>
-                  <label className="evt-form-label">
-                    바로가기 링크
-                  </label>
-                  <div className="evt-grid-cols-2 evt-gap-2">
-                    <input
-                      type="url"
-                      value={editFormData.link1}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          link1: e.target.value,
-                        }))
-                      }
-                      className="evt-form-input"
-                      placeholder="링크 URL"
-                    />
-                    <input
-                      type="text"
-                      value={editFormData.linkName1}
-                      onChange={(e) =>
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          linkName1: e.target.value,
-                        }))
-                      }
-                      className="evt-form-input"
-                      placeholder="링크 이름"
-                    />
+              </div>
+            ) : (
+              <div className="evt-modal-container-lg">
+                {/* 헤더 */}
+                <div className="evt-modal-header">
+                  <div className="evt-modal-header-content">
+                    <h2 className="evt-modal-title">
+                      이벤트 수정
+                    </h2>
+                    <button
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setEventToEdit(null);
+                        setEditVideoPreview({ provider: null, embedUrl: null });
+                      }}
+                      className="evt-modal-close-btn"
+                    >
+                      <i className="ri-close-line evt-icon-xl"></i>
+                    </button>
                   </div>
                 </div>
 
-                <div>
-                  <label className="evt-form-label">
-                    이벤트 이미지 (선택사항)
-                  </label>
-                  <div className="evt-space-y-2">
-                    {editImagePreview && (
-                      <div className="evt-relative">
-                        <img
-                          src={editImagePreview}
-                          alt="이벤트 이미지"
-                          className="evt-img-full-h48"
-                        />
-                        <div className="event-list-image-controls">
-                          <button
-                            type="button"
-                            onClick={handleEditOpenCropForFile}
-                            className="evt-btn-purple"
-                          >
-                            <i className="ri-crop-line evt-mr-1"></i>
-                            편집
-                          </button>
-                          {isAdminMode && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = editImagePreview;
-                                link.download = `thumbnail-${Date.now()}.jpg`;
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                              }}
-                              className="evt-thumbnail-btn"
-                            >
-                              <i className="ri-download-line evt-mr-1"></i>
-                              다운로드
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditImagePreview("");
-                              setEditImageFile(null);
-                              setEditFormData((prev) => ({
-                                ...prev,
-                                image: "",
-                              }));
-                            }}
-                            className="evt-thumbnail-remove-btn"
-                          >
-                            이미지 삭제
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleEditImageChange}
-                      className="evt-file-input"
-                    />
-
-
-
-                    <p className="event-list-form-hint">
-                      <i className="ri-information-line evt-mr-1"></i>
-                      포스터 이미지는 이벤트 배너와 상세보기에 표시됩니다.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="evt-form-label">
-                    영상 URL (선택사항)
-                  </label>
-                  <div className="evt-space-y-2">
-                    {/* 영상 프리뷰 */}
-                    {editVideoPreview.provider && editVideoPreview.embedUrl && (
-                      <div className="evt-relative">
-                        <div className="event-list-video-success">
-                          <i className="ri-check-line"></i>
-                          <span>영상 인식됨 - 빌보드에서 재생됩니다</span>
-                        </div>
-                        <div className="evt-video-preview-wrapper">
-                          <iframe
-                            src={editVideoPreview.embedUrl}
-                            className="evt-video-preview-iframe"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          ></iframe>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditVideoPreview({
-                              provider: null,
-                              embedUrl: null,
-                            });
-                            setEditFormData((prev) => ({
-                              ...prev,
-                              videoUrl: "",
-                            }));
-                            setEditImageFile(null);
-                            setEditImagePreview("");
-                          }}
-                          className="evt-btn-red-abs"
-                        >
-                          영상 삭제
-                        </button>
-                      </div>
-                    )}
-
-                    {/* 영상 URL 입력창 - 항상 표시 */}
+                {/* 스크롤 가능한 폼 영역 */}
+                <div className="evt-modal-body-scroll">
+                  <form id="edit-event-form" onSubmit={handleEditSubmit} className="evt-space-y-3">
                     <div>
-                      <label className="event-list-form-label-small">
-                        {editVideoPreview.provider ? '영상 주소 (복사/수정 가능)' : '영상 주소 입력'}
-                      </label>
-                      <input
-                        type="url"
-                        value={editFormData.videoUrl}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setEditFormData((prev) => ({
-                            ...prev,
-                            videoUrl: value,
-                          }));
-
-                          if (value.trim() === "") {
-                            setEditVideoPreview({
-                              provider: null,
-                              embedUrl: null,
-                            });
-                          } else {
-                            const videoInfo = parseVideoUrl(value);
-
-                            // 유튜브만 허용
-                            if (
-                              videoInfo.provider &&
-                              videoInfo.provider !== "youtube"
-                            ) {
-                              setEditVideoPreview({
-                                provider: null,
-                                embedUrl: null,
-                              });
-                            } else {
-                              setEditVideoPreview({
-                                provider: videoInfo.provider,
-                                embedUrl: videoInfo.embedUrl,
-                              });
-                            }
-                          }
-                        }}
-                        className="evt-form-input"
-                        placeholder="YouTube 링크만 가능"
-                      />
-                    </div>
-                    <div className="evt-mt-2 evt-space-y-1">
-                      <p className="event-list-form-hint">
-                        <i className="ri-information-line evt-mr-1"></i>
-                        영상은 전면 빌보드에서 자동재생됩니다.
-                      </p>
-                      <p className="event-list-form-success">
-                        <i className="ri-check-line evt-mr-1"></i>
-                        <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상
-                        재생 가능
-                      </p>
-                      <p className="event-list-form-error">
-                        <i className="ri-close-line evt-mr-1"></i>
-                        <strong>Instagram, Vimeo는 지원하지 않습니다</strong>
-                      </p>
-                    </div>
-                    {editFormData.videoUrl && !editVideoPreview.provider && (
-                      <p className="event-list-form-error-mt">
-                        <i className="ri-alert-line evt-mr-1"></i>
-                        YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수
-                        없습니다.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* 등록자 정보 (관리자 전용, 비공개) - 최하단 */}
-                <div className="evt-registrant-box">
-                  <div className="evt-registrant-header">
-                    <i className="ri-lock-line event-list-form-icon-warning"></i>
-                    <h3 className="evt-registrant-title">
-                      등록자 정보 (비공개 - 관리자만 확인 가능)
-                    </h3>
-                  </div>
-                  <div className="evt-grid-cols-2 evt-gap-3">
-                    <div>
-                      <label className="evt-registrant-label">
-                        등록자 이름 <span className="event-list-form-required">*필수</span>
+                      <label className="evt-form-label">
+                        이벤트 제목
                       </label>
                       <input
                         type="text"
-                        value={editFormData.organizerName}
+                        value={editFormData.title}
                         onChange={(e) =>
                           setEditFormData((prev) => ({
                             ...prev,
-                            organizerName: e.target.value,
+                            title: e.target.value,
                           }))
                         }
-                        required
-                        className="evt-form-input-orange"
-                        placeholder="등록자 이름"
+                        className="evt-form-input"
                       />
                     </div>
-                    <div>
-                      <label className="evt-registrant-label">
-                        등록자 전화번호{" "}
-                        <span className="event-list-form-required">*필수</span>
+
+
+                    <div className="evt-relative">
+
+                      <label className="evt-form-label">
+                        장르 (7자 이내, 선택사항)
                       </label>
                       <input
-                        type="tel"
-                        value={editFormData.organizerPhone}
+                        type="text"
+                        value={editFormData.genre}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setEditFormData((prev) => ({ ...prev, genre: value }));
+                          const suggestions = value
+                            ? allGenres.filter(
+                              (genre) =>
+                                genre.toLowerCase().includes(value.toLowerCase()) &&
+                                genre.toLowerCase() !== value.toLowerCase(),
+                            )
+                            : allGenres; // 입력값이 없으면 전체 목록 보여주기
+                          setGenreSuggestions(suggestions);
+                        }}
+                        onFocus={handleGenreFocus}
+                        onBlur={() => setTimeout(() => setIsGenreInputFocused(false), 150)}
+                        maxLength={7}
+                        className="evt-form-input"
+                        placeholder="예: 린디합, 발보아"
+                        autoComplete="off"
+
+                      />
+                      {isGenreInputFocused && genreSuggestions.length > 0 && (
+                        <div className="evt-autocomplete-dropdown">
+                          {genreSuggestions.map((genre) => (
+                            <div key={genre} onMouseDown={() => handleGenreSuggestionClick(genre)} className="evt-autocomplete-genre-item">
+                              {genre}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="evt-form-label">
+                        카테고리
+                      </label>
+                      <select
+                        value={editFormData.category}
                         onChange={(e) =>
                           setEditFormData((prev) => ({
                             ...prev,
-                            organizerPhone: e.target.value,
+                            category: e.target.value,
                           }))
                         }
-                        required
-                        className="evt-form-input-orange"
-                        placeholder="010-0000-0000"
+                        className="evt-form-select"
+                      >
+                        <option value="class">강습</option>
+                        <option value="event">행사</option>
+                      </select>
+                    </div>
+
+                    {/* 빌보드 표시 옵션 */}
+                    <div className="evt-billboard-option-box evt-space-y-2">
+                      <label className="event-list-form-label">
+                        빌보드 표시 옵션
+                      </label>
+                      <div className="event-list-form-flex">
+                        <input
+                          type="checkbox"
+                          id="editShowTitleOnBillboard"
+                          name="showTitleOnBillboard"
+                          checked={editFormData.showTitleOnBillboard}
+                          onChange={(e) => {
+                            const { checked } = e.target;
+                            setEditFormData(prev => ({ ...prev, showTitleOnBillboard: checked }));
+                          }}
+                          className="evt-form-checkbox"
+                        />
+                        <label htmlFor="editShowTitleOnBillboard" className="event-list-form-label-ml">
+                          빌보드에 제목, 날짜, 장소 정보 표시
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* 장소 이름 & 주소 링크 (한 줄) */}
+                    <div className="evt-grid-cols-2 evt-gap-3">
+                      <div>
+                        <label className="evt-form-label">
+                          장소 이름
+                        </label>
+                        <input
+                          type="text"
+                          value={editFormData.location}
+                          onChange={(e) =>
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              location: e.target.value,
+                            }))
+                          }
+                          className="evt-form-input"
+                          placeholder="예: 홍대 연습실"
+                        />
+                      </div>
+                      <div>
+                        <label className="evt-form-label">
+                          주소 링크 (선택)
+                        </label>
+                        <input
+                          type="text"
+                          value={editFormData.locationLink}
+                          onChange={(e) =>
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              locationLink: e.target.value,
+                            }))
+                          }
+                          className="evt-form-input"
+                          placeholder="지도 링크"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 날짜 선택 섹션 (통합 박스) */}
+                    <div className="evt-billboard-option-box evt-space-y-3">
+                      <label className="event-list-form-label">
+                        날짜 선택 방식
+                      </label>
+                      <div className="event-list-form-flex-gap">
+                        <label className="evt-flex evt-items-center evt-cursor-pointer">
+                          <input
+                            type="radio"
+                            name="edit-dateMode"
+                            value="range"
+                            checked={editFormData.dateMode === "range"}
+                            onChange={() => {
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                dateMode: "range",
+                                event_dates: [],
+                              }));
+                            }}
+                            className="evt-mr-2"
+                          />
+                          <span className="event-list-form-text-small">연속 기간</span>
+                        </label>
+                        <label className="evt-flex evt-items-center evt-cursor-pointer">
+                          <input
+                            type="radio"
+                            name="edit-dateMode"
+                            value="specific"
+                            checked={editFormData.dateMode === "specific"}
+                            onChange={() => {
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                dateMode: "specific",
+                              }));
+                            }}
+                            className="evt-mr-2"
+                          />
+                          <span className="event-list-form-text-small">
+                            특정 날짜 선택
+                          </span>
+                        </label>
+                      </div>
+
+                      {editFormData.dateMode === "range" ? (
+                        <div className="evt-grid-cols-2 evt-gap-3">
+                          <div>
+                            <label className="evt-form-label">
+                              시작일
+                            </label>
+                            <DatePicker
+                              selected={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
+                              onChange={(date) => {
+                                if (date) {
+                                  const dateStr = formatDateForInput(date);
+                                  setEditFormData((prev) => ({
+                                    ...prev,
+                                    start_date: dateStr,
+                                    end_date: !prev.end_date || prev.end_date < dateStr ? dateStr : prev.end_date,
+                                  }));
+                                  if (onMonthChange) {
+                                    onMonthChange(date);
+                                  }
+                                }
+                              }}
+                              locale="ko"
+                              shouldCloseOnSelect={false}
+                              customInput={
+                                <CustomDateInput
+                                  value={
+                                    editFormData.start_date
+                                      ? `${new Date(editFormData.start_date + "T00:00:00").getMonth() + 1}.${new Date(editFormData.start_date + "T00:00:00").getDate()}`
+                                      : undefined
+                                  }
+                                />
+                              }
+                              calendarClassName="evt-calendar-bg"
+                              withPortal
+                              portalId="root-portal"
+                              renderCustomHeader={(props) => (
+                                <CustomDatePickerHeader
+                                  {...props}
+                                  selectedDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
+                                  onTodayClick={() => {
+                                    const today = new Date();
+                                    props.changeMonth(today.getMonth());
+                                    props.changeYear(today.getFullYear());
+                                    const todayStr = formatDateForInput(today);
+                                    setEditFormData((prev) => ({
+                                      ...prev,
+                                      start_date: todayStr,
+                                      end_date: !prev.end_date || prev.end_date < todayStr ? todayStr : prev.end_date,
+                                    }));
+                                    if (onMonthChange) {
+                                      onMonthChange(today);
+                                    }
+                                  }}
+                                />
+                              )}
+                            />
+                          </div>
+                          <div>
+                            <label className="evt-form-label">
+                              종료일
+                            </label>
+                            <DatePicker
+                              selected={editFormData.end_date ? new Date(editFormData.end_date + "T00:00:00") : null}
+                              onChange={(date) => {
+                                if (date) {
+                                  const dateStr = formatDateForInput(date);
+                                  setEditFormData((prev) => ({
+                                    ...prev,
+                                    end_date: dateStr,
+                                  }));
+                                  if (onMonthChange) {
+                                    onMonthChange(date);
+                                  }
+                                }
+                              }}
+                              startDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : null}
+                              endDate={editFormData.end_date ? new Date(editFormData.end_date + "T00:00:00") : null}
+                              minDate={editFormData.start_date ? new Date(editFormData.start_date + "T00:00:00") : undefined}
+                              locale="ko"
+                              shouldCloseOnSelect={false}
+                              customInput={
+                                <CustomDateInput
+                                  value={
+                                    editFormData.end_date
+                                      ? `${new Date(editFormData.end_date + "T00:00:00").getMonth() + 1}.${new Date(editFormData.end_date + "T00:00:00").getDate()}`
+                                      : undefined
+                                  }
+                                />
+                              }
+                              calendarClassName="evt-calendar-bg"
+                              withPortal
+                              portalId="root-portal"
+                              renderCustomHeader={(props) => <CustomDatePickerHeader {...props} />}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="event-list-form-label-small">
+                            선택된 날짜 ({editFormData.event_dates.length}개)
+                          </label>
+                          <div className="event-list-form-flex-wrap">
+                            {editFormData.event_dates
+                              .sort((a, b) => a.localeCompare(b))
+                              .map((dateStr, index) => {
+                                const date = new Date(dateStr);
+                                return (
+                                  <div
+                                    key={index}
+                                    className="evt-date-badge"
+                                  >
+                                    <span>
+                                      {date.getMonth() + 1}/{date.getDate()}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (editFormData.event_dates.length > 1) {
+                                          setEditFormData((prev) => ({
+                                            ...prev,
+                                            event_dates: prev.event_dates.filter(
+                                              (_, i) => i !== index,
+                                            ),
+                                          }));
+                                        }
+                                      }}
+                                      className="event-list-icon-hover"
+                                    >
+                                      <i className="ri-close-line"></i>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                          <div className="event-list-form-flex-wrap">
+                            <input
+                              type="date"
+                              value={tempDateInput}
+                              className="event-list-form-input-flex evt-form-input"
+                              onKeyDown={(e) => {
+                                if (
+                                  e.key !== "Tab" &&
+                                  e.key !== "ArrowLeft" &&
+                                  e.key !== "ArrowRight"
+                                ) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              onChange={(e) => {
+                                setTempDateInput(e.target.value);
+                                // 달력 이동
+                                if (e.target.value && onMonthChange) {
+                                  const newDate = new Date(e.target.value + "T00:00:00");
+                                  onMonthChange(newDate);
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (tempDateInput) {
+                                  const newDate = tempDateInput;
+                                  const isDuplicate =
+                                    editFormData.event_dates.includes(newDate);
+                                  if (!isDuplicate) {
+                                    setEditFormData((prev) => ({
+                                      ...prev,
+                                      event_dates: [...prev.event_dates, newDate],
+                                    }));
+                                  }
+                                  setTempDateInput("");
+                                }
+                              }}
+                              className="evt-video-btn"
+                            >
+                              추가
+                            </button>
+                          </div>
+                          <p className="event-list-form-hint">
+                            예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수
+                            있습니다
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 문의 정보 (공개) */}
+                    <div>
+                      <label className="evt-form-label">
+                        문의
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.contact}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            contact: e.target.value,
+                          }))
+                        }
+                        className="evt-form-input"
+                        placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
+                      />
+                      <p className="event-list-form-hint-mt">
+                        <i className="ri-information-line evt-mr-1"></i>
+                        참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
+                      </p>
+                    </div>
+
+                    {/* 내용 */}
+                    <div>
+                      <label className="evt-form-label">
+                        내용 (선택사항)
+                      </label>
+                      <textarea
+                        value={editFormData.description}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                        rows={4}
+                        className="evt-form-input"
+                        placeholder="이벤트에 대한 자세한 설명을 입력해주세요"
                       />
                     </div>
-                  </div>
-                  <p className="evt-registrant-info">
-                    <i className="ri-information-line evt-mr-1"></i>
-                    수정 등 문제가 있을 경우 연락받으실 번호입니다
-                  </p>
+
+                    <div>
+                      <label className="evt-form-label">
+                        바로가기 링크
+                      </label>
+                      <div className="evt-grid-cols-2 evt-gap-2">
+                        <input
+                          type="url"
+                          value={editFormData.link1}
+                          onChange={(e) =>
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              link1: e.target.value,
+                            }))
+                          }
+                          className="evt-form-input"
+                          placeholder="링크 URL"
+                        />
+                        <input
+                          type="text"
+                          value={editFormData.linkName1}
+                          onChange={(e) =>
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              linkName1: e.target.value,
+                            }))
+                          }
+                          className="evt-form-input"
+                          placeholder="링크 이름"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="evt-form-label">
+                        이벤트 이미지 (선택사항)
+                      </label>
+                      <div className="evt-space-y-2">
+                        {editImagePreview && (
+                          <div className="evt-relative">
+                            <img
+                              src={editImagePreview}
+                              alt="이벤트 이미지"
+                              className="evt-img-full-h48"
+                            />
+                            <div className="event-list-image-controls">
+                              <button
+                                type="button"
+                                onClick={handleEditOpenCropForFile}
+                                className="evt-btn-purple"
+                              >
+                                <i className="ri-crop-line evt-mr-1"></i>
+                                편집
+                              </button>
+                              {isAdminMode && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = editImagePreview;
+                                    link.download = `thumbnail-${Date.now()}.jpg`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  className="evt-thumbnail-btn"
+                                >
+                                  <i className="ri-download-line evt-mr-1"></i>
+                                  다운로드
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditImagePreview("");
+                                  setEditImageFile(null);
+                                  setEditFormData((prev) => ({
+                                    ...prev,
+                                    image: "",
+                                  }));
+                                }}
+                                className="evt-thumbnail-remove-btn"
+                              >
+                                이미지 삭제
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleEditImageChange}
+                          className="evt-file-input"
+                        />
+
+
+
+                        <p className="event-list-form-hint">
+                          <i className="ri-information-line evt-mr-1"></i>
+                          포스터 이미지는 이벤트 배너와 상세보기에 표시됩니다.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="evt-form-label">
+                        영상 URL (선택사항)
+                      </label>
+                      <div className="evt-space-y-2">
+                        {/* 영상 프리뷰 */}
+                        {editVideoPreview.provider && editVideoPreview.embedUrl && (
+                          <div className="evt-relative">
+                            <div className="event-list-video-success">
+                              <i className="ri-check-line"></i>
+                              <span>영상 인식됨 - 빌보드에서 재생됩니다</span>
+                            </div>
+                            <div className="evt-video-preview-wrapper">
+                              <iframe
+                                src={editVideoPreview.embedUrl}
+                                className="evt-video-preview-iframe"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              ></iframe>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditVideoPreview({
+                                  provider: null,
+                                  embedUrl: null,
+                                });
+                                setEditFormData((prev) => ({
+                                  ...prev,
+                                  videoUrl: "",
+                                }));
+                                setEditImageFile(null);
+                                setEditImagePreview("");
+                              }}
+                              className="evt-btn-red-abs"
+                            >
+                              영상 삭제
+                            </button>
+                          </div>
+                        )}
+
+                        {/* 영상 URL 입력창 - 항상 표시 */}
+                        <div>
+                          <label className="event-list-form-label-small">
+                            {editVideoPreview.provider ? '영상 주소 (복사/수정 가능)' : '영상 주소 입력'}
+                          </label>
+                          <input
+                            type="url"
+                            value={editFormData.videoUrl}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                videoUrl: value,
+                              }));
+
+                              if (value.trim() === "") {
+                                setEditVideoPreview({
+                                  provider: null,
+                                  embedUrl: null,
+                                });
+                              } else {
+                                const videoInfo = parseVideoUrl(value);
+
+                                // 유튜브만 허용
+                                if (
+                                  videoInfo.provider &&
+                                  videoInfo.provider !== "youtube"
+                                ) {
+                                  setEditVideoPreview({
+                                    provider: null,
+                                    embedUrl: null,
+                                  });
+                                } else {
+                                  setEditVideoPreview({
+                                    provider: videoInfo.provider,
+                                    embedUrl: videoInfo.embedUrl,
+                                  });
+                                }
+                              }
+                            }}
+                            className="evt-form-input"
+                            placeholder="YouTube 링크만 가능"
+                          />
+                        </div>
+                        <div className="evt-mt-2 evt-space-y-1">
+                          <p className="event-list-form-hint">
+                            <i className="ri-information-line evt-mr-1"></i>
+                            영상은 전면 빌보드에서 자동재생됩니다.
+                          </p>
+                          <p className="event-list-form-success">
+                            <i className="ri-check-line evt-mr-1"></i>
+                            <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상
+                            재생 가능
+                          </p>
+                          <p className="event-list-form-error">
+                            <i className="ri-close-line evt-mr-1"></i>
+                            <strong>Instagram, Vimeo는 지원하지 않습니다</strong>
+                          </p>
+                        </div>
+                        {editFormData.videoUrl && !editVideoPreview.provider && (
+                          <p className="event-list-form-error-mt">
+                            <i className="ri-alert-line evt-mr-1"></i>
+                            YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수
+                            없습니다.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 등록자 정보 (관리자 전용, 비공개) - 최하단 */}
+                    <div className="evt-registrant-box">
+                      <div className="evt-registrant-header">
+                        <i className="ri-lock-line event-list-form-icon-warning"></i>
+                        <h3 className="evt-registrant-title">
+                          등록자 정보 (비공개 - 관리자만 확인 가능)
+                        </h3>
+                      </div>
+                      <div className="evt-grid-cols-2 evt-gap-3">
+                        <div>
+                          <label className="evt-registrant-label">
+                            등록자 이름 <span className="event-list-form-required">*필수</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={editFormData.organizerName}
+                            onChange={(e) =>
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                organizerName: e.target.value,
+                              }))
+                            }
+                            required
+                            className="evt-form-input-orange"
+                            placeholder="등록자 이름"
+                          />
+                        </div>
+                        <div>
+                          <label className="evt-registrant-label">
+                            등록자 전화번호{" "}
+                            <span className="event-list-form-required">*필수</span>
+                          </label>
+                          <input
+                            type="tel"
+                            value={editFormData.organizerPhone}
+                            onChange={(e) =>
+                              setEditFormData((prev) => ({
+                                ...prev,
+                                organizerPhone: e.target.value,
+                              }))
+                            }
+                            required
+                            className="evt-form-input-orange"
+                            placeholder="010-0000-0000"
+                          />
+                        </div>
+                      </div>
+                      <p className="evt-registrant-info">
+                        <i className="ri-information-line evt-mr-1"></i>
+                        수정 등 문제가 있을 경우 연락받으실 번호입니다
+                      </p>
+                    </div>
+
+                  </form>
                 </div>
 
-              </form>
-            </div>
-
-            {/* 하단 고정 버튼 */}
-            <div className="evt-footer-sticky">
-              <div className="event-list-button-group">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (eventToEdit) {
-                      handleDeleteClick(eventToEdit);
-                    }
-                  }}
-                  className="evt-btn-red-footer"
-                >
-                  삭제
-                </button>
-                <div className="event-list-button-group-flex">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setEventToEdit(null);
-                      setEditVideoPreview({ provider: null, embedUrl: null });
-                    }}
-                    className="evt-btn-gray-footer"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    form="edit-event-form"
-                    className="evt-btn-blue-footer"
-                  >
-                    수정 완료
-                  </button>
+                {/* 하단 고정 버튼 */}
+                <div className="evt-footer-sticky">
+                  <div className="event-list-button-group">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (eventToEdit) {
+                          handleDeleteClick(eventToEdit);
+                        }
+                      }}
+                      className="evt-btn-red-footer"
+                    >
+                      삭제
+                    </button>
+                    <div className="event-list-button-group-flex">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowEditModal(false);
+                          setEventToEdit(null);
+                          setEditVideoPreview({ provider: null, embedUrl: null });
+                        }}
+                        className="evt-btn-gray-footer"
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="submit"
+                        form="edit-event-form"
+                        className="evt-btn-blue-footer"
+                      >
+                        수정 완료
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+            )}
+          </div>,
+          document.body
+        )
+      }
 
 
 
@@ -3712,6 +3748,6 @@ export default function EventList({
           (!!editOriginalImageUrl && editImagePreview !== editOriginalImageUrl)
         }
       />
-    </div>
+    </div >
   );
 }

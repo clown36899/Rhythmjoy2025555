@@ -789,6 +789,15 @@
   gap: 0.25rem;
 }
 
+/* ===== Card Preview Container ===== */
+.card-preview-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  overflow-y: auto;
+}
+
 /* ===== 텍스트 정렬 유틸리티 ===== */
 .edm-text-left {
   text-align: left;

@@ -112,6 +112,11 @@
     padding: 1rem;
 }
 
+.evt-fixed-inset-edit-modal.billboard-mode {
+    align-items: center;
+    padding-top: 0;
+}
+
 .evt-date-badge {
     display: flex;
     align-items: center;

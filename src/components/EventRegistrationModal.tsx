@@ -530,7 +530,7 @@ export default function EventRegistrationModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="reg-modal-overlay">
+    <div className={`reg-modal-overlay ${previewMode === 'billboard' ? 'billboard-mode' : ''}`}>
       {/* Ceiling Switcher - Detached */}
       {/* Ceiling Switcher - Detached */}
       <div className="ceiling-switcher-container">
@@ -559,51 +559,86 @@ export default function EventRegistrationModal({
         </div>
       </div>
 
-      <div className="reg-modal-container">
+      {previewMode === 'detail' ? (
+        <EditableEventDetail
+          event={previewEvent}
+          onUpdate={handleDetailUpdate}
+          onImageUpload={handleImageClick}
+          imagePosition={imagePosition}
+          onImagePositionChange={setImagePosition}
+          genreSuggestions={allGenres}
+          className="h-full"
+          ref={detailRef}
+          // DatePicker Props
+          date={date}
+          setDate={setDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          eventDates={eventDates}
+          setEventDates={setEventDates}
+          // Footer Props
+          password={password}
+          setPassword={setPassword}
+          link={link1}
+          setLink={setLink1}
+          linkName={linkName1}
+          setLinkName={setLinkName1}
+          onRegister={handleSubmit}
+          onClose={onClose}
+          isSubmitting={isSubmitting}
+          videoUrl={videoUrl}
+          onVideoChange={handleVideoChange}
+          onExtractThumbnail={handleExtractThumbnail}
+        />
+      ) : previewMode === 'billboard' ? (
+        /* Billboard mode: Direct card with no container */
+        <div className="billboard-content-card">
+          {/* Video/Image Area */}
+          <div className="billboard-media-area">
+            {isValidVideo && videoId ? (
+              <div className="billboard-media-video-wrapper w-full h-full">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full object-cover"
+                ></iframe>
+              </div>
+            ) : imageFile ? (
+              <img
+                src={URL.createObjectURL(imageFile)}
+                alt="preview"
+                className="billboard-media-image cursor-pointer"
+                onClick={handleReEditImage}
+              />
+            ) : (
+              <div className="billboard-media-placeholder">
+                <i className="ri-image-line billboard-empty-icon"></i>
+              </div>
+            )}
 
-        {/* Main Content Area */}
-        {/* Main Content Area */}
-        <div className="reg-main-content">
+            {/* QR Code Placeholder */}
+            <div className="billboard-qr-placeholder">
+              <i className="ri-qr-code-line billboard-qr-icon"></i>
+            </div>
+          </div>
 
-
-
-          {/* Mode: Detail (Editing) */}
-          {previewMode === 'detail' && (
-            <EditableEventDetail
-              event={previewEvent}
-              onUpdate={handleDetailUpdate}
-              onImageUpload={handleImageClick}
-              imagePosition={imagePosition}
-              onImagePositionChange={setImagePosition}
-              genreSuggestions={allGenres}
-              className="h-full"
-              ref={detailRef}
-              // DatePicker Props
-              date={date}
-              setDate={setDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              eventDates={eventDates}
-              setEventDates={setEventDates}
-              // Footer Props
-              password={password}
-              setPassword={setPassword}
-              link={link1}
-              setLink={setLink1}
-              linkName={linkName1}
-              setLinkName={setLinkName1}
-              onRegister={handleSubmit}
-              onClose={onClose}
-              isSubmitting={isSubmitting}
-              videoUrl={videoUrl}
-              onVideoChange={handleVideoChange}
-              onExtractThumbnail={handleExtractThumbnail}
-            />
-          )}
-
-          {/* Mode: Card Preview */}
-          {previewMode === 'card' && (
-            <div className="flex items-center justify-center h-full overflow-y-auto">
+          {/* Bottom Info */}
+          <div className="billboard-info-overlay">
+            <h3 className="billboard-info-title">{title || "제목"}</h3>
+            <p className="billboard-info-date">{date ? formatDateForInput(date) : "날짜"}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="reg-modal-container">
+          {/* Main Content Area */}
+          <div className="reg-main-content">
+            {/* Mode: Card Preview */}
+            <div className="card-preview-container">
               <div className="card-preview-grid">
                 {/* Active Card - Always show at index 1 (top center) */}
                 <div key="active" className="active-card-wrapper">
@@ -631,101 +666,35 @@ export default function EventRegistrationModal({
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Mode: Billboard Preview & Video Input */}
-          {previewMode === 'billboard' && (
-            <div className="billboard-preview-container">
-              {/* Video Input Section */}
-
-
-              {/* Billboard Preview */}
-              <div className="billboard-preview-area">
-                {/* Background Image/Video */}
-                <div className="billboard-bg-layer">
-                  {imageFile ? (
-                    <img src={URL.createObjectURL(imageFile)} alt="bg" className="billboard-bg-image" />
-                  ) : (
-                    <div className="billboard-bg-placeholder" />
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="billboard-content-card">
-                  {/* Video/Image Area */}
-                  <div className="billboard-media-area">
-                    {isValidVideo && videoId ? (
-                      <div className="billboard-media-video-wrapper w-full h-full">
-                        <iframe
-                          width="100%"
-                          height="100%"
-                          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`}
-                          title="YouTube video player"
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full object-cover"
-                        ></iframe>
-                      </div>
-                    ) : imageFile ? (
-                      <img
-                        src={URL.createObjectURL(imageFile)}
-                        alt="preview"
-                        className="billboard-media-image cursor-pointer"
-                        onClick={handleReEditImage}
-                      />
-                    ) : (
-                      <div className="billboard-media-placeholder">
-                        <i className="ri-image-line billboard-empty-icon"></i>
-                      </div>
-                    )}
-
-                    {/* QR Code Placeholder */}
-                    <div className="billboard-qr-placeholder">
-                      <i className="ri-qr-code-line billboard-qr-icon"></i>
-                    </div>
-                  </div>
-
-                  {/* Bottom Info */}
-                  <div className="billboard-info-overlay">
-                    <h3 className="billboard-info-title">{title || "제목"}</h3>
-                    <p className="billboard-info-date">{date ? formatDateForInput(date) : "날짜"}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* DatePicker logic moved to EditableEventDetail */}
+          </div>
         </div>
+      )
+      }
 
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImageSelect}
+        accept="image/*"
+        className="hidden"
+        style={{ display: 'none' }}
+      />
 
-
-        {/* Hidden File Input */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleImageSelect}
-          accept="image/*"
-          className="hidden"
-          style={{ display: 'none' }}
-        />
-
-        {/* Image Crop Modal */}
-        <ImageCropModal
-          key={tempImageSrc || 'register-crop-modal'}
-          isOpen={isCropModalOpen}
-          onClose={() => setIsCropModalOpen(false)}
-          imageUrl={tempImageSrc}
-          videoUrl={isValidVideo ? videoUrl : undefined}
-          onCropComplete={handleCropComplete}
-          onRestoreOriginal={handleRestoreOriginal}
-          onChangeImage={() => fileInputRef.current?.click()}
-          onImageUpdate={handleImageUpdate}
-          hasOriginal={!!originalImageFile}
-        />
-      </div>
-    </div>,
+      {/* Image Crop Modal */}
+      <ImageCropModal
+        key={tempImageSrc || 'register-crop-modal'}
+        isOpen={isCropModalOpen}
+        onClose={() => setIsCropModalOpen(false)}
+        imageUrl={tempImageSrc}
+        videoUrl={isValidVideo ? videoUrl : undefined}
+        onCropComplete={handleCropComplete}
+        onRestoreOriginal={handleRestoreOriginal}
+        onChangeImage={() => fileInputRef.current?.click()}
+        onImageUpdate={handleImageUpdate}
+        hasOriginal={!!originalImageFile}
+      />
+    </div >,
     document.body
   );
 }

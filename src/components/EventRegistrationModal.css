@@ -92,18 +92,25 @@
   left: 0;
   background-color: rgba(0, 0, 0, 0.799);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   z-index: var(--z-modal-base);
   padding: var(--spacing-4);
-  padding-top: 2.5rem;
+  /* padding-top: 2.5rem; */
+  /* Removed to ensure vertical centering */
   overflow-y: auto;
+}
+
+.reg-modal-overlay.billboard-mode {
+  align-items: center;
+  padding-top: 0;
+  /* Space for switcher */
 }
 
 /* ===== 모달 컨테이너 ===== */
 .reg-modal-container {
   background-color: var(--color-gray-800);
-  border-radius: var(--radius-lg);
+  border-radius: 1rem;
   max-width: 42rem;
   width: 100%;
   max-height: 90svh;
@@ -117,8 +124,8 @@
 @media (max-width: 768px) {
   .reg-modal-overlay {
     padding: 1rem;
-    padding-top: 3rem;
-    align-items: flex-start;
+    padding-top: 1rem;
+    align-items: center;
     overflow-y: auto;
   }
 
@@ -126,9 +133,10 @@
     max-width: 100%;
     max-height: calc(100svh - 4rem);
     height: auto;
-    border-radius: var(--radius-lg);
+    border-radius: 1rem;
     margin: 0;
     overflow: hidden;
+    border: 1px solid #515151;
     display: flex;
     flex-direction: column;
   }
@@ -326,11 +334,8 @@
 }
 
 /* ===== Billboard Preview ===== */
-.billboard-preview-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
+/* ===== Billboard Preview ===== */
+/* .billboard-preview-container removed as it is no longer used */
 
 .video-input-section {
   padding: 1rem;
@@ -360,35 +365,7 @@
   border-color: var(--color-blue-500);
 }
 
-.billboard-preview-area {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background-color: black;
-  position: relative;
-  overflow: hidden;
-}
-
-.billboard-bg-layer {
-  position: absolute;
-  inset: 0;
-  opacity: 0.5;
-}
-
-.billboard-bg-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(4px);
-}
-
-.billboard-bg-placeholder {
-  width: 100%;
-  height: 100%;
-  background-color: var(--color-gray-900);
-}
+/* Removed redundant wrappers: .billboard-preview-area, .billboard-bg-layer */
 
 .billboard-content-card {
   position: relative;
@@ -1468,6 +1445,12 @@
   margin-bottom: 0.25rem;
 }
 
-.erm-mb-2 {
-  margin-bottom: 0.5rem;
+
+/* ===== Card Preview Container ===== */
+.card-preview-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  overflow-y: auto;
 }
