@@ -60,7 +60,7 @@ export default function EventRegistrationModal({
   const [location, setLocation] = useState("");
   const [locationLink, setLocationLink] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<"class" | "event">("event");
+  const [category, setCategory] = useState<"class" | "event" | "">("");
   const [genre, setGenre] = useState("");
   const [password, setPassword] = useState("");
   const [link1, setLink1] = useState("");
@@ -191,7 +191,7 @@ export default function EventRegistrationModal({
       setLocation("");
       setLocationLink("");
       setDescription("");
-      setCategory("event");
+      setCategory("");
       setGenre("");
       setPassword("");
       setLink1("");
@@ -342,6 +342,13 @@ export default function EventRegistrationModal({
       detailRef.current?.openModal('date');
       return;
     }
+
+    // New Validation: Category is required
+    if (!category) {
+      alert("분류(행사/강습)를 선택해주세요.");
+      return;
+    }
+
     if (!password.trim() && !isAdmin) {
       alert("비밀번호를 입력해주세요.");
       // Scroll to password input
@@ -349,6 +356,12 @@ export default function EventRegistrationModal({
       if (passwordSection) {
         passwordSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+      return;
+    }
+
+    // New Validation: Image OR Video is required
+    if (!imageFile && !videoUrl) {
+      alert("이미지 또는 동영상 중 하나는 필수입니다!\n둘 중 하나라도 입력해주세요.");
       return;
     }
 

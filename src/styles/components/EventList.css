@@ -1887,6 +1887,7 @@
 }
 
 /* ===== Footer 버튼 스타일 ===== */
+/* ===== Footer 버튼 스타일 ===== */
 .evt-btn-red-footer {
   background-color: var(--color-red-600);
   color: white;
@@ -1900,6 +1901,8 @@
   cursor: pointer;
   font-size: 0.875rem;
   border: none;
+  white-space: nowrap !important;
+  /* Force single line */
 }
 
 .evt-btn-red-footer:hover {
@@ -1920,6 +1923,8 @@
   cursor: pointer;
   font-size: 0.875rem;
   border: none;
+  white-space: nowrap !important;
+  /* Force single line */
 }
 
 .evt-btn-gray-footer:hover {
@@ -1938,13 +1943,39 @@
   font-weight: 500;
   transition: var(--transition-colors);
   cursor: pointer;
-  white-space: nowrap;
+  white-space: nowrap !important;
+  /* Force single line */
   font-size: 0.875rem;
   border: none;
 }
 
 .evt-btn-blue-footer:hover {
   background-color: var(--color-blue-700);
+}
+
+/* Responsive Footer Buttons: Scale down text on small screens */
+@media (max-width: 480px) {
+
+  .evt-btn-red-footer,
+  .evt-btn-gray-footer,
+  .evt-btn-blue-footer {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+
+  .evt-btn-red-footer,
+  .evt-btn-gray-footer,
+  .evt-btn-blue-footer {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+    font-size: 0.7rem !important;
+    /* Shrink more */
+    gap: 0.25rem !important;
+  }
 }
 
 /* ===== 썸네일 모달 스타일 ===== */

@@ -1581,6 +1581,16 @@ export default function EventList({
       return;
     }
 
+    // New Validation: Image OR Video is required
+    // (Existing image OR New Upload OR Video URL)
+    const hasImage = !!editImageFile || !!eventToEdit.image;
+    const hasVideo = !!editFormData.videoUrl;
+
+    if (!hasImage && !hasVideo) {
+      alert("이미지 또는 동영상 중 하나는 필수입니다!\n둘 중 하나라도 입력해주세요.");
+      return;
+    }
+
     setIsEditSubmitting(true);
 
     try {

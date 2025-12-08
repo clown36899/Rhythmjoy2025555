@@ -1440,6 +1440,40 @@
   /* gap-1 */
 }
 
+/* Category Badge Styles */
+.category-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.category-badge.event {
+  background-color: rgba(37, 99, 235, 0.2);
+  /* blue */
+  color: #93c5fd;
+  border: 1px solid rgba(37, 99, 235, 0.4);
+}
+
+.category-badge.class {
+  background-color: rgba(139, 92, 246, 0.2);
+  /* violet for class, or use previous color if I knew it. Using violet/purple as it's common for 'class' in this app? Or Green? User didn't specify color. sticking to logic. */
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.category-badge.default {
+  background-color: rgba(75, 85, 99, 0.2);
+  /* gray */
+  color: #9ca3af;
+  border: 1px solid rgba(75, 85, 99, 0.4);
+}
+
 .genre-selector {
   position: relative;
   display: inline-flex;
@@ -1566,6 +1600,8 @@
   /* bg-blue-600 */
   color: white;
   border-color: #3b82f6;
+  white-space: nowrap !important;
+  /* Force single line */
   /* border-blue-500 */
 }
 
@@ -1577,6 +1613,59 @@
 .register-action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Responsive adjustments for footer buttons */
+@media (max-width: 480px) {
+  .register-action-btn {
+    padding: 0 0.75rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .close-action-btn {
+    font-size: 0.8rem !important;
+    padding: 0 0.5rem !important;
+    /* Adjust padding for consistency */
+  }
+
+  .link-action-btn {
+    padding: 0 0.5rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .link-action-btn span {
+    font-size: 0.8rem !important;
+    /* Override text-sm */
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .register-action-btn {
+    padding: 0 0.5rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  .close-action-btn {
+    font-size: 0.7rem !important;
+    padding: 0 0.4rem !important;
+  }
+
+  .link-action-btn {
+    padding: 0 0.4rem !important;
+    font-size: 0.7rem !important;
+    gap: 0.25rem !important;
+  }
+
+  .link-action-btn span {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+  }
+
+  .link-action-btn i {
+    font-size: 1rem !important;
+    /* Shrink icon too */
+  }
 }
 
 /* --- Image Control Overlay --- */

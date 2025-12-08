@@ -410,7 +410,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                     </div>
                                     <span className="font-bold text-lg opacity-90">{videoUrl ? '동영상 수정' : '동영상 등록'}</span>
                                     <div className="flex flex-col items-center mt-1">
-                                        <span className="text-xs text-red-300 font-medium opacity-90">(유튜브만 가능)</span>
+                                        <span className="text-xs text-red-300 font-medium opacity-90">(필수x, 유튜브만 가능)</span>
                                         <span className="text-[10px] opacity-60">빌보드 전용</span>
                                     </div>
                                 </div>
@@ -496,14 +496,16 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     <div className="header-selectors-container">
                         {/* Category Badge - Moved here */}
                         <div
-                            className={`category-selector category-badge ${event.category === "class" ? "class" : "event"} group`}
+                            className={`category-selector category-badge ${!event.category ? "default" : (event.category === "class" ? "class" : "event")} group`}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onUpdate('category', event.category === 'class' ? 'event' : 'class');
+                                // Toggle logic: Empty -> Event -> Class -> Event ...
+                                const nextCategory = !event.category ? 'event' : (event.category === 'event' ? 'class' : 'event');
+                                onUpdate('category', nextCategory);
                             }}
                             style={{ zIndex: 20 }}
                         >
-                            {event.category === "class" ? "강습" : "행사"}
+                            {!event.category ? "분류" : (event.category === "class" ? "강습" : "행사")}
                             <EditBadge isStatic />
                         </div>
 
