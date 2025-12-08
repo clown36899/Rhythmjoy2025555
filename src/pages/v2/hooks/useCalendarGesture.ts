@@ -40,23 +40,10 @@ export function useCalendarGesture({
   }, [isAnimating, calendarMode, isYearView]);
 
   // Track viewport height changes (mobile address bar hide/show)
+  // Track viewport height changes (mobile address bar hide/show) - DISABLED to prevent flickering
   useEffect(() => {
-    const handleResize = () => {
-      setViewportHeight(window.innerHeight);
-    };
-
-    window.addEventListener('resize', handleResize);
-    // Also listen to visualViewport for better mobile support
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-    }
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-      }
-    };
+    // Initial set only
+    setViewportHeight(window.innerHeight);
   }, []);
 
   const calculateFullscreenHeight = useCallback(() => {
@@ -86,7 +73,10 @@ export function useCalendarGesture({
     // [User Request] Don't subtract controlBarHeight
     const EXTRA_FIXED_HEIGHT = filterBarHeight;
 
-    const result = actualViewportHeight - headerHeight - bottomNavHeight - EXTRA_FIXED_HEIGHT;
+    // [Safety Buffer] Subtract extra 30px to ensure bottom is visible even with address bar quirks
+    const SAFETY_BUFFER = 30;
+
+    const result = actualViewportHeight - headerHeight - bottomNavHeight - EXTRA_FIXED_HEIGHT - SAFETY_BUFFER;
 
     console.log('[Height Calc] Fullscreen Calculation DETAILS:', {
       '1. Viewport Height (actualViewportHeight)': actualViewportHeight,

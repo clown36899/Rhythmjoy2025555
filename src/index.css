@@ -112,7 +112,9 @@ html {
 /* 달력 그리드 컨테이너 - 왼쪽과 위쪽 border */
 .calendar-grid-container {
   /* border-left: 1px solid #15151575;
+  
   border-top: 1px solid #15151575; */
+  padding-bottom: calc(130px + env(safe-area-inset-bottom));
 }
 
 /* react-datepicker 모바일 터치 반응성 개선 */

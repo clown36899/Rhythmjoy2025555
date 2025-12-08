@@ -200,14 +200,9 @@ export default function HomePageV2() {
     const {
         calendarMode,
         setCalendarMode,
-        isDragging,
-        liveCalendarHeight,
         dragOffset,
-        setDragOffset,
         isAnimating,
-        setIsAnimating,
         getTargetHeight,
-        calculateFullscreenHeight,
     } = useCalendarGesture({
         headerHeight: 50, // 화면에 보이는 50px 고정값 사용 (측정값 159px 오류 방지)
         containerRef,
@@ -497,27 +492,21 @@ export default function HomePageV2() {
 
     }, []);
 
+    useEffect(() => {
+        const handleEventSelected = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail) {
+                handleDailyModalEventClick(customEvent.detail);
+            }
+        };
+        window.addEventListener("eventSelected", handleEventSelected);
+        return () => window.removeEventListener("eventSelected", handleEventSelected);
+    }, []);
+
     // --------------------------------------------------------------------------------
     // 7. 렌더링
     // --------------------------------------------------------------------------------
-    const EXPANDED_HEIGHT = 173;
 
-    const renderHeight = useMemo(() => {
-        if (isDragging) return `${liveCalendarHeight}px`;
-        if (calendarMode === 'collapsed') return '0px';
-        if (calendarMode === 'fullscreen') {
-            // calculateFullscreenHeight() 결과값:
-            // 전체 화면 높이(Viewport) - 헤더 높이(50px) - 하단 네비게이션(BottomNav) - 필터 바(FilterBar)
-            // (ControlBar 높이는 차감하지 않음)
-            const containerHeight = calculateFullscreenHeight();
-
-            // [수정 완료] 이중 차감 방지
-            // containerHeight에서 이미 ControlBar 높이가 빠져있으므로, 여기서 다시 빼지 않습니다.
-            return `${Math.max(0, containerHeight)}px`;
-        }
-        return `${EXPANDED_HEIGHT}px`; // 'expanded' 모드의 높이 (173px)
-    }, [isDragging, liveCalendarHeight, calendarMode, calculateFullscreenHeight]);
-    const isFixed = calendarMode === "fullscreen";
 
 
     // Calculate header height for home-main padding
@@ -570,7 +559,8 @@ export default function HomePageV2() {
             className="home-container"
             style={{
                 backgroundColor: "var(--page-bg-color)",
-                touchAction: "pan-y"
+                touchAction: "pan-y",
+                minHeight: '100svh'
             }}
         >
             <div ref={headerRef} className="home-header" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
@@ -660,7 +650,6 @@ export default function HomePageV2() {
                             style={{
                                 flex: 1,
                                 overflow: 'auto',
-                                paddingBottom: '130px', // FOOTER_HEIGHT와 동일
                             }}
                         >
                             <EventCalendar

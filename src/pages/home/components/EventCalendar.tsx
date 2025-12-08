@@ -1041,7 +1041,7 @@ export default function EventCalendar({
                           : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
                         gridAutoRows: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : undefined,
                         height: (calendarMode === 'fullscreen' && !isTransitioning) ? 'auto' : '100%',
-                        '--calendar-cell-height': `calc(173px / 6)`
+                        '': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
                       {isTransitioning ? renderFullscreenGrid(prevDays, prevMonth) : renderCalendarGrid(prevDays, prevMonth)}

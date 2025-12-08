@@ -659,7 +659,7 @@ export default function EventCalendar({
 
   // 전체화면 모드 그리드 렌더링
   const renderFullscreenGrid = (days: Date[], monthDate: Date) => {
-    return days.map((day) => {
+    return days.map((day, index) => {
       const year = day.getFullYear();
       const month = String(day.getMonth() + 1).padStart(2, "0");
       const dayNum = String(day.getDate()).padStart(2, "0");
@@ -676,6 +676,9 @@ export default function EventCalendar({
         bgColor = '#000000ff'; // blue-900 for selected
       }
 
+      // Check if this is the last row (last 7 days in the grid)
+      const isLastRow = index >= days.length - 7;
+
       // 해당 날짜의 모든 이벤트 가져오기 (필터링 없이)
       const dayEvents = getEventsForDate(day);
 
@@ -686,7 +689,10 @@ export default function EventCalendar({
           className="calendar-cell-fullscreen"
           style={{
             backgroundColor: bgColor,
-            minHeight: `${cellHeight}px`
+            minHeight: `${cellHeight}px`, // Restore min-height for expansion
+            height: '100%',
+            // Apply address bar buffer + safe area to the last row cells
+            paddingBottom: isLastRow ? 'calc(60px + env(safe-area-inset-bottom))' : undefined
           }}
         >
           {/* 헤더: 날짜 숫자 */}
@@ -702,7 +708,10 @@ export default function EventCalendar({
                 height: todayFlag ? '20px' : undefined,
               }}
             >
-              {day.getDate()}
+              <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
+              <span style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8 }}>
+                {["일", "월", "화", "수", "목", "금", "토"][day.getDay()]}
+              </span>
             </span>
           </div>
 
@@ -971,7 +980,9 @@ export default function EventCalendar({
       <div
         data-calendar
         className="calendar-main-container"
-        style={{ backgroundColor: "var(--calendar-bg-color)" }}
+        style={{
+          backgroundColor: "var(--calendar-bg-color)",
+        }}
       >
         {/* Desktop Header */}
         {/* Desktop Header */}
@@ -1070,7 +1081,6 @@ export default function EventCalendar({
                           : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
                         gridAutoRows: undefined,
                         minHeight: '100%',
-                        '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
                       {isTransitioning ? renderFullscreenGrid(prevDays, prevMonth) : renderCalendarGrid(prevDays, prevMonth)}
@@ -1093,7 +1103,6 @@ export default function EventCalendar({
                           : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
                         gridAutoRows: undefined,
                         minHeight: '100%',
-                        '--calendar-cell-height': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
                       {isTransitioning ? renderFullscreenGrid(currentDays, currentMonth) : renderCalendarGrid(currentDays, currentMonth)}
@@ -1116,7 +1125,7 @@ export default function EventCalendar({
                           : (isTransitioning ? 'repeat(6, 1fr)' : 'repeat(6, calc(173px / 6))'),
                         gridAutoRows: undefined,
                         minHeight: '100%',
-                        '--calendar-cell-height': `calc(173px / 6)`
+                        '': `calc(173px / 6)`
                       } as React.CSSProperties}
                     >
                       {isTransitioning ? renderFullscreenGrid(nextDays, nextMonth) : renderCalendarGrid(nextDays, nextMonth)}
