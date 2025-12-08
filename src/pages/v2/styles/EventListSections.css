@@ -157,3 +157,226 @@
         padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
     }
 }
+
+/* ===== EventList Semantic Classes ===== */
+
+/* Loading & Error States */
+.event-list-loading-container {
+    background-color: #1f1f1f;
+    border-radius: 0;
+    padding: 1rem;
+}
+
+.event-list-loading-content {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.event-list-loading-icon {
+    font-size: 3rem;
+    color: #9ca3af;
+    margin-bottom: 1rem;
+    animation: spin 1s linear infinite;
+}
+
+.event-list-loading-text {
+    color: #9ca3af;
+}
+
+.event-list-error-text {
+    color: #f87171;
+    font-size: 0.875rem;
+}
+
+.event-list-error-icon {
+    font-size: 3rem;
+    color: #f87171;
+    margin-bottom: 1rem;
+}
+
+.event-list-error-message {
+    color: #9ca3af;
+    margin-bottom: 0.5rem;
+}
+
+/* Deleting State */
+.event-list-deleting-text {
+    color: white;
+    font-size: 1.125rem;
+    margin-top: 1rem;
+    font-weight: 500;
+}
+
+/* Search Result Badge */
+.event-list-search-container {
+    padding: 0.4rem;
+}
+
+/* View All Card */
+.event-list-view-all-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    cursor: pointer;
+}
+
+.event-list-view-all-icon {
+    font-size: 3.75rem;
+    color: #9ca3af;
+    margin-bottom: 0.5rem;
+}
+
+.event-list-view-all-text {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+/* Empty State */
+.event-list-empty-container {
+    text-align: center;
+    padding: 1rem 0;
+    margin-top: 0.5rem;
+}
+
+.event-list-empty-text {
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+/* Add Event Icon */
+.event-list-add-icon {
+    font-size: 4.5rem;
+    color: #9ca3af;
+}
+
+/* Form Styles */
+.event-list-form-label {
+    display: block;
+    color: #9ca3af;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.event-list-form-label-small {
+    display: block;
+    color: #9ca3af;
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.event-list-form-flex {
+    display: flex;
+    align-items: center;
+}
+
+.event-list-form-flex-gap {
+    display: flex;
+    gap: 1rem;
+}
+
+.event-list-form-flex-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.event-list-form-text-small {
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+.event-list-form-label-ml {
+    margin-left: 0.5rem;
+    display: block;
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+.event-list-form-input-flex {
+    flex: 1;
+}
+
+.event-list-form-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.event-list-form-hint-mt {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+
+.event-list-form-success {
+    font-size: 0.75rem;
+    color: #4ade80;
+}
+
+.event-list-form-error {
+    font-size: 0.75rem;
+    color: #f87171;
+}
+
+.event-list-form-error-mt {
+    font-size: 0.75rem;
+    color: #f87171;
+    margin-top: 0.25rem;
+}
+
+.event-list-form-required {
+    color: #f87171;
+}
+
+.event-list-form-icon-warning {
+    color: #fb923c;
+    font-size: 0.875rem;
+}
+
+/* Image Position Controls */
+.event-list-image-controls {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.event-list-video-success {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #4ade80;
+    margin-bottom: 0.5rem;
+}
+
+/* Button Groups */
+.event-list-button-group {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.event-list-button-group-flex {
+    flex: 1;
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Icon Hover Effect */
+.event-list-icon-hover:hover {
+    color: #f87171;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

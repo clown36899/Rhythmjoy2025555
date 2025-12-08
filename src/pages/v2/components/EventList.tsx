@@ -2142,13 +2142,13 @@ export default function EventList({
 
   if (loading) {
     return (
-      <div className="evt-bg-1f1f1f evt-rounded-none evt-p-4">
-        <div className="evt-text-center evt-py-8">
-          <i className="ri-loader-4-line evt-icon-4xl evt-text-gray-400 evt-mb-4 evt-animate-spin"></i>
-          <p className="evt-text-gray-400">이벤트를 불러오는 중...</p>
+      <div className="event-list-loading-container">
+        <div className="event-list-loading-content">
+          <i className="ri-loader-4-line event-list-loading-icon"></i>
+          <p className="event-list-loading-text">이벤트를 불러오는 중...</p>
           {loadError && (
             <div className="evt-alert-error">
-              <p className="evt-text-red-400 evt-text-sm">{loadError}</p>
+              <p className="event-list-error-text">{loadError}</p>
               <button
                 onClick={() => {
                   setLoadError(null);
@@ -2168,12 +2168,12 @@ export default function EventList({
   // 로딩 완료 후 에러가 있으면 표시
   if (loadError && events.length === 0) {
     return (
-      <div className="evt-bg-1f1f1f evt-rounded-none evt-p-4">
-        <div className="evt-text-center evt-py-8">
-          <i className="ri-error-warning-line evt-icon-4xl evt-text-red-400 evt-mb-4"></i>
-          <p className="evt-text-gray-400 evt-mb-2">데이터를 불러올 수 없습니다</p>
+      <div className="event-list-loading-container">
+        <div className="event-list-loading-content">
+          <i className="ri-error-warning-line event-list-error-icon"></i>
+          <p className="event-list-error-message">데이터를 불러올 수 없습니다</p>
           <div className="evt-alert-error">
-            <p className="evt-text-red-400 evt-text-sm">{loadError}</p>
+            <p className="event-list-error-text">{loadError}</p>
             <button
               onClick={() => {
                 setLoadError(null);
@@ -2202,13 +2202,13 @@ export default function EventList({
             <div className="evt-loading-spinner-base evt-loading-spinner-gray"></div>
             <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
           </div>
-          <p className="evt-text-white evt-text-lg evt-mt-4 evt-font-medium">삭제 중...</p>
+          <p className="event-list-deleting-text">삭제 중...</p>
         </div>, document.body
       )}
       {/* 검색 키워드 배너 (Compact Style) */}
       {searchTerm && (
         <div
-          className="evt-p-0-4rem evt-list-bg-container"
+          className="event-list-search-container evt-list-bg-container"
         >
           <div className="evt-search-result-badge">
             <button
@@ -2420,7 +2420,7 @@ export default function EventList({
         ) : (
           // 전체보기 모드
           <div
-            className="evt-p-0-4rem evt-single-view-scroll evt-list-bg-container"
+            className="event-list-search-container evt-single-view-scroll evt-list-bg-container"
             style={{
               flex: 1,
               overflowY: "auto",
@@ -2463,7 +2463,7 @@ export default function EventList({
       {searchTerm.trim() || selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none') ? (
         // 검색 또는 날짜 선택 시: 단일 뷰
         <div
-          className="evt-p-0-4rem evt-single-view-scroll evt-list-bg-container"
+          className="event-list-search-container evt-single-view-scroll evt-list-bg-container"
           style={{
             flex: 1,
             overflowY: "auto",
@@ -2483,8 +2483,8 @@ export default function EventList({
               >
                 <div className="evt-add-banner-legacy" style={{ borderRadius: "0.3rem" }}>
                   <div className="evt-icon-absolute-center">
-                    <i className="ri-arrow-go-back-line evt-icon-5xl evt-text-gray-400 evt-mb-2"></i>
-                    <span className="evt-text-sm evt-text-gray-400 evt-font-medium">전체 일정 보기</span>
+                    <i className="ri-arrow-go-back-line event-list-view-all-icon"></i>
+                    <span className="event-list-view-all-text">전체 일정 보기</span>
                   </div>
                 </div>
               </div>
@@ -2517,7 +2517,7 @@ export default function EventList({
             >
               <div className="evt-add-banner-card">
                 <div className="evt-add-banner-icon">
-                  <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
+                  <i className="ri-add-line event-list-add-icon"></i>
                 </div>
               </div>
             </div>
@@ -2525,8 +2525,8 @@ export default function EventList({
 
           {/* 이벤트 없음 메시지 */}
           {sortedEvents.length === 0 && (
-            <div className="evt-text-center evt-py-4 evt-mt-2">
-              <p className="evt-text-gray-400 evt-text-sm">
+            <div className="event-list-empty-container">
+              <p className="event-list-empty-text">
                 {selectedDate && selectedCategory === "class"
                   ? "강습이 없습니다"
                   : selectedDate && selectedCategory === "event"
@@ -2656,7 +2656,7 @@ export default function EventList({
                   >
                     <div className="evt-add-banner-card">
                       <div className="evt-add-banner-icon">
-                        <i className="ri-add-line evt-icon-6xl evt-evt-text-gray-400"></i>
+                        <i className="ri-add-line event-list-add-icon"></i>
                       </div>
                     </div>
                   </div>
@@ -3061,10 +3061,10 @@ export default function EventList({
 
                 {/* 빌보드 표시 옵션 */}
                 <div className="evt-billboard-option-box evt-space-y-2">
-                  <label className="evt-block evt-text-gray-400 evt-text-xs evt-font-medium">
+                  <label className="event-list-form-label">
                     빌보드 표시 옵션
                   </label>
-                  <div className="evt-flex evt-items-center">
+                  <div className="event-list-form-flex">
                     <input
                       type="checkbox"
                       id="editShowTitleOnBillboard"
@@ -3076,7 +3076,7 @@ export default function EventList({
                       }}
                       className="evt-form-checkbox"
                     />
-                    <label htmlFor="editShowTitleOnBillboard" className="evt-ml-2 evt-block evt-text-sm evt-text-gray-400">
+                    <label htmlFor="editShowTitleOnBillboard" className="event-list-form-label-ml">
                       빌보드에 제목, 날짜, 장소 정보 표시
                     </label>
                   </div>
@@ -3122,10 +3122,10 @@ export default function EventList({
 
                 {/* 날짜 선택 섹션 (통합 박스) */}
                 <div className="evt-billboard-option-box evt-space-y-3">
-                  <label className="evt-block evt-text-gray-400 evt-text-xs evt-font-medium">
+                  <label className="event-list-form-label">
                     날짜 선택 방식
                   </label>
-                  <div className="evt-flex evt-gap-4">
+                  <div className="event-list-form-flex-gap">
                     <label className="evt-flex evt-items-center evt-cursor-pointer">
                       <input
                         type="radio"
@@ -3141,7 +3141,7 @@ export default function EventList({
                         }}
                         className="evt-mr-2"
                       />
-                      <span className="evt-text-gray-400 evt-text-sm">연속 기간</span>
+                      <span className="event-list-form-text-small">연속 기간</span>
                     </label>
                     <label className="evt-flex evt-items-center evt-cursor-pointer">
                       <input
@@ -3157,7 +3157,7 @@ export default function EventList({
                         }}
                         className="evt-mr-2"
                       />
-                      <span className="evt-text-gray-400 evt-text-sm">
+                      <span className="event-list-form-text-small">
                         특정 날짜 선택
                       </span>
                     </label>
@@ -3261,10 +3261,10 @@ export default function EventList({
                     </div>
                   ) : (
                     <div>
-                      <label className="evt-block evt-text-gray-400 evt-text-sm evt-font-medium evt-mb-2">
+                      <label className="event-list-form-label-small">
                         선택된 날짜 ({editFormData.event_dates.length}개)
                       </label>
-                      <div className="evt-flex evt-flex-wrap evt-gap-2 evt-mb-3">
+                      <div className="event-list-form-flex-wrap">
                         {editFormData.event_dates
                           .sort((a, b) => a.localeCompare(b))
                           .map((dateStr, index) => {
@@ -3289,7 +3289,7 @@ export default function EventList({
                                       }));
                                     }
                                   }}
-                                  className="evt-ml-2 hover:evt-text-red-400"
+                                  className="event-list-icon-hover"
                                 >
                                   <i className="ri-close-line"></i>
                                 </button>
@@ -3297,11 +3297,11 @@ export default function EventList({
                             );
                           })}
                       </div>
-                      <div className="evt-flex evt-gap-2 evt-mb-2">
+                      <div className="event-list-form-flex-wrap">
                         <input
                           type="date"
                           value={tempDateInput}
-                          className="evt-flex-1 evt-form-input"
+                          className="event-list-form-input-flex evt-form-input"
                           onKeyDown={(e) => {
                             if (
                               e.key !== "Tab" &&
@@ -3341,7 +3341,7 @@ export default function EventList({
                           추가
                         </button>
                       </div>
-                      <p className="evt-text-xs evt-text-gray-400">
+                      <p className="event-list-form-hint">
                         예: 11일, 25일, 31일처럼 특정 날짜들만 선택할 수
                         있습니다
                       </p>
@@ -3366,7 +3366,7 @@ export default function EventList({
                     className="evt-form-input"
                     placeholder="카카오톡ID, 전화번호, SNS 등 (예: 카카오톡09502958)"
                   />
-                  <p className="evt-text-xs evt-text-gray-400 evt-mt-1">
+                  <p className="event-list-form-hint-mt">
                     <i className="ri-information-line evt-mr-1"></i>
                     참가자가 문의할 수 있는 연락처를 입력해주세요 (선택사항)
                   </p>
@@ -3435,7 +3435,7 @@ export default function EventList({
                           alt="이벤트 이미지"
                           className="evt-img-full-h48"
                         />
-                        <div className="evt-absolute evt-top-2 evt-right-2 evt-flex evt-gap-2">
+                        <div className="event-list-image-controls">
                           <button
                             type="button"
                             onClick={handleEditOpenCropForFile}
@@ -3487,7 +3487,7 @@ export default function EventList({
 
 
 
-                    <p className="evt-text-xs evt-text-gray-400">
+                    <p className="event-list-form-hint">
                       <i className="ri-information-line evt-mr-1"></i>
                       포스터 이미지는 이벤트 배너와 상세보기에 표시됩니다.
                     </p>
@@ -3502,7 +3502,7 @@ export default function EventList({
                     {/* 영상 프리뷰 */}
                     {editVideoPreview.provider && editVideoPreview.embedUrl && (
                       <div className="evt-relative">
-                        <div className="evt-flex evt-items-center evt-gap-2 evt-text-sm evt-text-green-400 evt-mb-2">
+                        <div className="event-list-video-success">
                           <i className="ri-check-line"></i>
                           <span>영상 인식됨 - 빌보드에서 재생됩니다</span>
                         </div>
@@ -3538,7 +3538,7 @@ export default function EventList({
 
                     {/* 영상 URL 입력창 - 항상 표시 */}
                     <div>
-                      <label className="evt-block evt-text-gray-400 evt-text-xs evt-mb-1">
+                      <label className="event-list-form-label-small">
                         {editVideoPreview.provider ? '영상 주소 (복사/수정 가능)' : '영상 주소 입력'}
                       </label>
                       <input
@@ -3581,22 +3581,22 @@ export default function EventList({
                       />
                     </div>
                     <div className="evt-mt-2 evt-space-y-1">
-                      <p className="evt-text-xs evt-text-gray-400">
+                      <p className="event-list-form-hint">
                         <i className="ri-information-line evt-mr-1"></i>
                         영상은 전면 빌보드에서 자동재생됩니다.
                       </p>
-                      <p className="evt-text-xs evt-text-green-400">
+                      <p className="event-list-form-success">
                         <i className="ri-check-line evt-mr-1"></i>
                         <strong>YouTube만 지원:</strong> 썸네일 자동 추출 + 영상
                         재생 가능
                       </p>
-                      <p className="evt-text-xs evt-text-red-400">
+                      <p className="event-list-form-error">
                         <i className="ri-close-line evt-mr-1"></i>
                         <strong>Instagram, Vimeo는 지원하지 않습니다</strong>
                       </p>
                     </div>
                     {editFormData.videoUrl && !editVideoPreview.provider && (
-                      <p className="evt-text-xs evt-text-red-400 evt-mt-1">
+                      <p className="event-list-form-error-mt">
                         <i className="ri-alert-line evt-mr-1"></i>
                         YouTube URL만 지원합니다. 인스타그램, 비메오는 사용할 수
                         없습니다.
@@ -3608,7 +3608,7 @@ export default function EventList({
                 {/* 등록자 정보 (관리자 전용, 비공개) - 최하단 */}
                 <div className="evt-registrant-box">
                   <div className="evt-registrant-header">
-                    <i className="ri-lock-line evt-text-orange-400 evt-text-sm"></i>
+                    <i className="ri-lock-line event-list-form-icon-warning"></i>
                     <h3 className="evt-registrant-title">
                       등록자 정보 (비공개 - 관리자만 확인 가능)
                     </h3>
@@ -3616,7 +3616,7 @@ export default function EventList({
                   <div className="evt-grid-cols-2 evt-gap-3">
                     <div>
                       <label className="evt-registrant-label">
-                        등록자 이름 <span className="evt-text-red-400">*필수</span>
+                        등록자 이름 <span className="event-list-form-required">*필수</span>
                       </label>
                       <input
                         type="text"
@@ -3635,7 +3635,7 @@ export default function EventList({
                     <div>
                       <label className="evt-registrant-label">
                         등록자 전화번호{" "}
-                        <span className="evt-text-red-400">*필수</span>
+                        <span className="event-list-form-required">*필수</span>
                       </label>
                       <input
                         type="tel"
@@ -3663,7 +3663,7 @@ export default function EventList({
 
             {/* 하단 고정 버튼 */}
             <div className="evt-footer-sticky">
-              <div className="evt-flex evt-space-x-3">
+              <div className="event-list-button-group">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -3676,7 +3676,7 @@ export default function EventList({
                 >
                   삭제
                 </button>
-                <div className="evt-flex-1 evt-flex evt-space-x-3">
+                <div className="event-list-button-group-flex">
                   <button
                     type="button"
                     onClick={() => {
