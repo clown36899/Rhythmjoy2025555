@@ -2241,7 +2241,7 @@ export default function EventList({
       {calendarMode === 'collapsed' && !searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all' || selectedCategory === 'none') ? (
         sectionViewMode === 'preview' ? (
           // 프리뷰 모드
-          <div className="evt-ongoing-section" style={{ paddingBottom: '130px' }}>
+          <div className="evt-ongoing-section evt-preview-section">
             {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
             <div className="evt-v2-section">
               <div className="evt-v2-section-title">

@@ -34,6 +34,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  /* Space for bottom nav */
 }
 
 /* ===== 컨텐츠 스크롤 영역 ===== */

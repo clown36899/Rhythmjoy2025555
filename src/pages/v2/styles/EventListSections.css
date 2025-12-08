@@ -144,3 +144,16 @@
     scrollbar-width: thin;
     scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
 }
+
+/* Preview Mode Section - Responsive Bottom Padding */
+.evt-preview-section {
+    /* Web: 100px padding */
+    padding-bottom: 100px;
+}
+
+/* Mobile: More padding for bottom navigation + safe-area */
+@media (max-width: 650px) {
+    .evt-preview-section {
+        padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+    }
+}
