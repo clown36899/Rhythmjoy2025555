@@ -15,6 +15,7 @@
   position: fixed;
   top: 0;
   left: 0;
+  height: 51px;
   right: 0;
   flex-shrink: 0;
   width: 100%;
