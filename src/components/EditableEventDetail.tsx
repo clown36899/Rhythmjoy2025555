@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../lib/supabase';
 import { useDefaultThumbnail } from '../hooks/useDefaultThumbnail';
@@ -109,7 +109,20 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     onImagePositionChange,
     videoUrl,
     onVideoChange,
+
+    onExtractThumbnail
 }, ref) => {
+    // Refs
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-resize textarea logic
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [event.description]);
+
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
     const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | 'video' | 'imageSource' | 'classification' | null>(null);
 
@@ -992,18 +1005,17 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     {/* Description */}
                     <div className="info-divider">
                         <div className="description-editor-row editable-info-item">
-                            <i className="ri-file-text-line editable-info-icon mt-1.5"></i>
-                            <div className="info-item-content w-full">
+                            <i className="ri-file-text-line editable-info-icon"></i>
+                            <div className="editable-info-content-wrapper">
                                 <textarea
+                                    ref={textareaRef}
                                     value={event.description}
                                     onChange={(e) => {
                                         onUpdate('description', e.target.value);
-                                        // Auto-expand height
-                                        e.target.style.height = 'auto';
-                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                        // Auto-expand happens in useEffect
                                     }}
                                     className="editable-description-textarea"
-                                    placeholder="행사 내용을 상세히 입력해주세요..."
+                                    placeholder="내용을 입력해주세요..."
                                 />
                             </div>
                             <EditBadge isStatic />

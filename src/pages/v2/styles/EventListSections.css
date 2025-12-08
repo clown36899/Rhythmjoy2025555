@@ -14,6 +14,7 @@
     font-size: 18px;
     font-weight: 600;
     color: #fff;
+    border-top: 1px solid #2d2d2d;
 }
 
 .evt-v2-section-title i {
@@ -81,7 +82,7 @@
     z-index: 11;
     background-color: #1f1f1f;
     padding: 7px 16px;
-    border-top: 1px solid #2d2d2d;
+    /* border-top: 1px solid #2d2d2d; */
 }
 
 .evt-filter-bar-content {

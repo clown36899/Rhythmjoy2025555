@@ -20,6 +20,9 @@
     justify-content: flex-end;
     flex: 1;
     min-width: 0;
+    flex-wrap: nowrap;
+    /* Prevent wrapping */
+    white-space: nowrap;
 }
 
 .editable-action-btn {
@@ -128,6 +131,41 @@
 .editable-action-icon {
     font-size: 1.5rem;
     line-height: 1;
+}
+
+/* Mobile Responsiveness for Footer Buttons */
+@media (max-width: 480px) {
+    .editable-footer-actions {
+        gap: 0.25rem;
+        /* Reduce gap */
+    }
+
+    .editable-action-btn {
+        min-width: 2.5rem;
+        /* Smaller min-width */
+        padding: 0 0.5rem;
+        /* Reduce padding */
+        font-size: 0.75rem;
+        /* Smaller text */
+        height: 2.5rem;
+        /* Smaller height */
+    }
+
+    .editable-action-btn.icon-only {
+        width: 2.5rem;
+        /* Smaller square buttons */
+        padding: 0;
+    }
+
+    .editable-link-btn-text {
+        max-width: 60px;
+        /* Tighter text constraint */
+        font-size: 0.75rem;
+    }
+
+    .editable-register-btn {
+        padding: 0 0.75rem;
+    }
 }
 
 /* Edit Badge Re-implementation */
@@ -247,6 +285,10 @@
 
 /* Location and Info Items */
 .editable-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    /* Standard gap */
     cursor: pointer;
 }
 
@@ -300,6 +342,17 @@
     /* ml-2 */
     display: inline-flex;
     align-items: center;
+}
+
+/* Description Editor Row */
+.description-editor-row .editable-info-icon {
+    margin-top: 0.375rem;
+    /* mt-1.5 */
+}
+
+/* Wrapper for Description Content */
+.editable-info-content-wrapper {
+    width: 100%;
 }
 
 .editable-title-text {
@@ -356,7 +409,7 @@
     background-color: transparent;
     color: #e5e7eb;
     /* text-gray-200 */
-    resize: vertical;
+    resize: none;
     outline: none;
     min-height: 200px;
     overflow: hidden;
