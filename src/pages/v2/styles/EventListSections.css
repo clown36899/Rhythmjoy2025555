@@ -10,7 +10,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 6px;
+    padding: 8px 15px;
     font-size: 18px;
     font-weight: 600;
     color: #fff;
@@ -28,12 +28,13 @@
     font-weight: 400;
 }
 
+
 /* Horizontal Scroll - 업계 표준 최적화 */
 .evt-v2-horizontal-scroll {
     display: flex;
     gap: 0.4rem;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: visible;
 
     /* iOS 모멘텀 스크롤 */
     -webkit-overflow-scrolling: touch;
@@ -47,7 +48,6 @@
 
     /* 오버스크롤 제어 */
     overscroll-behavior-x: contain;
-    overscroll-behavior-y: none;
 
     /* 성능 최적화 */
     will-change: scroll-position;
@@ -91,7 +91,7 @@
 }
 
 .evt-genre-select {
-    padding: 8px 16px;
+    padding: 8px 32px 8px 16px;
     border-radius: 20px;
     border: none;
     font-size: 14px;
@@ -100,6 +100,10 @@
     cursor: pointer;
     font-weight: 500;
     transition: background-color 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
 }
 
 .evt-genre-select:focus {
@@ -115,4 +119,28 @@
 .evt-count-text {
     font-size: 13px;
     color: #9ca3af;
+}
+
+/* 프리뷰 모드 스크롤바 스타일 */
+.evt-ongoing-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+.evt-ongoing-section::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.evt-ongoing-section::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 3px;
+}
+
+.evt-ongoing-section::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.5);
+}
+
+/* Firefox */
+.evt-ongoing-section {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
 }

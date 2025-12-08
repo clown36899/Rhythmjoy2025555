@@ -160,6 +160,7 @@ export default function EventList({
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
   const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
   const [isGenreInputFocused, setIsGenreInputFocused] = useState(false);
+  const [randomizedGenres, setRandomizedGenres] = useState<string[]>([]);
   // sectionViewMode는 이제 props로 받음
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
   const setShowSearchModal =
@@ -964,6 +965,14 @@ export default function EventList({
     });
     return Array.from(genres).sort();
   }, [events]);
+
+  // 장르 순서를 랜덤화 (새로고침 시에만)
+  useEffect(() => {
+    if (allGenres.length > 0 && randomizedGenres.length === 0) {
+      const shuffled = [...allGenres].sort(() => Math.random() - 0.5);
+      setRandomizedGenres(shuffled);
+    }
+  }, [allGenres, randomizedGenres.length]);
 
 
   // 3개월치 이벤트 데이터 계산 (이전/현재/다음 달)
@@ -1943,11 +1952,11 @@ export default function EventList({
       {calendarMode === 'collapsed' && !searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all' || selectedCategory === 'none') ? (
         sectionViewMode === 'preview' ? (
           // 프리뷰 모드
-          <div className="evt-ongoing-section">
+          <div className="evt-ongoing-section" style={{ paddingBottom: '130px' }}>
             {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
             <div className="evt-v2-section">
               <div className="evt-v2-section-title">
-                <i className="ri-flag-line"></i>
+
                 <span>진행중인 행사</span>
                 <span className="evt-v2-count">{futureEvents.length}</span>
                 {futureEvents.length > 0 && (
@@ -1995,7 +2004,6 @@ export default function EventList({
             {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
             <div className="evt-v2-section">
               <div className="evt-v2-section-title">
-                <i className="ri-graduation-cap-line"></i>
                 <span>진행중인 강습</span>
                 <span className="evt-v2-count">{futureClasses.length}</span>
                 {futureClasses.length > 0 && (
@@ -2068,6 +2076,48 @@ export default function EventList({
                 <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
               )}
             </div>
+
+            {/* Section 3+: 장르별 이벤트 (랜덤 순서, 진행중인 강습 필터와 독립) - 무조건 표시 */}
+            {(randomizedGenres.length > 0 ? randomizedGenres : allGenres).map((genre) => {
+              // 전체 이벤트에서 해당 장르만 필터링
+              const genreEvents = events.filter(e => {
+                if (!e.genre || e.genre !== genre) return false;
+
+                // 날짜 필터 임시 제거 (무조건 표시) - 데이터 형식이 안 맞을 수 있음
+                console.log(`[GenreDebug] ${e.title} : ${e.start_date}`);
+                return true;
+              });
+
+              if (genreEvents.length === 0) return null;
+
+              return (
+                <div key={genre} className="evt-v2-section">
+                  <div className="evt-v2-section-title">
+                    <i className="ri-music-2-line"></i>
+                    <span>{genre}</span>
+                    <span className="evt-v2-count">{genreEvents.length}</span>
+                  </div>
+
+                  <div className="evt-v2-horizontal-scroll">
+                    <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
+                    {genreEvents.map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => handleEventClick(event)}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={selectedDate}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        variant="sliding"
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           // 전체보기 모드
