@@ -206,41 +206,6 @@ export default function Header({
     }, 500);
   };
 
-  // 색상 설정 불러오기 (DB 최우선)
-  const loadThemeColors = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("theme_settings")
-        .select("*")
-        .eq("id", 1)
-        .single();
-
-      if (error || !data) {
-        return;
-      }
-
-      // 로컬 상태 업데이트
-      setThemeColors({
-        background_color: data.background_color,
-        header_bg_color: data.header_bg_color || "#1f2937",
-        calendar_bg_color: data.calendar_bg_color,
-        event_list_bg_color: data.event_list_bg_color,
-        event_list_outer_bg_color: data.event_list_outer_bg_color,
-        page_bg_color: data.page_bg_color || "#111827",
-      });
-
-      // CSS 변수 업데이트 (DB 색상이 최우선)
-      document.documentElement.style.setProperty("--bg-color", data.background_color);
-      document.documentElement.style.setProperty("--header-bg-color", data.header_bg_color || "#1f2937");
-      document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color);
-      document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color);
-      document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color);
-      document.documentElement.style.setProperty("--page-bg-color", data.page_bg_color || "#111827");
-    } catch (err) {
-      // 기본 색상 사용 (index.css 폴백)
-    }
-  };
-
   // 색상 저장
   const saveThemeColor = async (colorType: string, color: string) => {
     try {
@@ -279,9 +244,52 @@ export default function Header({
     }
   };
 
-  // 초기 색상 불러오기 및 이벤트 리스너
+  // 색상 설정 불러오기 (Lazy Load)
+  const loadThemeColors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("theme_settings")
+        .select("*")
+        .eq("id", 1)
+        .single();
+
+      if (error || !data) {
+        return;
+      }
+
+      // 로컬 상태 업데이트 (색상 설정 모달 UI용)
+      setThemeColors({
+        background_color: data.background_color,
+        header_bg_color: data.header_bg_color || "#1f2937",
+        calendar_bg_color: data.calendar_bg_color,
+        event_list_bg_color: data.event_list_bg_color,
+        event_list_outer_bg_color: data.event_list_outer_bg_color,
+        page_bg_color: data.page_bg_color || "#111827",
+      });
+
+      // CSS 변수는 MobileShell에서 이미 로드했으므로 굳이 다시 세팅 안 해도 되지만,
+      // 싱크를 정확히 맞추기 위해 업데이트해줌 (충돌 없음)
+      document.documentElement.style.setProperty("--bg-color", data.background_color);
+      document.documentElement.style.setProperty("--header-bg-color", data.header_bg_color || "#1f2937");
+      document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color);
+      document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color);
+      document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color);
+      document.documentElement.style.setProperty("--page-bg-color", data.page_bg_color || "#111827");
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  // 색상 패널이 열릴 때 최신 설정 불러오기
   useEffect(() => {
-    loadThemeColors();
+    if (showColorPanel) {
+      loadThemeColors();
+    }
+  }, [showColorPanel]);
+
+  // 초기 이벤트 리스너 (테마 로드 제거)
+  useEffect(() => {
+    // loadThemeColors(); // 제거: 초기 로딩은 MobileShell이 담당
 
     // 서브 관리자가 빌보드 설정 창을 닫으면 설정 모달 다시 열기
     const handleReopenSettings = () => {

@@ -195,22 +195,7 @@ export function MobileShell() {
               {/* Left Side: Calendar Controls */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                 {/* Calendar Toggle Button */}
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('toggleCalendarMode'))}
-                  className="shell-top-bar-btn"
-                  style={{
-                    backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '0 4px', height: '24px', color: 'var(--text-secondary)'
-                  }}
-                >
-                  <i className="ri-calendar-line shell-icon-sm"></i>
-                  <span style={{ fontSize: '12px', fontWeight: 500 }}>
-                    {calendarMode === "fullscreen" ? "달력" : (calendarMode === "collapsed" ? "달력" : "달력접기")}
-                  </span>
-                  {calendarMode !== "fullscreen" && (
-                    <i className={`ri-arrow-${calendarMode === "collapsed" ? "down" : "up"}-s-line shell-icon-sm`}></i>
-                  )}
-                </button>
+
 
                 {/* Fullscreen Toggle Button */}
                 <button

@@ -125,7 +125,7 @@ export default function EventList({
   sectionViewMode = 'preview',
   onSectionViewModeChange,
 }: EventListProps) {
-  console.log(`[EventList] Rendered. selectedWeekday: ${selectedWeekday}`);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') || 'all';
   const selectedGenre = searchParams.get('genre');
@@ -498,9 +498,8 @@ export default function EventList({
         setEvents(eventList);
       }
     } catch (error: any) {
-      console.error("[📋 이벤트 목록] ❌ 데이터 로딩 실패:", error.message);
-      setLoadError(`로딩 실패: ${error.message || "알 수 없는 오류"}`);
-      // 타임아웃이나 에러 발생 시 빈 배열로 설정 (무한 로딩 방지)
+      console.error("이벤트 로딩 실패:", error.message);
+      setLoadError(error.message || "알 수 없는 오류");
       setEvents([]);
     } finally {
       setLoading(false);
@@ -2084,7 +2083,6 @@ export default function EventList({
                 if (!e.genre || e.genre !== genre) return false;
 
                 // 날짜 필터 임시 제거 (무조건 표시) - 데이터 형식이 안 맞을 수 있음
-                console.log(`[GenreDebug] ${e.title} : ${e.start_date}`);
                 return true;
               });
 
