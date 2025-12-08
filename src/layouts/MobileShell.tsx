@@ -249,6 +249,25 @@ export function MobileShell() {
                       <span style={{ fontSize: '10px' }}>{getSortLabel()}</span>
                     </button>
 
+                    {/* 3. Event Registration Button */}
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn' } }))}
+                      className="shell-top-bar-btn"
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        height: '24px',
+                        padding: '0 4px'
+                      }}
+                    >
+                      <i className="ri-add-circle-line shell-icon-sm"></i>
+                      <span style={{ fontSize: '10px' }}>등록</span>
+                    </button>
+
                     {/* 3. Search Button */}
                     <button
                       onClick={() => window.dispatchEvent(new CustomEvent('openSearchModal'))}

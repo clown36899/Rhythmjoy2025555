@@ -2082,7 +2082,13 @@ export default function EventList({
               const genreEvents = events.filter(e => {
                 if (!e.genre || e.genre !== genre) return false;
 
-                // 날짜 필터 임시 제거 (무조건 표시) - 데이터 형식이 안 맞을 수 있음
+                // 날짜 필터 적용: 진행중이거나 예정된 강습만 표시
+                const today = new Date().toISOString().split('T')[0];
+                const endDate = e.end_date || e.date;
+
+                // 종료일이 있고 오늘보다 이전이면 숨김 (=이미 끝난 강습)
+                if (endDate && endDate < today) return false;
+
                 return true;
               });
 

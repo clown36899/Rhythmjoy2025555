@@ -25,6 +25,7 @@ interface HeaderProps {
   onViewModeChange?: (mode: "month" | "year") => void;
   sectionViewMode?: 'preview' | 'viewAll-events' | 'viewAll-classes';
   onSectionViewModeChange?: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
+  onTodayClick?: () => void;
 }
 
 export default function Header({
@@ -39,6 +40,7 @@ export default function Header({
   onViewModeChange,
   sectionViewMode = 'preview',
   onSectionViewModeChange,
+  onTodayClick,
 }: HeaderProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
@@ -407,19 +409,41 @@ export default function Header({
                       ? `${currentMonth.getFullYear()}년`
                       : `${currentMonth.getMonth() + 1}월`}
                   </button>
-                  {onViewModeChange && (
-                    <button
-                      onClick={() =>
-                        onViewModeChange(viewMode === "month" ? "year" : "month")
-                      }
-                      className={viewMode === "year" ? "header-view-mode-btn header-view-mode-btn-year" : "header-view-mode-btn header-view-mode-btn-month"}
-                    >
-                      {viewMode === "month" ? "년" : "월"}
-                    </button>
-                  )}
+
+                  {/* 오늘 버튼 (현재 달이 아닐 때만 노출) */}
+                  {(() => {
+                    const today = new Date();
+                    const isCurrentMonth =
+                      currentMonth.getFullYear() === today.getFullYear() &&
+                      currentMonth.getMonth() === today.getMonth();
+
+                    if (!isCurrentMonth && onTodayClick) {
+                      return (
+                        <button
+                          onClick={onTodayClick}
+                          className="header-view-mode-btn"
+                          style={{
+                            marginLeft: '8px',
+                            padding: '4px 12px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            borderRadius: '16px',
+                            backgroundColor: 'var(--primary-color, #facc15)',
+                            color: '#000',
+                            border: 'none'
+                          }}
+                        >
+                          오늘
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
+
                   <button
                     onClick={() => onNavigateMonth("next")}
                     className="header-nav-btn"
+                    style={{ marginLeft: 'auto' }} // 우측 화살표를 오른쪽으로 밀어주기 위해
                   >
                     <i className="ri-arrow-right-s-line header-nav-icon"></i>
                   </button>

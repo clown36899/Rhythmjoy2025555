@@ -93,7 +93,43 @@ export default function HomePageV2() {
 
     const [showRegistrationModal, setShowRegistrationModal] = useState(false);
     const [fromBanner, setFromBanner] = useState(false);
+    const [fromFloatingBtn, setFromFloatingBtn] = useState(false);
     const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
+
+    // ... (중략) ...
+
+    useEffect(() => {
+        const handleCreateEvent = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail?.source === 'banner' && customEvent.detail?.monthIso) {
+                // ... (기존 배너 로직 유지) ...
+                if (selectedDate) { setFromBanner(false); setBannerMonthBounds(null); }
+                else {
+                    const firstDayOfMonth = new Date(customEvent.detail.monthIso);
+                    setSelectedDate(firstDayOfMonth); setFromBanner(true);
+                    const year = firstDayOfMonth.getFullYear(); const month = firstDayOfMonth.getMonth();
+                    const firstDay = new Date(year, month, 1); const lastDay = new Date(year, month + 1, 0);
+                    const formatDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    setBannerMonthBounds({ min: formatDate(firstDay), max: formatDate(lastDay) });
+                }
+            } else if (customEvent.detail?.source === 'floatingBtn') {
+                if (!selectedDate) setSelectedDate(new Date());
+                setFromFloatingBtn(true);
+                setFromBanner(false); setBannerMonthBounds(null);
+            } else {
+                if (!selectedDate) setSelectedDate(new Date());
+                setFromBanner(false); setBannerMonthBounds(null);
+            }
+            setShowRegistrationModal(true);
+        };
+        window.addEventListener("createEventForDate", handleCreateEvent);
+        return () => window.removeEventListener("createEventForDate", handleCreateEvent);
+
+    }, [selectedDate]);
+
+    // ... (중략) ...
+
+    { showRegistrationModal && selectedDate && <EventRegistrationModal isOpen={showRegistrationModal} onClose={() => { setShowRegistrationModal(false); if (fromBanner) { setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); } if (fromFloatingBtn) { setSelectedDate(null); setFromFloatingBtn(false); } }} selectedDate={selectedDate} onMonthChange={(d) => setCurrentMonth(d)} onEventCreated={(d, id) => { setShowRegistrationModal(false); setFromBanner(false); setFromFloatingBtn(false); setBannerMonthBounds(null); setCurrentMonth(d); setEventJustCreated(Date.now()); setHighlightEvent({ id: id || 0, nonce: Date.now() }); }} fromBanner={fromBanner} bannerMonthBounds={bannerMonthBounds ?? undefined} /> }
     const [qrLoading, setQrLoading] = useState(false);
     const [savedMonth, setSavedMonth] = useState<Date | null>(null);
     const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
@@ -583,6 +619,13 @@ export default function HomePageV2() {
                     onViewModeChange={handleViewModeChange}
                     sectionViewMode={sectionViewMode}
                     onSectionViewModeChange={setSectionViewMode}
+                    onTodayClick={() => {
+                        const today = new Date();
+                        // 1일로 설정하여 달력 상태 초기화
+                        today.setDate(1);
+                        handleMonthChange(today);
+                        setSelectedDate(null);
+                    }}
                 />
             </div>
 
@@ -714,7 +757,40 @@ export default function HomePageV2() {
                 {/* Modals */}
                 {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}
                 <AdminBillboardModal isOpen={isBillboardSettingsOpen} onClose={() => { handleBillboardSettingsClose(); if (adminType === "sub") setTimeout(() => window.dispatchEvent(new CustomEvent("reopenAdminSettings")), 100); }} settings={settings} onUpdateSettings={updateSettings} onResetSettings={resetSettings} adminType={billboardUserId ? "sub" : isAdmin ? "super" : null} billboardUserId={billboardUserId} billboardUserName={billboardUserName} />
-                {showRegistrationModal && selectedDate && <EventRegistrationModal isOpen={showRegistrationModal} onClose={() => { setShowRegistrationModal(false); if (fromBanner) setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }} selectedDate={selectedDate} onMonthChange={(d) => setCurrentMonth(d)} onEventCreated={(d, id) => { setShowRegistrationModal(false); setFromBanner(false); setBannerMonthBounds(null); setCurrentMonth(d); setEventJustCreated(Date.now()); setHighlightEvent({ id: id || 0, nonce: Date.now() }); }} fromBanner={fromBanner} bannerMonthBounds={bannerMonthBounds ?? undefined} />}
+
+                {showRegistrationModal && selectedDate && (
+                    <EventRegistrationModal
+                        isOpen={showRegistrationModal}
+                        onClose={() => {
+                            setShowRegistrationModal(false);
+                            if (fromBanner) {
+                                setSelectedDate(null);
+                                setFromBanner(false);
+                                setBannerMonthBounds(null);
+                            }
+                            if (fromFloatingBtn) {
+                                setSelectedDate(null);
+                                setSectionViewMode('preview'); // 프리뷰 모드로 강제 전환
+                                setCalendarMode('collapsed'); // 달력 접기
+                                setFromFloatingBtn(false);
+                            }
+                        }}
+                        selectedDate={selectedDate}
+                        onMonthChange={(d) => setCurrentMonth(d)}
+                        onEventCreated={(d, id) => {
+                            setShowRegistrationModal(false);
+                            setFromBanner(false);
+                            setFromFloatingBtn(false);
+                            setBannerMonthBounds(null);
+                            setCurrentMonth(d);
+                            setEventJustCreated(Date.now());
+                            setHighlightEvent({ id: id || 0, nonce: Date.now() });
+                        }}
+                        fromBanner={fromBanner}
+                        bannerMonthBounds={bannerMonthBounds ?? undefined}
+                    />
+                )}
+
                 {isFullscreenDateModalOpen && fullscreenSelectedDate && <FullscreenDateEventsModal isOpen={isFullscreenDateModalOpen} onClose={() => { setIsFullscreenDateModalOpen(false); setFullscreenSelectedDate(null); setFullscreenClickPosition(undefined); }} selectedDate={fullscreenSelectedDate} clickPosition={fullscreenClickPosition} onEventClick={handleDailyModalEventClick} selectedCategory={selectedCategory} />}
                 <EventDetailModal isOpen={!!selectedEvent} event={selectedEvent} onClose={closeModal} onEdit={handleEditClick} onDelete={handleDeleteClick} isAdminMode={effectiveIsAdmin} />
                 {
