@@ -3701,6 +3701,7 @@ export default function EventList({
         isOpen={editCropModalOpen}
         onClose={() => setEditCropModalOpen(false)}
         imageUrl={editTempImageSrc || ''}
+        videoUrl={editFormData.videoUrl}
         onCropComplete={handleEditCropComplete}
         onRestoreOriginal={handleEditRestoreCropOriginal}
         onImageUpdate={handleEditImageUpdate}
