@@ -73,6 +73,7 @@
   height: 50px;
   overflow: hidden;
   white-space: nowrap;
+  background-color: #282828 !important;
 }
 
 .header-inner {

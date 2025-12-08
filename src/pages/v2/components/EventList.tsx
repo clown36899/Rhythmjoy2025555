@@ -914,7 +914,7 @@ export default function EventList({
   const futureEvents = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
 
-    return events.filter(event => {
+    const result = events.filter(event => {
       if (event.category !== 'event') return false;
 
       const startDate = event.start_date || event.date;
@@ -927,7 +927,18 @@ export default function EventList({
 
       return true;
     });
-  }, [events]);
+
+    // 방금 등록된 이벤트(highlightEvent)가 있으면 맨 앞으로 정렬
+    if (highlightEvent?.id) {
+      result.sort((a, b) => {
+        if (a.id === highlightEvent.id) return -1;
+        if (b.id === highlightEvent.id) return 1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [events, highlightEvent]);
 
   // 진행중인 강습 (Future Classes - Horizontal Scroll)
   // Category: 'class'
@@ -936,7 +947,7 @@ export default function EventList({
   const futureClasses = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
 
-    return events.filter(event => {
+    const result = events.filter(event => {
       if (event.category !== 'class') return false;
 
       const startDate = event.start_date || event.date;
@@ -952,7 +963,18 @@ export default function EventList({
 
       return true;
     });
-  }, [events, selectedGenre]);
+
+    // 방금 등록된 이벤트(highlightEvent)가 있으면 맨 앞으로 정렬
+    if (highlightEvent?.id) {
+      result.sort((a, b) => {
+        if (a.id === highlightEvent.id) return -1;
+        if (b.id === highlightEvent.id) return 1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [events, selectedGenre, highlightEvent]);
 
   // 장르 목록 추출 (강습만)
   const allGenres = useMemo(() => {
