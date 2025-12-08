@@ -104,6 +104,7 @@ export default function HomePageV2() {
     const [sharedEventId, setSharedEventId] = useState<number | null>(null);
     const [eventJustCreated, setEventJustCreated] = useState<number>(0);
     const [searchTerm, setSearchTerm] = useState("");
+    const [sectionViewMode, setSectionViewMode] = useState<'preview' | 'viewAll-events' | 'viewAll-classes'>('preview');
 
 
     const [isFullscreenTransition, setIsFullscreenTransition] = useState(false);
@@ -590,6 +591,8 @@ export default function HomePageV2() {
                     }}
                     viewMode={viewMode}
                     onViewModeChange={handleViewModeChange}
+                    sectionViewMode={sectionViewMode}
+                    onSectionViewModeChange={setSectionViewMode}
                 />
             </div>
 
@@ -714,6 +717,8 @@ export default function HomePageV2() {
                         onEventClickInFullscreen={handleDailyModalEventClick}
                         onModalStateChange={() => { }}
                         selectedWeekday={selectedWeekday}
+                        sectionViewMode={sectionViewMode}
+                        onSectionViewModeChange={setSectionViewMode}
                     />
                 ))}
 

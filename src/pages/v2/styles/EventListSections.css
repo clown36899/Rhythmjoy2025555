@@ -10,7 +10,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
+    padding: 8px 6px;
     font-size: 18px;
     font-weight: 600;
     color: #fff;
@@ -22,20 +22,38 @@
 }
 
 .evt-v2-count {
-    margin-left: auto;
+
     font-size: 14px;
     color: #9ca3af;
     font-weight: 400;
 }
 
-/* Horizontal Scroll */
+/* Horizontal Scroll - 업계 표준 최적화 */
 .evt-v2-horizontal-scroll {
     display: flex;
     gap: 0.4rem;
     overflow-x: auto;
+    overflow-y: hidden;
 
+    /* iOS 모멘텀 스크롤 */
     -webkit-overflow-scrolling: touch;
+
+    /* 스크롤바 숨김 */
     scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    /* 부드러운 스크롤 */
+    scroll-behavior: smooth;
+
+    /* 오버스크롤 제어 */
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: none;
+
+    /* 성능 최적화 */
+    will-change: scroll-position;
+
+    /* 터치 액션 최적화 */
+    touch-action: pan-x;
 }
 
 .evt-v2-horizontal-scroll::-webkit-scrollbar {

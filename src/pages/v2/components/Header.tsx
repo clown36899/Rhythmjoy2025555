@@ -23,6 +23,8 @@ interface HeaderProps {
   onNavigateMonth?: (direction: "prev" | "next") => void;
   viewMode?: "month" | "year";
   onViewModeChange?: (mode: "month" | "year") => void;
+  sectionViewMode?: 'preview' | 'viewAll-events' | 'viewAll-classes';
+  onSectionViewModeChange?: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
 export default function Header({
@@ -35,6 +37,8 @@ export default function Header({
   onNavigateMonth,
   viewMode = "month",
   onViewModeChange,
+  sectionViewMode = 'preview',
+  onSectionViewModeChange,
 }: HeaderProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
@@ -329,55 +333,41 @@ export default function Header({
       <header
         className="header-container"
         style={{
-          backgroundColor: "var(--header-bg-color)",
-          height: "50px",
-          overflow: "hidden",
-          whiteSpace: "nowrap",
-          display: "flex",
-          alignItems: "center"
+          backgroundColor: "var(--header-bg-color)"
         }}
       >
         <div className="header-inner">
           <div className="header-content">
             <div className="header-left">
-              <button
-                onClick={() => {
-                  const categoryPanel = document.querySelector(
-                    "[data-category-panel]",
-                  );
-                  const footer = document.querySelector("footer");
-
-                  if (categoryPanel && footer) {
-                    const categoryPanelRect =
-                      categoryPanel.getBoundingClientRect();
-                    const footerRect = footer.getBoundingClientRect();
-                    const currentScrollY = window.scrollY;
-
-                    // 푸터 상단이 카테고리 패널 하단에 오도록 스크롤 위치 계산
-                    const targetScrollY =
-                      currentScrollY +
-                      footerRect.top -
-                      categoryPanelRect.bottom;
-
-                    window.scrollTo({
-                      top: targetScrollY,
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-                className="header-logo-btn"
-              >
-                <img
-                  src="/dangong-logo.png"
-                  alt="DANGONG Logo"
-                  className="header-logo-img"
-                />
-              </button>
+              {sectionViewMode !== 'preview' ? (
+                // 전체보기 ❯모드: 돌아가기 버튼
+                <button
+                  onClick={() => onSectionViewModeChange?.('preview')}
+                  className="header-nav-btn"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 8px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <span>❮ 돌아가기</span>
+                </button>
+              ) : (
+                // 프리뷰 모드: 제목
+                <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)", paddingLeft: "8px" }}>
+                  스윙빌보드
+                </span>
+              )}
             </div>
 
             {/* Center: Dynamic Content */}
             <div className="header-center">
-              {calendarMode === 'fullscreen' && currentMonth && onNavigateMonth ? (
+              {sectionViewMode !== 'preview' ? (
+                /* Section View Mode: Empty center */
+                null
+              ) : calendarMode === 'fullscreen' && currentMonth && onNavigateMonth ? (
                 /* Fullscreen Mode: Show month navigation */
                 <>
                   <button
@@ -412,10 +402,8 @@ export default function Header({
                   </button>
                 </>
               ) : (
-                /* Preview Mode: Show app title */
-                <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)" }}>
-                  스윙빌보드
-                </span>
+                /* Preview Mode: Empty center (title moved to left) */
+                null
               )}
             </div>
 

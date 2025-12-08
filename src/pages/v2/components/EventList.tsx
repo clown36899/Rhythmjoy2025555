@@ -91,6 +91,8 @@ interface EventListProps {
   onModalStateChange: (isModalOpen: boolean) => void;
   selectedWeekday?: number | null;
   onFilterDataUpdate?: (data: { categoryCounts: { all: number; event: number; class: number }; genres: string[] }) => void;
+  sectionViewMode?: 'preview' | 'viewAll-events' | 'viewAll-classes';
+  onSectionViewModeChange?: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
 export default function EventList({
@@ -120,6 +122,8 @@ export default function EventList({
   onModalStateChange,
   selectedWeekday,
   onFilterDataUpdate,
+  sectionViewMode = 'preview',
+  onSectionViewModeChange,
 }: EventListProps) {
   console.log(`[EventList] Rendered. selectedWeekday: ${selectedWeekday}`);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -156,6 +160,7 @@ export default function EventList({
   const [internalShowSortModal, setInternalShowSortModal] = useState(false);
   const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
   const [isGenreInputFocused, setIsGenreInputFocused] = useState(false);
+  // sectionViewMode는 이제 props로 받음
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
   const setShowSearchModal =
     externalSetShowSearchModal ?? setInternalShowSearchModal;
@@ -1936,98 +1941,174 @@ export default function EventList({
         => '진행중인 행사/강습' 섹션 표시
       */}
       {calendarMode === 'collapsed' && !searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all' || selectedCategory === 'none') ? (
-        <div className="evt-ongoing-section">
-          {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
-          <div className="evt-v2-section">
-            <div className="evt-v2-section-title">
-              <i className="ri-flag-line"></i>
-              <span>진행중인 행사</span>
-              <span className="evt-v2-count">{futureEvents.length}</span>
-            </div>
-
-            {futureEvents.length > 0 ? (
-              <div className="evt-v2-horizontal-scroll">
-                <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
-                {futureEvents.map(event => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onClick={() => handleEventClick(event)}
-                    onMouseEnter={onEventHover}
-                    onMouseLeave={() => onEventHover?.(null)}
-                    isHighlighted={highlightEvent?.id === event.id}
-                    selectedDate={selectedDate}
-                    defaultThumbnailClass={defaultThumbnailClass}
-                    defaultThumbnailEvent={defaultThumbnailEvent}
-                    variant="sliding"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
-            )}
-          </div>
-
-          {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
-          <div className="evt-v2-section">
-            <div className="evt-v2-section-title">
-              <i className="ri-graduation-cap-line"></i>
-              <span>진행중인 강습</span>
-              <span className="evt-v2-count">{futureClasses.length}</span>
-            </div>
-
-            {/* Filter Bar - Only for Classes */}
-            {allGenres.length > 0 && (
-              <div className="evt-sticky-header">
-                <div className="evt-filter-bar-content">
-                  <select
-                    value={selectedGenre || ''}
-                    onChange={(e) => {
-                      const params = new URLSearchParams(searchParams);
-                      if (e.target.value) {
-                        params.set('genre', e.target.value);
-                      } else {
-                        params.delete('genre');
-                      }
-                      setSearchParams(params);
+        sectionViewMode === 'preview' ? (
+          // 프리뷰 모드
+          <div className="evt-ongoing-section">
+            {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
+            <div className="evt-v2-section">
+              <div className="evt-v2-section-title">
+                <i className="ri-flag-line"></i>
+                <span>진행중인 행사</span>
+                <span className="evt-v2-count">{futureEvents.length}</span>
+                {futureEvents.length > 0 && (
+                  <button
+                    onClick={() => onSectionViewModeChange?.('viewAll-events')}
+                    style={{
+                      marginLeft: 'auto',
+                      padding: '4px 12px',
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      background: 'transparent',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      cursor: 'pointer'
                     }}
-                    className="evt-genre-select"
                   >
-                    <option value="">모든 장르</option>
-                    {allGenres.map(genre => (
-                      <option key={genre} value={genre}>{genre}</option>
-                    ))}
-                  </select>
-                  <span className="evt-count-text">
-                    {futureClasses.length}개의 강습
-                  </span>
-                </div>
+                    전체보기 ❯
+                  </button>
+                )}
               </div>
-            )}
 
-            {futureClasses.length > 0 ? (
-              <div className="evt-v2-horizontal-scroll">
-                <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
-                {futureClasses.map(event => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onClick={() => handleEventClick(event)}
-                    onMouseEnter={onEventHover}
-                    onMouseLeave={() => onEventHover?.(null)}
-                    isHighlighted={highlightEvent?.id === event.id}
-                    selectedDate={selectedDate}
-                    defaultThumbnailClass={defaultThumbnailClass}
-                    defaultThumbnailEvent={defaultThumbnailEvent}
-                    variant="sliding"
-                  />
-                ))}
+              {futureEvents.length > 0 ? (
+                <div className="evt-v2-horizontal-scroll">
+                  <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
+                  {futureEvents.map(event => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onClick={() => handleEventClick(event)}
+                      onMouseEnter={onEventHover}
+                      onMouseLeave={() => onEventHover?.(null)}
+                      isHighlighted={highlightEvent?.id === event.id}
+                      selectedDate={selectedDate}
+                      defaultThumbnailClass={defaultThumbnailClass}
+                      defaultThumbnailEvent={defaultThumbnailEvent}
+                      variant="sliding"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
+              )}
+            </div>
+
+            {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
+            <div className="evt-v2-section">
+              <div className="evt-v2-section-title">
+                <i className="ri-graduation-cap-line"></i>
+                <span>진행중인 강습</span>
+                <span className="evt-v2-count">{futureClasses.length}</span>
+                {futureClasses.length > 0 && (
+                  <button
+                    onClick={() => onSectionViewModeChange?.('viewAll-classes')}
+                    style={{
+                      marginLeft: 'auto',
+                      padding: '4px 12px',
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      background: 'transparent',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    전체보기 ❯
+                  </button>
+                )}
               </div>
-            ) : (
-              <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
-            )}
+
+              {/* Filter Bar - Only for Classes */}
+              {allGenres.length > 0 && (
+                <div className="evt-sticky-header">
+                  <div className="evt-filter-bar-content">
+                    <select
+                      value={selectedGenre || ''}
+                      onChange={(e) => {
+                        const params = new URLSearchParams(searchParams);
+                        if (e.target.value) {
+                          params.set('genre', e.target.value);
+                        } else {
+                          params.delete('genre');
+                        }
+                        setSearchParams(params);
+                      }}
+                      className="evt-genre-select"
+                    >
+                      <option value="">모든 장르</option>
+                      {allGenres.map(genre => (
+                        <option key={genre} value={genre}>{genre}</option>
+                      ))}
+                    </select>
+                    <span className="evt-count-text">
+                      {futureClasses.length}개의 강습
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {futureClasses.length > 0 ? (
+                <div className="evt-v2-horizontal-scroll">
+                  <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
+                  {futureClasses.map(event => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onClick={() => handleEventClick(event)}
+                      onMouseEnter={onEventHover}
+                      onMouseLeave={() => onEventHover?.(null)}
+                      isHighlighted={highlightEvent?.id === event.id}
+                      selectedDate={selectedDate}
+                      defaultThumbnailClass={defaultThumbnailClass}
+                      defaultThumbnailEvent={defaultThumbnailEvent}
+                      variant="sliding"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          // 전체보기 모드
+          <div
+            className="evt-p-0-4rem evt-single-view-scroll evt-list-bg-container"
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              paddingBottom: "5rem",
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+              scrollBehavior: 'smooth'
+            }}
+          >
+            {/* 제목 */}
+            <div className="evt-v2-section-title" >
+              <i className={sectionViewMode === 'viewAll-events' ? 'ri-flag-line' : 'ri-graduation-cap-line'}></i>
+              <span>{sectionViewMode === 'viewAll-events' ? '진행중인 행사' : '진행중인 강습'}</span>
+              <span className="evt-v2-count">
+                {sectionViewMode === 'viewAll-events' ? futureEvents.length : futureClasses.length}
+              </span>
+            </div>
+
+            {/* 그리드 레이아웃 */}
+            <div className="evt-grid-3-4-10">
+              {(sectionViewMode === 'viewAll-events' ? futureEvents : futureClasses).map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onClick={() => handleEventClick(event)}
+                  onMouseEnter={onEventHover}
+                  onMouseLeave={() => onEventHover?.(null)}
+                  isHighlighted={highlightEvent?.id === event.id}
+                  selectedDate={selectedDate}
+                  defaultThumbnailClass={defaultThumbnailClass}
+                  defaultThumbnailEvent={defaultThumbnailEvent}
+                />
+              ))}
+            </div>
+          </div>
+        )
       ) : null}
 
       {/* Events List - 3-month sliding layout */}

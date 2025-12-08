@@ -193,7 +193,8 @@ export function useCalendarGesture({
         // Lower deadzone (10 -> 5) for faster response
         if (absX > 5 || absY > 5) {
           // Reverted threshold to 1.2 to avoid blocking vertical scroll
-          if (absX > absY * 1.2) {
+          // 프리뷰 모드(collapsed)에서는 가로 스와이프 비활성화
+          if (absX > absY * 1.2 && latestStateRef.current.calendarMode !== 'collapsed') {
             gestureRef.current.isLocked = 'horizontal';
           } else if (absY > absX) {
             const isTouchingCalendar = calendarRef.current?.contains(e.target as Node);
