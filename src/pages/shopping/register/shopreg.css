@@ -21,6 +21,10 @@
   padding-top: 5rem;
   padding-left: var(--spacing-4);
   padding-right: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  /* Replaces space-y-6 */
 }
 
 /* ===== 섹션 카드 ===== */
@@ -29,6 +33,10 @@
   padding: var(--spacing-4);
   border-radius: var(--radius-lg);
   border: 1px solid #374151;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* Replaces space-y-4 */
 }
 
 .shopreg-section-title {

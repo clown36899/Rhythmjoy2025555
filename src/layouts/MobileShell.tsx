@@ -233,20 +233,10 @@ export function MobileShell() {
                 {/* 3. Event Registration Button */}
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn' } }))}
-                  className="shell-top-bar-btn"
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    height: '24px',
-                    padding: '0 4px'
-                  }}
+                  className="shell-btn-register-topbar"
                 >
-                  <i className="ri-add-circle-line shell-icon-sm"></i>
-                  <span style={{ fontSize: '1rem' }}>등록</span>
+                  <i className="ri-add-circle-line"></i>
+                  <span>등록</span>
                 </button>
 
                 {/* 3. Search Button */}
@@ -298,21 +288,10 @@ export function MobileShell() {
               <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => navigate('/shopping/register')}
-                  className="shell-top-bar-btn"
-                  style={{
-                    backgroundColor: 'var(--color-blue-600)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    height: '24px'
-                  }}
+                  className="shell-btn-register-topbar"
                 >
-                  <i className="ri-add-line" style={{ fontSize: '14px' }}></i>
-                  <span style={{ fontSize: '12px', fontWeight: 500 }}>쇼핑몰 등록</span>
+                  <i className="ri-add-line"></i>
+                  <span>쇼핑몰 등록</span>
                 </button>
               </div>
             ) : (
@@ -330,9 +309,9 @@ export function MobileShell() {
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('practiceRoomRegister'));
                   }}
-                  className="shell-btn-practice-register"
+                  className="shell-btn-register-topbar"
                 >
-                  <i className="ri-add-line shell-icon-sm shell-mr-0-5"></i>
+                  <i className="ri-add-line"></i>
                   <span>등록</span>
                 </button>
               )}

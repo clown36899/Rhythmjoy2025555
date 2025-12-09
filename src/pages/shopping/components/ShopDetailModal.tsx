@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import type { Shop } from '../page';
 import './shopdetailmodal.css';
 
@@ -9,13 +10,24 @@ interface ShopDetailModalProps {
 }
 
 export default function ShopDetailModal({ shop, isOpen, onClose }: ShopDetailModalProps) {
+    const navigate = useNavigate();
+
     if (!isOpen) return null;
 
     const featuredItem = shop.featured_items?.[0];
 
+    const handleEdit = () => {
+        navigate(`/shopping/edit/${shop.id}`);
+    };
+
     return createPortal(
         <div className="shop-modal-overlay" onClick={onClose}>
             <div className="shop-modal-content" onClick={(e) => e.stopPropagation()}>
+                {/* Edit Button */}
+                <button onClick={handleEdit} className="shop-modal-edit" title="수정하기">
+                    <i className="ri-pencil-line"></i>
+                </button>
+
                 {/* Close Button */}
                 <button onClick={onClose} className="shop-modal-close">
                     <i className="ri-close-line"></i>

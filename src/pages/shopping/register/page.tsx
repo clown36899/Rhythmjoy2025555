@@ -144,10 +144,10 @@ export default function ShoppingRegisterPage() {
     const fileName = `${Date.now()}.webp`;
     const filePath = `${folder}/${fileName}`;
 
-    // Upload the full-size WebP image
+    // Upload the medium-size WebP image (1080px, quality 0.9) for better compression
     const { error: uploadError } = await supabase.storage
       .from('images')
-      .upload(filePath, resizedImages.full);
+      .upload(filePath, resizedImages.medium);
 
     if (uploadError) {
       throw uploadError;
@@ -226,9 +226,9 @@ export default function ShoppingRegisterPage() {
         <SimpleHeader title="새 쇼핑몰 등록" />
       </div>
 
-      <form onSubmit={handleSubmit} className="shopreg-form space-y-6">
+      <form onSubmit={handleSubmit} className="shopreg-form">
         {/* Shop Information */}
-        <div className="shopreg-section space-y-4">
+        <div className="shopreg-section">
           <h3 className="shopreg-section-title">쇼핑몰 정보</h3>
           <input type="text" placeholder="쇼핑몰 이름 *" value={shopName} onChange={(e) => setShopName(e.target.value)} className="shopreg-input" />
           <input type="url" placeholder="쇼핑몰 웹사이트 URL *" value={shopUrl} onChange={(e) => setShopUrl(e.target.value)} className="shopreg-input" />
@@ -269,7 +269,7 @@ export default function ShoppingRegisterPage() {
         </div>
 
         {/* Featured Item Information */}
-        <div className="shopreg-section space-y-4">
+        <div className="shopreg-section">
           <h3 className="shopreg-section-title">대표 상품 정보 (선택사항)</h3>
           <input type="text" placeholder="상품 이름" value={itemName} onChange={(e) => setItemName(e.target.value)} className="shopreg-input" />
           <input type="url" placeholder="상품 직접 링크" value={itemLink} onChange={(e) => setItemLink(e.target.value)} className="shopreg-input" />

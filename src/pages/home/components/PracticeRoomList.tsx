@@ -42,7 +42,6 @@ export default function PracticeRoomList({
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<PracticeRoom | null>(null);
-  const [openToForm, setOpenToForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
@@ -82,13 +81,6 @@ export default function PracticeRoomList({
 
   const handleRoomClick = (room: PracticeRoom) => {
     setSelectedRoom(room);
-    setOpenToForm(false);
-    setShowModal(true);
-  };
-
-  const handleAddNewRoom = () => {
-    setSelectedRoom(null);
-    setOpenToForm(true);
     setShowModal(true);
   };
 
@@ -205,7 +197,7 @@ export default function PracticeRoomList({
       <div className="prl-empty-state">
         등록된 연습실이 없습니다
         {adminType === "super" && (
-          <div className="mt-4">
+          <div className="prl-empty-action">
             <button
               onClick={() => setShowModal(true)}
               className="prl-empty-button"
@@ -221,99 +213,6 @@ export default function PracticeRoomList({
   return (
     <>
       <div className="prl-main-container">
-        {adminType === "super" && (
-          <div className="prl-admin-section" style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={async () => {
-                if (!confirm("모든 연습실 이미지를 최적화(WebP 변환)하시겠습니까?\n이 작업은 시간이 걸릴 수 있습니다.")) return;
-
-                setLoading(true);
-                try {
-                  const { data: allRooms } = await supabase.from("practice_rooms").select("*");
-                  if (!allRooms) return;
-
-                  let totalUpdated = 0;
-                  const { createResizedImages } = await import("../../../utils/imageResize");
-
-                  for (const room of allRooms) {
-                    let images = typeof room.images === 'string' ? JSON.parse(room.images) : room.images || [];
-                    let changed = false;
-                    const newImages = [];
-
-                    for (let i = 0; i < images.length; i++) {
-                      const url = images[i];
-                      // 이미 WebP이면 건너뛰기
-                      if (url.includes('.webp')) {
-                        newImages.push(url);
-                        continue;
-                      }
-
-                      try {
-                        // Fetch blob
-                        const response = await fetch(url);
-                        const blob = await response.blob();
-                        const file = new File([blob], "image.jpg", { type: blob.type });
-
-                        // Resize
-                        const resized = await createResizedImages(file);
-                        const targetImage = resized.full || resized.medium || resized.thumbnail;
-
-                        // Upload
-                        const filename = `practice-rooms/optimized_${room.id}_${i}_${Date.now()}.webp`;
-                        const { error: uploadError } = await supabase.storage
-                          .from("images")
-                          .upload(filename, targetImage, {
-                            contentType: 'image/webp',
-                            cacheControl: '31536000',
-                            upsert: true
-                          });
-
-                        if (uploadError) throw uploadError;
-
-                        const { data } = supabase.storage.from("images").getPublicUrl(filename);
-                        newImages.push(data.publicUrl);
-                        changed = true;
-                      } catch (e) {
-                        console.error(`Failed to optimize image for room ${room.id}:`, e);
-                        newImages.push(url); // Keep original if failed
-                      }
-                    }
-
-                    if (changed) {
-                      await supabase
-                        .from("practice_rooms")
-                        .update({
-                          images: JSON.stringify(newImages),
-                          image: newImages[0] // Update main image too
-                        })
-                        .eq("id", room.id);
-                      totalUpdated++;
-                    }
-                  }
-                  alert(`작업 완료! 총 ${totalUpdated}개의 연습실 정보가 업데이트되었습니다.`);
-                  fetchRooms();
-                } catch (e) {
-                  console.error(e);
-                  alert("이미지 최적화 중 오류가 발생했습니다.");
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              className="prl-add-room-btn"
-              style={{ backgroundColor: '#10b981' }}
-            >
-              <i className="ri-image-edit-line"></i>
-              <span>이미지 전체 최적화</span>
-            </button>
-            <button
-              onClick={handleAddNewRoom}
-              className="prl-add-room-btn"
-            >
-              <i className="ri-add-line"></i>
-              <span>연습실 등록</span>
-            </button>
-          </div>
-        )}
 
         {/* 검색 키워드 배너 (Compact Style) */}
         {searchQuery && (
@@ -387,14 +286,12 @@ export default function PracticeRoomList({
         onClose={() => {
           setShowModal(false);
           setSelectedRoom(null);
-          setOpenToForm(false);
           // 모달 닫을 때 리스트 새로고침 (정렬 순서는 유지됨)
           fetchRooms();
         }}
         isAdminMode={adminType === "super"}
         selectedRoom={selectedRoom}
         initialRoom={selectedRoom}
-        openToForm={openToForm}
       />
 
       {/* 검색 모달 */}
@@ -502,7 +399,7 @@ export default function PracticeRoomList({
                     setSortBy("random");
                     setShowSortModal(false);
                   }}
-                  className={`prl-sort-option flex items-center gap-3 ${sortBy === "random"
+                  className={`prl-sort-option ${sortBy === "random"
                     ? "prl-sort-option-active"
                     : ""
                     }`}
@@ -516,7 +413,7 @@ export default function PracticeRoomList({
                     setSortBy("title");
                     setShowSortModal(false);
                   }}
-                  className={`prl-sort-option flex items-center gap-3 ${sortBy === "title"
+                  className={`prl-sort-option ${sortBy === "title"
                     ? "prl-sort-option-active"
                     : ""
                     }`}

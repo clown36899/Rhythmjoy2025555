@@ -49,6 +49,36 @@
     }
 }
 
+/* Edit Button */
+.shop-modal-edit {
+    position: absolute;
+    top: 1.25rem;
+    right: 5rem;
+    background: rgba(31, 41, 55, 0.95);
+    color: white;
+    border: 1px solid #374151;
+    border-radius: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(12px);
+}
+
+.shop-modal-edit:hover {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border-color: #3b82f6;
+    transform: scale(1.05);
+}
+
+.shop-modal-edit i {
+    font-size: 1.25rem;
+}
+
 .shop-modal-close {
     position: absolute;
     top: 1.25rem;
