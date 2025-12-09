@@ -2268,6 +2268,9 @@ export default function EventList({
         sectionViewMode === 'preview' ? (
           // 프리뷰 모드
           <div className="evt-ongoing-section evt-preview-section">
+            {/* Shopping Mall Banner */}
+            <ShoppingBanner />
+
             {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
             <div className="evt-v2-section">
               <div className="evt-v2-section-title">
@@ -2319,8 +2322,7 @@ export default function EventList({
               )}
             </div>
 
-            {/* Shopping Mall Banner */}
-            <ShoppingBanner />
+
 
             {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
             <div className="evt-v2-section">
