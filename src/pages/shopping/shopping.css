@@ -8,13 +8,9 @@
 
 /* ===== 헤더 ===== */
 .shop-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: var(--z-30);
-  border-bottom: 1px solid #22262a;
+  /* Uses global .global-header styles from index.css */
 }
+
 
 /* ===== 헤더 등록 버튼 ===== */
 .shop-header-register-btn {

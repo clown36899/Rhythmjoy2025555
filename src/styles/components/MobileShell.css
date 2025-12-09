@@ -11,7 +11,7 @@
 /* ===== 컨테이너 클래스 ===== */
 .shell-container {
   min-height: 100vh;
-  background-color: var(--shell-bg-dark);
+  /* background-color: var(--shell-bg-dark); */
 }
 
 .shell-bottom-nav {

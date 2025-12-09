@@ -525,11 +525,11 @@ export default function HomePageV2() {
             ref={containerRef}
             className="home-container"
             style={{
-                backgroundColor: "var(--page-bg-color)",
+
                 touchAction: "pan-y"
             }}
         >
-            <div ref={headerRef} className="home-header" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
+            <div ref={headerRef} className="home-header" style={{ touchAction: "auto" }}>
                 <Header
                     currentMonth={currentMonth}
                     onNavigateMonth={(dir) => {

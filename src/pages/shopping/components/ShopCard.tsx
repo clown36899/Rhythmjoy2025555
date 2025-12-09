@@ -14,39 +14,42 @@ export default function ShopCard({ shop }: ShopCardProps) {
 
   return (
     <>
-      <div className="shopcard-container" onClick={() => setShowModal(true)}>
-        {/* Edit Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/shopping/edit/${shop.id}`);
-          }}
-          className="shopcard-edit-btn"
-          title="쇼핑몰 정보 수정"
-        >
-          <i className="ri-edit-line"></i>
-        </button>
-
-        {/* Shop Logo */}
-        <div className="shopcard-logo-container">
+      <div className="shopcard-banner" onClick={() => setShowModal(true)}>
+        {/* Left: Image Section */}
+        <div className="shopcard-image-section">
           {shop.logo_url ? (
-            <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-logo-large" />
+            <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-banner-image" />
           ) : (
-            <div className="shopcard-logo-placeholder">
-              <i className="ri-store-2-line"></i>
+            <div className="shopcard-banner-placeholder">
+              <i className="ri-store-2-fill"></i>
             </div>
           )}
         </div>
 
-        {/* Shop Info */}
-        <div className="shopcard-info">
-          <h3 className="shopcard-shop-name">{shop.name}</h3>
-          {shop.description && (
-            <p className="shopcard-shop-description">{shop.description}</p>
-          )}
-          <div className="shopcard-click-hint">
-            <span>자세히 보기</span>
-            <i className="ri-arrow-right-line"></i>
+        {/* Right: Content Section with Gradient */}
+        <div className="shopcard-content-section">
+          {/* Edit Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/shopping/edit/${shop.id}`);
+            }}
+            className="shopcard-banner-edit"
+            title="수정"
+          >
+            <i className="ri-edit-line"></i>
+          </button>
+
+          {/* Content */}
+          <div className="shopcard-banner-content">
+            <h3 className="shopcard-banner-title">{shop.name}</h3>
+            {shop.description && (
+              <p className="shopcard-banner-desc">{shop.description}</p>
+            )}
+            <button className="shopcard-banner-btn">
+              {/* <span>자세히 보기</span> */}
+              <i className="ri-arrow-right-line"></i>
+            </button>
           </div>
         </div>
       </div>

@@ -645,12 +645,12 @@ export default function HomePageV2() {
             ref={containerRef}
             className="home-container"
             style={{
-                backgroundColor: "var(--page-bg-color)",
+
                 touchAction: "pan-y",
                 minHeight: '100svh'
             }}
         >
-            <div ref={headerRef} className="home-header" style={{ backgroundColor: "var(--header-bg-color)", touchAction: "auto" }}>
+            <div ref={headerRef} className="home-header global-header" style={{ touchAction: "auto" }}>
                 <Header
                     onAdminModeToggle={handleAdminModeToggle}
                     onBillboardOpen={handleBillboardOpen}

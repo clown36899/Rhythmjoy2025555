@@ -377,7 +377,7 @@ export default function Header({
       <header
         className="header-container"
         style={{
-          backgroundColor: "var(--header-bg-color)",
+          // backgroundColor: "var(--header-bg-color)",
           height: "50px",
           overflow: "hidden",
           whiteSpace: "nowrap",

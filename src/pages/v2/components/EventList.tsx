@@ -2271,7 +2271,7 @@ export default function EventList({
             <div className="evt-v2-section">
               <div className="evt-v2-section-title">
 
-                <span>진행중인 행사</span>
+                <span>행사</span>
                 <span className="evt-v2-count">{futureEvents.length}</span>
                 {futureEvents.length > 0 && (
                   <button

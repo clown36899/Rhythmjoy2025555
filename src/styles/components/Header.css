@@ -69,11 +69,11 @@
 
 /* ===== Header 컨테이너 ===== */
 .header-container {
-  border-bottom: 1px solid var(--header-border-color);
+  /* border-bottom: 1px solid var(--header-border-color); */
   height: 51px;
   overflow: hidden;
   white-space: nowrap;
-  background-color: #282828 !important;
+
   display: flex;
   align-items: center;
   justify-content: center;

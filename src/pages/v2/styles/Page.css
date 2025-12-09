@@ -8,24 +8,17 @@
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  background-color: #1f1f1f;
 }
 
 /* ===== 헤더 ===== */
 .home-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 51px;
-  right: 0;
-  flex-shrink: 0;
-  width: 100%;
+  /* Uses global .global-header styles from index.css */
+  /* V2-specific: max-width constraint */
   max-width: 650px;
   margin: 0 auto;
-  z-index: 40;
-  border-bottom: 1px solid #22262a;
-  touch-action: auto;
-  background-color: var(--header-bg-color);
 }
+
 
 /* ===== 메인 컨텐츠 영역 ===== */
 .home-main {

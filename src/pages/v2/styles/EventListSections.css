@@ -2,7 +2,9 @@
 
 /* Section Container */
 .evt-v2-section {
-    margin-bottom: 13px;
+    padding: 0 0 18px 0;
+    /* margin-bottom: 13px; */
+    border-bottom: 1px solid #313131;
 }
 
 /* Section Title */
@@ -14,7 +16,7 @@
     font-size: 18px;
     font-weight: 600;
     color: #fff;
-    border-top: 1px solid #2d2d2d;
+    /* border-top: 1px solid #2d2d2d; */
 }
 
 .evt-v2-section-title i {

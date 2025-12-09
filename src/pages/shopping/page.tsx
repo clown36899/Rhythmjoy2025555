@@ -56,8 +56,8 @@ export default function ShoppingPage() {
     <div className="shop-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       {/* 고정 헤더 */}
       <div
-        className="shop-header"
-        style={{ backgroundColor: 'var(--header-bg-color)' }}
+        className="shop-header global-header"
+
       >
         <SimpleHeader title="쇼핑" />
       </div>

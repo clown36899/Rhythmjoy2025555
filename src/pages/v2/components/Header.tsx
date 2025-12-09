@@ -342,9 +342,7 @@ export default function Header({
     <>
       <header
         className="header-container"
-        style={{
-          backgroundColor: "var(--header-bg-color)"
-        }}
+
       >
         <div className="header-inner">
           <div className="header-content">
