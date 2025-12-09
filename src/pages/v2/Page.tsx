@@ -183,6 +183,38 @@ export default function HomePageV2() {
         fetchGenres();
     }, []);
 
+    // QR Code Deep Link Handling
+    useEffect(() => {
+        const eventId = searchParams.get('event');
+        const category = searchParams.get('category');
+        const fromQR = searchParams.get('from') === 'qr';
+
+        if (fromQR && eventId && category) {
+            // Keep preview mode, don't switch to viewAll
+            // Just scroll to the event in the preview section
+
+            // Scroll to event after a short delay to allow page to render
+            setTimeout(() => {
+                const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
+                if (eventCard) {
+                    eventCard.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+                    // Add highlight animation
+                    eventCard.classList.add('qr-highlighted');
+                    setTimeout(() => {
+                        eventCard.classList.remove('qr-highlighted');
+                    }, 6000); // Remove after 6 seconds (3 pulses × 2s each)
+                }
+            }, 800); // Increased delay to ensure preview section is rendered
+
+            // Clean up URL parameters
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+        }
+    }, []); // Run only once on mount
+
+
+
     // Refs
     const calendarRef = useRef<HTMLDivElement>(null!);
     const calendarContentRef = useRef<HTMLDivElement>(null!);

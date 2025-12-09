@@ -78,6 +78,7 @@
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 0.4rem !important;
+  padding: 0 18px;
 }
 
 @media (min-width: 640px) {
@@ -866,7 +867,7 @@
 }
 
 /* ===== 스티키 헤더 ===== */
-  {
+.evt-sticky-header {
   position: sticky;
   top: 0;
   background-color: rgba(20, 20, 20, 0.95);

@@ -70,7 +70,7 @@ export default function BillboardPage() {
     document.documentElement.style.backgroundColor = '#000000';
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    
+
     return () => {
       document.body.style.backgroundColor = '';
       document.documentElement.style.backgroundColor = '';
@@ -96,34 +96,34 @@ export default function BillboardPage() {
   // 화면 비율 감지 및 하단 정보 영역 크기 계산
   useEffect(() => {
     let debounceTimer: NodeJS.Timeout;
-    
+
     const calculateSizes = () => {
       const isLandscape = window.innerWidth > window.innerHeight;
       setNeedsRotation(isLandscape);
-      
+
       // 화면 높이의 10% 계산 (회전 여부에 따라) - 제목+QR 영역
       const effectiveHeight = isLandscape ? window.innerWidth : window.innerHeight;
       const maxHeight = effectiveHeight * 0.1;
       setBottomInfoHeight(maxHeight);
-      
+
       // QR 코드 크기: 최대 높이의 80% 정도, 최소 60px, 최대 150px
       const calculatedQrSize = Math.min(150, Math.max(60, maxHeight * 0.8));
       setQrSize(calculatedQrSize);
-      
+
       // 제목 폰트 크기: QR 크기에 비례, 최소 20px, 최대 60px
       // 제목 폰트 크기: 화면 너비에 비례하여 더 크게 설정
       const effectiveWidth = isLandscape ? window.innerHeight : window.innerWidth;
       const calculatedFontSize = Math.min(80, Math.max(36, effectiveWidth * 0.075));
       setTitleFontSize(calculatedFontSize);
-      
+
       // 날짜+장소 영역: 화면 높이의 8%
       const dateLocationMax = effectiveHeight * 0.08;
       setDateLocationHeight(dateLocationMax);
-      
+
       // 날짜+장소 폰트 크기: 영역의 30% 정도, 최소 18px, 최대 36px
       const dateLocationFont = Math.min(36, Math.max(18, dateLocationMax * 0.3));
       setDateLocationFontSize(dateLocationFont);
-      
+
       log(`[빌보드] 크기 계산: ${isLandscape ? '가로' : '세로'}, 제목영역: ${Math.round(maxHeight)}px (QR:${Math.round(calculatedQrSize)}px, 폰트:${Math.round(calculatedFontSize)}px), 날짜영역: ${Math.round(dateLocationMax)}px (폰트:${Math.round(dateLocationFont)}px)`);
     };
 
@@ -147,15 +147,15 @@ export default function BillboardPage() {
   useEffect(() => {
     const WATCHDOG_INTERVAL = 30000; // 30초마다 체크
     const STALL_THRESHOLD = 180000; // 3분(180초) 동안 변화 없으면 새로고침
-    
+
     log('[워치독] 안전장치 시작 - 3분간 슬라이드 전환 없으면 자동 새로고침');
-    
+
     watchdogTimerRef.current = setInterval(() => {
       const now = Date.now();
       const timeSinceLastChange = now - lastSlideChangeTimeRef.current;
       const minutesStalled = Math.floor(timeSinceLastChange / 60000);
       const secondsStalled = Math.floor((timeSinceLastChange % 60000) / 1000);
-      
+
       if (timeSinceLastChange >= STALL_THRESHOLD) {
         // 오류 로그 저장 (localStorage)
         const errorLog = {
@@ -172,7 +172,7 @@ export default function BillboardPage() {
           billboardUserId: userId,
           userAgent: navigator.userAgent,
         };
-        
+
         try {
           // 최근 10개 로그만 저장 (메모리 절약)
           const existingLogs = JSON.parse(localStorage.getItem('billboard_error_logs') || '[]');
@@ -182,7 +182,7 @@ export default function BillboardPage() {
         } catch (err) {
           console.error('[워치독] 로그 저장 실패:', err);
         }
-        
+
         console.error(`[워치독] 🚨 ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음! 자동 새로고침 실행`);
         window.location.reload();
       } else if (timeSinceLastChange >= 120000) {
@@ -190,7 +190,7 @@ export default function BillboardPage() {
         warn(`[워치독] ⚠️ ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음 (1분 후 자동 새로고침)`);
       }
     }, WATCHDOG_INTERVAL);
-    
+
     return () => {
       if (watchdogTimerRef.current) {
         clearInterval(watchdogTimerRef.current);
@@ -203,45 +203,45 @@ export default function BillboardPage() {
   // ⚠️ watchdogTimer는 제외 (한 번만 생성되고 계속 실행되어야 함)
   const clearAllTimers = useCallback(() => {
     log('[🧹 타이머 정리] 슬라이드 관련 타이머 정리 시작');
-    
+
     // 슬라이드 전환 타이머 (setInterval)
     if (slideTimerRef.current) {
       clearInterval(slideTimerRef.current);
       slideTimerRef.current = null;
       log('[🧹 타이머 정리] slideTimer 정리 완료');
     }
-    
+
     // ⚠️ watchdogTimer는 정리하지 않음 (3분 자동 복구 기능 유지)
     // watchdogTimerRef는 별도 useEffect에서 관리됨
-    
+
     // 미리 로드 타이머 (setTimeout)
     if (preloadTimerRef.current) {
       clearTimeout(preloadTimerRef.current);
       preloadTimerRef.current = null;
       log('[🧹 타이머 정리] preloadTimer 정리 완료');
     }
-    
+
     // 전환 애니메이션 타이머들 (setTimeout[])
     if (transitionTimersRef.current.length > 0) {
       transitionTimersRef.current.forEach(timer => clearTimeout(timer));
       transitionTimersRef.current = [];
       log('[🧹 타이머 정리] transitionTimers 정리 완료');
     }
-    
+
     // 데이터 새로고침 타이머 (setTimeout)
     if (reloadTimerRef.current) {
       clearTimeout(reloadTimerRef.current);
       reloadTimerRef.current = null;
       log('[🧹 타이머 정리] reloadTimer 정리 완료');
     }
-    
+
     // 재생 재시도 타이머 (setTimeout)
     if (playRetryTimerRef.current) {
       clearTimeout(playRetryTimerRef.current);
       playRetryTimerRef.current = null;
       log('[🧹 타이머 정리] playRetryTimer 정리 완료');
     }
-    
+
     log('[🧹 타이머 정리] ✅ 슬라이드 타이머 정리 완료 (watchdog은 계속 실행 중)');
   }, []);
 
@@ -249,39 +249,39 @@ export default function BillboardPage() {
   const startSlideTimer = useCallback((slideInterval: number) => {
     // ✅ 모든 타이머 일괄 정리 (중복 생성 방지, 메모리 누수 방지)
     clearAllTimers();
-    
+
     const startTime = Date.now();
     slideStartTimeRef.current = startTime;
-    
+
     // 🛡️ 워치독: 타이머 시작 = 정상 작동 신호
     lastSlideChangeTimeRef.current = startTime;
-    
+
     // Ref로 정확한 슬라이드 번호 계산 (stale closure 방지)
-    const logIndex = currentEventIdRef.current 
+    const logIndex = currentEventIdRef.current
       ? eventsRef.current.findIndex(e => e.id === currentEventIdRef.current)
       : 0;
     const displayIndex = logIndex >= 0 ? logIndex : 0;
-    
+
     log(`[⏱️ 타이머] 슬라이드 ${displayIndex} - 간격: ${slideInterval}ms, 시작시간: ${new Date().toLocaleTimeString()}`);
-    
+
     // ✅ 다음 슬라이드 미리 로드 (재생 시작 5초 후, 슬라이드가 5초보다 짧으면 중간)
     const preloadDelay = Math.min(5000, slideInterval / 2);
-    
+
     // preload 타이머가 없을 때만 설정 (중복 방지)
     if (!preloadTimerRef.current && preloadDelay > 0 && preloadDelay < slideInterval) {
-      log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (재생 시작 후 ${preloadDelay/1000}초, 메모리 절약)`);
+      log(`[⏱️ 타이머] Preload 타이머 설정: ${preloadDelay}ms 후 다음 슬라이드 준비 (재생 시작 후 ${preloadDelay / 1000}초, 메모리 절약)`);
       preloadTimerRef.current = setTimeout(() => {
         const latestEvents = eventsRef.current;
         const latestSettings = settingsRef.current;
         const latestShuffledPlaylist = shuffledPlaylistRef.current;
-        
+
         // ✅ events가 없으면 preload 스킵
         if (latestEvents.length === 0) {
           warn(`[미리 로드] events 없음 → 미리 로드 스킵`);
           preloadTimerRef.current = null;
           return;
         }
-        
+
         // 다음 슬라이드 인덱스 계산
         let calculatedNextIndex: number | null = null;
         if (latestSettings?.play_order === "random") {
@@ -302,12 +302,12 @@ export default function BillboardPage() {
           const currentIdx = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
           calculatedNextIndex = (currentIdx + 1) % latestEvents.length;
         }
-        
+
         if (calculatedNextIndex !== null && calculatedNextIndex < latestEvents.length) {
           const nextEvent = latestEvents[calculatedNextIndex];
           const hasVideo = !!nextEvent?.video_url;
           const videoId = hasVideo ? nextEvent.video_url?.split('v=')[1]?.split('&')[0] : null;
-          
+
           log(`[🔜 미리 로드] 슬라이드 ${displayIndex} → 다음 슬라이드 ${calculatedNextIndex} 미리 준비 (${preloadDelay}ms 후)`);
           log(`[🔜 미리 로드] ⭐ setNextSlideIndex(${calculatedNextIndex}) 호출`, {
             타입: hasVideo ? '영상' : '이미지',
@@ -332,17 +332,17 @@ export default function BillboardPage() {
       const latestSettings = settingsRef.current;
       const latestPendingReload = pendingReloadRef.current;
       log(`[타이머 종료] - 설정: ${slideInterval}ms, 실제경과: ${elapsed}ms, 종료시간: ${new Date().toLocaleTimeString()}`);
-      
+
       // 🛡️ 워치독: 타이머 종료 = 정상 작동 신호 (이벤트 1개일 때도 업데이트)
       lastSlideChangeTimeRef.current = Date.now();
-      
+
       if (latestPendingReload) {
         // ✅ 페이지 reload 타이머 저장 (메모리 누수 방지)
         const timer = setTimeout(() => window.location.reload(), 500);
         transitionTimersRef.current.push(timer);
         return;
       }
-      
+
       // ✅ 슬라이드 전환 타이머 저장 (메모리 누수 방지)
       const transitionTimer = setTimeout(() => {
         // ✅ Preload 타이머 정리 및 nextSlideIndex 리셋 (전환 완료)
@@ -353,34 +353,34 @@ export default function BillboardPage() {
         }
         setNextSlideIndex(null);
         log(`[🔄 슬라이드 전환] nextSlideIndex 리셋 → null`);
-        
+
         // 현재 이벤트 ID로 인덱스 찾기 (ref 사용)
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
-        
+
         log(`[💾 메모리 관리] 슬라이드 전환 시작 - 이전: ${previousIndex}, 메모리 해제 예정`);
-        
+
         // 🎯 변경사항 감지 시 데이터만 새로고침 (React.memo가 Player 캐시 보존)
         if (pendingDataRefreshRef.current) {
           log(`[변경사항 감지] 플래그 ON → 전체 데이터 새로고침`);
-          
+
           // 플래그 초기화
           pendingDataRefreshRef.current = false;
           setRealtimeStatus(`변경사항 감지, 데이터 새로고침 중...`);
-          
+
           // 데이터만 새로고침 (페이지 reload 안함 → React.memo가 Player 보존)
           loadBillboardDataRef.current?.();
-          
+
           // ✅ 상태 업데이트 타이머 저장 (메모리 누수 방지)
           const statusTimer = setTimeout(() => setRealtimeStatus("연결됨"), 2000);
           transitionTimersRef.current.push(statusTimer);
         }
-        
+
         // ⚡ videoLoadedMap 먼저 초기화 (setCurrentIndex 전에!)
         setVideoLoadedMap(prev => {
           const newMap = { ...prev };
           delete newMap[previousIndex]; // 이전 슬라이드 초기화
-          
+
           // 다음 슬라이드 인덱스 미리 계산하여 초기화
           if (latestSettings?.play_order === 'random') {
             const next = playlistIndexRef.current + 1;
@@ -398,11 +398,11 @@ export default function BillboardPage() {
             const nextIndex = (previousIndex + 1) % latestEvents.length;
             delete newMap[nextIndex]; // 다음 슬라이드 초기화
           }
-          
+
           log(`[🖼️ 썸네일] videoLoadedMap 초기화 완료 (썸네일 표시 준비)`);
           return newMap;
         });
-        
+
         // 정상 슬라이드 전환 (플레이리스트 재구성 없을 때만)
         if (latestSettings?.play_order === "random") {
           const next = playlistIndexRef.current + 1;
@@ -479,7 +479,7 @@ export default function BillboardPage() {
     }, 500);
     transitionTimersRef.current.push(transitionTimer);
   }, [clearAllTimers]);
-  
+
   // YouTube 재생 오류 콜백 (useCallback으로 안정화)
   const handlePlayerError = useCallback((slideIndex: number, error: any) => {
     log(`[빌보드] 영상 재생 오류 감지 (정상 처리됨), 슬라이드: ${slideIndex}`, error);
@@ -487,7 +487,7 @@ export default function BillboardPage() {
       advanceToNextSlide('error');
     }
   }, [advanceToNextSlide]);
-  
+
   // YouTube 영상 재생 시작 콜백
   const handleVideoPlaying = useCallback((slideIndex: number) => {
     log('[빌보드] 영상 재생 시작 감지 (onStateChange), 슬라이드:', slideIndex);
@@ -542,20 +542,20 @@ export default function BillboardPage() {
     const prevIndex = prevIndexRef.current;
     const currentEvent = events[currentIndex];
     const hasVideo = !!currentEvent?.video_url;
-    
+
     // ✅ 슬라이드 전환 시 다음 슬라이드 인덱스 리셋 (이전 미리 로드 취소)
     log(`[🔄 슬라이드 전환] currentIndex: ${prevIndex} → ${currentIndex}, nextSlideIndex 리셋: ${nextSlideIndex} → null`);
     setNextSlideIndex(null);
-    
+
     // 현재 활성 슬라이드 업데이트
     currentActiveIndexRef.current = currentIndex;
-    
+
     // 이전 슬라이드 pause
     if (prevIndex !== currentIndex && playerRefsRef.current[prevIndex]) {
       log(`[슬라이드 전환] ${prevIndex} → ${currentIndex}, 이전 슬라이드 일시정지`);
       playerRefsRef.current[prevIndex]?.pauseVideo();
     }
-    
+
     // 현재 슬라이드가 영상이면 재생 시작
     if (hasVideo) {
       const targetIndex = currentIndex;  // 현재 타겟 캡처 (클로저 보존)
@@ -570,18 +570,18 @@ export default function BillboardPage() {
       const maxAttempts = 50;  // 최대 5초 대기 (50 * 100ms)
       const attemptPlay = () => {
         attemptCount++;
-        
+
         // 슬라이드가 변경되었으면 재시도 중단
         if (currentActiveIndexRef.current !== targetIndex) {
           log(`[▶️ 영상 재생] 슬라이드 ${targetIndex} 재시도 중단 (현재: ${currentActiveIndexRef.current})`);
           return;
         }
-        
+
         const player = playerRefsRef.current[targetIndex];
         const hasPlayer = !!player;
         const hasIsReady = !!(player && player.isReady);
         const isPlayerReady = hasPlayer && hasIsReady && player.isReady();
-        
+
         // 10번째, 25번째, 50번째 시도에서 상세 로그
         if (attemptCount === 1 || attemptCount === 10 || attemptCount === 25 || attemptCount === maxAttempts) {
           log(`[▶️ 영상 재생] 슬라이드 ${targetIndex} 재생 시도 ${attemptCount}/${maxAttempts}`, {
@@ -591,7 +591,7 @@ export default function BillboardPage() {
             youtubeApiReady
           });
         }
-        
+
         // Player가 준비되었는지 확인
         if (isPlayerReady) {
           log(`[✅ 영상 재생] 슬라이드 ${targetIndex} Player 준비 완료! playVideo() 호출`, {
@@ -599,7 +599,7 @@ export default function BillboardPage() {
             소요시간: `${attemptCount * 100}ms`
           });
           player.playVideo();
-          
+
           // ❌ 타이머 시작 제거: 실제 재생 감지 시점(handleVideoPlaying)에서 시작
           // YouTube iframe 로드 시간으로 인해 playVideo() 호출 시점과
           // 실제 재생 시작 시점이 8-10초 차이 날 수 있음
@@ -627,7 +627,7 @@ export default function BillboardPage() {
       };
       attemptPlay();
     }
-    
+
     prevIndexRef.current = currentIndex;
   }, [currentIndex, events, settings, startSlideTimer, youtubeApiReady]);
 
@@ -642,7 +642,7 @@ export default function BillboardPage() {
 
     // ✅ 중복 구독 방지: 기존 채널이 있으면 먼저 제거
     log('[📡 채널 관리] Supabase 채널 설정 시작');
-    
+
     if (eventsChannelRef.current) {
       log('[📡 채널 관리] ⚠️ 기존 eventsChannel 발견 - 제거');
       supabase.removeChannel(eventsChannelRef.current);
@@ -667,7 +667,7 @@ export default function BillboardPage() {
         { event: "*", schema: "public", table: "events" },
         (payload) => {
           log("[변경사항 감지] 이벤트 변경:", payload.eventType, payload);
-          
+
           // 이벤트가 0개일 때는 즉시 데이터만 새로고침 (타이머가 안 돌아가므로)
           if (eventsRef.current.length === 0) {
             log("[변경사항 감지] 빈 화면 → 즉시 데이터 새로고침");
@@ -680,7 +680,7 @@ export default function BillboardPage() {
             }, 500);
             return;
           }
-          
+
           // ✅ 플래그만 켬 (단순화: 대기열 없음, 메모리 안전)
           if (!pendingDataRefreshRef.current) {
             log("[변경사항 감지] 플래그 켬 → 다음 슬라이드 전환 시 전체 새로고침");
@@ -700,15 +700,15 @@ export default function BillboardPage() {
       .channel("billboard-settings-changes")
       .on(
         "postgres_changes",
-        { 
-          event: "UPDATE", 
-          schema: "public", 
+        {
+          event: "UPDATE",
+          schema: "public",
           table: "billboard_user_settings",
           filter: `billboard_user_id=eq.${userId}`  // 서버 레벨 필터 (네트워크 90% 감소)
         },
         (_payload) => {
           log("[변경사항 감지] 설정 변경:", _payload.eventType);
-          
+
           // 이벤트가 0개일 때는 즉시 데이터만 새로고침 (타이머가 안 돌아가므로)
           if (eventsRef.current.length === 0) {
             log("[변경사항 감지] 빈 화면 → 즉시 설정 새로고침");
@@ -721,7 +721,7 @@ export default function BillboardPage() {
             }, 500);
             return;
           }
-          
+
           // ✅ 플래그만 켬 (이벤트 변경과 동일하게 통일)
           if (!pendingDataRefreshRef.current) {
             log("[변경사항 감지] 설정 변경 - 플래그 켬 → 다음 슬라이드 전환 시 전체 새로고침");
@@ -760,7 +760,7 @@ export default function BillboardPage() {
       // ✅ 모든 타이머 일괄 정리 (메모리 누수 방지)
       log("[cleanup] 컴포넌트 언마운트: 모든 타이머 및 채널 정리");
       clearAllTimers();
-      
+
       // ✅ 채널 정리 (ref에서)
       log('[📡 채널 관리] cleanup: Supabase 채널 제거 시작');
       if (eventsChannelRef.current) {
@@ -791,18 +791,18 @@ export default function BillboardPage() {
     const koreaOffset = 9 * 60;
     const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
     koreaTime.setHours(0, 0, 0, 0);
-    
+
     return allEvents.filter((event) => {
       if (!event?.image_full && !event?.image && !event?.video_url) return false;
       if (settings.excluded_event_ids.includes(event.id)) return false;
       const eventDate = new Date(event.start_date || event.date || "");
       const weekday = eventDate.getDay();
       if (settings.excluded_weekdays.includes(weekday)) return false;
-      
+
       // 시작날짜 기준으로 필터링 (지난 이벤트 제외)
       const eventStartDate = new Date(event.start_date || event.date || "");
       eventStartDate.setHours(0, 0, 0, 0);
-      
+
       // 관리자 설정 날짜 범위 필터
       if (settings.date_filter_start) {
         const filterStart = new Date(settings.date_filter_start);
@@ -814,7 +814,7 @@ export default function BillboardPage() {
         filterEnd.setHours(0, 0, 0, 0);
         if (eventStartDate > filterEnd) return false;
       }
-      
+
       // 기본 필터: 시작일이 오늘 이전이면 제외 (시작일 >= 오늘만 노출)
       if (!settings.date_filter_start && !settings.date_filter_end) {
         if (eventStartDate < koreaTime) return false;
@@ -829,7 +829,7 @@ export default function BillboardPage() {
       log("[빌보드] ⚠️ 이미 데이터 로딩 중 - 중복 호출 방지");
       return;
     }
-    
+
     isLoadingDataRef.current = true;
     try {
       log("[빌보드] 데이터 리로드: 기존 타이머 정리 중...");
@@ -878,11 +878,11 @@ export default function BillboardPage() {
         setEvents([]);
         setCurrentIndex(0);
         setShuffledPlaylist([]);
-        
+
         // ✅ playerRefsRef 배열 정리 (이벤트 0개)
         log('[💾 메모리 관리] 이벤트 0개 → playerRefsRef 배열 완전 비우기');
         playerRefsRef.current.length = 0;
-        
+
         // ✅ videoLoadedMap 정리 (이벤트 0개)
         log('[💾 메모리 관리] 이벤트 0개 → videoLoadedMap 완전 비우기');
         setVideoLoadedMap({});
@@ -898,21 +898,21 @@ export default function BillboardPage() {
         } else {
           setCurrentIndex(safeIndex);
         }
-        
+
         // ✅ playerRefsRef 배열 크기 조정 (메모리 누수 방지)
         const oldLength = playerRefsRef.current.length;
         const newLength = filteredEvents.length;
-        
+
         if (oldLength > newLength) {
           // 배열이 줄어들 때: 남는 Player 참조 제거
           log(`[💾 메모리 관리] playerRefsRef 배열 축소: ${oldLength} → ${newLength}`);
-          
+
           // 남는 슬롯의 Player는 이미 isVisible=false로 destroy됨
           // 배열 크기만 조정하여 참조 제거
           playerRefsRef.current.length = newLength;
-          
+
           log('[💾 메모리 관리] ✅ 남는 Player 참조 제거 완료');
-          
+
           // ✅ videoLoadedMap도 정리 (남는 항목 제거)
           setVideoLoadedMap(prev => {
             const newMap: Record<number, boolean> = {};
@@ -941,7 +941,7 @@ export default function BillboardPage() {
       isLoadingDataRef.current = false;
     }
   }, [userId, filterEvents, currentIndex]);
-  
+
   // loadBillboardData 함수를 ref에 동기화
   useEffect(() => {
     loadBillboardDataRef.current = loadBillboardData;
@@ -950,7 +950,7 @@ export default function BillboardPage() {
   // 슬라이드 전환 시 이미지 타이머 설정 (영상은 handleVideoPlaying에서 타이머 시작)
   useEffect(() => {
     if (!settings || events.length === 0) return;
-    
+
     // 현재 이벤트 가져오기
     const currentEvent = events[currentIndex];
     const hasVideo = !!currentEvent?.video_url;
@@ -1036,7 +1036,7 @@ export default function BillboardPage() {
     const videoUrl = event?.video_url;
     const videoInfo = videoUrl ? parseVideoUrl(videoUrl) : null;
     const videoLoaded = videoLoadedMap[slideIndex] || false;
-    
+
     // 썸네일: 사용자 업로드 이미지 우선, 없으면 YouTube 기본 썸네일
     const thumbnailUrl = imageUrl || videoInfo?.thumbnailUrl;
 
@@ -1049,7 +1049,7 @@ export default function BillboardPage() {
           left: "50%",
           width: needsRotation ? "100vh" : "100vw",
           height: needsRotation ? "100vw" : "100vh",
-          transform: needsRotation 
+          transform: needsRotation
             ? `translate(-50%, -50%) rotate(90deg)`
             : `translate(-50%, -50%)`,
           opacity: isVisible ? 1 : 0,
@@ -1182,7 +1182,7 @@ export default function BillboardPage() {
                   >
                     {currentIndex + 1}/{events.length}
                   </span>
-                  
+
                   {/* 
                   === 기존 SVG 원형 프로그레스 바 (주석 처리) ===
                   <svg
@@ -1356,7 +1356,7 @@ export default function BillboardPage() {
               )}
 
               {/* 하단 정보: (제목 + 날짜/장소) + QR */}
-              <div className={`billboard-info-wrapper ${ (event.show_title_on_billboard ?? true) ? 'billboard-info-wrapper-between' : 'billboard-info-wrapper-end' }`}>
+              <div className={`billboard-info-wrapper ${(event.show_title_on_billboard ?? true) ? 'billboard-info-wrapper-between' : 'billboard-info-wrapper-end'}`}>
                 {/* 왼쪽 정보: 제목, 날짜, 장소 (조건부 렌더링) */}
                 {(event.show_title_on_billboard ?? true) && (
                   <div className="billboard-text-info">
@@ -1438,7 +1438,7 @@ export default function BillboardPage() {
                     style={{ padding: `${qrSize * 0.08}px` }}
                   >
                     <QRCodeCanvas
-                      value={`${window.location.origin}/?event=${event.id}&from=qr`}
+                      value={`${window.location.origin}/v2?event=${event.id}&category=${event.category}&from=qr`}
                       size={Math.round(qrSize)}
                       level="M"
                       includeMargin={false}
@@ -1485,7 +1485,7 @@ export default function BillboardPage() {
         @keyframes fadeInScale { 0% { opacity: 0; transform: scale(0.2) translateY(100px) rotate(-15deg); } 60% { opacity: 1; transform: scale(1.2) translateY(-15px) rotate(5deg); } 80% { opacity: 1; transform: scale(0.9) translateY(5px) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); } }
         @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
       `}</style>
-      <div className="billboard-page" style={{ 
+      <div className="billboard-page" style={{
         overflow: 'hidden',
         width: '100vw',
         height: '100vh',
@@ -1497,14 +1497,14 @@ export default function BillboardPage() {
         {events.map((event, index) => {
           // 현재 + 다음 슬라이드 렌더링 (마지막 5초 전에 다음 슬라이드 미리 로드)
           const shouldRender = index === currentIndex || index === nextSlideIndex;
-          
+
           // ✅ 로그: 렌더링 판단
           if (shouldRender) {
             log(`[🎬 렌더링] 슬라이드 ${index} 렌더링 중 - currentIndex: ${currentIndex}, nextSlideIndex: ${nextSlideIndex}, 역할: ${index === currentIndex ? '현재' : '다음'}`);
           }
-          
+
           if (!shouldRender) return null;
-          
+
           return (
             <div
               key={`slide-${event.id}-${index}`}

@@ -92,7 +92,7 @@ export default function EventFilterBar({
                                 }}
                                 className="evt-filter-option"
                             >
-                                모든 장르
+                                장르
                             </button>
                             {allGenres.map((genre) => (
                                 <button

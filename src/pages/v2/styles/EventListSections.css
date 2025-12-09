@@ -209,9 +209,7 @@
 }
 
 /* Search Result Badge */
-.event-list-search-container {
-    padding: 0.4rem;
-}
+.event-list-search-container {}
 
 /* View All Card */
 .event-list-view-all-card {

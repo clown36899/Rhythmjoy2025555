@@ -2280,7 +2280,7 @@ export default function EventList({
 
               {futureEvents.length > 0 ? (
                 <div className="evt-v2-horizontal-scroll">
-                  <div style={{ width: '9px', height: '1px', flexShrink: 0 }}></div>
+                  <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
                   {futureEvents.map(event => (
                     <EventCard
                       key={event.id}
@@ -2295,6 +2295,7 @@ export default function EventList({
                       variant="sliding"
                     />
                   ))}
+                  <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
                 </div>
               ) : (
                 <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
@@ -2306,6 +2307,29 @@ export default function EventList({
               <div className="evt-v2-section-title">
                 <span>진행중인 강습</span>
                 <span className="evt-v2-count">{futureClasses.length}</span>
+
+                {allGenres.length > 0 && (
+                  <select
+                    value={selectedGenre || ''}
+                    onChange={(e) => {
+                      const params = new URLSearchParams(searchParams);
+                      if (e.target.value) {
+                        params.set('genre', e.target.value);
+                      } else {
+                        params.delete('genre');
+                      }
+                      setSearchParams(params);
+                    }}
+                    className="evt-genre-select"
+                    style={{ marginLeft: '8px' }}
+                  >
+                    <option value="">장르 선택</option>
+                    {allGenres.map(genre => (
+                      <option key={genre} value={genre}>{genre}</option>
+                    ))}
+                  </select>
+                )}
+
                 {futureClasses.length > 0 && (
                   <button
                     onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
@@ -2327,38 +2351,10 @@ export default function EventList({
                 )}
               </div>
 
-              {/* Filter Bar - Only for Classes */}
-              {allGenres.length > 0 && (
-                <div className="evt-sticky-header">
-                  <div className="evt-filter-bar-content">
-                    <select
-                      value={selectedGenre || ''}
-                      onChange={(e) => {
-                        const params = new URLSearchParams(searchParams);
-                        if (e.target.value) {
-                          params.set('genre', e.target.value);
-                        } else {
-                          params.delete('genre');
-                        }
-                        setSearchParams(params);
-                      }}
-                      className="evt-genre-select"
-                    >
-                      <option value="">모든 장르</option>
-                      {allGenres.map(genre => (
-                        <option key={genre} value={genre}>{genre}</option>
-                      ))}
-                    </select>
-                    <span className="evt-count-text">
-                      {futureClasses.length}개의 강습
-                    </span>
-                  </div>
-                </div>
-              )}
 
               {futureClasses.length > 0 ? (
                 <div className="evt-v2-horizontal-scroll">
-                  <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
+                  <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
                   {futureClasses.map(event => (
                     <EventCard
                       key={event.id}
@@ -2373,10 +2369,12 @@ export default function EventList({
                       variant="sliding"
                     />
                   ))}
+                  <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
                 </div>
               ) : (
                 <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
               )}
+
             </div>
 
             {/* Section 3+: 장르별 이벤트 (랜덤 순서, 진행중인 강습 필터와 독립) - 무조건 표시 */}
@@ -2406,7 +2404,7 @@ export default function EventList({
                   </div>
 
                   <div className="evt-v2-horizontal-scroll">
-                    <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
+                    <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
                     {genreEvents.map(event => (
                       <EventCard
                         key={event.id}
@@ -2425,6 +2423,7 @@ export default function EventList({
                 </div>
               );
             })}
+            <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
           </div>
         ) : (
           // 전체보기 모드

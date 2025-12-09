@@ -816,7 +816,7 @@ export default function HomePage() {
                     }}
                     className="evt-filter-option"
                   >
-                    모든 장르
+                    장르
                   </button>
                   {filterData.genres.map(genre => (
                     <button
