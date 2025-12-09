@@ -62,18 +62,8 @@ export default function ShoppingPage() {
         <SimpleHeader title="쇼핑" />
       </div>
 
-      {/* 쇼핑몰 등록 버튼 (누구나 가능) */}
-      <div className="shop-register-section">
-        <button
-          onClick={() => navigate('/shopping/register')}
-          className="shop-register-btn"
-        >
-          <i className="ri-add-line shop-register-icon"></i>
-          내 쇼핑몰 등록하기
-        </button>
-      </div>
-
       {/* 쇼핑몰 목록 */}
+
       <div className="shop-list-section">
         {loading ? (
           <div className="shop-loading-container">로딩 중...</div>

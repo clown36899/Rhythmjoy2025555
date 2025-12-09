@@ -1,0 +1,267 @@
+/* Shop Detail Modal Styles - Enhanced Design */
+
+.shop-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.shop-modal-content {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    border-radius: 1.25rem;
+    max-width: 650px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    border: 1px solid #374151;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.shop-modal-close {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: rgba(31, 41, 55, 0.95);
+    color: white;
+    border: 1px solid #374151;
+    border-radius: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(12px);
+}
+
+.shop-modal-close:hover {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-color: #ef4444;
+    transform: rotate(90deg);
+}
+
+.shop-modal-close i {
+    font-size: 1.5rem;
+}
+
+/* Header Section */
+.shop-modal-header {
+    padding: 2.5rem;
+    display: flex;
+    gap: 1.75rem;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent);
+}
+
+.shop-modal-logo {
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 1rem;
+    object-fit: contain;
+    background-color: white;
+    padding: 0.75rem;
+    flex-shrink: 0;
+    border: 2px solid #374151;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.shop-modal-header-text {
+    flex: 1;
+}
+
+.shop-modal-title {
+    color: white;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+}
+
+.shop-modal-description {
+    color: #d1d5db;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+/* Website Button */
+.shop-modal-website-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    margin: 2rem 2.5rem;
+    padding: 1rem 1.75rem;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.shop-modal-website-btn:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+}
+
+.shop-modal-website-btn i {
+    font-size: 1.25rem;
+}
+
+/* Product Section */
+.shop-modal-product-section {
+    padding: 1.5rem 2.5rem 2.5rem;
+}
+
+.shop-modal-section-title {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    letter-spacing: -0.025em;
+}
+
+.shop-modal-product-link {
+    display: block;
+    background: linear-gradient(135deg, #111827, #0f172a);
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid #374151;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+}
+
+.shop-modal-product-link:hover {
+    transform: translateY(-4px);
+    border-color: #3b82f6;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(59, 130, 246, 0.2);
+}
+
+.shop-modal-product-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background-color: #374151;
+}
+
+.shop-modal-product-info {
+    padding: 1.5rem;
+}
+
+.shop-modal-product-name {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.625rem;
+    letter-spacing: -0.025em;
+}
+
+.shop-modal-product-price {
+    color: #fbbf24;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.shop-modal-product-link-text {
+    color: #3b82f6;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.shop-modal-product-link:hover .shop-modal-product-link-text {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+.shop-modal-product-link-text i {
+    transition: transform 0.2s ease;
+}
+
+.shop-modal-product-link:hover .shop-modal-product-link-text i {
+    transform: translateX(4px);
+}
+
+/* No Product State */
+.shop-modal-no-product {
+    padding: 4rem 2.5rem;
+    text-align: center;
+}
+
+.shop-modal-no-product p {
+    color: #9ca3af;
+    font-size: 0.9375rem;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .shop-modal-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .shop-modal-logo {
+        width: 4.5rem;
+        height: 4.5rem;
+    }
+
+    .shop-modal-title {
+        font-size: 1.5rem;
+    }
+
+    .shop-modal-website-btn {
+        margin: 1.5rem 2rem;
+        padding: 0.875rem 1.5rem;
+    }
+
+    .shop-modal-product-section {
+        padding: 1.25rem 2rem 2rem;
+    }
+}

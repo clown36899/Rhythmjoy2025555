@@ -294,13 +294,36 @@ export function MobileShell() {
               minHeight: '32px'
             }}
           >
-            <span className="shell-text-label no-select">
-              {isSocialPage && '소셜 장소'}
-              {isPracticePage && '연습실'}
-              {isBoardPage && '자유게시판'}
-              {isShoppingPage && '쇼핑'}
-              {isGuidePage && '안내'}
-            </span>
+            {isShoppingPage ? (
+              <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => navigate('/shopping/register')}
+                  className="shell-top-bar-btn"
+                  style={{
+                    backgroundColor: 'var(--color-blue-600)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    height: '24px'
+                  }}
+                >
+                  <i className="ri-add-line" style={{ fontSize: '14px' }}></i>
+                  <span style={{ fontSize: '12px', fontWeight: 500 }}>쇼핑몰 등록</span>
+                </button>
+              </div>
+            ) : (
+              <span className="shell-text-label no-select">
+                {isSocialPage && '소셜 장소'}
+                {isPracticePage && '연습실'}
+                {isBoardPage && '자유게시판'}
+                {isShoppingPage && '쇼핑'}
+                {isGuidePage && '안내'}
+              </span>
+            )}
             <div className="shell-flex-center shell-gap-2">
               {isPracticePage && (
                 <button

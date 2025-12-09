@@ -95,6 +95,36 @@
   background-color: #1d4ed8;
 }
 
+/* ===== 이미지 편집 버튼 ===== */
+.shopreg-image-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.shopreg-image-edit-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+}
+
+.shopreg-image-edit-btn i {
+  font-size: 1.25rem;
+}
+
+
 /* ===== 이미지 미리보기 ===== */
 .shopreg-logo-preview {
   margin-top: 0.5rem;
@@ -142,4 +172,57 @@
 .shopreg-submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== 이미지 삭제 버튼 ===== */
+.shopreg-image-delete-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  background-color: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.shopreg-image-delete-btn:hover {
+  background-color: rgba(220, 38, 38, 1);
+  transform: scale(1.1);
+}
+
+.shopreg-image-delete-btn i {
+  font-size: 1.25rem;
+}
+
+/* ===== 취소 버튼 ===== */
+.shopreg-cancel-btn {
+  flex: 1;
+  background-color: #6b7280;
+  color: white;
+  font-weight: 700;
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shopreg-cancel-btn:hover {
+  background-color: #4b5563;
+}
+
+.shopreg-submit-btn {
+  flex: 1;
 }

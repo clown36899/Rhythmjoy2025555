@@ -1,4 +1,7 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Shop } from '../page';
+import ShopDetailModal from './ShopDetailModal';
 import './shopcard.css';
 
 interface ShopCardProps {
@@ -6,49 +9,54 @@ interface ShopCardProps {
 }
 
 export default function ShopCard({ shop }: ShopCardProps) {
-  const featuredItem = shop.featured_items?.[0];
+  const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
 
   return (
-    <div className="shopcard-container">
-      {/* 대표 상품 이미지 */}
-      {featuredItem && (
-        <a href={featuredItem.item_link} target="_blank" rel="noopener noreferrer" className="shopcard-image-link">
-          <div className="shopcard-image-wrapper">
-            <img 
-              src={featuredItem.item_image_url} 
-              alt={featuredItem.item_name}
-              className="shopcard-image"
-            />
-            <div className="shopcard-image-gradient"></div>
-            <div className="shopcard-image-info">
-              <h4 className="shopcard-item-name">{featuredItem.item_name}</h4>
-              {featuredItem.item_price && (
-                <p className="shopcard-item-price">
-                  {featuredItem.item_price.toLocaleString()}원
-                </p>
-              )}
-            </div>
-          </div>
-        </a>
-      )}
+    <>
+      <div className="shopcard-container" onClick={() => setShowModal(true)}>
+        {/* Edit Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/shopping/edit/${shop.id}`);
+          }}
+          className="shopcard-edit-btn"
+          title="쇼핑몰 정보 수정"
+        >
+          <i className="ri-edit-line"></i>
+        </button>
 
-      {/* 쇼핑몰 정보 */}
-      <div className="shopcard-content">
-        <div className="shopcard-info-wrapper">
-          <div className="shopcard-shop-info">
-            {shop.logo_url && (
-              <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-logo" />
-            )}
-            <div>
-              <h3 className="shopcard-shop-name">{shop.name}</h3>
-              {shop.description && (<p className="shopcard-shop-description">{shop.description}</p>)}
+        {/* Shop Logo */}
+        <div className="shopcard-logo-container">
+          {shop.logo_url ? (
+            <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-logo-large" />
+          ) : (
+            <div className="shopcard-logo-placeholder">
+              <i className="ri-store-2-line"></i>
             </div>
+          )}
+        </div>
+
+        {/* Shop Info */}
+        <div className="shopcard-info">
+          <h3 className="shopcard-shop-name">{shop.name}</h3>
+          {shop.description && (
+            <p className="shopcard-shop-description">{shop.description}</p>
+          )}
+          <div className="shopcard-click-hint">
+            <span>자세히 보기</span>
+            <i className="ri-arrow-right-line"></i>
           </div>
-          <a href={shop.website_url} target="_blank" rel="noopener noreferrer" className="shopcard-visit-btn">
-            방문하기
-          </a>
         </div>
       </div>
-    </div>
+
+      {/* Detail Modal */}
+      <ShopDetailModal
+        shop={shop}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
+    </>
   );
 }

@@ -100,6 +100,8 @@ export default function ImageCropModal({
   fileName = 'cropped.jpg',
 }: ImageCropModalProps) {
   const imgRef = useRef<HTMLImageElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [crop, setCrop] = useState<Crop>({
     unit: '%',
     x: 25,
@@ -118,6 +120,22 @@ export default function ImageCropModal({
 
   // Preview State (Separated from final complete)
   const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string | null>(null);
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onImageUpdate) {
+      onImageUpdate(file);
+    }
+    // Clear input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleChangeImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
   const [croppedFile, setCroppedFile] = useState<File | null>(null);
   const [isModified, setIsModified] = useState(false);
 
@@ -383,7 +401,7 @@ export default function ImageCropModal({
                 </div>
                 <p className="crop-placeholder-text">편집할 이미지가 없습니다</p>
                 <button
-                  onClick={onChangeImage}
+                  onClick={handleChangeImageClick}
                   className="crop-upload-link"
                 >
                   이미지 업로드
@@ -478,15 +496,17 @@ export default function ImageCropModal({
                     <i className="ri-upload-cloud-2-line crop-icon-lg"></i>
                     업로드
                   </button>
-                  <button
-                    onClick={loadThumbnails}
-                    className="crop-action-btn crop-thumbnail-btn"
-                    disabled={!videoUrl}
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <i className="ri-youtube-fill crop-icon-lg"></i>
-                    썸네일 가져오기
-                  </button>
+                  {videoUrl && ( // Only show thumbnail button if video URL is provided
+                    <button
+                      onClick={loadThumbnails}
+                      className="crop-action-btn crop-thumbnail-btn"
+                      disabled={!videoUrl}
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <i className="ri-youtube-fill crop-icon-lg"></i>
+                      썸네일 가져오기
+                    </button>
+                  )}
                 </div>
 
                 {/* Apply Action */}
@@ -538,6 +558,15 @@ export default function ImageCropModal({
           )}
         </div>
       </div>
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileInputChange}
+        style={{ display: 'none' }}
+      />
     </div>,
     document.body
   );
