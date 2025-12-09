@@ -1244,6 +1244,7 @@ export default function EventEditModal({
                     </div>
                 </div>
             )}
-        </div>
+        </div>,
+        document.body
     );
 }

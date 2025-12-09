@@ -276,6 +276,22 @@ export default function EventList({
     return () => clearTimeout(timer);
   }, [currentDay]);
 
+  // Listen for edit event from Page.tsx (fullscreen calendar detail modal)
+  useEffect(() => {
+    const handleEditFromDetail = (e: CustomEvent) => {
+      console.log('[EventList] editEventFromDetail event received:', e.detail);
+      const event = e.detail;
+      if (event) {
+        console.log('[EventList] Calling handleEditClick with event:', event.id);
+        handleEditClick(event);
+      }
+    };
+
+    window.addEventListener('editEventFromDetail', handleEditFromDetail as EventListener);
+    console.log('[EventList] Event listener for editEventFromDetail registered');
+    return () => window.removeEventListener('editEventFromDetail', handleEditFromDetail as EventListener);
+  }, []);
+
 
   // 카테고리, 정렬 기준, 이벤트 배열, 날짜 변경 시 캐시 초기화
   useEffect(() => {
@@ -2262,7 +2278,7 @@ export default function EventList({
                     onClick={() => onSectionViewModeChange?.('viewAll-events')}
                     style={{
                       marginLeft: 'auto',
-                      fontSize: '20px',
+                      fontSize: '16px',
                       padding: '0 0 0 30%',
                       color: 'var(--text-secondary)',
                       background: 'transparent',
@@ -2273,7 +2289,7 @@ export default function EventList({
                       justifyContent: 'flex-end'
                     }}
                   >
-                    ❯
+                    전체보기 ❯
                   </button>
                 )}
               </div>
@@ -2335,8 +2351,8 @@ export default function EventList({
                     onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
                     style={{
                       marginLeft: 'auto',
-                      fontSize: '20px',
-                      padding: '0 0 0 30%',
+                      fontSize: '16px',
+                      padding: '0 0 0 0',
                       color: 'var(--text-secondary)',
                       background: 'transparent',
                       border: 'none',
@@ -2346,7 +2362,7 @@ export default function EventList({
                       justifyContent: 'flex-end'
                     }}
                   >
-                    ❯
+                    전체보기 ❯
                   </button>
                 )}
               </div>

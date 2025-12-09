@@ -772,17 +772,6 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    setDateMode('range');
-                                                    setEventDates && setEventDates([]);
-                                                    setDate && setDate(null);
-                                                    setEndDate && setEndDate(null);
-                                                }}
-                                                className={`date-mode-btn ${dateMode === 'range' ? 'active' : ''}`}
-                                            >
-                                                연속
-                                            </button>
-                                            <button
-                                                onClick={() => {
                                                     setDateMode('dates');
                                                     setDate && setDate(null);
                                                     setEndDate && setEndDate(null);

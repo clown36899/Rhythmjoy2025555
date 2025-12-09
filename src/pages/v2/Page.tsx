@@ -14,7 +14,6 @@ import EventRegistrationModal from "../../components/EventRegistrationModal";
 import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
 import EventDetailModal from "./components/EventDetailModal";
 import EventPasswordModal from "./components/EventPasswordModal";
-import EventEditModal from "./components/EventEditModal";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
@@ -402,17 +401,14 @@ export default function HomePageV2() {
     const handleEditClick = (event: AppEvent, e?: React.MouseEvent) => {
         e?.stopPropagation();
 
-        if (effectiveIsAdmin) {
-            setEventToEdit(event);
-            setShowEditModal(true);
-            setSelectedEvent(null);
-        } else {
-            setEventToEdit(event);
-            setShowPasswordModal(true);
-            setSelectedEvent(null);
-        }
-    };
+        console.log('[Page] handleEditClick called, dispatching editEventFromDetail event with:', event.id);
 
+        // Close detail modal
+        setSelectedEvent(null);
+
+        // Dispatch event for EventList to handle editing
+        window.dispatchEvent(new CustomEvent('editEventFromDetail', { detail: event }));
+    };
     const deleteEvent = async (eventId: number, password: string | null = null) => {
         try {
             const { error } = await supabase.functions.invoke('delete-event', { body: { eventId, password } });
@@ -771,43 +767,46 @@ export default function HomePageV2() {
                         </div>
                     </div>
                 )}
-                {/* Event List - Only visible when NOT in Fullscreen Mode */}
-                {calendarMode !== 'fullscreen' && (qrLoading ? (
+                {/* Event List - Hidden in Fullscreen Mode but still mounted for event listeners */}
+                {qrLoading ? (
                     <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
                 ) : (
-                    <EventList
-                        key={eventJustCreated || undefined}
-                        selectedDate={selectedDate}
-                        currentMonth={currentMonth}
-                        isAdminMode={effectiveIsAdmin}
-                        adminType={adminType}
-                        viewMode={viewMode}
-                        onEventHover={setHoveredEventId}
-                        searchTerm={searchTerm}
-                        setSearchTerm={setSearchTerm}
-                        onSearchStart={handleSearchStart}
-                        showSearchModal={showSearchModal}
-                        setShowSearchModal={setShowSearchModal}
-                        showSortModal={showSortModal}
-                        setShowSortModal={setShowSortModal}
-                        sortBy={sortBy}
-                        setSortBy={setSortBy}
-                        highlightEvent={highlightEvent}
-                        onHighlightComplete={() => setHighlightEvent(null)}
-                        sharedEventId={sharedEventId}
-                        onSharedEventOpened={() => setSharedEventId(null)}
-                        dragOffset={dragOffset}
-                        isAnimating={isAnimating}
-                        slideContainerRef={eventListSlideContainerRef}
-                        onMonthChange={setCurrentMonth}
-                        calendarMode={calendarMode}
-                        onEventClickInFullscreen={handleDailyModalEventClick}
-                        onModalStateChange={() => { }}
-                        selectedWeekday={selectedWeekday}
-                        sectionViewMode={sectionViewMode}
-                        onSectionViewModeChange={setSectionViewMode}
-                    />
-                ))}
+                    <div style={{ display: calendarMode === 'fullscreen' ? 'none' : 'block' }}>
+                        <EventList
+                            key={eventJustCreated || undefined}
+                            selectedDate={selectedDate}
+                            currentMonth={currentMonth}
+                            isAdminMode={effectiveIsAdmin}
+                            adminType={adminType}
+                            viewMode={viewMode}
+                            onEventHover={setHoveredEventId}
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
+                            onSearchStart={handleSearchStart}
+                            showSearchModal={showSearchModal}
+                            setShowSearchModal={setShowSearchModal}
+                            showSortModal={showSortModal}
+                            setShowSortModal={setShowSortModal}
+                            sortBy={sortBy}
+                            setSortBy={setSortBy}
+                            highlightEvent={highlightEvent}
+                            onHighlightComplete={() => setHighlightEvent(null)}
+                            sharedEventId={sharedEventId}
+                            onSharedEventOpened={() => setSharedEventId(null)}
+                            dragOffset={dragOffset}
+                            isAnimating={isAnimating}
+                            slideContainerRef={eventListSlideContainerRef}
+                            onMonthChange={setCurrentMonth}
+                            calendarMode={calendarMode}
+                            onEventClickInFullscreen={handleDailyModalEventClick}
+                            onModalStateChange={() => { }}
+                            selectedWeekday={selectedWeekday}
+                            sectionViewMode={sectionViewMode}
+                            onSectionViewModeChange={setSectionViewMode}
+                        />
+                    </div>
+                )}
+
 
                 {/* Modals */}
                 {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}
@@ -853,20 +852,6 @@ export default function HomePageV2() {
                         <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
                     )
                 }
-                {showEditModal && eventToEdit && (
-                    <EventEditModal
-                        isOpen={showEditModal}
-                        onClose={() => {
-                            setShowEditModal(false);
-                            setEventToEdit(null);
-                        }}
-                        event={eventToEdit}
-                        isAdminMode={effectiveIsAdmin}
-                        onEventUpdated={() => window.dispatchEvent(new CustomEvent("eventUpdated"))}
-                        onDelete={handleDeleteClick}
-                        allGenres={allGenres}
-                    />
-                )}
             </div>
         </div>
     );
