@@ -435,7 +435,7 @@ export default function Header({
                 <button
                   onClick={handleDateModalOpen}
                   className="header-date-btn"
-                  style={{ fontSize: "1.4rem" }}
+                  style={{ fontSize: "var(--header-title-font-size)" }}
                 >
                   {viewMode === "year"
                     ? `${currentMonth.getFullYear().toString().slice(-2)}년 전체`

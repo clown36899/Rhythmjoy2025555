@@ -476,47 +476,7 @@ export default function HomePageV2() {
     const buttonBgClass = calendarMode === "collapsed" ? "home-toolbar-btn-blue" : "home-toolbar-btn-dark";
     const arrowIconContent = calendarMode === "collapsed" ? <i className="ri-arrow-down-s-line home-icon-sm home-icon-arrow-down"></i> : <i className="ri-arrow-up-s-line home-icon-sm home-icon-arrow-up"></i>;
 
-    // Calculate header height for home-main padding
-    useEffect(() => {
-        let animationFrameId: number;
-        let isAnimating = true;
 
-        const updateMainPadding = () => {
-            const header = headerRef.current;
-            if (header) {
-                const headerHeight = header.offsetHeight;
-                const mainElement = document.querySelector('.home-main') as HTMLElement;
-                if (mainElement) {
-                    mainElement.style.paddingTop = `${headerHeight}px`;
-                }
-            }
-
-            // Continue updating during animation
-            if (isAnimating) {
-                animationFrameId = requestAnimationFrame(updateMainPadding);
-            }
-        };
-
-        // Start continuous updates
-        updateMainPadding();
-
-        // Stop after animation completes (350ms)
-        const stopTimer = setTimeout(() => {
-            isAnimating = false;
-            cancelAnimationFrame(animationFrameId);
-            // Final update
-            updateMainPadding();
-        }, 350);
-
-        window.addEventListener('resize', updateMainPadding);
-
-        return () => {
-            isAnimating = false;
-            cancelAnimationFrame(animationFrameId);
-            clearTimeout(stopTimer);
-            window.removeEventListener('resize', updateMainPadding);
-        };
-    }, [calendarMode]);
 
 
 

@@ -384,7 +384,7 @@ export default function Header({
               ) : (
                 // 프리뷰 모드: 제목 + 검색창
                 <>
-                  <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)", paddingLeft: "6px" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-primary)", paddingLeft: "6px", fontSize: "var(--header-title-font-size)" }}>
                     스윙빌보드
                   </span>
                   <div className="header-search-container" style={{ marginLeft: '12px' }}>
@@ -430,7 +430,7 @@ export default function Header({
                   </button>
                   <button
                     className="header-date-btn"
-                    style={{ fontSize: "1.4rem", cursor: 'default' }}
+                    style={{ cursor: 'default', fontSize: "var(--header-title-font-size)" }}
                   >
                     {viewMode === "year"
                       ? `${currentMonth.getFullYear()}년`

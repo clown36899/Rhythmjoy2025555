@@ -143,8 +143,8 @@ export default function GlobalSearchModal({ isOpen, onClose, searchQuery }: Glob
                     break;
                 }
                 case 'practice_room': {
-                    setSelectedPracticeRoomId(result.id);
-                    setShowPracticeDetail(true);
+                    // 연습실 페이지로 라우팅
+                    window.location.href = `/practice?id=${result.id}`;
                     break;
                 }
                 case 'shopping': {

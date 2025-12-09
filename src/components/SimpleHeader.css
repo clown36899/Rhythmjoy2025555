@@ -13,7 +13,7 @@
 
 /* ===== 타이틀 ===== */
 .sh-title {
-  font-size: 1.5rem;
+  font-size: var(--header-title-font-size);
   font-weight: 700;
   color: white;
 }

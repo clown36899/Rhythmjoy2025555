@@ -53,7 +53,7 @@ export default function ShoppingPage() {
   }, []);
 
   return (
-    <div className="shop-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+    <div className="shop-page-container" >
       {/* 고정 헤더 */}
       <div
         className="shop-header global-header"

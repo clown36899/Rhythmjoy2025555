@@ -8,8 +8,8 @@
   border-radius: 1rem;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 7%), 0 0 0 1px rgba(59, 130, 246, 0.2);
-  /* border: 1px solid rgba(255, 255, 255, 0.1); */
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 33%), 0 0 0 1px rgb(87 110 148 / 58%);
+  /* border: 0.5px solid rgb(255 255 255 / 24%); */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
 }
@@ -72,7 +72,7 @@
   display: flex;
   align-items: center;
   padding: 1.5rem 2rem;
-  background: #1f1f1f;
+  background: #181818;
   overflow: hidden;
 }
 

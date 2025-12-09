@@ -594,49 +594,15 @@ export default function HomePageV2() {
     // 7. 렌더링
     // --------------------------------------------------------------------------------
 
-
-
-    // Calculate header height for home-main padding
+    // 초기 렌더링 시 .home-main의 paddingTop 강제 적용 (모바일 초기 로드 이슈 해결)
     useEffect(() => {
-        let animationFrameId: number;
-        let isAnimating = true;
+        const mainElement = document.querySelector('.home-main') as HTMLElement;
+        if (mainElement) {
+            mainElement.style.paddingTop = '51px';
+        }
+    }, []); // 마운트 시 한 번만 실행
 
-        const updateMainPadding = () => {
-            const header = headerRef.current;
-            if (header) {
-                const headerHeight = header.offsetHeight;
-                const mainElement = document.querySelector('.home-main') as HTMLElement;
-                if (mainElement) {
-                    mainElement.style.paddingTop = `${headerHeight}px`;
-                }
-            }
 
-            // Continue updating during animation
-            if (isAnimating) {
-                animationFrameId = requestAnimationFrame(updateMainPadding);
-            }
-        };
-
-        // Start continuous updates
-        updateMainPadding();
-
-        // Stop after animation completes (350ms)
-        const stopTimer = setTimeout(() => {
-            isAnimating = false;
-            cancelAnimationFrame(animationFrameId);
-            // Final update
-            updateMainPadding();
-        }, 350);
-
-        window.addEventListener('resize', updateMainPadding);
-
-        return () => {
-            isAnimating = false;
-            cancelAnimationFrame(animationFrameId);
-            clearTimeout(stopTimer);
-            window.removeEventListener('resize', updateMainPadding);
-        };
-    }, [calendarMode]);
 
 
 
@@ -720,6 +686,7 @@ export default function HomePageV2() {
                 className="home-main"
                 ref={eventListElementRef}
                 style={{
+                    paddingTop: '51px', // Fixed header height
                     overscrollBehaviorY: "contain",
                     display: calendarMode === 'fullscreen' ? 'flex' : 'block',
                     flexDirection: calendarMode === 'fullscreen' ? 'column' : undefined,

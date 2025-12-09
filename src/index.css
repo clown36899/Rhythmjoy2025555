@@ -45,6 +45,8 @@ html {
   --header-bg-color: #282828;
   --header-border-color: #353636;
   --header-height: 51px;
+  --header-title-font-size: 1rem;
+  /* 헤더 타이틀 글자 크기 통합 관리 */
 
   /* Page Background */
   --page-bg-color: #0a0a0a;

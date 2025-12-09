@@ -4,7 +4,8 @@
     display: flex;
     align-items: center;
     width: 100%;
-    max-width: 400px;
+    max-width: 180px;
+    /* 모바일에서 다른 버튼 침범 방지 */
 }
 
 .header-search-input {

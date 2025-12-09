@@ -2279,7 +2279,7 @@ export default function EventList({
                     onClick={() => onSectionViewModeChange?.('viewAll-events')}
                     style={{
                       marginLeft: 'auto',
-                      fontSize: '16px',
+
                       padding: '0 0 0 30%',
                       color: 'var(--text-secondary)',
                       background: 'transparent',
@@ -2355,7 +2355,7 @@ export default function EventList({
                     onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
                     style={{
                       marginLeft: 'auto',
-                      fontSize: '16px',
+
                       padding: '0 0 0 0',
                       color: 'var(--text-secondary)',
                       background: 'transparent',
