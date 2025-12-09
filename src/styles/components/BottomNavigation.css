@@ -71,6 +71,11 @@
 }
 
 /* State: Active */
+.bottom-nav-item.active .bottom-nav-icon,
+.bottom-nav-item.active .bottom-nav-label {
+    color: white;
+}
+
 .bottom-nav-item.active .bottom-nav-icon {
     transform: translateY(-1px);
 }

@@ -2290,7 +2290,7 @@ export default function EventList({
                       justifyContent: 'flex-end'
                     }}
                   >
-                    ❯
+                    전체보기 ❯
                   </button>
                 )}
               </div>
@@ -2325,7 +2325,7 @@ export default function EventList({
             {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
             <div className="evt-v2-section">
               <div className="evt-v2-section-title">
-                <span>진행중인 강습</span>
+                <span>강습</span>
                 <span className="evt-v2-count">{futureClasses.length}</span>
 
                 {allGenres.length > 0 && (
@@ -2366,7 +2366,7 @@ export default function EventList({
                       justifyContent: 'flex-end'
                     }}
                   >
-                    ❯
+                    전체보기 ❯
                   </button>
                 )}
               </div>

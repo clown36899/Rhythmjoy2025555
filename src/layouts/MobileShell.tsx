@@ -304,6 +304,8 @@ export function MobileShell() {
               </span>
             )}
             <div className="shell-flex-center shell-gap-2">
+
+              {/* Practice List: Register Button */}
               {isPracticePage && (
                 <button
                   onClick={() => {

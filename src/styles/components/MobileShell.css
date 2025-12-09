@@ -1,5 +1,30 @@
 /* MobileShell.css - MobileShell 컴포넌트 전용 스타일 */
 
+/* ===== Shell Back Button ===== */
+.shell-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shell-back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.shell-back-btn i {
+  font-size: 1rem;
+}
+
 /* ===== 색상 변수 ===== */
 :root {
   --shell-bg-dark: #1f1f1f;

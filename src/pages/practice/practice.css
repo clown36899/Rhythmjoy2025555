@@ -1,6 +1,55 @@
 /* practice.css - PracticeRoomsPage 컴포넌트 전용 스타일 */
 
 /* ===== 페이지 컨테이너 ===== */
+/* Practice Page Header */
+.practice-header-inner {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding-left: 9px;
+  padding-right: 9px;
+}
+
+.practice-header-content {
+  display: flex;
+  align-items: center;
+  height: 3rem !important;
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.practice-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  z-index: 1;
+}
+
+.practice-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: 17px !important;
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.practice-back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.practice-back-btn i {
+  font-size: 1rem;
+}
+
+/* Practice Page Container */
 .practice-page-container {
   min-height: 100vh;
 }

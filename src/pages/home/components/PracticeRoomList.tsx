@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
-import PracticeRoomModal from "../../../components/PracticeRoomModal";
 import "./PracticeRoomList.css";
 
 interface PracticeRoom {
@@ -38,10 +38,9 @@ export default function PracticeRoomList({
   sortBy,
   setSortBy
 }: PracticeRoomListProps) {
+  const navigate = useNavigate();
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<PracticeRoom | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
@@ -80,10 +79,8 @@ export default function PracticeRoomList({
   };
 
   const handleRoomClick = (room: PracticeRoom) => {
-    setSelectedRoom(room);
-    setShowModal(true);
+    navigate(`/practice?id=${room.id}`);
   };
-
   // 검색 필터링 및 정렬된 연습실 목록
   const filteredAndSortedRooms = useMemo(() => {
     // 먼저 필터링
@@ -199,7 +196,7 @@ export default function PracticeRoomList({
         {adminType === "super" && (
           <div className="prl-empty-action">
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent('practiceRoomRegister'))}
               className="prl-empty-button"
             >
               연습실 등록
@@ -280,19 +277,6 @@ export default function PracticeRoomList({
           </div>
         )}
       </div>
-
-      <PracticeRoomModal
-        isOpen={showModal}
-        onClose={() => {
-          setShowModal(false);
-          setSelectedRoom(null);
-          // 모달 닫을 때 리스트 새로고침 (정렬 순서는 유지됨)
-          fetchRooms();
-        }}
-        isAdminMode={adminType === "super"}
-        selectedRoom={selectedRoom}
-        initialRoom={selectedRoom}
-      />
 
       {/* 검색 모달 */}
       {showSearchModal && (

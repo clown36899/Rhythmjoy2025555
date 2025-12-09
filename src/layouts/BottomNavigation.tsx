@@ -52,12 +52,6 @@ export function BottomNavigation() {
                     ? currentPath === '/'
                     : currentPath.startsWith(item.path);
 
-                // Determine active color class (fallback to blue if not specified)
-                const activeColorClass = item.activeColor || 'text-blue-500';
-                // Extract the color part (e.g., 'text-blue-500' -> 'blue-500')
-                // This is a bit of a hack to reuse existing config, ideally config should specify color variable
-                const activeColorStyle = isActive ? { color: `var(--color-${activeColorClass.replace('text-', '')})` } : {};
-
                 return (
                     <button
                         key={item.path}
@@ -66,11 +60,9 @@ export function BottomNavigation() {
                     >
                         <i
                             className={`${item.icon} bottom-nav-icon`}
-                            style={activeColorStyle}
                         ></i>
                         <span
                             className="bottom-nav-label"
-                            style={activeColorStyle}
                         >
                             {item.label}
                         </span>
