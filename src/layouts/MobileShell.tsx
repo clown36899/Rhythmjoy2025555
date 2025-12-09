@@ -187,7 +187,6 @@ export function MobileShell() {
           <div
             className="shell-top-bar"
             style={{
-              backgroundColor: "var(--header-bg-color)",
               minHeight: '32px'
             }}
           >
@@ -239,15 +238,7 @@ export function MobileShell() {
                   <span>등록</span>
                 </button>
 
-                {/* 3. Search Button */}
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('openSearchModal'))}
-                  style={{
-                    backgroundColor: 'transparent', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px'
-                  }}
-                >
-                  <i className="ri-search-line shell-icon-sm"></i>
-                </button>
+
 
                 {/* 4. Register Button (Date Selected) */}
                 {selectedDate && (
@@ -280,7 +271,6 @@ export function MobileShell() {
           <div
             className="shell-top-bar"
             style={{
-              backgroundColor: "var(--header-bg-color)",
               minHeight: '32px'
             }}
           >

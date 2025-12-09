@@ -9,7 +9,7 @@
     overflow: hidden;
     cursor: pointer;
     margin: 1rem 1.5rem;
-    border: 1px solid #2a2a2a;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 19%), 0 0 0 1px rgb(87 110 148 / 27%);
     transition: all 0.3s ease;
     user-select: text;
     /* Allow text selection */

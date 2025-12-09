@@ -52,6 +52,7 @@
 /* Practice Page Container */
 .practice-page-container {
   min-height: 100vh;
+  background-color: #272727;
 }
 
 /* ===== 헤더 ===== */

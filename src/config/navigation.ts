@@ -9,7 +9,7 @@ export interface NavigationItem {
 export const NAVIGATION_ITEMS: NavigationItem[] = [
 
     {
-        label: '이벤트 달력',
+        label: '이벤트',
         path: '/v2',
         icon: 'ri-calendar-2-line',
         activeColor: 'text-red-500',

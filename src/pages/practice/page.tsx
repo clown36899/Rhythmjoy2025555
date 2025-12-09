@@ -43,7 +43,7 @@ export default function PracticeRoomsPage() {
   };
 
   return (
-    <div className="practice-page-container" style={{ backgroundColor: "var(--page-bg-color)" }}>
+    <div className="practice-page-container" >
       {/* Fixed Header - Conditional */}
       <div className="practice-header global-header">
         {roomId ? (

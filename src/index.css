@@ -42,7 +42,7 @@ html {
   --bg-secondary: #1a1a1a;
 
   /* Header Variables */
-  --header-bg-color: #282828;
+  --header-bg-color: #272727;
   --header-border-color: #353636;
   --header-height: 51px;
   --header-title-font-size: 1rem;
@@ -83,9 +83,10 @@ html {
   left: 0;
   width: 100%;
   height: var(--header-height);
-  background-color: #181818;
+  background-color: #272727;
   border-bottom: 1px solid #2b2b2b;
   z-index: var(--z-30);
+  box-shadow: -1px 4px 25px -5px rgb(0 0 0 / 33%), 0 0 0 1px rgb(87 110 148 / 23%);
 }
 
 @keyframes fadeIn {

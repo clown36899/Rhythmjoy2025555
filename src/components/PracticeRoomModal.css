@@ -232,7 +232,7 @@
 
 /* ===== Detail View - Gallery ===== */
 .room-gallery-container {
-  background-color: black;
+
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -243,7 +243,7 @@
 .room-gallery-main {
   flex: 0 0 50vh;
   position: relative;
-  background-color: black;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -492,7 +492,6 @@
   gap: 1.5rem;
   padding: 1.5rem;
   padding-bottom: calc(1.5rem + var(--bottom-nav-height, 60px) + env(safe-area-inset-bottom));
-  background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
 }
 
 @media (min-width: 768px) {
@@ -508,7 +507,7 @@
 
 .room-address-box {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 33%), 0 0 0 1px rgb(87 110 148 / 58%);
   padding: 0.875rem 1rem;
   border-radius: 0.5rem;
 }
@@ -633,7 +632,7 @@
   text-decoration: none;
   font-weight: 500;
   font-size: 0.875rem;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 33%), 0 0 0 1px rgb(49 49 49 / 58%);
 }
 
 .room-additional-link:hover {
@@ -753,7 +752,7 @@
 
 /* ===== Detail Page Layout ===== */
 .room-detail-page {
-  background: #0a0a0a;
+
   display: flex;
   flex-direction: column;
   /* padding-bottom: calc(var(--bottom-nav-height, 60px) + env(safe-area-inset-bottom)); */
