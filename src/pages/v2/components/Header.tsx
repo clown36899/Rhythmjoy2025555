@@ -4,9 +4,11 @@ import QRCodeModal from "../../../components/QRCodeModal";
 import BillboardUserManagementModal from "../../../components/BillboardUserManagementModal";
 import DefaultThumbnailSettingsModal from "../../../components/DefaultThumbnailSettingsModal";
 import InvitationManagementModal from "../../../components/InvitationManagementModal";
+import GlobalSearchModal from "../../../components/GlobalSearchModal";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 import "../../../styles/components/Header.css";
+import "../../../styles/components/HeaderSearch.css";
 
 interface HeaderProps {
   onAdminModeToggle?: (
@@ -84,6 +86,8 @@ export default function Header({
     event_list_outer_bg_color: "#1f2937",
     page_bg_color: "#111827",
   });
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleSettingsClick = () => {
     setShowSettingsModal(true);
@@ -348,7 +352,7 @@ export default function Header({
           <div className="header-content">
             <div className="header-left">
               {sectionViewMode !== 'preview' ? (
-                // 전체보기 ❯모드: 돌아가기 버튼
+                // 전체보기 모드: 돌아가기 버튼
                 <button
                   onClick={() => onSectionViewModeChange?.('preview')}
                   className="header-nav-btn"
@@ -378,10 +382,35 @@ export default function Header({
                   <span>❮ 돌아가기</span>
                 </button>
               ) : (
-                // 프리뷰 모드: 제목
-                <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)", paddingLeft: "6px" }}>
-                  스윙빌보드
-                </span>
+                // 프리뷰 모드: 제목 + 검색창
+                <>
+                  <span style={{ fontSize: "1.4rem", fontWeight: 600, color: "var(--text-primary)", paddingLeft: "6px" }}>
+                    스윙빌보드
+                  </span>
+                  <div className="header-search-container" style={{ marginLeft: '12px' }}>
+                    <input
+                      type="text"
+                      placeholder=""
+                      className="header-search-input"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && searchQuery.trim()) {
+                          setShowSearchModal(true);
+                        }
+                      }}
+                    />
+                    <i
+                      className="ri-search-line header-search-icon"
+                      onClick={() => {
+                        if (searchQuery.trim()) {
+                          setShowSearchModal(true);
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    ></i>
+                  </div>
+                </>
               )}
             </div>
 
@@ -447,7 +476,7 @@ export default function Header({
                   </button>
                 </>
               ) : (
-                /* Preview Mode: Empty center (title moved to left) */
+                /* Preview Mode: Empty center */
                 null
               )}
             </div>
@@ -1119,6 +1148,13 @@ export default function Header({
         </div>,
         document.body
       )}
+
+      {/* Global Search Modal */}
+      <GlobalSearchModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        searchQuery={searchQuery}
+      />
     </>
   );
 }
