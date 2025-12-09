@@ -538,171 +538,165 @@ export default function PracticeRoomModal({
     return (
       <div className="room-modal-overlay">
         <div className="room-modal-container">
-          {/* 닫기 버튼 - 우측 상단 고정 */}
-          <button
-            onClick={handleCloseDetails}
-            className="room-close-btn"
-            title="닫기"
-          >
-            <i className="ri-close-line room-close-icon"></i>
-          </button>
-
-          {/* Header with navigation buttons */}
+          {/* 1. Header - Title & Edit Button */}
           <div className="room-detail-header">
-            {/* 관리자 버튼 */}
-            <div className="room-detail-admin-btns">
-              {isAdminMode && (
-                <>
-                  <button
-                    onClick={() => handleEdit(selectedRoom)}
-                    className="room-detail-edit-btn"
-                  >
-                    <i className="ri-edit-line"></i>
-                    <span>수정</span>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(selectedRoom.id)}
-                    className="room-detail-delete-btn"
-                  >
-                    <i className="ri-delete-bin-line"></i>
-                    <span>삭제</span>
-                  </button>
-                </>
-              )}
-            </div>
             <h2 className="room-detail-title">
               {selectedRoom.name}
             </h2>
+            {isAdminMode && (
+              <button
+                onClick={() => handleEdit(selectedRoom)}
+                className="room-detail-edit-btn"
+              >
+                <i className="ri-edit-line"></i>
+                <span>수정</span>
+              </button>
+            )}
           </div>
 
-          {/* Gallery & info */}
-          <div className="room-detail-body">
-            <div className="room-detail-grid">
-              {/* Left: Image gallery */}
-              <div className="room-gallery-container">
-                {/* Main image */}
-                <div className="room-gallery-main">
-                  <img
-                    src={selectedRoom.images[selectedImageIndex]}
-                    alt={`${selectedRoom.name} ${selectedImageIndex + 1}`}
-                    className="room-gallery-image"
+          {/* 2. Gallery Section */}
+          <div className="room-gallery-container">
+            {/* Main image */}
+            <div className="room-gallery-main">
+              <img
+                src={selectedRoom.images[selectedImageIndex]}
+                alt={`${selectedRoom.name} ${selectedImageIndex + 1}`}
+                className="room-gallery-image"
+                onClick={nextImage}
+              />
+              {selectedRoom.images.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="room-gallery-nav-btn room-gallery-nav-btn-left"
+                  >
+                    <i className="ri-arrow-left-line room-gallery-nav-icon"></i>
+                  </button>
+                  <button
                     onClick={nextImage}
-                  />
-                  {selectedRoom.images.length > 1 && (
-                    <>
-                      <button
-                        onClick={prevImage}
-                        className="room-gallery-nav-btn room-gallery-nav-btn-left"
-                      >
-                        <i className="ri-arrow-left-line room-gallery-nav-icon"></i>
-                      </button>
-                      <button
-                        onClick={nextImage}
-                        className="room-gallery-nav-btn room-gallery-nav-btn-right"
-                      >
-                        <i className="ri-arrow-right-line room-gallery-nav-icon"></i>
-                      </button>
+                    className="room-gallery-nav-btn room-gallery-nav-btn-right"
+                  >
+                    <i className="ri-arrow-right-line room-gallery-nav-icon"></i>
+                  </button>
 
-                      {/* Image counter */}
-                      <div className="room-gallery-counter">
-                        {selectedImageIndex + 1} / {selectedRoom.images.length}
-                      </div>
+                  {/* Image counter */}
+                  <div className="room-gallery-counter">
+                    {selectedImageIndex + 1} / {selectedRoom.images.length}
+                  </div>
 
-                      {/* Image indicators */}
-                      <div className="room-gallery-indicators">
-                        {selectedRoom.images.map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => goToImage(idx)}
-                            className={`room-gallery-indicator ${idx === selectedImageIndex
-                              ? "room-gallery-indicator-active"
-                              : ""
-                              }`}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Thumbnail list */}
-                <div className="room-thumbnails-container">
-                  <div className="room-thumbnails-list">
-                    {selectedRoom.images.map((image, index) => (
+                  {/* Image indicators */}
+                  <div className="room-gallery-indicators">
+                    {selectedRoom.images.map((_, idx) => (
                       <button
-                        key={index}
-                        onClick={() => setSelectedImageIndex(index)}
-                        className={`room-thumbnail-btn ${selectedImageIndex === index
-                          ? "room-thumbnail-btn-active"
-                          : "room-thumbnail-btn-inactive"
+                        key={idx}
+                        onClick={() => goToImage(idx)}
+                        className={`room-gallery-indicator ${idx === selectedImageIndex
+                          ? "room-gallery-indicator-active"
+                          : ""
                           }`}
-                      >
-                        <img
-                          src={image}
-                          alt={`썸네일 ${index + 1}`}
-                          className="room-thumbnail-image"
-                        />
-                      </button>
+                      />
                     ))}
                   </div>
-                </div>
-              </div>
+                </>
+              )}
+            </div>
 
-              {/* Right: Information */}
-              <div className="room-info-container">
-                {/* Address */}
-                <div className="room-address-section">
-                  <div className="room-address-box">
-                    {/* Modified address block */}
-                    <div className="room-address-content">
-                      <span className="room-address-text">
-                        {selectedRoom.address}
-                      </span>
-                      <div className="room-address-btns">
-                        <button
-                          onClick={copyAddress}
-                          className="room-copy-btn"
-                        >
-                          복사
-                        </button>
-                        <button
-                          onClick={openMap}
-                          className="room-map-btn"
-                        >
-                          지도 바로보기
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            {/* Thumbnail list */}
+            <div className="room-thumbnails-container">
+              {/* Scroll arrows */}
+              {selectedRoom.images.length > 3 && (
+                <>
+                  <button className="room-thumbnails-arrow room-thumbnails-arrow-left">
+                    <i className="ri-arrow-left-s-line"></i>
+                  </button>
+                  <button className="room-thumbnails-arrow room-thumbnails-arrow-right">
+                    <i className="ri-arrow-right-s-line"></i>
+                  </button>
+                </>
+              )}
 
-                {/* Description */}
-                <div className="room-description-section">
-                  <h3 className="room-description-header">
-                    <i className="ri-information-line room-description-icon"></i>
-                    상세 정보
-                  </h3>
-                  <div className="room-description-box">
-                    <p className="room-description-text">
-                      {selectedRoom.description}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Additional link */}
-                {selectedRoom.additional_link && (
-                  <a
-                    href={selectedRoom.additional_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="room-additional-link"
+              <div className="room-thumbnails-list">
+                {selectedRoom.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`room-thumbnail-btn ${selectedImageIndex === index
+                      ? "room-thumbnail-btn-active"
+                      : "room-thumbnail-btn-inactive"
+                      }`}
                   >
-                    <i className="ri-external-link-line room-additional-link-icon"></i>
-                    {selectedRoom.additional_link_title || "추가 정보 보기"}
-                  </a>
-                )}
+                    <img
+                      src={image}
+                      alt={`썸네일 ${index + 1}`}
+                      className="room-thumbnail-image"
+                    />
+                  </button>
+                ))}
               </div>
             </div>
+          </div>
+
+          {/* 3. Info Section */}
+          <div className="room-info-container">
+            {/* Address */}
+            <div className="room-address-section">
+              <div className="room-address-box">
+                <div className="room-address-content">
+                  <span className="room-address-text">
+                    {selectedRoom.address}
+                  </span>
+                  <div className="room-address-btns">
+                    <button
+                      onClick={copyAddress}
+                      className="room-copy-btn"
+                    >
+                      복사
+                    </button>
+                    <button
+                      onClick={openMap}
+                      className="room-map-btn"
+                    >
+                      지도 바로보기
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="room-description-section">
+              <h3 className="room-description-header">
+                <i className="ri-information-line room-description-icon"></i>
+                상세 정보
+              </h3>
+              <div className="room-description-box">
+                <p className="room-description-text">
+                  {selectedRoom.description}
+                </p>
+              </div>
+            </div>
+
+            {/* Additional link */}
+            {selectedRoom.additional_link && (
+              <a
+                href={selectedRoom.additional_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="room-additional-link"
+              >
+                <i className="ri-external-link-line room-additional-link-icon"></i>
+                {selectedRoom.additional_link_title || "추가 정보 보기"}
+              </a>
+            )}
+
+            {/* Close Button */}
+            <button
+              onClick={handleCloseDetails}
+              className="room-detail-close-btn"
+            >
+              <i className="ri-close-line"></i>
+              <span>닫기</span>
+            </button>
           </div>
         </div>
       </div>
