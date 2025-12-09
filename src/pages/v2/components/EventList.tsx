@@ -27,6 +27,7 @@ import EventSortModal from "./EventSortModal";
 import Footer from "./Footer";
 import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
 import { EditablePreviewCard } from "../../../components/EditablePreviewCard";
+import ShoppingBanner from "./ShoppingBanner";
 import "../../../styles/components/EventList.css";
 import "../../../components/EventRegistrationModal.css";
 import "../styles/EventListSections.css";
@@ -2289,7 +2290,7 @@ export default function EventList({
                       justifyContent: 'flex-end'
                     }}
                   >
-                    전체보기 ❯
+                    ❯
                   </button>
                 )}
               </div>
@@ -2317,6 +2318,9 @@ export default function EventList({
                 <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
               )}
             </div>
+
+            {/* Shopping Mall Banner */}
+            <ShoppingBanner />
 
             {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
             <div className="evt-v2-section">
@@ -2362,7 +2366,7 @@ export default function EventList({
                       justifyContent: 'flex-end'
                     }}
                   >
-                    전체보기 ❯
+                    ❯
                   </button>
                 )}
               </div>

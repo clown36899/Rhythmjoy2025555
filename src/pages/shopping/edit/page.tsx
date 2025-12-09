@@ -214,14 +214,21 @@ export default function ShoppingEditPage() {
     };
 
 
+
     const uploadImage = async (file: File, folder: string): Promise<string> => {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
+        // Import createResizedImages utility
+        const { createResizedImages } = await import('../../../utils/imageResize');
+
+        // Create WebP optimized images
+        const resizedImages = await createResizedImages(file);
+
+        const fileName = `${Date.now()}.webp`;
         const filePath = `${folder}/${fileName}`;
 
+        // Upload the full-size WebP image
         const { error: uploadError } = await supabase.storage
             .from('images')
-            .upload(filePath, file);
+            .upload(filePath, resizedImages.full);
 
         if (uploadError) {
             throw uploadError;
@@ -230,6 +237,7 @@ export default function ShoppingEditPage() {
         const { data } = supabase.storage.from('images').getPublicUrl(filePath);
         return data.publicUrl;
     };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -36,8 +36,8 @@ export default function PracticeRoomsPage() {
     <div className="practice-page-container" style={{ backgroundColor: "var(--page-bg-color)" }}>
       {/* Fixed Header */}
       <div
-        className="practice-header"
-        style={{ backgroundColor: "var(--header-bg-color)" }}
+        className="practice-header global-header"
+
       >
         <SimpleHeader title="연습실" />
       </div>

@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  height: 51px;
+  height: var(--header-height);
   max-width: 650px;
   margin: 0 auto;
 }
