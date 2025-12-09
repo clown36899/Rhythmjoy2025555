@@ -346,6 +346,7 @@ export default function EventRegistrationModal({
     // New Validation: Category is required
     if (!category) {
       alert("분류(행사/강습)를 선택해주세요.");
+      detailRef.current?.openModal('classification');
       return;
     }
 

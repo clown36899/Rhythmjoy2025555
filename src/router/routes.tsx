@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { MobileShell } from '../layouts/MobileShell';
 
 // Lazy loading pages
@@ -17,8 +18,9 @@ export const routes: RouteObject[] = [
     {
         element: <MobileShell />,
         children: [
-            { path: '/', element: <HomePage /> },
+            { path: '/', element: <Navigate to="/v2" replace /> },
             { path: '/v2', element: <HomePageV2 /> },
+            { path: '/v1', element: <HomePage /> },
             { path: '/social', element: <SocialPage /> },
             { path: '/social/:placeId', element: <SocialPage /> },
             { path: '/practice', element: <PracticePage /> },

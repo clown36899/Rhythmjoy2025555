@@ -80,7 +80,7 @@ const EditBadge = ({ isStatic = false }: { isStatic?: boolean }) => (
 );
 
 export interface EditableEventDetailRef {
-    openModal: (modalType: 'genre' | 'location' | 'link' | 'date' | 'title' | 'video') => void;
+    openModal: (modalType: 'genre' | 'location' | 'link' | 'date' | 'title' | 'video' | 'classification') => void;
 }
 
 const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEventDetailProps>(({

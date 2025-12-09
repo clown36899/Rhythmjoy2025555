@@ -217,8 +217,8 @@
 .crop-image {
   display: block;
   max-width: 100% !important;
-  max-height: calc(90dvh - 180px) !important;
-  /* Safety margin */
+  /* Header ~60px + Footer ~180px (비율버튼 + 액션버튼들) + 여유 40px = 280px */
+  max-height: calc(90dvh - 280px) !important;
   width: auto;
   height: auto;
 }

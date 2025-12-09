@@ -1,5 +1,11 @@
 /* EditableEventDetail.css */
 
+/* Modal Scroll Container - Prevent footer overlap */
+.modal-scroll-container {
+    padding-bottom: 100px;
+    /* Footer height (80px) + extra spacing (20px) */
+}
+
 /* Footer & Actions */
 .editable-footer {
     display: flex;
