@@ -3,6 +3,8 @@ import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import "../../../styles/components/EventCalendar.css";
+import { getEventThumbnail } from "../../../utils/getEventThumbnail";
+import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 
 interface EventCalendarProps {
   selectedDate: Date | null;
@@ -45,6 +47,7 @@ export default function EventCalendar({
   const [events, setEvents] = useState<Event[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
+  const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
   // 전체화면 모드인지 시각적으로 판단 (애니메이션 중에도 색상을 미리 적용하기 위함)
   // calendarMode가 'fullscreen'이거나, 달력 높이가 300px을 초과하면 전체화면으로 간주
@@ -719,6 +722,8 @@ export default function EventCalendar({
           <div className="calendar-cell-fullscreen-body">
             {dayEvents.map((event) => {
               const categoryColor = getEventColor(event.id, event.category);
+              const thumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+
               return (
                 <div
                   key={event.id}
@@ -731,9 +736,15 @@ export default function EventCalendar({
                   }}
                 >
                   {/* 이미지 (있으면 표시) */}
-                  {event.image ? (
+                  {thumbnailUrl ? (
                     <div className="calendar-fullscreen-image-container">
-                      <img src={event.image} alt="" className="calendar-fullscreen-image" />
+                      <img
+                        src={thumbnailUrl}
+                        alt=""
+                        className="calendar-fullscreen-image"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                   ) : (
                     <div className={`calendar-fullscreen-placeholder ${categoryColor}`}>

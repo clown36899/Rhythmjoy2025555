@@ -214,54 +214,50 @@ export function MobileShell() {
 
               {/* Right Side: Tools (Today, Sort, Search, Register, Admin) */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {calendarMode !== "fullscreen" && (
-                  <>
-                    {/* 1. Today Button (Conditional) */}
-                    {!isCurrentMonthVisible && (
-                      <button
-                        onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
-                        style={{
-                          backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px',
-                          padding: '2px 8px', fontSize: '10px', height: '24px', display: 'flex', alignItems: 'center', gap: '2px'
-                        }}
-                      >
-                        <span>오늘</span>
-                        <i className="ri-calendar-check-line" style={{ fontSize: '10px' }}></i>
-                      </button>
-                    )}
-
-
-
-                    {/* 3. Event Registration Button */}
-                    <button
-                      onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn' } }))}
-                      className="shell-top-bar-btn"
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        color: 'var(--text-secondary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '2px',
-                        height: '24px',
-                        padding: '0 4px'
-                      }}
-                    >
-                      <i className="ri-add-circle-line shell-icon-sm"></i>
-                      <span style={{ fontSize: '1rem' }}>등록</span>
-                    </button>
-
-                    {/* 3. Search Button */}
-                    <button
-                      onClick={() => window.dispatchEvent(new CustomEvent('openSearchModal'))}
-                      style={{
-                        backgroundColor: 'transparent', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px'
-                      }}
-                    >
-                      <i className="ri-search-line shell-icon-sm"></i>
-                    </button>
-                  </>
+                {/* 1. Today Button (Conditional) */}
+                {!isCurrentMonthVisible && (
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
+                    style={{
+                      backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px',
+                      padding: '2px 8px', fontSize: '10px', height: '24px', display: 'flex', alignItems: 'center', gap: '2px'
+                    }}
+                  >
+                    <span>오늘</span>
+                    <i className="ri-calendar-check-line" style={{ fontSize: '10px' }}></i>
+                  </button>
                 )}
+
+
+
+                {/* 3. Event Registration Button */}
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn' } }))}
+                  className="shell-top-bar-btn"
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    height: '24px',
+                    padding: '0 4px'
+                  }}
+                >
+                  <i className="ri-add-circle-line shell-icon-sm"></i>
+                  <span style={{ fontSize: '1rem' }}>등록</span>
+                </button>
+
+                {/* 3. Search Button */}
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('openSearchModal'))}
+                  style={{
+                    backgroundColor: 'transparent', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px'
+                  }}
+                >
+                  <i className="ri-search-line shell-icon-sm"></i>
+                </button>
 
                 {/* 4. Register Button (Date Selected) */}
                 {selectedDate && (

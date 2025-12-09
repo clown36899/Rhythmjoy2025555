@@ -36,6 +36,10 @@ export function BottomNavigation() {
             setTimeout(() => {
                 window.location.reload();
             }, 150);
+        } else if (path === '/v2' && currentPath.startsWith('/v2')) {
+            // V2 페이지에서 다시 누르면 메인 뷰로 리셋
+            window.dispatchEvent(new CustomEvent('resetV2MainView'));
+            navigate(path);
         } else {
             navigate(path);
         }

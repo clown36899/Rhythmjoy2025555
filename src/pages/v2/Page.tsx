@@ -302,11 +302,32 @@ export default function HomePageV2() {
         const handleOpenSortModal = () => setShowSortModal(true);
         const handleOpenSearchModal = () => setShowSearchModal(true);
 
+        const handleResetV2MainView = () => {
+            setCalendarMode('collapsed');
+            setSectionViewMode('preview');
+            setFromBanner(false);
+            setBannerMonthBounds(null);
+
+            // Go to today if needed, or just reset view
+            // const today = new Date();
+            // setCurrentMonth(today); // Optional: Reset month to today? User just said "Preview Main Screen" which usually implies initial state.
+            // Let's keep current month but collapse calendar.
+
+            setSelectedDate(null);
+            navigateWithCategory("all");
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const scrollContainer = document.querySelector(".overflow-y-auto");
+            if (scrollContainer) scrollContainer.scrollTop = 0;
+        };
+
         window.addEventListener('toggleCalendarMode', handleToggleCalendarMode);
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
         window.addEventListener('goToToday', handleGoToToday);
         window.addEventListener('openSortModal', handleOpenSortModal);
         window.addEventListener('openSearchModal', handleOpenSearchModal);
+        window.addEventListener('resetV2MainView', handleResetV2MainView);
 
         return () => {
             window.removeEventListener('toggleCalendarMode', handleToggleCalendarMode);
@@ -314,8 +335,9 @@ export default function HomePageV2() {
             window.removeEventListener('goToToday', handleGoToToday);
             window.removeEventListener('openSortModal', handleOpenSortModal);
             window.removeEventListener('openSearchModal', handleOpenSearchModal);
+            window.removeEventListener('resetV2MainView', handleResetV2MainView);
         };
-    }, [calendarMode, sortBy]);
+    }, [calendarMode, sortBy, navigateWithCategory]);
     const [fromQR] = useState(() => { const p = new URLSearchParams(window.location.search); const s = p.get("from"); return s === "qr" || s === "edit"; });
     const { settings, updateSettings, resetSettings } = useBillboardSettings();
 

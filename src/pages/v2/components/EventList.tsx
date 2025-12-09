@@ -992,12 +992,20 @@ export default function EventList({
     return result;
   }, [events, selectedGenre, highlightEvent]);
 
-  // 장르 목록 추출 (강습만)
+  // 장르 목록 추출 (진행중인 강습만)
   const allGenres = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
     const genres = new Set<string>();
+
     events.forEach(event => {
+      // 1. 강습 카테고리여야 함
+      // 2. 장르가 있어야 함
       if (event.category === 'class' && event.genre) {
-        genres.add(event.genre);
+        // 3. 종료되지 않은 강습이어야 함
+        const endDate = event.end_date || event.date;
+        if (!endDate || endDate >= today) {
+          genres.add(event.genre);
+        }
       }
     });
     return Array.from(genres).sort();
