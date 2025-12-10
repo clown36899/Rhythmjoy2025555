@@ -277,7 +277,7 @@ export function MobileShell() {
             {isShoppingPage ? (
               <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => navigate('/shopping/register')}
+                  onClick={() => window.dispatchEvent(new CustomEvent('openShopRegistration'))}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>

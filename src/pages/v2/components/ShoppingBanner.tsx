@@ -12,18 +12,18 @@ export default function ShoppingBanner() {
     const [showModal, setShowModal] = useState(false);
 
     // Fetch shops from Supabase
+    const fetchShops = async () => {
+        const { data, error } = await supabase
+            .from('shops')
+            .select('*, featured_items (*)')
+            .order('created_at', { ascending: false });
+
+        if (data && !error) {
+            setShops(data);
+        }
+    };
+
     useEffect(() => {
-        const fetchShops = async () => {
-            const { data, error } = await supabase
-                .from('shops')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (data && !error) {
-                setShops(data);
-            }
-        };
-
         fetchShops();
     }, []);
 
@@ -49,6 +49,10 @@ export default function ShoppingBanner() {
     const handleShopClick = (shop: Shop) => {
         setSelectedShop(shop);
         setShowModal(true);
+    };
+
+    const handleUpdate = () => {
+        fetchShops();
     };
 
     if (shops.length === 0) return null;
@@ -139,6 +143,7 @@ export default function ShoppingBanner() {
                         setShowModal(false);
                         setSelectedShop(null);
                     }}
+                    onUpdate={handleUpdate}
                 />
             )}
         </>

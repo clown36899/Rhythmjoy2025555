@@ -128,19 +128,8 @@
 }
 
 /* ===== 이미지 컨테이너 ===== */
-.card-image-wrapper {
-  position: relative;
-  aspect-ratio: 3/4;
-  width: 100%;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  background-color: var(--color-gray-800);
-  transition: all 0.2s ease;
-}
 
-.card-image-wrapper-highlighted {
-  box-shadow: 0 0 0 2px var(--highlight-color), 0 0 0 4px var(--color-gray-900);
-}
+
 
 /* ===== 이미지 스타일 ===== */
 .card-image {
@@ -212,8 +201,8 @@
 /* ===== 배지 스타일 ===== */
 .card-badge {
   position: absolute;
-  top: 7px;
-  right: -30px;
+  top: 1px;
+  right: -31px;
   width: 80px;
   transform: rotate(45deg);
   text-align: center;
@@ -230,11 +219,11 @@
 }
 
 .card-badge-class {
-  background-color: rgba(147, 51, 234, 0.8);
+  background-color: rgb(146, 51, 234);
 }
 
 .card-badge-event {
-  background-color: rgba(37, 99, 235, 0.8);
+  background-color: rgb(37, 100, 235);
 }
 
 /* ===== 텍스트 컨테이너 ===== */
@@ -301,12 +290,15 @@
 
 /* QR Code Deep Link Highlight Animation */
 @keyframes qr-highlight {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
   }
+
   50% {
     box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.6),
-                0 0 0 16px rgba(59, 130, 246, 0.3);
+      0 0 0 16px rgba(59, 130, 246, 0.3);
   }
 }
 

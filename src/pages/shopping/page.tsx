@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import SimpleHeader from '../../components/SimpleHeader';
 import ShopCard from './components/ShopCard';
+import ShopRegisterModal from './components/ShopRegisterModal';
 import { useAuth } from '../../contexts/AuthContext';
 import './shopping.css';
 
@@ -28,28 +29,42 @@ export interface Shop {
 export default function ShoppingPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchShops = async () => {
-      setLoading(true);
-      try {
-        // 'shops' 테이블과 'featured_items' 테이블을 join하여 한번에 데이터를 가져옵니다.
-        const { data, error } = await supabase
-          .from('shops')
-          .select(`*, featured_items (*)`);
+  const fetchShops = async () => {
+    setLoading(true);
+    try {
+      // 'shops' 테이블과 'featured_items' 테이블을 join하여 한번에 데이터를 가져옵니다.
+      const { data, error } = await supabase
+        .from('shops')
+        .select(`*, featured_items (*)`);
 
-        if (error) throw error;
-        setShops(data || []);
-      } catch (error) {
-        console.error('쇼핑몰 목록 로딩 실패:', error);
-      } finally {
-        setLoading(false);
-      }
+      if (error) throw error;
+      setShops(data || []);
+    } catch (error) {
+      console.error('쇼핑몰 목록 로딩 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchShops();
+  }, []);
+
+  // 커스텀 이벤트 리스너: 쇼핑몰 등록 모달 열기
+  useEffect(() => {
+    const handleOpenRegister = () => {
+      setShowRegisterModal(true);
     };
 
-    fetchShops();
+    window.addEventListener('openShopRegistration', handleOpenRegister);
+
+    return () => {
+      window.removeEventListener('openShopRegistration', handleOpenRegister);
+    };
   }, []);
 
   return (
@@ -71,10 +86,17 @@ export default function ShoppingPage() {
           <div className="shop-empty-container">등록된 쇼핑몰이 없습니다.</div>
         ) : (
           <div className="shop-grid">
-            {shops.map(shop => (<ShopCard key={shop.id} shop={shop} />))}
+            {shops.map(shop => (<ShopCard key={shop.id} shop={shop} onUpdate={fetchShops} />))}
           </div>
         )}
       </div>
+
+      {/* 쇼핑몰 등록 모달 */}
+      <ShopRegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSuccess={fetchShops}
+      />
     </div>
   );
 }

@@ -4,15 +4,14 @@
 .shopping-banner {
     position: relative;
     height: 67px;
-    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+    background: linear-gradient(135deg, #323232 0%, #292929 100%);
     border-radius: 1rem;
     overflow: hidden;
     cursor: pointer;
     margin: 1rem 1.5rem;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 19%), 0 0 0 1px rgb(87 110 148 / 27%);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 19%), 0 0 0 1px rgb(87 110 148 / 70%);
     transition: all 0.3s ease;
     user-select: text;
-    /* Allow text selection */
 }
 
 .shopping-banner:hover {

@@ -12,8 +12,6 @@ const PracticeDetailPage = lazy(() => import('../pages/practice/detail/page'));
 const BoardPage = lazy(() => import('../pages/board/page'));
 const GuidePage = lazy(() => import('../pages/guide/page'));
 const ShoppingPage = lazy(() => import('../pages/shopping/page'));
-const ShoppingRegisterPage = lazy(() => import('../pages/shopping/register/page'));
-const ShoppingEditPage = lazy(() => import('../pages/shopping/edit/page'));
 const BillboardPage = lazy(() => import('../pages/billboard/page'));
 
 export const routes: RouteObject[] = [
@@ -30,8 +28,6 @@ export const routes: RouteObject[] = [
             { path: '/board', element: <BoardPage /> },
             { path: '/guide', element: <GuidePage /> },
             { path: '/shopping', element: <ShoppingPage /> },
-            { path: '/shopping/register', element: <ShoppingRegisterPage /> },
-            { path: '/shopping/edit/:shopId', element: <ShoppingEditPage /> },
         ],
     },
     {

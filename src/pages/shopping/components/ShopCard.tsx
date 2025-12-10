@@ -1,15 +1,14 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { Shop } from '../page';
 import ShopDetailModal from './ShopDetailModal';
 import './shopcard.css';
 
 interface ShopCardProps {
   shop: Shop;
+  onUpdate: () => void;
 }
 
-export default function ShopCard({ shop }: ShopCardProps) {
-  const navigate = useNavigate();
+export default function ShopCard({ shop, onUpdate }: ShopCardProps) {
   const [showModal, setShowModal] = useState(false);
 
   return (
@@ -28,18 +27,6 @@ export default function ShopCard({ shop }: ShopCardProps) {
 
         {/* Right: Content Section with Gradient */}
         <div className="shopcard-content-section">
-          {/* Edit Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/shopping/edit/${shop.id}`);
-            }}
-            className="shopcard-banner-edit"
-            title="수정"
-          >
-            <i className="ri-edit-line"></i>
-          </button>
-
           {/* Content */}
           <div className="shopcard-banner-content">
             <h3 className="shopcard-banner-title">{shop.name}</h3>
@@ -59,6 +46,7 @@ export default function ShopCard({ shop }: ShopCardProps) {
         shop={shop}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
+        onUpdate={onUpdate}
       />
     </>
   );
