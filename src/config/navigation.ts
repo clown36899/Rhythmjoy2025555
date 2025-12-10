@@ -19,7 +19,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         path: '/social',
         icon: 'ri-map-pin-line',
         activeColor: 'text-green-500',
-        badge: '공사중',
+
     },
     {
         label: '연습실',

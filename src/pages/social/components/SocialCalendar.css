@@ -1,92 +1,115 @@
-/* SocialCalendar.css - 소셜 달력 컴포넌트 전용 스타일 */
+/* SocialCalendar.css */
 
-/* ===== 로딩 상태 ===== */
+.social-weekly-container {
+  width: 100%;
+  box-sizing: border-box;
+  /* padding is handled by parent or none */
+}
+
 .scal-loader {
   text-align: center;
-  padding: 2.5rem 0;
-  color: #9ca3af;
+  padding: 2rem;
+  font-size: 1rem;
+  color: #888;
 }
 
-/* ===== 달력 그리드 ===== */
-.scal-grid {
+/* 7-Column Grid Layout */
+.weekly-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-right: 1px solid rgb(13, 13, 13);
-  border-bottom: 1px solid rgb(13, 13, 13);
-}
-
-/* ===== 달력 셀 ===== */
-.scal-cell {
-  background-color: #191919;
-  border-top: 1px solid rgb(13, 13, 13);
-  border-left: 1px solid rgb(13, 13, 13);
-  min-height: 100px;
-  display: flex;
-  flex-direction: column;
-}
-
-.scal-cell-sunday {
-  background-color: #2a2121;
-}
-
-/* ===== 날짜 표시 ===== */
-.scal-day-number {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #d1d5db;
-}
-
-.scal-day-weekday {
-  color: #ffffff5e;
-  font-size: 0.7rem;
-}
-
-/* ===== 이벤트 컨테이너 ===== */
-.scal-events-container {
-  flex-grow: 1;
-  margin-top: 0.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-/* ===== 이벤트 아이템 ===== */
-.scal-event-item {
-  background-color: rgba(55, 65, 81, 0.5);
-  padding: 0.1rem;
-  border-radius: 0.25rem;
-  text-align: left;
-  cursor: pointer;
-}
-
-/* ===== 이벤트 이미지 ===== */
-.scal-event-image {
   width: 100%;
-  height: 2rem;
-  object-fit: cover;
-  border-radius: 0.125rem;
-  margin-bottom: 0.25rem;
+  border-top: 1px solid #333;
+  /* Header top border */
 }
 
-/* ===== 이벤트 제목 ===== */
-.scal-event-title {
+.day-column {
+  border-right: 1px solid #333;
+  min-height: 300px;
+  background-color: #1a1a1a;
+  /* Dark theme bg match? Or white? User has dark mode visible in snippets. Let's stick to safe dark/light adapt or transparent */
+  display: flex;
+  flex-direction: column;
+}
+
+.day-column:last-child {
+  border-right: none;
+}
+
+.column-header {
+  text-align: center;
+  padding: 8px 0;
+  background-color: #222;
+  /* Dark header */
+  color: #ccc;
+  font-weight: bold;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #444;
+}
+
+/* Specific day coloring */
+.day-column:nth-child(1) .column-header {
+  color: #f87171;
+  /* Sunday (First col) */
+}
+
+.day-column:nth-child(7) .column-header {
+  color: #60a5fa;
+  /* Saturday (Last col) */
+}
+
+
+.column-content {
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+/* Compact Event Card */
+.compact-event-card {
+  background-color: #333;
+  border-radius: 4px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: 1px solid #444;
+}
+
+.compact-event-card:hover {
+  background-color: #444;
+}
+
+.compact-place {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-title {
+  font-size: 0.8rem;
   color: white;
-  font-size: 11px;
-  font-weight: 700;
+  font-weight: bold;
   line-height: 1.2;
-  word-break: break-word;
+  word-break: break-all;
+  /* Allow wrapping for long titles in narrow columns */
 }
 
-/* ===== 이벤트 시간 ===== */
-.scal-event-time {
-  color: #22d3ee;
-  margin-right: 0.25rem;
-}
+/* Responsive */
+@media (max-width: 600px) {
+  .compact-place {
+    font-size: 0.65rem;
+  }
 
-/* ===== 이벤트 장소 ===== */
-.scal-event-place {
-  color: #bfbfbf;
-  font-size: 15px;
-  line-height: 1.2;
-  word-break: break-word;
+  .compact-title {
+    font-size: 0.7rem;
+  }
+
+  .column-header {
+    font-size: 0.8rem;
+    padding: 4px 0;
+  }
 }

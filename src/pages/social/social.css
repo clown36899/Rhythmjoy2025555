@@ -5,31 +5,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 16rem; /* h-64 */
+  height: 16rem;
+  /* h-64 */
 }
+
 .loader-text {
-  color: #9ca3af; /* text-gray-400 */
+  color: #9ca3af;
+  /* text-gray-400 */
 }
 
 /* --- SocialPage --- */
 .social-page-container {
   min-height: 100vh;
-  padding-bottom: 8rem; /* pb-32 */
+  padding-bottom: 8rem;
+  /* pb-32 */
   background-color: var(--page-bg-color);
 }
 
-.social-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  border-bottom: 1px solid #22262a;
-  max-width: 650px;
-  margin-left: auto;
-  margin-right: auto;
-  background-color: var(--header-bg-color);
-}
+.social-header {}
 
 .social-sub-menu {
   display: flex;
@@ -38,22 +31,31 @@
 
 .sub-menu-button {
   flex: 1 1 0%;
-  padding-top: 0.625rem; /* py-2.5 */
+  padding-top: 0.625rem;
+  /* py-2.5 */
   padding-bottom: 0.625rem;
-  font-size: 0.875rem; /* text-sm */
-  font-weight: 600; /* font-semibold */
+  font-size: 0.875rem;
+  /* text-sm */
+  font-weight: 600;
+  /* font-semibold */
   transition-property: color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
-  color: #9ca3af; /* text-gray-400 */
+  color: #9ca3af;
+  /* text-gray-400 */
   border-bottom: 2px solid transparent;
 }
+
 .sub-menu-button:hover {
-  color: #ffffff; /* hover:text-white */
+  color: #ffffff;
+  /* hover:text-white */
 }
+
 .sub-menu-button.active {
-  color: #4ade80; /* text-green-400 */
-  border-bottom-color: #4ade80; /* border-b-2 border-green-400 */
+  color: #4ade80;
+  /* text-green-400 */
+  border-bottom-color: #4ade80;
+  /* border-b-2 border-green-400 */
 }
 
 .calendar-controls {
@@ -65,64 +67,87 @@
 }
 
 .calendar-cell.sunday {
-  background-color: #2a2121; /* 일요일 배경색 */
+  background-color: #2a2121;
+  /* 일요일 배경색 */
 }
 
 .month-nav-container {
   display: flex;
   align-items: center;
-  gap: 1rem; /* gap-4 */
+  gap: 1rem;
+  /* gap-4 */
 }
 
 .month-nav-button {
-  padding: 0.5rem; /* p-2 */
-  border-radius: 9999px; /* rounded-full */
+  padding: 0.5rem;
+  /* p-2 */
+  border-radius: 9999px;
+  /* rounded-full */
 }
+
 .month-nav-button:hover {
-  background-color: #374151; /* hover:bg-gray-700 */
+  background-color: #374151;
+  /* hover:bg-gray-700 */
 }
+
 .month-nav-button i {
   color: white;
 }
 
 .month-display {
-  font-size: 1.125rem; /* text-lg */
-  font-weight: 700; /* font-bold */
+  font-size: 1.125rem;
+  /* text-lg */
+  font-weight: 700;
+  /* font-bold */
   color: white;
-  width: 7rem; /* w-28 */
+  width: 7rem;
+  /* w-28 */
   text-align: center;
-  padding: 0.2rem; /* p-[0.2rem] */
+  padding: 0.2rem;
+  /* p-[0.2rem] */
 }
 
 .calendar-register-button {
-  background-color: #16a34a; /* bg-green-600 */
+  background-color: #16a34a;
+  /* bg-green-600 */
   color: white;
-  padding: 0.5rem 1rem; /* px-4 py-2 */
-  border-radius: 0.5rem; /* rounded-lg */
-  font-size: 0.875rem; /* text-sm */
-  font-weight: 500; /* font-medium */
+  padding: 0.5rem 1rem;
+  /* px-4 py-2 */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  font-size: 0.875rem;
+  /* text-sm */
+  font-weight: 500;
+  /* font-medium */
   transition-property: background-color;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   display: inline-flex;
   align-items: center;
 }
+
 .calendar-register-button:hover {
-  background-color: #15803d; /* hover:bg-green-700 */
+  background-color: #15803d;
+  /* hover:bg-green-700 */
 }
+
 .calendar-register-button i {
-  margin-right: 0.25rem; /* mr-1 */
+  margin-right: 0.25rem;
+  /* mr-1 */
 }
 
 .day-header-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* 요일 헤더 아래 그림자 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  /* 요일 헤더 아래 그림자 */
 
-  font-size: 1.15rem; /* text-xs */
+  font-size: 1.15rem;
+  /* text-xs */
   background-color: var(--header-bg-color);
 }
+
 .day-weekday {
   color: #ffffff5e;
   font-size: 0.7rem;
@@ -131,12 +156,26 @@
 
 .day-header-cell {
   position: relative;
-  padding-top: 0.375rem; /* py-1.5 */
+  padding-top: 0.375rem;
+  /* py-1.5 */
   padding-bottom: 0.375rem;
 }
-.day-header-cell.sunday { color: #f87171; } /* text-red-400 */
-.day-header-cell.saturday { color: #60a5fa; } /* text-blue-400 */
-.day-header-cell.weekday { color: #9ca3af; } /* text-gray-400 */
+
+.day-header-cell.sunday {
+  color: #f87171;
+}
+
+/* text-red-400 */
+.day-header-cell.saturday {
+  color: #60a5fa;
+}
+
+/* text-blue-400 */
+.day-header-cell.weekday {
+  color: #9ca3af;
+}
+
+/* text-gray-400 */
 
 .day-header-divider {
   position: absolute;
@@ -150,6 +189,7 @@
 .social-content {
   /* padding is handled by style prop */
 }
+
 .places-view {
   padding-left: 1rem;
   padding-right: 1rem;
@@ -162,57 +202,83 @@
   border-right: 1px solid rgb(13, 13, 13);
   border-bottom: 1px solid rgb(13, 13, 13);
 }
+
 .calendar-cell {
   background-color: #191919;
   border-top: 1px solid rgb(13, 13, 13);
   border-left: 1px solid rgb(13, 13, 13);
-  min-height: 100px; /* 내용이 없을 때의 최소 높이 보장 */
+  min-height: 100px;
+  /* 내용이 없을 때의 최소 높이 보장 */
   display: flex;
   flex-direction: column;
 
 }
+
 .day-number {
-  font-size: 0.75rem; /* text-xs */
-  font-weight: 600; /* font-semibold */
-  color: #d1d5db; /* text-gray-300 */
+  font-size: 0.75rem;
+  /* text-xs */
+  font-weight: 600;
+  /* font-semibold */
+  color: #d1d5db;
+  /* text-gray-300 */
 }
+
 .events-container {
   flex-grow: 1;
-  margin-top: 0.25rem; /* mt-1 */
+  margin-top: 0.25rem;
+  /* mt-1 */
   display: flex;
   flex-direction: column;
-  gap: 0.375rem; /* gap-1.5 */
+  gap: 0.375rem;
+  /* gap-1.5 */
 }
+
 .event-item {
-  background-color: rgba(55, 65, 81, 0.5); /* bg-gray-700/50 */
+  background-color: rgba(55, 65, 81, 0.5);
+  /* bg-gray-700/50 */
   padding: 0.1rem;
-  border-radius: 0.25rem; /* rounded */
+  border-radius: 0.25rem;
+  /* rounded */
   text-align: left;
 }
+
 .event-image {
   width: 100%;
-  height: 2rem; /* h-12 */
+  height: 2rem;
+  /* h-12 */
   object-fit: cover;
-  border-radius: 0.125rem; /* rounded-sm */
-  margin-bottom: 0.25rem; /* mb-1 */
+  border-radius: 0.125rem;
+  /* rounded-sm */
+  margin-bottom: 0.25rem;
+  /* mb-1 */
 }
+
 .event-title {
   color: white;
   font-size: 11px;
-  font-weight: 700; /* font-bold */
-  line-height: 1.2; /* leading-tight */
-  word-break: break-word; /* 긴 텍스트가 셀 너비에 맞춰 줄바꿈되도록 함 */
+  font-weight: 700;
+  /* font-bold */
+  line-height: 1.2;
+  /* leading-tight */
+  word-break: break-word;
+  /* 긴 텍스트가 셀 너비에 맞춰 줄바꿈되도록 함 */
 
 }
+
 .event-time {
-  color: #22d3ee; /* text-cyan-400 */
-  margin-right: 0.25rem; /* mr-1 */
+  color: #22d3ee;
+  /* text-cyan-400 */
+  margin-right: 0.25rem;
+  /* mr-1 */
 }
+
 .event-place {
-  color: #bfbfbf; /* text-gray-400 */
+  color: #bfbfbf;
+  /* text-gray-400 */
   font-size: 15px;
   line-height: 1.2;
-  word-break: break-word; /* 긴 텍스트가 셀 너비에 맞춰 줄바꿈되도록 함 */
+  word-break: break-word;
+  /* 긴 텍스트가 셀 너비에 맞춰 줄바꿈되도록 함 */
 
 }
 
@@ -222,6 +288,7 @@
   padding-right: 1rem;
   padding-bottom: 1rem;
 }
+
 .place-list-header {
   display: flex;
   align-items: center;
@@ -229,11 +296,13 @@
   margin-bottom: 1rem;
   position: relative;
 }
+
 .list-title {
   font-size: 1.125rem;
   font-weight: 700;
   color: white;
 }
+
 .add-place-button {
   background-color: #16a34a;
   color: white;
@@ -243,26 +312,33 @@
   font-weight: 500;
   transition: background-color 150ms;
 }
+
 .add-place-button:hover {
   background-color: #15803d;
 }
+
 .add-place-button i {
   margin-right: 0.25rem;
 }
+
 .places-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.5rem;
 }
+
 .place-card {
-  background-color: #1f2937; /* bg-gray-800 */
+  background-color: #1f2937;
+  /* bg-gray-800 */
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
-  border: 1px solid #374151; /* border-gray-700 */
+  border: 1px solid #374151;
+  /* border-gray-700 */
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+
 .place-card-main {
   flex: 1 1 0%;
   cursor: pointer;
@@ -274,15 +350,19 @@
   align-items: center;
   justify-content: space-between;
 }
+
 .place-card-main:hover {
-  background-color: #374151; /* hover:bg-gray-700 */
+  background-color: #374151;
+  /* hover:bg-gray-700 */
 }
+
 .place-name {
   color: white;
   font-weight: 500;
   font-size: 0.875rem;
   flex-shrink: 0;
 }
+
 .place-address-preview {
   color: #9ca3af;
   font-size: 0.75rem;
@@ -293,64 +373,91 @@
   margin-left: 0.75rem;
   text-align: right;
 }
+
 .place-actions {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   margin-left: 0.5rem;
 }
+
 .action-button {
-  padding: 0.375rem; /* p-1.5 */
+  padding: 0.375rem;
+  /* p-1.5 */
   border-radius: 0.25rem;
   transition: background-color 150ms;
 }
+
 .action-button:hover {
-  background-color: rgba(59, 130, 246, 0.2); /* hover:bg-blue-500/20 */
+  background-color: rgba(59, 130, 246, 0.2);
+  /* hover:bg-blue-500/20 */
 }
+
 .action-button .calendar-icon {
-  color: #60a5fa; /* text-blue-400 */
-  font-size: 1.125rem; /* text-lg */
+  color: #60a5fa;
+  /* text-blue-400 */
+  font-size: 1.125rem;
+  /* text-lg */
 }
+
 .action-button .map-icon {
-  color: #4ade80; /* text-green-500 */
+  color: #4ade80;
+  /* text-green-500 */
   font-size: 1.125rem;
 }
+
 .action-button .share-icon {
-  color: #60a5fa; /* text-blue-400 */
+  color: #60a5fa;
+  /* text-blue-400 */
   font-size: 1.125rem;
 }
 
 /* --- SeoulMap --- */
 .map-container {
   width: 100%;
-  height: 16rem; /* h-64 */
+  height: 16rem;
+  /* h-64 */
   position: relative;
-  background-color: #1f2937; /* bg-gray-800 */
-  border-radius: 0.5rem; /* rounded-lg */
+  background-color: #1f2937;
+  /* bg-gray-800 */
+  border-radius: 0.5rem;
+  /* rounded-lg */
   overflow: hidden;
 }
+
 .map-element {
   width: 100%;
   height: 100%;
 }
+
 .reset-view-button {
   position: absolute;
-  bottom: 0.5rem; /* bottom-2 */
-  left: 0.5rem; /* left-2 */
+  bottom: 0.5rem;
+  /* bottom-2 */
+  left: 0.5rem;
+  /* left-2 */
   z-index: 10;
   background-color: white;
-  color: #374151; /* text-gray-700 */
-  padding: 0.625rem; /* p-2.5 */
-  border-radius: 0.5rem; /* rounded-lg */
+  color: #374151;
+  /* text-gray-700 */
+  padding: 0.625rem;
+  /* p-2.5 */
+  border-radius: 0.5rem;
+  /* rounded-lg */
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  border: 1px solid #e5e7eb; /* border-gray-200 */
+  border: 1px solid #e5e7eb;
+  /* border-gray-200 */
   transition: background-color 150ms;
 }
+
 .reset-view-button:hover {
-  background-color: #f3f4f6; /* hover:bg-gray-100 */
+  background-color: #f3f4f6;
+  /* hover:bg-gray-100 */
 }
+
 .reset-icon {
-  font-size: 1.125rem; /* text-lg */
+  font-size: 1.125rem;
+  /* text-lg */
 }
 
 /* --- Modals (PlaceModal, SocialEventModal, etc.) --- */
@@ -364,66 +471,103 @@
   background-color: rgba(0, 0, 0, 0.7);
   padding: 1rem;
 }
+
 .modal-container {
-  background-color: #1f2937; /* bg-gray-800 */
-  border-radius: 0.5rem; /* rounded-lg */
-  padding: 1.5rem; /* p-6 */
+  background-color: #1f2937;
+  /* bg-gray-800 */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  padding: 1.5rem;
+  /* p-6 */
   margin: 1rem;
   width: 100%;
-  max-width: 32rem; /* max-w-md */
-  border: 1px solid #374151; /* border-gray-700 */
+  max-width: 32rem;
+  /* max-w-md */
+  border: 1px solid #374151;
+  /* border-gray-700 */
 }
+
 .modal-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem; /* space-y-4 */
+  gap: 1rem;
+  /* space-y-4 */
 }
+
 .modal-title {
-  font-size: 2rem; /* text-xl */
-  font-weight: 700; /* font-bold */
+  font-size: 2rem;
+  /* text-xl */
+  font-weight: 700;
+  /* font-bold */
   color: white;
-  margin-bottom: 1rem; /* mb-4 */
+  margin-bottom: 1rem;
+  /* mb-4 */
 }
-.form-input, .form-textarea, .form-select {
+
+.form-input,
+.form-textarea,
+.form-select {
   width: 100%;
-  background-color: #374151; /* bg-gray-700 */
+  background-color: #374151;
+  /* bg-gray-700 */
   color: white;
-  border-radius: 0.5rem; /* rounded-lg */
-  padding: 0.5rem 0.75rem; /* px-3 py-2 */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  padding: 0.5rem 0.75rem;
+  /* px-3 py-2 */
   border: none;
 }
-.form-input:focus, .form-textarea:focus, .form-select:focus {
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #3b82f6; /* ring-2 ring-blue-500 */
+  box-shadow: 0 0 0 2px #3b82f6;
+  /* ring-2 ring-blue-500 */
 }
+
 .form-label {
   display: block;
-  font-size: 0.875rem; /* text-sm */
-  font-weight: 500; /* font-medium */
-  color: #d1d5db; /* text-gray-300 */
-  margin-bottom: 0.25rem; /* mb-1 */
+  font-size: 0.875rem;
+  /* text-sm */
+  font-weight: 500;
+  /* font-medium */
+  color: #d1d5db;
+  /* text-gray-300 */
+  margin-bottom: 0.25rem;
+  /* mb-1 */
 }
+
 .form-button-group {
   display: flex;
-  gap: 0.75rem; /* gap-3 */
-  padding-top: 1rem; /* pt-4 */
+  gap: 0.75rem;
+  /* gap-3 */
+  padding-top: 1rem;
+  /* pt-4 */
   justify-content: flex-end;
 }
+
 .cancel-button {
-  background-color: #4b5563; /* bg-gray-600 */
+  background-color: #4b5563;
+  /* bg-gray-600 */
   color: white;
-  padding: 0.5rem 1.5rem; /* px-6 py-2 */
+  padding: 0.5rem 1.5rem;
+  /* px-6 py-2 */
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
   transition: background-color 150ms;
   border: none;
 }
+
 .cancel-button:hover {
-  background-color: #6b7280; /* hover:bg-gray-500 */
+  background-color: #6b7280;
+  /* hover:bg-gray-500 */
 }
+
 .submit-button {
-  background-color: #16a34a; /* bg-green-600 */
+  background-color: #16a34a;
+  /* bg-green-600 */
   color: white;
   padding: 0.5rem 1.5rem;
   border-radius: 0.5rem;
@@ -432,15 +576,21 @@
   transition: background-color 150ms;
   border: none;
 }
+
 .submit-button:hover {
-  background-color: #15803d; /* hover:bg-green-700 */
+  background-color: #15803d;
+  /* hover:bg-green-700 */
 }
+
 .submit-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .error-message {
-  color: #f87171; /* text-red-400 */
-  font-size: 0.875rem; /* text-sm */
+  color: #f87171;
+  /* text-red-400 */
+  font-size: 0.875rem;
+  /* text-sm */
   text-align: center;
 }

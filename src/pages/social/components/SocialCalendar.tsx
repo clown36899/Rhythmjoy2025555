@@ -1,17 +1,25 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import SocialEditModal from './SocialEditModal';
 import SocialEventModal from './SocialEventModal';
+import SocialDetailModal from './SocialDetailModal';
 import './SocialCalendar.css';
 
-// 두 종류의 이벤트를 통합하여 관리하기 위한 타입
-interface UnifiedSocialEvent {
-  id: string; // 'event-1' 또는 'schedule-1' 형식으로 고유성 보장
+export interface UnifiedSocialEvent {
+  id: string;
+  type: 'event' | 'schedule';
+  originalId: number;
   title: string;
-  date: string;
-  imageUrl?: string;
   placeName?: string;
+  dayOfWeek?: number;
   startTime?: string;
+  date?: string;
+  imageUrl?: string;
+  inquiryContact?: string;
+  linkName?: string;
+  linkUrl?: string;
+  description?: string;
+  placeId?: number;
 }
 
 interface SocialCalendarProps {
@@ -23,49 +31,88 @@ interface SocialCalendarProps {
 export default function SocialCalendar({ currentMonth, showModal, setShowModal }: SocialCalendarProps) {
   const [events, setEvents] = useState<UnifiedSocialEvent[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modals
   const [editingItem, setEditingItem] = useState<{ item: any; type: 'event' | 'schedule' } | null>(null);
-  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+  const [detailItem, setDetailItem] = useState<UnifiedSocialEvent | null>(null);
+
+  const weekdays = [
+    { id: 0, name: "일" },
+    { id: 1, name: "월" },
+    { id: 2, name: "화" },
+    { id: 3, name: "수" },
+    { id: 4, name: "목" },
+    { id: 5, name: "금" },
+    { id: 6, name: "토" },
+  ];
 
   const fetchUnifiedEvents = async () => {
     setLoading(true);
     try {
-      // 1. social_events (별도 등록된 소셜 일정) 가져오기
-      const { data: socialEvents, error: socialEventsError } = await supabase
-        .from('social_events')
-        .select('id, title, event_date, image_url, social_places(name)');
-
-      if (socialEventsError) throw socialEventsError;
-
-      // 2. social_schedules (장소별 일정) 가져오기
       const { data: placeSchedules, error: placeSchedulesError } = await supabase
         .from('social_schedules')
-        .select('id, title, date, start_time, social_places(name)');
+        .select(`
+          id, title, date, start_time, day_of_week, 
+          inquiry_contact, link_name, link_url, description, place_id,
+          social_places(name)
+        `);
 
       if (placeSchedulesError) throw placeSchedulesError;
 
-      // 3. 두 데이터를 UnifiedSocialEvent 형태로 변환 및 병합
-      const unifiedEvents: UnifiedSocialEvent[] = [];
+      const { data: socialEvents, error: socialEventsError } = await supabase
+        .from('social_events')
+        .select(`
+          id, title, event_date, image_url, description, place_id,
+          social_places(name)
+        `);
 
-      if (socialEvents) {
-        socialEvents.forEach(event => {
-          unifiedEvents.push({
-            id: `event-${event.id}`,
-            title: event.title,
-            date: event.event_date,
-            imageUrl: event.image_url,
-            placeName: ((event.social_places as unknown) as { name: string })?.name || '장소 미정',
-          });
-        });
-      }
+      if (socialEventsError) throw socialEventsError;
+
+      const unifiedEvents: UnifiedSocialEvent[] = [];
 
       if (placeSchedules) {
         placeSchedules.forEach(schedule => {
+          let dow = schedule.day_of_week;
+          if (dow === null || dow === undefined) {
+            if (schedule.date) {
+              dow = new Date(schedule.date).getDay();
+            }
+          }
+
+          if (dow !== null && dow !== undefined) {
+            unifiedEvents.push({
+              id: `schedule-${schedule.id}`,
+              type: 'schedule',
+              originalId: schedule.id,
+              title: schedule.title,
+              dayOfWeek: dow,
+              startTime: schedule.start_time,
+              placeName: (schedule.social_places as any)?.name,
+              placeId: schedule.place_id,
+              inquiryContact: schedule.inquiry_contact,
+              linkName: schedule.link_name,
+              linkUrl: schedule.link_url,
+              description: schedule.description,
+            });
+          }
+        });
+      }
+
+      if (socialEvents) {
+        socialEvents.forEach(event => {
+          const date = new Date(event.event_date);
+          const dow = date.getDay();
           unifiedEvents.push({
-            id: `schedule-${schedule.id}`,
-            title: schedule.title,
-            date: schedule.date,
-            placeName: ((schedule.social_places as unknown) as { name: string })?.name,
-            startTime: schedule.start_time,
+            id: `event-${event.id}`,
+            type: 'event',
+            originalId: event.id,
+            title: event.title,
+            date: event.event_date,
+            dayOfWeek: dow,
+            imageUrl: event.image_url,
+            placeName: (event.social_places as any)?.name,
+            placeId: event.place_id,
+            description: event.description,
           });
         });
       }
@@ -82,89 +129,76 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
     fetchUnifiedEvents();
   }, []);
 
-  const handleEventClick = async (unifiedEvent: UnifiedSocialEvent) => {
-    const [type, idStr] = unifiedEvent.id.split('-');
-    const id = parseInt(idStr, 10);
-
-    if (type === 'event') {
-      const { data } = await supabase
-        .from('social_events')
-        .select('id, title, event_date, place_id, description, image_url, password, social_places(name)')
-        .eq('id', id)
-        .single();
-      if (data) setEditingItem({ item: data, type: 'event' });
-    } else if (type === 'schedule') {
-      const { data } = await supabase
-        .from('social_schedules')
-        .select('id, place_id, title, date, start_time, end_time, description, password, social_places(name)')
-        .eq('id', id)
-        .single();
-      if (data) setEditingItem({ item: data, type: 'schedule' });
-    }
+  const handleCardClick = (event: UnifiedSocialEvent) => {
+    setDetailItem(event);
   };
 
-  const calendarGrid = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDayOfMonth = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    const grid = [];
-    let day = 1;
-    for (let i = 0; i < 6; i++) {
-      const week = [];
-      for (let j = 0; j < 7; j++) {
-        if (i === 0 && j < firstDayOfMonth) {
-          week.push(null);
-        } else if (day > daysInMonth) {
-          week.push(null);
-        } else {
-          const date = new Date(year, month, day);
-          const dateString = date.toISOString().split('T')[0];
-          const dayEvents = events.filter(e => e.date === dateString);
-          week.push({ day, date, events: dayEvents });
-          day++;
-        }
-      }
-      grid.push(week);
-      if (day > daysInMonth) break;
+  const handleEditClick = async (unifiedEvent: UnifiedSocialEvent) => {
+    if (unifiedEvent.type === 'schedule') {
+      const { data } = await supabase
+        .from('social_schedules')
+        .select('*')
+        .eq('id', unifiedEvent.originalId)
+        .single();
+      if (data) setEditingItem({ item: data, type: 'schedule' });
+    } else {
+      const { data } = await supabase
+        .from('social_events')
+        .select('*')
+        .eq('id', unifiedEvent.originalId)
+        .single();
+      if (data) setEditingItem({ item: data, type: 'event' });
     }
-    return grid;
-  }, [currentMonth, events]);
+    setDetailItem(null);
+  };
 
   return (
     <>
-      {loading ? <div className="scal-loader">일정 로딩 중...</div> : (
-        <div className="scal-grid">
-          {calendarGrid.flat().map((dayInfo, index) => (
-            <div key={index} className={`scal-cell ${dayInfo && dayInfo.date.getDay() === 0 ? 'scal-cell-sunday' : ''}`}>
-              {dayInfo && <>
-                <span className="scal-day-number">
-                  {dayInfo.day}일 <span className="scal-day-weekday">({weekdays[dayInfo.date.getDay()]})</span>
-                </span>
-                <div className="scal-events-container">
-                  {dayInfo.events.map((event) => (
-                    <div key={event.id} className="scal-event-item" onClick={() => handleEventClick(event)}>
-                      {event.placeName && (
-                        <p className="scal-event-place">{event.placeName}</p>
-                      )}
-                      <p className="scal-event-title" title={event.title}>
-                        {event.startTime && <span className="scal-event-time">{event.startTime.substring(0, 5)}</span>}
-                        {event.title}
-                      </p>
-                      {event.imageUrl && (
-                        <img src={event.imageUrl} alt={event.title} className="scal-event-image" />
-                      )}
-                    </div>
-                  ))}
+      <div className="social-weekly-container">
+        {loading ? (
+          <div className="scal-loader">일정 로딩 중...</div>
+        ) : (
+          <div className="weekly-grid">
+            {weekdays.map((day) => (
+              <div key={day.id} className="day-column">
+                <div className="column-header">
+                  {day.name}
                 </div>
-              </>}
-            </div>
-          ))}
-        </div>
+                <div className="column-content">
+                  {events
+                    .filter(e => e.dayOfWeek === day.id)
+                    .map(event => (
+                      <div
+                        key={event.id}
+                        className="compact-event-card"
+                        onClick={() => handleCardClick(event)}
+                      >
+                        <div className="compact-place">{event.placeName || '미정'}</div>
+                        <div className="compact-title">{event.title}</div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <SocialEventModal
+          onClose={() => setShowModal(false)}
+          onEventCreated={() => { setShowModal(false); fetchUnifiedEvents(); }}
+        />
       )}
 
-      {showModal && <SocialEventModal onClose={() => setShowModal(false)} onEventCreated={() => { setShowModal(false); fetchUnifiedEvents(); }} />}
+      {detailItem && (
+        <SocialDetailModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          onEdit={() => handleEditClick(detailItem)}
+        />
+      )}
 
       {editingItem && (
         <SocialEditModal

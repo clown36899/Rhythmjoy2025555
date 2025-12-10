@@ -7,17 +7,17 @@
   --color-gray-400: #9ca3af;
   --color-gray-700: #374151;
   --color-gray-800: #1f2937;
-  
+
   --color-blue-500: #3b82f6;
-  
+
   --color-red-600: #dc2626;
-  
+
   /* 간격 */
   --spacing-2: 0.5rem;
-  
+
   /* Border Radius */
   --radius-lg: 0.5rem;
-  
+
   /* 트랜지션 */
   --transition-colors: color 0.2s ease, background-color 0.2s ease;
 }
@@ -188,4 +188,14 @@
 .sem-submit-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== New Helpers ===== */
+.sem-link-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sem-form-input.half {
+  flex: 1;
 }

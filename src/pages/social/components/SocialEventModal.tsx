@@ -9,12 +9,13 @@ interface SocialEventModalProps {
 
 export default function SocialEventModal({ onClose, onEventCreated }: SocialEventModalProps) {
   const [title, setTitle] = useState('');
-  const [eventDate, setEventDate] = useState('');
+  const [dayOfWeek, setDayOfWeek] = useState<number | ''>(''); // 0-6
   const [placeId, setPlaceId] = useState<number | ''>('');
   const [description, setDescription] = useState('');
-  const [password, setPassword] = useState(''); // 비밀번호 상태 추가
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [password, setPassword] = useState('');
+  const [inquiryContact, setInquiryContact] = useState('');
+  const [linkName, setLinkName] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
 
   const [places, setPlaces] = useState<{ id: number; name: string; }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,67 +29,32 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
     fetchPlaces();
   }, []);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const uploadImage = async (file: File): Promise<string> => {
-    // 이미지 리사이징 (트래픽 최적화)
-    const { createResizedImages } = await import('../../../utils/imageResize');
-    const resized = await createResizedImages(file);
-
-    // 소셜 이벤트는 단일 이미지만 사용하므로 medium(1080px) 또는 full(1280px) 사용
-    // 1:1 비율 권장이므로 1080px 정도면 충분히 고화질
-    const targetImage = resized.medium || resized.full || resized.thumbnail;
-
-    if (!targetImage) throw new Error("Image resizing failed");
-
-    const fileName = `social-event-images/${Date.now()}.webp`;
-    const { error: uploadError } = await supabase.storage.from('images').upload(fileName, targetImage, {
-      contentType: 'image/webp',
-      upsert: true
-    });
-
-    if (uploadError) throw uploadError;
-    const { data } = supabase.storage.from('images').getPublicUrl(fileName);
-    return data.publicUrl;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !eventDate || !placeId || !imageFile || !password) {
-      setError('제목, 날짜, 장소, 이미지, 비밀번호는 필수 항목입니다.');
+    if (!title || dayOfWeek === '' || !placeId || !password) {
+      setError('제목, 요일, 장소, 비밀번호는 필수 항목입니다.');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      // 현재 로그인한 사용자 정보 가져오기
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('로그인이 필요합니다.');
-      }
-
-      const imageUrl = await uploadImage(imageFile);
-      const { error: insertError } = await supabase.from('social_events').insert({
-        user_id: user.id, // user_id 추가
+      // Insert into social_schedules
+      const { error: insertError } = await supabase.from('social_schedules').insert({
         title,
-        event_date: eventDate,
+        day_of_week: Number(dayOfWeek),
         place_id: placeId,
         description,
-        image_url: imageUrl,
-        password, // 비밀번호 추가
+        password,
+        inquiry_contact: inquiryContact,
+        link_name: linkName,
+        link_url: linkUrl,
       });
+
       if (insertError) throw insertError;
-      alert('소셜 일정이 등록되었습니다.');
+      alert('요일별 스케줄이 등록되었습니다.');
       onEventCreated();
     } catch (err: any) {
-      setError(err.message || '일정 등록 중 오류가 발생했습니다.');
+      setError(err.message || '등록 중 오류가 발생했습니다.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -99,10 +65,20 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
     <div className="sem-modal-overlay" onClick={onClose}>
       <div className="sem-modal-container" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit} className="sem-modal-form">
-          <h2 className="sem-modal-title">새 소셜 일정 등록</h2>
+          <h2 className="sem-modal-title">정기 스케줄 등록</h2>
 
-          <input type="text" placeholder="일정 제목 *" value={title} onChange={(e) => setTitle(e.target.value)} required className="sem-form-input" />
-          <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required className="sem-form-input" />
+          <input type="text" placeholder="제목 (동호회/모임명) *" value={title} onChange={(e) => setTitle(e.target.value)} required className="sem-form-input" />
+
+          <select value={dayOfWeek} onChange={(e) => setDayOfWeek(Number(e.target.value))} required className="sem-form-select">
+            <option value="" disabled>요일 선택 *</option>
+            <option value="1">월요일</option>
+            <option value="2">화요일</option>
+            <option value="3">수요일</option>
+            <option value="4">목요일</option>
+            <option value="5">금요일</option>
+            <option value="6">토요일</option>
+            <option value="0">일요일</option>
+          </select>
 
           <select value={placeId} onChange={(e) => setPlaceId(Number(e.target.value))} required className="sem-form-select">
             <option value="" disabled>장소 선택 *</option>
@@ -111,13 +87,14 @@ export default function SocialEventModal({ onClose, onEventCreated }: SocialEven
 
           <textarea placeholder="간단한 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="sem-form-textarea" rows={2}></textarea>
 
-          <input type="password" placeholder="비밀번호 (수정/삭제 시 필요) *" value={password} onChange={(e) => setPassword(e.target.value)} required className="sem-form-input" />
+          <input type="text" placeholder="문의 연락처" value={inquiryContact} onChange={(e) => setInquiryContact(e.target.value)} className="sem-form-input" />
 
-          <div>
-            <label className="sem-form-label">일정 이미지 (1:1 비율) *</label>
-            <input type="file" accept="image/*" onChange={handleImageChange} required className="sem-form-input" style={{ padding: '0.3rem' }} />
-            {imagePreview && <img src={imagePreview} alt="이미지 미리보기" className="sem-image-preview" />}
+          <div className="sem-link-group" style={{ display: 'flex', gap: '5px' }}>
+            <input type="text" placeholder="링크명 (예: 오픈카톡)" value={linkName} onChange={(e) => setLinkName(e.target.value)} className="sem-form-input half" style={{ flex: 1 }} />
+            <input type="text" placeholder="링크 URL" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} className="sem-form-input half" style={{ flex: 1 }} />
           </div>
+
+          <input type="password" placeholder="비밀번호 (수정/삭제 시 필요) *" value={password} onChange={(e) => setPassword(e.target.value)} required className="sem-form-input" />
 
           {error && <p className="sem-error-message">{error}</p>}
 

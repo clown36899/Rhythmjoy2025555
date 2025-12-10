@@ -286,7 +286,7 @@ export function MobileShell() {
               </div>
             ) : (
               <span className="shell-text-label no-select">
-                {isSocialPage && '소셜 장소'}
+                {isSocialPage && '소셜'}
                 {isPracticePage && '연습실'}
                 {isBoardPage && '자유게시판'}
                 {isShoppingPage && '쇼핑'}
@@ -294,6 +294,17 @@ export function MobileShell() {
               </span>
             )}
             <div className="shell-flex-center shell-gap-2">
+
+              {/* Social: Register Button */}
+              {isSocialPage && (
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('openSocialRegistration'))}
+                  className="shell-btn-register-topbar"
+                >
+                  <i className="ri-add-line"></i>
+                  <span>등록</span>
+                </button>
+              )}
 
               {/* Practice List: Register Button */}
               {isPracticePage && (
