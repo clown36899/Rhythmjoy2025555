@@ -2,18 +2,21 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { SocialPlace } from '../types';
 import SocialEditModal from './SocialEditModal';
-import ScheduleModal from './ScheduleModal';
 import { useAuth } from '../../../contexts/AuthContext';
 import './PlaceCalendar.css';
 
-interface Schedule {
+interface WeeklySchedule {
   id: number;
   place_id: number;
+  day_of_week: number;
   title: string;
-  date: string;
   start_time?: string;
-  end_time?: string;
   description?: string;
+  inquiry_contact?: string;
+  link_name?: string;
+  link_url?: string;
+  password: string;
+  user_id?: string;
 }
 
 interface PlaceCalendarProps {
@@ -22,118 +25,141 @@ interface PlaceCalendarProps {
   onPlaceUpdate: () => void;
 }
 
+const WEEKDAYS = [
+  { id: 0, name: '일요일', short: '일' },
+  { id: 1, name: '월요일', short: '월' },
+  { id: 2, name: '화요일', short: '화' },
+  { id: 3, name: '수요일', short: '수' },
+  { id: 4, name: '목요일', short: '목' },
+  { id: 5, name: '금요일', short: '금' },
+  { id: 6, name: '토요일', short: '토' },
+];
+
 export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [weeklySchedules, setWeeklySchedules] = useState<WeeklySchedule[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<WeeklySchedule | null>(null);
   const { isAdmin } = useAuth();
 
   useEffect(() => {
-    loadSchedules();
-  }, [place.id, currentDate]);
+    loadWeeklySchedules();
+  }, [place.id]);
 
-  const loadSchedules = async () => {
+  const loadWeeklySchedules = async () => {
     try {
-      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
       const { data, error } = await supabase
         .from('social_schedules')
         .select('*')
         .eq('place_id', place.id)
-        .gte('date', startOfMonth.toISOString().split('T')[0])
-        .lte('date', endOfMonth.toISOString().split('T')[0])
-        .order('date')
-        .order('start_time');
+        .not('day_of_week', 'is', null)
+        .order('day_of_week');
 
       if (error) throw error;
-      setSchedules(data || []);
+      setWeeklySchedules(data || []);
     } catch (error) {
-      console.error('일정 로딩 실패:', error);
+      console.error('요일 스케줄 로딩 실패:', error);
     }
   };
 
-  const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+  const getScheduleForDay = (dayOfWeek: number) => {
+    return weeklySchedules.find(s => s.day_of_week === dayOfWeek);
   };
 
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+  const handleAddSchedule = (dayOfWeek: number) => {
+    const existing = getScheduleForDay(dayOfWeek);
+    if (existing) {
+      alert('이미 이 요일에 스케줄이 등록되어 있습니다.');
+      return;
+    }
+    setSelectedDayOfWeek(dayOfWeek);
+    setShowAddModal(true);
   };
 
-  const handleDateClick = (date: Date) => {
-    if (isAdmin) {
-      setSelectedDate(date);
-      setShowScheduleModal(true);
+  const handleEditSchedule = (schedule: WeeklySchedule) => {
+    setEditingSchedule(schedule);
+  };
+
+  const handleDeleteSchedule = async (schedule: WeeklySchedule) => {
+    const password = prompt('삭제하려면 비밀번호를 입력하세요:');
+    if (!password) return;
+
+    try {
+      const { data: scheduleData } = await supabase
+        .from('social_schedules')
+        .select('password')
+        .eq('id', schedule.id)
+        .single();
+
+      if (scheduleData?.password !== password) {
+        alert('비밀번호가 올바르지 않습니다.');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('social_schedules')
+        .delete()
+        .eq('id', schedule.id);
+
+      if (error) throw error;
+
+      alert('스케줄이 삭제되었습니다.');
+      loadWeeklySchedules();
+    } catch (error) {
+      console.error('스케줄 삭제 실패:', error);
+      alert('스케줄 삭제에 실패했습니다.');
     }
   };
 
-  const getSchedulesForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return schedules.filter(s => s.date === dateStr);
-  };
+  const handleSubmitSchedule = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
 
-  // 달력 렌더링
-  const renderCalendar = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    const days = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const title = formData.get('title') as string;
+    const startTime = formData.get('startTime') as string;
+    const description = formData.get('description') as string;
+    const inquiryContact = formData.get('inquiryContact') as string;
+    const linkName = formData.get('linkName') as string;
+    const linkUrl = formData.get('linkUrl') as string;
+    const password = formData.get('password') as string;
 
-    // 빈 칸
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="pcal-empty-cell"></div>);
+    if (!title || !password) {
+      alert('제목과 비밀번호는 필수입니다.');
+      return;
     }
 
-    // 날짜
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      const dateSchedules = getSchedulesForDate(date);
-      const isToday = date.getTime() === today.getTime();
+    if (selectedDayOfWeek === null) return;
 
-      days.push(
-        <div
-          key={day}
-          onClick={() => isAdmin && handleDateClick(date)}
-          className={`pcal-date-cell ${
-            isAdmin ? 'pcal-date-cell-clickable' : ''
-          } ${isToday ? 'pcal-date-cell-today' : ''}`}
-        >
-          <div className={`pcal-date-number ${isToday ? 'pcal-date-number-today' : ''}`}>
-            {day}
-          </div>
-          <div className="pcal-schedules">
-            {dateSchedules.slice(0, 3).map((schedule) => (
-              <div
-                key={schedule.id}
-                className="pcal-schedule-item"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isAdmin) setEditingSchedule(schedule);
-                }}
-                title={schedule.title}
-              >
-                {schedule.start_time && (
-                  <span className="pcal-schedule-time">{schedule.start_time.substring(0, 5)}</span>
-                )}
-                {schedule.title}
-              </div>
-            ))}
-            {dateSchedules.length > 3 && (
-              <div className="pcal-more-count">+{dateSchedules.length - 3}</div>
-            )}
-          </div>
-        </div>
-      );
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const scheduleData = {
+        place_id: place.id,
+        day_of_week: selectedDayOfWeek,
+        title,
+        start_time: startTime || null,
+        description: description || null,
+        inquiry_contact: inquiryContact || null,
+        link_name: linkName || null,
+        link_url: linkUrl || null,
+        password,
+        user_id: user?.id || null,
+      };
+
+      const { error } = await supabase
+        .from('social_schedules')
+        .insert(scheduleData);
+
+      if (error) throw error;
+
+      alert('스케줄이 등록되었습니다.');
+      setShowAddModal(false);
+      setSelectedDayOfWeek(null);
+      loadWeeklySchedules();
+    } catch (error) {
+      console.error('스케줄 등록 실패:', error);
+      alert('스케줄 등록에 실패했습니다.');
     }
-
-    return days;
   };
 
   return (
@@ -159,80 +185,165 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
         </div>
       </div>
 
-      {/* 달력 */}
-      <div className="pcal-calendar-area">
-        {/* 월 네비게이션 */}
-        <div className="pcal-month-nav">
-          <button
-            onClick={prevMonth}
-            className="pcal-nav-btn"
-          >
-            <i className="ri-arrow-left-s-line text-2xl"></i>
-          </button>
-          <h2 className="text-xl font-bold text-white">
-            {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
-          </h2>
-          <button
-            onClick={nextMonth}
-            className="pcal-nav-btn"
-          >
-            <i className="ri-arrow-right-s-line text-2xl"></i>
-          </button>
-        </div>
+      {/* 요일별 스케줄 */}
+      <div className="pcal-weekly-area">
+        <h2 className="text-lg font-bold text-white mb-4 px-4 pt-4">요일별 스케줄</h2>
 
-        {/* 요일 */}
-        <div className="pcal-weekdays">
-          {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
-            <div
-              key={day}
-              className={`pcal-weekday ${
-                i === 0 ? 'pcal-weekday-sunday' : i === 6 ? 'pcal-weekday-saturday' : 'pcal-weekday-default'
-              }`}
-            >
-              {day}
-            </div>
-          ))}
-        </div>
+        <div className="pcal-weekly-grid">
+          {WEEKDAYS.map((day) => {
+            const schedule = getScheduleForDay(day.id);
 
-        {/* 날짜 */}
-        <div className="pcal-dates-grid">
-          {renderCalendar()}
-        </div>
+            return (
+              <div key={day.id} className="pcal-day-card">
+                <div className={`pcal-day-header ${day.id === 0 ? 'pcal-day-sunday' : day.id === 6 ? 'pcal-day-saturday' : ''}`}>
+                  {day.name}
+                </div>
 
-        {/* 안내 문구 */}
-        {isAdmin && (
-          <div className="pcal-help-text">
-            날짜를 클릭하여 일정을 추가하세요
-          </div>
-        )}
+                {schedule ? (
+                  <div className="pcal-schedule-content">
+                    <h3 className="pcal-schedule-title">{schedule.title}</h3>
+                    {schedule.start_time && (
+                      <p className="pcal-schedule-time">
+                        <i className="ri-time-line"></i> {schedule.start_time.substring(0, 5)}
+                      </p>
+                    )}
+                    {schedule.description && (
+                      <p className="pcal-schedule-desc">{schedule.description}</p>
+                    )}
+                    {schedule.inquiry_contact && (
+                      <p className="pcal-schedule-contact">
+                        <i className="ri-phone-line"></i> {schedule.inquiry_contact}
+                      </p>
+                    )}
+                    {schedule.link_url && (
+                      <a
+                        href={schedule.link_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="pcal-schedule-link"
+                      >
+                        <i className="ri-link"></i> {schedule.link_name || '링크'}
+                      </a>
+                    )}
+
+                    <div className="pcal-schedule-actions">
+                      <button
+                        onClick={() => handleEditSchedule(schedule)}
+                        className="pcal-action-btn pcal-action-edit"
+                      >
+                        <i className="ri-edit-line"></i> 수정
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSchedule(schedule)}
+                        className="pcal-action-btn pcal-action-delete"
+                      >
+                        <i className="ri-delete-bin-line"></i> 삭제
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pcal-empty-content">
+                    <p className="pcal-empty-text">등록된 스케줄이 없습니다</p>
+                    <button
+                      onClick={() => handleAddSchedule(day.id)}
+                      className="pcal-add-btn"
+                    >
+                      <i className="ri-add-line"></i> 스케줄 추가
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* 일정 등록 모달 */}
-      {showScheduleModal && selectedDate && (
-        <ScheduleModal
-          placeId={place.id}
-          date={selectedDate}
-          onClose={() => {
-            setShowScheduleModal(false);
-            setSelectedDate(null);
-          }}
-          onSuccess={() => {
-            setShowScheduleModal(false);
-            setSelectedDate(null);
-            loadSchedules();
-          }}
-        />
+      {/* 스케줄 추가 모달 */}
+      {showAddModal && selectedDayOfWeek !== null && (
+        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSubmitSchedule} className="modal-form">
+              <h2 className="modal-title">
+                {WEEKDAYS[selectedDayOfWeek].name} 스케줄 등록
+              </h2>
+
+              <input
+                type="text"
+                name="title"
+                placeholder="제목 *"
+                required
+                className="form-input"
+              />
+
+              <input
+                type="time"
+                name="startTime"
+                placeholder="시작 시간"
+                className="form-input"
+              />
+
+              <textarea
+                name="description"
+                placeholder="설명"
+                rows={3}
+                className="form-textarea"
+              />
+
+              <input
+                type="text"
+                name="inquiryContact"
+                placeholder="문의 연락처"
+                className="form-input"
+              />
+
+              <input
+                type="text"
+                name="linkName"
+                placeholder="링크 이름"
+                className="form-input"
+              />
+
+              <input
+                type="url"
+                name="linkUrl"
+                placeholder="링크 URL"
+                className="form-input"
+              />
+
+              <input
+                type="password"
+                name="password"
+                placeholder="비밀번호 * (수정/삭제 시 필요)"
+                required
+                className="form-input"
+              />
+
+              <div className="form-button-group">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="cancel-button"
+                >
+                  취소
+                </button>
+                <button type="submit" className="submit-button">
+                  등록
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
-      {/* 일정 수정 모달 */}
-      {isAdmin && editingSchedule && (
+      {/* 스케줄 수정 모달 */}
+      {editingSchedule && (
         <SocialEditModal
           item={editingSchedule}
           itemType="schedule"
           onClose={() => setEditingSchedule(null)}
           onSuccess={() => {
             setEditingSchedule(null);
-            loadSchedules();
+            loadWeeklySchedules();
           }}
         />
       )}

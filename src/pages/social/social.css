@@ -594,3 +594,28 @@
   /* text-sm */
   text-align: center;
 }
+
+/* Social Section Schedule - Responsive Width */
+.social-section-schedule {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 작은 화면에서도 자연스럽게 축소 */
+@media (max-width: 768px) {
+  .social-section-schedule {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* 매우 작은 화면 */
+@media (max-width: 480px) {
+  .social-section-schedule {
+    width: 100%;
+    min-width: 0;
+    font-size: 0.875rem;
+  }
+}

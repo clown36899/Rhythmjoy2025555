@@ -99,7 +99,7 @@ export default function SocialPage() {
       </div>
 
       {/* 메인 콘텐츠 */}
-      <div style={{ paddingTop: `${headerHeight}px`, paddingBottom: '80px' }}>
+      <div style={{ paddingTop: `51px`, paddingBottom: '80px' }}>
         {loading ? (
           <div className="social-loader">
             <div className="loader-text">로딩 중...</div>

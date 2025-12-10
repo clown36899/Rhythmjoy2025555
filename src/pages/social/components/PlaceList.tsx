@@ -13,6 +13,7 @@ interface PlaceListProps {
 
 export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPlaceUpdate }: PlaceListProps) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingPlaceId, setEditingPlaceId] = useState<number | null>(null);
   const [showAuthWarning, setShowAuthWarning] = useState(false);
   const { isAdmin } = useAuth();
 
@@ -22,6 +23,14 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
       return;
     }
     setShowAddModal(true);
+  };
+
+  const handleEditClick = (placeId: number) => {
+    if (!isAdmin) {
+      setShowAuthWarning(true);
+      return;
+    }
+    setEditingPlaceId(placeId);
   };
 
   const handleShare = (place: SocialPlace) => {
@@ -70,7 +79,7 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
                 <i className="ri-lock-line pl-modal-icon"></i>
                 <h3 className="pl-modal-title">관리자 권한 필요</h3>
                 <p className="pl-modal-text">
-                  장소 등록은 관리자만 가능합니다.<br />
+                  장소 등록/수정은 관리자만 가능합니다.<br />
                   문의: <span className="pl-modal-contact">010-4801-7180</span>
                 </p>
                 <button
@@ -132,6 +141,20 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
                 >
                   <i className="ri-share-line pl-icon-share"></i>
                 </button>
+
+                {/* 수정 버튼 (관리자만) */}
+                {isAdmin && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditClick(place.id);
+                    }}
+                    className="pl-action-button"
+                    title="수정하기"
+                  >
+                    <i className="ri-edit-line pl-icon-edit"></i>
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -144,6 +167,18 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
           onClose={() => setShowAddModal(false)}
           onPlaceCreated={() => {
             setShowAddModal(false);
+            onPlaceUpdate();
+          }}
+        />
+      )}
+
+      {/* 장소 수정 모달 */}
+      {editingPlaceId && (
+        <PlaceModal
+          placeId={editingPlaceId}
+          onClose={() => setEditingPlaceId(null)}
+          onPlaceCreated={() => {
+            setEditingPlaceId(null);
             onPlaceUpdate();
           }}
         />

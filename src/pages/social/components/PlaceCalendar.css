@@ -1,181 +1,202 @@
-/* PlaceCalendar.css - 장소 달력 컴포넌트 전용 스타일 */
+/* PlaceCalendar.css - 요일별 스케줄 관리 */
 
-/* ===== 컨테이너 ===== */
 .pcal-container {
   min-height: 100vh;
-  padding-bottom: 5rem;
+  padding-bottom: 2rem;
 }
 
 .pcal-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  max-width: 650px;
-  margin: 0 auto;
+  z-index: 20;
+  padding: 1rem;
+  border-bottom: 1px solid #2d2d2d;
 }
 
 .pcal-header-content {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
+  gap: 1rem;
 }
 
-/* ===== 버튼 ===== */
 .pcal-back-btn {
-  color: white;
-  margin-right: 0.75rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
 }
 
 .pcal-back-btn:hover {
-  color: #d1d5db;
-}
-
-.pcal-nav-btn {
-  color: white;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.pcal-nav-btn:hover {
-  color: #d1d5db;
-}
-
-/* ===== 달력 영역 ===== */
-.pcal-calendar-area {
-  padding-top: 4rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-.pcal-month-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-/* ===== 요일 헤더 ===== */
-.pcal-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.25rem;
-  margin-bottom: 0.25rem;
-}
-
-.pcal-weekday {
-  text-align: center;
-  font-size: 0.875rem;
-  font-weight: 500;
-  padding: 0.5rem 0;
-}
-
-.pcal-weekday-sunday {
-  color: #f87171;
-}
-
-.pcal-weekday-saturday {
-  color: #60a5fa;
-}
-
-.pcal-weekday-default {
-  color: #9ca3af;
-}
-
-/* ===== 날짜 그리드 ===== */
-.pcal-dates-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.25rem;
-}
-
-/* ===== 빈 셀 ===== */
-.pcal-empty-cell {
-  aspect-ratio: 1 / 1;
-}
-
-/* ===== 날짜 셀 ===== */
-.pcal-date-cell {
-  aspect-ratio: 1 / 1;
-  border: 1px solid #374151;
-  padding: 0.25rem;
-  background-color: #1f2937;
-}
-
-.pcal-date-cell-clickable {
-  cursor: pointer;
-}
-
-.pcal-date-cell-clickable:hover {
   background-color: #374151;
 }
 
-.pcal-date-cell-today {
-  background-color: rgba(30, 58, 138, 0.3);
+/* 요일별 스케줄 영역 */
+.pcal-weekly-area {
+  padding: 0 1rem;
 }
 
-/* ===== 날짜 숫자 ===== */
-.pcal-date-number {
-  font-size: 0.75rem;
-  margin-bottom: 0.25rem;
-  color: #d1d5db;
+.pcal-weekly-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
-.pcal-date-number-today {
-  color: #60a5fa;
-  font-weight: 700;
-}
-
-/* ===== 일정 컨테이너 ===== */
-.pcal-schedules {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-/* ===== 일정 아이템 ===== */
-.pcal-schedule-item {
-  font-size: 10px;
-  background-color: rgba(22, 163, 74, 0.8);
-  color: white;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
+/* 요일 카드 */
+.pcal-day-card {
+  background-color: #1f2937;
+  border-radius: 0.75rem;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
+  border: 1px solid #374151;
 }
 
-.pcal-schedule-item:hover {
-  background-color: #22c55e;
+.pcal-day-header {
+  padding: 0.75rem 1rem;
+  background-color: #374151;
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.pcal-day-sunday {
+  color: #f87171;
+  background-color: rgba(248, 113, 113, 0.1);
+}
+
+.pcal-day-saturday {
+  color: #60a5fa;
+  background-color: rgba(96, 165, 250, 0.1);
+}
+
+/* 스케줄 내용 */
+.pcal-schedule-content {
+  padding: 1rem;
+}
+
+.pcal-schedule-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
 }
 
 .pcal-schedule-time {
-  margin-right: 0.25rem;
-}
-
-/* ===== 더보기 ===== */
-.pcal-more-count {
-  font-size: 9px;
-  color: #9ca3af;
-}
-
-/* ===== 안내 문구 ===== */
-.pcal-help-text {
-  margin-top: 1rem;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #22d3ee;
   font-size: 0.875rem;
-  color: #9ca3af;
+  margin-bottom: 0.5rem;
 }
 
-/* ===== 반응형 ===== */
-.pcal-rounded {
-  border-radius: 0.25rem;
+.pcal-schedule-desc {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.pcal-schedule-contact {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.pcal-schedule-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #60a5fa;
+  font-size: 0.875rem;
+  text-decoration: none;
+  margin-bottom: 0.75rem;
+  transition: color 0.2s;
+}
+
+.pcal-schedule-link:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.pcal-schedule-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #374151;
+}
+
+.pcal-action-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  transition: all 0.2s;
+}
+
+.pcal-action-edit {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.pcal-action-edit:hover {
+  background-color: #2563eb;
+}
+
+.pcal-action-delete {
+  background-color: #dc2626;
+  color: white;
+}
+
+.pcal-action-delete:hover {
+  background-color: #b91c1c;
+}
+
+/* 빈 상태 */
+.pcal-empty-content {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.pcal-empty-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.pcal-add-btn {
+  padding: 0.5rem 1rem;
+  background-color: #16a34a;
+  color: white;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.pcal-add-btn:hover {
+  background-color: #15803d;
+}
+
+/* 반응형 */
+@media (min-width: 768px) {
+  .pcal-weekly-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .pcal-weekly-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }

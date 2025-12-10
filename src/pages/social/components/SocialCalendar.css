@@ -3,7 +3,8 @@
 .social-weekly-container {
   width: 100%;
   box-sizing: border-box;
-  /* padding is handled by parent or none */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scal-loader {
@@ -13,22 +14,26 @@
   color: #888;
 }
 
-/* 7-Column Grid Layout */
+/* Weekly Grid - 완전 반응형 */
 .weekly-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: #0d0d0d;
+  border: 1px solid #0d0d0d;
   width: 100%;
-  border-top: 1px solid #333;
-  /* Header top border */
+  min-width: 100%;
 }
 
+/* Day Column */
 .day-column {
-  border-right: 1px solid #333;
-  min-height: 300px;
-  background-color: #1a1a1a;
-  /* Dark theme bg match? Or white? User has dark mode visible in snippets. Let's stick to safe dark/light adapt or transparent */
+  background-color: #191919;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid #333;
+  min-height: 200px;
 }
 
 .day-column:last-child {
@@ -37,32 +42,29 @@
 
 .column-header {
   text-align: center;
-  padding: 8px 0;
+  padding: 0.5rem 0.25rem;
   background-color: #222;
-  /* Dark header */
   color: #ccc;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: clamp(0.65rem, 2vw, 0.9rem);
   border-bottom: 1px solid #444;
+  white-space: nowrap;
 }
 
 /* Specific day coloring */
 .day-column:nth-child(1) .column-header {
   color: #f87171;
-  /* Sunday (First col) */
 }
 
 .day-column:nth-child(7) .column-header {
   color: #60a5fa;
-  /* Saturday (Last col) */
 }
 
-
 .column-content {
-  padding: 4px;
+  padding: clamp(2px, 0.5vw, 4px);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: clamp(3px, 0.5vw, 6px);
   flex: 1;
 }
 
@@ -70,10 +72,11 @@
 .compact-event-card {
   background-color: #333;
   border-radius: 4px;
-  padding: 6px;
+  padding: clamp(3px, 0.5vw, 6px);
   cursor: pointer;
   transition: background-color 0.2s;
   border: 1px solid #444;
+  min-height: 0;
 }
 
 .compact-event-card:hover {
@@ -81,7 +84,7 @@
 }
 
 .compact-place {
-  font-size: 0.75rem;
+  font-size: clamp(0.6rem, 1.5vw, 0.75rem);
   color: #aaa;
   margin-bottom: 2px;
   white-space: nowrap;
@@ -90,26 +93,38 @@
 }
 
 .compact-title {
-  font-size: 0.8rem;
+  font-size: clamp(0.65rem, 1.8vw, 0.8rem);
   color: white;
   font-weight: bold;
   line-height: 1.2;
-  word-break: break-all;
-  /* Allow wrapping for long titles in narrow columns */
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-/* Responsive */
-@media (max-width: 600px) {
-  .compact-place {
-    font-size: 0.65rem;
-  }
-
-  .compact-title {
-    font-size: 0.7rem;
+/* 작은 화면 최적화 */
+@media (max-width: 768px) {
+  .day-column {
+    min-height: 150px;
   }
 
   .column-header {
-    font-size: 0.8rem;
-    padding: 4px 0;
+    padding: 0.4rem 0.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .day-column {
+    min-height: 120px;
+  }
+
+  .column-header {
+    padding: 0.3rem 0.1rem;
+  }
+
+  .compact-event-card {
+    border-radius: 2px;
   }
 }
