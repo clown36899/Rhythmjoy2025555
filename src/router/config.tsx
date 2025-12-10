@@ -1,17 +1,17 @@
 import type { RouteObject } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import NotFound from "../pages/NotFound";
-import Home from "../pages/home/page";
 import BillboardPage from "../pages/billboard/page";
+import InvitePage from "../pages/invite/page";
+import { MobileShell } from "../layouts/MobileShell";
+import { AuthProvider } from "../contexts/AuthContext";
+import HomeV2 from "../pages/v2/Page";
 import PracticeRoomsPage from "../pages/practice/page";
 import GuidePage from "../pages/guide/page";
 import ClubsPage from "../pages/social/clubs/page";
 import SwingBarsPage from "../pages/social/swing-bars/page";
 import SocialCalendarPage from "../pages/social/calendar/page";
 import BoardPage from "../pages/board/page";
-import InvitePage from "../pages/invite/page";
-import { MobileShell } from "../layouts/MobileShell";
-import { AuthProvider } from "../contexts/AuthContext";
 
 const routes: RouteObject[] = [
   {
@@ -32,7 +32,7 @@ const routes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <Home />,
+        element: <HomeV2 />,
       },
       {
         path: "social",

@@ -1,5 +1,5 @@
 import React from 'react';
-import '../pages/home/components/EventCard.css';
+import '../pages/v2/styles/EventCard.css';
 import '../styles/components/InteractivePreview.css';
 
 interface EditablePreviewCardProps {
@@ -146,7 +146,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                             value={event.genre || ''}
                             onChange={(e) => onUpdate?.('genre', e.target.value)}
                             onFocus={() => onUpdate?.('genre', event.genre || '')}
-                            onBlur={(e) => {
+                            onBlur={() => {
                                 // 클릭이 제안 목록 내부에서 발생했는지 확인하기 위해 지연 처리
                                 setTimeout(() => {
                                     onEditEnd?.();

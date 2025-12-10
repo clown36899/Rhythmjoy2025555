@@ -13,7 +13,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 9px 8px 15px;
+    padding: 8px 13px 8px 15px;
     font-size: 16px;
     font-weight: 600;
     color: #fff;
@@ -36,9 +36,10 @@
 /* Horizontal Scroll - 업계 표준 최적화 */
 .evt-v2-horizontal-scroll {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.75rem;
     overflow-x: auto;
     overflow-y: visible;
+    /* padding: 0.5rem 1rem 0.75rem 1rem; */
 
     /* iOS 모멘텀 스크롤 */
     -webkit-overflow-scrolling: touch;
@@ -67,7 +68,7 @@
 /* Card sizing */
 .evt-v2-horizontal-scroll>.card-container {
     flex: 0 0 auto;
-    width: 24%;
+    width: 32%;
 }
 
 /* Empty State */

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import PracticeRoomList from "../home/components/PracticeRoomList";
+import PracticeRoomList from "./components/PracticeRoomList";
 import PracticeRoomModal from "../../components/PracticeRoomModal";
 import PracticeRoomDetail from "./components/PracticeRoomDetail";
 import SimpleHeader from "../../components/SimpleHeader";

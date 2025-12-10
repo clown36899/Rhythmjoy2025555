@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import EventDetailModal from '../pages/home/components/EventDetailModal';
+import EventDetailModal from '../pages/v2/components/EventDetailModal';
 import PracticeRoomDetail from '../pages/practice/components/PracticeRoomDetail';
 import ShopDetailModal from '../pages/shopping/components/ShopDetailModal';
 import type { Event } from '../lib/supabase';
@@ -360,6 +360,7 @@ export default function GlobalSearchModal({ isOpen, onClose, searchQuery }: Glob
                     shop={selectedShop}
                     isOpen={showShopDetail}
                     onClose={handleCloseDetailModals}
+                    onUpdate={() => { }}
                 />
             )}
         </div>

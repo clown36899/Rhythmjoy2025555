@@ -4,17 +4,17 @@ import { createPortal } from "react-dom";
 
 
 
-import EventCalendar from "./components/EventCalendar";
-import EventList from "./components/EventList";
-import Header from "./components/Header";
+import EventCalendar from "../v2/components/EventCalendar";
+import EventList from "../v2/components/EventList";
+import Header from "../v2/components/Header";
 
 import FullscreenBillboard from "../../components/FullscreenBillboard";
-import AdminBillboardModal from "./components/AdminBillboardModal";
+import AdminBillboardModal from "../v2/components/AdminBillboardModal";
 import EventRegistrationModal from "../../components/EventRegistrationModal";
 import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
-import EventDetailModal from "./components/EventDetailModal";
-import EventPasswordModal from "./components/EventPasswordModal";
-import EventEditModal from "./components/EventEditModal";
+import EventDetailModal from "../v2/components/EventDetailModal";
+import EventPasswordModal from "../v2/components/EventPasswordModal";
+import EventEditModal from "../v2/components/EventEditModal";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
@@ -24,7 +24,7 @@ import type { Event as AppEvent } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 import { useAuth } from "../../contexts/AuthContext";
 import { useCalendarGesture } from "../../hooks/useCalendarGesture";
-import "./page.css";
+import "../v2/styles/Page.css";
 
 export default function HomePageV2() {
     const [searchParams] = useSearchParams();
@@ -492,7 +492,7 @@ export default function HomePageV2() {
             <div ref={headerRef} className="home-header" style={{ touchAction: "auto" }}>
                 <Header
                     currentMonth={currentMonth}
-                    onNavigateMonth={(dir) => {
+                    onNavigateMonth={(dir: 'prev' | 'next') => {
                         if (isAnimating) return; setIsAnimating(true);
                         const w = window.innerWidth;
                         setDragOffset(dir === "prev" ? w : -w);
@@ -501,7 +501,6 @@ export default function HomePageV2() {
                         else newM.setMonth(currentMonth.getMonth() + (dir === "prev" ? -1 : 1));
                         setTimeout(() => { setCurrentMonth(newM); setDragOffset(0); setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); setIsAnimating(false); }, 250);
                     }}
-                    onDateChange={(m) => { setCurrentMonth(m); setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }}
                     onAdminModeToggle={handleAdminModeToggle}
                     onBillboardOpen={handleBillboardOpen}
                     onBillboardSettingsOpen={handleBillboardSettingsOpen}

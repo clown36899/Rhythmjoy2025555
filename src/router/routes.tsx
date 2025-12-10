@@ -4,7 +4,6 @@ import { Navigate } from 'react-router-dom';
 import { MobileShell } from '../layouts/MobileShell';
 
 // Lazy loading pages
-const HomePage = lazy(() => import('../pages/home/page'));
 const HomePageV2 = lazy(() => import('../pages/v2/Page'));
 const SocialPage = lazy(() => import('../pages/social/page'));
 const PracticePage = lazy(() => import('../pages/practice/page'));
@@ -20,7 +19,6 @@ export const routes: RouteObject[] = [
         children: [
             { path: '/', element: <Navigate to="/v2" replace /> },
             { path: '/v2', element: <HomePageV2 /> },
-            { path: '/v1', element: <HomePage /> },
             { path: '/social', element: <SocialPage /> },
             { path: '/social/:placeId', element: <SocialPage /> },
             { path: '/practice', element: <PracticePage /> },

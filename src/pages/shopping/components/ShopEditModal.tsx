@@ -198,7 +198,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
 
                     // Load existing featured items
                     const dbItems = (data.featured_items as DBFeaturedItem[]) || [];
-                    const loadedItems: FeaturedItem[] = dbItems.map((dbItem, index) => ({
+                    const loadedItems: FeaturedItem[] = dbItems.map((dbItem, _index) => ({
                         id: `existing-${dbItem.id}`,
                         dbId: dbItem.id,
                         name: dbItem.item_name || '',
