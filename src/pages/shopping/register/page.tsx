@@ -270,7 +270,7 @@ export default function ShoppingRegisterPage() {
 
         {/* Featured Item Information */}
         <div className="shopreg-section">
-          <h3 className="shopreg-section-title">대표 상품 정보 (선택사항)</h3>
+          <h3 className="shopreg-section-title">상품 정보 (선택사항)</h3>
           <input type="text" placeholder="상품 이름" value={itemName} onChange={(e) => setItemName(e.target.value)} className="shopreg-input" />
           <input type="url" placeholder="상품 직접 링크" value={itemLink} onChange={(e) => setItemLink(e.target.value)} className="shopreg-input" />
           <input type="number" placeholder="상품 가격 (숫자만)" value={itemPrice} onChange={(e) => setItemPrice(e.target.value)} className="shopreg-input" />

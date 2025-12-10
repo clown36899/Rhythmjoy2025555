@@ -234,8 +234,8 @@ export function MobileShell() {
                   onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn' } }))}
                   className="shell-btn-register-topbar"
                 >
-                  <i className="ri-add-circle-line"></i>
-                  <span>등록</span>
+                  <i className="ri-add-line"></i>
+                  <span>이벤트 등록</span>
                 </button>
 
 

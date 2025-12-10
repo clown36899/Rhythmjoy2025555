@@ -10,6 +10,17 @@ interface ShopRegisterModalProps {
     onSuccess: () => void;
 }
 
+interface FeaturedItem {
+    id: string;
+    name: string;
+    price: string;
+    link: string;
+    imageFile: File | null;
+    imagePreview: string;
+    tempUrl: string | null;
+    originalUrl: string | null;
+}
+
 export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRegisterModalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -20,46 +31,25 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
     const [shopUrl, setShopUrl] = useState('');
     const [shopLogoFile, setShopLogoFile] = useState<File | null>(null);
     const [shopLogoPreview, setShopLogoPreview] = useState('');
-
-    // Featured Item Info
-    const [itemName, setItemName] = useState('');
-    const [itemPrice, setItemPrice] = useState('');
-    const [itemLink, setItemLink] = useState('');
-    const [itemImageFile, setItemImageFile] = useState<File | null>(null);
-    const [itemImagePreview, setItemImagePreview] = useState('');
     const [password, setPassword] = useState('');
 
-    // Image Crop Modal States
+    // Logo Image Crop Modal States
     const [showLogoCropModal, setShowLogoCropModal] = useState(false);
     const [logoTempUrl, setLogoTempUrl] = useState<string | null>(null);
-    const [showItemCropModal, setShowItemCropModal] = useState(false);
-    const [itemTempUrl, setItemTempUrl] = useState<string | null>(null);
-
-    // Original images for restore functionality
     const [originalLogoUrl, setOriginalLogoUrl] = useState<string | null>(null);
-    const [originalItemUrl, setOriginalItemUrl] = useState<string | null>(null);
 
+    // Featured Items (Array)
+    const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([]);
+    const [activeCropItemIndex, setActiveCropItemIndex] = useState<number | null>(null);
+
+    // Logo handlers
     const handleLogoFileSelect = (file: File) => {
         const reader = new FileReader();
         reader.onloadend = () => {
             const url = reader.result as string;
             setLogoTempUrl(url);
-            // Save as original if this is the first upload
             if (!originalLogoUrl) {
                 setOriginalLogoUrl(url);
-            }
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const handleItemFileSelect = (file: File) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const url = reader.result as string;
-            setItemTempUrl(url);
-            // Save as original if this is the first upload
-            if (!originalItemUrl) {
-                setOriginalItemUrl(url);
             }
         };
         reader.readAsDataURL(file);
@@ -73,50 +63,18 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
         }
     };
 
-    const handleItemRestore = () => {
-        if (originalItemUrl) {
-            setItemTempUrl(originalItemUrl);
-            setItemImagePreview('');
-            setItemImageFile(null);
-        }
-    };
-
     const handleLogoCropComplete = (croppedFile: File, croppedPreviewUrl: string, _isModified: boolean) => {
         setShopLogoFile(croppedFile);
         setShopLogoPreview(croppedPreviewUrl);
-        setLogoTempUrl(croppedPreviewUrl); // Keep for re-editing
+        setLogoTempUrl(croppedPreviewUrl);
         setShowLogoCropModal(false);
     };
 
-    const handleItemCropComplete = (croppedFile: File, croppedPreviewUrl: string, _isModified: boolean) => {
-        setItemImageFile(croppedFile);
-        setItemImagePreview(croppedPreviewUrl);
-        setItemTempUrl(croppedPreviewUrl); // Keep for re-editing
-        setShowItemCropModal(false);
-    };
-
-    const handleCropDiscard = (type: 'logo' | 'item') => {
-        if (type === 'logo') {
-            setShowLogoCropModal(false);
-        } else {
-            setShowItemCropModal(false);
-        }
-    };
-
     const handleOpenLogoCropModal = () => {
-        // If there's a preview, show it in the editor
         if (shopLogoPreview && !logoTempUrl) {
             setLogoTempUrl(shopLogoPreview);
         }
         setShowLogoCropModal(true);
-    };
-
-    const handleOpenItemCropModal = () => {
-        // If there's a preview, show it in the editor
-        if (itemImagePreview && !itemTempUrl) {
-            setItemTempUrl(itemImagePreview);
-        }
-        setShowItemCropModal(true);
     };
 
     const handleDeleteLogo = () => {
@@ -126,24 +84,91 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
         setOriginalLogoUrl(null);
     };
 
-    const handleDeleteItem = () => {
-        setItemImageFile(null);
-        setItemImagePreview('');
-        setItemTempUrl(null);
-        setOriginalItemUrl(null);
+    // Featured Items handlers
+    const addFeaturedItem = () => {
+        const newItem: FeaturedItem = {
+            id: `${Date.now()}-${featuredItems.length}`,
+            name: '',
+            price: '',
+            link: '',
+            imageFile: null,
+            imagePreview: '',
+            tempUrl: null,
+            originalUrl: null,
+        };
+        setFeaturedItems([...featuredItems, newItem]);
+    };
+
+    const removeFeaturedItem = (id: string) => {
+        setFeaturedItems(featuredItems.filter(item => item.id !== id));
+    };
+
+    const updateFeaturedItem = (id: string, updates: Partial<FeaturedItem>) => {
+        setFeaturedItems(featuredItems.map(item =>
+            item.id === id ? { ...item, ...updates } : item
+        ));
+    };
+
+    const handleItemFileSelect = (file: File, index: number) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const url = reader.result as string;
+            const item = featuredItems[index];
+            updateFeaturedItem(item.id, {
+                tempUrl: url,
+                originalUrl: item.originalUrl || url,
+            });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleItemRestore = (index: number) => {
+        const item = featuredItems[index];
+        if (item.originalUrl) {
+            updateFeaturedItem(item.id, {
+                tempUrl: item.originalUrl,
+                imagePreview: '',
+                imageFile: null,
+            });
+        }
+    };
+
+    const handleItemCropComplete = (croppedFile: File, croppedPreviewUrl: string, _isModified: boolean) => {
+        if (activeCropItemIndex !== null) {
+            const item = featuredItems[activeCropItemIndex];
+            updateFeaturedItem(item.id, {
+                imageFile: croppedFile,
+                imagePreview: croppedPreviewUrl,
+                tempUrl: croppedPreviewUrl,
+            });
+            setActiveCropItemIndex(null);
+        }
+    };
+
+    const handleOpenItemCropModal = (index: number) => {
+        const item = featuredItems[index];
+        if (item.imagePreview && !item.tempUrl) {
+            updateFeaturedItem(item.id, { tempUrl: item.imagePreview });
+        }
+        setActiveCropItemIndex(index);
+    };
+
+    const handleDeleteItemImage = (index: number) => {
+        const item = featuredItems[index];
+        updateFeaturedItem(item.id, {
+            imageFile: null,
+            imagePreview: '',
+            tempUrl: null,
+            originalUrl: null,
+        });
     };
 
     const uploadImage = async (file: File, folder: string): Promise<string> => {
-        // Import createResizedImages utility
         const { createResizedImages } = await import('../../../utils/imageResize');
-
-        // Create WebP optimized images
         const resizedImages = await createResizedImages(file);
-
         const fileName = `${Date.now()}.webp`;
         const filePath = `${folder}/${fileName}`;
 
-        // Upload the medium-size WebP image (1080px, quality 0.9) for better compression
         const { error: uploadError } = await supabase.storage
             .from('images')
             .upload(filePath, resizedImages.medium);
@@ -172,11 +197,6 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
                 logoUrl = await uploadImage(shopLogoFile, 'shop-logos');
             }
 
-            let itemImageUrl = '';
-            if (itemImageFile) {
-                itemImageUrl = await uploadImage(itemImageFile, 'featured-items');
-            }
-
             // 1. Insert into shops table
             const { data: shopData, error: shopError } = await supabase
                 .from('shops')
@@ -192,19 +212,27 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
 
             if (shopError) throw shopError;
 
-            // 2. Insert into featured_items table (only if product info provided)
-            if (itemName && itemImageUrl) {
-                const { error: itemError } = await supabase
-                    .from('featured_items')
-                    .insert({
-                        shop_id: shopData.id,
-                        item_name: itemName,
-                        item_price: itemPrice ? Number(itemPrice) : null,
-                        item_image_url: itemImageUrl,
-                        item_link: itemLink || shopUrl, // Use shop URL as fallback
-                    });
+            // 2. Insert featured items (if any)
+            for (const item of featuredItems) {
+                // Only insert if at least name or image is provided
+                if (item.name || item.imageFile) {
+                    let itemImageUrl = '';
+                    if (item.imageFile) {
+                        itemImageUrl = await uploadImage(item.imageFile, 'featured-items');
+                    }
 
-                if (itemError) throw itemError;
+                    const { error: itemError } = await supabase
+                        .from('featured_items')
+                        .insert({
+                            shop_id: shopData.id,
+                            item_name: item.name || null,
+                            item_price: item.price ? Number(item.price) : null,
+                            item_image_url: itemImageUrl || null,
+                            item_link: item.link || shopUrl,
+                        });
+
+                    if (itemError) throw itemError;
+                }
             }
 
             alert('쇼핑몰이 성공적으로 등록되었습니다.');
@@ -215,16 +243,10 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
             setShopUrl('');
             setShopLogoFile(null);
             setShopLogoPreview('');
-            setItemName('');
-            setItemPrice('');
-            setItemLink('');
-            setItemImageFile(null);
-            setItemImagePreview('');
             setPassword('');
             setLogoTempUrl(null);
-            setItemTempUrl(null);
             setOriginalLogoUrl(null);
-            setOriginalItemUrl(null);
+            setFeaturedItems([]);
 
             onSuccess();
             onClose();
@@ -243,6 +265,8 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
     };
 
     if (!isOpen) return null;
+
+    const activeCropItem = activeCropItemIndex !== null ? featuredItems[activeCropItemIndex] : null;
 
     return createPortal(
         <>
@@ -323,59 +347,96 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
                             <p className="shop-register-helper-text">* 쇼핑몰 정보 수정 시 필요한 비밀번호입니다 (최소 4자)</p>
                         </div>
 
-                        {/* Featured Item Information */}
+                        {/* Featured Items Section */}
                         <div className="shop-register-section">
-                            <h3 className="shop-register-section-title">대표 상품 정보 (선택사항)</h3>
-                            <input
-                                type="text"
-                                placeholder="상품 이름"
-                                value={itemName}
-                                onChange={(e) => setItemName(e.target.value)}
-                                className="shop-register-input"
-                                disabled={loading}
-                            />
-                            <input
-                                type="url"
-                                placeholder="상품 직접 링크"
-                                value={itemLink}
-                                onChange={(e) => setItemLink(e.target.value)}
-                                className="shop-register-input"
-                                disabled={loading}
-                            />
-                            <input
-                                type="number"
-                                placeholder="상품 가격 (숫자만)"
-                                value={itemPrice}
-                                onChange={(e) => setItemPrice(e.target.value)}
-                                className="shop-register-input"
-                                disabled={loading}
-                            />
-                            <div>
-                                <label className="shop-register-file-label">상품 이미지</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h3 className="shop-register-section-title" style={{ margin: 0 }}>상품 정보 (선택사항)</h3>
                                 <button
                                     type="button"
-                                    onClick={handleOpenItemCropModal}
-                                    className="shop-register-image-edit-btn"
+                                    onClick={addFeaturedItem}
+                                    className="shop-register-add-item-btn"
                                     disabled={loading}
                                 >
-                                    <i className="ri-image-edit-line"></i>
-                                    {itemImagePreview ? '상품 이미지 편집' : '상품 이미지 등록'}
+                                    <i className="ri-add-line"></i>
+                                    상품 추가
                                 </button>
-                                {itemImagePreview && (
-                                    <div style={{ position: 'relative', display: 'inline-block', marginTop: '0.5rem', width: '100%' }}>
-                                        <img src={itemImagePreview} alt="상품 이미지 미리보기" className="shop-register-item-preview" />
+                            </div>
+
+                            {featuredItems.length === 0 && (
+                                <p style={{ color: '#9ca3af', fontSize: '0.875rem', textAlign: 'center', padding: '1rem' }}>
+                                    상품 정보를 추가하려면 "상품 추가" 버튼을 클릭하세요.
+                                </p>
+                            )}
+
+                            {featuredItems.map((item, index) => (
+                                <div key={item.id} className="shop-register-item-card">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                        <h4 style={{ color: 'white', fontSize: '1rem', fontWeight: 600, margin: 0 }}>
+                                            상품 #{index + 1}
+                                        </h4>
                                         <button
                                             type="button"
-                                            onClick={handleDeleteItem}
-                                            className="shop-register-image-delete-btn"
-                                            title="이미지 삭제"
+                                            onClick={() => removeFeaturedItem(item.id)}
+                                            className="shop-register-remove-item-btn"
                                             disabled={loading}
+                                            title="상품 삭제"
                                         >
-                                            <i className="ri-close-line"></i>
+                                            <i className="ri-delete-bin-line"></i>
                                         </button>
                                     </div>
-                                )}
-                            </div>
+
+                                    <input
+                                        type="text"
+                                        placeholder="상품 이름"
+                                        value={item.name}
+                                        onChange={(e) => updateFeaturedItem(item.id, { name: e.target.value })}
+                                        className="shop-register-input"
+                                        disabled={loading}
+                                    />
+                                    <input
+                                        type="url"
+                                        placeholder="상품 직접 링크"
+                                        value={item.link}
+                                        onChange={(e) => updateFeaturedItem(item.id, { link: e.target.value })}
+                                        className="shop-register-input"
+                                        disabled={loading}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="상품 가격 (숫자만)"
+                                        value={item.price}
+                                        onChange={(e) => updateFeaturedItem(item.id, { price: e.target.value })}
+                                        className="shop-register-input"
+                                        disabled={loading}
+                                    />
+                                    <div>
+                                        <label className="shop-register-file-label">상품 이미지</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenItemCropModal(index)}
+                                            className="shop-register-image-edit-btn"
+                                            disabled={loading}
+                                        >
+                                            <i className="ri-image-edit-line"></i>
+                                            {item.imagePreview ? '상품 이미지 편집' : '상품 이미지 등록'}
+                                        </button>
+                                        {item.imagePreview && (
+                                            <div style={{ position: 'relative', display: 'inline-block', marginTop: '0.5rem', width: '100%' }}>
+                                                <img src={item.imagePreview} alt="상품 이미지 미리보기" className="shop-register-item-preview" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteItemImage(index)}
+                                                    className="shop-register-image-delete-btn"
+                                                    title="이미지 삭제"
+                                                    disabled={loading}
+                                                >
+                                                    <i className="ri-close-line"></i>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
 
                         {error && <p className="shop-register-error">{error}</p>}
@@ -391,10 +452,10 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
             <ImageCropModal
                 isOpen={showLogoCropModal}
                 imageUrl={logoTempUrl}
-                onClose={() => handleCropDiscard('logo')}
+                onClose={() => setShowLogoCropModal(false)}
                 onCropComplete={handleLogoCropComplete}
-                onDiscard={() => handleCropDiscard('logo')}
-                onChangeImage={() => { }} // Triggers file input
+                onDiscard={() => setShowLogoCropModal(false)}
+                onChangeImage={() => { }}
                 onImageUpdate={handleLogoFileSelect}
                 onRestoreOriginal={handleLogoRestore}
                 hasOriginal={!!originalLogoUrl}
@@ -402,18 +463,20 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
             />
 
             {/* Product Image Crop Modal */}
-            <ImageCropModal
-                isOpen={showItemCropModal}
-                imageUrl={itemTempUrl}
-                onClose={() => handleCropDiscard('item')}
-                onCropComplete={handleItemCropComplete}
-                onDiscard={() => handleCropDiscard('item')}
-                onChangeImage={() => { }} // Triggers file input
-                onImageUpdate={handleItemFileSelect}
-                onRestoreOriginal={handleItemRestore}
-                hasOriginal={!!originalItemUrl}
-                fileName="product-image.jpg"
-            />
+            {activeCropItem && (
+                <ImageCropModal
+                    isOpen={activeCropItemIndex !== null}
+                    imageUrl={activeCropItem.tempUrl}
+                    onClose={() => setActiveCropItemIndex(null)}
+                    onCropComplete={handleItemCropComplete}
+                    onDiscard={() => setActiveCropItemIndex(null)}
+                    onChangeImage={() => { }}
+                    onImageUpdate={(file) => handleItemFileSelect(file, activeCropItemIndex!)}
+                    onRestoreOriginal={() => handleItemRestore(activeCropItemIndex!)}
+                    hasOriginal={!!activeCropItem.originalUrl}
+                    fileName="product-image.jpg"
+                />
+            )}
         </>,
         document.body
     );

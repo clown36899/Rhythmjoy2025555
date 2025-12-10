@@ -16,7 +16,8 @@ export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: Sho
 
     if (!isOpen) return null;
 
-    const featuredItem = shop.featured_items?.[0];
+    const featuredItems = shop.featured_items || [];
+    const hasProducts = featuredItems.length > 0 && featuredItems.some(item => item.item_name);
 
     const handleEdit = () => {
         setShowEditModal(true);
@@ -66,39 +67,45 @@ export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: Sho
                         쇼핑몰 방문하기
                     </a>
 
-                    {/* Featured Product Section */}
-                    {featuredItem && featuredItem.item_name ? (
+                    {/* Featured Products Section */}
+                    {hasProducts && (
                         <div className="shop-modal-product-section">
-                            <h3 className="shop-modal-section-title">대표 상품</h3>
-                            <div className="shop-modal-product">
-                                <a
-                                    href={featuredItem.item_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="shop-modal-product-link"
-                                >
-                                    {featuredItem.item_image_url && (
-                                        <img
-                                            src={featuredItem.item_image_url}
-                                            alt={featuredItem.item_name}
-                                            className="shop-modal-product-image"
-                                        />
-                                    )}
-                                    <div className="shop-modal-product-info">
-                                        <h4 className="shop-modal-product-name">{featuredItem.item_name}</h4>
-                                        {featuredItem.item_price && (
-                                            <p className="shop-modal-product-price">
-                                                {featuredItem.item_price.toLocaleString()}원
-                                            </p>
-                                        )}
-                                        <span className="shop-modal-product-link-text">
-                                            상품 보러가기 <i className="ri-arrow-right-line"></i>
-                                        </span>
-                                    </div>
-                                </a>
+                            <div className={`shop-modal-products-grid ${featuredItems.length === 1 ? 'single' : 'multi'}`}>
+                                {featuredItems.map((item, index) => {
+                                    if (!item.item_name) return null;
+
+                                    return (
+                                        <a
+                                            key={item.id || index}
+                                            href={item.item_link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="shop-modal-product-card"
+                                        >
+                                            {item.item_image_url && (
+                                                <img
+                                                    src={item.item_image_url}
+                                                    alt={item.item_name}
+                                                    className="shop-modal-product-image"
+                                                />
+                                            )}
+                                            <div className="shop-modal-product-info">
+                                                <h4 className="shop-modal-product-name">{item.item_name}</h4>
+                                                {item.item_price && (
+                                                    <p className="shop-modal-product-price">
+                                                        {item.item_price.toLocaleString()}원
+                                                    </p>
+                                                )}
+                                                <span className="shop-modal-product-link-text">
+                                                    상품 보러가기 <i className="ri-arrow-right-line"></i>
+                                                </span>
+                                            </div>
+                                        </a>
+                                    );
+                                })}
                             </div>
                         </div>
-                    ) : null}
+                    )}
                 </div>
             </div>
 

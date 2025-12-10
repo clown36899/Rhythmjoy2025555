@@ -330,3 +330,77 @@
         padding: 1rem;
     }
 }
+
+/* ===== 상품 추가 버튼 ===== */
+.shop-register-add-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shop-register-add-item-btn:hover:not(:disabled) {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.shop-register-add-item-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.shop-register-add-item-btn i {
+    font-size: 1.125rem;
+}
+
+/* ===== 상품 카드 ===== */
+.shop-register-item-card {
+    background-color: #1f2937;
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid #374151;
+    margin-bottom: 1rem;
+}
+
+.shop-register-item-card:last-child {
+    margin-bottom: 0;
+}
+
+/* ===== 상품 삭제 버튼 ===== */
+.shop-register-remove-item-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid #ef4444;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shop-register-remove-item-btn:hover:not(:disabled) {
+    background-color: rgba(239, 68, 68, 0.2);
+    transform: scale(1.1);
+}
+
+.shop-register-remove-item-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.shop-register-remove-item-btn i {
+    font-size: 1.125rem;
+}

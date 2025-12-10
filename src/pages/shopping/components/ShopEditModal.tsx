@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import ImageCropModal from '../../../components/ImageCropModal';
-import type { FeaturedItem } from '../page';
+import type { FeaturedItem as DBFeaturedItem } from '../page';
 import './ShopEditModal.css';
 
 interface ShopEditModalProps {
@@ -10,6 +10,18 @@ interface ShopEditModalProps {
     onClose: () => void;
     onSuccess: () => void;
     shopId: number;
+}
+
+interface FeaturedItem {
+    id: string;
+    dbId: number | null; // DB ID (for existing items)
+    name: string;
+    price: string;
+    link: string;
+    imageFile: File | null;
+    imagePreview: string;
+    tempUrl: string | null;
+    originalUrl: string | null;
 }
 
 export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: ShopEditModalProps) {
@@ -27,25 +39,16 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
     const [shopLogoPreview, setShopLogoPreview] = useState('');
     const [existingLogoUrl, setExistingLogoUrl] = useState('');
 
-    // Featured Item Info
-    const [itemId, setItemId] = useState<number | null>(null);
-    const [itemName, setItemName] = useState('');
-    const [itemPrice, setItemPrice] = useState('');
-    const [itemLink, setItemLink] = useState('');
-    const [itemImageFile, setItemImageFile] = useState<File | null>(null);
-    const [itemImagePreview, setItemImagePreview] = useState('');
-    const [existingItemImageUrl, setExistingItemImageUrl] = useState('');
-
-    // Image Crop Modal States
+    // Logo Image Crop Modal States
     const [showLogoCropModal, setShowLogoCropModal] = useState(false);
     const [logoTempUrl, setLogoTempUrl] = useState<string | null>(null);
-    const [showItemCropModal, setShowItemCropModal] = useState(false);
-    const [itemTempUrl, setItemTempUrl] = useState<string | null>(null);
-
-    // Original images for restore functionality
     const [originalLogoUrl, setOriginalLogoUrl] = useState<string | null>(null);
-    const [originalItemUrl, setOriginalItemUrl] = useState<string | null>(null);
 
+    // Featured Items (Array)
+    const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([]);
+    const [activeCropItemIndex, setActiveCropItemIndex] = useState<number | null>(null);
+
+    // Logo handlers
     const handleLogoFileSelect = (file: File) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -53,18 +56,6 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
             setLogoTempUrl(url);
             if (!originalLogoUrl) {
                 setOriginalLogoUrl(url);
-            }
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const handleItemFileSelect = (file: File) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const url = reader.result as string;
-            setItemTempUrl(url);
-            if (!originalItemUrl) {
-                setOriginalItemUrl(url);
             }
         };
         reader.readAsDataURL(file);
@@ -78,14 +69,6 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
         }
     };
 
-    const handleItemRestore = () => {
-        if (originalItemUrl) {
-            setItemTempUrl(originalItemUrl);
-            setItemImagePreview(existingItemImageUrl);
-            setItemImageFile(null);
-        }
-    };
-
     const handleLogoCropComplete = (croppedFile: File, croppedPreviewUrl: string, _isModified: boolean) => {
         setShopLogoFile(croppedFile);
         setShopLogoPreview(croppedPreviewUrl);
@@ -93,33 +76,11 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
         setShowLogoCropModal(false);
     };
 
-    const handleItemCropComplete = (croppedFile: File, croppedPreviewUrl: string, _isModified: boolean) => {
-        setItemImageFile(croppedFile);
-        setItemImagePreview(croppedPreviewUrl);
-        setItemTempUrl(croppedPreviewUrl);
-        setShowItemCropModal(false);
-    };
-
-    const handleCropDiscard = (type: 'logo' | 'item') => {
-        if (type === 'logo') {
-            setShowLogoCropModal(false);
-        } else {
-            setShowItemCropModal(false);
-        }
-    };
-
     const handleOpenLogoCropModal = () => {
         if (shopLogoPreview && !logoTempUrl) {
             setLogoTempUrl(shopLogoPreview);
         }
         setShowLogoCropModal(true);
-    };
-
-    const handleOpenItemCropModal = () => {
-        if (itemImagePreview && !itemTempUrl) {
-            setItemTempUrl(itemImagePreview);
-        }
-        setShowItemCropModal(true);
     };
 
     const handleDeleteLogo = () => {
@@ -130,12 +91,84 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
         setExistingLogoUrl('');
     };
 
-    const handleDeleteItem = () => {
-        setItemImageFile(null);
-        setItemImagePreview('');
-        setItemTempUrl(null);
-        setOriginalItemUrl(null);
-        setExistingItemImageUrl('');
+    // Featured Items handlers
+    const addFeaturedItem = () => {
+        const newItem: FeaturedItem = {
+            id: `${Date.now()}-${featuredItems.length}`,
+            dbId: null,
+            name: '',
+            price: '',
+            link: '',
+            imageFile: null,
+            imagePreview: '',
+            tempUrl: null,
+            originalUrl: null,
+        };
+        setFeaturedItems([...featuredItems, newItem]);
+    };
+
+    const removeFeaturedItem = (id: string) => {
+        setFeaturedItems(featuredItems.filter(item => item.id !== id));
+    };
+
+    const updateFeaturedItem = (id: string, updates: Partial<FeaturedItem>) => {
+        setFeaturedItems(featuredItems.map(item =>
+            item.id === id ? { ...item, ...updates } : item
+        ));
+    };
+
+    const handleItemFileSelect = (file: File, index: number) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const url = reader.result as string;
+            const item = featuredItems[index];
+            updateFeaturedItem(item.id, {
+                tempUrl: url,
+                originalUrl: item.originalUrl || url,
+            });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleItemRestore = (index: number) => {
+        const item = featuredItems[index];
+        if (item.originalUrl) {
+            updateFeaturedItem(item.id, {
+                tempUrl: item.originalUrl,
+                imagePreview: item.originalUrl,
+                imageFile: null,
+            });
+        }
+    };
+
+    const handleItemCropComplete = (croppedFile: File, croppedPreviewUrl: string, _isModified: boolean) => {
+        if (activeCropItemIndex !== null) {
+            const item = featuredItems[activeCropItemIndex];
+            updateFeaturedItem(item.id, {
+                imageFile: croppedFile,
+                imagePreview: croppedPreviewUrl,
+                tempUrl: croppedPreviewUrl,
+            });
+            setActiveCropItemIndex(null);
+        }
+    };
+
+    const handleOpenItemCropModal = (index: number) => {
+        const item = featuredItems[index];
+        if (item.imagePreview && !item.tempUrl) {
+            updateFeaturedItem(item.id, { tempUrl: item.imagePreview });
+        }
+        setActiveCropItemIndex(index);
+    };
+
+    const handleDeleteItemImage = (index: number) => {
+        const item = featuredItems[index];
+        updateFeaturedItem(item.id, {
+            imageFile: null,
+            imagePreview: '',
+            tempUrl: null,
+            originalUrl: null,
+        });
     };
 
     // Fetch shop data when modal opens
@@ -163,16 +196,20 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
                     setShopLogoPreview(data.logo_url || '');
                     setOriginalLogoUrl(data.logo_url || null);
 
-                    const featuredItem = (data.featured_items as FeaturedItem[])?.[0];
-                    if (featuredItem) {
-                        setItemId(featuredItem.id);
-                        setItemName(featuredItem.item_name);
-                        setItemPrice(featuredItem.item_price?.toString() || '');
-                        setItemLink(featuredItem.item_link);
-                        setExistingItemImageUrl(featuredItem.item_image_url || '');
-                        setItemImagePreview(featuredItem.item_image_url || '');
-                        setOriginalItemUrl(featuredItem.item_image_url || null);
-                    }
+                    // Load existing featured items
+                    const dbItems = (data.featured_items as DBFeaturedItem[]) || [];
+                    const loadedItems: FeaturedItem[] = dbItems.map((dbItem, index) => ({
+                        id: `existing-${dbItem.id}`,
+                        dbId: dbItem.id,
+                        name: dbItem.item_name || '',
+                        price: dbItem.item_price?.toString() || '',
+                        link: dbItem.item_link || '',
+                        imageFile: null,
+                        imagePreview: dbItem.item_image_url || '',
+                        tempUrl: dbItem.item_image_url || null,
+                        originalUrl: dbItem.item_image_url || null,
+                    }));
+                    setFeaturedItems(loadedItems);
                 }
             } catch (err: any) {
                 console.error('쇼핑몰 정보 로딩 실패:', err);
@@ -246,11 +283,6 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
                 logoUrl = await uploadImage(shopLogoFile, 'shop-logos');
             }
 
-            let itemImageUrl = existingItemImageUrl;
-            if (itemImageFile) {
-                itemImageUrl = await uploadImage(itemImageFile, 'featured-items');
-            }
-
             // Update shops table
             const { error: shopError } = await supabase
                 .from('shops')
@@ -264,19 +296,34 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
 
             if (shopError) throw shopError;
 
-            // Update featured_items table
-            if (itemId) {
-                const { error: itemError } = await supabase
-                    .from('featured_items')
-                    .update({
-                        item_name: itemName,
-                        item_price: itemPrice ? Number(itemPrice) : null,
-                        item_image_url: itemImageUrl,
-                        item_link: itemLink,
-                    })
-                    .eq('id', itemId);
+            // Delete all existing featured items
+            const { error: deleteError } = await supabase
+                .from('featured_items')
+                .delete()
+                .eq('shop_id', shopId);
 
-                if (itemError) throw itemError;
+            if (deleteError) throw deleteError;
+
+            // Insert new featured items
+            for (const item of featuredItems) {
+                if (item.name || item.imageFile || item.imagePreview) {
+                    let itemImageUrl = item.imagePreview;
+                    if (item.imageFile) {
+                        itemImageUrl = await uploadImage(item.imageFile, 'featured-items');
+                    }
+
+                    const { error: itemError } = await supabase
+                        .from('featured_items')
+                        .insert({
+                            shop_id: shopId,
+                            item_name: item.name || null,
+                            item_price: item.price ? Number(item.price) : null,
+                            item_image_url: itemImageUrl || null,
+                            item_link: item.link || shopUrl,
+                        });
+
+                    if (itemError) throw itemError;
+                }
             }
 
             alert('쇼핑몰 정보가 성공적으로 수정되었습니다.');
@@ -327,6 +374,8 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
     };
 
     if (!isOpen) return null;
+
+    const activeCropItem = activeCropItemIndex !== null ? featuredItems[activeCropItemIndex] : null;
 
     return createPortal(
         <>
@@ -433,59 +482,96 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
                                     </div>
                                 </div>
 
-                                {/* Featured Item Information */}
+                                {/* Featured Items Section */}
                                 <div className="shop-edit-section">
-                                    <h3 className="shop-edit-section-title">대표 상품 정보 (선택사항)</h3>
-                                    <input
-                                        type="text"
-                                        placeholder="상품 이름"
-                                        value={itemName}
-                                        onChange={(e) => setItemName(e.target.value)}
-                                        className="shop-edit-input"
-                                        disabled={loading}
-                                    />
-                                    <input
-                                        type="url"
-                                        placeholder="상품 직접 링크"
-                                        value={itemLink}
-                                        onChange={(e) => setItemLink(e.target.value)}
-                                        className="shop-edit-input"
-                                        disabled={loading}
-                                    />
-                                    <input
-                                        type="number"
-                                        placeholder="상품 가격 (숫자만)"
-                                        value={itemPrice}
-                                        onChange={(e) => setItemPrice(e.target.value)}
-                                        className="shop-edit-input"
-                                        disabled={loading}
-                                    />
-                                    <div>
-                                        <label className="shop-edit-file-label">상품 이미지</label>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <h3 className="shop-edit-section-title" style={{ margin: 0 }}>상품 정보 (선택사항)</h3>
                                         <button
                                             type="button"
-                                            onClick={handleOpenItemCropModal}
-                                            className="shop-edit-image-edit-btn"
+                                            onClick={addFeaturedItem}
+                                            className="shop-edit-add-item-btn"
                                             disabled={loading}
                                         >
-                                            <i className="ri-image-edit-line"></i>
-                                            {itemImagePreview ? '상품 이미지 편집' : '상품 이미지 등록'}
+                                            <i className="ri-add-line"></i>
+                                            상품 추가
                                         </button>
-                                        {itemImagePreview && (
-                                            <div style={{ position: 'relative', display: 'inline-block', marginTop: '0.5rem', width: '100%' }}>
-                                                <img src={itemImagePreview} alt="상품 이미지 미리보기" className="shop-edit-item-preview" />
+                                    </div>
+
+                                    {featuredItems.length === 0 && (
+                                        <p style={{ color: '#9ca3af', fontSize: '0.875rem', textAlign: 'center', padding: '1rem' }}>
+                                            상품 정보를 추가하려면 "상품 추가" 버튼을 클릭하세요.
+                                        </p>
+                                    )}
+
+                                    {featuredItems.map((item, index) => (
+                                        <div key={item.id} className="shop-edit-item-card">
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                <h4 style={{ color: 'white', fontSize: '1rem', fontWeight: 600, margin: 0 }}>
+                                                    상품 #{index + 1}
+                                                </h4>
                                                 <button
                                                     type="button"
-                                                    onClick={handleDeleteItem}
-                                                    className="shop-edit-image-delete-btn"
-                                                    title="이미지 삭제"
+                                                    onClick={() => removeFeaturedItem(item.id)}
+                                                    className="shop-edit-remove-item-btn"
                                                     disabled={loading}
+                                                    title="상품 삭제"
                                                 >
-                                                    <i className="ri-close-line"></i>
+                                                    <i className="ri-delete-bin-line"></i>
                                                 </button>
                                             </div>
-                                        )}
-                                    </div>
+
+                                            <input
+                                                type="text"
+                                                placeholder="상품 이름"
+                                                value={item.name}
+                                                onChange={(e) => updateFeaturedItem(item.id, { name: e.target.value })}
+                                                className="shop-edit-input"
+                                                disabled={loading}
+                                            />
+                                            <input
+                                                type="url"
+                                                placeholder="상품 직접 링크"
+                                                value={item.link}
+                                                onChange={(e) => updateFeaturedItem(item.id, { link: e.target.value })}
+                                                className="shop-edit-input"
+                                                disabled={loading}
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="상품 가격 (숫자만)"
+                                                value={item.price}
+                                                onChange={(e) => updateFeaturedItem(item.id, { price: e.target.value })}
+                                                className="shop-edit-input"
+                                                disabled={loading}
+                                            />
+                                            <div>
+                                                <label className="shop-edit-file-label">상품 이미지</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenItemCropModal(index)}
+                                                    className="shop-edit-image-edit-btn"
+                                                    disabled={loading}
+                                                >
+                                                    <i className="ri-image-edit-line"></i>
+                                                    {item.imagePreview ? '상품 이미지 편집' : '상품 이미지 등록'}
+                                                </button>
+                                                {item.imagePreview && (
+                                                    <div style={{ position: 'relative', display: 'inline-block', marginTop: '0.5rem', width: '100%' }}>
+                                                        <img src={item.imagePreview} alt="상품 이미지 미리보기" className="shop-edit-item-preview" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteItemImage(index)}
+                                                            className="shop-edit-image-delete-btn"
+                                                            title="이미지 삭제"
+                                                            disabled={loading}
+                                                        >
+                                                            <i className="ri-close-line"></i>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
 
                                 {error && <p className="shop-edit-error">{error}</p>}
@@ -512,9 +598,9 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
             <ImageCropModal
                 isOpen={showLogoCropModal}
                 imageUrl={logoTempUrl}
-                onClose={() => handleCropDiscard('logo')}
+                onClose={() => setShowLogoCropModal(false)}
                 onCropComplete={handleLogoCropComplete}
-                onDiscard={() => handleCropDiscard('logo')}
+                onDiscard={() => setShowLogoCropModal(false)}
                 onChangeImage={() => { }}
                 onImageUpdate={handleLogoFileSelect}
                 onRestoreOriginal={handleLogoRestore}
@@ -523,18 +609,20 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
             />
 
             {/* Product Image Crop Modal */}
-            <ImageCropModal
-                isOpen={showItemCropModal}
-                imageUrl={itemTempUrl}
-                onClose={() => handleCropDiscard('item')}
-                onCropComplete={handleItemCropComplete}
-                onDiscard={() => handleCropDiscard('item')}
-                onChangeImage={() => { }}
-                onImageUpdate={handleItemFileSelect}
-                onRestoreOriginal={handleItemRestore}
-                hasOriginal={!!originalItemUrl}
-                fileName="product-image.jpg"
-            />
+            {activeCropItem && (
+                <ImageCropModal
+                    isOpen={activeCropItemIndex !== null}
+                    imageUrl={activeCropItem.tempUrl}
+                    onClose={() => setActiveCropItemIndex(null)}
+                    onCropComplete={handleItemCropComplete}
+                    onDiscard={() => setActiveCropItemIndex(null)}
+                    onChangeImage={() => { }}
+                    onImageUpdate={(file) => handleItemFileSelect(file, activeCropItemIndex!)}
+                    onRestoreOriginal={() => handleItemRestore(activeCropItemIndex!)}
+                    hasOriginal={!!activeCropItem.originalUrl}
+                    fileName="product-image.jpg"
+                />
+            )}
         </>,
         document.body
     );

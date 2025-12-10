@@ -7,6 +7,14 @@
   --calendar-header-bg: #252525;
   --calendar-cell-border: #15151575;
 
+  /* 달력 경계선 세분화 */
+  --calendar-vertical-border: #464646;
+  /* 세로 경계선 (날짜 간) */
+  --calendar-week-border: #333333;
+  /* 주간 경계선 (가로) */
+  --calendar-weekday-border: #4a4a4a;
+  /* 요일 표시 하단 경계선 */
+
   /* 텍스트 색상 */
   --text-primary: #ffffff;
   --text-secondary: #d1d5db;
@@ -921,6 +929,7 @@
 
 
 .calendar-weekday-item {
+  position: relative;
   text-align: center;
   color: #c7c7c7;
   /* gray-400 */
@@ -1236,7 +1245,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
-  border-bottom: 0px solid var(--calendar-cell-border);
+  border-bottom: 1px solid var(--calendar-weekday-border);
   flex-shrink: 0;
   background-color: #2f2f2f;
   z-index: 35;
@@ -1260,7 +1269,7 @@
   bottom: 0;
   width: 1px;
   height: 100%;
-  background: linear-gradient(to top, var(--calendar-cell-border), transparent);
+  background-color: var(--calendar-vertical-border);
   pointer-events: none;
 }
 
@@ -1622,8 +1631,8 @@
   min-height: 100px;
   /* Minimum height for fullscreen cells */
   background-color: var(--calendar-bg);
-  /* border-right: 1px solid var(--calendar-cell-border);
-  border-bottom: 1px solid var(--calendar-cell-border); */
+  border-right: 1px solid var(--calendar-vertical-border);
+  border-bottom: 1px solid var(--calendar-week-border);
   /* overflow: hidden; Removed to allow expansion */
   position: relative;
 }
