@@ -81,17 +81,17 @@
   min-width: 0;
 }
 
-.card-container:hover {
+/* .card-container:hover {
   transform: translateY(-2px);
-}
+} */
 
 .card-container-past {
   opacity: 0.6;
 }
 
-.card-container-past:hover {
+/* .card-container-past:hover {
   transform: translateY(-1px);
-}
+} */
 
 /* ===== Category별 독립 스타일 ===== */
 /* 이벤트 카드 전용 스타일 */
@@ -112,11 +112,11 @@
 .card-category-class {
   flex: 0 0 auto !important;
   width: 28% !important;
-  border: 1px solid #555;
-  border-radius: 1rem;
+  /* border: 1px solid #555;
+  border-radius: 1rem; */
   /* padding: 0.4rem; */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  background-color: #ffffff;
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); */
+  /* background-color: #ffffff; */
 }
 
 .card-category-class .card-image-wrapper {
@@ -135,35 +135,35 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card-container:hover .card-image-wrapper {
+/* .card-container:hover .card-image-wrapper {
   transform: scale(1.02);
-}
+} */
 
 /* 이벤트 카드 이미지 래퍼 - 완전 독립 */
 .card-image-wrapper-event {
-  aspect-ratio: 13 / 16;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  /* aspect-ratio: 13 / 16; */
+  /* border-radius: 12px; */
+  /* background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); */
   /* margin-bottom: 12px; */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); */
 }
 
-.card-container:hover .card-image-wrapper-event {
+/* .card-container:hover .card-image-wrapper-event {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
+} */
 
 /* 강습 카드 이미지 래퍼 - 완전 독립 */
 .card-image-wrapper-class {
-  aspect-ratio: 3.5 / 3;
-  border-radius: 12px 12px 0 0;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  /* aspect-ratio: 3 / 3; */
+  /* border-radius: 12px 12px 0 0; */
+  /* background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); */
   /* margin-bottom: 12px; */
-  box-shadow: 0px 0px 8px rgb(0 0 0 / 32%);
+  /* box-shadow: 0px 0px 8px rgb(0 0 0 / 32%); */
 }
 
-.card-container:hover .card-image-wrapper-class {
+/* .card-container:hover .card-image-wrapper-class {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
+} */
 
 .card-image-wrapper-highlighted {
   box-shadow: 0 0 0 3px var(--highlight-color, transparent);
@@ -177,9 +177,9 @@
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card-container:hover .card-image {
+/* .card-container:hover .card-image {
   transform: scale(1.08);
-}
+} */
 
 /* ===== 오버레이 ===== */
 .card-overlay-center {
@@ -332,7 +332,7 @@
   font-weight: 800;
 
   line-height: 1.3;
-  color: #434343;
+  color: #ffffff;
   margin: 0 0 0.3rem 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;

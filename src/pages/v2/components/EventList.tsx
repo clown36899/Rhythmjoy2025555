@@ -28,6 +28,7 @@ import Footer from "./Footer";
 import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
 import { EditablePreviewCard } from "../../../components/EditablePreviewCard";
 import ShoppingBanner from "./ShoppingBanner";
+import BillboardSection from "./BillboardSection";
 import "../../../styles/components/EventList.css";
 import "../../../components/EventRegistrationModal.css";
 import "../styles/EventListSections.css";
@@ -2276,13 +2277,15 @@ export default function EventList({
             {/* Shopping Mall Banner */}
             <ShoppingBanner />
 
+            {/* Billboard Section - Scrolling Events */}
+            <BillboardSection events={events} />
 
 
             {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
             <div className="evt-v2-section evt-v2-section-events">
               <div className="evt-v2-section-title">
 
-                <span>행사</span>
+                <span>진행중인 행사</span>
                 <span className="evt-v2-count">{futureEvents.length}</span>
                 {futureEvents.length > 0 && (
                   <button
@@ -2320,6 +2323,7 @@ export default function EventList({
                       defaultThumbnailClass={defaultThumbnailClass}
                       defaultThumbnailEvent={defaultThumbnailEvent}
                       variant="sliding"
+                      hideGenre={true}
                     />
                   ))}
                   <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
@@ -2396,6 +2400,8 @@ export default function EventList({
                       defaultThumbnailClass={defaultThumbnailClass}
                       defaultThumbnailEvent={defaultThumbnailEvent}
                       variant="sliding"
+                      hideGenre={true}
+                      hideDate={true}
                     />
                   ))}
                   <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>

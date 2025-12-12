@@ -55,6 +55,8 @@ interface EventCardProps {
   defaultThumbnailClass: string;
   defaultThumbnailEvent: string;
   variant?: "single" | "sliding";
+  hideGenre?: boolean;
+  hideDate?: boolean;
 }
 
 export const EventCard = memo(({
@@ -67,6 +69,8 @@ export const EventCard = memo(({
   defaultThumbnailClass,
   defaultThumbnailEvent,
   variant = "single",
+  hideGenre = false,
+  hideDate = false,
 }: EventCardProps) => {
   const highlightBorderColor =
     event.category === "class" ? "#9333ea" : "#2563eb";
@@ -208,7 +212,7 @@ export const EventCard = memo(({
 
       <div className={`card-text-container ${event.category === 'class' ? 'card-text-container-class' : 'card-text-container-event'
         }`}>
-        {event.genre && (
+        {event.genre && !hideGenre && (
           <p className={`card-genre-text ${event.category === 'class' ? 'card-genre-text-class' : 'card-genre-text-event'
             } ${getGenreColor(event.genre)}`}>
             {event.genre}
@@ -216,13 +220,15 @@ export const EventCard = memo(({
         )}
         <h3 className={`card-title-text ${event.category === 'class' ? 'card-title-text-class' : 'card-title-text-event'
           }`}>{event.title}</h3>
-        <div className="card-date-container">
-          {isOnSelectedDate && (
-            <span className="card-date-indicator"></span>
-          )}
-          <span className={`card-date-text ${event.category === 'class' ? 'card-date-text-class' : 'card-date-text-event'
-            }`}>{dateText}</span>
-        </div>
+        {!hideDate && (
+          <div className="card-date-container">
+            {isOnSelectedDate && (
+              <span className="card-date-indicator"></span>
+            )}
+            <span className={`card-date-text ${event.category === 'class' ? 'card-date-text-class' : 'card-date-text-event'
+              }`}>{dateText}</span>
+          </div>
+        )}
       </div>
     </div>
   );
