@@ -307,7 +307,7 @@ export function MobileShell() {
               )}
 
               {/* Practice List: Register Button */}
-              {isPracticePage && (
+              {/* {isPracticePage && (
                 <button
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('practiceRoomRegister'));
@@ -317,7 +317,7 @@ export function MobileShell() {
                   <i className="ri-add-line"></i>
                   <span>등록</span>
                 </button>
-              )}
+              )} */}
               {isAdmin && (
                 <button
                   onClick={() => setShowAdminPanel(!showAdminPanel)}

@@ -58,7 +58,7 @@ export default function SocialPage() {
         ref={headerRef}
         className="social-header global-header"
       >
-        <SimpleHeader title="Social Schedule" />
+        <SimpleHeader title="정기 소셜 일정" />
       </div>
 
       {/* 메인 콘텐츠 */}

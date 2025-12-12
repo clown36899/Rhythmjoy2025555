@@ -17,135 +17,164 @@
 
 /* ===== 콘텐츠 영역 ===== */
 .guide-content {
-  padding-top: 4rem;
+  padding-top: 5rem;
   padding-bottom: 4rem;
   padding-left: var(--spacing-4);
   padding-right: var(--spacing-4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 5rem);
 }
 
 .guide-inner-content {
-  padding: var(--spacing-6);
+  max-width: 560px;
+  width: 100%;
+  padding: 2.5rem;
+  background: rgba(17, 24, 39, 0.6);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: white;
 }
 
 .guide-centered-content {
   text-align: center;
-  margin-bottom: var(--spacing-6);
 }
 
 /* ===== 타이틀 ===== */
 .guide-title {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  margin-bottom: var(--spacing-4);
+  margin-bottom: 2rem;
   color: #60a5fa;
+  letter-spacing: -0.02em;
 }
 
 /* ===== 메인 메시지 섹션 ===== */
 .guide-main-message {
-  margin-bottom: var(--spacing-6);
+  margin-bottom: 2rem;
+  text-align: left;
 }
 
 .guide-highlight-text {
-  color: #facc15;
-  margin-bottom: var(--spacing-4);
-  font-size: 1rem;
-  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 1.5rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+  text-align: center;
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
-    opacity: 0.5;
+    opacity: 0.7;
   }
 }
 
 .guide-instructions {
-  color: #9ca3af;
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
+  color: #e5e7eb;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
+.guide-instructions strong {
+  color: #93c5fd;
+  font-weight: 600;
 }
 
 .guide-warning-text {
   color: #fb923c;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-top: var(--spacing-4);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  background: rgba(251, 146, 60, 0.08);
+  border-radius: 8px;
+  border-left: 2px solid #fb923c;
+  text-align: left;
 }
 
 /* ===== 공유 버튼 섹션 ===== */
 .guide-share-section {
-  margin-top: var(--spacing-6);
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
 }
 
 .guide-share-button {
-  background-color: var(--color-blue-600);
+  background: #2563eb;
   color: white;
   font-weight: 600;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-  padding-left: var(--spacing-6);
-  padding-right: var(--spacing-6);
-  border-radius: var(--radius-lg);
+  font-size: 0.9375rem;
+  padding: 0.875rem 2rem;
+  border-radius: 10px;
   transition: all 0.2s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-2);
-  margin-left: auto;
-  margin-right: auto;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  gap: 0.5rem;
   border: none;
   cursor: pointer;
 }
 
 .guide-share-button:hover {
-  background-color: var(--color-blue-700);
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.guide-share-button:active {
+  transform: translateY(0);
 }
 
 .guide-share-icon {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
 }
 
 .guide-share-hint {
   font-size: 0.75rem;
-  color: var(--color-gray-500);
-  margin-top: var(--spacing-2);
+  color: #9ca3af;
+  margin-top: 0.5rem;
 }
 
 /* ===== 연락처 섹션 ===== */
 .guide-contact-section {
-  margin-top: var(--spacing-8);
-  padding-top: var(--spacing-6);
-  border-top: 1px solid var(--color-gray-700);
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .guide-site-description {
-  color: #9ca3af;
+  color: #d1d5db;
   font-size: 0.875rem;
-  margin-bottom: var(--spacing-2);
+  margin-bottom: 0.5rem;
 }
 
 .guide-copyright {
   color: #9ca3af;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  margin-bottom: 0.5rem;
 }
 
 .guide-contact-info {
-  color: var(--color-gray-500);
-  font-size: 0.75rem;
-  margin-top: var(--spacing-2);
+  color: #9ca3af;
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
 }
 
 .guide-phone-link {
   color: #60a5fa;
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .guide-phone-link:hover {
   color: #93c5fd;
+  text-decoration: underline;
 }

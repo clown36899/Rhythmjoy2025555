@@ -51,18 +51,17 @@ export default function GuidePage() {
         <div className="guide-inner-content">
           <div className="guide-centered-content">
             <h2 className="guide-title">광고판 사용 안내</h2>
-            
+
             {/* 주 문구 */}
             <div className="guide-main-message">
               <p className="guide-highlight-text">
-                누구나 일정 무료 등록가능 (로그인 x),
+                누구나 일정 무료 등록가능 (로그인 x)
               </p>
 
               <p className="guide-instructions">
-                사용방법 <br />
-                달력을 두번 클릭하면 일정등록폼이 나옵니다.<br />
-                자율등록하시고 비번설정으로 수정가능
-                <br />공공의 이익에 해가되면 삭제수정될수있습니다.
+                <strong>사용방법</strong><br />
+                자율등록하시고 비번설정으로 수정가능<br />
+                관리자 판단하에 이유불문 삭제수정될수있습니다.
               </p>
 
               <p className="guide-warning-text">
