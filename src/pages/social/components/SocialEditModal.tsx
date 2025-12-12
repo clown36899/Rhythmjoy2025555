@@ -1,77 +1,59 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { resizeImage } from '../../../utils/imageResize';
 import './SocialEditModal.css';
 
 interface SocialEditModalProps {
   item: any;
-  itemType: 'event' | 'schedule';
+  itemType: 'schedule';
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (data?: any, isDelete?: boolean) => void;
 }
 
 interface FormDataType {
   title?: string;
   day_of_week?: number;
-  place_id?: number | string;
+  place_name?: string;
+  address?: string;
+  category?: 'club' | 'swing-bar' | '';
   description?: string;
-  start_time?: string;
-  end_time?: string;
   inquiry_contact?: string;
   link_name?: string;
   link_url?: string;
-  // For legacy event support
-  event_date?: string;
+  image?: string;
 }
 
 export default function SocialEditModal({ item, itemType, onClose, onSuccess }: SocialEditModalProps) {
   const [formData, setFormData] = useState<FormDataType>({});
-  const [places, setPlaces] = useState<{ id: number; name: string; }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
 
   useEffect(() => {
-    const fetchPlaces = async () => {
-      const { data } = await supabase.from('social_places').select('id:place_id, name').order('name');
-      setPlaces(data as { id: number; name: string; }[] || []);
-    };
-    fetchPlaces();
-  }, [itemType]);
-
-  useEffect(() => {
     if (item) {
-      if (itemType === 'schedule') {
-        let dow = item.day_of_week;
-        if (dow === null || dow === undefined && item.date) {
-          dow = new Date(item.date).getDay();
-        }
-
-        setFormData({
-          title: item.title,
-          day_of_week: dow,
-          place_id: item.place_id,
-          start_time: item.start_time || '',
-          end_time: item.end_time || '',
-          description: item.description || '',
-          inquiry_contact: item.inquiry_contact || '',
-          link_name: item.link_name || '',
-          link_url: item.link_url || '',
-        });
-      } else {
-        // Event fallback
-        setFormData({
-          title: item.title,
-          event_date: item.event_date,
-          place_id: item.place_id,
-          description: item.description || '',
-        });
+      let dow = item.day_of_week;
+      if (dow === null || dow === undefined && item.date) {
+        dow = new Date(item.date).getDay();
       }
+
+      setFormData({
+        title: item.title,
+        day_of_week: dow,
+        place_name: item.place_name || '',
+        address: item.address || '',
+        category: item.category || '',
+        description: item.description || '',
+        inquiry_contact: item.inquiry_contact || '',
+        link_name: item.link_name || '',
+        link_url: item.link_url || '',
+        image: item.image || '',
+      });
     }
   }, [item, itemType]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    if (name === 'place_id' || name === 'day_of_week') {
+    if (name === 'day_of_week') {
       setFormData(prev => ({ ...prev, [name]: Number(value) }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
@@ -96,36 +78,43 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
     }
 
     try {
-      if (itemType === 'event') {
-        // Simple update for legacy events
-        const { error: updateError } = await supabase.from('social_events').update({
-          title: formData.title,
-          event_date: formData.event_date,
-          place_id: formData.place_id,
-          description: formData.description,
-        }).eq('id', item.id);
-        if (updateError) throw updateError;
+      // Schedule Update - Direct update instead of RPC
+      // First verify password (double check with server)
+      const { data: scheduleData, error: fetchError } = await supabase
+        .from('social_schedules')
+        .select('password')
+        .eq('id', item.id)
+        .single();
 
-      } else {
-        // Schedule Update with RPC
-        const { error: updateError } = await supabase.rpc('update_social_schedule_with_password', {
-          p_schedule_id: item.id,
-          p_password: passwordInput,
-          p_title: formData.title,
-          p_date: null,
-          p_start_time: formData.start_time || null,
-          p_end_time: formData.end_time || null,
-          p_description: formData.description || null,
-          p_day_of_week: formData.day_of_week,
-          p_inquiry_contact: formData.inquiry_contact || null,
-          p_link_name: formData.link_name || null,
-          p_link_url: formData.link_url || null,
-        });
+      if (fetchError) throw fetchError;
 
-        if (updateError) throw updateError;
+      if (scheduleData?.password !== passwordInput) {
+        throw new Error('비밀번호가 올바르지 않습니다.');
       }
+
+      // Then update
+      const { data: updatedData, error: updateError } = await supabase
+        .from('social_schedules')
+        .update({
+          title: formData.title,
+          place_name: formData.place_name || null,
+          address: formData.address || null,
+          category: formData.category || null,
+          description: formData.description || null,
+          day_of_week: formData.day_of_week,
+          inquiry_contact: formData.inquiry_contact || null,
+          link_name: formData.link_name || null,
+          link_url: formData.link_url || null,
+          image: formData.image || null,
+        })
+        .eq('id', item.id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      onSuccess(updatedData, false); // false = not deleted
       alert('수정되었습니다.');
-      onSuccess();
     } catch (err: any) {
       setError(err.message || '수정 중 오류가 발생했습니다.');
       console.error('[수정 실패]', err);
@@ -145,15 +134,15 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
 
     setLoading(true);
     try {
-      const tableName = itemType === 'event' ? 'social_events' : 'social_schedules';
       const { error: deleteError } = await supabase
-        .from(tableName)
+        .from('social_schedules')
         .delete()
         .eq('id', item.id);
 
       if (deleteError) throw deleteError;
+
+      onSuccess(null, true); // true = deleted
       alert('삭제되었습니다.');
-      onSuccess();
     } catch (err: any) {
       setError(err.message || '삭제 중 오류가 발생했습니다.');
     } finally {
@@ -169,43 +158,100 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
 
           <input type="text" name="title" placeholder="제목 *" value={formData.title || ''} onChange={handleInputChange} required className="sed-form-input" />
 
-          {itemType === 'event' ? (
-            <input type="date" name="event_date" value={formData.event_date || ''} onChange={handleInputChange} required className="sed-form-input" />
-          ) : (
-            <select name="day_of_week" value={formData.day_of_week ?? ''} onChange={handleInputChange} required className="sed-form-select">
-              <option value="" disabled>요일 선택</option>
-              <option value="1">월요일</option>
-              <option value="2">화요일</option>
-              <option value="3">수요일</option>
-              <option value="4">목요일</option>
-              <option value="5">금요일</option>
-              <option value="6">토요일</option>
-              <option value="0">일요일</option>
-            </select>
-          )}
-
-          <select name="place_id" value={formData.place_id || ''} onChange={handleInputChange} className="sed-form-select">
-            <option value="" disabled>장소 선택 (변경 시)</option>
-            {places.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          <select name="day_of_week" value={formData.day_of_week ?? ''} onChange={handleInputChange} required className="sed-form-select">
+            <option value="" disabled>요일 선택</option>
+            <option value="1">월요일</option>
+            <option value="2">화요일</option>
+            <option value="3">수요일</option>
+            <option value="4">목요일</option>
+            <option value="5">금요일</option>
+            <option value="6">토요일</option>
+            <option value="0">일요일</option>
           </select>
 
-          {itemType === 'schedule' && (
-            <>
-              <input type="text" name="inquiry_contact" placeholder="문의 연락처" value={formData.inquiry_contact || ''} onChange={handleInputChange} className="sed-form-input" />
-              <div className="sed-link-group" style={{ display: 'flex', gap: '5px' }}>
-                <input type="text" name="link_name" placeholder="링크명" value={formData.link_name || ''} onChange={handleInputChange} className="sed-form-input half" style={{ flex: 1 }} />
-                <input type="text" name="link_url" placeholder="링크 URL" value={formData.link_url || ''} onChange={handleInputChange} className="sed-form-input half" style={{ flex: 1 }} />
-              </div>
-              <div className="sed-time-grid">
-                <input type="time" name="start_time" value={formData.start_time || ''} onChange={handleInputChange} className="sed-form-input" />
-                <input type="time" name="end_time" value={formData.end_time || ''} onChange={handleInputChange} className="sed-form-input" />
-              </div>
-            </>
-          )}
+          <input type="text" name="place_name" placeholder="장소명 *" value={formData.place_name || ''} onChange={handleInputChange} required className="sed-form-input" />
+
+          <input type="text" name="address" placeholder="주소" value={formData.address || ''} onChange={handleInputChange} className="sed-form-input" />
+
+          <select name="category" value={formData.category || ''} onChange={handleInputChange} className="sed-form-select">
+            <option value="">카테고리 선택 (선택사항)</option>
+            <option value="club">클럽</option>
+            <option value="swing-bar">스윙바</option>
+          </select>
+
+          <input type="text" name="inquiry_contact" placeholder="문의 연락처" value={formData.inquiry_contact || ''} onChange={handleInputChange} className="sed-form-input" />
+          <div className="sed-link-group" style={{ display: 'flex', gap: '5px' }}>
+            <input type="text" name="link_name" placeholder="링크명" value={formData.link_name || ''} onChange={handleInputChange} className="sed-form-input half" style={{ flex: 1 }} />
+            <input type="text" name="link_url" placeholder="링크 URL" value={formData.link_url || ''} onChange={handleInputChange} className="sed-form-input half" style={{ flex: 1 }} />
+          </div>
+
+          <div style={{ marginBottom: '10px' }}>
+            <label className="sed-form-label" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#ccc' }}>
+              대표 이미지 (선택)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                try {
+                  // WebP & Resize (Max width 1280px for efficiency)
+                  const resizedFile = await resizeImage(file, 1280, 0.85);
+
+                  // Use consistent naming
+                  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.webp`;
+                  const filePath = `social/${fileName}`;
+
+                  const { error: uploadError } = await supabase.storage
+                    .from('images') // Changed to 'images' bucket
+                    .upload(filePath, resizedFile);
+
+                  if (uploadError) throw uploadError;
+
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('images')
+                    .getPublicUrl(filePath);
+
+                  setFormData(prev => ({ ...prev, image: publicUrl }));
+                } catch (error) {
+                  console.error('Image upload failed:', error);
+                  alert('이미지 업로드에 실패했습니다.');
+                }
+              }}
+              style={{ display: 'none' }}
+              id="social-edit-image-upload"
+            />
+            <label htmlFor="social-edit-image-upload" className="sed-form-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '100px', border: '1px dashed #555' }}>
+              {formData.image ? (
+                <img src={formData.image} alt="Preview" style={{ maxHeight: '100px', objectFit: 'contain' }} />
+              ) : (
+                <span style={{ color: '#888' }}>+ 이미지 변경</span>
+              )}
+            </label>
+            {formData.image && (
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                style={{
+                  marginTop: '5px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#ff6b6b',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  textDecoration: 'underline'
+                }}
+              >
+                이미지 삭제
+              </button>
+            )}
+          </div>
 
           <textarea name="description" placeholder="설명" value={formData.description || ''} onChange={handleInputChange} className="sed-form-textarea" rows={2}></textarea>
 
-          <input type="password" name="password" placeholder="비밀번호 확인 *" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required className="sed-password-input" />
+          <input type="password" name="password" placeholder="비밀번호 확인 *" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required className="sed-password-input" autoComplete="current-password" />
 
           {error && <p className="sed-error-message">{error}</p>}
 

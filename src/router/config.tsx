@@ -8,8 +8,6 @@ import { AuthProvider } from "../contexts/AuthContext";
 import HomeV2 from "../pages/v2/Page";
 import PracticeRoomsPage from "../pages/practice/page";
 import GuidePage from "../pages/guide/page";
-import ClubsPage from "../pages/social/clubs/page";
-import SwingBarsPage from "../pages/social/swing-bars/page";
 import SocialCalendarPage from "../pages/social/calendar/page";
 import BoardPage from "../pages/board/page";
 
@@ -37,14 +35,6 @@ const routes: RouteObject[] = [
       {
         path: "social",
         element: <Navigate to="/social/calendar" replace />,
-      },
-      {
-        path: "social/clubs",
-        element: <ClubsPage />,
-      },
-      {
-        path: "social/swing-bars",
-        element: <SwingBarsPage />,
       },
       {
         path: "social/calendar",

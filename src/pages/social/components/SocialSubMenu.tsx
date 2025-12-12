@@ -5,8 +5,6 @@ export default function SocialSubMenu() {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/social/clubs', label: '동호회위치' },
-    { path: '/social/swing-bars', label: '스윙바' },
     { path: '/social/calendar', label: '전체소셜일정' },
   ];
 

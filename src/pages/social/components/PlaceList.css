@@ -1,205 +1,108 @@
-/* PlaceList.css - PlaceList 컴포넌트 전용 스타일 */
-
-/* ===== CSS 변수 정의 ===== */
-:root {
-  --color-card-bg: #242424;
-  --color-yellow-500: #eab308;
-}
-
-/* ===== 메인 컨테이너 ===== */
 .pl-container {
-  /* 컨테이너 스타일 */
+  padding: 1rem 0;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-/* ===== 헤더 영역 ===== */
 .pl-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
 }
 
 .pl-title {
-  font-size: 1.125rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: white;
+  color: #bcbcbc;
+  margin: 0;
 }
 
-.pl-add-button {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  background-color: var(--color-blue-600);
-  color: white;
-  padding: var(--spacing-2) var(--spacing-4);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: var(--transition-colors);
-  cursor: pointer;
-  border: none;
-}
-
-.pl-add-button:hover {
-  background-color: var(--color-blue-700);
-}
-
-.pl-add-icon {
-  margin-right: var(--spacing-1);
-}
-
-/* ===== 모달 공통 ===== */
-.pl-modal-overlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-50);
-  padding: var(--spacing-4);
-}
-
-.pl-modal-container {
-  background-color: var(--color-card-bg);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 28rem;
-  padding: var(--spacing-4);
-}
-
-.pl-modal-content {
-  text-align: center;
-}
-
-.pl-modal-icon {
-  font-size: 2.25rem;
-  color: var(--color-yellow-500);
-  margin-bottom: 0.75rem;
-}
-
-.pl-modal-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 0.5rem;
-}
-
-.pl-modal-text {
-  color: #9ca3af;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
-
-.pl-modal-contact {
-  color: var(--color-blue-400);
-}
-
-.pl-modal-button {
-  background-color: var(--color-green-600);
-  color: white;
-  padding: var(--spacing-2) var(--spacing-6);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: var(--transition-colors);
-  width: 100%;
-  cursor: pointer;
-  border: none;
-}
-
-.pl-modal-button:hover {
-  background-color: #15803d;
-}
-
-/* ===== 빈 상태 ===== */
-.pl-empty-state {
-  text-align: center;
-  padding-top: 3rem;
-  padding-bottom: 3rem;
-  color: var(--text-tertiary);
-}
-
-/* ===== 장소 그리드 ===== */
+/* 그리드 레이아웃 대신 리스트 형태로 변경 (Slim Card를 위해) */
 .pl-grid {
-  display: grid;
-  gap: 0.75rem;
-}
-
-/* ===== 장소 카드 ===== */
-.pl-card {
-  background-color: var(--color-card-bg);
-  border-radius: var(--radius-lg);
-  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  transition: background-color 0.2s ease;
 }
 
-.pl-card:hover {
-  background-color: var(--color-gray-600);
-}
-
-.pl-card-main {
+/* Slim Place Card */
+.pl-card {
+  display: flex;
+  align-items: center;
+  background: var(--card-bg-color, #ffffff);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  border: 1px solid var(--border-color, #eee);
+  height: 80px;
+  /* 고정 높이 */
+  overflow: hidden;
+}
+
+.pl-card:active {
+  transform: scale(0.98);
+}
+
+/* 이미지 영역 */
+.pl-card-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  margin-right: 1rem;
+  background-color: #f0f0f0;
+}
+
+.pl-card-placeholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 1rem;
+  color: #ccc;
+  font-size: 1.5rem;
+}
+
+/* 텍스트 정보 영역 */
+.pl-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  /* 텍스트 말줄임 필수 */
 }
 
 .pl-card-name {
   font-size: 1rem;
   font-weight: 600;
-  color: white;
-  margin-bottom: 0.25rem;
+  color: var(--text-color);
+  margin: 0 0 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pl-card-address {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* ===== 액션 버튼 영역 ===== */
-.pl-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.pl-action-button {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-gray-700);
-  color: var(--text-secondary);
-  padding: var(--spacing-2);
-  border-radius: var(--radius-md);
-  transition: var(--transition-colors);
-  cursor: pointer;
-  border: none;
-  text-decoration: none;
-}
-
-.pl-action-button:hover {
-  background-color: var(--color-gray-600);
-  color: white;
-}
-
-.pl-icon-calendar {
-  font-size: 1.125rem;
-  color: var(--color-blue-400);
-}
-
-.pl-icon-map {
-  font-size: 1.125rem;
-  color: var(--color-green-500);
-}
-
-.pl-icon-share {
-  font-size: 1.125rem;
-  color: var(--color-purple-500);
+/* 우측 액션 아이콘 (작게) */
+.pl-card-arrow {
+  color: #ccc;
+  font-size: 1.2rem;
+  margin-left: 0.5rem;
 }

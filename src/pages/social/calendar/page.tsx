@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../contexts/AuthContext';
 import SocialSubMenu from '../components/SocialSubMenu';
-import SocialEventModal from '../components/SocialEventModal';
 import './socialcal.css';
 
 interface SocialEvent {
@@ -17,13 +15,9 @@ interface SocialEvent {
 }
 
 export default function SocialCalendarPage() {
-  const { isAdmin } = useAuth();
   const [events, setEvents] = useState<SocialEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showEventModal, setShowEventModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadEvents();
@@ -32,7 +26,7 @@ export default function SocialCalendarPage() {
   const loadEvents = async () => {
     try {
       setLoading(true);
-      
+
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       const firstDay = new Date(year, month, 1);
@@ -42,14 +36,14 @@ export default function SocialCalendarPage() {
         .from('social_schedules')
         .select(`
           id,
-          place_id,
+          place_name,
           title,
           date,
           start_time,
           end_time,
-          description,
-          social_places!inner(name)
+          description
         `)
+        .not('date', 'is', null)
         .gte('date', firstDay.toISOString().split('T')[0])
         .lte('date', lastDay.toISOString().split('T')[0])
         .order('date')
@@ -59,8 +53,8 @@ export default function SocialCalendarPage() {
 
       const formattedEvents = (data || []).map((item: any) => ({
         id: item.id,
-        place_id: item.place_id,
-        place_name: item.social_places?.name || '알 수 없음',
+        place_id: 0, // 더 이상 사용하지 않음
+        place_name: item.place_name || '알 수 없음',
         title: item.title,
         date: item.date,
         start_time: item.start_time,
@@ -76,25 +70,6 @@ export default function SocialCalendarPage() {
     }
   };
 
-  const handleDateClick = (date: Date) => {
-    if (clickTimeout) {
-      clearTimeout(clickTimeout);
-      setClickTimeout(null);
-      handleDoubleClick(date);
-    } else {
-      const timeout = setTimeout(() => {
-        setClickTimeout(null);
-      }, 300);
-      setClickTimeout(timeout);
-    }
-  };
-
-  const handleDoubleClick = (date: Date) => {
-    if (isAdmin) {
-      setSelectedDate(date);
-      setShowEventModal(true);
-    }
-  };
 
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear();
@@ -105,7 +80,7 @@ export default function SocialCalendarPage() {
     const startingDayOfWeek = firstDay.getDay();
 
     const days: (Date | null)[] = [];
-    
+
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
@@ -176,11 +151,10 @@ export default function SocialCalendarPage() {
               {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
                 <div
                   key={day}
-                  className={`socialcal-weekday ${
-                    index === 0 ? 'socialcal-weekday-sun' : 
-                    index === 6 ? 'socialcal-weekday-sat' : 
-                    'socialcal-weekday-normal'
-                  }`}
+                  className={`socialcal-weekday ${index === 0 ? 'socialcal-weekday-sun' :
+                    index === 6 ? 'socialcal-weekday-sat' :
+                      'socialcal-weekday-normal'
+                    }`}
                 >
                   {day}
                 </div>
@@ -201,15 +175,13 @@ export default function SocialCalendarPage() {
                 return (
                   <div
                     key={date.toISOString()}
-                    onClick={() => handleDateClick(date)}
                     className={`socialcal-day-cell ${isToday ? 'socialcal-day-cell-today' : ''}`}
                   >
                     <div
-                      className={`socialcal-day-number ${
-                        index % 7 === 0 ? 'socialcal-day-number-sun' :
+                      className={`socialcal-day-number ${index % 7 === 0 ? 'socialcal-day-number-sun' :
                         index % 7 === 6 ? 'socialcal-day-number-sat' :
-                        'socialcal-day-number-normal'
-                      }`}
+                          'socialcal-day-number-normal'
+                        }`}
                     >
                       {date.getDate()}
                     </div>
@@ -279,16 +251,6 @@ export default function SocialCalendarPage() {
         )}
       </div>
 
-      {showEventModal && selectedDate && (
-        <SocialEventModal
-          date={selectedDate}
-          onClose={() => {
-            setShowEventModal(false);
-            setSelectedDate(null);
-          }}
-          onSaved={loadEvents}
-        />
-      )}
     </div>
   );
 }

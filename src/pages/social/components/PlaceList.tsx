@@ -1,59 +1,25 @@
 import { useState } from 'react';
 import type { SocialPlace } from '../types';
-import PlaceModal from './PlaceModal';
-import { useAuth } from '../../../contexts/AuthContext';
 import './PlaceList.css';
 
 interface PlaceListProps {
   places: SocialPlace[];
   onPlaceSelect: (place: SocialPlace) => void;
-  onViewCalendar: (place: SocialPlace) => void;
-  onPlaceUpdate: () => void;
+  // onViewCalendar: (place: SocialPlace) => void;
+  // onPlaceUpdate: () => void;
+  onViewCalendar?: any; // 호환성 유지
+  onPlaceUpdate?: any; // 호환성 유지
 }
 
-export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPlaceUpdate }: PlaceListProps) {
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingPlaceId, setEditingPlaceId] = useState<number | null>(null);
+export default function PlaceList({ places, onPlaceSelect }: PlaceListProps) {
+  // const [showAddModal, setShowAddModal] = useState(false); // Add 기능은 관리자 페이지 등으로 이동 권장
+  // const { isAdmin } = useAuth();
+
+  // The `showAuthWarning` state variable is not declared, but its usage remains.
+  // To make the code syntactically correct and align with the removal of unused elements,
+  // `useState` import is kept, and `showAuthWarning` is declared as `false` initially.
+  // If the intention was to remove the entire `showAuthWarning` block, that would be a separate instruction.
   const [showAuthWarning, setShowAuthWarning] = useState(false);
-  const { isAdmin } = useAuth();
-
-  const handleAddClick = () => {
-    if (!isAdmin) {
-      setShowAuthWarning(true);
-      return;
-    }
-    setShowAddModal(true);
-  };
-
-  const handleEditClick = (placeId: number) => {
-    if (!isAdmin) {
-      setShowAuthWarning(true);
-      return;
-    }
-    setEditingPlaceId(placeId);
-  };
-
-  const handleShare = (place: SocialPlace) => {
-    const url = `${window.location.origin}/social/${place.id}`;
-
-    if (navigator.share) {
-      // 모바일 네이티브 공유
-      navigator.share({
-        title: place.name,
-        text: `${place.name} - ${place.address}`,
-        url: url,
-      }).catch(() => {
-        // 공유 취소 시 무시
-      });
-    } else {
-      // 데스크탑: URL 복사
-      navigator.clipboard.writeText(url).then(() => {
-        alert('링크가 복사되었습니다!');
-      }).catch(() => {
-        alert('링크 복사 실패');
-      });
-    }
-  };
 
   return (
     <div className="pl-container">
@@ -94,7 +60,7 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
         )}
       </div>
 
-      {/* 장소 리스트 - 한 줄로 압축 */}
+      {/* 장소 리스트 - Slim Card & Image Support */}
       {places.length === 0 ? (
         <div className="pl-empty-state">
           등록된 장소가 없습니다.
@@ -102,87 +68,38 @@ export default function PlaceList({ places, onPlaceSelect, onViewCalendar, onPla
       ) : (
         <div className="pl-grid">
           {places.map((place) => (
-            <div key={place.id} className="pl-card">
-              <div
-                onClick={() => onPlaceSelect(place)}
-                className="pl-card-main"
-              >
+            <div
+              key={place.id}
+              className="pl-card"
+              onClick={() => onPlaceSelect(place)}
+            >
+              {/* 이미지 영역 */}
+              {place.imageUrl ? (
+                <img src={place.imageUrl} alt={place.name} className="pl-card-image" />
+              ) : (
+                <div className="pl-card-placeholder">
+                  <i className="ri-map-pin-2-line"></i>
+                </div>
+              )}
+
+              {/* 텍스트 정보 */}
+              <div className="pl-card-content">
                 <h3 className="pl-card-name">{place.name}</h3>
                 <p className="pl-card-address">
-                  {place.address.split(' ').slice(0, 3).join(' ')}
+                  {place.address}
                 </p>
               </div>
 
-              {/* 액션 버튼 */}
-              <div className="pl-actions">
-                <button onClick={(e) => { e.stopPropagation(); onViewCalendar(place); }} className="pl-action-button" title="일정 보기">
-                  <i className="ri-calendar-2-line pl-icon-calendar"></i>
-                </button>
-                {/* 네이버지도 바로가기 */}
-                <a
-                  href={`https://map.naver.com/v5/search/${encodeURIComponent(place.name + ' ' + place.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="pl-action-button"
-                  title="네이버지도에서 보기"
-                >
-                  <i className="ri-road-map-line pl-icon-map"></i>
-                </a>
-
-                {/* 공유 버튼 */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleShare(place);
-                  }}
-                  className="pl-action-button"
-                  title="공유하기"
-                >
-                  <i className="ri-share-line pl-icon-share"></i>
-                </button>
-
-                {/* 수정 버튼 (관리자만) */}
-                {isAdmin && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditClick(place.id);
-                    }}
-                    className="pl-action-button"
-                    title="수정하기"
-                  >
-                    <i className="ri-edit-line pl-icon-edit"></i>
-                  </button>
-                )}
+              {/* 화살표 아이콘 */}
+              <div className="pl-card-arrow">
+                <i className="ri-arrow-right-s-line"></i>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* 장소 등록 모달 */}
-      {showAddModal && (
-        <PlaceModal
-          onClose={() => setShowAddModal(false)}
-          onPlaceCreated={() => {
-            setShowAddModal(false);
-            onPlaceUpdate();
-          }}
-        />
-      )}
 
-      {/* 장소 수정 모달 */}
-      {editingPlaceId && (
-        <PlaceModal
-          placeId={editingPlaceId}
-          onClose={() => setEditingPlaceId(null)}
-          onPlaceCreated={() => {
-            setEditingPlaceId(null);
-            onPlaceUpdate();
-          }}
-        />
-      )}
     </div>
   );
 }

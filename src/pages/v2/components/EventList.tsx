@@ -31,6 +31,8 @@ import ShoppingBanner from "./ShoppingBanner";
 import "../../../styles/components/EventList.css";
 import "../../../components/EventRegistrationModal.css";
 import "../styles/EventListSections.css";
+import SocialCalendar from "../../social/components/SocialCalendar";
+import { useSocialSchedules } from "../../social/hooks/useSocialSchedules";
 
 registerLocale("ko", ko);
 
@@ -538,6 +540,9 @@ export default function EventList({
       setLoading(false);
     }
   }, [isAdminMode]);
+
+  // Social Schedules Data
+  const { events: socialEvents, loading: socialLoading } = useSocialSchedules();
 
   // 이벤트 데이터 로드
   useEffect(() => {
@@ -2271,6 +2276,8 @@ export default function EventList({
             {/* Shopping Mall Banner */}
             <ShoppingBanner />
 
+
+
             {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
             <div className="evt-v2-section evt-v2-section-events">
               <div className="evt-v2-section-title">
@@ -2397,6 +2404,23 @@ export default function EventList({
                 <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
               )}
 
+            </div>
+
+            {/* Social Schedule Section (Readonly) */}
+            <div className="evt-v2-section social-section-schedule-preview" style={{ marginBottom: '1rem' }}>
+              <div className="evt-v2-section-title">
+                <span>정기 소셜 일정</span>
+              </div>
+              <SocialCalendar
+                showModal={false}
+                setShowModal={() => { }}
+                events={socialEvents}
+                loading={socialLoading}
+                onEventCreated={() => { }}
+                onEventUpdated={() => { }}
+                onEventDeleted={() => { }}
+                readonly={true}
+              />
             </div>
 
             {/* Section 3+: 장르별 이벤트 (랜덤 순서, 진행중인 강습 필터와 독립) - 무조건 표시 */}

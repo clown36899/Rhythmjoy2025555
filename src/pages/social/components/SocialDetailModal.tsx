@@ -1,49 +1,89 @@
-import './SocialEditModal.css'; // Reuse container styles or create new ones
-import { UnifiedSocialEvent } from './SocialCalendar';
+import './SocialPlaceDetailModal.css'; // 통일된 모달 스타일 사용
+import type { UnifiedSocialEvent } from '../types';
 
 interface SocialDetailModalProps {
     item: UnifiedSocialEvent;
     onClose: () => void;
     onEdit: () => void;
+    readonly?: boolean;
 }
 
-export default function SocialDetailModal({ item, onClose, onEdit }: SocialDetailModalProps) {
+export default function SocialDetailModal({ item, onClose, onEdit, readonly = false }: SocialDetailModalProps) {
     return (
-        <div className="sed-modal-overlay" onClick={onClose}>
-            <div className="sed-modal-container" onClick={(e) => e.stopPropagation()}>
-                <div className="detail-content">
-                    <h2 className="sed-modal-title">{item.placeName || '장소 미정'}</h2>
+        <div className="spdm-overlay" onClick={onClose}>
+            <div className="spdm-container" onClick={(e) => e.stopPropagation()}>
+                {/* 닫기 FAB */}
+                <button onClick={onClose} className="spdm-close-fab" title="닫기">
+                    <i className="ri-close-line"></i>
+                </button>
 
-                    <div className="detail-section">
-                        <h3 className="detail-subtitle">{item.title}</h3>
-                        {item.description && <p className="detail-desc">{item.description}</p>}
-                    </div>
+                {/* 이미지 영역 */}
+                <div className="spdm-image-wrapper">
+                    {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.title} className="spdm-image" />
+                    ) : (
+                        <div className="spdm-image-placeholder">
+                            <i className="ri-calendar-event-line"></i>
+                        </div>
+                    )}
+                </div>
 
-                    <div className="detail-info-grid">
-                        {item.startTime && (
-                            <div className="info-row">
-                                <span className="info-label">시간</span>
-                                <span className="info-value">{item.startTime.substring(0, 5)} ~</span>
+                <div className="spdm-content">
+                    {/* 헤더 정보 */}
+                    <div className="spdm-header">
+                        {item.type === 'schedule' && (
+                            <span className="spdm-category-badge">정기 스케줄</span>
+                        )}
+                        <h2 className="spdm-title">{item.title}</h2>
+
+                        {item.placeName && (
+                            <div style={{ color: 'var(--accent-color)', fontWeight: 600, marginBottom: '0.5rem' }}>
+                                @ {item.placeName}
                             </div>
                         )}
+
+                        {item.description && (
+                            <div className="spdm-description">
+                                {item.description}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 상세 정보 아이콘 리스트 */}
+                    <div className="spdm-section">
 
                         {item.inquiryContact && (
-                            <div className="info-row">
-                                <span className="info-label">문의</span>
-                                <span className="info-value">{item.inquiryContact}</span>
+                            <div className="spdm-info-row">
+                                <i className="ri-customer-service-2-line spdm-icon"></i>
+                                <span className="spdm-text">{item.inquiryContact}</span>
                             </div>
                         )}
+
+                        {/* URL이 없더라도 장소명이 있으면 지도 검색 링크 제공 가능하나, 여기선 linkUrl 우선 */}
                     </div>
 
-                    {item.linkUrl && (
-                        <a href={item.linkUrl} target="_blank" rel="noopener noreferrer" className="detail-link-btn">
-                            {item.linkName || '링크 열기'}
-                        </a>
-                    )}
+                    {/* 하단 액션 버튼 */}
+                    <div className="spdm-actions">
+                        {item.linkUrl && (
+                            <a
+                                href={item.linkUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="spdm-btn spdm-btn-primary"
+                            >
+                                <i className="ri-link"></i>
+                                {item.linkName || '링크 열기'}
+                            </a>
+                        )}
 
-                    <div className="detail-actions">
-                        <button onClick={onEdit} className="detail-edit-btn">수정/삭제</button>
-                        <button onClick={onClose} className="detail-close-btn">닫기</button>
+                        {!readonly && (
+                            <button
+                                onClick={onEdit}
+                                className="spdm-btn spdm-btn-secondary"
+                            >
+                                <i className="ri-edit-line"></i> 수정/삭제
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

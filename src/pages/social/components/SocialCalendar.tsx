@@ -1,40 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import SocialEditModal from './SocialEditModal';
 import SocialEventModal from './SocialEventModal';
 import SocialDetailModal from './SocialDetailModal';
+import type { UnifiedSocialEvent } from '../types';
 import './SocialCalendar.css';
 
-export interface UnifiedSocialEvent {
-  id: string;
-  type: 'event' | 'schedule';
-  originalId: number;
-  title: string;
-  placeName?: string;
-  dayOfWeek?: number;
-  startTime?: string;
-  date?: string;
-  imageUrl?: string;
-  inquiryContact?: string;
-  linkName?: string;
-  linkUrl?: string;
-  description?: string;
-  placeId?: number;
-}
-
 interface SocialCalendarProps {
-  currentMonth: Date;
   showModal: boolean;
   setShowModal: (show: boolean) => void;
+  events: UnifiedSocialEvent[];
+  loading: boolean;
+  onEventCreated: (data: any) => void;
+  onEventUpdated: (data: any) => void;
+  onEventDeleted: (originalId: number) => void;
+  readonly?: boolean;
 }
 
-export default function SocialCalendar({ currentMonth, showModal, setShowModal }: SocialCalendarProps) {
-  const [events, setEvents] = useState<UnifiedSocialEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Modals
+export default function SocialCalendar({
+  showModal,
+  setShowModal,
+  events,
+  loading,
+  onEventCreated,
+  onEventUpdated,
+  onEventDeleted,
+  readonly = false
+}: SocialCalendarProps) {
+  // Modals Local State
   const [editingItem, setEditingItem] = useState<{ item: any; type: 'event' | 'schedule' } | null>(null);
   const [detailItem, setDetailItem] = useState<UnifiedSocialEvent | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const weekdays = [
     { id: 0, name: "일" },
@@ -46,110 +42,28 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
     { id: 6, name: "토" },
   ];
 
-  const fetchUnifiedEvents = async () => {
-    setLoading(true);
-    try {
-      const { data: placeSchedules, error: placeSchedulesError } = await supabase
-        .from('social_schedules')
-        .select(`
-          id, title, date, start_time, day_of_week, 
-          inquiry_contact, link_name, link_url, description, place_id,
-          social_places(name)
-        `);
-
-      if (placeSchedulesError) throw placeSchedulesError;
-
-      const { data: socialEvents, error: socialEventsError } = await supabase
-        .from('social_events')
-        .select(`
-          id, title, event_date, image_url, description, place_id,
-          social_places(name)
-        `);
-
-      if (socialEventsError) throw socialEventsError;
-
-      const unifiedEvents: UnifiedSocialEvent[] = [];
-
-      if (placeSchedules) {
-        placeSchedules.forEach(schedule => {
-          let dow = schedule.day_of_week;
-          if (dow === null || dow === undefined) {
-            if (schedule.date) {
-              dow = new Date(schedule.date).getDay();
-            }
-          }
-
-          if (dow !== null && dow !== undefined) {
-            unifiedEvents.push({
-              id: `schedule-${schedule.id}`,
-              type: 'schedule',
-              originalId: schedule.id,
-              title: schedule.title,
-              dayOfWeek: dow,
-              startTime: schedule.start_time,
-              placeName: (schedule.social_places as any)?.name,
-              placeId: schedule.place_id,
-              inquiryContact: schedule.inquiry_contact,
-              linkName: schedule.link_name,
-              linkUrl: schedule.link_url,
-              description: schedule.description,
-            });
-          }
-        });
-      }
-
-      if (socialEvents) {
-        socialEvents.forEach(event => {
-          const date = new Date(event.event_date);
-          const dow = date.getDay();
-          unifiedEvents.push({
-            id: `event-${event.id}`,
-            type: 'event',
-            originalId: event.id,
-            title: event.title,
-            date: event.event_date,
-            dayOfWeek: dow,
-            imageUrl: event.image_url,
-            placeName: (event.social_places as any)?.name,
-            placeId: event.place_id,
-            description: event.description,
-          });
-        });
-      }
-
-      setEvents(unifiedEvents);
-    } catch (error) {
-      console.error('소셜 일정 로딩 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUnifiedEvents();
-  }, []);
-
   const handleCardClick = (event: UnifiedSocialEvent) => {
     setDetailItem(event);
   };
 
   const handleEditClick = async (unifiedEvent: UnifiedSocialEvent) => {
-    if (unifiedEvent.type === 'schedule') {
-      const { data } = await supabase
-        .from('social_schedules')
-        .select('*')
-        .eq('id', unifiedEvent.originalId)
-        .single();
-      if (data) setEditingItem({ item: data, type: 'schedule' });
-    } else {
-      const { data } = await supabase
-        .from('social_events')
-        .select('*')
-        .eq('id', unifiedEvent.originalId)
-        .single();
-      if (data) setEditingItem({ item: data, type: 'event' });
-    }
+    const { data } = await supabase
+      .from('social_schedules')
+      .select('*')
+      .eq('id', unifiedEvent.originalId)
+      .single();
+    if (data) setEditingItem({ item: data, type: 'schedule' });
     setDetailItem(null);
+  };
+
+  const handleAddEvent = (dayId: number) => {
+    setSelectedDay(dayId);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedDay(null);
   };
 
   return (
@@ -162,7 +76,9 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
             {weekdays.map((day) => (
               <div key={day.id} className="day-column">
                 <div className="column-header">
-                  {day.name}
+                  <div className="column-header-content">
+                    <span className="day-name">{day.name}</span>
+                  </div>
                 </div>
                 <div className="column-content">
                   {events
@@ -173,11 +89,29 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
                         className="compact-event-card"
                         onClick={() => handleCardClick(event)}
                       >
+                        {event.imageUrl && (
+                          <div className="compact-image-wrapper">
+                            <img src={event.imageUrl} alt={event.title} className="compact-image" loading="lazy" />
+                          </div>
+                        )}
                         <div className="compact-place">{event.placeName || '미정'}</div>
                         <div className="compact-title">{event.title}</div>
                       </div>
                     ))
                   }
+                  {/* Add Button moved to bottom of list - Hide if readonly */}
+                  {!readonly && (
+                    <button
+                      className="add-event-button-bottom"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddEvent(day.id);
+                      }}
+                      aria-label={`${day.name}요일에 이벤트 추가`}
+                    >
+                      <i className="ri-add-line"></i>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -187,8 +121,12 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
 
       {showModal && (
         <SocialEventModal
-          onClose={() => setShowModal(false)}
-          onEventCreated={() => { setShowModal(false); fetchUnifiedEvents(); }}
+          onClose={handleCloseModal}
+          onEventCreated={(data) => {
+            onEventCreated(data);
+            handleCloseModal();
+          }}
+          preselectedDay={selectedDay ?? undefined}
         />
       )}
 
@@ -197,17 +135,23 @@ export default function SocialCalendar({ currentMonth, showModal, setShowModal }
           item={detailItem}
           onClose={() => setDetailItem(null)}
           onEdit={() => handleEditClick(detailItem)}
+          readonly={readonly}
         />
       )}
 
       {editingItem && (
         <SocialEditModal
           item={editingItem.item}
-          itemType={editingItem.type}
+          itemType={'schedule'}
           onClose={() => setEditingItem(null)}
-          onSuccess={() => {
+          onSuccess={(data, isDelete) => {
+            if (isDelete) {
+              // editingItem.item.id는 number 타입이어야 함
+              onEventDeleted(editingItem.item.id);
+            } else if (data) {
+              onEventUpdated(data);
+            }
             setEditingItem(null);
-            fetchUnifiedEvents();
           }}
         />
       )}

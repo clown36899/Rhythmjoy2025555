@@ -5,126 +5,212 @@
   box-sizing: border-box;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  /* Add consistent padding if needed, or keep flush */
 }
 
 .scal-loader {
   text-align: center;
-  padding: 2rem;
-  font-size: 1rem;
-  color: #888;
+  padding: 3rem;
+  font-size: 0.95rem;
+  color: #666;
+  font-weight: 500;
 }
 
-/* Weekly Grid - 완전 반응형 */
+/* Weekly Grid - Refined & Simple */
 .weekly-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
-  background-color: #0d0d0d;
-  border: 1px solid #0d0d0d;
   width: 100%;
   min-width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Day Column */
 .day-column {
-  background-color: #191919;
+  /* No harsh background, let it blend or distinct slightly */
+  background-color: transparent;
   display: flex;
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  border-right: 1px solid #333;
-  min-height: 200px;
+  /* Very subtle separator */
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 180px;
+  position: relative;
 }
 
 .day-column:last-child {
   border-right: none;
 }
 
+/* Refined Header */
 .column-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0 0.75rem;
+  /* More breathing room top */
+  background-color: transparent;
+  /* Soft text color */
+  color: #888;
+  font-weight: 600;
+  font-size: 1rem;
+  /* Simple, readable size */
+  /* Remove harsh border, maybe spacing covers it */
+}
+
+.column-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.day-name {
   text-align: center;
-  padding: 0.5rem 0.25rem;
-  background-color: #222;
-  color: #ccc;
-  font-weight: bold;
-  font-size: clamp(0.65rem, 2vw, 0.9rem);
-  border-bottom: 1px solid #444;
-  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.02em;
 }
 
-/* Specific day coloring */
-.day-column:nth-child(1) .column-header {
-  color: #f87171;
+/* Specific day coloring - refined tones */
+.day-column:nth-child(1) .day-name {
+  color: #ff6b6b;
+  /* Softer red */
 }
 
-.day-column:nth-child(7) .column-header {
-  color: #60a5fa;
+.day-column:nth-child(7) .day-name {
+  color: #4dabf7;
+  /* Softer blue */
 }
+
+/* Active/Today indication could be added here if needed */
 
 .column-content {
-  padding: clamp(2px, 0.5vw, 4px);
+  padding: 0 4px 12px;
   display: flex;
   flex-direction: column;
-  gap: clamp(3px, 0.5vw, 6px);
+  gap: 6px;
   flex: 1;
 }
 
-/* Compact Event Card */
+/* Compact Event Card - Modern & Card-like */
 .compact-event-card {
-  background-color: #333;
-  border-radius: 4px;
-  padding: clamp(3px, 0.5vw, 6px);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 8px 6px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border: 1px solid #444;
-  min-height: 0;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid transparent;
+  /* Prepare for hover border */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .compact-event-card:hover {
-  background-color: #444;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .compact-place {
-  font-size: clamp(0.6rem, 1.5vw, 0.75rem);
-  color: #aaa;
-  margin-bottom: 2px;
+  font-size: 0.7rem;
+  color: #888;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.compact-image-wrapper {
+  width: 100%;
+  aspect-ratio: 16/16;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.compact-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .compact-title {
-  font-size: clamp(0.65rem, 1.8vw, 0.8rem);
-  color: white;
-  font-weight: bold;
-  line-height: 1.2;
-  word-break: break-word;
+  font-size: 0.8rem;
+  color: #e0e0e0;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-all;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
-/* 작은 화면 최적화 */
+/* Add Button - Minimalist */
+.add-event-button-bottom {
+  margin-top: auto;
+  width: 100%;
+  padding: 6px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #555;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 28px;
+}
+
+.add-event-button-bottom:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ccc;
+}
+
+/* Media Queries */
 @media (max-width: 768px) {
   .day-column {
-    min-height: 150px;
+    min-height: 140px;
   }
 
   .column-header {
-    padding: 0.4rem 0.2rem;
+    font-size: 0.9rem;
+    padding-top: 0.75rem;
+  }
+
+  .compact-title {
+    font-size: 0.75rem;
   }
 }
 
 @media (max-width: 480px) {
+
+  /* Mobile optimization */
+  .weekly-grid {
+    grid-template-columns: repeat(7, minmax(45px, 1fr));
+    /* Ensure minimum width */
+  }
+
   .day-column {
     min-height: 120px;
+    border-right-width: 0.5px;
+    /* Thinner lines on high DPI */
   }
 
   .column-header {
-    padding: 0.3rem 0.1rem;
+    padding: 0.5rem 0;
+    font-size: 0.85rem;
   }
 
   .compact-event-card {
-    border-radius: 2px;
+    padding: 6px 4px;
+    border-radius: 4px;
   }
 }

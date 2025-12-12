@@ -1,26 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import {
-  SeoulMap,
-  PlaceList,
-  PlaceCalendar,
-  SocialCalendar
+  SocialCalendar,
 } from './components';
+import SocialEditModal from './components/SocialEditModal';
 import SimpleHeader from '../../components/SimpleHeader';
-import type { SocialPlace } from './types';
 import './social.css';
 
+import { useSocialSchedules } from './hooks/useSocialSchedules';
+
 export default function SocialPage() {
-  const { placeId } = useParams();
-  const navigate = useNavigate();
-  const [places, setPlaces] = useState<SocialPlace[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [focusedPlace, setFocusedPlace] = useState<SocialPlace | null>(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Modal State
   const [showEventModal, setShowEventModal] = useState(false);
+
+  // Layout State
   const [headerHeight, setHeaderHeight] = useState(0);
   const headerRef = useRef<HTMLDivElement>(null);
+
+  // Data Fetching Hook
+  const {
+    events,
+    loading: schedulesLoading
+  } = useSocialSchedules();
 
   useEffect(() => {
     const headerElement = headerRef.current;
@@ -40,54 +41,16 @@ export default function SocialPage() {
     return () => window.removeEventListener('openSocialRegistration', handleOpenRegistration);
   }, []);
 
-  // 장소 목록 불러오기
-  useEffect(() => {
-    loadPlaces();
-  }, []);
+  // Edit State
+  const [selectedEventForEdit, setSelectedEventForEdit] = useState<any | null>(null);
 
-  // URL 파라미터로 달력에 표시할 장소 선택
-  const placeForCalendar = placeId && places.length > 0
-    ? places.find(p => p.id === parseInt(placeId))
-    : null;
 
-  const loadPlaces = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('social_places')
-        .select('id:place_id, name, address, latitude, longitude, created_at')
-        .order('name');
-
-      if (error) throw error;
-      setPlaces(data || []);
-    } catch (error) {
-      console.error('장소 로딩 실패:', error);
-    } finally {
-      setLoading(false);
-    }
+  // 강제 새로고침 핸들러 (사용자 요청: 확실한 반영을 위해)
+  const handleForceReload = () => {
+    window.location.reload();
   };
 
-  const handleFocusPlace = (place: SocialPlace) => {
-    setFocusedPlace(place);
-    // 리스트에서 장소 클릭 시 별도 뷰 전환 없이 지도 포커스만 이동
-  };
-
-  const handleViewCalendar = (place: SocialPlace) => {
-    navigate(`/social/${place.id}`);
-  };
-
-  // 장소별 달력 보기 (상세 페이지 개념)
-  if (placeForCalendar) {
-    return (
-      <PlaceCalendar
-        place={placeForCalendar}
-        onBack={() => navigate('/social')}
-        onPlaceUpdate={loadPlaces}
-      />
-    );
-  }
-
-  // 메인 화면: 주간 스케줄표 (상단) + 지도/장소 리스트 (하단)
+  // 메인 화면: 주간 스케줄표 (상단)
   return (
     <div className="social-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
       {/* 상단 고정 헤더 - SimpleHeader 사용으로 통일성 확보 */}
@@ -100,7 +63,7 @@ export default function SocialPage() {
 
       {/* 메인 콘텐츠 */}
       <div style={{ paddingTop: `51px`, paddingBottom: '80px' }}>
-        {loading ? (
+        {schedulesLoading ? (
           <div className="social-loader">
             <div className="loader-text">로딩 중...</div>
           </div>
@@ -109,25 +72,31 @@ export default function SocialPage() {
             {/* 1. 주간 스케줄표 */}
             <section className="social-section-schedule">
               <SocialCalendar
-                currentMonth={currentMonth}
                 showModal={showEventModal}
                 setShowModal={setShowEventModal}
-              />
-            </section>
-
-            {/* 2. 장소 지도 및 리스트 */}
-            <section className="social-section-places" style={{ padding: '0 1rem' }}>
-
-              <PlaceList
-                places={places}
-                onPlaceSelect={handleFocusPlace}
-                onViewCalendar={handleViewCalendar}
-                onPlaceUpdate={loadPlaces}
+                events={events}
+                loading={schedulesLoading}
+                onEventCreated={handleForceReload}
+                onEventUpdated={handleForceReload}
+                onEventDeleted={handleForceReload}
               />
             </section>
           </div>
         )}
       </div>
+
+      {/* 수정 모달 */}
+      {selectedEventForEdit && (
+        <SocialEditModal
+          item={selectedEventForEdit}
+          itemType="schedule"
+          onClose={() => setSelectedEventForEdit(null)}
+          onSuccess={(data, isDelete) => {
+            handleForceReload();
+            setSelectedEventForEdit(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,14 +1,16 @@
 -- Update the RPC function to support new columns
 -- Run this in Supabase SQL Editor
 
+-- Drop the old function first to avoid signature conflicts
+DROP FUNCTION IF EXISTS update_social_schedule_with_password(bigint, text, text, text, text, text, text, integer, text, text, text);
+DROP FUNCTION IF EXISTS update_social_schedule_with_password(bigint, text, text, date, text, text, text, integer, text, text, text);
+
+-- Create the new function without date, start_time, end_time parameters
 CREATE OR REPLACE FUNCTION update_social_schedule_with_password(
   p_schedule_id bigint,
   p_password text,
   p_title text,
-  p_date text, -- Keeping for compatibility, can be null
-  p_start_time text,
-  p_end_time text,
-  p_description text,
+  p_description text DEFAULT NULL,
   p_day_of_week integer DEFAULT NULL,
   p_inquiry_contact text DEFAULT NULL,
   p_link_name text DEFAULT NULL,
@@ -29,13 +31,10 @@ BEGIN
     RAISE EXCEPTION 'Password does not match';
   END IF;
 
-  -- Update record
+  -- Update record (date is not updated for weekly schedules)
   UPDATE social_schedules
   SET
     title = p_title,
-    date = p_date,
-    start_time = p_start_time,
-    end_time = p_end_time,
     description = p_description,
     day_of_week = p_day_of_week,
     inquiry_contact = p_inquiry_contact,
