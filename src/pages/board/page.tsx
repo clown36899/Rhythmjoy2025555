@@ -205,7 +205,14 @@ export default function BoardPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPosts(data || []);
+
+      // Transform prefix from array to single object
+      const transformedData = data?.map(post => ({
+        ...post,
+        prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix
+      })) || [];
+
+      setPosts(transformedData as BoardPost[]);
     } catch (error) {
       console.error('게시글 로딩 실패:', error);
     } finally {
@@ -362,8 +369,8 @@ export default function BoardPage() {
                   key={post.id}
                   onClick={() => handlePostClick(post)}
                   className={`board-post-card ${post.is_notice
-                      ? 'board-post-card-notice'
-                      : 'board-post-card-normal'
+                    ? 'board-post-card-notice'
+                    : 'board-post-card-normal'
                     }`}
                 >
                   <div className="board-post-header">

@@ -525,15 +525,34 @@
 /* ===== 연습실 카드 반응형 (쇼핑 카드와 동일) ===== */
 @media (max-width: 640px) {
   .prl-card {
-    height: 140px;
+    height: 100px;
   }
 
   .prl-card-info {
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
   }
 
   .prl-card-name {
-    font-size: 1rem;
+    font-size: 0.9375rem;
+    line-height: 1.2;
+  }
+
+  .prl-card-address {
+    font-size: 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .prl-card-address-text {
+    -webkit-line-clamp: 1;
+  }
+
+  .prl-card-description {
+    display: none;
+  }
+
+  .prl-card-image-wrapper {
+    width: 6rem;
   }
 
   .prl-card-image-wrapper {}

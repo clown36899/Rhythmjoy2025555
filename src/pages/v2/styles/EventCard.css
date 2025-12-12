@@ -111,7 +111,7 @@
 /* 강습 카드 전용 스타일 */
 .card-category-class {
   flex: 0 0 auto !important;
-  width: 25% !important;
+  width: 28% !important;
   border: 1px solid #555;
   border-radius: 1rem;
   /* padding: 0.4rem; */
@@ -154,7 +154,7 @@
 
 /* 강습 카드 이미지 래퍼 - 완전 독립 */
 .card-image-wrapper-class {
-  aspect-ratio: 3 / 3;
+  aspect-ratio: 3.5 / 3;
   border-radius: 12px 12px 0 0;
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   /* margin-bottom: 12px; */

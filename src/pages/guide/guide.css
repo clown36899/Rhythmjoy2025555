@@ -11,7 +11,7 @@
 
 /* ===== 콘텐츠 영역 ===== */
 .guide-content {
-  padding: 2rem 1rem 4rem;
+  padding: 2rem 1rem 5rem;
   max-width: 650px;
   margin: 0 auto;
 }
@@ -302,6 +302,6 @@
   }
 
   .guide-content {
-    padding: 1.5rem 0.75rem 3rem;
+    padding: 1.5rem 0.75rem 7rem;
   }
 }
