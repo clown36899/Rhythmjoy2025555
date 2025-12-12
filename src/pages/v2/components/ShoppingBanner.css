@@ -3,7 +3,7 @@
 /* ===== Banner Container ===== */
 .shopping-banner {
     position: relative;
-    height: 67px;
+    height: 80px;
     background: linear-gradient(135deg, #222222 0%, #212121 100%);
     border-radius: 1rem;
     overflow: hidden;

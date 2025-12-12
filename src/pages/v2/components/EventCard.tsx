@@ -133,25 +133,30 @@ export const EventCard = memo(({
     }
   }
 
-  const endDate = event.end_date || event.date;
-  const today = getLocalDateString();
-  const isPast = endDate ? endDate < today : false;
+  const todayString = getLocalDateString();
+  const isPast = event.end_date ? event.end_date < todayString : (event.date ? event.date < todayString : false);
+
+  // category 기반 클래스 추가
+  const categoryClass = event.category === 'class' ? 'card-category-class' : 'card-category-event';
+
   return (
     <div
       key={event.id}
       data-event-id={event.id}
+      className={`card-container ${isPast ? 'card-container-past' : ''} ${categoryClass} ${isHighlighted ? 'qr-highlighted' : ''}`}
       onClick={onClick}
       onMouseEnter={() => onMouseEnter?.(event.id)}
       onMouseLeave={onMouseLeave}
-      className={`card-container ${isPast ? "card-container-past" : ""}`}
+      style={{
+        ...(isHighlighted ? { '--highlight-color': highlightBorderColor } as React.CSSProperties : {}),
+      }}
+    >  <div
+      className={`card-image-wrapper ${event.category === 'class' ? 'card-image-wrapper-class' : 'card-image-wrapper-event'
+        } ${isHighlighted ? "card-image-wrapper-highlighted" : ""}`}
+      style={{
+        "--highlight-color": isHighlighted ? highlightBorderColor : "transparent"
+      } as React.CSSProperties}
     >
-      <div
-        className={`card-image-wrapper ${isHighlighted ? "card-image-wrapper-highlighted" : ""
-          }`}
-        style={{
-          "--highlight-color": isHighlighted ? highlightBorderColor : "transparent"
-        } as React.CSSProperties}
-      >
         {thumbnailUrl ? (
           <>
             <img
@@ -201,18 +206,22 @@ export const EventCard = memo(({
 
       </div>
 
-      <div className="card-text-container">
+      <div className={`card-text-container ${event.category === 'class' ? 'card-text-container-class' : 'card-text-container-event'
+        }`}>
         {event.genre && (
-          <p className={`card-genre-text ${getGenreColor(event.genre)}`}>
+          <p className={`card-genre-text ${event.category === 'class' ? 'card-genre-text-class' : 'card-genre-text-event'
+            } ${getGenreColor(event.genre)}`}>
             {event.genre}
           </p>
         )}
-        <h3 className="card-title-text">{event.title}</h3>
+        <h3 className={`card-title-text ${event.category === 'class' ? 'card-title-text-class' : 'card-title-text-event'
+          }`}>{event.title}</h3>
         <div className="card-date-container">
           {isOnSelectedDate && (
             <span className="card-date-indicator"></span>
           )}
-          <span>{dateText}</span>
+          <span className={`card-date-text ${event.category === 'class' ? 'card-date-text-class' : 'card-date-text-event'
+            }`}>{dateText}</span>
         </div>
       </div>
     </div>

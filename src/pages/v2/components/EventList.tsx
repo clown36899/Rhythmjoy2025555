@@ -2272,7 +2272,7 @@ export default function EventList({
             <ShoppingBanner />
 
             {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
-            <div className="evt-v2-section">
+            <div className="evt-v2-section evt-v2-section-events">
               <div className="evt-v2-section-title">
 
                 <span>행사</span>
@@ -2325,7 +2325,7 @@ export default function EventList({
 
 
             {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
-            <div className="evt-v2-section">
+            <div className="evt-v2-section evt-v2-section-classes">
               <div className="evt-v2-section-title">
                 <span>강습</span>
                 <span className="evt-v2-count">{futureClasses.length}</span>
@@ -2403,10 +2403,13 @@ export default function EventList({
             {(randomizedGenres.length > 0 ? randomizedGenres : allGenres).map((genre) => {
               // 전체 이벤트에서 해당 장르만 필터링
               const genreEvents = events.filter(e => {
+                // 강습만 표시
+                if (e.category !== 'class') return false;
+
                 if (!e.genre || e.genre !== genre) return false;
 
                 // 날짜 필터 적용: 진행중이거나 예정된 강습만 표시
-                const today = new Date().toISOString().split('T')[0];
+                const today = getLocalDateString();
                 const endDate = e.end_date || e.date;
 
                 // 종료일이 있고 오늘보다 이전이면 숨김 (=이미 끝난 강습)
