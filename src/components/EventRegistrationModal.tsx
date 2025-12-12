@@ -543,13 +543,7 @@ export default function EventRegistrationModal({
             <i className="ri-file-list-line"></i>
             <span className="switcher-label">상세</span>
           </button>
-          <button
-            onClick={() => setPreviewMode('card')}
-            className={`switcher-btn ${previewMode === 'card' ? 'active' : 'inactive'} `}
-          >
-            <i className="ri-gallery-view-2"></i>
-            <span className="switcher-label">카드</span>
-          </button>
+
           <button
             onClick={() => setPreviewMode('billboard')}
             className={`switcher-btn ${previewMode === 'billboard' ? 'active' : 'inactive'} `}
@@ -641,12 +635,24 @@ export default function EventRegistrationModal({
             {/* Mode: Card Preview */}
             <div className="card-preview-container">
               <div className="card-preview-grid">
-                {/* Active Card - Always show at index 1 (top center) */}
-                <div key="active" className="active-card-wrapper">
+                {/* Event Preview Card */}
+                <div key="event-preview" className="active-card-wrapper">
                   <EditablePreviewCard
                     event={{
                       ...previewEvent,
-                      category: previewEvent.category as 'class' | 'event'
+                      category: 'event'
+                    }}
+                    readOnly={true}
+                    showPlaceholders={true}
+                  />
+                </div>
+
+                {/* Class Preview Card */}
+                <div key="class-preview" className="active-card-wrapper">
+                  <EditablePreviewCard
+                    event={{
+                      ...previewEvent,
+                      category: 'class'
                     }}
                     readOnly={true}
                     showPlaceholders={true}
@@ -654,8 +660,8 @@ export default function EventRegistrationModal({
                 </div>
 
                 {/* Dummy Cards - Only render if real events exist */}
-                {dummyEvents.slice(0, 5).map((realEvent, idx) => (
-                  <div key={`dummy - ${idx} `} className="dummy-card-wrapper">
+                {dummyEvents.slice(0, 4).map((realEvent, idx) => (
+                  <div key={`dummy-${idx}`} className="dummy-card-wrapper">
                     <EditablePreviewCard
                       event={{
                         ...realEvent,

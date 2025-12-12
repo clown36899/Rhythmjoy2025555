@@ -15,7 +15,7 @@
     /* 기본적으로 부모 스타일 상속 */
 
     /* 테스트: 이벤트 섹션만 다른 패딩 적용 */
-    padding: 0 0 20px 0;
+    padding: 0 0 0px 0;
 }
 
 .evt-v2-section-events .evt-v2-horizontal-scroll {
@@ -71,7 +71,7 @@
     gap: 0.75rem;
     overflow-x: auto;
     overflow-y: visible;
-    /* padding: 0.5rem 1rem 0.75rem 1rem; */
+    padding: 0rem 1rem 0.75rem 0rem;
 
     /* iOS 모멘텀 스크롤 */
     -webkit-overflow-scrolling: touch;

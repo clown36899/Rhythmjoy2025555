@@ -742,8 +742,9 @@ export default function EventCalendar({
                         src={thumbnailUrl}
                         alt=""
                         className="calendar-fullscreen-image"
-                        loading="lazy"
+                        loading="eager"
                         decoding="async"
+                        fetchPriority="high"
                       />
                     </div>
                   ) : (

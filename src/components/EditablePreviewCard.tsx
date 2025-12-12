@@ -78,10 +78,10 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
     }
 
     return (
-        <div className="card-container editable-preview-card">
+        <div className={`card-container card-category-${event.category} editable-preview-card`}>
             {/* Image Section - Clickable */}
             <div
-                className={`card-image-wrapper ${!readOnly ? 'editable-section' : ''}`}
+                className={`card-image-wrapper card-image-wrapper-${event.category} ${!readOnly ? 'editable-section' : ''}`}
                 onClick={() => !readOnly && onEditImage?.()}
                 title={!readOnly ? "이미지 편집" : undefined}
             >
@@ -137,7 +137,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
             </div>
 
             {/* Text Content */}
-            <div className="card-text-container">
+            <div className={`card-text-container card-text-container-${event.category}`}>
                 {/* Genre - Inline Edit */}
                 {editingField === 'genre' ? (
                     <div style={{ position: 'relative', width: '100%' }}>
@@ -218,7 +218,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                     // Only render genre element if it exists OR if in edit mode OR showPlaceholders is true
                     (event.genre || !readOnly || showPlaceholders) && (
                         <p
-                            className={`card-genre-text ${getGenreColor(event.genre || '')} ${!readOnly ? 'editable-section' : ''}`}
+                            className={`card-genre-text card-genre-text-${event.category} ${getGenreColor(event.genre || '')} ${!readOnly ? 'editable-section' : ''}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 !readOnly && onEditStart?.('genre');
@@ -259,7 +259,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                     // Only render title if it exists OR if in edit mode OR showPlaceholders is true
                     (event.title || !readOnly || showPlaceholders) && (
                         <h3
-                            className={`card-title-text ${!readOnly ? 'editable-section' : ''}`}
+                            className={`card-title-text card-title-text-${event.category} ${!readOnly ? 'editable-section' : ''}`}
                             onClick={() => !readOnly && onEditStart?.('title')}
                             title={!readOnly ? "제목 편집" : undefined}
                             style={{ minHeight: '1em', cursor: !readOnly ? 'text' : 'default' }}
@@ -273,7 +273,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                 {/* Date - Clickable */}
                 {(startDate || !readOnly || showPlaceholders) && (
                     <div
-                        className={`card-date-container ${!readOnly ? 'editable-section' : ''}`}
+                        className={`card-date-container card-date-container-${event.category} ${!readOnly ? 'editable-section' : ''}`}
                         onClick={() => !readOnly && onEditDate?.()}
                         title={!readOnly ? "날짜 편집" : undefined}
                     >
