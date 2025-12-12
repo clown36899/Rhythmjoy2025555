@@ -1,41 +1,6 @@
 /* PostDetailModal.css - PostDetailModal 컴포넌트 전용 스타일 */
 
-/* ===== CSS 변수 정의 ===== */
-:root {
-  /* Colors */
-  --pdm-gray-900: #111827;
-  --pdm-gray-800: #1f2937;
-  --pdm-gray-700: #374151;
-  --pdm-gray-600: #4b5563;
-  --pdm-gray-500: #6b7280;
-  --pdm-gray-400: #9ca3af;
-  --pdm-gray-300: #d1d5db;
-  --pdm-gray-200: #e5e7eb;
-  --pdm-blue-600: #2563eb;
-  --pdm-blue-700: #1d4ed8;
-  --pdm-red-600: #dc2626;
-  --pdm-red-700: #b91c1c;
-
-  /* Spacing */
-  --pdm-spacing-1: 0.25rem;
-  --pdm-spacing-2: 0.5rem;
-  --pdm-spacing-3: 0.75rem;
-  --pdm-spacing-4: 1rem;
-  --pdm-spacing-5: 1.25rem;
-  --pdm-spacing-6: 1.5rem;
-  --pdm-spacing-8: 2rem;
-
-  /* Border Radius */
-  --pdm-radius-md: 0.5rem;
-  --pdm-radius-lg: 0.75rem;
-  --pdm-radius-xl: 1rem;
-
-  /* Z-index */
-  --pdm-z-modal: 9999;
-
-  /* Transitions */
-  --pdm-transition-colors: color 0.2s ease, background-color 0.2s ease;
-}
+/* Uses global CSS variables from base.css */
 
 /* ===== 모달 오버레이 ===== */
 .pdm-modal-overlay {
@@ -49,8 +14,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--pdm-spacing-4);
-  z-index: var(--pdm-z-modal);
+  padding: var(--spacing-4);
+  z-index: var(--z-modal-high);
   animation: fadeIn 0.2s ease;
 }
 
@@ -67,14 +32,14 @@
 /* ===== 모달 컨테이너 ===== */
 .pdm-modal-container {
   background: linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.98) 100%);
-  border-radius: var(--pdm-radius-xl);
+  border-radius: var(--radius-2xl);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   max-width: 48rem;
   width: 100%;
   max-height: 90vh;
   position: relative;
-  z-index: var(--pdm-z-modal);
+  z-index: var(--z-modal-high);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -95,13 +60,13 @@
 
 /* ===== 모달 헤더 ===== */
 .pdm-modal-header {
-  padding: var(--pdm-spacing-6);
+  padding: var(--spacing-6);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--pdm-spacing-4);
+  gap: var(--spacing-4);
 }
 
 .pdm-header-content {
@@ -114,7 +79,7 @@
   line-height: 1.4;
   font-weight: 700;
   color: white;
-  margin-bottom: var(--pdm-spacing-3);
+  margin-bottom: var(--spacing-3);
   word-break: break-word;
 }
 
@@ -122,9 +87,9 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--pdm-spacing-3);
+  gap: var(--spacing-3);
   font-size: 0.875rem;
-  color: var(--pdm-gray-400);
+  color: var(--color-gray-400);
 }
 
 .pdm-meta-item {
@@ -135,17 +100,17 @@
 
 .pdm-meta-item i {
   font-size: 1rem;
-  color: var(--pdm-gray-500);
+  color: var(--color-gray-500);
 }
 
 .pdm-close-btn {
-  color: var(--pdm-gray-400);
+  color: var(--color-gray-400);
   transition: all 0.2s ease;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0.5rem;
-  border-radius: var(--pdm-radius-md);
+  border-radius: var(--radius-lg);
   flex-shrink: 0;
 }
 
@@ -163,7 +128,7 @@
 .pdm-modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--pdm-spacing-6);
+  padding: var(--spacing-6);
 }
 
 .pdm-modal-body::-webkit-scrollbar {
@@ -185,7 +150,7 @@
 }
 
 .pdm-content {
-  color: var(--pdm-gray-200);
+  color: var(--color-gray-300);
   font-size: 1rem;
   line-height: 1.75;
   white-space: pre-wrap;
@@ -194,7 +159,7 @@
 
 /* ===== 모달 푸터 ===== */
 .pdm-modal-footer {
-  padding: var(--pdm-spacing-5) var(--pdm-spacing-6);
+  padding: var(--spacing-5) var(--spacing-6);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
   background: rgba(0, 0, 0, 0.2);
@@ -202,13 +167,13 @@
 
 .pdm-footer-actions {
   display: flex;
-  gap: var(--pdm-spacing-3);
+  gap: var(--spacing-3);
   justify-content: flex-end;
 }
 
 .pdm-btn {
   padding: 0.625rem 1.25rem;
-  border-radius: var(--pdm-radius-md);
+  border-radius: var(--radius-lg);
   font-weight: 600;
   font-size: 0.9375rem;
   transition: all 0.2s ease;
@@ -221,29 +186,29 @@
 }
 
 .pdm-btn-close {
-  background-color: var(--pdm-gray-700);
+  background-color: var(--color-gray-700);
 }
 
 .pdm-btn-close:hover {
-  background-color: var(--pdm-gray-600);
+  background-color: var(--color-gray-600);
   transform: translateY(-1px);
 }
 
 .pdm-btn-edit {
-  background-color: var(--pdm-blue-600);
+  background-color: var(--color-blue-600);
 }
 
 .pdm-btn-edit:hover {
-  background-color: var(--pdm-blue-700);
+  background-color: var(--color-blue-700);
   transform: translateY(-1px);
 }
 
 .pdm-btn-delete {
-  background-color: var(--pdm-red-600);
+  background-color: var(--color-red-600);
 }
 
 .pdm-btn-delete:hover {
-  background-color: var(--pdm-red-700);
+  background-color: var(--color-red-700);
   transform: translateY(-1px);
 }
 
@@ -260,7 +225,7 @@
   }
 
   .pdm-modal-header {
-    padding: var(--pdm-spacing-4);
+    padding: var(--spacing-4);
   }
 
   .pdm-modal-title {
