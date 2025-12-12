@@ -6,6 +6,7 @@ import './ShoppingBanner.css';
 
 export default function ShoppingBanner() {
     const [shops, setShops] = useState<Shop[]>([]);
+    const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
@@ -13,6 +14,7 @@ export default function ShoppingBanner() {
 
     // Fetch shops from Supabase
     const fetchShops = async () => {
+        setLoading(true);
         const { data, error } = await supabase
             .from('shops')
             .select('*, featured_items (*)')
@@ -21,6 +23,7 @@ export default function ShoppingBanner() {
         if (data && !error) {
             setShops(data);
         }
+        setLoading(false);
     };
 
     useEffect(() => {
@@ -55,7 +58,24 @@ export default function ShoppingBanner() {
         fetchShops();
     };
 
-    if (shops.length === 0) return null;
+    // Show skeleton while loading or if no shops available
+    if (loading || shops.length === 0) {
+        return (
+            <div className="shopping-banner shopping-banner-skeleton">
+                <div className="shopping-banner-content">
+                    <div className="shopping-banner-logo">
+                        <div className="shopping-banner-logo-placeholder">
+                            <i className="ri-store-2-fill"></i>
+                        </div>
+                    </div>
+                    <div className="shopping-banner-info">
+                        <div className="shopping-banner-skeleton-line shopping-banner-skeleton-title"></div>
+                        <div className="shopping-banner-skeleton-line shopping-banner-skeleton-desc"></div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const currentShop = shops[currentIndex];
 

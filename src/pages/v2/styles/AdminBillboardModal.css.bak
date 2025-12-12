@@ -1,6 +1,63 @@
 /* AdminBillboardModal.css - AdminBillboardModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --abm-gray-300: #d1d5db;
+  --abm-gray-400: #9ca3af;
+  --abm-gray-500: #6b7280;
+  --abm-gray-600: #4b5563;
+  --abm-gray-700: #374151;
+  --abm-gray-750: #2d3748;
+  --abm-gray-800: #1f2937;
+
+  --abm-blue-400: #60a5fa;
+  --abm-blue-500: #3b82f6;
+  --abm-blue-600: #2563eb;
+  --abm-blue-700: #1d4ed8;
+
+  --abm-purple-300: #d8b4fe;
+  --abm-purple-500: #a855f7;
+  --abm-purple-600: #9333ea;
+  --abm-purple-700: #7e22ce;
+
+  --abm-red-300: #fca5a5;
+  --abm-red-400: #f87171;
+  --abm-red-500: #ef4444;
+  --abm-red-600: #dc2626;
+
+  --abm-green-300: #86efac;
+  --abm-green-400: #4ade80;
+  --abm-green-500: #22c55e;
+  --abm-green-600: #16a34a;
+  --abm-green-700: #15803d;
+
+  --abm-emerald-500: #10b981;
+
+  --abm-orange-600: #ea580c;
+  --abm-orange-700: #c2410c;
+
+  /* 간격 */
+  --abm-spacing-1: 0.25rem;
+  --abm-spacing-2: 0.5rem;
+  --abm-spacing-3: 0.75rem;
+  --abm-spacing-4: 1rem;
+  --abm-spacing-6: 1.5rem;
+
+  /* Border Radius */
+  --abm-radius-lg: 0.5rem;
+  --abm-radius-xl: 0.75rem;
+  --abm-radius-full: 9999px;
+
+  /* Z-index */
+  --abm-z-99999999: 99999999;
+  --abm-z-999999999: 999999999;
+
+  /* 트랜지션 */
+  --abm-transition-colors: color 0.2s ease, background-color 0.2s ease;
+  --abm-transition-all: all 0.2s ease;
+}
+
 /* ===== 로딩 오버레이 ===== */
 .abm-loading-overlay {
   position: fixed;

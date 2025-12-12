@@ -1,6 +1,27 @@
 /* EventDetailModal.css - EventDetailModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 장르 색상 팔레트 */
+  --genre-red-400: #f87171;
+  --genre-orange-400: #fb923c;
+  --genre-amber-400: #fbbf24;
+  --genre-yellow-400: #facc15;
+  --genre-lime-400: #a3e635;
+  --genre-green-400: #4ade80;
+  --genre-emerald-400: #34d399;
+  --genre-teal-400: #2dd4bf;
+  --genre-cyan-400: #22d3ee;
+  --genre-sky-400: #38bdf8;
+  --genre-blue-400: #60a5fa;
+  --genre-indigo-400: #818cf8;
+  --genre-violet-400: #a78bfa;
+  --genre-purple-400: #c084fc;
+  --genre-fuchsia-400: #e879f9;
+  --genre-pink-400: #f472b6;
+  --genre-rose-400: #fb7185;
+}
+
 /* ===== 장르 색상 클래스 ===== */
 .genre-color-red {
   color: var(--genre-red-400);

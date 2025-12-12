@@ -1,6 +1,53 @@
 /* PracticeRoomModal.css - PracticeRoomModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-50: #f9fafb;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+
+  --color-yellow-600: #ca8a04;
+  --color-yellow-700: #a16207;
+
+  /* 간격 */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+
+  /* Z-index */
+  --z-modal-base: 50;
+  --z-modal-high: 60;
+
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+  --transition-shadow: box-shadow 0.2s ease;
+  --transition-all: all 0.2s ease;
+}
+
 /* ===== 모달 오버레이 ===== */
 .room-modal-overlay {
   position: fixed;

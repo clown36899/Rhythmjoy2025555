@@ -1,5 +1,32 @@
 /* SocialEditModal.css - SocialEditModal 컴포넌트 전용 스타일 */
 
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+
+  --color-blue-500: #3b82f6;
+  --color-yellow-400: #facc15;
+  --color-yellow-500: #eab308;
+
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+
+  /* 간격 */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
 /* ===== 모달 오버레이 ===== */
 .sed-modal-overlay {
   position: fixed;

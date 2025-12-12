@@ -1,121 +1,64 @@
 /* EventRegistrationModal.css - EventRegistrationModal 컴포넌트 전용 스타일 */
 
-.cursor-pointer {
-  cursor: pointer;
-  color: #fff;
-}
+/* Note: CSS variables are centralized in base.css */
 
-/* ===== CustomDateInput 버튼 스타일 ===== */
-.reg-date-input-btn {
-  flex: 1;
-  background-color: var(--color-gray-700);
-  color: white;
-  border-radius: var(--radius-lg);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  text-align: left;
-  transition: var(--transition-colors);
-  outline: none;
-  border: none;
-  cursor: pointer;
-}
-
-.reg-date-input-btn:hover {
-  background-color: var(--color-gray-600);
-}
-
-.reg-date-input-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-blue-500);
-}
-
-/* ===== 모달 오버레이 ===== */
+/* ===== Modal Overlay ===== */
 .reg-modal-overlay {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-  background-color: rgba(0, 0, 0, 0.799);
+  background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-modal-base);
+  z-index: var(--z-modal);
   padding: var(--spacing-4);
-  /* padding-top: 2.5rem; */
-  /* Removed to ensure vertical centering */
-  overflow-y: auto;
 }
 
-.reg-modal-overlay.billboard-mode {
-  align-items: center;
-  padding-top: 0;
-  /* Space for switcher */
-}
-
-/* ===== 모달 컨테이너 ===== */
+/* ===== Modal Container ===== */
 .reg-modal-container {
-  background-color: var(--color-gray-800);
+  max-width: 100%;
+  max-height: calc(100svh - 4rem);
+  height: auto;
   border-radius: 1rem;
-  max-width: 42rem;
-  width: 100%;
-  max-height: 90svh;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #515151;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-gray-900);
+}
+
+.reg-modal-container .reg-main-content {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 
-/* Mobile Fullscreen */
-@media (max-width: 768px) {
-  .reg-modal-overlay {
-    padding: 1rem;
-    padding-top: 1rem;
-    align-items: center;
-    overflow-y: auto;
-  }
+/* Make event-detail-modal-container fill available space and enable internal scrolling */
+.reg-main-content .event-detail-modal-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
 
-  .reg-modal-container {
-    max-width: 100%;
-    max-height: calc(100svh - 4rem);
-    height: auto;
-    border-radius: 1rem;
-    margin: 0;
-    overflow: hidden;
-    border: 1px solid #515151;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .reg-modal-container .reg-main-content {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* Make event-detail-modal-container fill available space and enable internal scrolling */
-  .reg-main-content .event-detail-modal-container {
-    flex: 1 1 auto;
-    min-height: 0;
-    max-height: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-
-  /* CRITICAL: This is where the actual scrolling happens */
-  .reg-main-content .modal-scroll-container {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
+/* CRITICAL: This is where the actual scrolling happens */
+.reg-main-content .modal-scroll-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .reg-modal-shadow {

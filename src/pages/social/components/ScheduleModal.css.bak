@@ -1,6 +1,37 @@
 /* ScheduleModal.css - ScheduleModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  
+  /* 간격 */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
 /* ===== 모달 오버레이 ===== */
 .schm-modal-overlay {
   position: fixed;

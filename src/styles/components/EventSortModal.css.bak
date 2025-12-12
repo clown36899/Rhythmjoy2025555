@@ -1,6 +1,20 @@
 /* EventSortModal.css */
 
 /* ===== CSS Variables ===== */
+:root {
+    --sort-modal-bg-color: #1f2937;
+    /* gray-800 */
+    --sort-modal-text-color: white;
+    --sort-modal-text-secondary: #9ca3af;
+    /* gray-400 */
+    --sort-modal-hover-bg: #4b5563;
+    /* gray-600 */
+    --sort-modal-active-bg: #2563eb;
+    /* blue-600 */
+    --sort-modal-radius: 0.5rem;
+    --sort-modal-overlay-bg: rgba(0, 0, 0, 0.5);
+}
+
 /* ===== Modal Overlay ===== */
 .sort-modal-overlay {
     position: fixed;

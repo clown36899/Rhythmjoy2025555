@@ -1,6 +1,36 @@
 /* PostDetailModal.css - PostDetailModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --pdm-gray-200: #e5e7eb;
+  --pdm-gray-400: #9ca3af;
+  --pdm-gray-600: #4b5563;
+  --pdm-gray-700: #374151;
+  --pdm-gray-800: #1f2937;
+  
+  --pdm-blue-600: #2563eb;
+  --pdm-blue-700: #1d4ed8;
+  
+  --pdm-red-600: #dc2626;
+  --pdm-red-700: #b91c1c;
+  
+  /* 간격 */
+  --pdm-spacing-1: 0.25rem;
+  --pdm-spacing-2: 0.5rem;
+  --pdm-spacing-4: 1rem;
+  --pdm-spacing-6: 1.5rem;
+  
+  /* Border Radius */
+  --pdm-radius-lg: 0.5rem;
+  
+  /* Z-index */
+  --pdm-z-modal: 999999;
+  
+  /* 트랜지션 */
+  --pdm-transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
 /* ===== 모달 오버레이 ===== */
 .pdm-modal-overlay {
   position: fixed;

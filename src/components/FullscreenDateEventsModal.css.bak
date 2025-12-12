@@ -1,6 +1,38 @@
 /* FullscreenDateEventsModal.css - FullscreenDateEventsModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  
+  --color-purple-300: #d8b4fe;
+  
+  /* 간격 */
+  --spacing-0-5: 0.125rem;
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+  
+  /* Z-index */
+  --z-fsde-modal: 9999;
+  
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+  --transition-all: all 0.2s ease;
+}
+
 /* ===== 애니메이션 ===== */
 @keyframes fadeIn {
   from { opacity: 0; }

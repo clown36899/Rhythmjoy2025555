@@ -1,5 +1,31 @@
 /* SocialPlaceDetailModal.css - 장소 상세 정보 모달 스타일 */
 
+/* ===== 색상 및 변수 정의 ===== */
+:root {
+    --modal-bg: #ffffff;
+    --modal-overlay: rgba(0, 0, 0, 0.6);
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+    --text-light: #9ca3af;
+    --accent-color: #3b82f6;
+    --accent-hover: #2563eb;
+    --border-color: #e5e7eb;
+    --danger-color: #ef4444;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+}
+
+/* 다크 모드 지원 (필요 시) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --modal-bg: #1f2937;
+        --text-primary: #f9fafb;
+        --text-secondary: #d1d5db;
+        --text-light: #9ca3af;
+        --border-color: #374151;
+    }
+}
+
 /* ===== 모달 오버레이 ===== */
 .spdm-overlay {
     position: fixed;

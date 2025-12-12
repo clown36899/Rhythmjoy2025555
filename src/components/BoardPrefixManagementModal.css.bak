@@ -1,6 +1,44 @@
 /* BoardPrefixManagementModal.css - BoardPrefixManagementModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --bpm-gray-300: #d1d5db;
+  --bpm-gray-400: #9ca3af;
+  --bpm-gray-500: #6b7280;
+  --bpm-gray-600: #4b5563;
+  --bpm-gray-700: #374151;
+  --bpm-gray-800: #1f2937;
+  
+  --bpm-blue-500: #3b82f6;
+  --bpm-blue-600: #2563eb;
+  --bpm-blue-700: #1d4ed8;
+  
+  --bpm-red-300: #fca5a5;
+  --bpm-red-400: #f87171;
+  --bpm-red-600: #dc2626;
+  
+  /* 간격 */
+  --bpm-spacing-05: 0.125rem;
+  --bpm-spacing-1: 0.25rem;
+  --bpm-spacing-2: 0.5rem;
+  --bpm-spacing-3: 0.75rem;
+  --bpm-spacing-4: 1rem;
+  --bpm-spacing-6: 1.5rem;
+  --bpm-spacing-8: 2rem;
+  --bpm-spacing-12: 3rem;
+  
+  /* Border Radius */
+  --bpm-radius: 0.25rem;
+  --bpm-radius-lg: 0.5rem;
+  
+  /* Z-index */
+  --bpm-z-999999: 999999;
+  
+  /* 트랜지션 */
+  --bpm-transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
 /* ===== 모달 오버레이 ===== */
 .bpm-overlay {
   position: fixed;

@@ -1,8 +1,62 @@
 /* EventRegistrationModal.css - EventRegistrationModal 컴포넌트 전용 스타일 */
 
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+
+  --color-purple-600: #9333ea;
+  --color-purple-700: #7e22ce;
+
+  --color-green-400: #4ade80;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+
+  --color-yellow-400: #facc15;
+  --color-orange-400: #fb923c;
+
+  /* 간격 */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Z-index */
+  --z-modal-base: 50;
+  --z-modal-upload: 60;
+  --z-modal-ultra: 10000000;
+
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+  --transition-all: all 0.2s ease;
+  --transition-all: all 0.2s ease;
+}
+
 .cursor-pointer {
   cursor: pointer;
-  color: #fff;
 }
 
 /* ===== CustomDateInput 버튼 스타일 ===== */

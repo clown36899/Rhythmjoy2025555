@@ -1,6 +1,52 @@
 /* BillboardUserManagementModal.css - BillboardUserManagementModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --bum-gray-300: #d1d5db;
+  --bum-gray-400: #9ca3af;
+  --bum-gray-500: #6b7280;
+  --bum-gray-600: #4b5563;
+  --bum-gray-700: #374151;
+  --bum-gray-800: #1f2937;
+  
+  --bum-blue-400: #60a5fa;
+  --bum-blue-500: #3b82f6;
+  --bum-blue-600: #2563eb;
+  --bum-blue-700: #1d4ed8;
+  
+  --bum-green-600: #16a34a;
+  --bum-green-700: #15803d;
+  
+  --bum-red-400: #f87171;
+  --bum-red-500: #ef4444;
+  --bum-red-600: #dc2626;
+  --bum-red-700: #b91c1c;
+  
+  --bum-orange-600: #ea580c;
+  --bum-orange-700: #c2410c;
+  
+  /* 간격 */
+  --bum-spacing-05: 0.125rem;
+  --bum-spacing-1: 0.25rem;
+  --bum-spacing-2: 0.5rem;
+  --bum-spacing-3: 0.75rem;
+  --bum-spacing-4: 1rem;
+  --bum-spacing-6: 1.5rem;
+  --bum-spacing-8: 2rem;
+  
+  /* Border Radius */
+  --bum-radius: 0.25rem;
+  --bum-radius-lg: 0.5rem;
+  
+  /* Z-index */
+  --bum-z-99999999: 99999999;
+  --bum-z-999999999: 999999999;
+  
+  /* 트랜지션 */
+  --bum-transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
 /* ===== 메인 모달 오버레이 ===== */
 .bum-overlay {
   position: fixed;

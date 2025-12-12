@@ -25,6 +25,14 @@
   font-size: 1rem;
 }
 
+/* ===== 색상 변수 ===== */
+:root {
+  --shell-bg-dark: #1f1f1f;
+  --shell-border-dark: #22262a;
+  --shell-gray-800: #1f2937;
+  --shell-gray-700: #374151;
+}
+
 /* ===== 컨테이너 클래스 ===== */
 .shell-container {
   min-height: 100vh;
@@ -123,7 +131,7 @@
   border: none;
   transition: all 0.2s ease;
   background-color: transparent;
-  color: var(--text-secondary);
+  color: #fff;
   height: 24px;
 }
 

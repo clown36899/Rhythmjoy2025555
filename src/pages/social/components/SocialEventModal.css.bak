@@ -1,5 +1,27 @@
 /* SocialEventModal.css - SocialEventModal 컴포넌트 전용 스타일 */
 
+/* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+
+  --color-blue-500: #3b82f6;
+
+  --color-red-600: #dc2626;
+
+  /* 간격 */
+  --spacing-2: 0.5rem;
+
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+
+  /* 트랜지션 */
+  --transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
 /* ===== 모달 오버레이 ===== */
 .sem-modal-overlay {
   position: fixed;

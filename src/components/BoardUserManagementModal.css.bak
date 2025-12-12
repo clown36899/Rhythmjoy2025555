@@ -1,6 +1,44 @@
 /* BoardUserManagementModal.css - BoardUserManagementModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --boum-gray-300: #d1d5db;
+  --boum-gray-400: #9ca3af;
+  --boum-gray-600: #4b5563;
+  --boum-gray-700: #374151;
+  --boum-gray-750: #2d3748;
+  --boum-gray-800: #1f2937;
+  --boum-gray-900: #111827;
+  
+  --boum-blue-300: #93c5fd;
+  --boum-blue-500: #3b82f6;
+  --boum-blue-600: #2563eb;
+  --boum-blue-700: #1d4ed8;
+  --boum-blue-900: #1e3a8a;
+  
+  --boum-pink-300: #f9a8d4;
+  --boum-pink-900: #831843;
+  
+  /* 간격 */
+  --boum-spacing-2: 0.5rem;
+  --boum-spacing-3: 0.75rem;
+  --boum-spacing-4: 1rem;
+  --boum-spacing-6: 1.5rem;
+  --boum-spacing-8: 2rem;
+  --boum-spacing-12: 3rem;
+  
+  /* Border Radius */
+  --boum-radius-lg: 0.5rem;
+  --boum-radius-full: 9999px;
+  
+  /* Z-index */
+  --boum-z-1000000: 1000000;
+  
+  /* 트랜지션 */
+  --boum-transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
 /* ===== 모달 오버레이 ===== */
 .boum-overlay {
   position: fixed;

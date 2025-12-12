@@ -32,50 +32,6 @@ html {
   background-color: var(--bg-color);
 }
 
-:root {
-  /* Color Variables */
-  --primary-color: #3b82f6;
-  --secondary-color: #8b5cf6;
-  --text-primary: #ffffff;
-  --text-secondary: #9ca3af;
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #1a1a1a;
-
-  /* Header Variables */
-  --header-bg-color: #272727;
-  --header-border-color: #353636;
-  --header-height: 51px;
-  --header-title-font-size: 1rem;
-  /* 헤더 타이틀 글자 크기 통합 관리 */
-
-  /* Page Background */
-  --page-bg-color: #0a0a0a;
-
-  /* Spacing */
-  --spacing-2: 0.5rem;
-  --spacing-4: 1rem;
-  --spacing-6: 1.5rem;
-
-  /* Border Radius */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-
-  /* Z-index */
-  --z-10: 10;
-  --z-20: 20;
-  --z-30: 30;
-  --z-40: 40;
-  --z-50: 50;
-
-  /* Colors */
-  --color-blue-600: #3b82f6;
-  --color-blue-700: #2563eb;
-  --color-gray-400: #9ca3af;
-  --color-white: #ffffff;
-}
-
 /* ===== Global Header Styles ===== */
 .global-header {
   position: fixed;

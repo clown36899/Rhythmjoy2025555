@@ -1,6 +1,36 @@
 /* PostEditorModal.css - PostEditorModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  /* 색상 변수 */
+  --pem-gray-300: #d1d5db;
+  --pem-gray-400: #9ca3af;
+  --pem-gray-600: #4b5563;
+  --pem-gray-700: #374151;
+  --pem-gray-800: #1f2937;
+  
+  --pem-blue-300: #93c5fd;
+  --pem-blue-400: #60a5fa;
+  --pem-blue-500: #3b82f6;
+  --pem-blue-600: #2563eb;
+  --pem-blue-700: #1d4ed8;
+  
+  /* 간격 */
+  --pem-spacing-1: 0.25rem;
+  --pem-spacing-2: 0.5rem;
+  --pem-spacing-3: 0.75rem;
+  --pem-spacing-4: 1rem;
+  
+  /* Border Radius */
+  --pem-radius-lg: 0.5rem;
+  
+  /* Z-index */
+  --pem-z-modal: 999999;
+  
+  /* 트랜지션 */
+  --pem-transition-colors: color 0.2s ease, background-color 0.2s ease;
+}
+
 /* ===== 모달 오버레이 ===== */
 .pem-modal-overlay {
   position: fixed;

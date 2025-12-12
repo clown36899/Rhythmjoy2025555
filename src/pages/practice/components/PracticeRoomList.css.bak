@@ -1,6 +1,12 @@
 /* PracticeRoomList.css - PracticeRoomList 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  --color-card-bg: #242424;
+  --color-blue-600-20: rgba(37, 99, 235, 0.2);
+  --color-blue-600-40: rgba(37, 99, 235, 0.4);
+}
+
 /* ===== 로딩 스피너 ===== */
 .prl-loading-container {
   display: flex;
