@@ -138,7 +138,7 @@ export default function BoardPage() {
 
   const checkUserRegistration = async () => {
     if (!user?.id) return;
-    
+
     // 관리자는 회원가입 없이 바로 사용 가능
     if (isAdmin) {
       console.log('[게시판] 관리자 모드 - 회원가입 불필요');
@@ -274,9 +274,9 @@ export default function BoardPage() {
     const hours = Math.floor(diff / (1000 * 60 * 60));
 
     if (hours < 24) {
-      return date.toLocaleTimeString('ko-KR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return date.toLocaleTimeString('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit'
       });
     } else {
       return date.toLocaleDateString('ko-KR', {
@@ -290,10 +290,10 @@ export default function BoardPage() {
   return (
     <div className="board-page-container">
       {/* Header */}
-      <div className="board-header">
+      <div className="board-header global-header">
         <div className="board-header-content">
           <h1 className="board-header-title">자유게시판</h1>
-          
+
           <div className="board-header-actions">
             {user ? (
               <>
@@ -361,24 +361,22 @@ export default function BoardPage() {
                 <div
                   key={post.id}
                   onClick={() => handlePostClick(post)}
-                  className={`board-post-card ${
-                    post.is_notice 
-                      ? 'board-post-card-notice' 
+                  className={`board-post-card ${post.is_notice
+                      ? 'board-post-card-notice'
                       : 'board-post-card-normal'
-                  }`}
+                    }`}
                 >
                   <div className="board-post-header">
                     {post.prefix && (
-                      <span 
+                      <span
                         className="board-post-prefix"
                         style={{ backgroundColor: post.prefix.color }}
                       >
                         {post.prefix.name}
                       </span>
                     )}
-                    <h3 className={`board-post-title ${
-                      post.is_notice ? 'board-post-title-notice' : 'board-post-title-normal'
-                    }`}>
+                    <h3 className={`board-post-title ${post.is_notice ? 'board-post-title-notice' : 'board-post-title-normal'
+                      }`}>
                       {post.title}
                     </h3>
                   </div>
@@ -412,7 +410,7 @@ export default function BoardPage() {
                 >
                   <i className="ri-arrow-left-s-line"></i>
                 </button>
-                
+
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <button
                     key={page}
@@ -463,7 +461,7 @@ export default function BoardPage() {
         <UserRegistrationModal
           isOpen={showRegistrationPreview}
           onClose={() => setShowRegistrationPreview(false)}
-          onRegistered={() => {}}
+          onRegistered={() => { }}
           userId="preview"
           previewMode={true}
         />

@@ -33,7 +33,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-yellow-500',
     },
     {
-        label: '게시판',
+        label: '자유게시판',
         path: '/board',
         icon: 'ri-chat-3-line',
         activeColor: 'text-purple-500',

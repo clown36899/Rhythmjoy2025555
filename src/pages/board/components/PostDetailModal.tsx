@@ -78,6 +78,21 @@ export default function PostDetailModal({
         <div className="pdm-modal-header">
           <div className="pdm-header-content">
             <h2 className="pdm-modal-title">
+              {post.prefix && (
+                <span
+                  className="pdm-prefix-badge"
+                  style={{
+                    backgroundColor: post.prefix.color,
+                    marginRight: '0.5rem',
+                    padding: '0.25rem 0.625rem',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '600'
+                  }}
+                >
+                  {post.prefix.name}
+                </span>
+              )}
               {post.title}
             </h2>
             <div className="pdm-meta-info">

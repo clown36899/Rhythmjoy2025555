@@ -4,26 +4,24 @@
 .board-page-container {
   min-height: 100vh;
   background-color: #1a1a1a;
+  padding-top: 51px;
+  /* Account for fixed header */
   padding-bottom: 8rem;
 }
 
 /* ===== 헤더 ===== */
-.board-header {
-  background-color: #242424;
-  border-bottom: 1px solid #4b5563;
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-  padding-top: var(--spacing-4);
-  padding-bottom: var(--spacing-4);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-10);
-}
+/* Header styles handled by global-header class from index.css */
 
 .board-header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 3rem !important;
+  padding-left: 9px;
+  padding-right: 9px;
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .board-header-title {
@@ -146,6 +144,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -182,9 +181,11 @@
 
 /* ===== 게시글 카드 ===== */
 .board-post-card {
-  padding: 0.375rem;
+  padding: 1rem 1rem 1rem;
   transition: var(--transition-colors);
   cursor: pointer;
+  margin: 0.4rem;
+  border-radius: 1rem;
 }
 
 .board-post-card:hover {
@@ -201,9 +202,11 @@
 
 .board-post-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.375rem;
   margin-bottom: 0.125rem;
+  align-content: center;
+  flex-direction: row;
 }
 
 .board-post-prefix {
@@ -226,6 +229,8 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
   flex: 1;
+  margin: 0;
+  padding: 0;
 }
 
 .board-post-title-normal {

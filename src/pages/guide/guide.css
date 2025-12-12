@@ -3,178 +3,340 @@
 /* ===== 페이지 컨테이너 ===== */
 .guide-page-container {
   min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  padding-top: 51px;
 }
 
 /* ===== 고정 헤더 ===== */
-.guide-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: var(--z-30);
-  border-bottom: 1px solid #22262a;
-}
+/* Header styles handled by global-header class from index.css */
 
 /* ===== 콘텐츠 영역 ===== */
 .guide-content {
-  padding-top: 5rem;
-  padding-bottom: 4rem;
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
+  padding: 2rem 1rem 4rem;
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+/* ===== Hero Section ===== */
+.guide-hero-section {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding: 1.5rem 1rem;
+}
+
+.guide-hero-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
   display: flex;
-  justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 5rem);
+  justify-content: center;
+  gap: 0.75rem;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.guide-inner-content {
-  max-width: 560px;
-  width: 100%;
-  padding: 2.5rem;
-  background: rgba(17, 24, 39, 0.6);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: white;
-}
-
-.guide-centered-content {
-  text-align: center;
-}
-
-/* ===== 타이틀 ===== */
-.guide-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
+.guide-hero-title i {
+  font-size: 2.25rem;
   color: #60a5fa;
-  letter-spacing: -0.02em;
+  animation: bounce 2s ease-in-out infinite;
 }
 
-/* ===== 메인 메시지 섹션 ===== */
-.guide-main-message {
-  margin-bottom: 2rem;
-  text-align: left;
-}
-
-.guide-highlight-text {
-  color: #fbbf24;
-  margin-bottom: 1.5rem;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
-  text-align: center;
-}
-
-@keyframes pulse {
+@keyframes bounce {
 
   0%,
   100% {
-    opacity: 1;
+    transform: translateY(0);
   }
 
   50% {
-    opacity: 0.7;
+    transform: translateY(-5px);
   }
 }
 
-.guide-instructions {
-  color: #e5e7eb;
-  font-size: 0.9375rem;
-  line-height: 1.7;
-  margin-bottom: 1.25rem;
+.guide-hero-subtitle {
+  font-size: 1rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.6;
 }
 
-.guide-instructions strong {
-  color: #93c5fd;
-  font-weight: 600;
+/* ===== Feature Cards Grid ===== */
+.guide-features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
-.guide-warning-text {
-  color: #fb923c;
+.guide-feature-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.guide-feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.5), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.guide-feature-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(96, 165, 250, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.guide-feature-card:hover::before {
+  opacity: 1;
+}
+
+/* Card Variants */
+.guide-card-highlight {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(59, 130, 246, 0.1));
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.guide-card-warning {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.15), rgba(249, 115, 22, 0.1));
+  border-color: rgba(251, 146, 60, 0.3);
+}
+
+.guide-card-notice {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(147, 51, 234, 0.1));
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+/* Card Icons */
+.guide-card-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  font-size: 1.5rem;
+  transition: transform 0.3s ease;
+}
+
+.guide-feature-card:hover .guide-card-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.guide-icon-primary {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  color: white;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.4);
+}
+
+.guide-icon-info {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: white;
+  box-shadow: 0 4px 12px rgba(52, 211, 153, 0.4);
+}
+
+.guide-icon-warning {
+  background: linear-gradient(135deg, #fb923c, #f97316);
+  color: white;
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.4);
+}
+
+.guide-icon-notice {
+  background: linear-gradient(135deg, #a855f7, #9333ea);
+  color: white;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+}
+
+/* Card Content */
+.guide-card-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.75rem 0;
+}
+
+.guide-card-description {
   font-size: 0.875rem;
-  font-weight: 500;
-  padding: 0.75rem 1rem;
-  background: rgba(251, 146, 60, 0.08);
-  border-radius: 8px;
-  border-left: 2px solid #fb923c;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.guide-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   text-align: left;
 }
 
-/* ===== 공유 버튼 섹션 ===== */
-.guide-share-section {
-  margin-top: 2rem;
-  margin-bottom: 0.5rem;
+.guide-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+.guide-list-item i {
+  color: #34d399;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+/* ===== Action Section (Share Button) ===== */
+.guide-action-section {
+  text-align: center;
+  margin: 2.5rem 0;
+  padding: 2rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .guide-share-button {
-  background: #2563eb;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
   font-weight: 600;
-  font-size: 0.9375rem;
-  padding: 0.875rem 2rem;
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  font-size: 1rem;
+  padding: 1rem 2.5rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  border: none;
-  cursor: pointer;
+  gap: 0.625rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.guide-share-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.guide-share-button:hover::before {
+  left: 100%;
 }
 
 .guide-share-button:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
 }
 
 .guide-share-button:active {
   transform: translateY(0);
 }
 
-.guide-share-icon {
-  font-size: 1.125rem;
+.guide-share-button i {
+  font-size: 1.25rem;
 }
 
 .guide-share-hint {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  margin-top: 0.75rem;
+  margin-bottom: 0;
 }
 
-/* ===== 연락처 섹션 ===== */
-.guide-contact-section {
-  margin-top: 2.5rem;
-  padding-top: 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+/* ===== Footer Section ===== */
+.guide-footer-section {
+  margin-top: 3rem;
+  padding: 2rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.guide-site-description {
-  color: #d1d5db;
+.guide-footer-content {
+  text-align: center;
+}
+
+.guide-footer-description {
+  color: #cbd5e1;
+  font-size: 0.9375rem;
+  margin: 0 0 1.25rem 0;
+  line-height: 1.6;
+}
+
+.guide-footer-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  margin: 1.25rem 0;
+}
+
+.guide-footer-copyright {
+  color: #94a3b8;
   font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.75rem 0;
 }
 
-.guide-copyright {
-  color: #9ca3af;
-  font-size: 0.8125rem;
-  margin-bottom: 0.5rem;
+.guide-footer-contact {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin: 0;
 }
 
-.guide-contact-info {
-  color: #9ca3af;
-  font-size: 0.8125rem;
-  margin-top: 0.5rem;
-}
-
-.guide-phone-link {
+.guide-footer-phone {
   color: #60a5fa;
   text-decoration: none;
-  cursor: pointer;
-  transition: color 0.2s ease;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: all 0.2s ease;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
 }
 
-.guide-phone-link:hover {
+.guide-footer-phone:hover {
   color: #93c5fd;
-  text-decoration: underline;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.guide-footer-phone i {
+  font-size: 1rem;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 480px) {
+  .guide-features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-hero-title {
+    font-size: 1.75rem;
+  }
+
+  .guide-hero-title i {
+    font-size: 2rem;
+  }
+
+  .guide-feature-card {
+    padding: 1.25rem 1rem;
+  }
 }
