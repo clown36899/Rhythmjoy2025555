@@ -140,10 +140,15 @@ export const EventCard = memo(({
             <img
               src={thumbnailUrl}
               alt={event.title}
+              className="card-image"
               loading="lazy"
               decoding="async"
-              fetchPriority="low"
-              className="card-image"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = event.category === 'class'
+                  ? defaultThumbnailClass
+                  : defaultThumbnailEvent;
+              }}
             />
             {variant === "sliding" && !event?.image && !event?.image_thumbnail && (
               <div className="card-overlay-center">
