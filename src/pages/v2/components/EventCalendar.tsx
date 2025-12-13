@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
@@ -25,7 +25,7 @@ interface EventCalendarProps {
   isTransitioning?: boolean;
 }
 
-export default function EventCalendar({
+export default memo(function EventCalendar({
   selectedDate,
   onDateSelect,
   onMonthChange,
@@ -1165,4 +1165,4 @@ export default function EventCalendar({
       }
     </>
   );
-}
+});

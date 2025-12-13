@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { createPortal } from "react-dom";
 import QRCodeModal from "../../../components/QRCodeModal";
 import BillboardUserManagementModal from "../../../components/BillboardUserManagementModal";
@@ -30,7 +30,7 @@ interface HeaderProps {
   onTodayClick?: () => void;
 }
 
-export default function Header({
+export default memo(function Header({
   onAdminModeToggle,
   onBillboardOpen: _onBillboardOpen,
   onBillboardSettingsOpen,
@@ -1157,4 +1157,4 @@ export default function Header({
       />
     </>
   );
-}
+});

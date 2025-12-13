@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from "react";
+import { useState, useEffect, forwardRef, memo } from "react";
 import { createPortal } from "react-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -56,7 +56,7 @@ import { EventCard } from "./EventCard";
 
 // ... existing imports ...
 
-export default function EventEditModal({
+export default memo(function EventEditModal({
     isOpen,
     onClose,
     event,
@@ -1247,4 +1247,4 @@ export default function EventEditModal({
         </div>,
         document.body
     );
-}
+});

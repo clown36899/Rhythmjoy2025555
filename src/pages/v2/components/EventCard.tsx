@@ -1,49 +1,14 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import type { Event as BaseEvent } from "../../../lib/supabase";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
+import { getLocalDateString, formatEventDate } from "../../../utils/dateUtils";
+import { getGenreColorClass } from "../../../constants/genreColors";
 import "../styles/EventCard.css";
 
 interface Event extends BaseEvent {
   genre?: string | null;
 }
 
-const genreColorPalette = [
-  'card-genre-red',
-  'card-genre-orange',
-  'card-genre-amber',
-  'card-genre-yellow',
-  'card-genre-lime',
-  'card-genre-green',
-  'card-genre-emerald',
-  'card-genre-teal',
-  'card-genre-cyan',
-  'card-genre-sky',
-  'card-genre-blue',
-  'card-genre-indigo',
-  'card-genre-violet',
-  'card-genre-purple',
-  'card-genre-fuchsia',
-  'card-genre-pink',
-  'card-genre-rose',
-];
-
-function getGenreColor(genre: string): string {
-  if (!genre) return 'card-genre-gray';
-  let hash = 0;
-  for (let i = 0; i < genre.length; i++) {
-    hash = genre.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash % genreColorPalette.length);
-  return genreColorPalette[index];
-}
-
-const getLocalDateString = (): string => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
 
 interface EventCardProps {
   event: Event;
@@ -83,59 +48,51 @@ export const EventCard = memo(({
     defaultThumbnailEvent,
   );
 
-  let isOnSelectedDate = false;
-  if (selectedDate) {
+  const isOnSelectedDate = useMemo(() => {
+    if (!selectedDate) return false;
+
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
     const day = String(selectedDate.getDate()).padStart(2, "0");
     const selectedDateString = `${year}-${month}-${day}`;
 
     if (event.event_dates && event.event_dates.length > 0) {
-      isOnSelectedDate = event.event_dates.includes(selectedDateString);
+      return event.event_dates.includes(selectedDateString);
     } else {
       const eventStartDate = event.start_date || event.date;
       const eventEndDate = event.end_date || event.date;
-      isOnSelectedDate = !!(
+      return !!(
         eventStartDate &&
         eventEndDate &&
         selectedDateString >= eventStartDate &&
         selectedDateString <= eventEndDate
       );
     }
-  }
+  }, [selectedDate, event.event_dates, event.start_date, event.end_date, event.date]);
 
-  let dateText = "";
-  if (event.event_dates && event.event_dates.length > 0) {
-    const formatDate = (dateStr: string) => {
-      const date = new Date(dateStr);
-      const weekDay = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-      return `${date.getMonth() + 1}/${date.getDate()}(${weekDay})`;
-    };
-    if (variant === "sliding" && event.event_dates.length > 1) {
-      dateText = `${formatDate(event.event_dates[0])}~시작`;
+  // useMemo로 날짜 포맷팅 캐싱 - 성능 최적화
+  const dateText = useMemo(() => {
+    if (event.event_dates && event.event_dates.length > 0) {
+      if (variant === "sliding" && event.event_dates.length > 1) {
+        return `${formatEventDate(event.event_dates[0])}~시작`;
+      } else {
+        return event.event_dates.map(formatEventDate).join(", ");
+      }
     } else {
-      dateText = event.event_dates.map(formatDate).join(", ");
-    }
-  } else {
-    const startDate = event.start_date || event.date;
-    const endDate = event.end_date || event.date;
+      const startDate = event.start_date || event.date;
+      const endDate = event.end_date || event.date;
 
-    if (!startDate) {
-      dateText = "날짜 미정";
-    } else {
-      const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        const weekDay = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-        return `${date.getMonth() + 1}/${date.getDate()}(${weekDay})`;
-      };
+      if (!startDate) {
+        return "날짜 미정";
+      }
 
       if (startDate !== endDate) {
-        dateText = `${formatDate(startDate)}~${formatDate(endDate || startDate)}`;
+        return `${formatEventDate(startDate)}~${formatEventDate(endDate || startDate)}`;
       } else {
-        dateText = formatDate(startDate);
+        return formatEventDate(startDate);
       }
     }
-  }
+  }, [event.event_dates, event.start_date, event.end_date, event.date, variant]);
 
   const todayString = getLocalDateString();
   const isPast = event.end_date ? event.end_date < todayString : (event.date ? event.date < todayString : false);
@@ -149,7 +106,14 @@ export const EventCard = memo(({
       data-event-id={event.id}
       className={`card-container ${isPast ? 'card-container-past' : ''} ${categoryClass} ${isHighlighted ? 'qr-highlighted' : ''}`}
       onClick={onClick}
-      onMouseEnter={() => onMouseEnter?.(event.id)}
+      onMouseEnter={() => {
+        onMouseEnter?.(event.id);
+        // 이미지 preload로 모달 열기 속도 향상
+        if (thumbnailUrl) {
+          const img = new Image();
+          img.src = thumbnailUrl;
+        }
+      }}
       onMouseLeave={onMouseLeave}
       style={{
         ...(isHighlighted ? { '--highlight-color': highlightBorderColor } as React.CSSProperties : {}),
@@ -215,7 +179,7 @@ export const EventCard = memo(({
         }`}>
         {event.genre && !hideGenre && (
           <p className={`card-genre-text ${event.category === 'class' ? 'card-genre-text-class' : 'card-genre-text-event'
-            } ${getGenreColor(event.genre)}`}>
+            } ${getGenreColorClass(event.genre, 'card-genre')}`}>
             {event.genre}
           </p>
         )}

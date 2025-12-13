@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { memo } from 'react';
 import QRCodeModal from "../../../components/QRCodeModal";
 import '../styles/Footer.css';
 
-export default function Footer() {
+export default memo(function Footer() {
   const [showQRModal, setShowQRModal] = useState(false);
 
   return (
@@ -94,4 +95,4 @@ export default function Footer() {
       )}
     </>
   );
-}
+});
