@@ -84,6 +84,19 @@
   justify-content: center;
   z-index: 50;
   padding: 1rem;
+  /* 성능 최적화 */
+  will-change: opacity;
+  animation: fadeInOverlay 0.2s ease-out;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .event-detail-modal-container {
@@ -100,6 +113,22 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  /* GPU 가속 최적화 */
+  will-change: transform, opacity;
+  animation: slideUpModal 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 최적화된 애니메이션 */
+@keyframes slideUpModal {
+  from {
+    transform: translate3d(0, 20px, 0);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
 }
 
 .modal-scroll-container {

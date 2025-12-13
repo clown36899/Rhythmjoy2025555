@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../../../lib/supabase';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
@@ -51,7 +51,7 @@ interface EventDetailModalProps {
   isAdminMode: boolean;
 }
 
-export default function EventDetailModal({
+export default memo(function EventDetailModal({
   event,
   isOpen,
   onClose,
@@ -642,4 +642,4 @@ export default function EventDetailModal({
         )}
     </>
   );
-}
+});
