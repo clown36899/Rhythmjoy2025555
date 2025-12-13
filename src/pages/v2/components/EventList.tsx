@@ -138,8 +138,7 @@ export default function EventList({
   const selectedCategory = searchParams.get('category') ?? 'all';
   const selectedGenre = searchParams.get('genre');
 
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const filterDropdownRef = useRef<HTMLDivElement>(null);
+
 
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
@@ -211,8 +210,6 @@ export default function EventList({
   }>({ provider: null, embedUrl: null });
   const [tempDateInput, setTempDateInput] = useState<string>("");
 
-  const [showEditCropModal, setShowEditCropModal] = useState(false);
-  const [editCropImageUrl, setEditCropImageUrl] = useState<string>("");
   const [editOriginalImageFile, setEditOriginalImageFile] = useState<File | null>(null);
   const [editOriginalImagePreview, setEditOriginalImagePreview] = useState<string>(""); // 편집 모달에서 특정 날짜 추가용
 
@@ -237,17 +234,7 @@ export default function EventList({
   const { defaultThumbnailClass, defaultThumbnailEvent } =
     useDefaultThumbnail();
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
-        setActiveDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+
   // 현재 날짜 추적 (자정 지날 때 캐시 무효화를 위해)
   const [currentDay, setCurrentDay] = useState(() => new Date().toDateString());
 
@@ -344,27 +331,7 @@ export default function EventList({
 
   // 검색 관련 핸들러들 제거됨 (EventSearchModal로 이동)
 
-  const handleCategoryChange = (category: string) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    if (category === 'all') {
-      newSearchParams.delete('category');
-    } else {
-      newSearchParams.set('category', category);
-    }
-    setSearchParams(newSearchParams);
-    setActiveDropdown(null);
-  };
 
-  const handleGenreChange = (genre: string | null) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    if (genre) {
-      newSearchParams.set('genre', genre);
-    } else {
-      newSearchParams.delete('genre');
-    }
-    setSearchParams(newSearchParams);
-    setActiveDropdown(null);
-  };
   const handleGenreSuggestionClick = (genre: string) => {
     setEditFormData(prev => ({ ...prev, genre }));
     setGenreSuggestions([]);
@@ -1274,7 +1241,7 @@ export default function EventList({
     setEditTempImageSrc(URL.createObjectURL(file));
   };
 
-  const handleEditCropComplete = async (croppedBlob: Blob, _previewUrl: string, isModified: boolean) => {
+  const handleEditCropComplete = async (croppedBlob: Blob, _previewUrl: string, _isModified: boolean) => {
     // Save the cropped/current result regardless of modification flag relative to current view.
     // This prevents re-edited images from reverting to the ancient original just because they weren't further modified.
 
@@ -1688,36 +1655,22 @@ export default function EventList({
         }
 
         const blobUrl = URL.createObjectURL(blob);
-        setEditCropImageUrl(blobUrl);
-        setShowEditCropModal(true);
+        setEditTempImageSrc(blobUrl);
+        setEditCropModalOpen(true);
       } catch (error) {
         console.error('이미지 로드 실패:', error);
         alert('이미지를 불러오는 중 오류가 발생했습니다.');
       }
     } else {
       // data URL인 경우 바로 사용
-      setEditCropImageUrl(editImagePreview);
-      setShowEditCropModal(true);
+      setEditTempImageSrc(editImagePreview);
+      setEditCropModalOpen(true);
     }
   };
 
 
 
-  const handleEditCropDiscard = () => {
-    if (editCropImageUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(editCropImageUrl);
-    }
-    setEditCropImageUrl('');
-  };
 
-  const handleEditRestoreOriginal = () => {
-    if (editOriginalImagePreview) {
-      if (editCropImageUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(editCropImageUrl);
-      }
-      setEditCropImageUrl(editOriginalImagePreview);
-    }
-  };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1897,9 +1850,9 @@ export default function EventList({
 
         // DB 필드 초기화
         updateData.image = "";
-        updateData.image_thumbnail = null;
-        updateData.image_medium = null;
-        updateData.image_full = null;
+        updateData.image_thumbnail = null as any;
+        updateData.image_medium = null as any;
+        updateData.image_full = null as any;
         updateData.storage_path = null;
       }
 
