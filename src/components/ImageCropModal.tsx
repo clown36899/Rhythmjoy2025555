@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -86,7 +86,7 @@ async function createCroppedImage(
   });
 }
 
-export default function ImageCropModal({
+export default memo(function ImageCropModal({
   isOpen,
   imageUrl,
   videoUrl,
@@ -570,4 +570,4 @@ export default function ImageCropModal({
     </div>,
     document.body
   );
-}
+});

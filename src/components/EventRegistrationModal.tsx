@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import { createResizedImages } from "../utils/imageResize";
@@ -41,7 +41,7 @@ const formatDateForInput = (date: Date): string => {
 
 
 
-export default function EventRegistrationModal({
+export default memo(function EventRegistrationModal({
   isOpen,
   onClose,
   selectedDate,
@@ -704,4 +704,4 @@ export default function EventRegistrationModal({
     </div >,
     document.body
   );
-}
+});

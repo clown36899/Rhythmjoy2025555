@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { supabase } from "../lib/supabase";
 import "./PracticeRoomModal.css";
 
@@ -41,7 +41,7 @@ interface ImageItem {
  * Main component – shows a list of practice rooms, a detail view,
  * and an admin‑only create / edit form.
  */
-export default function PracticeRoomModal({
+export default memo(function PracticeRoomModal({
   isOpen,
   onClose,
   isAdminMode,
@@ -1074,4 +1074,4 @@ export default function PracticeRoomModal({
       )}
     </div>
   );
-}
+});
