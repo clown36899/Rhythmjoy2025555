@@ -1,10 +1,9 @@
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../../../lib/supabase';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
-import { QRCodeSVG } from 'qrcode.react';
 import "../../../styles/components/EventDetailModal.css";
 
 interface Event extends BaseEvent {
@@ -56,11 +55,37 @@ export default memo(function EventDetailModal({
   isOpen,
   onClose,
   onEdit,
-  onDelete,
   isAdminMode,
 }: EventDetailModalProps) {
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
+
+  // Smooth Transition State
+  const [isHighResLoaded, setIsHighResLoaded] = useState(false);
+
+  // Derive sources (Handle potential null event since this runs before the early return)
+  const thumbnailSrc = event ? (event.image_thumbnail ||
+    getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent)) : null;
+
+  const highResSrc = event ? (event.image_medium ||
+    event.image_full ||
+    event.image) : null;
+
+  // Effect to preload high-res image
+  useEffect(() => {
+    setIsHighResLoaded(false);
+
+    if (highResSrc && highResSrc !== thumbnailSrc) {
+      const img = new Image();
+      img.src = highResSrc;
+      img.onload = () => {
+        setIsHighResLoaded(true);
+      };
+    } else if (!highResSrc && thumbnailSrc) {
+      // 고화질 없고 썸네일만 있는 경우 로딩 완료 처리 (사실상 변화 없음)
+      setIsHighResLoaded(true);
+    }
+  }, [highResSrc, thumbnailSrc]);
 
   if (!isOpen || !event) {
     return null;
@@ -106,22 +131,16 @@ export default memo(function EventDetailModal({
                 {/* 이미지 영역 (스크롤과 함께 사라짐) */}
                 {/* 이미지 영역 (스크롤과 함께 사라짐) */}
                 {(() => {
-                  // 모바일 최적화: thumbnail (400px) 우선 사용
-                  const detailImageUrl =
-                    selectedEvent.image_thumbnail ||
-                    selectedEvent.image_medium ||
-                    selectedEvent.image ||
-                    getEventThumbnail(
-                      selectedEvent,
-                      defaultThumbnailClass,
-                      defaultThumbnailEvent,
-                    );
-                  const isDefaultThumbnail =
-                    !selectedEvent.image_thumbnail &&
-                    !selectedEvent.image_medium &&
-                    !selectedEvent.image &&
-                    detailImageUrl;
-                  const hasImage = !!detailImageUrl;
+                  // Progressive Loading: thumbnail priority logic removed here as it is handled by state above
+                  // We will render up to two images: Thumbnail (Base) and HighRes (Overlay)
+
+                  const hasImage = !!(thumbnailSrc || highResSrc);
+                  const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc;
+
+                  // Transform style (shared)
+                  const imageStyle = {
+                    transform: `translate3d(${(selectedEvent as any).image_position_x || 0}%, ${(selectedEvent as any).image_position_y || 0}%, 0)`
+                  };
 
                   return (
                     <div
@@ -130,24 +149,67 @@ export default memo(function EventDetailModal({
                         ...(!hasImage
                           ? { backgroundImage: "url(/grunge.png)" }
                           : {}),
+                        // Ensure relative positioning for absolute children
+                        position: 'relative',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        display: 'flex'
                       }}
                     >
                       {hasImage ? (
                         <>
-                          {/* Main Image */}
-                          <img
-                            src={detailImageUrl}
-                            alt={selectedEvent.title}
-                            className="detail-image"
-                            loading="lazy"
-                            decoding="async"
-                            style={{
-                              transform: `translate3d(${(selectedEvent as any).image_position_x || 0}%, ${(selectedEvent as any).image_position_y || 0}%, 0)`
-                            }}
-                          />
+                          {/* 1. Base Layer: Thumbnail */}
+                          {thumbnailSrc && (
+                            <img
+                              src={thumbnailSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image"
+                              loading="eager"
+                              style={{
+                                ...imageStyle,
+                                opacity: 1, // Always visible underneath
+                                position: 'relative', // Dictates the container size
+                                zIndex: 1
+                              }}
+                            />
+                          )}
+
+                          {/* 2. Overlay Layer: HighRes (Cross-fade) */}
+                          {highResSrc && highResSrc !== thumbnailSrc && (
+                            <img
+                              src={highResSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image"
+                              loading="eager"
+                              decoding="async"
+                              style={{
+                                ...imageStyle,
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                                opacity: isHighResLoaded ? 1 : 0,
+                                transition: 'opacity 0.4s ease-in-out',
+                                zIndex: 2
+                              }}
+                            />
+                          )}
+
+                          {/* Fallback if only HighRes exists and no thumbnail (Rare) */}
+                          {!thumbnailSrc && highResSrc && (
+                            <img
+                              src={highResSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image"
+                              loading="eager"
+                              style={{ ...imageStyle, zIndex: 1 }}
+                            />
+                          )}
 
                           {/* Gradient Overlay */}
-                          <div className="image-gradient-overlay" />
+                          <div className="image-gradient-overlay" style={{ zIndex: 10 }} />
 
                           {isDefaultThumbnail && (
                             <div className="default-thumbnail-overlay">
