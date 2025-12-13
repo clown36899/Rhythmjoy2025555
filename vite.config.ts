@@ -114,20 +114,27 @@ export default defineConfig({
     sourcemap: false, // 프로덕션 빌드: sourcemap 비활성화 (파일 크기 감소)
     outDir: "dist",
     minify: 'esbuild', // esbuild 사용 (빠르고 효율적)
+    cssCodeSplit: true, // CSS 코드 스플리팅 활성화
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['react-datepicker', 'qrcode.react'],
           'supabase': ['@supabase/supabase-js'],
           'charts': ['recharts'],
-          'date-fns': ['date-fns'], // date-fns 별도 청크
+          'date-fns': ['date-fns'],
         },
+        // 파일명 최적화
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
-    chunkSizeWarningLimit: 1000, // 청크 크기 경고 임계값 증가
+    chunkSizeWarningLimit: 500, // 청크 크기 경고 임계값 감소 (더 작은 청크)
   },
   esbuild: {
     drop: ['console', 'debugger'], // 프로덕션에서 console.log와 debugger 자동 제거
+    legalComments: 'none', // 라이선스 주석 제거 (크기 감소)
   },
   resolve: {
     alias: {

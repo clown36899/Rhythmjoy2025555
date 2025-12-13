@@ -1,120 +1,153 @@
-
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="google" content="notranslate" />
-    <base href="/" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    
-    <!-- PWA 설정 - 동적 manifest -->
-    <link rel="manifest" id="manifest-placeholder" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="빌보드" />
-    <meta name="theme-color" content="#000000" />
-    
-    <!-- 동적 Manifest 생성 -->
-    <script>
-      (function() {
-        const currentPath = window.location.pathname;
-        const baseUrl = window.location.origin;
-        
-        // 빌보드 페이지면 서버에서 동적 manifest 가져오기
-        if (currentPath.includes('/billboard/')) {
-          const userId = currentPath.split('/billboard/')[1];
-          if (userId) {
-            // 프로덕션: Netlify Functions, 개발: Auth Server
-            const manifestUrl = window.location.hostname === 'localhost'
-              ? 'http://localhost:3001/api/billboard-manifest?userId=' + userId
-              : baseUrl + '/.netlify/functions/billboard-manifest?userId=' + userId;
-            document.getElementById('manifest-placeholder').setAttribute('href', manifestUrl);
-            return;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="google" content="notranslate" />
+  <base href="/" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <!-- PWA 설정 - 동적 manifest -->
+  <link rel="manifest" id="manifest-placeholder" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="빌보드" />
+  <meta name="theme-color" content="#000000" />
+
+  <!-- 동적 Manifest 생성 -->
+  <script>
+    (function () {
+      const currentPath = window.location.pathname;
+      const baseUrl = window.location.origin;
+
+      // 빌보드 페이지면 서버에서 동적 manifest 가져오기
+      if (currentPath.includes('/billboard/')) {
+        const userId = currentPath.split('/billboard/')[1];
+        if (userId) {
+          // 프로덕션: Netlify Functions, 개발: Auth Server
+          const manifestUrl = window.location.hostname === 'localhost'
+            ? 'http://localhost:3001/api/billboard-manifest?userId=' + userId
+            : baseUrl + '/.netlify/functions/billboard-manifest?userId=' + userId;
+          document.getElementById('manifest-placeholder').setAttribute('href', manifestUrl);
+          return;
+        }
+      }
+
+      // 기본 manifest (빌보드가 아닌 경우)
+      const manifestData = {
+        name: '광고판',
+        short_name: '광고판',
+        description: '이벤트 빌보드 디스플레이',
+        start_url: baseUrl + currentPath,
+        display: 'fullscreen',
+        background_color: '#000000',
+        theme_color: '#000000',
+        orientation: 'any',
+        scope: baseUrl + '/',
+        icons: [
+          {
+            src: baseUrl + '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: baseUrl + '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
           }
-        }
-        
-        // 기본 manifest (빌보드가 아닌 경우)
-        const manifestData = {
-          name: '광고판',
-          short_name: '광고판',
-          description: '이벤트 빌보드 디스플레이',
-          start_url: baseUrl + currentPath,
-          display: 'fullscreen',
-          background_color: '#000000',
-          theme_color: '#000000',
-          orientation: 'any',
-          scope: baseUrl + '/',
-          icons: [
-            {
-              src: baseUrl + '/icon-192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any'
-            },
-            {
-              src: baseUrl + '/icon-512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable'
-            }
-          ]
-        };
-        
-        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
-        const manifestURL = URL.createObjectURL(manifestBlob);
-        document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
-      })();
-      
-      // 유튜브 iframe 콘솔 에러 필터링 (기능에는 영향 없음)
-      const originalError = console.error;
-      console.error = function(...args) {
-        const errorMsg = args[0]?.toString() || '';
-        // YouTube 내부 오류 무시
-        if (errorMsg.includes('Unknown yt page')) {
-          return;
-        }
-        // postMessage cross-origin 오류 무시 (YouTube iframe 내부 통신)
-        if (errorMsg.includes('postMessage') || errorMsg.includes('DOMWindow')) {
-          return;
-        }
-        originalError.apply(console, args);
+        ]
       };
-    </script>
-    
-    <title>광고판 - Discover Amazing Events</title>
-    <meta name="description" content="Find concerts, workshops, conferences and more happening near you. Create and discover amazing events with 광고판.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+      const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
+      const manifestURL = URL.createObjectURL(manifestBlob);
+      document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
+    })();
+
+    // 유튜브 iframe 콘솔 에러 필터링 (기능에는 영향 없음)
+    const originalError = console.error;
+    console.error = function (...args) {
+      const errorMsg = args[0]?.toString() || '';
+      // YouTube 내부 오류 무시
+      if (errorMsg.includes('Unknown yt page')) {
+        return;
+      }
+      // postMessage cross-origin 오류 무시 (YouTube iframe 내부 통신)
+      if (errorMsg.includes('postMessage') || errorMsg.includes('DOMWindow')) {
+        return;
+      }
+      originalError.apply(console, args);
+    };
+  </script>
+
+  <title>광고판 - Discover Amazing Events</title>
+  <meta name="description"
+    content="Find concerts, workshops, conferences and more happening near you. Create and discover amazing events with 광고판.">
+
+  <!-- DNS Prefetch for external domains -->
+  <link rel="dns-prefetch" href="https://mkoryudscamnopvxdelk.supabase.co">
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+
+  <!-- Preconnect for critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css">
-  
+
+  <!-- Font optimization with preload -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" as="style"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap">
+  </noscript>
+
+  <!-- Icon fonts with async loading -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </noscript>
+
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css" as="style"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css">
+  </noscript>
+
   <!-- Kakao Map SDK - 항상 로드 -->
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4f36c4e35ab80c9bff7850e63341daa6&libraries=clusterer&autoload=false"></script>
-  
+  <script type="text/javascript"
+    src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4f36c4e35ab80c9bff7850e63341daa6&libraries=clusterer&autoload=false"></script>
+
   <style>
     /* CSS 로드 전 깨진 레이아웃 방지 */
     /* CSS 로드 전 깨진 레이아웃 방지 - 제거됨 (디버깅 위해) */
     /* body { visibility: hidden; } */
     /* body.loaded { visibility: visible; } */
-    
+
     /* 스피너 애니메이션 */
     @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
     }
-    
+
     /* DatePicker Portal 스타일 - 화면의 80% 이하로 제한 */
     .react-datepicker-popper {
       max-width: 80vw !important;
       z-index: 9999 !important;
     }
-    
+
     .react-datepicker {
       max-width: 100% !important;
       width: auto !important;
@@ -123,7 +156,7 @@
       border-radius: 0.75rem !important;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
     }
-    
+
     /* 달력 헤더 */
     .react-datepicker__header {
       background-color: #2d2d2d !important;
@@ -131,14 +164,14 @@
       border-radius: 0.75rem 0.75rem 0 0 !important;
       padding: 0.5rem 0 !important;
     }
-    
+
     /* 요일 헤더 */
     .react-datepicker__day-names {
       background-color: #2d2d2d !important;
       margin-top: 0.5rem !important;
       padding: 0 0.5rem !important;
     }
-    
+
     .react-datepicker__day-name {
       color: #a1a1aa !important;
       font-weight: 500 !important;
@@ -147,19 +180,19 @@
       line-height: 2rem !important;
       margin: 0.1rem !important;
     }
-    
+
     /* 날짜 영역 */
     .react-datepicker__month {
       background-color: #1a1a1a !important;
       padding: 0.5rem !important;
       margin: 0 !important;
     }
-    
+
     .react-datepicker__week {
       display: flex !important;
       justify-content: space-around !important;
     }
-    
+
     /* 날짜 셀 */
     .react-datepicker__day {
       color: #e4e4e7 !important;
@@ -173,40 +206,40 @@
       transition: all 0.15s ease !important;
       border: 2px solid transparent !important;
     }
-    
+
     .react-datepicker__day:hover {
       background-color: #3f3f46 !important;
       color: #ffffff !important;
     }
-    
+
     /* 다른 달 날짜 */
     .react-datepicker__day--outside-month {
       color: #52525b !important;
     }
-    
+
     .react-datepicker__day--outside-month:hover {
       background-color: #27272a !important;
       color: #a1a1aa !important;
     }
-    
+
     /* 비활성화된 날짜 */
     .react-datepicker__day--disabled {
       color: #3f3f46 !important;
       background-color: transparent !important;
       cursor: not-allowed !important;
     }
-    
+
     .react-datepicker__day--disabled:hover {
       background-color: transparent !important;
       color: #3f3f46 !important;
     }
-    
+
     /* 오늘 날짜 */
     .react-datepicker__day--today {
       border: 2px solid #3b82f6 !important;
       font-weight: 600 !important;
     }
-    
+
     /* 선택된 날짜 */
     .react-datepicker__day--selected,
     .react-datepicker__day--keyboard-selected {
@@ -215,46 +248,48 @@
       font-weight: 600 !important;
       border: 2px solid #3b82f6 !important;
     }
-    
+
     .react-datepicker__day--selected:hover,
     .react-datepicker__day--keyboard-selected:hover {
       background-color: #2563eb !important;
     }
-    
+
     /* 범위 선택 */
     .react-datepicker__day--in-range,
     .react-datepicker__day--in-selecting-range {
       background-color: #1e3a8a !important;
       color: #93c5fd !important;
     }
-    
+
     .react-datepicker__day--range-start,
     .react-datepicker__day--range-end {
       background-color: #3b82f6 !important;
       color: #ffffff !important;
     }
   </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- PWA Service Worker 등록 -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        // 빌보드 페이지에서만 서비스 워커 등록
-        if (window.location.pathname.includes('/billboard/')) {
-          window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/service-worker.js')
-              .then(function(registration) {
-                console.log('Service Worker 등록 성공:', registration.scope);
-              })
-              .catch(function(error) {
-                console.log('Service Worker 등록 실패:', error);
-              });
-          });
-        }
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+
+  <!-- PWA Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      // 빌보드 페이지에서만 서비스 워커 등록
+      if (window.location.pathname.includes('/billboard/')) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(function (registration) {
+              console.log('Service Worker 등록 성공:', registration.scope);
+            })
+            .catch(function (error) {
+              console.log('Service Worker 등록 실패:', error);
+            });
+        });
       }
-    </script>
-  </body>
+    }
+  </script>
+</body>
+
 </html>
