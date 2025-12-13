@@ -131,19 +131,14 @@ export default memo(function EventDetailModal({
                     >
                       {hasImage ? (
                         <>
-                          {/* Blurred Background */}
-                          <div
-                            className="image-blur-bg"
-                            style={{ backgroundImage: `url(${detailImageUrl})` }}
-                          />
-
                           {/* Main Image */}
                           <img
                             src={detailImageUrl}
                             alt={selectedEvent.title}
+                            className="detail-image"
+                            loading="eager"
                             fetchPriority="high"
                             decoding="async"
-                            className="detail-image"
                             style={{
                               transform: `translate3d(${(selectedEvent as any).image_position_x || 0}%, ${(selectedEvent as any).image_position_y || 0}%, 0)`
                             }}

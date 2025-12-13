@@ -142,12 +142,15 @@
 .image-area {
   position: relative;
   width: 100%;
-  min-height: 256px;
-  max-height: 60vh;
+  min-height: 500px;
+  /* 더 크게 */
+  /* max-height: 90vh; */
+  /* 90vh로 증가 - 포스터 완전히 표시 */
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
+  /* hidden에서 visible로 변경 - 잘림 방지 */
   background-color: #000;
 }
 
@@ -161,13 +164,16 @@
 }
 
 .detail-image {
-  position: relative;
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 60vh;
+  max-height: 90vh;
+  /* 이미지 최대 높이 증가 */
   object-fit: contain;
-  z-index: 1;
+  /* 포스터 전체 표시 */
+  object-position: center;
+  position: relative;
+  z-index: 0;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
@@ -186,10 +192,14 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 80px;
-  background: linear-gradient(to top, rgba(20, 20, 20, 1), transparent);
-  z-index: 2;
+  height: 30%;
+  /* 60%에서 30%로 줄임 - 이미지 더 많이 보이도록 */
+  background: linear-gradient(to top,
+      rgba(0, 0, 0, 0.7) 0%,
+      rgba(0, 0, 0, 0.4) 50%,
+      transparent 100%);
   pointer-events: none;
+  z-index: 1;
 }
 
 .default-thumbnail-overlay {
@@ -824,7 +834,7 @@
 @media (max-width: 768px) {
   .image-area {
     min-height: 200px;
-    max-height: 40vh;
+    /* max-height: 40vh; */
   }
 
   .modal-title {
