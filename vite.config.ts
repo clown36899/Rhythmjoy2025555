@@ -5,6 +5,7 @@ import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import AutoImport from "unplugin-auto-import/vite";
+import { visualizer } from 'rollup-plugin-visualizer';
 
 //const base = process.env.BASE_PATH || "/";//
 
@@ -105,7 +106,15 @@ export default defineConfig({
       ],
       dts: true,
     }),
-  ],
+    // Bundle Analyzer - 프로덕션 빌드 시에만
+    process.env.ANALYZE === 'true' && visualizer({
+      open: true,
+      filename: 'dist/stats.html',
+      gzipSize: true,
+      brotliSize: true,
+      template: 'treemap',
+    }),
+  ].filter(Boolean),
   css: {
     devSourcemap: true,
   },
