@@ -2,6 +2,7 @@ import { useState, useEffect, memo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { Shop } from '../../shopping/page';
 import ShopDetailModal from '../../shopping/components/ShopDetailModal';
+import { useIntersectionObserver } from '../../../hooks/useIntersectionObserver';
 import './ShoppingBanner.css';
 
 function ShoppingBanner() {
@@ -11,6 +12,8 @@ function ShoppingBanner() {
     const [isHovered, setIsHovered] = useState(false);
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
     const [showModal, setShowModal] = useState(false);
+
+    const [imageBlobs, setImageBlobs] = useState<Record<number, string>>({});
 
     // Fetch shops from Supabase
     const fetchShops = async () => {
@@ -22,24 +25,46 @@ function ShoppingBanner() {
 
         if (data && !error) {
             setShops(data);
+
+            // Prefetch images as Blobs to prevent network requests during rotation
+            const blobs: Record<number, string> = {};
+            await Promise.all(data.map(async (shop) => {
+                if (shop.logo_url) {
+                    try {
+                        const response = await fetch(shop.logo_url);
+                        const blob = await response.blob();
+                        blobs[shop.id] = URL.createObjectURL(blob);
+                    } catch (e) {
+                        console.error('Failed to prefetch image:', shop.logo_url);
+                    }
+                }
+            }));
+            setImageBlobs(blobs);
         }
         setLoading(false);
     };
 
+    // Visibility check
+    const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.1 });
+
     useEffect(() => {
         fetchShops();
+        // Cleanup blobs on unmount
+        return () => {
+            Object.values(imageBlobs).forEach(url => URL.revokeObjectURL(url));
+        };
     }, []);
 
-    // Auto-slide timer
+    // Auto-slide timer (only when visible and not hovered)
     useEffect(() => {
-        if (shops.length === 0 || isHovered) return;
+        if (shops.length === 0 || isHovered || !isIntersecting) return;
 
         const timer = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % shops.length);
         }, 4000); // 4 seconds
 
         return () => clearInterval(timer);
-    }, [shops.length, isHovered]);
+    }, [shops.length, isHovered, isIntersecting]);
 
     const handlePrev = () => {
         setCurrentIndex((prev) => (prev - 1 + shops.length) % shops.length);
@@ -82,6 +107,7 @@ function ShoppingBanner() {
     return (
         <>
             <div
+                ref={ref}
                 className="shopping-banner"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
@@ -116,7 +142,7 @@ function ShoppingBanner() {
                     {/* Logo */}
                     <div className="shopping-banner-logo">
                         {currentShop.logo_url ? (
-                            <img src={currentShop.logo_url} alt={currentShop.name} />
+                            <img src={imageBlobs[currentShop.id] || currentShop.logo_url} alt={currentShop.name} />
                         ) : (
                             <div className="shopping-banner-logo-placeholder">
                                 <i className="ri-store-2-fill"></i>

@@ -276,19 +276,33 @@
   <!-- PWA Service Worker 등록 -->
   <script>
     if ('serviceWorker' in navigator) {
-      // 빌보드 페이지에서만 서비스 워커 등록
-      if (window.location.pathname.includes('/billboard/')) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(function (registration) {
-              console.log('Service Worker 등록 성공:', registration.scope);
-            })
-            .catch(function (error) {
-              console.log('Service Worker 등록 실패:', error);
-            });
+      // 개발 환경 (localhost) 확인
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+      if (isLocalhost) {
+        // 개발 환경이면 모든 서비스 워커 해제 (백그라운드 요청 방지)
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          for (let registration of registrations) {
+            registration.unregister();
+            console.log('개발 환경: Service Worker 해제됨 (백그라운드 요청 방지)');
+          }
         });
+      } else {
+        // 배포 환경이고 빌보드 페이지인 경우에만 서비스 워커 등록
+        if (window.location.pathname.includes('/billboard/')) {
+          window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/service-worker.js')
+              .then(function (registration) {
+                console.log('Service Worker 등록 성공:', registration.scope);
+              })
+              .catch(function (error) {
+                console.log('Service Worker 등록 실패:', error);
+              });
+          });
+        }
       }
     }
+  </script>
   </script>
 </body>
 

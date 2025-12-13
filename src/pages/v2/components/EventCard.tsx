@@ -100,16 +100,7 @@ export const EventCard = memo(({
   // category 기반 클래스 추가
   const categoryClass = event.category === 'class' ? 'card-category-class' : 'card-category-event';
 
-  // 이미 preload한 이미지 추적 (컴포넌트 외부에서 관리)
-  const preloadedImages = React.useRef(new Set<string>());
 
-  const preloadImage = (url: string | undefined) => {
-    if (!url || preloadedImages.current.has(url)) return; // 이미 preload했으면 스킵
-
-    const img = new Image();
-    img.src = url;
-    preloadedImages.current.add(url); // preload 완료 표시
-  };
 
   return (
     <div
@@ -117,13 +108,7 @@ export const EventCard = memo(({
       data-event-id={event.id}
       className={`card-container ${isPast ? 'card-container-past' : ''} ${categoryClass} ${isHighlighted ? 'qr-highlighted' : ''}`}
       onClick={onClick}
-      onMouseEnter={() => {
-        onMouseEnter?.(event.id);
-        // 한 번만 preload (중복 방지)
-        preloadImage(thumbnailUrl);
-        preloadImage(event.image);
-        preloadImage(event.image_medium);
-      }}
+      onMouseEnter={() => onMouseEnter?.(event.id)}
       onMouseLeave={onMouseLeave}
       style={{
         ...(isHighlighted ? { '--highlight-color': highlightBorderColor } as React.CSSProperties : {}),
