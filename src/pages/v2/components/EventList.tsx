@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
 import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
+import { getLocalDateString, sortEvents, isEventMatchingFilter } from "../utils/eventListUtils";
 interface Event extends BaseEvent {
   storage_path?: string | null;
   genre?: string | null;
@@ -20,10 +21,11 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
 import { EventCard } from "./EventCard";
-import EventPasswordModal from "./EventPasswordModal";
-import EventDetailModal from "./EventDetailModal";
-import EventSearchModal from "./EventSearchModal";
-import EventSortModal from "./EventSortModal";
+// Modals Lazy Loading
+const EventPasswordModal = lazy(() => import("./EventPasswordModal"));
+const EventDetailModal = lazy(() => import("./EventDetailModal"));
+const EventSearchModal = lazy(() => import("./EventSearchModal"));
+const EventSortModal = lazy(() => import("./EventSortModal"));
 import Footer from "./Footer";
 import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
 import { EditablePreviewCard } from "../../../components/EditablePreviewCard";
@@ -133,7 +135,7 @@ export default function EventList({
 }: EventListProps) {
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedCategory = searchParams.get('category') || 'all';
+  const selectedCategory = searchParams.get('category') ?? 'all';
   const selectedGenre = searchParams.get('genre');
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -329,92 +331,16 @@ export default function EventList({
   // }, [currentMonth, searchTerm, selectedDate]);
 
   // 로컬 날짜를 YYYY-MM-DD 형식으로 반환하는 헬퍼 함수
-  const getLocalDateString = (date: Date = new Date()) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+  // Moved to utils/eventListUtils.ts
+  // const getLocalDateString = ... 
 
   // Seeded Random 함수
-  const seededRandom = (seed: number) => {
-    let value = seed;
-    return () => {
-      value = (value * 9301 + 49297) % 233280;
-      return value / 233280;
-    };
-  };
+  // Moved to utils/eventListUtils.ts
+  // const seededRandom = ...
 
   // 이벤트 정렬 함수 (targetMonth를 명시적으로 받음)
-  const sortEvents = (eventsToSort: Event[], sortType: string, targetMonth?: Date, isYearView: boolean = false) => {
-    const eventsCopy = [...eventsToSort];
-    const today = getLocalDateString();
-
-    // 년 단위 + 시간순일 때는 진행 중/종료 구분 없이 날짜 순서대로만 정렬
-    if (isYearView && sortType === "time") {
-      return eventsCopy.sort((a, b) => {
-        const dateStrA = a.start_date || a.date;
-        const dateStrB = b.start_date || b.date;
-        if (!dateStrA && !dateStrB) return 0;
-        if (!dateStrA) return 1;
-        if (!dateStrB) return -1;
-        const dateA = new Date(`${dateStrA} ${a.time}`);
-        const dateB = new Date(`${dateStrB} ${b.time}`);
-        return dateA.getTime() - dateB.getTime();
-      });
-    }
-
-    // 달 단위 또는 랜덤/제목순일 때는 진행 중/종료 이벤트 분류 (종료일 기준)
-    const ongoingEvents: Event[] = [];
-    const endedEvents: Event[] = [];
-
-    eventsCopy.forEach((event) => {
-      const endDate = event.end_date || event.date;
-      if (endDate && endDate < today) {
-        endedEvents.push(event);
-      } else {
-        ongoingEvents.push(event);
-      }
-    });
-
-    // 각 그룹 내에서 정렬 적용
-    const sortGroup = (group: Event[]) => {
-      switch (sortType) {
-        case "random":
-          // 랜덤 정렬 - targetMonth 기반 고정 seed 사용
-          const monthToUse = targetMonth || currentMonth || new Date();
-          const seed = monthToUse.getFullYear() * 12 + monthToUse.getMonth();
-          const random = seededRandom(seed);
-
-          const shuffled = [...group];
-          for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-          }
-          return shuffled;
-        case "time":
-          // 시간순 정렬 (날짜 + 시간) - 달 단위에서만 사용
-          return group.sort((a, b) => {
-            const dateStrA = a.start_date || a.date;
-            const dateStrB = b.start_date || b.date;
-            if (!dateStrA && !dateStrB) return 0;
-            if (!dateStrA) return 1;
-            if (!dateStrB) return -1;
-            const dateA = new Date(`${dateStrA} ${a.time}`);
-            const dateB = new Date(`${dateStrB} ${b.time}`);
-            return dateA.getTime() - dateB.getTime();
-          });
-        case "title":
-          // 제목순 정렬 (가나다순)
-          return group.sort((a, b) => a.title.localeCompare(b.title, "ko"));
-        default:
-          return group;
-      }
-    };
-
-    // 진행 중 이벤트를 위로, 종료된 이벤트를 아래로
-    return [...sortGroup(ongoingEvents), ...sortGroup(endedEvents)];
-  };
+  // Moved to utils/eventListUtils.ts
+  // const sortEvents = ...
 
   // 검색 관련 핸들러들 제거됨 (EventSearchModal로 이동)
 
@@ -486,7 +412,7 @@ export default function EventList({
       );
 
       let data: Event[] | null = null;
-      let error: any = null;
+      let error: unknown = undefined; // Use unknown instead of any
 
       const fetchPromise = (async () => {
         // 필요한 컬럼만 선택 (성능 최적화)
@@ -522,30 +448,17 @@ export default function EventList({
 
       if (error) {
         console.error("[📋 이벤트 목록] ❌ Supabase 에러:", error);
-        setLoadError(`DB 에러: ${error.message || "알 수 없는 오류"}`);
+        setLoadError(`DB 에러: ${(error as any).message || "알 수 없는 오류"}`);
         setEvents([]);
       } else {
         const eventList: Event[] = data || [];
-        console.log('[📋 이벤트 목록] ✅ 데이터 로딩 완료:', {
-          총개수: eventList.length,
-          최근3개: eventList.slice(-3).map((e: Event) => ({
-            id: e.id,
-            title: e.title,
-            hasThumbnail: !!e.image_thumbnail,
-            thumbnailLength: e.image_thumbnail?.length,
-            originalImageLength: e.image?.length
-          }))
-        });
 
         // Analyze image usage
-        const totalEvents = eventList.length;
-        const withThumbnail = eventList.filter(e => e.image_thumbnail).length;
-        console.log(`[📊 이미지 분석] 총 ${totalEvents}개 중 ${withThumbnail}개(${Math.round(withThumbnail / totalEvents * 100)}%)가 썸네일 보유`);
         setEvents(eventList);
       }
-    } catch (error: any) {
-      console.error("이벤트 로딩 실패:", error.message);
-      setLoadError(error.message || "알 수 없는 오류");
+    } catch (error: unknown) {
+      console.error("이벤트 상세 로딩 실패:", (error as Error).message);
+      setLoadError((error as Error).message || "알 수 없는 오류");
       setEvents([]);
     } finally {
       setLoading(false);
@@ -1092,73 +1005,16 @@ export default function EventList({
 
     // 각 달의 이벤트 필터링 함수
     const filterByMonth = (targetMonth: Date) => {
-      console.log(`[filterByMonth] ${targetMonth.getFullYear()}-${targetMonth.getMonth() + 1}월 필터링 시작. 장르: ${selectedGenre || '전체'}`);
       return events.filter((event) => {
-        const matchesCategory =
-          selectedCategory === "none"
-            ? false
-            : selectedCategory === "all" || event.category === selectedCategory;
-
-        const matchesGenre = (() => {
-          if (!selectedGenre) {
-            return true; // 선택된 장르가 없으면 항상 통과
-          }
-          if (!event.genre) {
-            return false; // 이벤트에 장르가 없으면 매칭 실패
-          }
-          return event.genre.trim().toLowerCase() === selectedGenre.trim().toLowerCase();
-        })();
-
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
-
-        if (!startDate || !endDate) return false;
-
-        const targetYear = targetMonth.getFullYear();
-        const targetMonthNum = targetMonth.getMonth() + 1;
-        const monthStartStr = `${targetYear}-${String(targetMonthNum).padStart(2, "0")}-01`;
-        const monthEndStr = `${targetYear}-${String(targetMonthNum).padStart(2, "0")}-${new Date(targetYear, targetMonthNum, 0).getDate()}`;
-
-        const matchesDate =
-          startDate <= monthEndStr && endDate >= monthStartStr;
-
-        // 요일 필터 추가
-        const matchesWeekday = (() => {
-          if (selectedWeekday === undefined || selectedWeekday === null) return true;
-
-          // 날짜 파싱 헬퍼 (YYYY-MM-DD 형식일 때만 T12:00:00 추가)
-          const parseDateSafe = (dateStr: string) => {
-            if (dateStr.length === 10) {
-              return new Date(`${dateStr}T12:00:00`);
-            }
-            return new Date(dateStr);
-          };
-
-          // 특정 날짜 배열이 있는 경우
-          if (event.event_dates && event.event_dates.length > 0) {
-            return event.event_dates.some(d => parseDateSafe(d).getDay() === selectedWeekday);
-          }
-
-          // 기간인 경우
-          const start = parseDateSafe(startDate);
-          const end = parseDateSafe(endDate);
-
-          // 7일 이상이면 무조건 해당 요일 포함
-          const oneDay = 24 * 60 * 60 * 1000;
-          const diffDays = Math.round(Math.abs((end.getTime() - start.getTime()) / oneDay));
-          if (diffDays >= 6) return true;
-
-          // 기간 순회하며 요일 확인
-          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            if (d.getDay() === selectedWeekday) {
-              return true;
-            }
-          }
-
-          return false;
-        })();
-
-        return matchesCategory && matchesGenre && matchesDate && matchesWeekday;
+        return isEventMatchingFilter(event, {
+          selectedCategory,
+          selectedGenre,
+          searchTerm,
+          selectedDate,
+          targetMonth,
+          viewMode,
+          selectedWeekday
+        });
       });
     };
 
@@ -1184,131 +1040,18 @@ export default function EventList({
 
   // 카테고리별 이벤트 개수 계산 (현재 필터 조건 기준, 카테고리만 제외)
   const categoryCounts = useMemo(() => {
-    // 기본 필터링 로직 (카테고리 제외)
+    // 기본 필터링 로직 (카테고리 제외하고 카운트용)
     const baseFilter = (event: Event) => {
-      // 장르 필터
-      const matchesGenre = (() => {
-        if (!selectedGenre) return true;
-        if (!event.genre) return false;
-        return event.genre.trim().toLowerCase() === selectedGenre.trim().toLowerCase();
-      })();
-
-      // 검색어 필터
-      const matchesSearch =
-        (event.title && event.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (event.location && event.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (event.organizer && event.organizer.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (event.genre && event.genre.toLowerCase().includes(searchTerm.toLowerCase()));
-
-      // 날짜 필터
-      let matchesDate = true;
-
-      // 검색어가 있을 때는 3년치 데이터만 필터링 (월 필터 무시)
-      if (searchTerm.trim()) {
-        const currentYear = new Date().getFullYear();
-        const eventDate = event.start_date || event.date;
-        if (!eventDate) return false;
-        const eventYear = new Date(eventDate).getFullYear();
-        const matchesYearRange = eventYear >= currentYear - 1 && eventYear <= currentYear + 1;
-        return matchesGenre && matchesSearch && matchesYearRange;
-      }
-
-      // 특정 날짜가 선택된 경우
-      if (selectedDate) {
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-        const day = String(selectedDate.getDate()).padStart(2, "0");
-        const selectedDateString = `${year}-${month}-${day}`;
-
-        if (event.event_dates && event.event_dates.length > 0) {
-          matchesDate = event.event_dates.includes(selectedDateString);
-        } else {
-          const startDate = event.start_date || event.date;
-          const endDate = event.end_date || event.date;
-          if (!startDate || !endDate) return false;
-          matchesDate = selectedDateString >= startDate && selectedDateString <= endDate;
-        }
-      }
-      // 월간/연간 보기
-      else if (currentMonth) {
-        if (event.event_dates && event.event_dates.length > 0) {
-          const currentYear = currentMonth.getFullYear();
-          const currentMonthNum = currentMonth.getMonth() + 1;
-
-          if (viewMode === "year") {
-            matchesDate = event.event_dates.some((dateStr) => {
-              const year = parseInt(dateStr.split("-")[0]);
-              return year === currentYear;
-            });
-          } else {
-            const monthPrefix = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`;
-            matchesDate = event.event_dates.some((dateStr) => dateStr.startsWith(monthPrefix));
-          }
-        } else {
-          const startDate = event.start_date || event.date;
-          const endDate = event.end_date || event.date;
-
-          if (!startDate || !endDate) {
-            matchesDate = false;
-          } else {
-            if (viewMode === "year") {
-              const yearStart = new Date(currentMonth.getFullYear(), 0, 1);
-              const yearEnd = new Date(currentMonth.getFullYear(), 11, 31);
-              const eventStartDate = new Date(startDate);
-              const eventEndDate = new Date(endDate);
-              matchesDate = eventStartDate <= yearEnd && eventEndDate >= yearStart;
-            } else {
-              const currentYear = currentMonth.getFullYear();
-              const currentMonthNum = currentMonth.getMonth() + 1;
-              const monthStartStr = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-01`;
-              const monthEndStr = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-${new Date(currentYear, currentMonthNum, 0).getDate()}`;
-              matchesDate = startDate <= monthEndStr && endDate >= monthStartStr;
-            }
-          }
-        }
-      }
-
-      // 요일 필터 추가
-      const matchesWeekday = (() => {
-        if (selectedWeekday === undefined || selectedWeekday === null) return true;
-
-        // 날짜 파싱 헬퍼 (YYYY-MM-DD 형식일 때만 T12:00:00 추가)
-        const parseDateSafe = (dateStr: string) => {
-          if (dateStr.length === 10) {
-            return new Date(`${dateStr}T12:00:00`);
-          }
-          return new Date(dateStr);
-        };
-
-        // 특정 날짜 배열이 있는 경우
-        if (event.event_dates && event.event_dates.length > 0) {
-          return event.event_dates.some(d => parseDateSafe(d).getDay() === selectedWeekday);
-        }
-
-        // 기간인 경우
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
-        if (!startDate || !endDate) return false;
-
-        const start = parseDateSafe(startDate);
-        const end = parseDateSafe(endDate);
-
-        // 7일 이상이면 무조건 해당 요일 포함
-        const oneDay = 24 * 60 * 60 * 1000;
-        const diffDays = Math.round(Math.abs((end.getTime() - start.getTime()) / oneDay));
-        if (diffDays >= 6) return true;
-
-        // 기간 순회하며 요일 확인
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          if (d.getDay() === selectedWeekday) {
-            return true;
-          }
-        }
-
-        return false;
-      })();
-
-      return matchesGenre && matchesSearch && matchesDate && matchesWeekday;
+      // 카테고리 필터는 'all'로 설정하여 무시 (모든 카테고리 대상으로 필터링 후 개수 셈)
+      return isEventMatchingFilter(event, {
+        selectedCategory: 'all',
+        selectedGenre,
+        searchTerm,
+        selectedDate,
+        targetMonth: currentMonth || undefined, // baseFilter defaults to currentMonth if present
+        viewMode,
+        selectedWeekday
+      });
     };
 
     const baseEvents = events.filter(baseFilter);
@@ -1434,6 +1177,7 @@ export default function EventList({
       if (hasEventDates) {
         // Individual dates mode
         setEditEventDates(event.event_dates || []);
+        setEditEventDates(event.event_dates || []);
         setEditDate(null);
         setEditEndDate(null);
       } else {
@@ -1496,7 +1240,7 @@ export default function EventList({
   };
 
   // EditableEventDetail handlers
-  const handleEditDetailUpdate = (field: string, value: any) => {
+  const handleEditDetailUpdate = (field: string, value: string | number | boolean | null) => {
     setEditFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -2052,29 +1796,29 @@ export default function EventList({
         endDate = eventDatesArray[eventDatesArray.length - 1];
       }
 
-      let updateData: any = {
+      const updateData: Partial<Event> = {
         title: editFormData.title,
         genre: editFormData.genre || null,
 
         time: editFormData.time,
         location: editFormData.location,
-        location_link: editFormData.locationLink || null,
+        location_link: editFormData.locationLink || undefined,
         category: editFormData.category,
         description: editFormData.description || "",
         organizer: editFormData.organizer,
-        organizer_name: editFormData.organizerName || null,
-        organizer_phone: editFormData.organizerPhone || null,
-        contact: editFormData.contact || null,
-        link1: editFormData.link1 || null,
-        link2: editFormData.link2 || null,
-        link3: editFormData.link3 || null,
-        link_name1: editFormData.linkName1 || null,
-        link_name2: editFormData.linkName2 || null,
-        link_name3: editFormData.linkName3 || null,
-        start_date: startDate,
-        end_date: endDate,
-        event_dates: eventDatesArray,
-        video_url: editFormData.videoUrl || null,
+        organizer_name: editFormData.organizerName || undefined,
+        organizer_phone: editFormData.organizerPhone || undefined,
+        contact: editFormData.contact || undefined,
+        link1: editFormData.link1 || undefined,
+        link2: editFormData.link2 || undefined,
+        link3: editFormData.link3 || undefined,
+        link_name1: editFormData.linkName1 || undefined,
+        link_name2: editFormData.linkName2 || undefined,
+        link_name3: editFormData.linkName3 || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+        event_dates: eventDatesArray || undefined,
+        video_url: editFormData.videoUrl || undefined,
         show_title_on_billboard: editFormData.showTitleOnBillboard,
         updated_at: new Date().toISOString(), // 캐시 무효화를 위해 항상 갱신
       };
@@ -2743,34 +2487,36 @@ export default function EventList({
 
       {/* 정렬 모달 */}
       {/* 정렬 모달 */}
-      <EventSortModal
-        isOpen={showSortModal}
-        onClose={() => setShowSortModal(false)}
-        sortBy={sortBy}
-        onSortChange={handleSortChange}
-      />
+      <Suspense fallback={null}>
+        <EventSortModal
+          isOpen={showSortModal}
+          onClose={() => setShowSortModal(false)}
+          sortBy={sortBy}
+          onSortChange={handleSortChange}
+        />
 
-      {/* 검색 모달 */}
-      {/* 검색 모달 */}
-      <EventSearchModal
-        isOpen={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
-        onSearch={(term) => {
-          if (onSearchStart) onSearchStart();
-          setSearchTerm(term);
-          setShowSearchModal(false);
-        }}
-        events={events}
-      />
+        {/* 검색 모달 */}
+        {/* 검색 모달 */}
+        <EventSearchModal
+          isOpen={showSearchModal}
+          onClose={() => setShowSearchModal(false)}
+          onSearch={(term) => {
+            if (onSearchStart) onSearchStart();
+            setSearchTerm(term);
+            setShowSearchModal(false);
+          }}
+          events={events}
+        />
 
-      <EventDetailModal
-        isOpen={!!selectedEvent}
-        event={selectedEvent}
-        onClose={closeModal}
-        onEdit={handleEditClick}
-        onDelete={handleDeleteClick}
-        isAdminMode={isAdminMode}
-      />
+        <EventDetailModal
+          isOpen={!!selectedEvent}
+          event={selectedEvent}
+          onClose={closeModal}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
+          isAdminMode={isAdminMode}
+        />
+      </Suspense>
 
       {/* EditableEventDetail for editing */}
       {isEditingWithDetail && eventToEdit && createPortal(
@@ -2814,17 +2560,17 @@ export default function EventList({
                 start_date: editDate ? formatDateForInput(editDate) : undefined,
                 end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
                 event_dates: editEventDates.length > 0 ? editEventDates : undefined,
-                location: editFormData.location,
-                location_link: editFormData.locationLink,
-                description: editFormData.description,
+                location: editFormData.location || "",
+                location_link: editFormData.locationLink || undefined,
+                description: editFormData.description || "",
                 category: editFormData.category as "class" | "event",
-                genre: editFormData.genre,
-                image: editImagePreview || editFormData.image,
-                link1: editLink,
-                link_name1: editLinkName,
-                organizer: editFormData.organizer,
-                organizer_name: editFormData.organizerName,
-                time: editFormData.time,
+                genre: editFormData.genre || undefined,
+                image: editImagePreview || editFormData.image || "",
+                link1: editLink || undefined,
+                link_name1: editLinkName || undefined,
+                organizer: editFormData.organizer || "",
+                organizer_name: editFormData.organizerName || undefined,
+                time: editFormData.time || "",
                 price: eventToEdit.price,
                 capacity: eventToEdit.capacity,
                 registered: eventToEdit.registered,
@@ -2977,21 +2723,23 @@ export default function EventList({
       />
 
       {/* Password Modal */}
-      {
-        showPasswordModal && eventToEdit && (
-          <EventPasswordModal
-            event={eventToEdit}
-            password={eventPassword}
-            onPasswordChange={setEventPassword}
-            onSubmit={handlePasswordSubmit}
-            onClose={() => {
-              setShowPasswordModal(false);
-              setEventPassword("");
-              setEventToEdit(null);
-            }}
-          />
-        )
-      }
+      <Suspense fallback={null}>
+        {
+          showPasswordModal && eventToEdit && (
+            <EventPasswordModal
+              event={eventToEdit}
+              password={eventPassword}
+              onPasswordChange={setEventPassword}
+              onSubmit={handlePasswordSubmit}
+              onClose={() => {
+                setShowPasswordModal(false);
+                setEventPassword("");
+                setEventToEdit(null);
+              }}
+            />
+          )
+        }
+      </Suspense>
 
       {/* Edit Modal */}
       {
