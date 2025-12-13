@@ -31,8 +31,8 @@ export default function BillboardSection({ events }: BillboardSectionProps) {
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
 
-        // Duplicate events to create seamless loop
-        return [...shuffled, ...shuffled];
+        // 메모리 최적화: 배열 복제 제거, CSS animation으로 무한 스크롤 구현
+        return shuffled;
     }, [events]);
 
     if (billboardEvents.length === 0) {
@@ -79,6 +79,9 @@ export default function BillboardSection({ events }: BillboardSectionProps) {
                                 <img
                                     src={thumbnailUrl}
                                     alt={event.title}
+                                    loading="lazy"
+                                    decoding="async"
+                                    fetchPriority="low"
                                     className="billboard-image"
                                 />
                             </div>

@@ -168,6 +168,7 @@ export const EventCard = memo(({
               alt={event.title}
               loading="lazy"
               decoding="async"
+              fetchPriority="low"
               className="card-image"
             />
             {variant === "sliding" && !event?.image && !event?.image_thumbnail && (

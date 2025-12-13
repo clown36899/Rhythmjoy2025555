@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, type RefObject } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, lazy, Suspense, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
@@ -28,11 +28,11 @@ import Footer from "./Footer";
 import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
 import { EditablePreviewCard } from "../../../components/EditablePreviewCard";
 import ShoppingBanner from "./ShoppingBanner";
-import BillboardSection from "./BillboardSection";
 import "../../../styles/components/EventList.css";
 import "../../../components/EventRegistrationModal.css";
 import "../styles/EventListSections.css";
-import SocialCalendar from "../../social/components/SocialCalendar";
+// Lazy loading으로 성능 최적화
+const SocialCalendar = lazy(() => import("../../social/components/SocialCalendar"));
 import { useSocialSchedules } from "../../social/hooks/useSocialSchedules";
 
 registerLocale("ko", ko);
@@ -489,18 +489,28 @@ export default function EventList({
       let error: any = null;
 
       const fetchPromise = (async () => {
+        // 필요한 컬럼만 선택 (성능 최적화)
+        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path";
+
         if (isAdminMode) {
+          // 관리자 모드: 모든 이벤트 조회 (종료된 이벤트 포함)
           const result = await supabase
             .from("events")
-            .select("*,storage_path")
+            .select(columns)
             .order("start_date", { ascending: true, nullsFirst: false })
             .order("date", { ascending: true, nullsFirst: false });
           data = result.data;
           error = result.error;
         } else {
+          // 일반 사용자: 3개월 전부터 미래 이벤트만 조회 (성능 최적화)
+          const threeMonthsAgo = new Date();
+          threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+          const cutoffDate = threeMonthsAgo.toISOString().split('T')[0];
+
           const result = await supabase
             .from("events")
-            .select("*,storage_path")
+            .select(columns)
+            .or(`end_date.gte.${cutoffDate},date.gte.${cutoffDate}`)
             .order("start_date", { ascending: true, nullsFirst: false })
             .order("date", { ascending: true, nullsFirst: false });
           data = result.data;
@@ -2277,8 +2287,7 @@ export default function EventList({
             {/* Shopping Mall Banner */}
             <ShoppingBanner />
 
-            {/* Billboard Section - Scrolling Events */}
-            <BillboardSection events={events} />
+            {/* BillboardSection 제거 - 사용하지 않음 (display: none) */}
 
 
             {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
@@ -2417,16 +2426,18 @@ export default function EventList({
               <div className="evt-v2-section-title">
                 <span>정기 소셜 일정</span>
               </div>
-              <SocialCalendar
-                showModal={false}
-                setShowModal={() => { }}
-                events={socialEvents}
-                loading={socialLoading}
-                onEventCreated={() => { }}
-                onEventUpdated={() => { }}
-                onEventDeleted={() => { }}
-                readonly={true}
-              />
+              <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>로딩 중...</div>}>
+                <SocialCalendar
+                  showModal={false}
+                  setShowModal={() => { }}
+                  events={socialEvents}
+                  loading={socialLoading}
+                  onEventCreated={() => { }}
+                  onEventUpdated={() => { }}
+                  onEventDeleted={() => { }}
+                  readonly={true}
+                />
+              </Suspense>
             </div>
 
             {/* Section 3+: 장르별 이벤트 (랜덤 순서, 진행중인 강습 필터와 독립) - 무조건 표시 */}

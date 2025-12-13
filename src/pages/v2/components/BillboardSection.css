@@ -11,7 +11,7 @@
 .billboard-track {
     display: flex;
     gap: 20px;
-    animation: scroll-left 80s linear infinite;
+    animation: scroll-left 40s linear infinite;
     white-space: nowrap;
 }
 
@@ -19,13 +19,14 @@
     animation-play-state: paused;
 }
 
+/* 무한 스크롤을 위한 애니메이션 - 배열 복제 없이 CSS로 구현 */
 @keyframes scroll-left {
     0% {
         transform: translateX(0);
     }
 
     100% {
-        transform: translateX(-50%);
+        transform: translateX(calc(-100% - 20px));
     }
 }
 
