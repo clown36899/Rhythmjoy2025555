@@ -834,7 +834,6 @@
 @media (max-width: 768px) {
   .image-area {
     min-height: 200px;
-    /* max-height: 40vh; */
   }
 
   .modal-title {

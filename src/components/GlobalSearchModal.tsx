@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, memo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
 import PracticeRoomDetail from '../pages/practice/components/PracticeRoomDetail';
@@ -22,7 +22,7 @@ interface GlobalSearchModalProps {
     searchQuery: string;
 }
 
-export default function GlobalSearchModal({ isOpen, onClose, searchQuery }: GlobalSearchModalProps) {
+export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }: GlobalSearchModalProps) {
     const [results, setResults] = useState<{
         events: SearchResult[];
         practice_rooms: SearchResult[];
@@ -365,4 +365,4 @@ export default function GlobalSearchModal({ isOpen, onClose, searchQuery }: Glob
             )}
         </div>
     );
-}
+});

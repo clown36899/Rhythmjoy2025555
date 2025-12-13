@@ -1,4 +1,5 @@
 import type { Event } from "../../../lib/supabase";
+import { memo } from "react";
 import { createPortal } from "react-dom";
 import "../../../styles/components/EventPasswordModal.css";
 
@@ -10,7 +11,7 @@ interface EventPasswordModalProps {
   onClose: () => void;
 }
 
-export default function EventPasswordModal({
+export default memo(function EventPasswordModal({
   event,
   password,
   onPasswordChange,
@@ -71,4 +72,4 @@ export default function EventPasswordModal({
       </div>
     ), document.body
   );
-}
+});

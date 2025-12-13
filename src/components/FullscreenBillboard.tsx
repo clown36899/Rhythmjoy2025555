@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, memo } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { parseVideoUrl } from "../utils/videoEmbed";
@@ -28,7 +28,7 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-export default function FullscreenBillboard({
+export default memo(function FullscreenBillboard({
   images,
   events,
   isOpen,
@@ -190,15 +190,14 @@ export default function FullscreenBillboard({
           {(() => {
             const currentEvent = sortedEvents[currentIndex];
             const videoUrl = currentEvent?.video_url;
-            
+
             if (videoUrl) {
               const videoInfo = parseVideoUrl(videoUrl);
               if (videoInfo.embedUrl) {
                 return (
-                  <div 
-                    className={`fsb-video-wrapper ${
-                      isTransitioning ? "fsb-transitioning" : "fsb-visible"
-                    }`}
+                  <div
+                    className={`fsb-video-wrapper ${isTransitioning ? "fsb-transitioning" : "fsb-visible"
+                      }`}
                     style={{ transitionDuration: `${transitionDuration}ms` }}
                   >
                     <iframe
@@ -209,7 +208,7 @@ export default function FullscreenBillboard({
                       allowFullScreen
                     ></iframe>
                     {/* 투명 오버레이: 인스타 클릭 차단 및 상세보기로 이동 */}
-                    <div 
+                    <div
                       className="fsb-video-overlay"
                       onClick={handleImageClick}
                       title="클릭하여 상세보기"
@@ -218,14 +217,13 @@ export default function FullscreenBillboard({
                 );
               }
             }
-            
+
             return (
               <img
                 src={sortedImages[currentIndex]}
                 alt={sortedEvents[currentIndex]?.title || "Event Billboard"}
-                className={`fsb-image ${
-                  isTransitioning ? "fsb-transitioning" : "fsb-visible"
-                }`}
+                className={`fsb-image ${isTransitioning ? "fsb-transitioning" : "fsb-visible"
+                  }`}
                 style={{ transitionDuration: `${transitionDuration}ms` }}
                 onClick={handleImageClick}
               />
@@ -238,9 +236,8 @@ export default function FullscreenBillboard({
           <div className="fsb-bottom-info">
             {/* 대형 제목 - 40인치 디스플레이용, 단어 단위 줄바꿈 */}
             <h2
-              className={`fsb-title ${
-                isTransitioning ? "fsb-transitioning" : "fsb-visible"
-              }`}
+              className={`fsb-title ${isTransitioning ? "fsb-transitioning" : "fsb-visible"
+                }`}
               style={{
                 transitionDuration: `${transitionDuration}ms`,
                 transitionDelay: isTransitioning ? '0ms' : '0ms',
@@ -309,9 +306,8 @@ export default function FullscreenBillboard({
                   transitionDuration: `${transitionDuration}ms`,
                   transitionDelay: isTransitioning ? '0ms' : '300ms',
                 }}
-                className={`fsb-detail-button ${
-                  isTransitioning ? "fsb-transitioning" : "fsb-visible"
-                }`}
+                className={`fsb-detail-button ${isTransitioning ? "fsb-transitioning" : "fsb-visible"
+                  }`}
               >
                 <i className="fsb-icon ri-eye-line" aria-hidden="true"></i>
                 <span>상세보기</span>
@@ -319,10 +315,9 @@ export default function FullscreenBillboard({
 
               {/* QR 코드 */}
               <div
-                className={`fsb-qr-container ${
-                  isTransitioning ? "fsb-transitioning" : "fsb-visible"
-                }`}
-                style={{ 
+                className={`fsb-qr-container ${isTransitioning ? "fsb-transitioning" : "fsb-visible"
+                  }`}
+                style={{
                   transitionDuration: `${transitionDuration}ms`,
                   transitionDelay: isTransitioning ? '0ms' : '0ms'
                 }}
@@ -340,12 +335,12 @@ export default function FullscreenBillboard({
         )}
 
         {/* 좌측 상단 영역 - 원형 진행 표시 + 날짜 범위 */}
-        <div className="fsb-top-info" 
-             style={{
-               opacity: isTransitioning ? 0 : 1,
-               transitionDuration: `${transitionDuration}ms`,
-               transitionDelay: isTransitioning ? '0ms' : '300ms'
-             }}>
+        <div className="fsb-top-info"
+          style={{
+            opacity: isTransitioning ? 0 : 1,
+            transitionDuration: `${transitionDuration}ms`,
+            transitionDelay: isTransitioning ? '0ms' : '300ms'
+          }}>
           {/* 원형 진행 표시 - 우로보로스 형태 */}
           {sortedImages.length > 1 && (
             <div className="fsb-progress-circle">
@@ -398,4 +393,4 @@ export default function FullscreenBillboard({
     </div>,
     document.body,
   );
-}
+});
