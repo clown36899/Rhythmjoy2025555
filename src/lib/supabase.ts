@@ -39,6 +39,7 @@ export interface Event {
   category: string;
   price: string;
   image: string;
+  image_micro?: string;
   image_thumbnail?: string;
   image_medium?: string;
   image_full?: string;

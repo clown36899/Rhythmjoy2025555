@@ -303,39 +303,44 @@ export default memo(function EventEditModal({
                 );
                 await deleteOldImages();
 
-                // 새 이미지 업로드 (폴더 생성)
+                // 새 이미지 업로드 (WebP 변환)
                 const resizedImages = await createResizedImages(editImageFile);
                 const timestamp = Date.now();
-                const baseFileName = sanitizeFileName(editImageFile.name);
-                const newFolderPath = `event-posters/${timestamp}_${baseFileName}`;
-                const getExtension = (fileName: string) =>
-                    fileName.split(".").pop()?.toLowerCase() || "jpg";
+                const randomString = Math.random().toString(36).substring(2, 15);
+                const basePath = `event-posters`;
 
-                const uploadPromises = ["thumbnail", "medium", "full"].map(
-                    async (key) => {
-                        const file = resizedImages[key as keyof typeof resizedImages];
-                        const path = `${newFolderPath}/${key}.${getExtension(file.name)}`;
-                        const { error } = await supabase.storage
-                            .from("images")
-                            .upload(path, file, { cacheControl: "31536000" });
-                        if (error)
-                            throw new Error(`${key} upload failed: ${error.message}`);
-                        return {
-                            key,
-                            url: supabase.storage.from("images").getPublicUrl(path).data
-                                .publicUrl,
-                        };
-                    },
-                );
+                // WebP 확장자 강제 사용
+                const fileName = `${timestamp}_${randomString}.webp`;
+
+                const uploadPromises = [
+                    { key: "micro", folder: "micro" },
+                    { key: "thumbnail", folder: "thumbnails" },
+                    { key: "medium", folder: "medium" },
+                    { key: "full", folder: "full" },
+                ].map(async ({ key, folder }) => {
+                    const file = resizedImages[key as keyof typeof resizedImages];
+                    const path = `${basePath}/${folder}/${fileName}`;
+                    const { error } = await supabase.storage
+                        .from("images")
+                        .upload(path, file, { cacheControl: "31536000" });
+                    if (error)
+                        throw new Error(`${key} upload failed: ${error.message}`);
+                    return {
+                        key,
+                        url: supabase.storage.from("images").getPublicUrl(path).data
+                            .publicUrl,
+                    };
+                });
 
                 const results = await Promise.all(uploadPromises);
                 const urls = Object.fromEntries(results.map((r) => [r.key, r.url]));
 
                 updateData.image = urls.full;
+                updateData.image_micro = urls.micro;
                 updateData.image_thumbnail = urls.thumbnail;
                 updateData.image_medium = urls.medium;
                 updateData.image_full = urls.full;
-                updateData.storage_path = newFolderPath;
+                updateData.storage_path = null; // 폴더 구조 변경으로 사용 안 함
             }
             // Case 2: 기존 이미지가 삭제된 경우 (새 이미지 없음)
             else if (!editImagePreview && (event.image || event.image_full)) {
@@ -344,6 +349,7 @@ export default memo(function EventEditModal({
 
                 // DB 필드 초기화
                 updateData.image = "";
+                updateData.image_micro = null;
                 updateData.image_thumbnail = null;
                 updateData.image_medium = null;
                 updateData.image_full = null;

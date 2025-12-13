@@ -1,4 +1,5 @@
 export interface ResizedImages {
+  micro: File;
   thumbnail: File;
   medium: File;
   full: File;
@@ -22,24 +23,24 @@ export async function resizeImage(
   return new Promise((resolve, reject) => {
     const startTime = performance.now();
     const isDataUrl = typeof fileOrDataUrl === 'string';
-    
-    console.log(`[🖼️ 리사이즈 ${maxWidth}px] 시작`, { 
+
+    console.log(`[🖼️ 리사이즈 ${maxWidth}px] 시작`, {
       source: isDataUrl ? 'base64' : 'File',
-      fileName: isDataUrl ? fileName : (fileOrDataUrl as File).name, 
+      fileName: isDataUrl ? fileName : (fileOrDataUrl as File).name,
       dataSize: isDataUrl ? `${(fileOrDataUrl.length / 1024).toFixed(0)}KB` : `${((fileOrDataUrl as File).size / 1024).toFixed(0)}KB`,
-      fileType: isDataUrl ? 'base64' : (fileOrDataUrl as File).type 
+      fileType: isDataUrl ? 'base64' : (fileOrDataUrl as File).type
     });
-    
+
     function processImage(this: HTMLImageElement) {
       const elapsed = performance.now() - startTime;
       console.log(`[🖼️ 리사이즈 ${maxWidth}px] 이미지 로드 완료 (${elapsed.toFixed(0)}ms)`, {
         originalWidth: this.width,
         originalHeight: this.height
       });
-      
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
+
       if (!ctx) {
         console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ Canvas context 생성 실패`);
         reject(new Error('Canvas context not available'));
@@ -65,23 +66,26 @@ export async function resizeImage(
       // PNG 투명 배경을 변환할 때 흰색 배경 추가
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, width, height);
-      
+
       ctx.drawImage(this, 0, 0, width, height);
       console.log(`[🖼️ 리사이즈 ${maxWidth}px] Canvas에 이미지 그리기 완료`);
 
       // WebP 지원 여부에 따라 형식 결정
       const useWebP = supportsWebP();
       const mimeType = useWebP ? 'image/webp' : 'image/jpeg';
-      const extension = useWebP ? '.webp' : '.jpg';
-      
+      const extension = useWebP ? 'webp' : 'jpg';
+
       console.log(`[🖼️ 리사이즈 ${maxWidth}px] 출력 형식`, {
         useWebP,
         mimeType,
         quality
       });
-      
-      // 파일명 결정
-      const finalFileName = isDataUrl ? fileName.replace(/\.[^.]+$/, extension) : (fileOrDataUrl as File).name.replace(/\.[^.]+$/, extension);
+
+      // 파일명 결정 - 확장자를 WebP로 강제 변경
+      const baseFileName = isDataUrl
+        ? fileName.replace(/\.[^.]+$/, '')
+        : (fileOrDataUrl as File).name.replace(/\.[^.]+$/, '');
+      const finalFileName = `${baseFileName}.${extension}`;
 
       canvas.toBlob(
         (blob) => {
@@ -114,7 +118,7 @@ export async function resizeImage(
         quality
       );
     }
-    
+
     // base64인 경우 직접 Image 로드 (FileReader 우회)
     if (isDataUrl) {
       console.log(`[🖼️ 리사이즈 ${maxWidth}px] base64 데이터 직접 사용 (FileReader 우회)`);
@@ -141,7 +145,7 @@ export async function resizeImage(
         };
         img.src = e.target?.result as string;
       };
-      
+
       reader.onerror = (error) => {
         const elapsed = performance.now() - startTime;
         console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ 파일 읽기 실패 (${elapsed.toFixed(0)}ms)`, error);
@@ -159,41 +163,38 @@ export async function createResizedImages(
 ): Promise<ResizedImages> {
   const startTime = performance.now();
   const isDataUrl = typeof fileOrDataUrl === 'string';
-  
+
   console.log('[🎨 이미지 리사이즈] 시작', {
     source: isDataUrl ? 'base64' : 'File',
     fileName: isDataUrl ? fileName : (fileOrDataUrl as File).name,
     dataSize: isDataUrl ? `${(fileOrDataUrl.length / 1024).toFixed(0)}KB` : `${((fileOrDataUrl as File).size / 1024).toFixed(0)}KB`,
     type: isDataUrl ? 'base64' : (fileOrDataUrl as File).type
   });
-  
+
   try {
-    // 순차 처리 (모바일 호환성)
-    onProgress?.(0, '썸네일 생성 중...');
-    const thumbnail = await resizeImage(fileOrDataUrl, 400, 0.82, fileName);
-    console.log('[🎨 이미지 리사이즈] ✅ 썸네일 완료', { size: `${(thumbnail.size / 1024).toFixed(0)}KB` });
-    
-    onProgress?.(33, '미디엄 생성 중...');
-    const medium = await resizeImage(fileOrDataUrl, 1080, 0.9, fileName);
-    console.log('[🎨 이미지 리사이즈] ✅ 미디엄 완료', { size: `${(medium.size / 1024).toFixed(0)}KB` });
-    
-    onProgress?.(66, '풀사이즈 생성 중...');
-    const full = await resizeImage(fileOrDataUrl, 1280, 0.92, fileName);
-    console.log('[🎨 이미지 리사이즈] ✅ 풀사이즈 완료', { size: `${(full.size / 1024).toFixed(0)}KB` });
-    
-    onProgress?.(100, '완료');
+    const [micro, thumbnail, medium, full] = await Promise.all([
+      resizeImage(fileOrDataUrl, 100, 0.85, fileName),   // Micro for calendar
+      resizeImage(fileOrDataUrl, 400, 0.85, fileName),   // Thumbnail for list
+      resizeImage(fileOrDataUrl, 1080, 0.9, fileName),   // Medium for modal
+      resizeImage(fileOrDataUrl, 1280, 0.92, fileName),  // Full for billboard
+    ]);
 
     const elapsed = performance.now() - startTime;
-    console.log(`[🎨 이미지 리사이즈] ✅ 모든 크기 생성 완료 (총 ${elapsed.toFixed(0)}ms)`, {
-      thumbnailSize: `${(thumbnail.size / 1024).toFixed(0)}KB`,
-      mediumSize: `${(medium.size / 1024).toFixed(0)}KB`,
-      fullSize: `${(full.size / 1024).toFixed(0)}KB`
+    console.log(`[🎨 이미지 리사이즈] ✅ 완료 (총 ${elapsed.toFixed(0)}ms)`, {
+      micro: `${(micro.size / 1024).toFixed(0)}KB`,
+      thumbnail: `${(thumbnail.size / 1024).toFixed(0)}KB`,
+      medium: `${(medium.size / 1024).toFixed(0)}KB`,
+      full: `${(full.size / 1024).toFixed(0)}KB`,
     });
 
-    return { thumbnail, medium, full };
+    return { micro, thumbnail, medium, full };
   } catch (error) {
-    const elapsed = performance.now() - startTime;
-    console.error(`[🎨 이미지 리사이즈] ❌ 실패 (${elapsed.toFixed(0)}ms)`, error);
+    console.error('[🎨 이미지 리사이즈] ❌ 실패', error);
     throw error;
   }
+}
+
+// Helper function to check if a file is an image
+export function isImageFile(file: File): boolean {
+  return file.type.startsWith('image/');
 }

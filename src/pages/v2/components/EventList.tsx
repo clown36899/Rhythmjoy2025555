@@ -1637,57 +1637,51 @@ export default function EventList({
 
     try {
       let imageUrl = eventToEdit.image;
+      let imageMicroUrl = eventToEdit.image_micro;
       let imageThumbnailUrl = eventToEdit.image_thumbnail;
       let imageMediumUrl = eventToEdit.image_medium;
       let imageFullUrl = eventToEdit.image_full;
 
       // Upload new image if changed
       if (editImageFile) {
-        const fileExt = editImageFile.name.split(".").pop();
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(2, 15);
-        const fileName = `${timestamp}_${randomString}.${fileExt}`;
-        const folderPath = `event-posters`;
-        const filePath = `${folderPath}/${fileName}`;
+        const basePath = `event-posters`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("images")
-          .upload(filePath, editImageFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-          .from("images")
-          .getPublicUrl(filePath);
-
-        imageUrl = publicUrlData.publicUrl;
-
-        // Resize images
+        // 먼저 모든 이미지 리사이즈 (WebP 변환 포함)
         try {
           const resizedImages = await createResizedImages(editImageFile);
 
-          // Upload thumbnail
-          const thumbFileName = `thumb_${fileName}`;
-          const thumbPath = `${folderPath}/${thumbFileName}`;
+          // 파일명은 WebP 확장자 사용
+          const fileName = `${timestamp}_${randomString}.webp`;
+
+          // Upload micro (micro 폴더) - 달력용
+          const microPath = `${basePath}/micro/${fileName}`;
+          await supabase.storage.from("images").upload(microPath, resizedImages.micro);
+          imageMicroUrl = supabase.storage.from("images").getPublicUrl(microPath).data.publicUrl;
+
+          // Upload thumbnail (thumbnails 폴더)
+          const thumbPath = `${basePath}/thumbnails/${fileName}`;
           await supabase.storage.from("images").upload(thumbPath, resizedImages.thumbnail);
           imageThumbnailUrl = supabase.storage.from("images").getPublicUrl(thumbPath).data.publicUrl;
 
-          // Upload medium
-          const mediumFileName = `medium_${fileName}`;
-          const mediumPath = `${folderPath}/${mediumFileName}`;
+          // Upload medium (medium 폴더)
+          const mediumPath = `${basePath}/medium/${fileName}`;
           await supabase.storage.from("images").upload(mediumPath, resizedImages.medium);
           imageMediumUrl = supabase.storage.from("images").getPublicUrl(mediumPath).data.publicUrl;
 
-          // Upload full
-          const fullFileName = `full_${fileName}`;
-          const fullPath = `${folderPath}/${fullFileName}`;
+          // Upload full (full 폴더) - 원본 대신 사용
+          const fullPath = `${basePath}/full/${fileName}`;
           await supabase.storage.from("images").upload(fullPath, resizedImages.full);
           imageFullUrl = supabase.storage.from("images").getPublicUrl(fullPath).data.publicUrl;
+
+          // 원본도 full과 동일하게 설정
+          imageUrl = imageFullUrl;
+
         } catch (resizeError) {
           console.error("Image resize failed:", resizeError);
-          imageThumbnailUrl = imageUrl;
-          imageMediumUrl = imageUrl;
-          imageFullUrl = imageUrl;
+          alert("이미지 처리 중 오류가 발생했습니다.");
+          throw resizeError;
         }
       }
 
@@ -1711,6 +1705,7 @@ export default function EventList({
         link1: editLink,
         link_name1: editLinkName,
         image: imageUrl,
+        image_micro: imageMicroUrl,
         image_thumbnail: imageThumbnailUrl,
         image_medium: imageMediumUrl,
         image_full: imageFullUrl,

@@ -44,39 +44,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 관리자 권한 계산 헬퍼 함수
   const computeIsAdmin = (currentUser: User | null): boolean => {
     if (!currentUser) return false;
-    
+
     // 1순위: app_metadata의 is_admin 플래그 확인
     if (currentUser.app_metadata?.is_admin === true) {
       return true;
     }
-    
+
     // 2순위: 이메일 비교 (fallback)
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
     return !!(currentUser.email && adminEmail && currentUser.email === adminEmail);
   };
 
   useEffect(() => {
+    let isMounted = true; // 마운트 상태 추적
+
     // 로그아웃 직후라면 세션 체크 스킵 (캐시/세션 꼬임 방지)
     const isLoggingOut = localStorage.getItem('isLoggingOut');
     if (isLoggingOut) {
       console.log('[AuthContext] 로그아웃 진행 중 - 세션 체크 스킵');
       localStorage.removeItem('isLoggingOut');
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
       return;
     }
 
     // 2초 timeout 설정 (빠른 실패로 UX 개선)
     const timeoutId = setTimeout(() => {
-      console.warn('[AuthContext] getSession timeout - loading false로 설정');
-      setLoading(false);
+      if (isMounted) {
+        console.warn('[AuthContext] getSession timeout - loading false로 설정');
+        setLoading(false);
+      }
     }, 2000);
 
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
+        if (!isMounted) return; // 언마운트 후 실행 방지
+
         clearTimeout(timeoutId);
         const currentUser = session?.user ?? null;
         const adminStatus = computeIsAdmin(currentUser);
-        
+
         console.log('[AuthContext] 초기 세션:', {
           hasSession: !!session,
           userEmail: currentUser?.email,
@@ -85,13 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           adminEmail: import.meta.env.VITE_ADMIN_EMAIL,
           isProduction: import.meta.env.PROD
         });
-        
+
         setSession(session);
         setUser(currentUser);
         setIsAdmin(adminStatus);
         setLoading(false);
       })
       .catch((error) => {
+        if (!isMounted) return; // 언마운트 후 실행 방지
+
         console.error('[AuthContext] getSession error:', error);
         clearTimeout(timeoutId);
         setLoading(false);
@@ -100,9 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return; // 언마운트 후 실행 방지
+
       const currentUser = session?.user ?? null;
       const adminStatus = computeIsAdmin(currentUser);
-      
+
       console.log('[AuthContext] Auth state changed:', {
         event,
         hasSession: !!session,
@@ -111,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: adminStatus,
         sessionExpiry: session?.expires_at
       });
-      
+
       if (event === 'SIGNED_OUT') {
         // 로그아웃 시 명확히 상태 초기화
         console.log('[AuthContext] 로그아웃 처리');
@@ -133,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
+      isMounted = false; // cleanup 시 마운트 상태 false
       clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
@@ -150,17 +163,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithKakao = async () => {
     await initKakaoSDK();
     await loginWithKakao();
-    
+
     const accessToken = getKakaoAccessToken();
     if (!accessToken) {
       throw new Error('카카오 액세스 토큰을 가져올 수 없습니다');
     }
 
     // 개발 환경(Replit)에서는 Vite 프록시(/api), 프로덕션(Netlify)에서는 Netlify Functions
-    const authEndpoint = import.meta.env.DEV 
+    const authEndpoint = import.meta.env.DEV
       ? '/api/auth/kakao'
       : '/.netlify/functions/kakao-auth';
-    
+
     // 재시도 로직 (2단계 인증 대응)
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -168,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // 60초 타임아웃 설정
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000);
-        
+
         const response = await fetch(authEndpoint, {
           method: 'POST',
           headers: {
@@ -201,7 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('[카카오 로그인] 세션 설정 실패:', error);
             throw new Error('로그인에 실패했습니다');
           }
-          
+
           console.log('[카카오 로그인] Supabase 세션 설정 완료:', {
             hasSession: !!data.session,
             userEmail: data.session?.user?.email
@@ -214,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error: any) {
         lastError = error;
         console.warn(`카카오 인증 시도 ${attempt}/3 실패:`, error.message);
-        
+
         // 마지막 시도가 아니면 1초 대기 후 재시도
         if (attempt < 3) {
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -240,12 +253,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     console.log('[로그아웃] 시작');
-    
+
     try {
       // 1. 카카오 로그아웃
       await logoutKakao();
       console.log('[로그아웃] 카카오 로그아웃 완료');
-      
+
       // 2. Supabase 로그아웃
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -253,10 +266,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       console.log('[로그아웃] Supabase 로그아웃 완료');
-      
+
       // 3. Billboard 사용자 정보 초기화
       setBillboardUser(null, null);
-      
+
       // 4. localStorage 완전 정리 (Supabase 관련 항목)
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
@@ -267,11 +280,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
       console.log('[로그아웃] localStorage 정리 완료:', keysToRemove.length + '개 항목');
-      
+
       // 5. sessionStorage 완전 정리
       sessionStorage.clear();
       console.log('[로그아웃] sessionStorage 정리 완료');
-      
+
       // 6. Service Worker 캐시 정리 (PWA)
       if ('serviceWorker' in navigator && 'caches' in window) {
         const cacheNames = await caches.keys();
@@ -280,9 +293,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
         console.log('[로그아웃] Service Worker 캐시 정리 완료:', cacheNames.length + '개');
       }
-      
+
       console.log('[로그아웃] 완료 - 페이지 리로드');
-      
+
       // 7. 페이지 강제 리로드 (React 상태 완전 초기화)
       window.location.href = '/';
     } catch (error) {
