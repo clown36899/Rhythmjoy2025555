@@ -1,22 +1,47 @@
-interface Event {
+export interface EventThumbnailData {
   image?: string;
+  image_micro?: string;
   image_thumbnail?: string;
+  image_medium?: string;
+  image_full?: string;
   video_url?: string;
-  category?: string;
 }
 
+/**
+ * 이벤트의 썸네일 URL을 반환합니다.
+ * 우선순위: image_micro > image_thumbnail > image_medium > image > 기본 썸네일
+ */
 export function getEventThumbnail(
-  event: Event,
-  defaultThumbnailClass: string,
-  defaultThumbnailEvent: string
+  event: EventThumbnailData | null | undefined,
+  defaultThumbnailClass?: string,
+  defaultThumbnailEvent?: string
 ): string {
-  // 1순위: 이벤트 썸네일만 허용 (트래픽 절감)
-  // 원본 이미지(event.image)는 용량이 클 수 있으므로 리스트에서는 로드하지 않음
+  if (!event) {
+    return defaultThumbnailEvent || '';
+  }
+
+  // 1순위: micro (달력용 100px)
+  if (event?.image_micro) {
+    return event.image_micro;
+  }
+
+  // 2순위: thumbnail (리스트용 400px)
   if (event?.image_thumbnail) {
     return event.image_thumbnail;
   }
 
-  // 2순위: 카테고리별 기본 썸네일 (영상이 있든 없든 사용)
-  const defaultUrl = event?.category === 'class' ? defaultThumbnailClass : defaultThumbnailEvent;
-  return defaultUrl || '';
+  // 3순위: medium (모달용 1080px)
+  if (event?.image_medium) {
+    return event.image_medium;
+  }
+
+  // 4순위: image (full 또는 레거시)
+  if (event?.image) {
+    return event.image;
+  }
+
+  // 기본 썸네일
+  return event.video_url
+    ? (defaultThumbnailClass || '')
+    : (defaultThumbnailEvent || '');
 }

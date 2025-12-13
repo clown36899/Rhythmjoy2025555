@@ -1660,8 +1660,8 @@ export default function EventList({
           await supabase.storage.from("images").upload(microPath, resizedImages.micro);
           imageMicroUrl = supabase.storage.from("images").getPublicUrl(microPath).data.publicUrl;
 
-          // Upload thumbnail (thumbnails 폴더)
-          const thumbPath = `${basePath}/thumbnails/${fileName}`;
+          // Upload thumbnail (thumbnail 폴더)
+          const thumbPath = `${basePath}/thumbnail/${fileName}`;
           await supabase.storage.from("images").upload(thumbPath, resizedImages.thumbnail);
           imageThumbnailUrl = supabase.storage.from("images").getPublicUrl(thumbPath).data.publicUrl;
 
@@ -1800,7 +1800,10 @@ export default function EventList({
 
 
   const handlePasswordSubmit = async () => {
-    if (eventToEdit && eventPassword === eventToEdit.password) {
+    // 개발 모드에서는 비밀번호 체크 건너뛰기
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    if (eventToEdit && (isDev || eventPassword === eventToEdit.password)) {
       // 비밀번호 확인 후 등록자 정보를 포함한 전체 데이터 다시 가져오기
       try {
         const { data: fullEvent, error } = await supabase

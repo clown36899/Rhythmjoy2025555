@@ -484,7 +484,7 @@ export default function HomePageV2() {
         const loadBillboardImages = async () => {
             if (!settings.enabled) { setBillboardImages([]); setBillboardEvents([]); return; }
             try {
-                let query = supabase.from("events").select("id,title,date,start_date,end_date,time,location,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at");
+                let query = supabase.from("events").select("id,title,date,start_date,end_date,time,location,category,price,image,image_micro,image_thumbnail,image_medium,image_full,video_url,description,organizer,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at");
                 query = query.or("image_full.not.is.null,image.not.is.null,video_url.not.is.null");
                 if (settings.dateRangeStart) query = query.gte("start_date", settings.dateRangeStart);
                 if (settings.dateRangeEnd) query = query.lte("start_date", settings.dateRangeEnd);
