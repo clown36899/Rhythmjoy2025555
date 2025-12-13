@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { createPortal } from "react-dom";
 import "../../../styles/components/EventSortModal.css";
 
@@ -8,7 +9,7 @@ interface EventSortModalProps {
     onSortChange: (sort: "random" | "time" | "title") => void;
 }
 
-export default function EventSortModal({
+function EventSortModal({
     isOpen,
     onClose,
     sortBy,
@@ -57,3 +58,6 @@ export default function EventSortModal({
         document.body
     );
 }
+
+// React.memo로 불필요한 리렌더링 방지
+export default memo(EventSortModal);

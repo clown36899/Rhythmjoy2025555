@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { Shop } from '../../shopping/page';
 import ShopDetailModal from '../../shopping/components/ShopDetailModal';
 import './ShoppingBanner.css';
 
-export default function ShoppingBanner() {
+function ShoppingBanner() {
     const [shops, setShops] = useState<Shop[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -169,3 +169,6 @@ export default function ShoppingBanner() {
         </>
     );
 }
+
+// React.memo로 불필요한 리렌더링 방지
+export default memo(ShoppingBanner);

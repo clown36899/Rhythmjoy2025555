@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import type { Event } from "../../../lib/supabase";
 import "../../../styles/components/EventSearchModal.css";
@@ -10,7 +10,7 @@ interface EventSearchModalProps {
     events: Event[]; // 검색 추천어 생성을 위해 전체 이벤트 목록 필요
 }
 
-export default function EventSearchModal({
+function EventSearchModal({
     isOpen,
     onClose,
     onSearch,
@@ -101,9 +101,21 @@ export default function EventSearchModal({
         setSearchSuggestions(validSuggestions.slice(0, 8));
     };
 
+    // Debouncing을 위한 타이머 ref
+    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
     const handleSearchQueryChange = (query: string) => {
         setSearchQuery(query);
-        generateSearchSuggestions(query);
+
+        // 이전 타이머 취소
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        // 300ms 후 검색 실행
+        debounceTimer.current = setTimeout(() => {
+            generateSearchSuggestions(query);
+        }, 300);
     };
 
     const handleSearchSubmit = () => {
@@ -190,3 +202,6 @@ export default function EventSearchModal({
         document.body
     );
 }
+
+// React.memo로 불필요한 리렌더링 방지
+export default memo(EventSearchModal);
