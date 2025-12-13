@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, memo } from "react";
+import { useState, useEffect, useMemo, memo, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
@@ -197,23 +197,31 @@ export default memo(function EventCalendar({
     };
   }, []);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
+      // Calculate date range: ±1 month from current month
+      const startOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+      const endOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
+      const startDateStr = startOfRange.toISOString().split('T')[0];
+      const endDateStr = endOfRange.toISOString().split('T')[0];
+
+      // Fetch only required columns for calendar view
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select("id,title,category,start_date,end_date,date,event_dates,image_micro,image_thumbnail,video_url")
+        .or(`and(start_date.gte.${startDateStr},start_date.lte.${endDateStr}),and(end_date.gte.${startDateStr},end_date.lte.${endDateStr}),and(date.gte.${startDateStr},date.lte.${endDateStr})`)
         .order("start_date", { ascending: true, nullsFirst: false })
         .order("date", { ascending: true, nullsFirst: false });
 
       if (error) {
         console.error("Error fetching events:", error);
       } else {
-        setEvents(data || []);
+        setEvents((data || []) as Event[]);
       }
     } catch (error) {
       console.error("Error:", error);
     }
-  };
+  }, [currentMonth]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -742,9 +750,8 @@ export default memo(function EventCalendar({
                         src={thumbnailUrl}
                         alt=""
                         className="calendar-fullscreen-image"
-                        loading="eager"
+                        loading="lazy"
                         decoding="async"
-                        fetchPriority="high"
                       />
                     </div>
                   ) : (

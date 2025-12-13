@@ -106,7 +106,9 @@ export default memo(function EventDetailModal({
                 {/* 이미지 영역 (스크롤과 함께 사라짐) */}
                 {/* 이미지 영역 (스크롤과 함께 사라짐) */}
                 {(() => {
+                  // 모바일 최적화: thumbnail (400px) 우선 사용
                   const detailImageUrl =
+                    selectedEvent.image_thumbnail ||
                     selectedEvent.image_medium ||
                     selectedEvent.image ||
                     getEventThumbnail(
@@ -115,6 +117,7 @@ export default memo(function EventDetailModal({
                       defaultThumbnailEvent,
                     );
                   const isDefaultThumbnail =
+                    !selectedEvent.image_thumbnail &&
                     !selectedEvent.image_medium &&
                     !selectedEvent.image &&
                     detailImageUrl;
@@ -136,8 +139,7 @@ export default memo(function EventDetailModal({
                             src={detailImageUrl}
                             alt={selectedEvent.title}
                             className="detail-image"
-                            loading="eager"
-                            fetchPriority="high"
+                            loading="lazy"
                             decoding="async"
                             style={{
                               transform: `translate3d(${(selectedEvent as any).image_position_x || 0}%, ${(selectedEvent as any).image_position_y || 0}%, 0)`
