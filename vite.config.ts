@@ -113,16 +113,21 @@ export default defineConfig({
   build: {
     sourcemap: false, // 프로덕션 빌드: sourcemap 비활성화 (파일 크기 감소)
     outDir: "dist",
-    minify: true, // esbuild 최적화 압축 (빠르고 효율적)
+    minify: 'esbuild', // esbuild 사용 (빠르고 효율적)
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor': ['react', 'react-dom', 'react-router-dom'],
           'supabase': ['@supabase/supabase-js'],
           'charts': ['recharts'],
+          'date-fns': ['date-fns'], // date-fns 별도 청크
         },
       },
     },
+    chunkSizeWarningLimit: 1000, // 청크 크기 경고 임계값 증가
+  },
+  esbuild: {
+    drop: ['console', 'debugger'], // 프로덕션에서 console.log와 debugger 자동 제거
   },
   resolve: {
     alias: {

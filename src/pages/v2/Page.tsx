@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, lazy, Suspense } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 
@@ -9,8 +9,9 @@ import EventList from "./components/EventList";
 import Header from "./components/Header";
 
 import FullscreenBillboard from "../../components/FullscreenBillboard";
-import AdminBillboardModal from "./components/AdminBillboardModal";
-import EventRegistrationModal from "../../components/EventRegistrationModal";
+// Lazy loading으로 성능 최적화 - 큰 모달 컴포넌트들
+const AdminBillboardModal = lazy(() => import("./components/AdminBillboardModal"));
+const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
 import EventDetailModal from "./components/EventDetailModal";
 import EventPasswordModal from "./components/EventPasswordModal";
@@ -777,39 +778,54 @@ export default function HomePageV2() {
 
                 {/* Modals */}
                 {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}
-                <AdminBillboardModal isOpen={isBillboardSettingsOpen} onClose={() => { handleBillboardSettingsClose(); if (adminType === "sub") setTimeout(() => window.dispatchEvent(new CustomEvent("reopenAdminSettings")), 100); }} settings={settings} onUpdateSettings={updateSettings} onResetSettings={resetSettings} adminType={billboardUserId ? "sub" : isAdmin ? "super" : null} billboardUserId={billboardUserId} billboardUserName={billboardUserName} />
+                {isBillboardSettingsOpen && (
+                    <Suspense fallback={<div />}>
+                        <AdminBillboardModal
+                            isOpen={isBillboardSettingsOpen}
+                            onClose={() => { handleBillboardSettingsClose(); if (adminType === "sub") setTimeout(() => window.dispatchEvent(new CustomEvent("reopenAdminSettings")), 100); }}
+                            settings={settings}
+                            onUpdateSettings={updateSettings}
+                            onResetSettings={resetSettings}
+                            adminType={billboardUserId ? "sub" : isAdmin ? "super" : null}
+                            billboardUserId={billboardUserId}
+                            billboardUserName={billboardUserName}
+                        />
+                    </Suspense>
+                )}
 
                 {showRegistrationModal && selectedDate && (
-                    <EventRegistrationModal
-                        isOpen={showRegistrationModal}
-                        onClose={() => {
-                            setShowRegistrationModal(false);
-                            if (fromBanner) {
-                                setSelectedDate(null);
+                    <Suspense fallback={<div />}>
+                        <EventRegistrationModal
+                            isOpen={showRegistrationModal}
+                            onClose={() => {
+                                setShowRegistrationModal(false);
+                                if (fromBanner) {
+                                    setSelectedDate(null);
+                                    setFromBanner(false);
+                                    setBannerMonthBounds(null);
+                                }
+                                if (fromFloatingBtn) {
+                                    setSelectedDate(null);
+                                    setSectionViewMode('preview'); // 프리뷰 모드로 강제 전환
+                                    setCalendarMode('collapsed'); // 달력 접기
+                                    setFromFloatingBtn(false);
+                                }
+                            }}
+                            selectedDate={selectedDate}
+                            onMonthChange={(d) => setCurrentMonth(d)}
+                            onEventCreated={(d, id) => {
+                                setShowRegistrationModal(false);
                                 setFromBanner(false);
-                                setBannerMonthBounds(null);
-                            }
-                            if (fromFloatingBtn) {
-                                setSelectedDate(null);
-                                setSectionViewMode('preview'); // 프리뷰 모드로 강제 전환
-                                setCalendarMode('collapsed'); // 달력 접기
                                 setFromFloatingBtn(false);
-                            }
-                        }}
-                        selectedDate={selectedDate}
-                        onMonthChange={(d) => setCurrentMonth(d)}
-                        onEventCreated={(d, id) => {
-                            setShowRegistrationModal(false);
-                            setFromBanner(false);
-                            setFromFloatingBtn(false);
-                            setBannerMonthBounds(null);
-                            setCurrentMonth(d);
-                            setEventJustCreated(Date.now());
-                            setHighlightEvent({ id: id || 0, nonce: Date.now() });
-                        }}
-                        fromBanner={fromBanner}
-                        bannerMonthBounds={bannerMonthBounds ?? undefined}
-                    />
+                                setBannerMonthBounds(null);
+                                setCurrentMonth(d);
+                                setEventJustCreated(Date.now());
+                                setHighlightEvent({ id: id || 0, nonce: Date.now() });
+                            }}
+                            fromBanner={fromBanner}
+                            bannerMonthBounds={bannerMonthBounds ?? undefined}
+                        />
+                    </Suspense>
                 )}
 
                 {isFullscreenDateModalOpen && fullscreenSelectedDate && <FullscreenDateEventsModal isOpen={isFullscreenDateModalOpen} onClose={() => { setIsFullscreenDateModalOpen(false); setFullscreenSelectedDate(null); setFullscreenClickPosition(undefined); }} selectedDate={fullscreenSelectedDate} clickPosition={fullscreenClickPosition} onEventClick={handleDailyModalEventClick} selectedCategory={selectedCategory} />}
