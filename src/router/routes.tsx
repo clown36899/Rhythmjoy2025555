@@ -4,14 +4,29 @@ import { Navigate } from 'react-router-dom';
 import { MobileShell } from '../layouts/MobileShell';
 
 // Lazy loading pages
-const HomePageV2 = lazy(() => import('../pages/v2/Page'));
-const SocialPage = lazy(() => import('../pages/social/page'));
-const PracticePage = lazy(() => import('../pages/practice/page'));
-const PracticeDetailPage = lazy(() => import('../pages/practice/detail/page'));
-const BoardPage = lazy(() => import('../pages/board/page'));
-const GuidePage = lazy(() => import('../pages/guide/page'));
-const ShoppingPage = lazy(() => import('../pages/shopping/page'));
-const BillboardPage = lazy(() => import('../pages/billboard/page'));
+export const prefetchHomePageV2 = () => import('../pages/v2/Page');
+const HomePageV2 = lazy(prefetchHomePageV2);
+
+export const prefetchSocialPage = () => import('../pages/social/page');
+const SocialPage = lazy(prefetchSocialPage);
+
+export const prefetchPracticePage = () => import('../pages/practice/page');
+const PracticePage = lazy(prefetchPracticePage);
+
+export const prefetchPracticeDetailPage = () => import('../pages/practice/detail/page');
+const PracticeDetailPage = lazy(prefetchPracticeDetailPage);
+
+export const prefetchBoardPage = () => import('../pages/board/page');
+const BoardPage = lazy(prefetchBoardPage);
+
+export const prefetchGuidePage = () => import('../pages/guide/page');
+const GuidePage = lazy(prefetchGuidePage);
+
+export const prefetchShoppingPage = () => import('../pages/shopping/page');
+const ShoppingPage = lazy(prefetchShoppingPage);
+
+export const prefetchBillboardPage = () => import('../pages/billboard/page');
+const BillboardPage = lazy(prefetchBillboardPage);
 
 export const routes: RouteObject[] = [
     {

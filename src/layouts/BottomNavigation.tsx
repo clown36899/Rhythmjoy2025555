@@ -1,11 +1,32 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NAVIGATION_ITEMS } from '../config/navigation';
 import '../styles/components/BottomNavigation.css';
+import {
+    prefetchSocialPage,
+    prefetchPracticePage,
+    prefetchBoardPage,
+    prefetchGuidePage,
+    prefetchShoppingPage
+} from '../router/routes';
+import { useEffect } from 'react';
 
 export function BottomNavigation() {
     const navigate = useNavigate();
     const location = useLocation();
     const currentPath = location.pathname;
+
+    // Prefetch other pages for instant navigation
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            prefetchSocialPage();
+            prefetchPracticePage();
+            prefetchBoardPage();
+            prefetchGuidePage();
+            prefetchShoppingPage();
+        }, 2500); // 2.5초 후 다른 페이지 리소스 로딩 시작
+
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleNavigation = (path: string) => {
         if (path === '/' && currentPath === '/') {
