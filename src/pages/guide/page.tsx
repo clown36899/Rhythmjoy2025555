@@ -7,34 +7,70 @@ export default function GuidePage() {
     const shareData = {
       title: '광고판 - 이벤트 발견 플랫폼',
       text: '광고판에서 다양한 이벤트와 강습을 확인하세요!',
-      url: window.location.origin
+      url: window.location.href, // 현재 페이지 전체 주소 공유
     };
 
-    // Web Share API 지원 확인
+    // 1. Web Share API (모바일 기본 공유 화면) 우선 시도
     if (navigator.share) {
       try {
         await navigator.share(shareData);
+        return;
       } catch (err) {
-        // 사용자가 공유를 취소한 경우 무시
         if ((err as Error).name !== 'AbortError') {
-          // 공유 실패 시 URL 복사
+          console.error('Share failed:', err);
+          // 공유 실패 시에만 클립보드 복사 시도
           copyToClipboard();
         }
       }
     } else {
-      // Web Share API 미지원 시 URL 복사
+      // 2. 미지원 환경(PC 등)에서는 링크 복사
       copyToClipboard();
     }
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(window.location.origin)
-      .then(() => {
+    const url = window.location.origin;
+
+    // 1. Clipboard API 시도 (HTTPS 또는 localhost)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          alert('링크가 복사되었습니다!\n친구에게 공유해보세요.');
+        })
+        .catch(() => {
+          fallbackCopy(url);
+        });
+    } else {
+      // 2. Fallback (비보안 컨텍스트 등)
+      fallbackCopy(url);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+
+      // 화면 밖으로 보내기보다 보이지 않게 처리 (iOS 이슈 방지)
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (successful) {
         alert('링크가 복사되었습니다!\n친구에게 공유해보세요.');
-      })
-      .catch(() => {
-        alert(`링크를 복사해주세요:\n${window.location.origin}`);
-      });
+      } else {
+        throw new Error('Fallback copy failed');
+      }
+    } catch (err) {
+      prompt('이 링크를 복사해주세요:', text);
+    }
   };
 
   return (

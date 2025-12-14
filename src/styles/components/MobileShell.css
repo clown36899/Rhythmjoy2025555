@@ -28,7 +28,7 @@
 /* ===== 컨테이너 클래스 ===== */
 .shell-container {
   min-height: 100vh;
-  margin-bottom: 10rem;
+
 
   /* background-color: var(--shell-bg-dark); */
 }
