@@ -72,57 +72,20 @@ export function useCalendarGesture({
     const bottomNav = document.querySelector<HTMLElement>(bottomNavSelector);
     const bottomNavHeight = bottomNav ? bottomNav.offsetHeight : FOOTER_HEIGHT;
 
-    // 2. Control Bar Height
-    const controlBarSelector = '.home-calendar-control-bar';
-    const controlBar = document.querySelector<HTMLElement>(controlBarSelector);
-    const controlBarHeight = controlBar ? controlBar.offsetHeight : 32; // Fallback 32
-
-    // 3. Filter Bar Height
+    // 2. Filter Bar Height
     const filterBarSelector = '.evt-sticky-header';
     const filterBar = document.querySelector<HTMLElement>(filterBarSelector);
     const filterBarHeight = filterBar ? filterBar.offsetHeight : 34; // Fallback 34
 
     // Weekday Header is INSIDE the wrapper, so we don't deduct it.
-    // [User Request] Don't subtract controlBarHeight
     const EXTRA_FIXED_HEIGHT = filterBarHeight;
 
     const result = actualViewportHeight - headerHeight - bottomNavHeight - EXTRA_FIXED_HEIGHT;
 
-    console.log('[Height Calc] Fullscreen Calculation DETAILS:', {
-      '1. Viewport Height (actualViewportHeight)': actualViewportHeight,
-      '2. Header Height (headerHeight)': headerHeight,
-      '   -> Header Element Info': headerDebugInfo || 'Not provided',
-      '3. Bottom Nav': {
-        selector: bottomNavSelector,
-        found: !!bottomNav,
-        className: bottomNav?.className,
-        height: bottomNavHeight
-      },
-      '4. Control Bar': {
-        selector: controlBarSelector,
-        found: !!controlBar,
-        className: controlBar?.className,
-        height: controlBarHeight
-      },
-      '5. Filter Bar': {
-        selector: filterBarSelector,
-        found: !!filterBar,
-        className: filterBar?.className,
-        height: filterBarHeight
-      },
-      '6. Extra Fixed Height (Control + Filter)': EXTRA_FIXED_HEIGHT,
-      '7. CALCULATION': `${actualViewportHeight} - ${headerHeight} - ${bottomNavHeight} - ${EXTRA_FIXED_HEIGHT} = ${result}`,
-      'Window InnerHeight': window.innerHeight,
-      'Visual Viewport Height': window.visualViewport?.height
-    });
-
     return result;
   }, [headerHeight, viewportHeight, headerDebugInfo]);
 
-  // Log received props for debugging
-  useEffect(() => {
-    console.log('[useCalendarGesture] Received headerHeight:', headerHeight);
-  }, [headerHeight]);
+
 
   const getTargetHeight = useCallback(() => {
     if (calendarMode === "collapsed") return 0;

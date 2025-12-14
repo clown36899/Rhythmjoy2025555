@@ -105,12 +105,6 @@ export default memo(function EventDetailModal({
             onTouchStartCapture={(e) => {
               e.stopPropagation();
             }}
-            onTouchMoveCapture={(e) => {
-              if (e.target === e.currentTarget) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
             onTouchEndCapture={(e) => {
               e.stopPropagation();
             }}

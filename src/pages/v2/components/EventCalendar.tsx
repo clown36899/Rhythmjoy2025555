@@ -205,10 +205,12 @@ export default memo(function EventCalendar({
       const startDateStr = startOfRange.toISOString().split('T')[0];
       const endDateStr = endOfRange.toISOString().split('T')[0];
 
-      // Fetch only required columns for calendar view
+      // Fetch all necessary columns for complete event detail display
+      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path";
+
       const { data, error } = await supabase
         .from("events")
-        .select("id,title,category,start_date,end_date,date,event_dates,image_micro,image_thumbnail,video_url")
+        .select(columns)
         .or(`and(start_date.gte.${startDateStr},start_date.lte.${endDateStr}),and(end_date.gte.${startDateStr},end_date.lte.${endDateStr}),and(date.gte.${startDateStr},date.lte.${endDateStr})`)
         .order("start_date", { ascending: true, nullsFirst: false })
         .order("date", { ascending: true, nullsFirst: false });
@@ -764,7 +766,7 @@ export default memo(function EventCalendar({
                     {/* 순번 배지 - 개별 날짜가 여러 개일 때만 표시 */}
                     {dateIndex >= 0 && (
                       <div className="calendar-event-sequence-badge">
-                        {dateIndex + 1}주
+                        {dateIndex + 1}주차
                       </div>
                     )}
                   </div>
