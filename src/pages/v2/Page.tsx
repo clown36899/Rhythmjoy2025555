@@ -834,7 +834,7 @@ export default function HomePageV2() {
                     <div style={{ display: calendarMode === 'fullscreen' ? 'none' : 'block' }}>
                         <EventList
                             key={eventJustCreated || undefined}
-                            selectedDate={selectedDate}
+                            selectedDate={showRegistrationModal ? null : selectedDate}
                             currentMonth={currentMonth}
                             isAdminMode={effectiveIsAdmin}
                             adminType={adminType}

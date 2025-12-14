@@ -2470,13 +2470,7 @@ export default function EventList({
                 <i className="ri-file-list-line"></i>
                 <span className="switcher-label">상세</span>
               </button>
-              <button
-                onClick={() => setEditPreviewMode('card')}
-                className={`switcher-btn ${editPreviewMode === 'card' ? 'active' : 'inactive'}`}
-              >
-                <i className="ri-gallery-view-2"></i>
-                <span className="switcher-label">카드</span>
-              </button>
+
               <button
                 onClick={() => setEditPreviewMode('billboard')}
                 className={`switcher-btn ${editPreviewMode === 'billboard' ? 'active' : 'inactive'}`}
@@ -2589,49 +2583,8 @@ export default function EventList({
                 </p>
               </div>
             </div>
-          ) : (
-            <div className="reg-modal-container">
-              <div className="reg-main-content">
-                {/* Mode: Card Preview */}
-                <div className="card-preview-container">
-                  <div className="card-preview-grid">
-                    {/* Active Card - Always show at index 1 (top center) */}
-                    <div key="active" className="active-card-wrapper">
-                      <EditablePreviewCard
-                        event={{
-                          title: editFormData.title || "제목",
-                          category: editFormData.category as 'class' | 'event',
-                          genre: editFormData.genre,
-                          date: editDate ? formatDateForInput(editDate) : "날짜",
-                          start_date: editDate ? formatDateForInput(editDate) : undefined,
-                          end_date: editEndDate ? formatDateForInput(editEndDate) : undefined,
-                          image: editImagePreview || editFormData.image,
-                          time: editFormData.time,
-                          price: eventToEdit.price,
-                          organizer: editFormData.organizer,
-                        } as any}
-                        readOnly={true}
-                        showPlaceholders={true}
-                      />
-                    </div>
+          ) : null}
 
-                    {/* Dummy Cards - show some real events from the list */}
-                    {events.slice(0, 5).map((realEvent, idx) => (
-                      <div key={`dummy-${idx}`} className="dummy-card-wrapper">
-                        <EditablePreviewCard
-                          event={{
-                            ...realEvent,
-                            category: realEvent.category as 'class' | 'event'
-                          }}
-                          readOnly={true}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>,
         document.body
       )
