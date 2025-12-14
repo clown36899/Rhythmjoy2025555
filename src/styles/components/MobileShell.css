@@ -35,9 +35,9 @@
   position: fixed;
   bottom: 0;
   left: 0;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(15px);
   right: 0;
-  /* background-color: #272727; */
+  background-color: #031214a1;
   z-index: var(--z-20);
   max-width: 100%;
   margin: 0 auto;
@@ -45,7 +45,7 @@
 
 /* ===== 상단 바 클래스 ===== */
 .shell-top-bar {
-  border-top: 1px solid #323232;
+  /* border-top: 1px solid #323232; */
   display: flex;
   align-items: center;
   justify-content: space-between;
