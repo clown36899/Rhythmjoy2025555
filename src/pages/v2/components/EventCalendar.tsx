@@ -677,15 +677,6 @@ export default memo(function EventCalendar({
       const dateString = `${year}-${month}-${dayNum}`;
       const todayFlag = isToday(day);
       const isOtherMonth = day.getMonth() !== monthDate.getMonth();
-      const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
-
-      // 배경색 결정
-      let bgColor = '#202020ff'; // default gray-800
-      if (isOtherMonth) {
-        bgColor = '#141414ff'; // darker for other month
-      } else if (isSelected) {
-        bgColor = '#000000ff'; // blue-900 for selected
-      }
 
       // Check if this is the last row (last 7 days in the grid)
       const isLastRow = index >= days.length - 7;
@@ -732,6 +723,12 @@ export default memo(function EventCalendar({
               const categoryColor = getEventColor(event.id, event.category);
               const thumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
 
+              // 개별 날짜 설정이 여러 개일 때 순번 계산
+              let dateIndex = -1;
+              if (event.event_dates && event.event_dates.length > 1) {
+                dateIndex = event.event_dates.findIndex(d => d.startsWith(dateString));
+              }
+
               return (
                 <div
                   key={event.id}
@@ -743,24 +740,34 @@ export default memo(function EventCalendar({
                     );
                   }}
                 >
-                  {/* 이미지 (있으면 표시) */}
-                  {thumbnailUrl ? (
-                    <div className="calendar-fullscreen-image-container">
-                      <img
-                        src={thumbnailUrl}
-                        alt=""
-                        className="calendar-fullscreen-image"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
-                  ) : (
-                    <div className={`calendar-fullscreen-placeholder ${categoryColor}`}>
-                      <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
-                        {event.title.charAt(0)}
-                      </span>
-                    </div>
-                  )}
+                  {/* 이미지 컨테이너 (순번 배지 포함) */}
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    {/* 이미지 (있으면 표시) */}
+                    {thumbnailUrl ? (
+                      <div className="calendar-fullscreen-image-container">
+                        <img
+                          src={thumbnailUrl}
+                          alt=""
+                          className="calendar-fullscreen-image"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
+                    ) : (
+                      <div className={`calendar-fullscreen-placeholder ${categoryColor}`}>
+                        <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                          {event.title.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* 순번 배지 - 개별 날짜가 여러 개일 때만 표시 */}
+                    {dateIndex >= 0 && (
+                      <div className="calendar-event-sequence-badge">
+                        {dateIndex + 1}주
+                      </div>
+                    )}
+                  </div>
 
                   {/* 제목 */}
                   <div className="calendar-fullscreen-title-container">

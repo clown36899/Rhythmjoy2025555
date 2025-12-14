@@ -639,6 +639,7 @@ export default memo(function EventDetailModal({
 
                   <button
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       onClose();
                     }}

@@ -472,27 +472,30 @@ export default function EventList({
   }, [currentMonth, selectedCategory]);
 
   // 광고판에서 이벤트 선택 이벤트 리스너
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  // REMOVED: This was causing duplicate modals to open because Page.tsx also listens to eventSelected
+  // The Page.tsx listener handles fullscreen calendar event clicks
+  // useEffect(() => {
+  //   if (typeof window === "undefined") return;
+  //
+  //   const handleEventSelected = (e: CustomEvent) => {
+  //     if (e.detail) {
+  //       setSelectedEvent(e.detail);
+  //     }
+  //   };
+  //
+  //   window.addEventListener(
+  //     "eventSelected",
+  //     handleEventSelected as EventListener,
+  //   );
+  //
+  //   return () => {
+  //     window.removeEventListener(
+  //       "eventSelected",
+  //       handleEventSelected as EventListener,
+  //     );
+  //   };
+  // }, []);
 
-    const handleEventSelected = (e: CustomEvent) => {
-      if (e.detail) {
-        setSelectedEvent(e.detail);
-      }
-    };
-
-    window.addEventListener(
-      "eventSelected",
-      handleEventSelected as EventListener,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "eventSelected",
-        handleEventSelected as EventListener,
-      );
-    };
-  }, []);
 
   // props로 전달받은 공유 이벤트 ID로 상세 모달 자동 열기
   useEffect(() => {
