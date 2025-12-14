@@ -14,12 +14,12 @@
   background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
 }
 
-.shopcard-banner:hover {
+/* .shopcard-banner:hover {
   transform: translateY(-4px);
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(59, 130, 246, 0.2);
-}
+} */
 
 /* ===== 왼쪽: 이미지 섹션 ===== */
 .shopcard-image-section {

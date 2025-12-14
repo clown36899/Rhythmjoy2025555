@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import PracticeRoomList from "./components/PracticeRoomList";
 import PracticeRoomModal from "../../components/PracticeRoomModal";
 import PracticeRoomDetail from "./components/PracticeRoomDetail";
@@ -18,9 +18,20 @@ export default function PracticeRoomsPage() {
   const { isAdmin } = useAuth();
   const isDevAdmin = localStorage.getItem('isDevAdmin') === 'true';
   const isEffectiveAdmin = isAdmin || isDevAdmin;
+  const location = useLocation();
 
   // Get room ID from URL params
   const roomId = searchParams.get('id');
+
+  // Handle navigation from PracticeRoomBanner
+  useEffect(() => {
+    const state = location.state as { selectedRoomId?: number } | null;
+    if (state?.selectedRoomId) {
+      setSearchParams({ id: state.selectedRoomId.toString() });
+      // Clear state to prevent reopening on back navigation
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, setSearchParams]);
 
   useEffect(() => {
     const handleRegisterEvent = () => {

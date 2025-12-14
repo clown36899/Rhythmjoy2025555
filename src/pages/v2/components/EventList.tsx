@@ -36,6 +36,7 @@ import "../styles/EventListSections.css";
 // Lazy loading으로 성능 최적화
 const SocialCalendar = lazy(() => import("../../social/components/SocialCalendar"));
 import { useSocialSchedules } from "../../social/hooks/useSocialSchedules";
+import PracticeRoomBanner from "./PracticeRoomBanner";
 
 registerLocale("ko", ko);
 
@@ -2116,6 +2117,9 @@ export default function EventList({
                 />
               </Suspense>
             </div>
+
+            {/* Practice Room Banner Section */}
+            <PracticeRoomBanner />
 
             {/* Section 3+: 장르별 이벤트 (랜덤 순서, 진행중인 강습 필터와 독립) - 무조건 표시 */}
             {(randomizedGenres.length > 0 ? randomizedGenres : allGenres).map((genre) => {

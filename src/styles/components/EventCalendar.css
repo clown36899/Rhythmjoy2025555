@@ -871,15 +871,33 @@
   /* 14px */
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
-  /* Use border-right to match calendar-cell-fullscreen for perfect alignment */
-  border-right: 1px solid var(--calendar-vertical-border);
+  /* Use solid border-right to match calendar-cell-fullscreen for perfect alignment */
+  /* border-right: 1px solid var(--calendar-vertical-border); */
   /* Include border in width calculation to prevent misalignment */
   box-sizing: border-box;
 }
 
-/* Remove border from last weekday item to match cell behavior */
+/* Gradient overlay on top of solid border for fade effect */
+.calendar-weekday-item::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to top, var(--calendar-vertical-border) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+  /* Ensure gradient appears above border */
+}
+
+/* Remove border and gradient from last weekday item */
 .calendar-weekday-item:nth-child(7) {
   border-right: none;
+}
+
+.calendar-weekday-item:nth-child(7)::after {
+  display: none;
 }
 
 .calendar-cell-base {
