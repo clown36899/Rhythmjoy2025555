@@ -1011,9 +1011,7 @@ export default memo(function EventCalendar({
       <div
         data-calendar
         className="calendar-main-container"
-        style={{
-          backgroundColor: "var(--calendar-bg-color)",
-        }}
+
       >
         {/* Desktop Header */}
         {/* Desktop Header */}

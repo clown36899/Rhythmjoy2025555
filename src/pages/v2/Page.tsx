@@ -418,11 +418,50 @@ export default function HomePageV2() {
             earliestDate = new Date(event.date || '');
         }
 
-        // Navigate to event's month
-        setCurrentMonth(earliestDate);
+        // Calculate month difference for animation
+        const targetYear = earliestDate.getFullYear();
+        const targetMonth = earliestDate.getMonth();
+        const currentYear = currentMonth.getFullYear();
+        const currentMonthNum = currentMonth.getMonth();
 
+        const monthDiff = (targetYear - currentYear) * 12 + (targetMonth - currentMonthNum);
+
+        if (Math.abs(monthDiff) > 1) {
+            // Show visual swipe animation
+            const calendarContainer = document.querySelector('.calendar-grid-container');
+            if (calendarContainer) {
+                const direction = monthDiff > 0 ? -1 : 1; // Negative for forward, positive for backward
+                const distance = Math.min(Math.abs(monthDiff) * 100, 500); // Max 500px
+
+                // Apply swipe animation
+                (calendarContainer as HTMLElement).style.transition = 'transform 0.6s ease-out';
+                (calendarContainer as HTMLElement).style.transform = `translateX(${direction * distance}px)`;
+
+                // Reset and navigate to target month
+                setTimeout(() => {
+                    (calendarContainer as HTMLElement).style.transition = 'none';
+                    (calendarContainer as HTMLElement).style.transform = 'translateX(0)';
+                    setCurrentMonth(earliestDate);
+                    setTimeout(() => {
+                        (calendarContainer as HTMLElement).style.transition = '';
+                        highlightAndScroll(event.id);
+                    }, 50);
+                }, 600);
+            } else {
+                // Fallback if container not found
+                setCurrentMonth(earliestDate);
+                setTimeout(() => highlightAndScroll(event.id), 300);
+            }
+        } else {
+            // Close enough, just navigate directly
+            setCurrentMonth(earliestDate);
+            setTimeout(() => highlightAndScroll(event.id), 300);
+        }
+    };
+
+    const highlightAndScroll = (eventId: number) => {
         // Highlight the event
-        setHighlightedEventId(event.id);
+        setHighlightedEventId(eventId);
 
         // Remove highlight after 3 seconds
         setTimeout(() => {
@@ -431,7 +470,7 @@ export default function HomePageV2() {
 
         // Scroll to the event card with retry mechanism
         const scrollToEvent = (retries = 5) => {
-            const eventCard = document.querySelector(`[data-event-id="${event.id}"]`);
+            const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
             if (eventCard) {
                 eventCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else if (retries > 0) {
@@ -440,8 +479,8 @@ export default function HomePageV2() {
             }
         };
 
-        // Wait for month change and DOM update
-        setTimeout(() => scrollToEvent(), 500);
+        // Wait for DOM update
+        setTimeout(() => scrollToEvent(), 300);
     };
 
     const handleDateSelect = (date: Date | null, hasEvents?: boolean) => { setSelectedDate(date); if (date) setSelectedWeekday(null); if (date && hasEvents) navigateWithCategory("all"); };
@@ -751,7 +790,7 @@ export default function HomePageV2() {
                     <div
                         ref={calendarRef}
                         style={{
-                            backgroundColor: "var(--calendar-bg-color)",
+                            // backgroundColor: "var(--calendar-bg-color)",
                             flex: 1,
                             display: 'flex',
                             flexDirection: 'column',

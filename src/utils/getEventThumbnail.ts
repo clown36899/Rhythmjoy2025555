@@ -8,6 +8,15 @@ export interface EventThumbnailData {
 }
 
 /**
+ * PNG URL을 WebP로 변환
+ */
+function convertToWebP(url: string): string {
+  if (!url) return url;
+  // .png를 .webp로 변경
+  return url.replace(/\.png$/i, '.webp');
+}
+
+/**
  * 이벤트의 썸네일 URL을 반환합니다.
  * 우선순위: image_micro > image_thumbnail > image_medium > image > 기본 썸네일
  */
@@ -17,7 +26,8 @@ export function getEventThumbnail(
   defaultThumbnailEvent?: string
 ): string {
   if (!event) {
-    return defaultThumbnailEvent || '';
+    // 기본 썸네일도 WebP로 변환
+    return convertToWebP(defaultThumbnailEvent || '');
   }
 
   // 1순위: micro (달력용 100px)
@@ -40,8 +50,10 @@ export function getEventThumbnail(
     return event.image;
   }
 
-  // 기본 썸네일
-  return event.video_url
+  // 기본 썸네일 (WebP로 변환)
+  const defaultUrl = event.video_url
     ? (defaultThumbnailClass || '')
     : (defaultThumbnailEvent || '');
+
+  return convertToWebP(defaultUrl);
 }
