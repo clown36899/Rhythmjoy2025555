@@ -14,11 +14,12 @@
     user-select: text;
 }
 
+/* 
 .shopping-banner:hover {
     border-color: #3b82f6;
     box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2);
     transform: translateY(-2px);
-}
+} */
 
 /* ===== Navigation Arrows ===== */
 .shopping-banner-nav {

@@ -7,6 +7,7 @@
 /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
 html,
 body {
+  background-color: #000000;
   max-width: 650px !important;
   margin: 0 auto !important;
   overflow-x: hidden !important;

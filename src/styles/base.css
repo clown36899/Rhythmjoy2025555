@@ -3,7 +3,7 @@
 /* ===== CSS 변수 정의 ===== */
 :root {
   /* 주요 배경 색상 */
-  --bg-color: #242424;
+  --bg-color: #000000;
   --bg-primary: #1f2937;
   --bg-secondary: #374151;
   --bg-tertiary: #4b5563;
@@ -23,7 +23,7 @@
   --text-disabled: #6b7280;
 
   /* Header 관련 변수 */
-  --header-bg-color: #272727;
+  --header-bg-color: #000000;
   --header-border-color: #353636;
   --header-height: 51px;
   --header-title-font-size: 1rem;
