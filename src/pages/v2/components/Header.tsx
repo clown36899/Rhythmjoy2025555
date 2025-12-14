@@ -384,7 +384,19 @@ export default memo(function Header({
               ) : (
                 // 프리뷰 모드: 제목 + 검색창
                 <>
-                  <span style={{ fontWeight: 600, color: "var(--text-primary)", paddingLeft: "6px", fontSize: "var(--header-title-font-size)" }}>
+                  <img
+                    src="/logo.jpg"
+                    alt="RhythmJoy Logo"
+                    style={{
+                      display: "none",
+                      borderRadius: '50%',
+                      height: '32px',
+                      width: '32px',
+                      marginRight: '8px',
+                      objectFit: 'contain'
+                    }}
+                  />
+                  <span style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "var(--header-title-font-size)" }}>
                     스윙빌보드
                   </span>
                   <div className="header-search-container" style={{ marginLeft: '12px' }}>

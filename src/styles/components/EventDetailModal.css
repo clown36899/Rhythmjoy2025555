@@ -194,10 +194,7 @@
   right: 0;
   height: 30%;
   /* 60%에서 30%로 줄임 - 이미지 더 많이 보이도록 */
-  background: linear-gradient(to top,
-      rgba(0, 0, 0, 0.7) 0%,
-      rgba(0, 0, 0, 0.4) 50%,
-      transparent 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgb(0 0 0 / 11%) 50%, transparent 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -737,6 +734,7 @@
 .genre-text {
   font-size: 0.875rem;
   /* text-sm */
+  margin: 0;
   line-height: 1.25rem;
   font-weight: 700;
 
