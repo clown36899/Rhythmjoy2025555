@@ -120,10 +120,26 @@ export const handler: Handler = async (event) => {
     const kakaoNickname = kakaoUser.kakao_account?.profile?.nickname || kakaoUser.kakao_account?.name || '카카오 사용자';
     const name = displayName || kakaoNickname;
 
+    // 추가 정보 추출 (동의항목 설정이 되어있을 경우)
+    const realName = kakaoUser.kakao_account?.name; // 실명
+    const rawPhoneNumber = kakaoUser.kakao_account?.phone_number; // +82 10-1234-5678 형식
+
+    /* 카카오 전화번호 포맷팅 (+82 10-1234-5678 -> 010-1234-5678) */
+    let phoneNumber = '';
+    if (rawPhoneNumber) {
+      if (rawPhoneNumber.startsWith('+82')) {
+        phoneNumber = rawPhoneNumber.replace('+82 ', '0').replace(/-/g, '-'); // 010-1234-5678 (하이픈 유지)
+      } else {
+        phoneNumber = rawPhoneNumber;
+      }
+    }
+
     console.log('[kakao-auth] 카카오 사용자 정보:', {
       hasEmail: !!email,
       email: email,
-      name: name
+      name: name,
+      hasRealName: !!realName,
+      hasPhone: !!phoneNumber
     });
 
     if (!email) {
@@ -326,6 +342,36 @@ export const handler: Handler = async (event) => {
           .from('billboard_users')
           .update({ auth_user_id: userId, email })
           .eq('id', billboardUser.id);
+      }
+    }
+
+    // [자동 가입] 카카오에서 실명/전화번호를 가져왔다면 board_users에 저장
+    if (realName && phoneNumber) {
+      try {
+        console.log('[kakao-auth] 실명/전화번호 자동 저장 시도:', { userId, realName });
+
+        // 기존 정보 확인 (덮어쓰기 방지 옵션 - 필요시 로직 조정 가능)
+        const { data: existingBoardUser } = await supabaseAdmin
+          .from('board_users')
+          .select('id')
+          .eq('user_id', userId)
+          .single();
+
+        if (!existingBoardUser) {
+          await supabaseAdmin.from('board_users').insert({
+            user_id: userId,
+            nickname: kakaoNickname, // 카카오 닉네임을 기본값으로 사용
+            real_name: realName,
+            phone: phoneNumber,
+            gender: kakaoUser.kakao_account?.gender || 'other' // 성별도 있으면 저장
+          });
+          console.log('[kakao-auth] board_users 자동 생성 완료');
+        } else {
+          // 이미 있으면 업데이트? (선택사항 - 현재는 업데이트 안 함)
+          console.log('[kakao-auth] 이미 board_users 정보가 존재함');
+        }
+      } catch (autoRegError) {
+        console.error('[kakao-auth] 자동 가입 처리 중 오류 (무시됨):', autoRegError);
       }
     }
 

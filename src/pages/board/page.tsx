@@ -143,7 +143,6 @@ export default function BoardPage() {
     if (!user?.id) return;
 
     // 관리자는 회원가입 없이 바로 사용 가능
-    /* 테스트를 위해 관리자 프리패스 임시 주석 처리
     if (isAdmin) {
       console.log('[게시판] 관리자 모드 - 회원가입 불필요');
       setUserData({
@@ -154,7 +153,6 @@ export default function BoardPage() {
       });
       return;
     }
-    */
 
     try {
       // RPC 함수로 본인 정보 조회
@@ -356,6 +354,7 @@ export default function BoardPage() {
                 {isLoggingIn ? '로그인 중...' : '카카오 로그인'}
               </button>
             )}
+            {/* 📸 심사 캡처용 임시 버튼 삭제됨 */}
           </div>
         </div>
       </div>

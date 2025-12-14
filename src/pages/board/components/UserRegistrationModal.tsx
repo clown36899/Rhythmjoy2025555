@@ -62,8 +62,9 @@ export default function UserRegistrationModal({
       return;
     }
 
-    if (!formData.phone.trim()) {
-      alert('전화번호를 입력해주세요.');
+    const phoneRegex = /^01[0-9]-\d{3,4}-\d{4}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      alert('올바른 휴대전화 번호 형식이 아닙니다. (예: 010-1234-5678)');
       return;
     }
 
@@ -173,10 +174,29 @@ export default function UserRegistrationModal({
               type="tel"
               name="phone"
               value={formData.phone}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                // 숫자만 추출
+                const numbers = e.target.value.replace(/[^0-9]/g, '');
+                let formatted = numbers;
+
+                // 010-0000-0000 포맷팅
+                if (numbers.length < 4) {
+                  formatted = numbers;
+                } else if (numbers.length < 8) {
+                  formatted = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+                } else if (numbers.length < 12) {
+                  formatted = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+                } else {
+                  // 11자리 초과 시 잘라냄
+                  formatted = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+                }
+
+                setFormData(prev => ({ ...prev, phone: formatted }));
+              }}
               required
               className="userreg-input"
               placeholder="010-0000-0000"
+              maxLength={13}
             />
           </div>
 

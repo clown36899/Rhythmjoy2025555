@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import SimpleHeader from "../../components/SimpleHeader";
 import './guide.css';
 
@@ -151,6 +152,11 @@ export default function GuidePage() {
                 <i className="ri-phone-line"></i>
                 010-4801-7180
               </a>
+            </p>
+            <p className="guide-footer-contact" style={{ marginTop: '0.5rem' }}>
+              <Link to="/privacy" className="text-gray-500 hover:text-gray-300 text-xs underline">
+                개인정보 처리방침
+              </Link>
             </p>
           </div>
         </div>

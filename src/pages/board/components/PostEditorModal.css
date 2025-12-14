@@ -1,6 +1,35 @@
 /* PostEditorModal.css - PostEditorModal 컴포넌트 전용 스타일 */
 
-/* ===== CSS 변수 정의 ===== */
+/* 이 컴포넌트 내부에서만 사용하는 독립적인 변수 정의 */
+.pem-modal-overlay {
+  /* Colors */
+  --pem-gray-900: #111827;
+  --pem-gray-800: #1f2937;
+  --pem-gray-700: #374151;
+  --pem-gray-600: #4b5563;
+  --pem-gray-400: #9ca3af;
+  --pem-gray-300: #d1d5db;
+
+  --pem-blue-300: #93c5fd;
+  --pem-blue-400: #60a5fa;
+  --pem-blue-500: #3b82f6;
+  --pem-blue-600: #2563eb;
+  --pem-blue-700: #1d4ed8;
+
+  /* Spacing */
+  --pem-spacing-1: 0.25rem;
+  --pem-spacing-2: 0.5rem;
+  --pem-spacing-4: 1rem;
+
+  /* Radius */
+  --pem-radius-lg: 0.75rem;
+
+  /* Misc */
+  --pem-z-modal: 9999;
+  /* 매우 높은 Z-Index */
+  --pem-transition-colors: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* ===== 모달 오버레이 ===== */
 .pem-modal-overlay {
   position: fixed;
@@ -8,32 +37,62 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--pem-spacing-4);
   z-index: var(--pem-z-modal);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: pem-fadeIn 0.2s ease-out;
+}
+
+@keyframes pem-fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* ===== 모달 컨테이너 ===== */
 .pem-modal-container {
-  background-color: var(--pem-gray-800);
+  background-color: #242424;
+  /* Solid dark background */
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--pem-radius-lg);
   max-width: 42rem;
   width: 100%;
-  max-height: 90svh;
+  max-height: 85vh;
+  /* 모바일 키보드 고려 */
   position: relative;
-  z-index: var(--pem-z-modal);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: pem-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pem-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* ===== 모달 헤더 ===== */
 .pem-modal-header {
-  padding: var(--pem-spacing-4);
+  padding: 1.25rem;
   border-bottom: 1px solid var(--pem-gray-700);
+  background-color: rgba(36, 36, 36, 0.95);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -41,123 +100,123 @@
 }
 
 .pem-modal-title {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: 600;
   color: white;
+  margin: 0;
 }
 
 .pem-close-btn {
   color: var(--pem-gray-400);
   transition: var(--pem-transition-colors);
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 0.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pem-close-btn:hover {
   color: white;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .pem-close-icon {
   font-size: 1.5rem;
-  line-height: 2rem;
+  line-height: 1;
 }
 
 /* ===== 모달 본문 (Form) ===== */
 .pem-form {
   flex: 1;
   overflow-y: auto;
-  padding: var(--pem-spacing-4);
+  padding: 1.5rem;
+  /* 스크롤바 커스텀 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--pem-gray-600) transparent;
+}
+
+.pem-form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pem-form::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pem-form::-webkit-scrollbar-thumb {
+  background-color: var(--pem-gray-600);
+  border-radius: 20px;
 }
 
 .pem-form-content {
   display: flex;
   flex-direction: column;
-  gap: var(--pem-spacing-4);
+  gap: 1.5rem;
 }
 
 /* ===== 폼 그룹 ===== */
 .pem-form-group {
-  /* Container for each form field */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .pem-label {
   display: block;
   color: var(--pem-gray-300);
   font-size: 0.875rem;
-  line-height: 1.25rem;
   font-weight: 500;
-  margin-bottom: var(--pem-spacing-2);
+  margin: 0;
 }
 
-.pem-input {
+.pem-input,
+.pem-select,
+.pem-textarea {
   width: 100%;
-  background-color: var(--pem-gray-700);
+  background-color: #1a1a1a;
   color: white;
-  border-radius: var(--pem-radius-lg);
-  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--pem-gray-700);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
   outline: none;
-  border: none;
+  font-size: 0.95rem;
+  transition: var(--pem-transition-colors);
 }
 
-.pem-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--pem-blue-500);
+.pem-input:focus,
+.pem-select:focus,
+.pem-textarea:focus {
+  border-color: var(--pem-blue-500);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
-.pem-input::placeholder {
-  color: var(--pem-gray-400);
-}
-
-.pem-select {
-  width: 100%;
-  background-color: var(--pem-gray-700);
-  color: white;
-  border-radius: var(--pem-radius-lg);
-  padding: 0.5rem 0.75rem;
-  outline: none;
-  border: none;
-  cursor: pointer;
-}
-
-.pem-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--pem-blue-500);
+.pem-input::placeholder,
+.pem-textarea::placeholder {
+  color: var(--pem-gray-600);
 }
 
 .pem-textarea {
-  width: 100%;
-  background-color: var(--pem-gray-700);
-  color: white;
-  border-radius: var(--pem-radius-lg);
-  padding: 0.5rem 0.75rem;
-  outline: none;
-  border: none;
-  resize: none;
-}
-
-.pem-textarea:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--pem-blue-500);
-}
-
-.pem-textarea::placeholder {
-  color: var(--pem-gray-400);
+  min-height: 300px;
+  line-height: 1.6;
+  resize: vertical;
 }
 
 /* ===== 공지사항 박스 ===== */
 .pem-notice-box {
-  background-color: rgba(30, 58, 138, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  border-radius: var(--pem-radius-lg);
-  padding: var(--pem-spacing-4);
+  background-color: rgba(30, 58, 138, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
 }
 
 .pem-notice-label {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
   cursor: pointer;
 }
@@ -165,15 +224,9 @@
 .pem-checkbox {
   width: 1.25rem;
   height: 1.25rem;
-  border-radius: 0.25rem;
-  border: 1px solid var(--pem-gray-600);
-  color: var(--pem-blue-600);
+  margin-top: 0.15rem;
+  accent-color: var(--pem-blue-600);
   cursor: pointer;
-}
-
-.pem-checkbox:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--pem-blue-500);
 }
 
 .pem-notice-content {
@@ -182,42 +235,49 @@
 
 .pem-notice-title {
   color: var(--pem-blue-300);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .pem-notice-desc {
   color: var(--pem-blue-400);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  margin-top: var(--pem-spacing-1);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  opacity: 0.9;
 }
 
 /* ===== 모달 푸터 ===== */
 .pem-modal-footer {
-  padding: var(--pem-spacing-4);
+  padding: 1.25rem;
   border-top: 1px solid var(--pem-gray-700);
+  background-color: rgba(36, 36, 36, 0.95);
   flex-shrink: 0;
   display: flex;
-  gap: var(--pem-spacing-2);
+  gap: 0.75rem;
 }
 
 .pem-btn {
   flex: 1;
-  padding: 0.5rem;
-  border-radius: var(--pem-radius-lg);
-  font-weight: 500;
+  padding: 0.875rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
   transition: var(--pem-transition-colors);
   cursor: pointer;
   border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pem-btn-cancel {
   background-color: var(--pem-gray-700);
-  color: white;
+  color: var(--pem-gray-300);
 }
 
 .pem-btn-cancel:hover {
   background-color: var(--pem-gray-600);
+  color: white;
 }
 
 .pem-btn-submit {
@@ -226,10 +286,45 @@
 }
 
 .pem-btn-submit:hover {
-  background-color: var(--pem-blue-700);
+  background-color: var(--pem-blue-500);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.pem-btn-submit:active {
+  transform: translateY(0);
 }
 
 .pem-btn-submit:disabled {
-  opacity: 0.5;
+  background-color: var(--pem-gray-700);
+  color: var(--pem-gray-400);
+  transform: none;
+  box-shadow: none;
   cursor: not-allowed;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .pem-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+    /* Bottom sheet 느낌 */
+  }
+
+  .pem-modal-container {
+    max-height: 95vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    animation: pem-slideUpMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes pem-slideUpMobile {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
 }
