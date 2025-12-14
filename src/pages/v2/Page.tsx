@@ -595,13 +595,6 @@ export default function HomePageV2() {
     // 7. 렌더링
     // --------------------------------------------------------------------------------
 
-    // 초기 렌더링 시 .home-main의 paddingTop 강제 적용 (모바일 초기 로드 이슈 해결)
-    useEffect(() => {
-        const mainElement = document.querySelector('.home-main') as HTMLElement;
-        if (mainElement) {
-            mainElement.style.paddingTop = '51px';
-        }
-    }, []); // 마운트 시 한 번만 실행
 
 
 
@@ -686,13 +679,7 @@ export default function HomePageV2() {
             <div
                 className="home-main"
                 ref={eventListElementRef}
-                style={{
-                    paddingTop: '51px', // Fixed header height
-                    overscrollBehaviorY: "contain",
-                    display: calendarMode === 'fullscreen' ? 'flex' : 'block',
-                    flexDirection: calendarMode === 'fullscreen' ? 'column' : undefined,
-                    minHeight: calendarMode === 'fullscreen' ? '100vh' : 'auto',
-                }}
+
             >
                 {/* Calendar Section - Inside Main Content */}
                 {calendarMode === 'fullscreen' && (

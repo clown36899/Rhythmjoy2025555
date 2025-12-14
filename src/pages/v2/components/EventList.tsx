@@ -1994,18 +1994,7 @@ export default function EventList({
                 {futureEvents.length > 0 && (
                   <button
                     onClick={() => onSectionViewModeChange?.('viewAll-events')}
-                    style={{
-                      marginLeft: 'auto',
-
-                      padding: '0 0 0 30%',
-                      color: 'var(--text-secondary)',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end'
-                    }}
+                    className="evt-view-all-btn"
                   >
                     전체보기 ❯
                   </button>
@@ -2070,20 +2059,10 @@ export default function EventList({
                 {futureClasses.length > 0 && (
                   <button
                     onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
-                    style={{
-                      marginLeft: 'auto',
+                    className="evt-view-all-btn"
 
-                      padding: '0 0 0 0',
-                      color: 'var(--text-secondary)',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end'
-                    }}
                   >
-                    전체보기 ❯
+                    전체 달력 ❯
                   </button>
                 )}
               </div>
