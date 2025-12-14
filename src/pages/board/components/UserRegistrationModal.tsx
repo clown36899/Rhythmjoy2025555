@@ -75,22 +75,25 @@ export default function UserRegistrationModal({
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.rpc('register_board_user', {
-        p_user_id: userId,
-        p_nickname: formData.nickname,
-        p_real_name: formData.real_name,
-        p_phone: formData.phone,
-        p_gender: formData.gender
-      });
+      /* RPC 함수 모호성 에러(ambiguous function) 회피를 위해 직접 Insert 사용 */
+      const { error } = await supabase
+        .from('board_users')
+        .insert({
+          user_id: userId,
+          nickname: formData.nickname,
+          real_name: formData.real_name,
+          phone: formData.phone,
+          gender: formData.gender
+        });
 
       if (error) throw error;
 
       alert('회원가입이 완료되었습니다!');
       onRegistered(formData);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('회원가입 실패:', error);
-      alert('회원가입 중 오류가 발생했습니다.');
+      alert(`회원가입 중 오류가 발생했습니다:\n${error.message || error.details || JSON.stringify(error)}`);
     } finally {
       setIsSubmitting(false);
     }

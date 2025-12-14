@@ -138,6 +138,10 @@ export default memo(function Header({
       }
     } catch (error: any) {
       console.log('[카카오 로그인] 취소 또는 실패:', error.message);
+      // 에러 메시지 표시
+      if (error?.message) {
+        alert(error.message);
+      }
       // 로그인 취소/실패 시 모달 닫기
       setShowSettingsModal(false);
     } finally {

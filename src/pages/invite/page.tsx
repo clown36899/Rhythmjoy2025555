@@ -19,21 +19,21 @@ export default function InvitePage() {
   const getApiUrl = () => {
     if (import.meta.env.DEV) {
       const currentHost = window.location.hostname;
-      const port = currentHost.includes('repl.co') || currentHost.includes('replit.dev') 
-        ? '' 
+      const port = currentHost.includes('repl.co') || currentHost.includes('replit.dev')
+        ? ''
         : ':3001';
       return `${window.location.protocol}//${currentHost}${port}`;
     }
     return '';
   };
 
-  const apiEndpoint = import.meta.env.DEV 
+  const apiEndpoint = import.meta.env.DEV
     ? `${getApiUrl()}/api/invitations/validate`
     : '/.netlify/functions/invitations-validate';
 
-  const authEndpoint = import.meta.env.DEV 
+  const authEndpoint = import.meta.env.DEV
     ? `${getApiUrl()}/api/auth/kakao`
-    : '/.netlify/functions/kakao-auth';
+    : '/.netlify/functions/kakao-login';
 
   useEffect(() => {
     // 초대 코드가 있으면 기존 로그인 세션 무시하고 초대 검증
@@ -83,10 +83,10 @@ export default function InvitePage() {
         const { supabase } = await import('../../lib/supabase');
         await supabase.auth.signOut();
       }
-      
+
       await initKakaoSDK();
       await loginWithKakao();
-      
+
       const accessToken = getKakaoAccessToken();
       if (!accessToken) {
         throw new Error('카카오 액세스 토큰을 가져올 수 없습니다');
@@ -129,7 +129,7 @@ export default function InvitePage() {
     } catch (err: any) {
       // 에러 메시지 개선 - 짧고 명확하게
       let errorMessage = err.message || '가입 중 오류가 발생했습니다';
-      
+
       if (errorMessage.includes('초대된 이메일') || errorMessage.includes('일치하지 않습니다')) {
         errorMessage = '카카오톡에 등록된 이메일이 아닙니다';
       } else if (errorMessage.includes('초대받지 않은')) {
@@ -137,7 +137,7 @@ export default function InvitePage() {
       } else if (errorMessage.includes('카카오 계정에서 이메일')) {
         errorMessage = '카카오톡에 이메일이 등록되지 않았습니다';
       }
-      
+
       setError(errorMessage);
       setShowError(true);
     } finally {
@@ -159,7 +159,7 @@ export default function InvitePage() {
   if (error || !invitationValid) {
     // 에러 메시지 개선
     let displayError = error || '유효하지 않은 초대입니다';
-    
+
     if (displayError.includes('유효하지 않은 초대')) {
       displayError = '카카오톡에 등록되지 않은 이메일입니다';
     } else if (displayError.includes('이미 사용된')) {
@@ -169,7 +169,7 @@ export default function InvitePage() {
     } else if (displayError.includes('초대 코드가 없습니다')) {
       displayError = '잘못된 초대 링크입니다';
     }
-    
+
     return (
       <div className="invite-page-container">
         <div className="invite-card invite-card-full">
@@ -191,7 +191,7 @@ export default function InvitePage() {
           <h2 className="invite-title-large">초대장이 도착했습니다!</h2>
           <p className="invite-subtitle">다음 이메일로 초대되셨습니다:</p>
           <p className="invite-email">{invitationEmail}</p>
-          
+
           <div className="invite-instructions">
             <h3 className="invite-instructions-title">가입 방법</h3>
             <ol className="invite-instructions-list">

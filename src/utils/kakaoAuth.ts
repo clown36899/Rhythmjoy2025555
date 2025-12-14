@@ -81,13 +81,36 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
         });
       },
       fail: (error: any) => {
-        reject(new Error('카카오 로그인 실패: ' + error.error_description));
+        const currentUrl = window.location.origin;
+        let errorMessage = '카카오 로그인 실패';
+
+        // 에러 코드별 한글 메시지
+        if (error.error === 'KOE004') {
+          errorMessage = '카카오 로그인이 비활성화되어 있습니다. 개발자 콘솔에서 활성화해주세요.';
+        } else if (error.error === 'KOE005') {
+          errorMessage = '테스트 계정이 팀원으로 등록되지 않았습니다. 개발자 콘솔 > 팀 관리에서 초대해주세요.';
+        } else if (error.error === 'KOE006' || error.error === 'invalid_request') {
+          errorMessage = `Redirect URI가 등록되지 않았습니다.\n현재 URL: ${currentUrl}\n카카오 개발자 콘솔에 이 URL을 등록해주세요.`;
+        } else if (error.error_description) {
+          errorMessage += ': ' + error.error_description;
+        }
+
+        console.error('[카카오 로그인 실패]', {
+          error: error.error,
+          description: error.error_description,
+          currentUrl
+        });
+
+        reject(new Error(errorMessage));
       },
     };
 
-    // 모바일에서는 카카오톡 앱으로 전환하도록 시도
+    // 모바일에서는 카카오톡 앱으로 전환, 데스크톱에서는 웹 기반 OAuth 강제
     if (isMobile()) {
       loginOptions.throughTalk = true;
+    } else {
+      // 데스크톱에서는 명시적으로 false 설정하여 웹 팝업 강제
+      loginOptions.throughTalk = false;
     }
 
     window.Kakao.Auth.login(loginOptions);

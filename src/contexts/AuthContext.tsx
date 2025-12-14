@@ -170,9 +170,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // 개발 환경(Replit)에서는 Vite 프록시(/api), 프로덕션(Netlify)에서는 Netlify Functions
+    // 함수 이름을 kakao-auth -> kakao-login으로 변경하여 캐시/빌드 문제 회피
     const authEndpoint = import.meta.env.DEV
-      ? '/api/auth/kakao'
-      : '/.netlify/functions/kakao-auth';
+      ? '/.netlify/functions/kakao-login'
+      : '/.netlify/functions/kakao-login';
 
     // 재시도 로직 (2단계 인증 대응)
     let lastError: Error | null = null;
@@ -196,11 +197,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || error.message || '인증에 실패했습니다');
+          let errorMessage = '인증에 실패했습니다';
+          try {
+            const error = await response.json();
+            errorMessage = error.error || error.message || errorMessage;
+
+            // 디버그 정보가 있으면 포함
+            if (error.debug) {
+              errorMessage += '\n\n[Debug Info]\n' + JSON.stringify(error.debug, null, 2);
+            }
+          } catch (e) {
+            // JSON 파싱 실패 시 HTTP 상태 코드로 메시지 생성
+            // HTML 응답일 수 있으니 텍스트로 읽어보기
+            try {
+              const text = await response.text();
+              console.error('[카카오 로그인] 서버 에러 본문:', text);
+              if (text.includes('Task timed out')) {
+                errorMessage = '서버 응답 시간 초과 (10초)';
+              } else {
+                errorMessage = `서버 오류 (${response.status})\n서버 로그를 확인해주세요.`;
+              }
+            } catch (textError) {
+              errorMessage = `서버 오류 (${response.status}): ${response.statusText}`;
+            }
+          }
+          throw new Error(errorMessage);
         }
 
-        const authData = await response.json();
+        let authData;
+        try {
+          authData = await response.json();
+        } catch (e) {
+          console.error('[카카오 로그인] JSON 파싱 실패:', e);
+          throw new Error('서버 응답을 처리할 수 없습니다. 네트워크 연결을 확인해주세요.');
+        }
 
         // 서버에서 받은 세션으로 자동 로그인
         if (authData.session) {

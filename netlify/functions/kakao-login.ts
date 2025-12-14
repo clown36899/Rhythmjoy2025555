@@ -1,18 +1,11 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
-const adminEmail = process.env.VITE_ADMIN_EMAIL!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+// 전역 변수로 선언만 해두고 핸들러 내부에서 초기화
+let supabaseAdmin: any = null;
 
 export const handler: Handler = async (event) => {
+  // 1. HTTP 메소드 체크
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -20,16 +13,88 @@ export const handler: Handler = async (event) => {
     };
   }
 
+  // 2. 환경변수 및 Supabase 클라이언트 초기화 (핸들러 내부에서 실행하여 에러 포착)
   try {
+    /* 🚨 디버깅용: 강제 성공 리턴 - 주석 해제하여 테스트 */
+    const debugEnv = {
+      VITE_PUBLIC_SUPABASE_URL: process.env.VITE_PUBLIC_SUPABASE_URL,
+      SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? 'exists' : 'missing',
+      VITE_ADMIN_EMAIL: process.env.VITE_ADMIN_EMAIL
+    };
+
+    // 환경변수 체크를 위해 디버그 모드 활성화 상태로 유지
+    // return {
+    //   statusCode: 200,
+    //   body: JSON.stringify({
+    //     success: true,
+    //     message: '함수 연결 성공! (환경변수 체크)',
+    //     debug: debugEnv
+    //   })
+    // };
+
+    const supabaseUrl = process.env.VITE_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const adminEmail = process.env.VITE_ADMIN_EMAIL;
+
+    if (!supabaseUrl || !supabaseServiceKey || !adminEmail) {
+      console.error('[kakao-auth] 필수 환경변수 누락');
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: '서버 설정 오류: 필수 환경변수가 누락되었습니다.',
+          debug: {
+            hasSupabaseUrl: !!supabaseUrl,
+            hasServiceKey: !!supabaseServiceKey,
+            hasAdminEmail: !!adminEmail,
+            envKeys: Object.keys(process.env).filter(k => k.includes('VITE') || k.includes('SUPABASE'))
+          }
+        })
+      };
+    }
+
+    // 클라이언트가 없으면 초기화 (싱글톤 패턴)
+    if (!supabaseAdmin) {
+      supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey as string, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+    }
+  } catch (initError: any) {
+    console.error('[kakao-auth] 초기화 에러:', initError);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: '서버 초기화 실패',
+        details: initError.message
+      })
+    };
+  }
+
+  try {
+    // 기존 로직 시작...
+    console.log('[kakao-auth] 요청 처리 시작');
+
+    // 환경변수는 이미 위에서 체크했으므로 여기서는 안전하게 사용 (타입 단언)
+    const adminEmail = process.env.VITE_ADMIN_EMAIL as string;
+
     const { kakaoAccessToken, invitationToken, displayName } = JSON.parse(event.body || '{}');
+    console.log('[kakao-auth] 요청 데이터:', {
+      hasKakaoAccessToken: !!kakaoAccessToken,
+      hasInvitationToken: !!invitationToken,
+      hasDisplayName: !!displayName
+    });
 
     if (!kakaoAccessToken) {
+      console.log('[kakao-auth] 카카오 액세스 토큰 없음');
       return {
         statusCode: 400,
         body: JSON.stringify({ error: '카카오 액세스 토큰이 필요합니다' })
       };
     }
 
+    console.log('[kakao-auth] 카카오 API 호출 시작');
     const kakaoUserResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
       headers: {
         Authorization: `Bearer ${kakaoAccessToken}`,
@@ -37,7 +102,13 @@ export const handler: Handler = async (event) => {
       }
     });
 
+    console.log('[kakao-auth] 카카오 API 응답:', {
+      status: kakaoUserResponse.status,
+      ok: kakaoUserResponse.ok
+    });
+
     if (!kakaoUserResponse.ok) {
+      console.log('[kakao-auth] 카카오 토큰 검증 실패');
       return {
         statusCode: 401,
         body: JSON.stringify({ error: '카카오 토큰 검증 실패' })
@@ -49,7 +120,14 @@ export const handler: Handler = async (event) => {
     const kakaoNickname = kakaoUser.kakao_account?.profile?.nickname || kakaoUser.kakao_account?.name || '카카오 사용자';
     const name = displayName || kakaoNickname;
 
+    console.log('[kakao-auth] 카카오 사용자 정보:', {
+      hasEmail: !!email,
+      email: email,
+      name: name
+    });
+
     if (!email) {
+      console.log('[kakao-auth] 이메일 없음');
       return {
         statusCode: 400,
         body: JSON.stringify({ error: '카카오 계정에서 이메일을 가져올 수 없습니다' })
@@ -57,7 +135,7 @@ export const handler: Handler = async (event) => {
     }
 
     const isAdmin = email === adminEmail;
-    
+
     // 초대 코드가 있으면 검증 및 처리
     let invitation: any = null;
     if (invitationToken && !isAdmin) {
@@ -91,7 +169,7 @@ export const handler: Handler = async (event) => {
       if (inv.email !== email) {
         return {
           statusCode: 400,
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             error: '초대된 이메일과 카카오 이메일이 일치하지 않습니다',
             message: `이 초대는 ${inv.email}을 위한 것입니다`
           })
@@ -100,7 +178,7 @@ export const handler: Handler = async (event) => {
 
       invitation = inv;
     }
-    
+
     let { data: billboardUser } = await supabaseAdmin
       .from('billboard_users')
       .select('*')
@@ -110,17 +188,17 @@ export const handler: Handler = async (event) => {
     // 초대 코드로 신규 가입하는 경우 billboard_users 생성
     if (invitation && !billboardUser) {
       const randomPassword = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
-      
+
       // salt + 10,000번 SHA-256 해싱
       const salt = crypto.randomUUID();
       const encoder = new TextEncoder();
       const data = encoder.encode(randomPassword + salt);
-      
+
       let hashBuffer = await crypto.subtle.digest('SHA-256', data);
       for (let i = 0; i < 10000; i++) {
         hashBuffer = await crypto.subtle.digest('SHA-256', hashBuffer);
       }
-      
+
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
       const passwordHash = `${salt}:${hashHex}`;
@@ -183,26 +261,46 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    if (!isAdmin && !billboardUser) {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({ 
-          error: '초대받지 않은 사용자입니다',
-          message: '관리자에게 초대를 요청하세요'
-        })
-      };
-    }
+    // billboard_users는 선택사항 - 없어도 일반 로그인은 가능
+    console.log('[kakao-auth] Billboard 사용자 확인:', {
+      isAdmin,
+      hasBillboardUser: !!billboardUser,
+      billboardUserId: billboardUser?.id
+    });
 
-    const { data: existingUserData } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUserData?.users.find(u => u.email === email);
+    console.log('[kakao-auth] Supabase Auth 사용자 조회 시작:', email);
+
+    // 이메일로 사용자 조회 (페이지네이션 제한 추가)
+    let userExists = null;
+    try {
+      const { data: existingUserData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000
+      });
+
+      if (listError) {
+        console.error('[kakao-auth] listUsers 에러:', listError);
+        throw new Error(`사용자 목록 조회 실패: ${listError.message}`);
+      }
+
+      userExists = existingUserData?.users.find((u: any) => u.email === email);
+      console.log('[kakao-auth] 사용자 조회 결과:', {
+        found: !!userExists,
+        userId: userExists?.id
+      });
+    } catch (e: any) {
+      console.error('[kakao-auth] 사용자 조회 중 에러:', e);
+      throw new Error(`사용자 조회 실패: ${e.message}`);
+    }
 
     let userId: string;
 
     if (userExists) {
       userId = userExists.id;
+      console.log('[kakao-auth] 기존 사용자 ID 사용:', userId);
     } else {
       const randomPassword = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
-      
+
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password: randomPassword,
@@ -287,7 +385,7 @@ export const handler: Handler = async (event) => {
 
   } catch (error: any) {
     console.error('Kakao auth error:', error);
-    
+
     try {
       const { invitationToken } = JSON.parse(event.body || '{}');
       await supabaseAdmin.from('invitation_logs').insert({
@@ -302,7 +400,7 @@ export const handler: Handler = async (event) => {
     } catch (e) {
       console.error('Log error:', e);
     }
-    
+
     return {
       statusCode: 500,
       body: JSON.stringify({ error: '서버 오류가 발생했습니다', details: error.message })

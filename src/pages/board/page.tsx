@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,6 +7,7 @@ import PostDetailModal from './components/PostDetailModal';
 import UserRegistrationModal, { type UserData } from './components/UserRegistrationModal';
 import BoardUserManagementModal from '../../components/BoardUserManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
+import GlobalLoadingOverlay from '../../components/GlobalLoadingOverlay';
 import './board.css';
 
 export interface BoardPost {
@@ -33,6 +35,7 @@ export default function BoardPage() {
   const { user, isAdmin, signInWithKakao, signOut } = useAuth();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showEditorModal, setShowEditorModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
@@ -140,6 +143,7 @@ export default function BoardPage() {
     if (!user?.id) return;
 
     // 관리자는 회원가입 없이 바로 사용 가능
+    /* 테스트를 위해 관리자 프리패스 임시 주석 처리
     if (isAdmin) {
       console.log('[게시판] 관리자 모드 - 회원가입 불필요');
       setUserData({
@@ -150,6 +154,7 @@ export default function BoardPage() {
       });
       return;
     }
+    */
 
     try {
       // RPC 함수로 본인 정보 조회
@@ -296,6 +301,8 @@ export default function BoardPage() {
 
   return (
     <div className="board-page-container">
+      <GlobalLoadingOverlay isLoading={isLoggingIn} message="로그인 중입니다..." />
+
       {/* Header */}
       <div className="board-header global-header">
         <div className="board-header-content">
@@ -333,16 +340,20 @@ export default function BoardPage() {
               <button
                 onClick={async () => {
                   try {
+                    setIsLoggingIn(true);
                     await signInWithKakao();
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error('로그인 실패:', error);
-                    alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                    alert(error?.message || '로그인에 실패했습니다. 다시 시도해주세요.');
+                  } finally {
+                    setIsLoggingIn(false);
                   }
                 }}
                 className="board-btn-kakao"
+                disabled={isLoggingIn}
               >
                 <i className="ri-kakao-talk-fill"></i>
-                카카오 로그인
+                {isLoggingIn ? '로그인 중...' : '카카오 로그인'}
               </button>
             )}
           </div>
@@ -382,14 +393,16 @@ export default function BoardPage() {
                         {post.prefix.name}
                       </span>
                     )}
-                    <h3 className={`board-post-title ${post.is_notice ? 'board-post-title-notice' : 'board-post-title-normal'
-                      }`}>
+                    <h3
+                      className={`board-post-title ${post.is_notice
+                        ? 'board-post-title-notice'
+                        : 'board-post-title-normal'
+                        }`}
+                    >
                       {post.title}
                     </h3>
                   </div>
-                  <p className="board-post-content">
-                    {post.content}
-                  </p>
+                  <p className="board-post-content">{post.content}</p>
                   <div className="board-post-meta">
                     <div className="board-post-meta-left">
                       <span className="board-post-meta-item">

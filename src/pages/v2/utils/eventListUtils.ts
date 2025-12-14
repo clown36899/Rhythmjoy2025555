@@ -1,5 +1,5 @@
 
-import { Event as BaseEvent } from "../../../lib/supabase";
+import type { Event as BaseEvent } from "../../../lib/supabase";
 
 export interface Event extends BaseEvent {
     storage_path?: string | null;
