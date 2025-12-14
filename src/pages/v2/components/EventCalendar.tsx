@@ -23,6 +23,7 @@ interface EventCalendarProps {
   calendarMode?: "collapsed" | "expanded" | "fullscreen";
   selectedCategory?: string;
   isTransitioning?: boolean;
+  highlightedEventId?: number | null;
 }
 
 export default memo(function EventCalendar({
@@ -41,6 +42,7 @@ export default memo(function EventCalendar({
   calendarMode = "expanded",
   selectedCategory = "all",
   isTransitioning = false,
+  highlightedEventId = null,
 }: EventCalendarProps) {
   const [internalCurrentMonth, setInternalCurrentMonth] = useState(new Date());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
@@ -735,6 +737,7 @@ export default memo(function EventCalendar({
                 <div
                   key={event.id}
                   className="calendar-fullscreen-event-card"
+                  data-event-id={event.id}
                   onClick={(e) => {
                     e.stopPropagation();
                     window.dispatchEvent(
@@ -746,7 +749,7 @@ export default memo(function EventCalendar({
                   <div style={{ position: 'relative', width: '100%' }}>
                     {/* 이미지 (있으면 표시) */}
                     {thumbnailUrl ? (
-                      <div className="calendar-fullscreen-image-container">
+                      <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
                         <img
                           src={thumbnailUrl}
                           alt=""
@@ -756,7 +759,7 @@ export default memo(function EventCalendar({
                         />
                       </div>
                     ) : (
-                      <div className={`calendar-fullscreen-placeholder ${categoryColor}`}>
+                      <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
                         <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
                           {event.title.charAt(0)}
                         </span>

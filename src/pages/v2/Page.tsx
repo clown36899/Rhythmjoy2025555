@@ -15,6 +15,7 @@ const EventRegistrationModal = lazy(() => import("../../components/EventRegistra
 import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
 import EventDetailModal from "./components/EventDetailModal";
 import EventPasswordModal from "./components/EventPasswordModal";
+import CalendarSearchModal from "./components/CalendarSearchModal";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
@@ -95,6 +96,10 @@ export default function HomePageV2() {
     const [fromBanner, setFromBanner] = useState(false);
     const [fromFloatingBtn, setFromFloatingBtn] = useState(false);
     const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
+
+    // Calendar search state
+    const [showCalendarSearch, setShowCalendarSearch] = useState(false);
+    const [highlightedEventId, setHighlightedEventId] = useState<number | null>(null);
 
     // ... (중략) ...
 
@@ -364,11 +369,16 @@ export default function HomePageV2() {
             }
         };
 
+        const handleOpenCalendarSearch = () => {
+            setShowCalendarSearch(true);
+        };
+
         window.addEventListener('toggleCalendarMode', handleToggleCalendarMode);
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
         window.addEventListener('goToToday', handleGoToToday);
         window.addEventListener('openSortModal', handleOpenSortModal);
         window.addEventListener('openSearchModal', handleOpenSearchModal);
+        window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('resetV2MainView', handleResetV2MainView);
         window.addEventListener('popstate', handlePopState);
 
@@ -378,6 +388,7 @@ export default function HomePageV2() {
             window.removeEventListener('goToToday', handleGoToToday);
             window.removeEventListener('openSortModal', handleOpenSortModal);
             window.removeEventListener('openSearchModal', handleOpenSearchModal);
+            window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
             window.removeEventListener('resetV2MainView', handleResetV2MainView);
             window.removeEventListener('popstate', handlePopState);
         };
@@ -390,6 +401,48 @@ export default function HomePageV2() {
     const handleBillboardSettingsOpen = () => setIsBillboardSettingsOpen(true);
     const handleBillboardSettingsClose = () => setIsBillboardSettingsOpen(false);
     const handleBillboardEventClick = (event: any) => { setIsBillboardOpen(false); if (event && event.id) { const eventDate = event.start_date || event.date; if (eventDate) setCurrentMonth(new Date(eventDate)); setTimeout(() => setHighlightEvent({ id: event.id, nonce: Date.now() }), 100); } };
+
+    const handleCalendarSearchSelect = (event: AppEvent) => {
+        // Find the earliest date for this event
+        let earliestDate: Date;
+
+        if (event.event_dates && event.event_dates.length > 0) {
+            // Multi-day event with individual dates - use the first one
+            const sortedDates = [...event.event_dates].sort();
+            earliestDate = new Date(sortedDates[0]);
+        } else if (event.start_date) {
+            // Use start_date if available
+            earliestDate = new Date(event.start_date);
+        } else {
+            // Fallback to date field
+            earliestDate = new Date(event.date || '');
+        }
+
+        // Navigate to event's month
+        setCurrentMonth(earliestDate);
+
+        // Highlight the event
+        setHighlightedEventId(event.id);
+
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+            setHighlightedEventId(null);
+        }, 3000);
+
+        // Scroll to the event card with retry mechanism
+        const scrollToEvent = (retries = 5) => {
+            const eventCard = document.querySelector(`[data-event-id="${event.id}"]`);
+            if (eventCard) {
+                eventCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (retries > 0) {
+                // Retry if element not found (DOM might still be updating)
+                setTimeout(() => scrollToEvent(retries - 1), 200);
+            }
+        };
+
+        // Wait for month change and DOM update
+        setTimeout(() => scrollToEvent(), 500);
+    };
 
     const handleDateSelect = (date: Date | null, hasEvents?: boolean) => { setSelectedDate(date); if (date) setSelectedWeekday(null); if (date && hasEvents) navigateWithCategory("all"); };
     const handleMonthChange = (month: Date) => { setCurrentMonth(month); setSelectedDate(null); setSelectedWeekday(null); setFromBanner(false); setBannerMonthBounds(null); if (viewMode === "month") navigateWithCategory("all"); };
@@ -730,6 +783,7 @@ export default function HomePageV2() {
                                 calendarMode={calendarMode}
                                 selectedCategory={selectedCategory}
                                 isTransitioning={false}
+                                highlightedEventId={highlightedEventId}
                             />
                         </div>
                     </div>
@@ -834,6 +888,12 @@ export default function HomePageV2() {
                         <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
                     )
                 }
+                {/* Calendar Search Modal */}
+                <CalendarSearchModal
+                    isOpen={showCalendarSearch}
+                    onClose={() => setShowCalendarSearch(false)}
+                    onSelectEvent={handleCalendarSearchSelect}
+                />
             </div>
         </div>
     );

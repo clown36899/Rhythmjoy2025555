@@ -193,7 +193,20 @@ export function MobileShell() {
             <div className="shell-top-bar-content">
               {/* Left Side: Calendar Controls */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                {/* Calendar Toggle Button */}
+                {/* Calendar Search Button - 전체 달력 모드에서만 표시 */}
+                {calendarMode === "fullscreen" && (
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('openCalendarSearch'))}
+                    className="shell-top-bar-btn"
+                    style={{
+                      backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '0 4px', height: '24px', color: 'var(--text-secondary)'
+                    }}
+                  >
+                    <i className="ri-search-line shell-icon-sm"></i>
+                    <span style={{ fontSize: '12px', fontWeight: 500 }}>검색</span>
+                  </button>
+                )}
 
                 {/* Fullscreen Toggle Button - 프리뷰 모드에서만 표시 */}
                 {calendarMode !== "fullscreen" && (

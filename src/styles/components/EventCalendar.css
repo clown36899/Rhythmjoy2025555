@@ -1663,6 +1663,7 @@
   /* 2줄 높이 확보 */
 }
 
+/* Event Sequence Badge */
 .calendar-event-sequence-badge {
   position: absolute;
   top: -4px;
@@ -1681,6 +1682,26 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   z-index: 10;
   white-space: nowrap;
+}
+
+/* Highlighted Event (from search) */
+.calendar-event-highlighted {
+  animation: highlightPulse 3s ease-out;
+  box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.6), 0 0 20px rgba(234, 179, 8, 0.4) !important;
+}
+
+@keyframes highlightPulse {
+  0% {
+    box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.8), 0 0 30px rgba(234, 179, 8, 0.6);
+  }
+
+  50% {
+    box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.6), 0 0 20px rgba(234, 179, 8, 0.4);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0), 0 0 0 rgba(234, 179, 8, 0);
+  }
 }
 
 

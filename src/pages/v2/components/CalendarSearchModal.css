@@ -1,0 +1,142 @@
+/* Calendar Search Modal */
+
+.cal-search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 1000;
+    padding-top: 60px;
+}
+
+.cal-search-modal {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.cal-search-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-bottom: 1px solid #2d2d2d;
+}
+
+.cal-search-input {
+    flex: 1;
+    background-color: #2d2d2d;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+}
+
+.cal-search-input::placeholder {
+    color: #6b7280;
+}
+
+.cal-search-close {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.cal-search-close:hover {
+    color: #fff;
+}
+
+.cal-search-results {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0.5rem;
+}
+
+.cal-search-loading,
+.cal-search-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.cal-search-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.cal-search-item:hover {
+    background-color: #374151;
+}
+
+.cal-search-item:active {
+    transform: scale(0.98);
+}
+
+.cal-search-item-date {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    min-width: 50px;
+    text-align: center;
+}
+
+.cal-search-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.cal-search-item-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cal-search-item-location {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.cal-search-item-location i {
+    font-size: 0.875rem;
+}
+
+.cal-search-item-category {
+    font-size: 0.75rem;
+    color: #6b7280;
+    padding: 0.25rem 0.5rem;
+    background-color: #1a1a1a;
+    border-radius: 4px;
+}
