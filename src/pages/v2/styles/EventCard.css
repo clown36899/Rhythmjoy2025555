@@ -173,6 +173,7 @@
 .card-image {
   height: 100%;
   width: 100%;
+  border-radius: 12px;
   object-fit: cover;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }

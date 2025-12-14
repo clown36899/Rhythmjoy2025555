@@ -699,7 +699,7 @@ export default memo(function EventCalendar({
           onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
           className="calendar-cell-fullscreen"
           style={{
-            backgroundColor: bgColor,
+
             minHeight: `${cellHeight}px`, // Restore min-height for expansion
             height: '100%',
             // Apply address bar buffer + safe area to the last row cells
