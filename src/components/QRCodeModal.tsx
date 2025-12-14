@@ -1,6 +1,7 @@
 import { useEffect, useState, memo } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
+import { useModalHistory } from "../hooks/useModalHistory";
 import "./QRCodeModal.css";
 
 interface QRCodeModalProps {
@@ -37,6 +38,9 @@ export default memo(function QRCodeModal({ isOpen, onClose }: QRCodeModalProps) 
       setCopied(false);
     }
   }, [isOpen]);
+
+  // Enable mobile back gesture to close modal
+  useModalHistory(isOpen, onClose);
 
   const currentUrl = typeof window !== "undefined" ? window.location.href.split("?")[0] : "";
 

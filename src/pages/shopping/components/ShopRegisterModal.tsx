@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import ImageCropModal from '../../../components/ImageCropModal';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 import './ShopRegisterModal.css';
 
 interface ShopRegisterModalProps {
@@ -41,6 +42,9 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
     // Featured Items (Array)
     const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([]);
     const [activeCropItemIndex, setActiveCropItemIndex] = useState<number | null>(null);
+
+    // Enable mobile back gesture to close modal
+    useModalHistory(isOpen, onClose);
 
     // Logo handlers
     const handleLogoFileSelect = (file: File) => {

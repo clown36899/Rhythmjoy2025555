@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useState } from 'react';
 import type { Shop } from '../page';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 import ShopEditModal from './ShopEditModal';
 import './shopdetailmodal.css';
 
@@ -13,6 +14,9 @@ interface ShopDetailModalProps {
 
 export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: ShopDetailModalProps) {
     const [showEditModal, setShowEditModal] = useState(false);
+
+    // Enable mobile back gesture to close modal
+    useModalHistory(isOpen, onClose);
 
     if (!isOpen) return null;
 
@@ -70,7 +74,7 @@ export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: Sho
                     {/* Featured Products Section */}
                     {hasProducts && (
                         <div className="shop-modal-product-section">
-                            <div className={`shop-modal-products-grid ${featuredItems.length === 1 ? 'single' : 'multi'}`}>
+                            <div className={`shop - modal - products - grid ${featuredItems.length === 1 ? 'single' : 'multi'} `}>
                                 {featuredItems.map((item, index) => {
                                     if (!item.item_name) return null;
 

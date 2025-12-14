@@ -4,6 +4,7 @@ import type { Event as BaseEvent } from '../../../lib/supabase';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 import "../../../styles/components/EventDetailModal.css";
 
 interface Event extends BaseEvent {
@@ -86,6 +87,9 @@ export default memo(function EventDetailModal({
       setIsHighResLoaded(true);
     }
   }, [highResSrc, thumbnailSrc]);
+
+  // Enable mobile back gesture to close modal
+  useModalHistory(isOpen, onClose);
 
   if (!isOpen || !event) {
     return null;

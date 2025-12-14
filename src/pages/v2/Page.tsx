@@ -317,6 +317,8 @@ export default function HomePageV2() {
             if (calendarMode !== "fullscreen") {
                 setIsFullscreenTransition(true);
                 setCalendarMode("fullscreen");
+                // Push history state for back navigation
+                window.history.pushState({ fullscreenCalendar: true }, '', window.location.href);
             } else {
                 setCalendarMode("collapsed");
             }
@@ -354,12 +356,21 @@ export default function HomePageV2() {
             if (scrollContainer) scrollContainer.scrollTop = 0;
         };
 
+        // Handle browser back button/gesture for fullscreen calendar
+        const handlePopState = (e: PopStateEvent) => {
+            if (calendarMode === 'fullscreen') {
+                e.preventDefault();
+                setCalendarMode('collapsed');
+            }
+        };
+
         window.addEventListener('toggleCalendarMode', handleToggleCalendarMode);
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
         window.addEventListener('goToToday', handleGoToToday);
         window.addEventListener('openSortModal', handleOpenSortModal);
         window.addEventListener('openSearchModal', handleOpenSearchModal);
         window.addEventListener('resetV2MainView', handleResetV2MainView);
+        window.addEventListener('popstate', handlePopState);
 
         return () => {
             window.removeEventListener('toggleCalendarMode', handleToggleCalendarMode);
@@ -368,6 +379,7 @@ export default function HomePageV2() {
             window.removeEventListener('openSortModal', handleOpenSortModal);
             window.removeEventListener('openSearchModal', handleOpenSearchModal);
             window.removeEventListener('resetV2MainView', handleResetV2MainView);
+            window.removeEventListener('popstate', handlePopState);
         };
     }, [calendarMode, sortBy, navigateWithCategory]);
     const [fromQR] = useState(() => { const p = new URLSearchParams(window.location.search); const s = p.get("from"); return s === "qr" || s === "edit"; });

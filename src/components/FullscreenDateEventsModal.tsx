@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import type { Event as AppEvent } from "../lib/supabase";
+import { useModalHistory } from "../hooks/useModalHistory";
 import "./FullscreenDateEventsModal.css";
 
 interface FullscreenDateEventsModalProps {
@@ -35,10 +36,10 @@ export default function FullscreenDateEventsModal({
         const year = selectedDate.getFullYear();
         const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
         const day = String(selectedDate.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
+        const dateStr = `${year} -${month} -${day} `;
 
         console.log(`[Modal] Fetching events for: ${dateStr} (Original: ${selectedDate.toString()})`);
-        console.log(`[Modal] Selected Category: ${selectedCategory}`);
+        console.log(`[Modal] Selected Category: ${selectedCategory} `);
 
         // 모든 이벤트를 가져온 후 클라이언트에서 필터링
         const { data, error } = await supabase
@@ -72,9 +73,9 @@ export default function FullscreenDateEventsModal({
           );
         });
 
-        console.log(`[Modal] Filtered events count: ${filteredEvents.length}`);
+        console.log(`[Modal] Filtered events count: ${filteredEvents.length} `);
         if (filteredEvents.length > 0) {
-          console.log(`[Modal] First event match:`, {
+          console.log(`[Modal] First event match: `, {
             title: filteredEvents[0].title,
             start_date: filteredEvents[0].start_date,
             end_date: filteredEvents[0].end_date,
@@ -93,7 +94,10 @@ export default function FullscreenDateEventsModal({
     };
 
     fetchEvents();
-  }, [isOpen, selectedDate]);
+  }, [isOpen, selectedDate, selectedCategory]);
+
+  // Enable mobile back gesture to close modal
+  useModalHistory(isOpen, onClose);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -118,12 +122,12 @@ export default function FullscreenDateEventsModal({
     const day = date.getDate();
     const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
     const weekday = weekdays[date.getDay()];
-    return `${month}월 ${day}일 (${weekday})`;
+    return `${month}월 ${day} 일(${weekday})`;
   };
 
   const animationOrigin = clickPosition
     ? {
-      transformOrigin: `${clickPosition.x}px ${clickPosition.y}px`,
+      transformOrigin: `${clickPosition.x}px ${clickPosition.y} px`,
     }
     : {
       transformOrigin: "center center",
@@ -200,10 +204,10 @@ export default function FullscreenDateEventsModal({
                     <div className="fsde-event-content">
                       <div className="fsde-event-meta">
                         <span
-                          className={`fsde-badge ${event.category === "class"
+                          className={`fsde - badge ${event.category === "class"
                             ? "fsde-badge-class"
                             : "fsde-badge-event"
-                            }`}
+                            } `}
                         >
                           {event.category === "class" ? "강습" : "행사"}
                         </span>

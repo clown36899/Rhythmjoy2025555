@@ -5,6 +5,7 @@ import PracticeRoomDetail from '../pages/practice/components/PracticeRoomDetail'
 import ShopDetailModal from '../pages/shopping/components/ShopDetailModal';
 import type { Event } from '../lib/supabase';
 import type { Shop } from '../pages/shopping/page';
+import { useModalHistory } from '../hooks/useModalHistory';
 import './GlobalSearchModal.css';
 
 interface SearchResult {
@@ -51,6 +52,9 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
             performSearch(searchQuery);
         }
     }, [isOpen, searchQuery]);
+
+    // Enable mobile back gesture to close modal
+    useModalHistory(isOpen, onClose);
 
     const performSearch = async (query: string) => {
         setLoading(true);

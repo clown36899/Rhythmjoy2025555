@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from "react";
 import { supabase } from "../lib/supabase";
+import { useModalHistory } from "../hooks/useModalHistory";
 import "./PracticeRoomModal.css";
 
 interface PracticeRoom {
@@ -99,6 +100,9 @@ export default memo(function PracticeRoomModal({
       setIsFormOpen(false);
     }
   }, [isOpen, initialRoom, externalSelectedRoom, openToForm]);
+
+  // Enable mobile back gesture to close modal
+  useModalHistory(isOpen, onClose);
 
   const fetchRooms = async () => {
     try {

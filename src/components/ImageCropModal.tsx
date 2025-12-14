@@ -4,6 +4,7 @@ import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import './ImageCropModal.css';
 import { getVideoThumbnailOptions, downloadThumbnailAsBlob, type VideoThumbnailOption } from '../utils/videoThumbnail';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 interface ImageCropModalProps {
   isOpen: boolean;
@@ -161,6 +162,9 @@ export default memo(function ImageCropModal({
       setIsModified(false);
     }
   }, [isOpen, imageUrl]);
+
+  // Enable mobile back gesture to close modal
+  useModalHistory(isOpen, onClose);
 
   const loadThumbnails = async () => {
     if (!videoUrl) return;

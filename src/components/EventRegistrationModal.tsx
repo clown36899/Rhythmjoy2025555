@@ -14,6 +14,7 @@ import "./EventRegistrationModal.css";
 import { EditablePreviewCard } from "./EditablePreviewCard";
 import EditableEventDetail, { type EditableEventDetailRef } from './EditableEventDetail';
 import type { Event as AppEvent } from "../lib/supabase";
+import { useModalHistory } from "../hooks/useModalHistory";
 
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
@@ -160,6 +161,9 @@ export default memo(function EventRegistrationModal({
       fetchDummyEvents();
     }
   }, [isOpen]);
+
+  // Enable mobile back gesture to close modal
+  useModalHistory(isOpen, onClose);
 
   // Fetch Genres
   useEffect(() => {
