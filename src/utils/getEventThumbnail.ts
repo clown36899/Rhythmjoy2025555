@@ -7,14 +7,13 @@ export interface EventThumbnailData {
   video_url?: string;
 }
 
-/**
- * PNG URL을 WebP로 변환
- */
-function convertToWebP(url: string): string {
-  if (!url) return url;
-  // .png를 .webp로 변경
-  return url.replace(/\.png$/i, '.webp');
-}
+// 기본 썸네일 URL (Supabase Storage)
+const DEFAULT_THUMBNAIL_BASE = 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/default-thumbnails';
+const DEFAULT_THUMBNAILS = {
+  micro: `${DEFAULT_THUMBNAIL_BASE}/default_micro.webp`,
+  thumbnail: `${DEFAULT_THUMBNAIL_BASE}/default_thumbnail.webp`,
+  medium: `${DEFAULT_THUMBNAIL_BASE}/default_medium.webp`,
+};
 
 /**
  * 이벤트의 썸네일 URL을 반환합니다.
@@ -26,8 +25,8 @@ export function getEventThumbnail(
   defaultThumbnailEvent?: string
 ): string {
   if (!event) {
-    // 기본 썸네일도 WebP로 변환
-    return convertToWebP(defaultThumbnailEvent || '');
+    // 이벤트가 없으면 thumbnail 크기 반환
+    return DEFAULT_THUMBNAILS.thumbnail;
   }
 
   // 1순위: micro (달력용 100px)
@@ -50,10 +49,6 @@ export function getEventThumbnail(
     return event.image;
   }
 
-  // 기본 썸네일 (WebP로 변환)
-  const defaultUrl = event.video_url
-    ? (defaultThumbnailClass || '')
-    : (defaultThumbnailEvent || '');
-
-  return convertToWebP(defaultUrl);
+  // 기본 썸네일 - thumbnail 크기 사용
+  return DEFAULT_THUMBNAILS.thumbnail;
 }
