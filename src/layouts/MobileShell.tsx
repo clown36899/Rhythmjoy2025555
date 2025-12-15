@@ -63,7 +63,10 @@ export function MobileShell() {
 
   // Page State Synchronization
   useEffect(() => {
-    const handleCalendarModeChanged = (e: CustomEvent) => setCalendarMode(e.detail);
+    const handleCalendarModeChanged = (e: CustomEvent) => {
+      console.log('[MobileShell] calendarModeChanged event received:', e.detail);
+      setCalendarMode(e.detail);
+    };
     const handleSortByChanged = (e: CustomEvent) => setSortBy(e.detail);
     const handleIsCurrentMonthVisibleChanged = (e: CustomEvent) => setIsCurrentMonthVisible(e.detail);
 
@@ -244,7 +247,10 @@ export function MobileShell() {
 
                 {/* 3. Event Registration Button */}
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn' } }))}
+                  onClick={() => {
+                    console.log('[MobileShell] Registration button clicked, calendarMode:', calendarMode);
+                    window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }));
+                  }}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>

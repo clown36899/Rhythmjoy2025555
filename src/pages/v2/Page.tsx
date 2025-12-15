@@ -96,6 +96,7 @@ export default function HomePageV2() {
     const [fromBanner, setFromBanner] = useState(false);
     const [fromFloatingBtn, setFromFloatingBtn] = useState(false);
     const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
+    const [registrationCalendarMode, setRegistrationCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen' | null>(null);
 
     // Calendar search state
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
@@ -106,12 +107,24 @@ export default function HomePageV2() {
     useEffect(() => {
         const handleCreateEvent = (e: Event) => {
             const customEvent = e as CustomEvent;
+
+            // Capture calendar mode from event detail
+            const eventCalendarMode = customEvent.detail?.calendarMode;
+            console.log('[Page] handleCreateEvent - received calendarMode:', eventCalendarMode);
+            console.log('[Page] handleCreateEvent - event detail:', customEvent.detail);
+
+            if (eventCalendarMode) {
+                setRegistrationCalendarMode(eventCalendarMode);
+                console.log('[Page] Set registrationCalendarMode to:', eventCalendarMode);
+            }
+
             if (customEvent.detail?.source === 'banner' && customEvent.detail?.monthIso) {
                 // ... (기존 배너 로직 유지) ...
-                if (selectedDate) { setFromBanner(false); setBannerMonthBounds(null); }
-                else {
-                    const firstDayOfMonth = new Date(customEvent.detail.monthIso);
-                    setSelectedDate(firstDayOfMonth); setFromBanner(true);
+                const firstDayOfMonth = new Date(customEvent.detail.monthIso + '-01');
+                setSelectedDate(firstDayOfMonth);
+                setFromBanner(true);
+                setFromFloatingBtn(false);
+                if (firstDayOfMonth) {
                     const year = firstDayOfMonth.getFullYear(); const month = firstDayOfMonth.getMonth();
                     const firstDay = new Date(year, month, 1); const lastDay = new Date(year, month + 1, 0);
                     const formatDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -308,7 +321,10 @@ export default function HomePageV2() {
     useEffect(() => { window.dispatchEvent(new CustomEvent("monthChanged", { detail: { month: currentMonth.toISOString() } })); }, [currentMonth]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode } })); }, [viewMode]);
     // Shell State Synchronization
-    useEffect(() => { window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: calendarMode })); }, [calendarMode]);
+    useEffect(() => {
+        console.log('[Page] calendarMode changed, dispatching event:', calendarMode);
+        window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: calendarMode }));
+    }, [calendarMode]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("sortByChanged", { detail: sortBy })); }, [sortBy]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("isCurrentMonthVisibleChanged", { detail: isCurrentMonthVisible })); }, [isCurrentMonthVisible]);
 
@@ -900,8 +916,11 @@ export default function HomePageV2() {
                                 }
                                 if (fromFloatingBtn) {
                                     setSelectedDate(null);
-                                    setSectionViewMode('preview'); // 프리뷰 모드로 강제 전환
-                                    setCalendarMode('collapsed'); // 달력 접기
+                                    // Only collapse if registration didn't start from fullscreen
+                                    if (registrationCalendarMode !== 'fullscreen') {
+                                        setSectionViewMode('preview'); // 프리뷰 모드로 강제 전환
+                                        setCalendarMode('collapsed'); // 달력 접기
+                                    }
                                     setFromFloatingBtn(false);
                                 }
                             }}
@@ -913,8 +932,46 @@ export default function HomePageV2() {
                                 setFromFloatingBtn(false);
                                 setBannerMonthBounds(null);
                                 setCurrentMonth(d);
-                                setEventJustCreated(Date.now());
-                                setHighlightEvent({ id: id || 0, nonce: Date.now() });
+
+                                if (registrationCalendarMode === 'fullscreen') {
+                                    // Fullscreen calendar mode: stay in calendar, highlight event
+                                    console.log('[Page] Event created in fullscreen mode, highlighting event:', id);
+                                    setSelectedDate(null); // Clear date selection
+                                    setHighlightedEventId(id || null);
+
+                                    // Scroll to the event after it's rendered
+                                    setTimeout(() => {
+                                        const eventElement = document.querySelector(`[data-event-id="${id}"]`);
+                                        if (eventElement) {
+                                            eventElement.scrollIntoView({
+                                                behavior: 'smooth',
+                                                block: 'center'
+                                            });
+                                            console.log('[Page] Scrolled to event:', id);
+                                        }
+                                    }, 500); // Wait for calendar to refresh
+
+                                    // 5-blink animation (10 toggles = 5 blinks)
+                                    let blinkCount = 0;
+                                    const blinkInterval = setInterval(() => {
+                                        setHighlightedEventId(prev => prev === null ? (id || null) : null);
+                                        blinkCount++;
+                                        if (blinkCount >= 10) {
+                                            clearInterval(blinkInterval);
+                                            setHighlightedEventId(id || null); // End with highlighted
+                                            // Clear highlight after 2 seconds
+                                            setTimeout(() => setHighlightedEventId(null), 2000);
+                                        }
+                                    }, 300); // 300ms per toggle
+                                } else {
+                                    // Preview mode: current behavior (show in list)
+                                    console.log('[Page] Event created in preview mode, showing in list:', id);
+                                    setEventJustCreated(Date.now());
+                                    setHighlightEvent({ id: id || 0, nonce: Date.now() });
+                                }
+
+                                // Reset registration mode
+                                setRegistrationCalendarMode(null);
                             }}
                             fromBanner={fromBanner}
                             bannerMonthBounds={bannerMonthBounds ?? undefined}
