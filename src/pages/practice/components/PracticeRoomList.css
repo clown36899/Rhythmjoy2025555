@@ -152,7 +152,7 @@
 /* ===== 연습실 카드 (Premium Design - 쇼핑 카드 스타일 통일) ===== */
 .prl-card {
   background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-  border-radius: 1rem;
+  border-radius: 0.5rem;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -525,7 +525,7 @@
 /* ===== 연습실 카드 반응형 (쇼핑 카드와 동일) ===== */
 @media (max-width: 640px) {
   .prl-card {
-    height: 100px;
+    height: 87px;
   }
 
   .prl-card-info {

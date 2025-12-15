@@ -32,13 +32,24 @@ export default function SocialDetailModal({ item, onClose, onEdit, readonly = fa
                     {/* 헤더 정보 */}
                     <div className="spdm-header">
                         {item.type === 'schedule' && (
-                            <span className="spdm-category-badge">정기 스케줄</span>
+                            <span className="spdm-category-badge">
+                                <i className="ri-calendar-check-line" style={{ marginRight: '4px', fontSize: '0.85rem' }}></i>
+                                정기 스케줄
+                            </span>
                         )}
                         <h2 className="spdm-title">{item.title}</h2>
 
                         {item.placeName && (
-                            <div style={{ color: 'var(--accent-color)', fontWeight: 600, marginBottom: '0.5rem' }}>
-                                @ {item.placeName}
+                            <div style={{
+                                color: '#3b82f6',
+                                fontWeight: 600,
+                                marginBottom: '0.75rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <i className="ri-map-pin-2-fill" style={{ fontSize: '1.1rem' }}></i>
+                                <span>{item.placeName}</span>
                             </div>
                         )}
 
@@ -50,17 +61,14 @@ export default function SocialDetailModal({ item, onClose, onEdit, readonly = fa
                     </div>
 
                     {/* 상세 정보 아이콘 리스트 */}
-                    <div className="spdm-section">
-
-                        {item.inquiryContact && (
+                    {item.inquiryContact && (
+                        <div className="spdm-section">
                             <div className="spdm-info-row">
                                 <i className="ri-customer-service-2-line spdm-icon"></i>
                                 <span className="spdm-text">{item.inquiryContact}</span>
                             </div>
-                        )}
-
-                        {/* URL이 없더라도 장소명이 있으면 지도 검색 링크 제공 가능하나, 여기선 linkUrl 우선 */}
-                    </div>
+                        </div>
+                    )}
 
                     {/* 하단 액션 버튼 */}
                     <div className="spdm-actions">

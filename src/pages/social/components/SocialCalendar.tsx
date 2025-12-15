@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import SocialEditModal from './SocialEditModal';
 import SocialEventModal from './SocialEventModal';
 import SocialDetailModal from './SocialDetailModal';
+import SocialPasswordModal from './SocialPasswordModal';
 import type { UnifiedSocialEvent } from '../types';
 import './SocialCalendar.css';
 
@@ -32,6 +33,10 @@ export default function SocialCalendar({
   const [detailItem, setDetailItem] = useState<UnifiedSocialEvent | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
+  // Password verification state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [pendingEditItem, setPendingEditItem] = useState<UnifiedSocialEvent | null>(null);
+
   const weekdays = [
     { id: 0, name: "일" },
     { id: 1, name: "월" },
@@ -46,14 +51,42 @@ export default function SocialCalendar({
     setDetailItem(event);
   };
 
-  const handleEditClick = async (unifiedEvent: UnifiedSocialEvent) => {
-    const { data } = await supabase
-      .from('social_schedules')
-      .select('*')
-      .eq('id', unifiedEvent.originalId)
-      .single();
-    if (data) setEditingItem({ item: data, type: 'schedule' });
+  const handleEditClick = (unifiedEvent: UnifiedSocialEvent) => {
+    setPendingEditItem(unifiedEvent);
+    setShowPasswordModal(true);
     setDetailItem(null);
+  };
+
+  const handlePasswordSubmit = async (password: string): Promise<boolean> => {
+    if (!pendingEditItem) return false;
+
+    try {
+      // Fetch the schedule with password
+      const { data, error } = await supabase
+        .from('social_schedules')
+        .select('*')
+        .eq('id', pendingEditItem.originalId)
+        .single();
+
+      if (error || !data) {
+        console.error('Error fetching schedule:', error);
+        return false;
+      }
+
+      // Verify password
+      if (data.password !== password) {
+        return false;
+      }
+
+      // Password correct - open edit modal
+      setEditingItem({ item: data, type: 'schedule' });
+      setShowPasswordModal(false);
+      setPendingEditItem(null);
+      return true;
+    } catch (error) {
+      console.error('Password verification error:', error);
+      return false;
+    }
   };
 
   const handleAddEvent = (dayId: number) => {
@@ -136,6 +169,16 @@ export default function SocialCalendar({
           onClose={() => setDetailItem(null)}
           onEdit={() => handleEditClick(detailItem)}
           readonly={readonly}
+        />
+      )}
+
+      {showPasswordModal && pendingEditItem && (
+        <SocialPasswordModal
+          onSubmit={handlePasswordSubmit}
+          onClose={() => {
+            setShowPasswordModal(false);
+            setPendingEditItem(null);
+          }}
         />
       )}
 
