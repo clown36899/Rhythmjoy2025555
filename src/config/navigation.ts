@@ -4,6 +4,7 @@ export interface NavigationItem {
     icon: string;
     activeColor: string;
     badge?: string;
+    action?: string; // Optional action to trigger
 }
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
@@ -13,6 +14,13 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         path: '/v2',
         icon: 'ri-calendar-2-line',
         activeColor: 'text-red-500',
+    },
+    {
+        label: '전체달력',
+        path: '/v2',
+        icon: 'ri-calendar-event-fill',
+        activeColor: 'text-orange-500',
+        action: 'setFullscreenMode', // Trigger fullscreen calendar
     },
     {
         label: '소셜',

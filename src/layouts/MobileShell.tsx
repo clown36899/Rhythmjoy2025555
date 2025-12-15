@@ -208,20 +208,7 @@ export function MobileShell() {
                   </button>
                 )}
 
-                {/* Fullscreen Toggle Button - 프리뷰 모드에서만 표시 */}
-                {calendarMode !== "fullscreen" && (
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
-                    className="shell-top-bar-btn"
-                    style={{
-                      backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-                      padding: '0 4px', height: '24px', color: 'var(--text-secondary)'
-                    }}
-                  >
-                    <i className="ri-fullscreen-line shell-icon-sm"></i>
-                    <span style={{ fontSize: '12px', fontWeight: 500 }}>전체달력</span>
-                  </button>
-                )}
+
               </div>
 
               {/* Right Side: Tools (Today, Sort, Search, Register, Admin) */}
