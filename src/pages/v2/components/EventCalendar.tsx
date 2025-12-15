@@ -189,14 +189,25 @@ export default memo(function EventCalendar({
   // 이벤트 삭제 감지를 위한 이벤트 리스너 추가
   useEffect(() => {
     const handleEventDeleted = () => {
+      console.log('[EventCalendar] Event deleted, refreshing...');
+      fetchEvents();
+    };
+
+    const handleEventChanged = () => {
+      console.log('[EventCalendar] Event updated/created, refreshing...');
       fetchEvents();
     };
 
     window.addEventListener("eventDeleted", handleEventDeleted);
+    window.addEventListener("eventUpdated", handleEventChanged);
+    window.addEventListener("eventCreated", handleEventChanged);
 
     return () => {
       window.removeEventListener("eventDeleted", handleEventDeleted);
+      window.removeEventListener("eventUpdated", handleEventChanged);
+      window.removeEventListener("eventCreated", handleEventChanged);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchEvents = useCallback(async () => {

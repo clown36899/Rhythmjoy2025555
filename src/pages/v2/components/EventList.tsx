@@ -1546,7 +1546,8 @@ export default function EventList({
       setIsEditingWithDetail(false); // Close edit modal immediately
       setEventToEdit(null);
       closeModal(); // Close detail modal if open
-      fetchEvents(); // Refresh list
+      fetchEventsSilently(); // Silent refresh - no loading spinner
+      window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } })); // Notify other components
       alert("이벤트가 삭제되었습니다.");
     } catch (error: any) {
       console.error("Edge Function 호출 또는 이벤트 삭제 중 오류 발생:", error);

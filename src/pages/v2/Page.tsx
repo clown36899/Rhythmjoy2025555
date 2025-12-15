@@ -516,10 +516,13 @@ export default function HomePageV2() {
     };
     const deleteEvent = async (eventId: number, password: string | null = null) => {
         try {
+            console.log('[Page] Deleting event:', eventId);
             const { error } = await supabase.functions.invoke('delete-event', { body: { eventId, password } });
             if (error) throw error;
             alert("이벤트가 삭제되었습니다.");
+            console.log('[Page] Dispatching eventDeleted event');
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
+            console.log('[Page] Closing modal');
             closeModal();
         } catch (error: any) {
             console.error("이벤트 삭제 중 오류 발생:", error);
