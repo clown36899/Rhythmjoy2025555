@@ -63,10 +63,7 @@ export function MobileShell() {
 
   // Page State Synchronization
   useEffect(() => {
-    const handleCalendarModeChanged = (e: CustomEvent) => {
-      console.log('[MobileShell] calendarModeChanged event received:', e.detail);
-      setCalendarMode(e.detail);
-    };
+    const handleCalendarModeChanged = (e: CustomEvent) => setCalendarMode(e.detail);
     const handleSortByChanged = (e: CustomEvent) => setSortBy(e.detail);
     const handleIsCurrentMonthVisibleChanged = (e: CustomEvent) => setIsCurrentMonthVisible(e.detail);
 
@@ -247,10 +244,7 @@ export function MobileShell() {
 
                 {/* 3. Event Registration Button */}
                 <button
-                  onClick={() => {
-                    console.log('[MobileShell] Registration button clicked, calendarMode:', calendarMode);
-                    window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }));
-                  }}
+                  onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }))}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -259,18 +253,7 @@ export function MobileShell() {
 
 
 
-                {/* 4. Register Button (Date Selected) */}
-                {selectedDate && (
-                  <button
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('createEventForDate'));
-                    }}
-                    className="shell-btn-register"
-                  >
-                    <i className="ri-add-line shell-icon-sm"></i>
-                    <span>등록</span>
-                  </button>
-                )}
+                {/* Date-specific register button removed - no longer needed */}
               </div>
             </div>
 

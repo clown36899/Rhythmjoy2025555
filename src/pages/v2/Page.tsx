@@ -110,12 +110,8 @@ export default function HomePageV2() {
 
             // Capture calendar mode from event detail
             const eventCalendarMode = customEvent.detail?.calendarMode;
-            console.log('[Page] handleCreateEvent - received calendarMode:', eventCalendarMode);
-            console.log('[Page] handleCreateEvent - event detail:', customEvent.detail);
-
             if (eventCalendarMode) {
                 setRegistrationCalendarMode(eventCalendarMode);
-                console.log('[Page] Set registrationCalendarMode to:', eventCalendarMode);
             }
 
             if (customEvent.detail?.source === 'banner' && customEvent.detail?.monthIso) {
@@ -321,10 +317,7 @@ export default function HomePageV2() {
     useEffect(() => { window.dispatchEvent(new CustomEvent("monthChanged", { detail: { month: currentMonth.toISOString() } })); }, [currentMonth]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode } })); }, [viewMode]);
     // Shell State Synchronization
-    useEffect(() => {
-        console.log('[Page] calendarMode changed, dispatching event:', calendarMode);
-        window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: calendarMode }));
-    }, [calendarMode]);
+    useEffect(() => { window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: calendarMode })); }, [calendarMode]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("sortByChanged", { detail: sortBy })); }, [sortBy]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("isCurrentMonthVisibleChanged", { detail: isCurrentMonthVisible })); }, [isCurrentMonthVisible]);
 
@@ -522,8 +515,6 @@ export default function HomePageV2() {
     const handleEditClick = (event: AppEvent, e?: React.MouseEvent) => {
         e?.stopPropagation();
 
-        console.log('[Page] handleEditClick called, dispatching editEventFromDetail event with:', event.id);
-
         // Close detail modal
         setSelectedEvent(null);
 
@@ -532,13 +523,10 @@ export default function HomePageV2() {
     };
     const deleteEvent = async (eventId: number, password: string | null = null) => {
         try {
-            console.log('[Page] Deleting event:', eventId);
             const { error } = await supabase.functions.invoke('delete-event', { body: { eventId, password } });
             if (error) throw error;
             alert("이벤트가 삭제되었습니다.");
-            console.log('[Page] Dispatching eventDeleted event');
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
-            console.log('[Page] Closing modal');
             closeModal();
         } catch (error: any) {
             console.error("이벤트 삭제 중 오류 발생:", error);
@@ -935,7 +923,6 @@ export default function HomePageV2() {
 
                                 if (registrationCalendarMode === 'fullscreen') {
                                     // Fullscreen calendar mode: stay in calendar, highlight event
-                                    console.log('[Page] Event created in fullscreen mode, highlighting event:', id);
                                     setSelectedDate(null); // Clear date selection
                                     setHighlightedEventId(id || null);
 
@@ -947,7 +934,6 @@ export default function HomePageV2() {
                                                 behavior: 'smooth',
                                                 block: 'center'
                                             });
-                                            console.log('[Page] Scrolled to event:', id);
                                         }
                                     }, 500); // Wait for calendar to refresh
 
@@ -965,7 +951,6 @@ export default function HomePageV2() {
                                     }, 300); // 300ms per toggle
                                 } else {
                                     // Preview mode: current behavior (show in list)
-                                    console.log('[Page] Event created in preview mode, showing in list:', id);
                                     setEventJustCreated(Date.now());
                                     setHighlightEvent({ id: id || 0, nonce: Date.now() });
                                 }

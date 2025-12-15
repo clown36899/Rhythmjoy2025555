@@ -123,10 +123,11 @@
   border-radius: 0.25rem;
   font-size: 0.75rem;
   font-weight: 500;
-  border: none;
+  border-radius: 5rem;
+  border: 0;
   transition: all 0.2s ease;
-  background-color: transparent;
-  color: var(--text-secondary);
+  background-color: #3b82f6;
+  color: #ffffff;
   height: 24px;
 }
 
