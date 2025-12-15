@@ -8,7 +8,7 @@ import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";
 import { supabase } from "../../lib/supabase";
 import type { Event as AppEvent } from "../../lib/supabase";
 
-const EventDetailModal = lazy(() => import("../v2/components/EventDetailModal"));
+import EventDetailModal from "../v2/components/EventDetailModal";
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 
@@ -173,7 +173,7 @@ export default function CalendarPage() {
                     {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
                         <div
                             key={day}
-                            className={`calendar-weekday-item ${selectedWeekday === index ? 'selected' : ''} `}
+                            className={`calendar - weekday - item ${selectedWeekday === index ? 'selected' : ''} `}
                             style={{
                                 cursor: 'pointer'
                             }}
@@ -213,18 +213,16 @@ export default function CalendarPage() {
 
             {/* Event Detail Modal */}
             {selectedEvent && (
-                <Suspense fallback={<div />}>
-                    <EventDetailModal
-                        event={selectedEvent}
-                        isOpen={!!selectedEvent}
-                        onClose={() => setSelectedEvent(null)}
-                        isAdminMode={isAdmin}
-                        // @ts-ignore - adminType prop mismatch fix pending in component
-                        adminType={adminType}
-                        onDelete={(id) => handleDeleteEvent(typeof id === 'number' ? id : id.id)}
-                        onEdit={(event) => handleEditClick(event)}
-                    />
-                </Suspense>
+                <EventDetailModal
+                    event={selectedEvent}
+                    isOpen={!!selectedEvent}
+                    onClose={() => setSelectedEvent(null)}
+                    isAdminMode={isAdmin}
+                    // @ts-ignore - adminType prop mismatch fix pending in component
+                    adminType={adminType}
+                    onDelete={(id) => handleDeleteEvent(typeof id === 'number' ? id : id.id)}
+                    onEdit={(event) => handleEditClick(event)}
+                />
             )}
 
             {/* Password Modal */}

@@ -239,7 +239,7 @@ export default function PracticeRoomList({
               <div
                 key={room.id}
                 onClick={() => handleRoomClick(room)}
-                className="prl-card animate-fadeIn"
+                className="prl-card"
                 style={{
                   animationDelay: `${index * 100}ms`
                 }}

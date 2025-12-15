@@ -1623,12 +1623,7 @@
   padding: 0px 2px;
   margin-bottom: 0;
   cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.calendar-fullscreen-event-card:hover {
-  background-color: var(--bg-hover);
-  /* gray-700 */
+  /* Removed hover effect for instant modal display */
 }
 
 .calendar-fullscreen-image-container {

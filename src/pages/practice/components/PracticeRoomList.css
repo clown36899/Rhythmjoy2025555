@@ -520,9 +520,7 @@
   }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out forwards;
-}
+/* Removed .animate-fadeIn class for instant display */
 
 /* ===== 연습실 카드 반응형 (쇼핑 카드와 동일) ===== */
 @media (max-width: 640px) {
