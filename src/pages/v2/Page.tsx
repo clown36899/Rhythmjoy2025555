@@ -4,7 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 
 
 
-import EventCalendar from "./components/EventCalendar";
+
 import EventList from "./components/EventList";
 import Header from "./components/Header";
 
@@ -12,7 +12,7 @@ import FullscreenBillboard from "../../components/FullscreenBillboard";
 // Lazy loading으로 성능 최적화 - 큰 모달 컴포넌트들
 const AdminBillboardModal = lazy(() => import("./components/AdminBillboardModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
-import FullscreenDateEventsModal from "../../components/FullscreenDateEventsModal";
+
 import EventDetailModal from "./components/EventDetailModal";
 import EventPasswordModal from "./components/EventPasswordModal";
 import CalendarSearchModal from "./components/CalendarSearchModal";
@@ -30,7 +30,7 @@ import "./styles/Page.css";
 export default function HomePageV2() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const selectedCategory = searchParams.get("category") || "all";
+
 
     const { isAdmin } = useAuth();
 
@@ -81,7 +81,7 @@ export default function HomePageV2() {
     // --------------------------------------------------------------------------------
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [viewMode, setViewMode] = useState<"month" | "year">("month");
+
     // const [headerHeight, setHeaderHeight] = useState(60); // Removed: using fixed 50px
     // const [headerDebugInfo, setHeaderDebugInfo] = useState<string>(""); // Removed: no longer measuring
 
@@ -100,7 +100,7 @@ export default function HomePageV2() {
 
     // Calendar search state
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
-    const [highlightedEventId, setHighlightedEventId] = useState<number | null>(null);
+
 
     // ... (중략) ...
 
@@ -145,8 +145,8 @@ export default function HomePageV2() {
 
     { showRegistrationModal && selectedDate && <EventRegistrationModal isOpen={showRegistrationModal} onClose={() => { setShowRegistrationModal(false); if (fromBanner) { setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); } if (fromFloatingBtn) { setSelectedDate(null); setFromFloatingBtn(false); } }} selectedDate={selectedDate} onMonthChange={(d) => setCurrentMonth(d)} onEventCreated={(d, id) => { setShowRegistrationModal(false); setFromBanner(false); setFromFloatingBtn(false); setBannerMonthBounds(null); setCurrentMonth(d); setEventJustCreated(Date.now()); setHighlightEvent({ id: id || 0, nonce: Date.now() }); }} fromBanner={fromBanner} bannerMonthBounds={bannerMonthBounds ?? undefined} /> }
     const [qrLoading, setQrLoading] = useState(false);
-    const [savedMonth, setSavedMonth] = useState<Date | null>(null);
-    const [hoveredEventId, setHoveredEventId] = useState<number | null>(null);
+
+
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [showSortModal, setShowSortModal] = useState(false);
     const [sortBy, setSortBy] = useState<"random" | "time" | "title">("random");
@@ -172,9 +172,7 @@ export default function HomePageV2() {
 
 
 
-    const [isFullscreenDateModalOpen, setIsFullscreenDateModalOpen] = useState(false);
-    const [fullscreenSelectedDate, setFullscreenSelectedDate] = useState<Date | null>(null);
-    const [fullscreenClickPosition, setFullscreenClickPosition] = useState<{ x: number; y: number } | undefined>(undefined);
+
     const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
 
     // --- EventList에서 이동된 상태들 ---
@@ -217,11 +215,23 @@ export default function HomePageV2() {
         }
     }, []); // Run only once on mount
 
+    // Navigate to full calendar page when button is clicked
+    useEffect(() => {
+        const handleSetFullscreenMode = () => {
+            navigate('/calendar');
+        };
+
+        window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
+
+        return () => {
+            window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
+        };
+    }, [navigate]);
+
 
 
     // Refs
-    const calendarRef = useRef<HTMLDivElement>(null!);
-    const calendarContentRef = useRef<HTMLDivElement>(null!);
+
     const containerRef = useRef<HTMLDivElement>(null!);
     const eventListElementRef = useRef<HTMLDivElement>(null!);
     const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null);
@@ -235,7 +245,7 @@ export default function HomePageV2() {
             showSortModal ||
             showRegistrationModal ||
             isBillboardSettingsOpen ||
-            isFullscreenDateModalOpen ||
+
             !!selectedEvent ||
             showEditModal ||
             showPasswordModal;
@@ -248,13 +258,13 @@ export default function HomePageV2() {
         return () => {
             if (container) container.inert = false;
         };
-    }, [showSearchModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, isFullscreenDateModalOpen, selectedEvent, showEditModal, showPasswordModal]);
+    }, [showSearchModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, selectedEvent, showEditModal, showPasswordModal]);
 
     const handleHorizontalSwipe = (direction: 'next' | 'prev') => {
         setCurrentMonth((prev) => {
             const newM = new Date(prev);
             newM.setDate(1);
-            if (viewMode === "year") {
+            if (false) {
                 newM.setFullYear(prev.getFullYear() + (direction === 'next' ? 1 : -1));
             } else {
                 newM.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
@@ -274,20 +284,14 @@ export default function HomePageV2() {
         setCalendarMode,
         dragOffset,
         isAnimating,
-        getTargetHeight,
     } = useCalendarGesture({
         headerHeight: 50, // 화면에 보이는 50px 고정값 사용 (측정값 159px 오류 방지)
         containerRef,
-        calendarRef,
-        calendarContentRef,
         eventListElementRef,
         onHorizontalSwipe: handleHorizontalSwipe,
-        isYearView: viewMode === 'year',
-        // headerDebugInfo // Removed
+        isYearView: false,
     });
 
-    // Track top bar height for accurate positioning
-    // useEffect(() => {
     //   console.log(`[Page] STATE CHANGE: headerHeight=${headerHeight}, debugInfo="${headerDebugInfo}"`);
     // }, [headerHeight, headerDebugInfo]);
 
@@ -305,7 +309,7 @@ export default function HomePageV2() {
     useEffect(() => { if (headerRef.current) { /* setHeaderHeight(headerRef.current.offsetHeight); */ } }, []);
     useEffect(() => { if (effectiveIsAdmin && !billboardUserId && adminType !== "super") setAdminType("super"); else if (!effectiveIsAdmin && !billboardUserId && adminType !== null) { setAdminType(null); setIsAdminModeOverride(false); } }, [effectiveIsAdmin, billboardUserId, adminType]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("monthChanged", { detail: { month: currentMonth.toISOString() } })); }, [currentMonth]);
-    useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode } })); }, [viewMode]);
+    useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode: "month" } })); }, []);
     // Shell State Synchronization
     useEffect(() => { window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: calendarMode })); }, [calendarMode]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("sortByChanged", { detail: sortBy })); }, [sortBy]);
@@ -317,16 +321,7 @@ export default function HomePageV2() {
             if (calendarMode === "fullscreen") setCalendarMode("expanded");
             else setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed");
         };
-        const handleSetFullscreenMode = () => {
-            if (calendarMode !== "fullscreen") {
-                // Transition to fullscreen
-                setCalendarMode("fullscreen");
-                // Push history state for back navigation
-                window.history.pushState({ fullscreenCalendar: true }, '', window.location.href);
-            } else {
-                setCalendarMode("collapsed");
-            }
-        };
+
         const handleGoToToday = () => {
             const today = new Date();
             setCurrentMonth(today);
@@ -360,36 +355,30 @@ export default function HomePageV2() {
             if (scrollContainer) scrollContainer.scrollTop = 0;
         };
 
-        // Handle browser back button/gesture for fullscreen calendar
-        const handlePopState = (e: PopStateEvent) => {
-            if (calendarMode === 'fullscreen') {
-                e.preventDefault();
-                setCalendarMode('collapsed');
-            }
-        };
+
 
         const handleOpenCalendarSearch = () => {
             setShowCalendarSearch(true);
         };
 
         window.addEventListener('toggleCalendarMode', handleToggleCalendarMode);
-        window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
+
         window.addEventListener('goToToday', handleGoToToday);
         window.addEventListener('openSortModal', handleOpenSortModal);
         window.addEventListener('openSearchModal', handleOpenSearchModal);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('resetV2MainView', handleResetV2MainView);
-        window.addEventListener('popstate', handlePopState);
+
 
         return () => {
             window.removeEventListener('toggleCalendarMode', handleToggleCalendarMode);
-            window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
+
             window.removeEventListener('goToToday', handleGoToToday);
             window.removeEventListener('openSortModal', handleOpenSortModal);
             window.removeEventListener('openSearchModal', handleOpenSearchModal);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
             window.removeEventListener('resetV2MainView', handleResetV2MainView);
-            window.removeEventListener('popstate', handlePopState);
+
         };
     }, [calendarMode, sortBy, navigateWithCategory]);
     const [fromQR] = useState(() => { const p = new URLSearchParams(window.location.search); const s = p.get("from"); return s === "qr" || s === "edit"; });
@@ -460,11 +449,11 @@ export default function HomePageV2() {
 
     const highlightAndScroll = (eventId: number) => {
         // Highlight the event
-        setHighlightedEventId(eventId);
+        // setHighlightedEventId(eventId);
 
         // Remove highlight after 3 seconds
         setTimeout(() => {
-            setHighlightedEventId(null);
+            // setHighlightedEventId(null);
         }, 3000);
 
         // Scroll to the event card with retry mechanism
@@ -482,16 +471,15 @@ export default function HomePageV2() {
         setTimeout(() => scrollToEvent(), 300);
     };
 
-    const handleDateSelect = (date: Date | null, hasEvents?: boolean) => { setSelectedDate(date); if (date) setSelectedWeekday(null); if (date && hasEvents) navigateWithCategory("all"); };
-    const handleMonthChange = (month: Date) => { setCurrentMonth(month); setSelectedDate(null); setSelectedWeekday(null); setFromBanner(false); setBannerMonthBounds(null); if (viewMode === "month") navigateWithCategory("all"); };
-    const handleEventsUpdate = async (createdDate?: Date) => { if (createdDate) await handleDateSelect(createdDate); };
+
+    const handleMonthChange = (month: Date) => { setCurrentMonth(month); setSelectedDate(null); setSelectedWeekday(null); setFromBanner(false); setBannerMonthBounds(null); navigateWithCategory("all"); };
+    // const handleEventsUpdate = async (createdDate?: Date) => { if (createdDate) await handleDateSelect(createdDate); };
     const handleAdminModeToggle = (adminMode: boolean, type: "super" | "sub" | null = null, userId: string | null = null, userName: string = "") => { if (adminMode && type === "super" && !userId) setIsAdminModeOverride(true); else if (!adminMode) setIsAdminModeOverride(false); setAdminType(type ?? null); setBillboardUserId(userId ?? null); setBillboardUserName(userName ?? ""); };
 
-    const handleViewModeChange = (mode: "month" | "year") => { if (mode === "year") setSavedMonth(new Date(currentMonth)); else if (mode === "month" && savedMonth) setCurrentMonth(new Date(savedMonth)); setViewMode(mode); };
+    // const handleViewModeChange = (mode: "month" | "year") => { if (mode === "year") setSavedMonth(new Date(currentMonth)); else if (mode === "month" && savedMonth) setCurrentMonth(new Date(savedMonth)); setViewMode(mode); };
     const handleSearchStart = () => navigateWithCategory("all");
 
     const handleDailyModalEventClick = (event: AppEvent) => {
-        setIsFullscreenDateModalOpen(false);
         // 약간의 딜레이 후 상세 모달을 열어 애니메이션이 겹치지 않게 함
         setTimeout(() => {
             setSelectedEvent(event);
@@ -674,11 +662,7 @@ export default function HomePageV2() {
     }, [selectedDate]);
 
     useEffect(() => { window.dispatchEvent(new CustomEvent("selectedDateChanged", { detail: selectedDate })); }, [selectedDate]);
-    useEffect(() => {
-        const handleFullscreenDateClick = (e: Event) => { const customEvent = e as CustomEvent<{ date: Date; clickPosition?: { x: number; y: number } }>; setFullscreenSelectedDate(customEvent.detail.date); setFullscreenClickPosition(customEvent.detail.clickPosition); setIsFullscreenDateModalOpen(true); };
-        window.addEventListener("fullscreenDateClick", handleFullscreenDateClick); return () => window.removeEventListener("fullscreenDateClick", handleFullscreenDateClick);
 
-    }, []);
 
     useEffect(() => {
         const handleEventSelected = (e: Event) => {
@@ -721,12 +705,12 @@ export default function HomePageV2() {
                     onNavigateMonth={(dir) => {
                         const newM = new Date(currentMonth);
                         newM.setDate(1);
-                        if (viewMode === "year") newM.setFullYear(currentMonth.getFullYear() + (dir === "prev" ? -1 : 1));
+                        if (false) newM.setFullYear(currentMonth.getFullYear() + (dir === "prev" ? -1 : 1));
                         else newM.setMonth(currentMonth.getMonth() + (dir === "prev" ? -1 : 1));
                         setCurrentMonth(newM);
                         setSelectedDate(null);
                     }}
-                    viewMode={viewMode}
+                    viewMode="month"
 
                     sectionViewMode={sectionViewMode}
                     onSectionViewModeChange={setSectionViewMode}
@@ -741,101 +725,27 @@ export default function HomePageV2() {
             </div>
 
             {/* Sticky Weekday Header - Only visible in Fullscreen Mode */}
-            {calendarMode === 'fullscreen' && (
-                <div style={{
-                    position: 'sticky',
-                    top: '50px',
-                    zIndex: 20,
-                    backgroundColor: 'var(--calendar-bg-color)',
-                    borderBottom: '1px solid var(--border-color)'
-                }}>
-                    <div className="calendar-weekday-header no-select">
-                        {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
-                            <div
-                                key={day}
-                                className={`calendar-weekday-item ${selectedWeekday === index ? 'selected' : ''}`}
-                                style={{
-                                    cursor: 'pointer'
-                                }}
-                                onClick={() => {
-                                    if (selectedWeekday === index) {
-                                        setSelectedWeekday(null);
-                                    } else {
-                                        setSelectedWeekday(index);
-                                        setSelectedDate(null);
-                                    }
-                                }}
-                            >
-                                {day}
-                                {selectedWeekday === index && (
-                                    <i className="ri-close-line" style={{ fontSize: '10px', marginLeft: '1px', opacity: 0.8 }}></i>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+
 
             <div
                 className="home-main"
                 ref={eventListElementRef}
 
             >
-                {/* Calendar Section - Inside Main Content */}
-                {calendarMode === 'fullscreen' && (
-                    <div
-                        ref={calendarRef}
-                        style={{
-                            // backgroundColor: "var(--calendar-bg-color)",
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            minHeight: 0,
-                        }}
-                    >
-                        {/* Calendar Content */}
-                        <div
-                            ref={calendarContentRef}
-                            style={{
-                                flex: 1,
-                                overflow: 'auto',
-                            }}
-                        >
-                            <EventCalendar
-                                currentMonth={currentMonth}
-                                selectedDate={selectedDate}
-                                onDateSelect={handleDateSelect}
-                                onMonthChange={handleMonthChange}
-                                isAdminMode={effectiveIsAdmin}
-                                showHeader={false}
-                                onEventsUpdate={handleEventsUpdate}
-                                viewMode={viewMode}
-                                onViewModeChange={handleViewModeChange}
-                                hoveredEventId={hoveredEventId}
-                                dragOffset={dragOffset}
-                                isAnimating={isAnimating}
-                                calendarHeightPx={getTargetHeight()}
-                                calendarMode={calendarMode}
-                                selectedCategory={selectedCategory}
-                                isTransitioning={false}
-                                highlightedEventId={highlightedEventId}
-                            />
-                        </div>
-                    </div>
-                )}
+
                 {/* Event List - Hidden in Fullscreen Mode but still mounted for event listeners */}
                 {qrLoading ? (
                     <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
                 ) : (
-                    <div style={{ display: calendarMode === 'fullscreen' ? 'none' : 'block' }}>
+                    <div>
                         <EventList
                             key={eventJustCreated || undefined}
                             selectedDate={showRegistrationModal ? null : selectedDate}
                             currentMonth={currentMonth}
                             isAdminMode={effectiveIsAdmin}
                             adminType={adminType}
-                            viewMode={viewMode}
-                            onEventHover={setHoveredEventId}
+                            viewMode="month"
+                            // onEventHover={setHoveredEventId}
                             searchTerm={searchTerm}
                             setSearchTerm={setSearchTerm}
                             onSearchStart={handleSearchStart}
@@ -854,7 +764,7 @@ export default function HomePageV2() {
                             slideContainerRef={eventListSlideContainerRef}
                             onMonthChange={setCurrentMonth}
                             calendarMode={calendarMode}
-                            onEventClickInFullscreen={handleDailyModalEventClick}
+
                             onModalStateChange={() => { }}
                             selectedWeekday={selectedWeekday}
                             sectionViewMode={sectionViewMode}
@@ -914,7 +824,7 @@ export default function HomePageV2() {
                                 if (registrationCalendarMode === 'fullscreen') {
                                     // Fullscreen calendar mode: stay in calendar, highlight event
                                     setSelectedDate(null); // Clear date selection
-                                    setHighlightedEventId(id || null);
+                                    // setHighlightedEventId(id || null);
 
                                     // Scroll to the event after it's rendered
                                     setTimeout(() => {
@@ -930,13 +840,13 @@ export default function HomePageV2() {
                                     // 5-blink animation (10 toggles = 5 blinks)
                                     let blinkCount = 0;
                                     const blinkInterval = setInterval(() => {
-                                        setHighlightedEventId(prev => prev === null ? (id || null) : null);
+                                        // setHighlightedEventId(prev => prev === null ? (id || null) : null);
                                         blinkCount++;
                                         if (blinkCount >= 10) {
                                             clearInterval(blinkInterval);
-                                            setHighlightedEventId(id || null); // End with highlighted
+                                            // setHighlightedEventId(id || null); // End with highlighted
                                             // Clear highlight after 2 seconds
-                                            setTimeout(() => setHighlightedEventId(null), 2000);
+                                            // setTimeout(() => setHighlightedEventId(null), 2000);
                                         }
                                     }, 300); // 300ms per toggle
                                 } else {
@@ -954,7 +864,7 @@ export default function HomePageV2() {
                     </Suspense>
                 )}
 
-                {isFullscreenDateModalOpen && fullscreenSelectedDate && <FullscreenDateEventsModal isOpen={isFullscreenDateModalOpen} onClose={() => { setIsFullscreenDateModalOpen(false); setFullscreenSelectedDate(null); setFullscreenClickPosition(undefined); }} selectedDate={fullscreenSelectedDate} clickPosition={fullscreenClickPosition} onEventClick={handleDailyModalEventClick} selectedCategory={selectedCategory} />}
+
                 <EventDetailModal isOpen={!!selectedEvent} event={selectedEvent} onClose={closeModal} onEdit={handleEditClick} onDelete={handleDeleteClick} isAdminMode={effectiveIsAdmin} />
                 {
                     showPasswordModal && eventToEdit && (

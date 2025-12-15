@@ -8,23 +8,13 @@ import {
     prefetchGuidePage,
     prefetchShoppingPage
 } from '../router/routes';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 export function BottomNavigation() {
     const navigate = useNavigate();
     const location = useLocation();
     const currentPath = location.pathname;
-    const [calendarMode, setCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen'>('collapsed');
 
-    // Listen for calendar mode changes
-    useEffect(() => {
-        const handleCalendarModeChange = (e: Event) => {
-            const customEvent = e as CustomEvent;
-            setCalendarMode(customEvent.detail);
-        };
-        window.addEventListener('calendarModeChanged', handleCalendarModeChange);
-        return () => window.removeEventListener('calendarModeChanged', handleCalendarModeChange);
-    }, []);
 
     // Prefetch other pages for instant navigation
     useEffect(() => {
@@ -70,12 +60,7 @@ export function BottomNavigation() {
             }, 150);
         } else if (path === '/v2' && currentPath.startsWith('/v2')) {
             // V2 페이지에서 다시 누르면 메인 뷰로 리셋
-            if (action === 'setFullscreenMode') {
-                // Trigger fullscreen calendar mode
-                window.dispatchEvent(new CustomEvent('setFullscreenMode'));
-            } else {
-                window.dispatchEvent(new CustomEvent('resetV2MainView'));
-            }
+            window.dispatchEvent(new CustomEvent('resetV2MainView'));
             navigate(path);
         } else {
             navigate(path);
@@ -95,12 +80,9 @@ export function BottomNavigation() {
 
                 if (item.path === '/') {
                     isActive = currentPath === '/';
-                } else if (item.action === 'setFullscreenMode') {
-                    // 전체달력: /v2 경로이면서 fullscreen 모드일 때만 활성화
-                    isActive = currentPath.startsWith('/v2') && calendarMode === 'fullscreen';
                 } else if (item.path === '/v2') {
-                    // 이벤트: /v2 경로이면서 fullscreen이 아닐 때 활성화
-                    isActive = currentPath.startsWith('/v2') && calendarMode !== 'fullscreen';
+                    // 이벤트: /v2 경로일 때 활성화 (더 이상 fullscreen 체크 불필요)
+                    isActive = currentPath.startsWith('/v2');
                 } else {
                     isActive = currentPath.startsWith(item.path);
                 }

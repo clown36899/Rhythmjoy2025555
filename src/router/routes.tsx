@@ -34,6 +34,9 @@ const BillboardPage = lazy(prefetchBillboardPage);
 export const prefetchPrivacyPage = () => import('../pages/privacy/page');
 const PrivacyPage = lazy(prefetchPrivacyPage);
 
+export const prefetchCalendarPage = () => import('../pages/calendar/page');
+const CalendarPage = lazy(prefetchCalendarPage);
+
 export const routes: RouteObject[] = [
     {
         element: <MobileShell />,
@@ -49,6 +52,7 @@ export const routes: RouteObject[] = [
             { path: '/guide', element: <GuidePage /> },
             { path: '/shopping', element: <ShoppingPage /> },
             { path: '/privacy', element: <PrivacyPage /> },
+            { path: '/calendar', element: <CalendarPage /> },
         ],
     },
     {

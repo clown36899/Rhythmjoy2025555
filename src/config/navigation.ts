@@ -17,10 +17,9 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     },
     {
         label: '전체달력',
-        path: '/v2',
+        path: '/calendar',
         icon: 'ri-calendar-event-fill',
         activeColor: 'text-orange-500',
-        action: 'setFullscreenMode', // Trigger fullscreen calendar
     },
     {
         label: '소셜',
