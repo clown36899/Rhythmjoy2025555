@@ -9,6 +9,7 @@ import { supabase } from "../../lib/supabase";
 import type { Event as AppEvent } from "../../lib/supabase";
 
 import EventDetailModal from "../v2/components/EventDetailModal";
+import CalendarSearchModal from "../v2/components/CalendarSearchModal";
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 
@@ -30,6 +31,7 @@ export default function CalendarPage() {
     const [eventPassword, setEventPassword] = useState("");
     const [showEditModal, setShowEditModal] = useState(false);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
+    const [showCalendarSearch, setShowCalendarSearch] = useState(false);
 
 
     // Auth
@@ -167,10 +169,16 @@ export default function CalendarPage() {
             navigate('/v2');
         };
 
+        const handleOpenCalendarSearch = () => {
+            setShowCalendarSearch(true);
+        };
+
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
+        window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
 
         return () => {
             window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
+            window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
         };
     }, [navigate]);
 
@@ -345,6 +353,21 @@ export default function CalendarPage() {
                     />
                 </Suspense>
             )}
+
+            {/* Calendar Search Modal */}
+            <CalendarSearchModal
+                isOpen={showCalendarSearch}
+                onClose={() => setShowCalendarSearch(false)}
+                onSelectEvent={(event) => {
+                    setShowCalendarSearch(false);
+                    // Navigate to event's month
+                    const eventDate = new Date(event.start_date || event.date || new Date());
+                    handleMonthChange(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
+                    // Highlight and scroll to event
+                    setHighlightedEventId(event.id);
+                    setTimeout(() => setHighlightedEventId(null), 3000);
+                }}
+            />
         </div>
     );
 }

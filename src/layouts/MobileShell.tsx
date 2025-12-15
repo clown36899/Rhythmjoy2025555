@@ -80,6 +80,18 @@ export function MobileShell() {
     };
   }, []);
 
+  // Sync calendarMode from URL parameters (for direct URL access)
+  useEffect(() => {
+    if (location.pathname === '/' || location.pathname === '/v2') {
+      const urlCalendarMode = searchParams.get('calendar');
+      if (urlCalendarMode === 'fullscreen') {
+        setCalendarMode('fullscreen');
+      } else if (!urlCalendarMode && calendarMode === 'fullscreen') {
+        setCalendarMode('collapsed');
+      }
+    }
+  }, [searchParams, location.pathname]);
+
   // 이벤트 개수 로드 (현재 달력 월/년 기준)
   useEffect(() => {
     const loadEventCounts = async () => {
@@ -165,6 +177,7 @@ export function MobileShell() {
 
   // 현재 페이지와 카테고리 파악
   const isEventsPage = location.pathname === '/' || location.pathname === '/v2';
+  const isCalendarPage = location.pathname === '/calendar';
   const isSocialPage = location.pathname.startsWith('/social');
   const isPracticePage = location.pathname === '/practice';
   const isBoardPage = location.pathname === '/board';
@@ -253,8 +266,38 @@ export function MobileShell() {
           </div>
         )}
 
+        {/* Calendar Page - Show search button */}
+        {isCalendarPage && (
+          <div
+            className="shell-top-bar"
+            style={{
+              minHeight: '32px'
+            }}
+          >
+            <div className="shell-top-bar-content">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                {/* Calendar Search Button */}
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('openCalendarSearch'))}
+                  className="shell-top-bar-btn"
+                  style={{
+                    backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
+                    padding: '0 4px', height: '24px', color: 'var(--text-secondary)'
+                  }}
+                >
+                  <i className="ri-search-line shell-icon-sm"></i>
+                  <span style={{ fontSize: '12px', fontWeight: 500 }}>검색</span>
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Empty right side for now */}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 관리자 상태 표시 - 모든 페이지 공통 */}
-        {!isEventsPage && (
+        {!isEventsPage && !isCalendarPage && (
           <div
             className="shell-top-bar"
             style={{
