@@ -144,9 +144,6 @@ export default memo(function ImageCropModal({
 
   // 모달이 열릴 때마다 초기화
   useEffect(() => {
-    console.log('[ImageCropModal] isOpen changed:', isOpen);
-    console.log('[ImageCropModal] imageUrl:', imageUrl);
-
     if (isOpen) {
       setViewMode('crop');
       setCrop({
@@ -158,13 +155,10 @@ export default memo(function ImageCropModal({
       });
       setCompletedCrop(undefined);
       setAspectRatioMode('free');
-      setThumbnails([]);
-      // Reset preview state
-      setCroppedPreviewUrl(null);
-      setCroppedFile(null);
       setIsModified(false);
+      setCroppedFile(null);
     }
-  }, [isOpen, imageUrl]);
+  }, [isOpen]);
 
   // Enable mobile back gesture to close modal
   useModalHistory(isOpen, onClose);

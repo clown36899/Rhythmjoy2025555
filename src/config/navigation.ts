@@ -12,7 +12,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     {
         label: '이벤트',
         path: '/v2',
-        icon: 'ri-calendar-2-line',
+        icon: 'ri-ticket-line',
         activeColor: 'text-red-500',
     },
     {

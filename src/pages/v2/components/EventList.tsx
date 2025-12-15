@@ -276,13 +276,11 @@ export default function EventList({
       console.log('[EventList] editEventFromDetail event received:', e.detail);
       const event = e.detail;
       if (event) {
-        console.log('[EventList] Calling handleEditClick with event:', event.id);
         handleEditClick(event);
       }
     };
 
     window.addEventListener('editEventFromDetail', handleEditFromDetail as EventListener);
-    console.log('[EventList] Event listener for editEventFromDetail registered');
     return () => window.removeEventListener('editEventFromDetail', handleEditFromDetail as EventListener);
   }, []);
 
@@ -367,7 +365,6 @@ export default function EventList({
 
   const fetchEvents = useCallback(async () => {
     try {
-      console.log('[📋 이벤트 목록] 데이터 로딩 시작...');
       setLoading(true);
       setLoadError(null);
 
