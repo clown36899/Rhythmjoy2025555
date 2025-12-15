@@ -52,7 +52,7 @@ export default function SocialPage() {
 
   // 메인 화면: 주간 스케줄표 (상단)
   return (
-    <div className="social-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+    <div className="social-page-container" style={{}}>
       {/* 상단 고정 헤더 - SimpleHeader 사용으로 통일성 확보 */}
       <div
         ref={headerRef}
