@@ -19,6 +19,9 @@ const PracticeDetailPage = lazy(prefetchPracticeDetailPage);
 export const prefetchBoardPage = () => import('../pages/board/page');
 const BoardPage = lazy(prefetchBoardPage);
 
+export const prefetchBoardDetailPage = () => import('../pages/board/detail/page');
+const BoardDetailPage = lazy(prefetchBoardDetailPage);
+
 export const prefetchGuidePage = () => import('../pages/guide/page');
 const GuidePage = lazy(prefetchGuidePage);
 
@@ -42,6 +45,7 @@ export const routes: RouteObject[] = [
             { path: '/practice', element: <PracticePage /> },
             { path: '/practice/:id', element: <PracticeDetailPage /> },
             { path: '/board', element: <BoardPage /> },
+            { path: '/board/:id', element: <BoardDetailPage /> },
             { path: '/guide', element: <GuidePage /> },
             { path: '/shopping', element: <ShoppingPage /> },
             { path: '/privacy', element: <PrivacyPage /> },

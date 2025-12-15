@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import PostEditorModal from './components/PostEditorModal';
-import PostDetailModal from './components/PostDetailModal';
+
 import UserRegistrationModal, { type UserData } from './components/UserRegistrationModal';
 import BoardUserManagementModal from '../../components/BoardUserManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
@@ -33,11 +34,12 @@ export interface BoardPost {
 
 export default function BoardPage() {
   const { user, isAdmin, signInWithKakao, signOut } = useAuth();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showEditorModal, setShowEditorModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+
   const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -223,22 +225,8 @@ export default function BoardPage() {
     }
   };
 
-  const handlePostClick = async (post: BoardPost) => {
-    try {
-      // 조회수 증가
-      await supabase
-        .from('board_posts')
-        .update({ views: post.views + 1 })
-        .eq('id', post.id);
-
-      // 업데이트된 데이터로 상세보기 열기
-      setSelectedPost({ ...post, views: post.views + 1 });
-      setShowDetailModal(true);
-    } catch (error) {
-      console.error('조회수 증가 실패:', error);
-      setSelectedPost(post);
-      setShowDetailModal(true);
-    }
+  const handlePostClick = (post: BoardPost) => {
+    navigate(`/board/${post.id}`);
   };
 
   const handlePostCreated = () => {
@@ -246,14 +234,9 @@ export default function BoardPage() {
     setCurrentPage(1); // 새 글 작성 시 첫 페이지로
   };
 
-  const handlePostUpdated = () => {
-    loadPosts();
-  };
 
-  const handlePostDeleted = () => {
-    loadPosts();
-    setShowDetailModal(false);
-  };
+
+
 
   // 페이지네이션 계산
   const totalPages = Math.ceil(posts.length / postsPerPage);
@@ -505,21 +488,7 @@ export default function BoardPage() {
         />
       )}
 
-      {/* Detail Modal */}
-      {showDetailModal && selectedPost && (
-        <PostDetailModal
-          isOpen={showDetailModal}
-          onClose={() => setShowDetailModal(false)}
-          post={selectedPost}
-          onEdit={(post) => {
-            setSelectedPost(post);
-            setShowDetailModal(false);
-            setShowEditorModal(true);
-          }}
-          onDelete={handlePostDeleted}
-          onUpdate={handlePostUpdated}
-        />
-      )}
+
     </div>
   );
 }
