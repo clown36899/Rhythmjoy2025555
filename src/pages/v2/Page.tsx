@@ -309,6 +309,31 @@ export default function HomePageV2() {
         isYearView: false,
     });
 
+    // Sync calendarMode with URL parameters
+    useEffect(() => {
+        const urlCalendarMode = searchParams.get('calendar');
+        if (urlCalendarMode === 'fullscreen' && calendarMode !== 'fullscreen') {
+            setCalendarMode('fullscreen');
+        } else if (!urlCalendarMode && calendarMode === 'fullscreen') {
+            setCalendarMode('collapsed');
+        }
+    }, [searchParams]);
+
+    // Update URL when calendarMode changes to fullscreen
+    useEffect(() => {
+        const currentCalendarParam = searchParams.get('calendar');
+
+        if (calendarMode === 'fullscreen' && currentCalendarParam !== 'fullscreen') {
+            const newParams = new URLSearchParams(searchParams);
+            newParams.set('calendar', 'fullscreen');
+            setSearchParams(newParams, { replace: false });
+        } else if (calendarMode !== 'fullscreen' && currentCalendarParam === 'fullscreen') {
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete('calendar');
+            setSearchParams(newParams, { replace: true });
+        }
+    }, [calendarMode]);
+
     //   console.log(`[Page] STATE CHANGE: headerHeight=${headerHeight}, debugInfo="${headerDebugInfo}"`);
     // }, [headerHeight, headerDebugInfo]);
 
@@ -353,8 +378,13 @@ export default function HomePageV2() {
         const handleOpenSearchModal = () => setShowSearchModal(true);
 
         const handleResetV2MainView = () => {
+            // Clear URL parameters
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete('view');
+            newParams.delete('calendar');
+            setSearchParams(newParams, { replace: true });
+
             setCalendarMode('collapsed');
-            handleSectionViewModeChange('preview');
             setFromBanner(false);
             setBannerMonthBounds(null);
 
