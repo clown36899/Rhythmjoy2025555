@@ -50,8 +50,8 @@ export default function PracticeRoomBanner() {
     };
 
     const handleRoomClick = (roomId: number) => {
-        // Navigate to practice page with room ID as state
-        navigate('/practice', { state: { selectedRoomId: roomId } });
+        // Navigate directly with query parameter to create proper history entry
+        navigate(`/practice?id=${roomId}`);
     };
 
     if (rooms.length === 0) return null;
