@@ -1204,7 +1204,7 @@
   gap: 0;
   /* Ensure no gaps between columns for perfect border alignment */
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-muted);
   /* border-bottom: 1px solid #000; */
@@ -2039,12 +2039,16 @@
 .cal-h-20 {
   height: 5rem;
 }
+
 /* Highlight animation for newly created events */
 @keyframes highlightPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
     transform: scale(1);
   }
+
   50% {
     box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
     transform: scale(1.05);

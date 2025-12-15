@@ -28,7 +28,7 @@ import { useCalendarGesture } from "./hooks/useCalendarGesture";
 import "./styles/Page.css";
 
 export default function HomePageV2() {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
 
 
@@ -154,7 +154,24 @@ export default function HomePageV2() {
     const [sharedEventId, setSharedEventId] = useState<number | null>(null);
     const [eventJustCreated, setEventJustCreated] = useState<number>(0);
     const [searchTerm, setSearchTerm] = useState("");
-    const [sectionViewMode, setSectionViewMode] = useState<'preview' | 'viewAll-events' | 'viewAll-classes'>('preview');
+
+    // Derive sectionViewMode from URL parameters
+    const sectionViewMode = (searchParams.get('view') as 'preview' | 'viewAll-events' | 'viewAll-classes') || 'preview';
+
+    // Handler to change section view mode via URL
+    const handleSectionViewModeChange = useCallback((mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => {
+        const newParams = new URLSearchParams(searchParams);
+
+        if (mode === 'preview') {
+            // Remove view parameter when returning to preview
+            newParams.delete('view');
+        } else {
+            // Set view parameter for viewAll modes
+            newParams.set('view', mode);
+        }
+
+        setSearchParams(newParams, { replace: false });
+    }, [searchParams, setSearchParams]);
 
 
 
@@ -337,7 +354,7 @@ export default function HomePageV2() {
 
         const handleResetV2MainView = () => {
             setCalendarMode('collapsed');
-            setSectionViewMode('preview');
+            handleSectionViewModeChange('preview');
             setFromBanner(false);
             setBannerMonthBounds(null);
 
@@ -380,7 +397,7 @@ export default function HomePageV2() {
             window.removeEventListener('resetV2MainView', handleResetV2MainView);
 
         };
-    }, [calendarMode, sortBy, navigateWithCategory]);
+    }, [calendarMode, sortBy, navigateWithCategory, handleSectionViewModeChange]);
     const [fromQR] = useState(() => { const p = new URLSearchParams(window.location.search); const s = p.get("from"); return s === "qr" || s === "edit"; });
     const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
@@ -713,7 +730,7 @@ export default function HomePageV2() {
                     viewMode="month"
 
                     sectionViewMode={sectionViewMode}
-                    onSectionViewModeChange={setSectionViewMode}
+                    onSectionViewModeChange={handleSectionViewModeChange}
                     onTodayClick={() => {
                         const today = new Date();
                         // 1일로 설정하여 달력 상태 초기화
@@ -768,7 +785,7 @@ export default function HomePageV2() {
                             onModalStateChange={() => { }}
                             selectedWeekday={selectedWeekday}
                             sectionViewMode={sectionViewMode}
-                            onSectionViewModeChange={setSectionViewMode}
+                            onSectionViewModeChange={handleSectionViewModeChange}
                         />
                     </div>
                 )}
@@ -806,7 +823,7 @@ export default function HomePageV2() {
                                     setSelectedDate(null);
                                     // Only collapse if registration didn't start from fullscreen
                                     if (registrationCalendarMode !== 'fullscreen') {
-                                        setSectionViewMode('preview'); // 프리뷰 모드로 강제 전환
+                                        handleSectionViewModeChange('preview'); // 프리뷰 모드로 강제 전환
                                         setCalendarMode('collapsed'); // 달력 접기
                                     }
                                     setFromFloatingBtn(false);

@@ -1043,9 +1043,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         className="editable-action-btn group"
                         title={link ? "링크 수정" : "링크 추가"}
                     >
-                        <i className={`ri-external-link-line editable-link-btn-icon ${link ? 'active' : ''}`}></i>
                         <span className={`editable-link-btn-text ${link ? 'active' : ''}`}>
-                            링크
+                            링크입력
                         </span>
                         <EditBadge isStatic />
 
