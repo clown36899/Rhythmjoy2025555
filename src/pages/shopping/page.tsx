@@ -26,6 +26,7 @@ export interface Shop {
 
 export default function ShoppingPage() {
   const [shops, setShops] = useState<Shop[]>([]);
+  const [randomizedShops, setRandomizedShops] = useState<Shop[]>([]); // 랜덤 정렬된 목록 저장
   const [loading, setLoading] = useState(true);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
@@ -39,6 +40,27 @@ export default function ShoppingPage() {
 
       if (error) throw error;
       setShops(data || []);
+
+      // sessionStorage에서 저장된 랜덤 순서 확인
+      const savedRandomOrder = sessionStorage.getItem('shopsRandomOrder');
+      if (savedRandomOrder) {
+        try {
+          const savedIds = JSON.parse(savedRandomOrder) as number[];
+          const orderedShops = savedIds
+            .map(id => (data || []).find(shop => shop.id === id))
+            .filter(Boolean) as Shop[];
+          const newShops = (data || []).filter(shop => !savedIds.includes(shop.id));
+          setRandomizedShops([...orderedShops, ...newShops]);
+        } catch {
+          const shuffled = [...(data || [])].sort(() => Math.random() - 0.5);
+          setRandomizedShops(shuffled);
+          sessionStorage.setItem('shopsRandomOrder', JSON.stringify(shuffled.map(s => s.id)));
+        }
+      } else {
+        const shuffled = [...(data || [])].sort(() => Math.random() - 0.5);
+        setRandomizedShops(shuffled);
+        sessionStorage.setItem('shopsRandomOrder', JSON.stringify(shuffled.map(s => s.id)));
+      }
     } catch (error) {
       console.error('쇼핑몰 목록 로딩 실패:', error);
     } finally {
@@ -47,6 +69,8 @@ export default function ShoppingPage() {
   };
 
   useEffect(() => {
+    // 페이지 로드 시 랜덤 순서 초기화
+    sessionStorage.removeItem('shopsRandomOrder');
     fetchShops();
   }, []);
 
@@ -82,7 +106,7 @@ export default function ShoppingPage() {
           <div className="shop-empty-container">등록된 쇼핑몰이 없습니다.</div>
         ) : (
           <div className="shop-grid">
-            {shops.map(shop => (<ShopCard key={shop.id} shop={shop} onUpdate={fetchShops} />))}
+            {randomizedShops.map(shop => (<ShopCard key={shop.id} shop={shop} onUpdate={fetchShops} />))}
           </div>
         )}
       </div>

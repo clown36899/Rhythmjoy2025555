@@ -33,6 +33,11 @@ export default function PracticeRoomsPage() {
     }
   }, [location.state, setSearchParams]);
 
+  // 페이지 로드 시 랜덤 순서 초기화 (새로고침 시 재정렬)
+  useEffect(() => {
+    sessionStorage.removeItem('practiceRoomsRandomOrder');
+  }, []);
+
   useEffect(() => {
     const handleRegisterEvent = () => {
       if (isEffectiveAdmin) {

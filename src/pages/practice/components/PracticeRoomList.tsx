@@ -40,6 +40,7 @@ export default function PracticeRoomList({
 }: PracticeRoomListProps) {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
+  const [randomizedRooms, setRandomizedRooms] = useState<PracticeRoom[]>([]); // 랜덤 정렬된 목록 저장
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
@@ -71,6 +72,31 @@ export default function PracticeRoomList({
       })) as PracticeRoom[];
 
       setRooms(processedData);
+
+      // sessionStorage에서 저장된 랜덤 순서 확인
+      const savedRandomOrder = sessionStorage.getItem('practiceRoomsRandomOrder');
+      if (savedRandomOrder) {
+        try {
+          const savedIds = JSON.parse(savedRandomOrder) as number[];
+          // 저장된 순서대로 정렬
+          const orderedRooms = savedIds
+            .map(id => processedData.find(room => room.id === id))
+            .filter(Boolean) as PracticeRoom[];
+          // 새로 추가된 방이 있으면 끝에 추가
+          const newRooms = processedData.filter(room => !savedIds.includes(room.id));
+          setRandomizedRooms([...orderedRooms, ...newRooms]);
+        } catch {
+          // 파싱 실패 시 새로 생성
+          const shuffled = [...processedData].sort(() => Math.random() - 0.5);
+          setRandomizedRooms(shuffled);
+          sessionStorage.setItem('practiceRoomsRandomOrder', JSON.stringify(shuffled.map(r => r.id)));
+        }
+      } else {
+        // 초기 로드 시 랜덤 정렬된 목록 생성 및 저장
+        const shuffled = [...processedData].sort(() => Math.random() - 0.5);
+        setRandomizedRooms(shuffled);
+        sessionStorage.setItem('practiceRoomsRandomOrder', JSON.stringify(shuffled.map(r => r.id)));
+      }
     } catch (err) {
       console.error("Unexpected error while fetching rooms:", err);
     } finally {
@@ -83,8 +109,11 @@ export default function PracticeRoomList({
   };
   // 검색 필터링 및 정렬된 연습실 목록
   const filteredAndSortedRooms = useMemo(() => {
+    // 정렬 기준에 따라 소스 선택
+    const sourceRooms = sortBy === "random" ? randomizedRooms : rooms;
+
     // 먼저 필터링
-    let filtered = rooms.filter((room) => {
+    let filtered = sourceRooms.filter((room) => {
       if (!searchQuery.trim()) return true;
 
       const query = searchQuery.toLowerCase();
@@ -95,16 +124,14 @@ export default function PracticeRoomList({
       );
     });
 
-    // 그 다음 정렬
-    if (sortBy === "random") {
-      filtered = [...filtered].sort(() => Math.random() - 0.5);
-    } else if (sortBy === "title") {
+    // 그 다음 정렬 (랜덤은 이미 정렬되어 있으므로 스킵)
+    if (sortBy === "title") {
       filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
     }
     // 연습실에는 "time" 정렬이 없음 (이벤트만 해당)
 
     return filtered;
-  }, [rooms, searchQuery, sortBy]);
+  }, [rooms, randomizedRooms, searchQuery, sortBy]);
 
   // 자동완성 제안 생성
   const generateSearchSuggestions = (query: string) => {
