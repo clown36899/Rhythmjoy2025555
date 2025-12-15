@@ -157,7 +157,7 @@ export default function HomePageV2() {
     const [sectionViewMode, setSectionViewMode] = useState<'preview' | 'viewAll-events' | 'viewAll-classes'>('preview');
 
 
-    const [isFullscreenTransition, setIsFullscreenTransition] = useState(false);
+
 
     // ... existing code ...
 
@@ -183,19 +183,9 @@ export default function HomePageV2() {
     const [eventToEdit, setEventToEdit] = useState<AppEvent | null>(null);
     const [eventPassword, setEventPassword] = useState("");
     const [showEditModal, setShowEditModal] = useState(false);
-    const [allGenres, setAllGenres] = useState<string[]>([]);
 
-    // 장르 목록 로드 (자동완성용)
-    useEffect(() => {
-        const fetchGenres = async () => {
-            const { data, error } = await supabase.from('events').select('genre');
-            if (data && !error) {
-                const uniqueGenres = [...new Set(data.map(item => item.genre).filter(g => g))] as string[];
-                setAllGenres(uniqueGenres);
-            }
-        };
-        fetchGenres();
-    }, []);
+
+
 
     // QR Code Deep Link Handling
     useEffect(() => {
@@ -329,7 +319,7 @@ export default function HomePageV2() {
         };
         const handleSetFullscreenMode = () => {
             if (calendarMode !== "fullscreen") {
-                setIsFullscreenTransition(true);
+                // Transition to fullscreen
                 setCalendarMode("fullscreen");
                 // Push history state for back navigation
                 window.history.pushState({ fullscreenCalendar: true }, '', window.location.href);
@@ -737,7 +727,7 @@ export default function HomePageV2() {
                         setSelectedDate(null);
                     }}
                     viewMode={viewMode}
-                    onViewModeChange={handleViewModeChange}
+
                     sectionViewMode={sectionViewMode}
                     onSectionViewModeChange={setSectionViewMode}
                     onTodayClick={() => {

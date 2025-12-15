@@ -24,7 +24,6 @@ interface HeaderProps {
   currentMonth?: Date;
   onNavigateMonth?: (direction: "prev" | "next") => void;
   viewMode?: "month" | "year";
-  onViewModeChange?: (mode: "month" | "year") => void;
   sectionViewMode?: 'preview' | 'viewAll-events' | 'viewAll-classes';
   onSectionViewModeChange?: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
   onTodayClick?: () => void;
@@ -39,7 +38,6 @@ export default memo(function Header({
   currentMonth,
   onNavigateMonth,
   viewMode = "month",
-  onViewModeChange,
   sectionViewMode = 'preview',
   onSectionViewModeChange,
   onTodayClick,

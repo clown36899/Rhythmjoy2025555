@@ -11,7 +11,7 @@ import {
     downloadThumbnailAsBlob,
     type VideoThumbnailOption,
 } from "../../../utils/videoThumbnail";
-import { formatDateForInput, sanitizeFileName } from "../../../utils/fileUtils";
+import { formatDateForInput } from "../../../utils/fileUtils";
 import CustomDatePickerHeader from "../../../components/CustomDatePickerHeader";
 
 // ForwardRef 커스텀 입력 컴포넌트
@@ -60,7 +60,6 @@ export default memo(function EventEditModal({
     isOpen,
     onClose,
     event,
-    isAdminMode,
     onEventUpdated,
     onDelete,
     allGenres,
@@ -102,7 +101,7 @@ export default memo(function EventEditModal({
     const [thumbnailOptions, setThumbnailOptions] = useState<
         VideoThumbnailOption[]
     >([]);
-    const [tempDateInput, setTempDateInput] = useState<string>("");
+
 
     // Preview Mode State
     const [previewMode, setPreviewMode] = useState<'card' | 'billboard'>('card');
@@ -884,7 +883,7 @@ export default memo(function EventEditModal({
                                                     const newDates = [...prev.event_dates, dateStr].sort();
                                                     return { ...prev, event_dates: newDates };
                                                 });
-                                                setTempDateInput(""); // Reset any temp input if needed
+                                                // Date added successfully
                                             }
                                         }}
                                         locale="ko"

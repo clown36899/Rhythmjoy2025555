@@ -28,7 +28,6 @@ const EventSearchModal = lazy(() => import("./EventSearchModal"));
 const EventSortModal = lazy(() => import("./EventSortModal"));
 import Footer from "./Footer";
 import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
-import { EditablePreviewCard } from "../../../components/EditablePreviewCard";
 import ShoppingBanner from "./ShoppingBanner";
 import "../../../styles/components/EventList.css";
 import "../../../components/EventRegistrationModal.css";
