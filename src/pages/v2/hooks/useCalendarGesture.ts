@@ -110,9 +110,10 @@ export function useCalendarGesture({
     const handleGestureStart = (e: TouchEvent | MouseEvent) => {
       if (latestStateRef.current.isAnimating || (e instanceof TouchEvent && e.touches.length > 1)) return;
       const target = e.target as HTMLElement;
-      // Allow gestures on calendar cells even if they have role="button"
+      // Allow gestures on calendar cells and event cards even if they have role="button"
       const isCalendarCell = target.closest('.calendar-cell-fullscreen, .calendar-cell-base');
-      if (!isCalendarCell && target.closest('button, a, input, select, .clickable, [role="button"]')) {
+      const isEventCard = target.closest('.calendar-fullscreen-event-card');
+      if (!isCalendarCell && !isEventCard && target.closest('button, a, input, select, .clickable, [role="button"]')) {
         return;
       }
       if (latestStateRef.current.isYearView && calendarContentRef?.current?.contains(target)) return;

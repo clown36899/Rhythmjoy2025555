@@ -24,6 +24,7 @@ export default function CalendarPage() {
 
     // Event Modal States
     const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
+    const [highlightedEventId, setHighlightedEventId] = useState<number | null>(null);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [eventToEdit, setEventToEdit] = useState<AppEvent | null>(null);
     const [eventPassword, setEventPassword] = useState("");
@@ -121,6 +122,21 @@ export default function CalendarPage() {
         }
     };
 
+    // 이벤트 생성 후 해당 날짜로 이동 및 하이라이트
+    const handleEventCreated = useCallback((eventId: number, eventDate: Date) => {
+        // 해당 월로 이동
+        const targetMonth = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
+        handleMonthChange(targetMonth);
+
+        // 하이라이트 설정
+        setHighlightedEventId(eventId);
+
+        // 스크롤 및 하이라이트 제거는 FullEventCalendar에서 처리
+        setTimeout(() => {
+            setHighlightedEventId(null);
+        }, 3000); // 3초 후 하이라이트 제거
+    }, [handleMonthChange]);
+
     // Event Listeners
     useEffect(() => {
         const handleSetFullscreenMode = () => {
@@ -208,6 +224,7 @@ export default function CalendarPage() {
                     dragOffset={dragOffset}
                     isAnimating={isAnimating}
                     onEventClick={(event) => setSelectedEvent(event)}
+                    highlightedEventId={highlightedEventId}
                 />
             </div>
 
@@ -270,14 +287,12 @@ export default function CalendarPage() {
                         isOpen={showRegisterModal}
                         onClose={() => setShowRegisterModal(false)}
                         selectedDate={selectedDate || new Date()}
-                        onEventCreated={() => {
+                        onEventCreated={(createdDate, eventId) => {
                             setShowRegisterModal(false);
-                            // Refresh events (handled by FullEventCalendar via internal subscription or parent prop?)
-                            // FullEventCalendar doesn't expose a refetch method directly via ref.
-                            // However, we can dispatch a custom event or rely on realtime if using it.
-                            // The edit modal uses: window.dispatchEvent(new CustomEvent("eventCreated", ...
-                            // EventRegistrationModal already dispatches 'eventCreated' internally on success.
-                            // We just need to close the modal here.
+                            if (eventId) {
+                                console.log('Event created:', eventId, createdDate);
+                                handleEventCreated(eventId, createdDate);
+                            }
                         }}
                     />
                 </Suspense>

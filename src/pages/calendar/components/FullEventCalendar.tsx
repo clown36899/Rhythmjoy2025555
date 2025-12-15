@@ -201,6 +201,18 @@ export default memo(function FullEventCalendar({
     }
   }, [currentMonth]);
 
+  // 하이라이트된 이벤트로 스크롤
+  useEffect(() => {
+    if (highlightedEventId) {
+      setTimeout(() => {
+        const eventCard = document.querySelector(`[data-event-id="${highlightedEventId}"]`);
+        if (eventCard) {
+          eventCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, [highlightedEventId]);
+
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
