@@ -433,6 +433,47 @@ export default function EventList({
     }
   }, [isAdminMode]);
 
+  // Silent refresh for background updates (no loading spinner)
+  const fetchEventsSilently = useCallback(async () => {
+    try {
+      console.log('[📋 이벤트 목록] 백그라운드 새로고침...');
+      // Don't set loading state - update silently
+
+      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path";
+
+      let data: Event[] | null = null;
+
+      if (isAdminMode) {
+        const result = await supabase
+          .from("events")
+          .select(columns)
+          .order("start_date", { ascending: true, nullsFirst: false })
+          .order("date", { ascending: true, nullsFirst: false });
+        data = result.data;
+      } else {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const cutoffDate = threeMonthsAgo.toISOString().split('T')[0];
+
+        const result = await supabase
+          .from("events")
+          .select(columns)
+          .or(`end_date.gte.${cutoffDate},date.gte.${cutoffDate}`)
+          .order("start_date", { ascending: true, nullsFirst: false })
+          .order("date", { ascending: true, nullsFirst: false });
+        data = result.data;
+      }
+
+      if (data) {
+        setEvents(data);
+        console.log('[📋 이벤트 목록] ✅ 백그라운드 새로고침 완료');
+      }
+    } catch (error: unknown) {
+      console.error("백그라운드 새로고침 실패:", (error as Error).message);
+      // Don't show error to user for silent updates
+    }
+  }, [isAdminMode]);
+
   // Social Schedules Data
   const { events: socialEvents, loading: socialLoading } = useSocialSchedules();
 
@@ -445,17 +486,19 @@ export default function EventList({
   useEffect(() => {
     const handleEventUpdate = () => {
       console.log('[📋 이벤트 목록] 이벤트 변경 감지 - 데이터 새로고침');
-      fetchEvents();
+      fetchEventsSilently(); // Silent refresh - no loading spinner
     };
 
     window.addEventListener("eventDeleted", handleEventUpdate);
     window.addEventListener("eventUpdated", handleEventUpdate);
+    window.addEventListener("eventCreated", handleEventUpdate);
 
     return () => {
       window.removeEventListener("eventDeleted", handleEventUpdate);
       window.removeEventListener("eventUpdated", handleEventUpdate);
+      window.removeEventListener("eventCreated", handleEventUpdate);
     };
-  }, [fetchEvents]);
+  }, [fetchEventsSilently]);
 
   // 달 변경 및 카테고리 변경 시 스크롤 위치 리셋
   useEffect(() => {
@@ -1439,7 +1482,7 @@ export default function EventList({
       alert("이벤트가 수정되었습니다.");
       setIsEditingWithDetail(false);
       setEventToEdit(null);
-      fetchEvents(); // Refresh event list
+      fetchEventsSilently(); // Silent refresh - no loading spinner
       window.dispatchEvent(new Event("eventUpdated"));
     } catch (error) {
       console.error("Error updating event:", error);

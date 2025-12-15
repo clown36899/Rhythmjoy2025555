@@ -144,6 +144,9 @@ export default memo(function ImageCropModal({
 
   // 모달이 열릴 때마다 초기화
   useEffect(() => {
+    console.log('[ImageCropModal] isOpen changed:', isOpen);
+    console.log('[ImageCropModal] imageUrl:', imageUrl);
+
     if (isOpen) {
       setViewMode('crop');
       setCrop({

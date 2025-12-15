@@ -519,9 +519,8 @@ export default function HomePageV2() {
             const { error } = await supabase.functions.invoke('delete-event', { body: { eventId, password } });
             if (error) throw error;
             alert("이벤트가 삭제되었습니다.");
-            window.location.reload();
-            // window.dispatchEvent(new CustomEvent("eventDeleted"));
-            // closeModal();
+            window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
+            closeModal();
         } catch (error: any) {
             console.error("이벤트 삭제 중 오류 발생:", error);
             alert(`이벤트 삭제 중 오류가 발생했습니다: ${error.context?.error_description || error.message || '알 수 없는 오류'}`);

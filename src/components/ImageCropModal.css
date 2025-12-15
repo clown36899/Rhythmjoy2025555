@@ -8,7 +8,8 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: var(--z-crop-modal);
+  z-index: 10000;
+  /* Higher than EventRegistrationModal (9999) */
   display: flex;
   align-items: center;
   justify-content: center;

@@ -271,7 +271,7 @@ export default memo(function EventRegistrationModal({
       setImageFile(file); // Initially set as current image
       setImagePosition({ x: 0, y: 0 }); // Reset position
       setTempImageSrc(URL.createObjectURL(file));
-      // setIsCropModalOpen(true); // Already open if we clicked "Change" in modal
+      setIsCropModalOpen(true); // Open crop modal after file selection
     }
     // Reset input value to allow selecting same file again
     e.target.value = '';
@@ -476,6 +476,9 @@ export default memo(function EventRegistrationModal({
 
       if (data && data[0]) {
         onEventCreated(date || new Date(), data[0].id);
+        window.dispatchEvent(new CustomEvent("eventCreated", {
+          detail: { event: data[0] }
+        }));
         onClose();
       }
     } catch (error) {
