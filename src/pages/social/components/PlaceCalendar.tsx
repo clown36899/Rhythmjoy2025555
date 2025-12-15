@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { SocialPlace } from '../types';
 import SocialEditModal from './SocialEditModal';
-import { useAuth } from '../../../contexts/AuthContext';
 import './PlaceCalendar.css';
 
 interface WeeklySchedule {
@@ -40,7 +39,6 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number | null>(null);
   const [editingSchedule, setEditingSchedule] = useState<WeeklySchedule | null>(null);
-  const { isAdmin } = useAuth();
 
   useEffect(() => {
     loadWeeklySchedules();

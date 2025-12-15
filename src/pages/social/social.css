@@ -22,8 +22,6 @@
   /* background-color: var(--page-bg-color); */
 }
 
-.social-header {}
-
 .social-sub-menu {
   display: flex;
   align-items: center;
@@ -186,9 +184,6 @@
   background-image: linear-gradient(to top, rgb(13, 13, 13), rgba(13, 13, 13, 0.5), transparent);
 }
 
-.social-content {
-  /* padding is handled by style prop */
-}
 
 .places-view {
   padding-left: 1rem;

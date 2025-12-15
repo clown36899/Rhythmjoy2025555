@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import SimpleHeader from '../../../components/SimpleHeader';
 import ImageCropModal from '../../../components/ImageCropModal';
 import '../register/shopreg.css';
-import type { Shop, FeaturedItem } from '../page';
+import type { FeaturedItem } from '../page';
 
 export default function ShoppingEditPage() {
     const { shopId } = useParams<{ shopId: string }>();

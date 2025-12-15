@@ -8,6 +8,7 @@ import './social.css';
 
 import { useSocialSchedules } from './hooks/useSocialSchedules';
 
+
 export default function SocialPage() {
 
   // Modal State
@@ -91,7 +92,7 @@ export default function SocialPage() {
           item={selectedEventForEdit}
           itemType="schedule"
           onClose={() => setSelectedEventForEdit(null)}
-          onSuccess={(data, isDelete) => {
+          onSuccess={() => {
             handleForceReload();
             setSelectedEventForEdit(null);
           }}

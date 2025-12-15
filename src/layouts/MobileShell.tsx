@@ -12,6 +12,7 @@ export function MobileShell() {
   const { isAdmin } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
+  // @ts-ignore - Used in event listener (setSelectedDate called in handleSelectedDateChanged)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [calendarView, setCalendarView] = useState<{ year: number; month: number; viewMode: 'month' | 'year' }>({
     year: new Date().getFullYear(),
@@ -19,6 +20,7 @@ export function MobileShell() {
     viewMode: 'month'
   });
   const [calendarMode, setCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen'>('collapsed');
+  // @ts-ignore - Used in event listener (setSortBy called in handleSortByChanged)
   const [sortBy, setSortBy] = useState<'random' | 'time' | 'title'>('random');
   const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
 
@@ -169,10 +171,6 @@ export function MobileShell() {
   const isShoppingPage = location.pathname.startsWith('/shopping');
   const isGuidePage = location.pathname === '/guide';
   const category = searchParams.get('category') || 'all';
-
-  const getSortIcon = () => (sortBy === "random" ? "ri-shuffle-line" : sortBy === "time" ? "ri-time-line" : "ri-sort-alphabet-asc");
-  const getSortLabel = () => (sortBy === "random" ? "랜덤" : sortBy === "time" ? "시간" : "제목");
-
 
 
   return (

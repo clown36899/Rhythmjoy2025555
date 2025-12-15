@@ -23,7 +23,7 @@ import { supabase } from "../../lib/supabase";
 import type { Event as AppEvent } from "../../lib/supabase";
 import { useBillboardSettings } from "../../hooks/useBillboardSettings";
 import { useAuth } from "../../contexts/AuthContext";
-import { useCalendarGesture } from "../../hooks/useCalendarGesture";
+import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";
 import "../v2/styles/Page.css";
 
 export default function HomePageV2() {
@@ -609,7 +609,7 @@ export default function HomePageV2() {
                                             if (calendarMode === "fullscreen") {
                                                 setCalendarMode("expanded");
                                             } else {
-                                                setCalendarMode(prev => prev === "collapsed" ? "expanded" : "collapsed");
+                                                setCalendarMode((prev: 'collapsed' | 'expanded' | 'fullscreen') => prev === "collapsed" ? "expanded" : "collapsed");
                                             }
                                         }}
                                         className={`home-toolbar-btn ${calendarMode === "fullscreen" ? "home-toolbar-btn-dark" : buttonBgClass}`}

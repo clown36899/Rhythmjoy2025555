@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import SimpleHeader from '../../components/SimpleHeader';
 import ShopCard from './components/ShopCard';
 import ShopRegisterModal from './components/ShopRegisterModal';
-import { useAuth } from '../../contexts/AuthContext';
 import './shopping.css';
 
 // 데이터 타입 정의
@@ -30,8 +28,6 @@ export default function ShoppingPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const { isAdmin } = useAuth();
-  const navigate = useNavigate();
 
   const fetchShops = async () => {
     setLoading(true);

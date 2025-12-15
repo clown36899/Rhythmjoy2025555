@@ -78,14 +78,14 @@ export default function ShoppingRegisterPage() {
   };
 
 
-  const handleLogoCropComplete = (croppedFile: File, croppedPreviewUrl: string, isModified: boolean) => {
+  const handleLogoCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
     setShopLogoFile(croppedFile);
     setShopLogoPreview(croppedPreviewUrl);
     setLogoTempUrl(croppedPreviewUrl); // Keep for re-editing
     setShowLogoCropModal(false);
   };
 
-  const handleItemCropComplete = (croppedFile: File, croppedPreviewUrl: string, isModified: boolean) => {
+  const handleItemCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
     setItemImageFile(croppedFile);
     setItemImagePreview(croppedPreviewUrl);
     setItemTempUrl(croppedPreviewUrl); // Keep for re-editing

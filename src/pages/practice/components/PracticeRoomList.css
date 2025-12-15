@@ -240,6 +240,7 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   word-break: break-word;
 }
 
@@ -250,6 +251,7 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   /* 1줄로 제한하여 높이 확보 */
   line-height: 1.4;
   word-break: break-word;
@@ -545,6 +547,7 @@
 
   .prl-card-address-text {
     -webkit-line-clamp: 1;
+    line-clamp: 1;
   }
 
   .prl-card-description {
@@ -554,6 +557,4 @@
   .prl-card-image-wrapper {
     width: 6rem;
   }
-
-  .prl-card-image-wrapper {}
 }

@@ -228,6 +228,8 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
+  word-break: break-word;
   flex: 1;
   margin: 0;
   padding: 0;
@@ -249,6 +251,7 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
 
 .board-post-meta {
