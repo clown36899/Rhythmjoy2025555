@@ -78,7 +78,7 @@
 .event-detail-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.727);
+  background-color: rgb(0 0 0 / 53%);
   display: flex;
   backdrop-filter: blur(15px);
   align-items: center;
@@ -101,7 +101,7 @@
 }
 
 .event-detail-modal-container {
-  background-color: rgba(20, 20, 20, 0.85);
+  background-color: rgb(0, 0, 0);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 1rem;
@@ -308,9 +308,16 @@
   top: 0;
   padding: 5px 14px 5px 14px;
   z-index: 40;
-  background-color: rgb(20 20 20 / 75%);
+  background-color: rgb(0, 0, 0);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
+  transition: background-color 0.2s ease;
+}
+
+/* 스크롤 시 스티키 헤더 배경 */
+.sticky-header.scrolled {
+  background-color: rgb(0 0 0 / 95%);
+  backdrop-filter: blur(16px);
 }
 
 .modal-title {

@@ -25,7 +25,7 @@
 }
 
 .shop-modal-content {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    /* background: linear-gradient(135deg, #1f2937 0%, #111827 100%); */
     border-radius: 1.25rem;
     max-width: 650px;
     width: 100%;

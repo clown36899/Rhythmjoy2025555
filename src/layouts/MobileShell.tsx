@@ -211,7 +211,7 @@ export function MobileShell() {
                     className="shell-top-bar-btn"
                     style={{
                       backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-                      padding: '0 4px', height: '24px', color: 'var(--text-secondary)'
+                      padding: '0 4px', height: '24px', color: '#fff'
                     }}
                   >
                     <i className="ri-search-line shell-icon-sm"></i>
@@ -282,7 +282,7 @@ export function MobileShell() {
                   className="shell-top-bar-btn"
                   style={{
                     backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '0 4px', height: '24px', color: 'var(--text-secondary)'
+                    padding: '0 4px', height: '24px', color: '#fff'
                   }}
                 >
                   <i className="ri-search-line shell-icon-sm"></i>

@@ -2047,7 +2047,7 @@ export default function EventList({
 
               {futureEvents.length > 0 ? (
                 <div className="evt-v2-horizontal-scroll">
-                  <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
+                  <div style={{ width: '5px', height: '1px', flexShrink: 0 }}></div>
                   {futureEvents.map(event => (
                     <EventCard
                       key={event.id}
@@ -2114,7 +2114,7 @@ export default function EventList({
 
               {futureClasses.length > 0 ? (
                 <div className="evt-v2-horizontal-scroll">
-                  <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
+                  <div style={{ width: '5px', height: '1px', flexShrink: 0 }}></div>
                   {futureClasses.map(event => (
                     <EventCard
                       key={event.id}
@@ -2128,7 +2128,6 @@ export default function EventList({
                       defaultThumbnailEvent={defaultThumbnailEvent}
                       variant="sliding"
                       hideGenre={true}
-                      hideDate={true}
                     />
                   ))}
                   <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
@@ -2191,7 +2190,7 @@ export default function EventList({
                   </div>
 
                   <div className="evt-v2-horizontal-scroll">
-                    <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
+                    <div style={{ width: '5px', height: '1px', flexShrink: 0 }}></div>
                     {genreEvents.map(event => (
                       <EventCard
                         key={event.id}

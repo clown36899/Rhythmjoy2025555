@@ -284,12 +284,12 @@
 
 /* 이벤트 카드 텍스트 컨테이너 */
 .card-text-container-event {
-  padding: 0.5rem;
+  padding: 0.5rem 0;
 }
 
 /* 강습 카드 텍스트 컨테이너 */
 .card-text-container-class {
-  padding: 0.4rem;
+  padding: 0.4rem 0;
 }
 
 /* ===== 장르 텍스트 ===== */
@@ -372,6 +372,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
+}
+
+/* 이벤트 카드 날짜 컨테이너 */
+.card-date-container-event {
+  /* 이벤트 날짜 컨테이너 전용 스타일 */
+}
+
+/* 강습 카드 날짜 컨테이너 */
+.card-date-container-class {
+  /* 강습 날짜 컨테이너 전용 스타일 */
+  display: flex;
 }
 
 /* ===== 날짜 인디케이터 ===== */
