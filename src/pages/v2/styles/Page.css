@@ -28,7 +28,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
-  padding-top: 51px !important;
+  /* padding-top: 51px !important; */
   /* Fixed header height - !important for mobile consistency */
   padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   /* Space for bottom nav */

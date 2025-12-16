@@ -204,7 +204,7 @@ export default function CalendarPage() {
 
     return (
         <div className="calendar-page-container" ref={containerRef}>
-            <div className="calendar-page-header">
+            <div className="calendar-page-header global-header">
                 <Header
                     calendarMode="fullscreen" // 항상 전체화면 모드로 표시
                     currentMonth={currentMonth}

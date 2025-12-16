@@ -867,7 +867,7 @@
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    animation: fadeIn 0.2s ease-out;
+    /* animation: fadeIn 0.2s ease-out; */
   }
 
   .bottom-sheet-content {

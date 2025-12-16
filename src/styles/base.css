@@ -26,6 +26,7 @@
   --header-bg-color: #000000;
   --header-border-color: #353636;
   --header-height: 51px;
+  /* Default fallback, overridden by JavaScript in App.tsx */
   --header-title-font-size: 1.4rem;
   --header-bg-dark: #242424;
 
@@ -206,6 +207,7 @@ body,
 html {
   margin: 0;
   padding: 0;
+  height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

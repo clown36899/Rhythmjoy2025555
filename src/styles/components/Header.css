@@ -3,8 +3,9 @@
 /* ===== Header 컨테이너 ===== */
 .header-container {
   /* border-bottom: 1px solid var(--header-border-color); */
-  height: var(--header-height);
-  overflow: hidden;
+  /* height: var(--header-height); */
+
+  /* overflow: hidden; */
   white-space: nowrap;
 
   display: flex;
@@ -15,7 +16,9 @@
 .header-inner {
   width: 100%;
   max-width: 100%;
-  margin: 0 auto;
+
+  /* 
+  margin: 0 auto; */
   padding-left: 9px;
   padding-right: 9px;
 }
@@ -23,14 +26,11 @@
 .header-content {
   display: flex;
   align-items: center;
-  height: 3rem !important;
-  /* Force fixed height */
-  overflow: hidden;
-  /* Prevent overflow */
-  white-space: nowrap;
-  /* Prevent text wrapping */
-  box-sizing: border-box;
-  position: relative;
+  /* height: 3rem !important; */
+  /* white-space: nowrap; */
+  /* box-sizing: border-box; */
+  /* position: relative; */
+
 }
 
 /* ===== Header 섹션 ===== */

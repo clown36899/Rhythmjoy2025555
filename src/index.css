@@ -35,15 +35,19 @@ html {
 
 /* ===== Global Header Styles ===== */
 .global-header {
-  position: fixed;
+  position: sticky;
   top: 0;
   /* left: 0; */
+  display: flex;
   width: 100%;
-  height: var(--header-height);
+  margin: 0 auto;
+  height: 61px;
   background-color: #000000;
   /* border-bottom: 1px solid #2b2b2b; */
-  z-index: var(--z-30);
-  box-shadow: -1px 4px 25px -5px rgb(0 0 0 / 33%);
+  z-index: 19;
+  /* box-shadow: -1px 4px 25px -5px rgb(0 0 0 / 33%); */
+  flex-direction: column;
+  justify-content: center;
 }
 
 @keyframes fadeIn {

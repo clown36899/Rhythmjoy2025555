@@ -206,8 +206,17 @@ export default memo(function FullEventCalendar({
     if (highlightedEventId) {
       setTimeout(() => {
         const eventCard = document.querySelector(`[data-event-id="${highlightedEventId}"]`);
+        console.log('Scrolling to event:', highlightedEventId, eventCard);
+
         if (eventCard) {
-          eventCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Try simple scrollIntoView first
+          eventCard.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          });
+
+          console.log('ScrollIntoView called');
         }
       }, 300);
     }
