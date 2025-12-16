@@ -38,6 +38,9 @@
   display: flex;
   align-items: center;
   gap: 0;
+  flex: 1;
+  min-width: 0;
+  /* flex 아이템이 축소될 수 있도록 */
   z-index: 1;
 }
 

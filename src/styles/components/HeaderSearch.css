@@ -3,9 +3,10 @@
     position: relative;
     display: flex;
     align-items: center;
-    width: 100%;
-    max-width: 180px;
-    /* 모바일에서 다른 버튼 침범 방지 */
+    flex: 1;
+    max-width: 250px;
+    margin: 0 12px;
+    /* 검색창이 자연스럽게 확장되되 최대 넓이 제한 */
 }
 
 .header-search-input {

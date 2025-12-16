@@ -387,21 +387,20 @@ export default memo(function Header({
                 // 프리뷰 모드: 제목 + 검색창
                 <>
                   <img
-                    src="/logo.jpg"
+                    src="/dangong-logo.png"
                     alt="RhythmJoy Logo"
                     style={{
-                      display: "none",
                       borderRadius: '50%',
-                      height: '32px',
-                      width: '32px',
+                      height: '40px',
+
                       marginRight: '8px',
-                      objectFit: 'contain'
+                      objectFit: 'cover'
                     }}
                   />
                   <span style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "var(--header-title-font-size)" }}>
                     스윙빌보드
                   </span>
-                  <div className="header-search-container" style={{ marginLeft: '12px' }}>
+                  <div className="header-search-container" >
                     <input
                       type="text"
                       placeholder=""
