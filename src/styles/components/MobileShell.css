@@ -37,9 +37,9 @@
   position: fixed;
   bottom: 0;
   left: 0;
-  backdrop-filter: blur(7px);
+  backdrop-filter: blur(15px);
   right: 0;
-  background-color: #031214a1;
+  /* background-color: #031214a1; */
   z-index: var(--z-20);
   max-width: 650px;
   margin: 0 auto;

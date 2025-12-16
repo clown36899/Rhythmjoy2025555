@@ -52,7 +52,7 @@ export default function SocialPage() {
       </div>
 
       {/* 메인 콘텐츠 */}
-      <div style={{ paddingTop: `51px`, paddingBottom: '80px' }}>
+      <div style={{ paddingBottom: '80px' }}>
         {schedulesLoading ? (
           <div className="social-loader">
             <div className="loader-text">로딩 중...</div>

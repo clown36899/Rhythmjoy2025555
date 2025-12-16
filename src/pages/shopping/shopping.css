@@ -32,7 +32,7 @@
 
 /* ===== 쇼핑몰 목록 영역 ===== */
 .shop-list-section {
-
+  padding-top: 5px;
   padding-left: var(--spacing-4);
   padding-right: var(--spacing-4);
 }
