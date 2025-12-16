@@ -198,6 +198,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
 
                     // Load existing featured items
                     const dbItems = (data.featured_items as DBFeaturedItem[]) || [];
+                    console.log('[ShopEditModal] Loaded featured items from DB:', dbItems);
                     const loadedItems: FeaturedItem[] = dbItems.map((dbItem, _index) => ({
                         id: `existing-${dbItem.id}`,
                         dbId: dbItem.id,
@@ -209,6 +210,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
                         tempUrl: dbItem.item_image_url || null,
                         originalUrl: dbItem.item_image_url || null,
                     }));
+                    console.log('[ShopEditModal] Setting featuredItems state:', loadedItems);
                     setFeaturedItems(loadedItems);
                 }
             } catch (err: any) {
@@ -269,9 +271,20 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('[ShopEditModal] handleSubmit called, featuredItems:', featuredItems);
+
         if (!shopName || !shopUrl) {
             setError('필수 항목을 모두 입력해주세요.');
             return;
+        }
+
+        // Validate featured items - check if any item has a name but no image
+        for (let i = 0; i < featuredItems.length; i++) {
+            const item = featuredItems[i];
+            if (item.name && !item.imagePreview && !item.imageFile) {
+                setError(`상품 #${i + 1} "${item.name}"에 이미지가 없습니다. 상품 이미지를 등록해주세요.`);
+                return;
+            }
         }
 
         setLoading(true);
@@ -296,34 +309,72 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
 
             if (shopError) throw shopError;
 
-            // Delete all existing featured items
-            const { error: deleteError } = await supabase
+            // Handle featured items with proper CRUD operations
+            // 1. Get existing item IDs from DB
+            const { data: existingItems } = await supabase
                 .from('featured_items')
-                .delete()
+                .select('id')
                 .eq('shop_id', shopId);
 
-            if (deleteError) throw deleteError;
+            const existingItemIds = new Set((existingItems || []).map(item => item.id));
+            const processedItemIds = new Set<number>();
 
-            // Insert new featured items
+            // 2. Update existing items or insert new items
             for (const item of featuredItems) {
-                if (item.name || item.imageFile || item.imagePreview) {
-                    let itemImageUrl = item.imagePreview;
-                    if (item.imageFile) {
-                        itemImageUrl = await uploadImage(item.imageFile, 'featured-items');
-                    }
+                // Skip empty items
+                if (!item.name && !item.imageFile && !item.imagePreview) {
+                    continue;
+                }
 
-                    const { error: itemError } = await supabase
+                // Skip items without images (should not happen due to validation above)
+                let itemImageUrl = item.imagePreview;
+                if (item.imageFile) {
+                    itemImageUrl = await uploadImage(item.imageFile, 'featured-items');
+                }
+
+                if (!itemImageUrl) {
+                    continue;
+                }
+
+                if (item.dbId && existingItemIds.has(item.dbId)) {
+                    // Update existing item
+                    const { error: updateError } = await supabase
+                        .from('featured_items')
+                        .update({
+                            item_name: item.name || null,
+                            item_price: item.price ? Number(item.price) : null,
+                            item_image_url: itemImageUrl,
+                            item_link: item.link || shopUrl,
+                        })
+                        .eq('id', item.dbId);
+
+                    if (updateError) throw updateError;
+                    processedItemIds.add(item.dbId);
+                } else {
+                    // Insert new item
+                    const { error: insertError } = await supabase
                         .from('featured_items')
                         .insert({
                             shop_id: shopId,
                             item_name: item.name || null,
                             item_price: item.price ? Number(item.price) : null,
-                            item_image_url: itemImageUrl || null,
+                            item_image_url: itemImageUrl,
                             item_link: item.link || shopUrl,
                         });
 
-                    if (itemError) throw itemError;
+                    if (insertError) throw insertError;
                 }
+            }
+
+            // 3. Delete items that were removed (exist in DB but not in current featuredItems)
+            const itemsToDelete = Array.from(existingItemIds).filter(id => !processedItemIds.has(id));
+            if (itemsToDelete.length > 0) {
+                const { error: deleteError } = await supabase
+                    .from('featured_items')
+                    .delete()
+                    .in('id', itemsToDelete);
+
+                if (deleteError) throw deleteError;
             }
 
             alert('쇼핑몰 정보가 성공적으로 수정되었습니다.');
@@ -365,6 +416,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
     };
 
     const handleClose = () => {
+        console.log('[ShopEditModal] handleClose called, loading:', loading);
         if (!loading) {
             setShowPasswordPrompt(true);
             setEnteredPassword('');
