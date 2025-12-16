@@ -54,6 +54,10 @@ export default memo(function Footer() {
                 <p className="footer-copyright-line">이 사이트는 누구나 자유롭게 입력 및 공유할 수 있습니다.</p>
                 <p className="footer-copyright-line">© since 2025. 제작-joy.</p>
               </div>
+              <div className="footer-business-info">
+                <p className="footer-business-line">사업자등록번호: 205-10-01239</p>
+                <p className="footer-business-line">상호: 사당연습실 리듬앤조이</p>
+              </div>
               <p className="footer-contact">
                 Made by joy | Contact:{" "}
                 <a

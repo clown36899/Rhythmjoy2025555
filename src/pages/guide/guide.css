@@ -255,6 +255,18 @@
   margin: 0 0 0.625rem 0;
 }
 
+.guide-footer-business {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.guide-footer-business-line {
+  margin: 0.25rem 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
 .guide-footer-contact {
   color: #6b7280;
   font-size: 0.8125rem;

@@ -168,6 +168,10 @@ export default function GuidePage() {
             </p>
             <div className="guide-footer-divider"></div>
             <p className="guide-footer-copyright">© since 2025. 제작-joy.</p>
+            <div className="guide-footer-business">
+              <p className="guide-footer-business-line">사업자등록번호: 205-10-01239</p>
+              <p className="guide-footer-business-line">상호: 사당연습실 리듬앤조이</p>
+            </div>
             <p className="guide-footer-contact">
               Contact:{" "}
               <a
