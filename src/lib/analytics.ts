@@ -3,11 +3,42 @@ import ReactGA from 'react-ga4';
 // Google Analytics 측정 ID
 const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-N4JPZTNZE4';
 
+// 개발 환경 감지 (localhost, 127.0.0.1, .local 도메인, 로컬 네트워크 IP)
+const isDevelopment = () => {
+    if (typeof window === 'undefined') return false;
+    const hostname = window.location.hostname;
+
+    // localhost 및 127.0.0.1
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return true;
+    }
+
+    // .local 도메인
+    if (hostname.endsWith('.local') || hostname.includes('localhost')) {
+        return true;
+    }
+
+    // 로컬 네트워크 IP 대역 (192.168.x.x, 172.16.x.x ~ 172.31.x.x, 10.x.x.x)
+    const ipPattern = /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/;
+    if (ipPattern.test(hostname)) {
+        return true;
+    }
+
+    return false;
+};
+
 /**
  * Google Analytics 초기화
  * 앱 시작 시 한 번만 호출
+ * 개발 환경(localhost)에서는 초기화하지 않음
  */
 export const initGA = () => {
+    // 개발 환경에서는 GA 비활성화
+    if (isDevelopment()) {
+        console.log('[Analytics] Development environment detected - Analytics disabled');
+        return;
+    }
+
     if (MEASUREMENT_ID) {
         ReactGA.initialize(MEASUREMENT_ID, {
             gaOptions: {
