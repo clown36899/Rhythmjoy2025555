@@ -686,9 +686,11 @@ export default function HomePageV2() {
 
             if (eventCard) {
                 // First, do vertical scroll to bring section into view
+                // Use 'inline: nearest' to avoid resetting horizontal scroll
                 eventCard.scrollIntoView({
                     behavior: 'smooth',
-                    block: 'center'
+                    block: 'center',
+                    inline: 'nearest'
                 });
 
                 // Then, wait a bit and do horizontal scroll
