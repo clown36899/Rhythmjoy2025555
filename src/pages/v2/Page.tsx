@@ -679,36 +679,38 @@ export default function HomePageV2() {
             window.history.replaceState({}, "", window.location.pathname);
         }
     }, []);
-
     // Scroll to event in preview mode with horizontal scroll support
     const scrollToEventInPreview = (eventId: number, category: string) => {
         const scrollToEvent = (retries = 10) => {
             const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
 
             if (eventCard) {
-                // Find horizontal scroll container
-                const slideContainer = eventCard.closest('.event-list-slide-container');
-
-                if (slideContainer) {
-                    // Horizontal scroll to center the card
-                    const cardRect = eventCard.getBoundingClientRect();
-                    const containerRect = slideContainer.getBoundingClientRect();
-                    const scrollLeft = slideContainer.scrollLeft +
-                        (cardRect.left - containerRect.left) -
-                        (containerRect.width / 2) +
-                        (cardRect.width / 2);
-
-                    slideContainer.scrollTo({
-                        left: scrollLeft,
-                        behavior: 'smooth'
-                    });
-                }
-
-                // Vertical scroll to section
+                // First, do vertical scroll to bring section into view
                 eventCard.scrollIntoView({
                     behavior: 'smooth',
                     block: 'center'
                 });
+
+                // Then, wait a bit and do horizontal scroll
+                setTimeout(() => {
+                    const slideContainer = eventCard.closest('.event-list-slide-container');
+
+                    if (slideContainer) {
+                        // Get fresh positions after vertical scroll
+                        const cardRect = eventCard.getBoundingClientRect();
+                        const containerRect = slideContainer.getBoundingClientRect();
+
+                        // Calculate scroll position to center the card
+                        const cardCenter = cardRect.left + (cardRect.width / 2);
+                        const containerCenter = containerRect.left + (containerRect.width / 2);
+                        const scrollOffset = cardCenter - containerCenter;
+
+                        slideContainer.scrollTo({
+                            left: slideContainer.scrollLeft + scrollOffset,
+                            behavior: 'smooth'
+                        });
+                    }
+                }, 500); // Wait for vertical scroll to settle
 
                 // Highlight animation
                 eventCard.classList.add('qr-highlighted');
