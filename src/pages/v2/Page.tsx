@@ -201,37 +201,6 @@ export default function HomePageV2() {
 
 
 
-
-    // QR Code Deep Link Handling
-    useEffect(() => {
-        const eventId = searchParams.get('event');
-        const category = searchParams.get('category');
-        const fromQR = searchParams.get('from') === 'qr';
-
-        if (fromQR && eventId && category) {
-            // Keep preview mode, don't switch to viewAll
-            // Just scroll to the event in the preview section
-
-            // Scroll to event after a short delay to allow page to render
-            setTimeout(() => {
-                const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
-                if (eventCard) {
-                    eventCard.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-
-                    // Add highlight animation
-                    eventCard.classList.add('qr-highlighted');
-                    setTimeout(() => {
-                        eventCard.classList.remove('qr-highlighted');
-                    }, 6000); // Remove after 6 seconds (3 pulses × 2s each)
-                }
-            }, 800); // Increased delay to ensure preview section is rendered
-
-            // Clean up URL parameters
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, '', newUrl);
-        }
-    }, []); // Run only once on mount
-
     // Navigate to full calendar page when button is clicked
     useEffect(() => {
         const handleSetFullscreenMode = () => {
@@ -650,31 +619,111 @@ export default function HomePageV2() {
         loadBillboardImages();
     }, [settings, fromQR]);
 
+    // QR Code & Deep Link Handling - Unified Logic
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const eventId = params.get("event");
+        const category = params.get("category");
         const source = params.get("from");
+
         if (eventId) {
             const id = parseInt(eventId);
             setQrLoading(true);
-            if (!source || (source !== "qr" && source !== "edit")) setSharedEventId(id);
-            const loadEventAndNavigate = async () => {
+
+            // Set shared event ID for non-QR sources
+            if (!source || (source !== "qr" && source !== "edit")) {
+                setSharedEventId(id);
+            }
+
+            const loadEventAndScroll = async () => {
                 try {
-                    const { data: event } = await supabase.from("events").select("id, start_date, date").eq("id", id).single();
+                    const { data: event } = await supabase
+                        .from("events")
+                        .select("id, start_date, date, category")
+                        .eq("id", id)
+                        .single();
+
                     if (event) {
+                        // Navigate to event's month
                         const eventDate = event.start_date || event.date;
-                        if (eventDate) setCurrentMonth(new Date(eventDate));
+                        if (eventDate) {
+                            setCurrentMonth(new Date(eventDate));
+                        }
+
+                        // Wait for DOM to render, then scroll
                         setTimeout(() => {
                             setQrLoading(false);
-                            if (source === "qr" || source === "edit") setTimeout(() => setHighlightEvent({ id: event.id, nonce: Date.now() }), 500);
-                        }, 100);
-                    } else setQrLoading(false);
-                } catch (error) { console.error(error); setQrLoading(false); }
+
+                            if (source === "qr" || source === "edit") {
+                                // QR/Edit: Scroll to event in preview mode with horizontal scroll
+                                scrollToEventInPreview(id, category || event.category);
+                            } else {
+                                // Regular deep link: Just highlight
+                                setTimeout(() => {
+                                    setHighlightEvent({ id: event.id, nonce: Date.now() });
+                                }, 500);
+                            }
+                        }, 1200); // Increased delay for DOM rendering
+                    } else {
+                        setQrLoading(false);
+                    }
+                } catch (error) {
+                    console.error("QR/Deep link error:", error);
+                    setQrLoading(false);
+                }
             };
-            loadEventAndNavigate();
+
+            loadEventAndScroll();
+
+            // Clean up URL parameters
             window.history.replaceState({}, "", window.location.pathname);
         }
     }, []);
+
+    // Scroll to event in preview mode with horizontal scroll support
+    const scrollToEventInPreview = (eventId: number, category: string) => {
+        const scrollToEvent = (retries = 10) => {
+            const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
+
+            if (eventCard) {
+                // Find horizontal scroll container
+                const slideContainer = eventCard.closest('.event-list-slide-container');
+
+                if (slideContainer) {
+                    // Horizontal scroll to center the card
+                    const cardRect = eventCard.getBoundingClientRect();
+                    const containerRect = slideContainer.getBoundingClientRect();
+                    const scrollLeft = slideContainer.scrollLeft +
+                        (cardRect.left - containerRect.left) -
+                        (containerRect.width / 2) +
+                        (cardRect.width / 2);
+
+                    slideContainer.scrollTo({
+                        left: scrollLeft,
+                        behavior: 'smooth'
+                    });
+                }
+
+                // Vertical scroll to section
+                eventCard.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+
+                // Highlight animation
+                eventCard.classList.add('qr-highlighted');
+                setTimeout(() => {
+                    eventCard.classList.remove('qr-highlighted');
+                }, 6000); // 3 pulses × 2s each
+
+            } else if (retries > 0) {
+                // Retry if DOM not ready
+                setTimeout(() => scrollToEvent(retries - 1), 300);
+            }
+        };
+
+        scrollToEvent();
+    };
 
     useEffect(() => { if (!searchTerm) navigateWithCategory("all"); }, [searchTerm, navigateWithCategory]);
     useEffect(() => { if (selectedDate && !qrLoading) { const scrollContainer = document.querySelector(".overflow-y-auto"); if (scrollContainer) scrollContainer.scrollTop = 0; } }, [selectedDate, qrLoading]);
