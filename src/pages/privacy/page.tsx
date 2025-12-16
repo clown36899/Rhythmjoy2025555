@@ -41,7 +41,24 @@ const PrivacyPage = () => {
                 </section>
 
                 <section>
-                    <h2 className="text-xl font-bold text-white mb-2">5. 문의처</h2>
+                    <h2 className="text-xl font-bold text-white mb-2">5. Google Analytics 사용</h2>
+                    <p>본 사이트는 방문자 통계 분석을 위해 Google Analytics를 사용합니다. Google Analytics는 쿠키를 사용하여 사용자의 사이트 이용 정보를 수집하며, 수집된 정보는 익명화되어 통계 목적으로만 사용됩니다.</p>
+                    <p className="mt-2 text-sm text-gray-400">
+                        자세한 내용은{' '}
+                        <a
+                            href="https://policies.google.com/privacy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 underline"
+                        >
+                            Google 개인정보처리방침
+                        </a>
+                        을 참조하세요.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 className="text-xl font-bold text-white mb-2">6. 문의처</h2>
                     <p>개인정보 처리와 관련한 문의는 아래로 연락주시기 바랍니다.</p>
                     <p className="mt-2 text-blue-400">clown313@naver.com</p>
                 </section>

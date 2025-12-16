@@ -9,6 +9,7 @@ import {
     prefetchShoppingPage
 } from '../router/routes';
 import { useEffect } from 'react';
+import { logUserInteraction } from '../lib/analytics';
 
 export function BottomNavigation() {
     const navigate = useNavigate();
@@ -30,6 +31,10 @@ export function BottomNavigation() {
     }, []);
 
     const handleNavigation = (path: string, action?: string) => {
+        // Analytics: Track navigation
+        const pageName = path === '/' ? 'Home' : path.replace('/', '').charAt(0).toUpperCase() + path.slice(2);
+        logUserInteraction('Navigation', 'Click', pageName);
+
         if (path === '/' && currentPath === '/') {
             // 이벤트 달력 페이지에서 다시 누르면 새로고침 효과
             const overlay = document.createElement('div');

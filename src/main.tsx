@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
+import { initGA } from './lib/analytics'
 
 function normalizeBasename(base?: string) {
   if (!base) return undefined;
@@ -17,6 +18,9 @@ function RootApp() {
   useEffect(() => {
     // React 렌더링 완료 후 body 표시
     document.body.classList.add('loaded');
+
+    // Google Analytics 초기화
+    initGA();
   }, []);
 
   return (

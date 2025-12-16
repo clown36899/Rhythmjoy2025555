@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import { initKakaoSDK, loginWithKakao, logoutKakao, getKakaoAccessToken } from '../utils/kakaoAuth';
+import { setUserProperties, logEvent } from '../lib/analytics';
 
 interface KakaoAuthResult {
   email: string;
@@ -135,6 +136,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(currentUser);
         setIsAdmin(adminStatus);
+
+        // Analytics: Set user properties
+        if (currentUser) {
+          setUserProperties({
+            user_type: adminStatus ? 'admin' : 'user',
+            login_status: 'logged_in'
+          });
+          if (event === 'SIGNED_IN') {
+            logEvent('Auth', 'Login', 'Success');
+          }
+        }
       } else {
         // 기타 이벤트
         console.log('[AuthContext] 기타 이벤트 처리');
@@ -325,6 +337,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       console.log('[로그아웃] 완료 - 페이지 리로드');
+
+      // Analytics: Track logout
+      logEvent('Auth', 'Logout', 'Success');
 
       // 7. 페이지 강제 리로드 (React 상태 완전 초기화)
       window.location.href = '/';

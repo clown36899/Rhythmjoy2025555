@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import '../styles/components/MobileShell.css';
 import { BottomNavigation } from "./BottomNavigation";
+import { logUserInteraction } from "../lib/analytics";
 
 export function MobileShell() {
   const location = useLocation();
@@ -207,7 +208,10 @@ export function MobileShell() {
                 {/* Calendar Search Button - 전체 달력 모드에서만 표시 */}
                 {calendarMode === "fullscreen" && (
                   <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('openCalendarSearch'))}
+                    onClick={() => {
+                      logUserInteraction('Button', 'Click', 'CalendarSearch');
+                      window.dispatchEvent(new CustomEvent('openCalendarSearch'));
+                    }}
                     className="shell-top-bar-btn"
                     style={{
                       backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
@@ -227,7 +231,10 @@ export function MobileShell() {
                 {/* 1. Today Button (Conditional) */}
                 {!isCurrentMonthVisible && (
                   <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
+                    onClick={() => {
+                      logUserInteraction('Button', 'Click', 'GoToToday');
+                      window.dispatchEvent(new CustomEvent('goToToday'));
+                    }}
                     style={{
                       backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px',
                       padding: '2px 8px', fontSize: '10px', height: '24px', display: 'flex', alignItems: 'center', gap: '2px'
@@ -242,7 +249,10 @@ export function MobileShell() {
 
                 {/* 3. Event Registration Button */}
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }))}
+                  onClick={() => {
+                    logUserInteraction('Button', 'Click', 'EventRegistration-TopBar');
+                    window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }));
+                  }}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -314,7 +324,10 @@ export function MobileShell() {
             {isShoppingPage ? (
               <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('openShopRegistration'))}
+                  onClick={() => {
+                    logUserInteraction('Button', 'Click', 'ShopRegistration');
+                    window.dispatchEvent(new CustomEvent('openShopRegistration'));
+                  }}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -335,7 +348,10 @@ export function MobileShell() {
               {/* Social: Register Button */}
               {isSocialPage && (
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('openSocialRegistration'))}
+                  onClick={() => {
+                    logUserInteraction('Button', 'Click', 'SocialRegistration');
+                    window.dispatchEvent(new CustomEvent('openSocialRegistration'));
+                  }}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
