@@ -39,7 +39,7 @@
   left: 0;
   backdrop-filter: blur(20px);
   right: 0;
-  /* background-color: #031214a1; */
+  background-color: #03121459;
   z-index: var(--z-20);
   max-width: 650px;
   margin: 0 auto;

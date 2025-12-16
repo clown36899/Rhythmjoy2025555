@@ -5,6 +5,7 @@ import Header from "../v2/components/Header";
 import FullEventCalendar from "./components/FullEventCalendar";
 import "./styles/CalendarPage.css";
 import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";
+import { useEventModal } from "../../hooks/useEventModal";
 import { supabase } from "../../lib/supabase";
 import type { Event as AppEvent } from "../../lib/supabase";
 
@@ -23,13 +24,9 @@ export default function CalendarPage() {
     const [viewMode, setViewMode] = useState<"month" | "year">("month");
     const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
 
-    // Event Modal States
-    const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
+    // Event Modal States - using Hook
+    const eventModal = useEventModal();
     const [highlightedEventId, setHighlightedEventId] = useState<number | null>(null);
-    const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [eventToEdit, setEventToEdit] = useState<AppEvent | null>(null);
-    const [eventPassword, setEventPassword] = useState("");
-    const [showEditModal, setShowEditModal] = useState(false);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
 
@@ -56,7 +53,7 @@ export default function CalendarPage() {
 
     // 모달 열렸을 때 배경 스크롤 방지
     useEffect(() => {
-        const isAnyModalOpen = showRegisterModal || showEditModal || showPasswordModal || !!selectedEvent;
+        const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
 
         if (isAnyModalOpen) {
             // 현재 스크롤 위치 저장
@@ -76,7 +73,7 @@ export default function CalendarPage() {
                 window.scrollTo(0, parseInt(scrollY || '0') * -1);
             }
         }
-    }, [showRegisterModal, showEditModal, showPasswordModal, selectedEvent]);
+    }, [showRegisterModal, eventModal.showEditModal, eventModal.showPasswordModal, eventModal.selectedEvent]);
 
     // Auth Check
     useEffect(() => {
@@ -119,34 +116,7 @@ export default function CalendarPage() {
         handleMonthChange(today);
     }, [handleMonthChange]);
 
-    const handleDeleteEvent = async (eventId: number) => {
-        if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
-            const { error } = await supabase.from('events').delete().eq('id', eventId);
-            if (!error) {
-                alert("삭제되었습니다.");
-                setSelectedEvent(null);
-                window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
-            } else {
-                alert("삭제 실패: " + error.message);
-            }
-        }
-    };
-
-    const handleEditClick = (event: AppEvent) => {
-        setEventToEdit(event);
-        setShowPasswordModal(true);
-        setSelectedEvent(null);
-    };
-
-    const handlePasswordSubmit = async () => {
-        if (eventToEdit && eventPassword === eventToEdit.password) {
-            setShowPasswordModal(false);
-            setShowEditModal(true);
-            setEventPassword("");
-        } else {
-            alert("비밀번호가 올바르지 않습니다.");
-        }
-    };
+    // Event handlers are now provided by useEventModal Hook
 
     // 이벤트 생성 후 해당 날짜로 이동 및 하이라이트
     const handleEventCreated = useCallback((eventId: number, eventDate: Date) => {
@@ -261,34 +231,34 @@ export default function CalendarPage() {
                     calendarHeightPx={window.innerHeight - 100} // 대략적인 높이 계산
                     dragOffset={dragOffset}
                     isAnimating={isAnimating}
-                    onEventClick={(event) => setSelectedEvent(event)}
+                    onEventClick={(event) => eventModal.setSelectedEvent(event)}
                     highlightedEventId={highlightedEventId}
                 />
             </div>
 
             {/* Event Detail Modal */}
-            {selectedEvent && (
+            {eventModal.selectedEvent && (
                 <EventDetailModal
-                    event={selectedEvent}
-                    isOpen={!!selectedEvent}
-                    onClose={() => setSelectedEvent(null)}
+                    event={eventModal.selectedEvent}
+                    isOpen={!!eventModal.selectedEvent}
+                    onClose={eventModal.closeAllModals}
                     isAdminMode={isAdmin}
                     // @ts-ignore - adminType prop mismatch fix pending in component
                     adminType={adminType}
-                    onDelete={(id) => handleDeleteEvent(typeof id === 'number' ? id : id.id)}
-                    onEdit={(event) => handleEditClick(event)}
+                    onDelete={(id) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
+                    onEdit={(event) => eventModal.handleEditClick(event)}
                 />
             )}
 
             {/* Password Modal */}
-            {showPasswordModal && (
+            {eventModal.showPasswordModal && (
                 <Suspense fallback={<div />}>
                     <EventPasswordModal
-                        event={eventToEdit!}
-                        onClose={() => setShowPasswordModal(false)}
-                        onSubmit={handlePasswordSubmit}
-                        password={eventPassword}
-                        onPasswordChange={setEventPassword}
+                        event={eventModal.eventToEdit!}
+                        onClose={() => eventModal.setShowPasswordModal(false)}
+                        onSubmit={eventModal.handlePasswordSubmit}
+                        password={eventModal.eventPassword}
+                        onPasswordChange={eventModal.setEventPassword}
                     />
                 </Suspense>
             )}
@@ -313,23 +283,23 @@ export default function CalendarPage() {
             )}
 
             {/* Edit Modal */}
-            {showEditModal && eventToEdit && (
+            {eventModal.showEditModal && eventModal.eventToEdit && (
                 <Suspense fallback={<div />}>
                     <EventRegistrationModal
-                        isOpen={showEditModal}
-                        onClose={() => setShowEditModal(false)}
-                        selectedDate={new Date(eventToEdit.date || eventToEdit.start_date || new Date())}
+                        isOpen={eventModal.showEditModal}
+                        onClose={() => eventModal.setShowEditModal(false)}
+                        selectedDate={new Date(eventModal.eventToEdit.date || eventModal.eventToEdit.start_date || new Date())}
                         // @ts-ignore - editEventData prop check pending
-                        editEventData={eventToEdit}
+                        editEventData={eventModal.eventToEdit}
                         onEventCreated={() => { }} // Edit mode doesn't use this but it's required by interface
                         onEventUpdated={(updatedEvent: any) => {
-                            setShowEditModal(false);
+                            eventModal.setShowEditModal(false);
                             window.dispatchEvent(new CustomEvent("eventUpdated", { detail: updatedEvent }));
                         }}
                         onDelete={() => {
-                            if (eventToEdit) {
-                                handleDeleteEvent(eventToEdit.id);
-                                setShowEditModal(false);
+                            if (eventModal.eventToEdit) {
+                                eventModal.handleDeleteEvent(eventModal.eventToEdit.id);
+                                eventModal.setShowEditModal(false);
                             }
                         }}
                     />

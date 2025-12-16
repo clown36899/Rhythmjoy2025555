@@ -74,7 +74,7 @@ export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: Sho
                     {/* Featured Products Section */}
                     {hasProducts && (
                         <div className="shop-modal-product-section">
-                            <div className={`shop - modal - products - grid ${featuredItems.length === 1 ? 'single' : 'multi'} `}>
+                            <div className={`shop-modal-products-grid ${featuredItems.length === 1 ? 'single' : 'multi'}`}>
                                 {featuredItems.map((item, index) => {
                                     if (!item.item_name) return null;
 
