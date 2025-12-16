@@ -504,7 +504,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                 {/* Sticky Header */}
                 <div
                     className="sticky-header"
-                    style={{ padding: "16px" }}
+
                 >
                     <div className="header-selectors-container">
                         {/* Unified Classification (Category + Genre) Selector */}

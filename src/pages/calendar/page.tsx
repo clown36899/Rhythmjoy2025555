@@ -173,12 +173,18 @@ export default function CalendarPage() {
             setShowCalendarSearch(true);
         };
 
+        const handleOpenCalendarRegistration = () => {
+            setShowRegisterModal(true);
+        };
+
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
+        window.addEventListener('openCalendarRegistration', handleOpenCalendarRegistration);
 
         return () => {
             window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
+            window.removeEventListener('openCalendarRegistration', handleOpenCalendarRegistration);
         };
     }, [navigate]);
 
@@ -287,30 +293,6 @@ export default function CalendarPage() {
                 </Suspense>
             )}
 
-            {/* Register FAB */}
-            <button
-                className="calendar-fab"
-                onClick={() => setShowRegisterModal(true)}
-                style={{
-                    position: 'fixed',
-                    bottom: '80px', // Bottom navigation height + margin
-                    right: '20px',
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    backgroundColor: '#facc15', // Primary yellow
-                    color: '#000',
-                    border: 'none',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 40, // Above calendar but below modals
-                    cursor: 'pointer'
-                }}
-            >
-                <i className="ri-add-line" style={{ fontSize: '24px' }}></i>
-            </button>
 
             {/* Register Modal (New Event) */}
             {showRegisterModal && (

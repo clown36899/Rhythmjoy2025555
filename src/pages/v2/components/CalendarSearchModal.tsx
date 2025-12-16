@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import type { Event } from '../../../lib/supabase';
 import './CalendarSearchModal.css';
@@ -76,7 +77,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent }: 
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className="cal-search-overlay" onClick={handleOverlayClick}>
             <div className="cal-search-modal">
                 <div className="cal-search-header">
@@ -130,6 +131,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent }: 
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

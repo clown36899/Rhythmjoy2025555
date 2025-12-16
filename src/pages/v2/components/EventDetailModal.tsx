@@ -251,19 +251,18 @@ export default memo(function EventDetailModal({
                 {/* 제목 - Sticky Header */}
                 <div
                   className="sticky-header"
-                  style={{
-                    padding: "16px",
-                  }}
+
                 >
                   {/* 장르 표시 */}
+                  <h2 className="modal-title">
+                    {selectedEvent.title}
+                  </h2>
                   {selectedEvent.genre && (
                     <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
                       {selectedEvent.genre}
                     </p>
                   )}
-                  <h2 className="modal-title">
-                    {selectedEvent.title}
-                  </h2>
+
                 </div>
 
                 {/* 세부 정보 */}
@@ -344,12 +343,12 @@ export default memo(function EventDetailModal({
                     </span>
                   </div>
 
-                  {selectedEvent.organizer && (
+                  {/* {selectedEvent.organizer && (
                     <div className="info-item">
                       <i className="ri-user-line info-icon"></i>
                       <span>{selectedEvent.organizer}</span>
                     </div>
-                  )}
+                  )} */}
 
                   {selectedEvent.location && (
                     <div className="info-item">

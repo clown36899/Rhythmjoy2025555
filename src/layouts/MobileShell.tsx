@@ -290,7 +290,14 @@ export function MobileShell() {
                 </button>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {/* Empty right side for now */}
+                {/* Event Registration Button */}
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('openCalendarRegistration'))}
+                  className="shell-btn-register-topbar"
+                >
+                  <i className="ri-add-line"></i>
+                  <span>이벤트 등록</span>
+                </button>
               </div>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, memo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
 import PracticeRoomDetail from '../pages/practice/components/PracticeRoomDetail';
@@ -208,7 +209,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className="search-modal-overlay" onClick={onClose}>
             <div className="search-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="search-modal-header">
@@ -367,6 +368,9 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                     onUpdate={() => { }}
                 />
             )}
-        </div>
+        </div>,
+        document.body
     );
 });
+
+
