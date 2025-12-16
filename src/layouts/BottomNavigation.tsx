@@ -94,7 +94,7 @@ export function BottomNavigation() {
                         className={`bottom-nav-item ${isActive ? 'active' : 'inactive'}`}
                     >
                         <i
-                            className={`${item.icon} bottom-nav-icon`}
+                            className={`${isActive ? item.iconFilled : item.icon} bottom-nav-icon`}
                         ></i>
                         <span
                             className="bottom-nav-label"
