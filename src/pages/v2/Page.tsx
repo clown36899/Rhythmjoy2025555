@@ -695,7 +695,8 @@ export default function HomePageV2() {
 
                 // Then, wait a bit and do horizontal scroll
                 setTimeout(() => {
-                    const slideContainer = eventCard.closest('.event-list-slide-container');
+                    // Find the horizontal scroll container (correct class name)
+                    const slideContainer = eventCard.closest('.evt-v2-horizontal-scroll');
 
                     if (slideContainer) {
                         // Get fresh positions after vertical scroll
