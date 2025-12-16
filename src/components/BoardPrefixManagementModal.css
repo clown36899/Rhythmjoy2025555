@@ -12,19 +12,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--bpm-spacing-4);
-  z-index: var(--bpm-z-999999);
+  padding: 1rem;
+  z-index: 4000;
 }
 
 /* ===== 모달 컨테이너 ===== */
 .bpm-container {
-  background-color: var(--bpm-gray-800);
-  border-radius: var(--bpm-radius-lg);
+  background-color: #1f2937;
+  border-radius: 0.5rem;
   max-width: 42rem;
   width: 100%;
   max-height: 90svh;
   position: relative;
-  z-index: var(--bpm-z-999999);
+  z-index: 4000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -32,8 +32,8 @@
 
 /* ===== 모달 헤더 ===== */
 .bpm-header {
-  padding: var(--bpm-spacing-4);
-  border-bottom: 1px solid var(--bpm-gray-700);
+  padding: 1rem;
+  border-bottom: 1px solid #374151;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -48,8 +48,8 @@
 }
 
 .bpm-close-btn {
-  color: var(--bpm-gray-400);
-  transition: var(--bpm-transition-colors);
+  color: #9ca3af;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   background: none;
   border: none;
   cursor: pointer;
@@ -69,19 +69,19 @@
 .bpm-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--bpm-spacing-4);
+  padding: 1rem;
 }
 
 /* ===== 로딩 상태 ===== */
 .bpm-loading {
   text-align: center;
-  padding: var(--bpm-spacing-12) 0;
+  padding: 3rem 0;
 }
 
 .bpm-loading-icon {
   font-size: 1.875rem;
   line-height: 2.25rem;
-  color: var(--bpm-blue-500);
+  color: #3b82f6;
   animation: spin 1s linear infinite;
 }
 
@@ -96,28 +96,28 @@
 }
 
 .bpm-loading-text {
-  color: var(--bpm-gray-400);
-  margin-top: var(--bpm-spacing-2);
+  color: #9ca3af;
+  margin-top: 0.5rem;
 }
 
 /* ===== 컨텐츠 내부 ===== */
 .bpm-content-inner {
   display: flex;
   flex-direction: column;
-  gap: var(--bpm-spacing-4);
+  gap: 1rem;
 }
 
 /* ===== 머릿말 목록 ===== */
 .bpm-prefix-list {
   display: flex;
   flex-direction: column;
-  gap: var(--bpm-spacing-2);
+  gap: 0.5rem;
 }
 
 .bpm-prefix-item {
-  background-color: var(--bpm-gray-700);
-  border-radius: var(--bpm-radius-lg);
-  padding: var(--bpm-spacing-4);
+  background-color: #374151;
+  border-radius: 0.5rem;
+  padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -126,14 +126,14 @@
 .bpm-prefix-info {
   display: flex;
   align-items: center;
-  gap: var(--bpm-spacing-3);
+  gap: 0.75rem;
 }
 
 .bpm-prefix-badge {
-  padding: var(--bpm-spacing-1) var(--bpm-spacing-3);
-  padding-top: var(--bpm-spacing-1);
-  padding-bottom: var(--bpm-spacing-1);
-  border-radius: var(--bpm-radius);
+  padding: 0.25rem 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: 0.25rem;
   color: white;
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -141,19 +141,19 @@
 }
 
 .bpm-prefix-admin-badge {
-  background-color: var(--bpm-red-600);
+  background-color: #dc2626;
   color: white;
   font-size: 0.75rem;
   line-height: 1rem;
-  padding: var(--bpm-spacing-05) var(--bpm-spacing-2);
-  padding-top: var(--bpm-spacing-05);
-  padding-bottom: var(--bpm-spacing-05);
-  border-radius: var(--bpm-radius);
+  padding: 0.125rem 0.5rem;
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+  border-radius: 0.25rem;
 }
 
 .bpm-prefix-delete-btn {
-  color: var(--bpm-red-400);
-  transition: var(--bpm-transition-colors);
+  color: #f87171;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   background: none;
   border: none;
   cursor: pointer;
@@ -161,7 +161,7 @@
 }
 
 .bpm-prefix-delete-btn:hover {
-  color: var(--bpm-red-300);
+  color: #fca5a5;
 }
 
 .bpm-prefix-delete-icon {
@@ -171,102 +171,102 @@
 
 /* ===== 추가 폼 ===== */
 .bpm-add-form {
-  background-color: var(--bpm-gray-700);
-  border-radius: var(--bpm-radius-lg);
-  padding: var(--bpm-spacing-4);
+  background-color: #374151;
+  border-radius: 0.5rem;
+  padding: 1rem;
 }
 
 .bpm-add-form-inner {
   display: flex;
   flex-direction: column;
-  gap: var(--bpm-spacing-3);
+  gap: 0.75rem;
 }
 
 .bpm-form-label {
   display: block;
-  color: var(--bpm-gray-300);
+  color: #d1d5db;
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  margin-bottom: var(--bpm-spacing-2);
+  margin-bottom: 0.5rem;
 }
 
 .bpm-form-input {
   width: 100%;
-  background-color: var(--bpm-gray-600);
+  background-color: #4b5563;
   color: white;
-  border-radius: var(--bpm-radius);
-  padding: var(--bpm-spacing-2) var(--bpm-spacing-3);
+  border-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
   border: none;
   outline: none;
 }
 
 .bpm-form-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bpm-blue-500);
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 .bpm-form-input::placeholder {
-  color: var(--bpm-gray-400);
+  color: #9ca3af;
 }
 
 /* ===== 색상 선택 ===== */
 .bpm-color-row {
   display: flex;
-  gap: var(--bpm-spacing-2);
+  gap: 0.5rem;
 }
 
 .bpm-color-picker {
   height: 2.5rem;
   width: 5rem;
-  border-radius: var(--bpm-radius);
+  border-radius: 0.25rem;
   cursor: pointer;
   border: none;
 }
 
 .bpm-color-input {
   flex: 1;
-  background-color: var(--bpm-gray-600);
+  background-color: #4b5563;
   color: white;
-  border-radius: var(--bpm-radius);
-  padding: var(--bpm-spacing-2) var(--bpm-spacing-3);
+  border-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
   border: none;
   outline: none;
 }
 
 .bpm-color-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bpm-blue-500);
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 .bpm-color-input::placeholder {
-  color: var(--bpm-gray-400);
+  color: #9ca3af;
 }
 
 /* ===== 체크박스 라벨 ===== */
 .bpm-checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--bpm-spacing-2);
+  gap: 0.5rem;
   cursor: pointer;
 }
 
 .bpm-checkbox {
-  width: var(--bpm-spacing-4);
-  height: var(--bpm-spacing-4);
-  border-radius: var(--bpm-radius);
-  border: 1px solid var(--bpm-gray-600);
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid #4b5563;
   color: var(--bpm-blue-600);
   cursor: pointer;
 }
 
 .bpm-checkbox:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bpm-blue-500);
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 .bpm-checkbox-text {
-  color: var(--bpm-gray-300);
+  color: #d1d5db;
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
@@ -274,27 +274,27 @@
 /* ===== 폼 버튼 ===== */
 .bpm-form-footer {
   display: flex;
-  gap: var(--bpm-spacing-2);
-  padding-top: var(--bpm-spacing-2);
+  gap: 0.5rem;
+  padding-top: 0.5rem;
 }
 
 .bpm-form-btn {
   flex: 1;
-  padding: var(--bpm-spacing-2);
-  border-radius: var(--bpm-radius);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
   font-weight: 500;
-  transition: var(--bpm-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .bpm-form-btn-cancel {
-  background-color: var(--bpm-gray-600);
+  background-color: #4b5563;
   color: white;
 }
 
 .bpm-form-btn-cancel:hover {
-  background-color: var(--bpm-gray-500);
+  background-color: #6b7280;
 }
 
 .bpm-form-btn-submit {
@@ -316,14 +316,14 @@
   width: 100%;
   background-color: var(--bpm-blue-600);
   color: white;
-  padding: var(--bpm-spacing-3);
-  border-radius: var(--bpm-radius-lg);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
   font-weight: 500;
-  transition: var(--bpm-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--bpm-spacing-2);
+  gap: 0.5rem;
   border: none;
   cursor: pointer;
 }

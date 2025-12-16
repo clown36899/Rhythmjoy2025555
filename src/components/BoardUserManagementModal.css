@@ -12,19 +12,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--boum-spacing-4);
-  z-index: var(--boum-z-1000000);
+  padding: 1rem;
+  z-index: 4000;
 }
 
 /* ===== 모달 컨테이너 ===== */
 .boum-container {
-  background-color: var(--boum-gray-800);
-  border-radius: var(--boum-radius-lg);
+  background-color: #1f2937;
+  border-radius: 0.5rem;
   max-width: 80rem;
   width: 100%;
   max-height: 90svh;
   position: relative;
-  z-index: var(--boum-z-1000000);
+  z-index: 4000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -32,8 +32,8 @@
 
 /* ===== 모달 헤더 ===== */
 .boum-header {
-  padding: var(--boum-spacing-4);
-  border-bottom: 1px solid var(--boum-gray-700);
+  padding: 1rem;
+  border-bottom: 1px solid #374151;
   flex-shrink: 0;
 }
 
@@ -41,7 +41,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--boum-spacing-3);
+  margin-bottom: 0.75rem;
 }
 
 .boum-title {
@@ -52,8 +52,8 @@
 }
 
 .boum-close-btn {
-  color: var(--boum-gray-400);
-  transition: var(--boum-transition-colors);
+  color: #9ca3af;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   background: none;
   border: none;
   cursor: pointer;
@@ -73,7 +73,7 @@
 .boum-search-area {
   display: flex;
   align-items: center;
-  gap: var(--boum-spacing-2);
+  gap: 0.5rem;
 }
 
 .boum-search-wrapper {
@@ -83,10 +83,10 @@
 
 .boum-search-input {
   width: 100%;
-  background-color: var(--boum-gray-700);
+  background-color: #374151;
   color: white;
-  border-radius: var(--boum-radius-lg);
-  padding: var(--boum-spacing-2) var(--boum-spacing-3);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
   padding-left: 2.5rem;
   border: none;
   outline: none;
@@ -94,63 +94,63 @@
 
 .boum-search-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--boum-blue-500);
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 .boum-search-input::placeholder {
-  color: var(--boum-gray-400);
+  color: #9ca3af;
 }
 
 .boum-search-icon {
   position: absolute;
-  left: var(--boum-spacing-3);
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--boum-gray-400);
+  color: #9ca3af;
 }
 
 .boum-refresh-btn {
-  background-color: var(--boum-blue-600);
+  background-color: #2563eb;
   color: white;
-  padding: var(--boum-spacing-2) var(--boum-spacing-4);
-  border-radius: var(--boum-radius-lg);
-  transition: var(--boum-transition-colors);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .boum-refresh-btn:hover {
-  background-color: var(--boum-blue-700);
+  background-color: #1d4ed8;
 }
 
 /* ===== 통계 영역 ===== */
 .boum-stats {
-  margin-top: var(--boum-spacing-3);
+  margin-top: 0.75rem;
   display: flex;
   align-items: center;
-  gap: var(--boum-spacing-4);
+  gap: 1rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: var(--boum-gray-400);
+  color: #9ca3af;
 }
 
 /* ===== 모달 컨텐츠 ===== */
 .boum-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--boum-spacing-4);
+  padding: 1rem;
 }
 
 /* ===== 로딩 상태 ===== */
 .boum-loading {
   text-align: center;
-  padding: var(--boum-spacing-12) 0;
+  padding: 3rem 0;
 }
 
 .boum-loading-icon {
   font-size: 1.875rem;
   line-height: 2.25rem;
-  color: var(--boum-blue-500);
+  color: #3b82f6;
   animation: spin 1s linear infinite;
 }
 
@@ -164,25 +164,25 @@
 }
 
 .boum-loading-text {
-  color: var(--boum-gray-400);
-  margin-top: var(--boum-spacing-2);
+  color: #9ca3af;
+  margin-top: 0.5rem;
 }
 
 /* ===== 빈 상태 ===== */
 .boum-empty {
   text-align: center;
-  padding: var(--boum-spacing-12) 0;
+  padding: 3rem 0;
 }
 
 .boum-empty-icon {
   font-size: 3rem;
   line-height: 1;
-  color: var(--boum-gray-600);
-  margin-bottom: var(--boum-spacing-4);
+  color: #4b5563;
+  margin-bottom: 1rem;
 }
 
 .boum-empty-text {
-  color: var(--boum-gray-400);
+  color: #9ca3af;
 }
 
 /* ===== 테이블 ===== */
@@ -195,41 +195,41 @@
 }
 
 .boum-table-head {
-  border-bottom: 1px solid var(--boum-gray-700);
+  border-bottom: 1px solid #374151;
 }
 
 .boum-table-header {
   text-align: left;
-  color: var(--boum-gray-300);
+  color: #d1d5db;
   font-weight: 500;
-  padding: var(--boum-spacing-3);
+  padding: 0.75rem;
 }
 
 .boum-table-row {
-  border-bottom: 1px solid var(--boum-gray-700);
-  transition: var(--boum-transition-colors);
+  border-bottom: 1px solid #374151;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .boum-table-row:hover {
-  background-color: var(--boum-gray-750);
+  background-color: #2d3748;
 }
 
 .boum-table-cell {
-  padding: var(--boum-spacing-3);
+  padding: 0.75rem;
 }
 
 /* ===== 테이블 - 닉네임 셀 ===== */
 .boum-nickname-cell {
   display: flex;
   align-items: center;
-  gap: var(--boum-spacing-2);
+  gap: 0.5rem;
 }
 
 .boum-avatar {
   width: 2rem;
   height: 2rem;
-  border-radius: var(--boum-radius-full);
-  background-color: var(--boum-blue-600);
+  border-radius: 9999px;
+  background-color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -246,15 +246,15 @@
 
 /* ===== 테이블 - 본명/전화번호 셀 ===== */
 .boum-text-gray {
-  color: var(--boum-gray-300);
+  color: #d1d5db;
 }
 
 /* ===== 테이블 - 성별 셀 ===== */
 .boum-gender-badge {
-  padding: var(--boum-spacing-2) var(--boum-spacing-2);
-  padding-top: var(--boum-spacing-1);
-  padding-bottom: var(--boum-spacing-1);
-  border-radius: var(--boum-radius-lg);
+  padding: 0.5rem 0.5rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: 0.5rem;
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
@@ -271,36 +271,36 @@
 }
 
 .boum-gender-other {
-  background-color: var(--boum-gray-700);
-  color: var(--boum-gray-300);
+  background-color: #374151;
+  color: #d1d5db;
 }
 
 /* ===== 테이블 - 가입일 셀 ===== */
 .boum-date-text {
-  color: var(--boum-gray-400);
+  color: #9ca3af;
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
 
 /* ===== 모달 푸터 ===== */
 .boum-footer {
-  padding: var(--boum-spacing-4);
-  border-top: 1px solid var(--boum-gray-700);
+  padding: 1rem;
+  border-top: 1px solid #374151;
   flex-shrink: 0;
 }
 
 .boum-footer-btn {
   width: 100%;
-  background-color: var(--boum-gray-700);
+  background-color: #374151;
   color: white;
-  padding: var(--boum-spacing-2);
-  border-radius: var(--boum-radius-lg);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
   font-weight: 500;
-  transition: var(--boum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .boum-footer-btn:hover {
-  background-color: var(--boum-gray-600);
+  background-color: #4b5563;
 }

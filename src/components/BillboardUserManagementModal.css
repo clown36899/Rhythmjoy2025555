@@ -12,17 +12,17 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  z-index: var(--bum-z-99999999);
-  padding: var(--bum-spacing-4);
+  z-index: 4000;
+  padding: 1rem;
   padding-top: 2.5rem;
   overflow-y: auto;
 }
 
 /* ===== 메인 모달 컨테이너 ===== */
 .bum-container {
-  background-color: var(--bum-gray-800);
-  border-radius: var(--bum-radius-lg);
-  padding: var(--bum-spacing-6);
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
   width: 100%;
   max-width: 42rem;
   max-height: 90svh;
@@ -34,7 +34,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--bum-spacing-6);
+  margin-bottom: 1.5rem;
 }
 
 .bum-title {
@@ -45,8 +45,8 @@
 }
 
 .bum-close-btn {
-  color: var(--bum-gray-400);
-  transition: var(--bum-transition-colors);
+  color: #9ca3af;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   background: none;
   border: none;
   cursor: pointer;
@@ -65,43 +65,43 @@
 /* ===== 새 사용자 생성 버튼 ===== */
 .bum-create-btn {
   width: 100%;
-  background-color: var(--bum-blue-600);
+  background-color: #2563eb;
   color: white;
-  padding: var(--bum-spacing-3) var(--bum-spacing-4);
-  border-radius: var(--bum-radius-lg);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
   font-weight: 600;
-  transition: var(--bum-transition-colors);
-  margin-bottom: var(--bum-spacing-4);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--bum-spacing-2);
+  gap: 0.5rem;
   border: none;
   cursor: pointer;
 }
 
 .bum-create-btn:hover {
-  background-color: var(--bum-blue-700);
+  background-color: #1d4ed8;
 }
 
 /* ===== 사용자 목록 ===== */
 .bum-user-list {
   display: flex;
   flex-direction: column;
-  gap: var(--bum-spacing-3);
+  gap: 0.75rem;
 }
 
 .bum-user-empty {
-  color: var(--bum-gray-400);
+  color: #9ca3af;
   text-align: center;
-  padding: var(--bum-spacing-8) 0;
+  padding: 2rem 0;
 }
 
 /* ===== 사용자 카드 ===== */
 .bum-user-card {
-  background-color: var(--bum-gray-700);
-  border-radius: var(--bum-radius-lg);
-  padding: var(--bum-spacing-4);
+  background-color: #374151;
+  border-radius: 0.5rem;
+  padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -117,59 +117,59 @@
 }
 
 .bum-user-email {
-  color: var(--bum-gray-300);
+  color: #d1d5db;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  margin-top: var(--bum-spacing-05);
+  margin-top: 0.125rem;
 }
 
 .bum-user-email-icon {
-  margin-right: var(--bum-spacing-1);
+  margin-right: 0.25rem;
 }
 
 .bum-user-url {
-  color: var(--bum-gray-400);
+  color: #9ca3af;
   font-size: 0.75rem;
   line-height: 1rem;
-  margin-top: var(--bum-spacing-1);
+  margin-top: 0.25rem;
 }
 
 .bum-user-actions {
   display: flex;
   align-items: center;
-  gap: var(--bum-spacing-2);
+  gap: 0.5rem;
 }
 
 .bum-user-copy-btn {
-  background-color: var(--bum-green-600);
+  background-color: #16a34a;
   color: white;
-  padding: var(--bum-spacing-2) var(--bum-spacing-3);
-  border-radius: var(--bum-radius);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  transition: var(--bum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .bum-user-copy-btn:hover {
-  background-color: var(--bum-green-700);
+  background-color: #15803d;
 }
 
 .bum-user-edit-btn {
-  background-color: var(--bum-blue-600);
+  background-color: #2563eb;
   color: white;
-  padding: var(--bum-spacing-2) var(--bum-spacing-3);
-  border-radius: var(--bum-radius);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  transition: var(--bum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .bum-user-edit-btn:hover {
-  background-color: var(--bum-blue-700);
+  background-color: #1d4ed8;
 }
 
 /* ===== 새 사용자 생성 모달 ===== */
@@ -183,14 +183,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--bum-z-999999999);
-  padding: var(--bum-spacing-4);
+  z-index: 4000;
+  padding: 1rem;
 }
 
 .bum-create-container {
-  background-color: var(--bum-gray-800);
-  border-radius: var(--bum-radius-lg);
-  padding: var(--bum-spacing-6);
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
   width: 100%;
   max-width: 28rem;
 }
@@ -200,13 +200,13 @@
   line-height: 1.75rem;
   font-weight: 700;
   color: white;
-  margin-bottom: var(--bum-spacing-4);
+  margin-bottom: 1rem;
 }
 
 .bum-create-form {
   display: flex;
   flex-direction: column;
-  gap: var(--bum-spacing-4);
+  gap: 1rem;
 }
 
 .bum-form-group {
@@ -215,46 +215,46 @@
 
 .bum-form-label {
   display: block;
-  color: var(--bum-gray-300);
+  color: #d1d5db;
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  margin-bottom: var(--bum-spacing-2);
+  margin-bottom: 0.5rem;
 }
 
 .bum-form-input {
   width: 100%;
-  background-color: var(--bum-gray-700);
+  background-color: #374151;
   color: white;
-  border-radius: var(--bum-radius-lg);
-  padding: var(--bum-spacing-3) var(--bum-spacing-4);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
   border: none;
   outline: none;
 }
 
 .bum-form-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bum-blue-500);
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 .bum-form-input::placeholder {
-  color: var(--bum-gray-400);
+  color: #9ca3af;
 }
 
 /* ===== 요일 선택 ===== */
 .bum-weekday-container {
   display: flex;
-  gap: var(--bum-spacing-2);
+  gap: 0.5rem;
 }
 
 .bum-weekday-btn {
   flex: 1;
-  padding: var(--bum-spacing-2);
-  border-radius: var(--bum-radius);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
-  transition: var(--bum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
@@ -265,51 +265,51 @@
 }
 
 .bum-weekday-btn-normal {
-  background-color: var(--bum-gray-700);
-  color: var(--bum-gray-300);
+  background-color: #374151;
+  color: #d1d5db;
 }
 
 .bum-weekday-btn-normal:hover {
-  background-color: var(--bum-gray-600);
+  background-color: #4b5563;
 }
 
 /* ===== 모달 푸터 버튼 ===== */
 .bum-modal-footer {
   display: flex;
-  gap: var(--bum-spacing-3);
-  padding-top: var(--bum-spacing-4);
+  gap: 0.75rem;
+  padding-top: 1rem;
 }
 
 .bum-footer-btn-cancel {
   flex: 1;
-  background-color: var(--bum-gray-700);
+  background-color: #374151;
   color: white;
-  padding: var(--bum-spacing-3);
-  border-radius: var(--bum-radius-lg);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
   font-weight: 600;
-  transition: var(--bum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .bum-footer-btn-cancel:hover {
-  background-color: var(--bum-gray-600);
+  background-color: #4b5563;
 }
 
 .bum-footer-btn-submit {
   flex: 1;
-  background-color: var(--bum-blue-600);
+  background-color: #2563eb;
   color: white;
-  padding: var(--bum-spacing-3);
-  border-radius: var(--bum-radius-lg);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
   font-weight: 600;
-  transition: var(--bum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .bum-footer-btn-submit:hover {
-  background-color: var(--bum-blue-700);
+  background-color: #1d4ed8;
 }
 
 /* ===== 편집 모달 ===== */
@@ -323,15 +323,15 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  z-index: var(--bum-z-999999999);
-  padding: var(--bum-spacing-4);
+  z-index: 4000;
+  padding: 1rem;
   padding-top: 2.5rem;
   overflow-y: auto;
 }
 
 .bum-edit-container {
-  background-color: var(--bum-gray-800);
-  border-radius: var(--bum-radius-lg);
+  background-color: #1f2937;
+  border-radius: 0.5rem;
   width: 100%;
   max-width: 28rem;
   max-height: 90svh;
@@ -341,8 +341,8 @@
 }
 
 .bum-edit-header {
-  padding: var(--bum-spacing-6) var(--bum-spacing-6) var(--bum-spacing-4);
-  border-bottom: 1px solid var(--bum-gray-700);
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid #374151;
   flex-shrink: 0;
 }
 
@@ -356,13 +356,13 @@
 .bum-edit-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--bum-spacing-6) var(--bum-spacing-6) var(--bum-spacing-4);
+  padding: 1.5rem 1.5rem 1rem;
 }
 
 .bum-edit-form {
   display: flex;
   flex-direction: column;
-  gap: var(--bum-spacing-6);
+  gap: 1.5rem;
 }
 
 /* ===== 제외 이벤트 섹션 ===== */
@@ -374,11 +374,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--bum-spacing-2);
+  margin-bottom: 0.5rem;
 }
 
 .bum-exclude-label {
-  color: var(--bum-gray-300);
+  color: #d1d5db;
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
@@ -386,17 +386,17 @@
 
 .bum-exclude-actions {
   display: flex;
-  gap: var(--bum-spacing-2);
+  gap: 0.5rem;
 }
 
 .bum-exclude-btn-all {
-  padding: var(--bum-spacing-1) var(--bum-spacing-2);
+  padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   line-height: 1rem;
   background-color: var(--bum-red-600);
   color: white;
-  border-radius: var(--bum-radius);
-  transition: var(--bum-transition-colors);
+  border-radius: 0.25rem;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   font-weight: 500;
   border: none;
   cursor: pointer;
@@ -407,27 +407,27 @@
 }
 
 .bum-exclude-btn-clear {
-  padding: var(--bum-spacing-1) var(--bum-spacing-2);
+  padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   line-height: 1rem;
-  background-color: var(--bum-gray-600);
+  background-color: #4b5563;
   color: white;
-  border-radius: var(--bum-radius);
-  transition: var(--bum-transition-colors);
+  border-radius: 0.25rem;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   font-weight: 500;
   border: none;
   cursor: pointer;
 }
 
 .bum-exclude-btn-clear:hover {
-  background-color: var(--bum-gray-500);
+  background-color: #6b7280;
 }
 
 .bum-exclude-stats {
   font-size: 0.75rem;
   line-height: 1rem;
-  color: var(--bum-gray-400);
-  margin-bottom: var(--bum-spacing-2);
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
 }
 
 .bum-exclude-stats-blue {
@@ -443,19 +443,19 @@
 .bum-exclude-list {
   max-height: 10rem;
   overflow-y: auto;
-  background-color: var(--bum-gray-700);
-  border-radius: var(--bum-radius-lg);
-  padding: var(--bum-spacing-3);
+  background-color: #374151;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
 }
 
 .bum-exclude-list-inner {
   display: flex;
   flex-direction: column;
-  gap: var(--bum-spacing-2);
+  gap: 0.5rem;
 }
 
 .bum-exclude-empty {
-  color: var(--bum-gray-400);
+  color: #9ca3af;
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
@@ -463,9 +463,9 @@
 .bum-exclude-item {
   display: flex;
   align-items: center;
-  gap: var(--bum-spacing-2);
-  padding: var(--bum-spacing-2);
-  border-radius: var(--bum-radius);
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
 }
 
 .bum-exclude-item-media {
@@ -473,7 +473,7 @@
 }
 
 .bum-exclude-item-media:hover {
-  background-color: var(--bum-gray-600);
+  background-color: #4b5563;
 }
 
 .bum-exclude-item-excluded {
@@ -505,7 +505,7 @@
 }
 
 .bum-exclude-icon-disabled {
-  color: var(--bum-gray-500);
+  color: #6b7280;
 }
 
 .bum-exclude-checkbox {
@@ -528,21 +528,21 @@
 }
 
 .bum-exclude-text-disabled {
-  color: var(--bum-gray-500);
+  color: #6b7280;
 }
 
 .bum-exclude-date {
-  color: var(--bum-gray-400);
+  color: #9ca3af;
   font-size: 0.75rem;
   line-height: 1rem;
-  margin-left: var(--bum-spacing-2);
+  margin-left: 0.5rem;
 }
 
 .bum-exclude-badge-excluded {
   color: var(--bum-red-400);
   font-size: 0.75rem;
   line-height: 1rem;
-  margin-left: var(--bum-spacing-2);
+  margin-left: 0.5rem;
   font-weight: 700;
 }
 
@@ -550,17 +550,17 @@
   color: var(--bum-red-400);
   font-size: 0.75rem;
   line-height: 1rem;
-  margin-left: var(--bum-spacing-2);
+  margin-left: 0.5rem;
 }
 
 /* ===== 슬라이드 간격 설정 ===== */
 .bum-slide-control {
   display: flex;
   align-items: center;
-  gap: var(--bum-spacing-3);
-  background-color: var(--bum-gray-700);
-  border-radius: var(--bum-radius-lg);
-  padding: var(--bum-spacing-3) var(--bum-spacing-4);
+  gap: 0.75rem;
+  background-color: #374151;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
 }
 
 .bum-slide-time {
@@ -575,15 +575,15 @@
 .bum-slide-buttons {
   display: flex;
   flex-direction: column;
-  gap: var(--bum-spacing-1);
+  gap: 0.25rem;
 }
 
 .bum-slide-btn {
-  background-color: var(--bum-blue-600);
+  background-color: #2563eb;
   color: white;
-  padding: var(--bum-spacing-2) var(--bum-spacing-4);
-  border-radius: var(--bum-radius-lg);
-  transition: var(--bum-transition-colors);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   font-weight: 700;
   font-size: 1.125rem;
   line-height: 1.75rem;
@@ -592,22 +592,22 @@
 }
 
 .bum-slide-btn:hover {
-  background-color: var(--bum-blue-700);
+  background-color: #1d4ed8;
 }
 
 .bum-slide-btn-video {
-  background-color: var(--bum-green-600);
+  background-color: #16a34a;
 }
 
 .bum-slide-btn-video:hover {
-  background-color: var(--bum-green-700);
+  background-color: #15803d;
 }
 
 .bum-slide-desc {
-  color: var(--bum-gray-400);
+  color: #9ca3af;
   font-size: 0.75rem;
   line-height: 1rem;
-  margin-top: var(--bum-spacing-1);
+  margin-top: 0.25rem;
 }
 
 /* ===== 재생 순서 (숨김) ===== */
@@ -617,71 +617,71 @@
 
 .bum-play-order-buttons {
   display: flex;
-  gap: var(--bum-spacing-3);
+  gap: 0.75rem;
 }
 
 .bum-play-order-btn {
   flex: 1;
-  padding: var(--bum-spacing-2);
-  border-radius: var(--bum-radius);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
   font-weight: 500;
-  transition: var(--bum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .bum-play-order-btn-active {
-  background-color: var(--bum-blue-600);
+  background-color: #2563eb;
   color: white;
 }
 
 .bum-play-order-btn-inactive {
-  background-color: var(--bum-gray-700);
-  color: var(--bum-gray-300);
+  background-color: #374151;
+  color: #d1d5db;
 }
 
 .bum-play-order-btn-inactive:hover {
-  background-color: var(--bum-gray-600);
+  background-color: #4b5563;
 }
 
 /* ===== 날짜 필터 섹션 ===== */
 .bum-date-filter-group {
   display: flex;
   flex-direction: column;
-  gap: var(--bum-spacing-2);
+  gap: 0.5rem;
 }
 
 .bum-date-filter-row {
   display: flex;
-  gap: var(--bum-spacing-2);
+  gap: 0.5rem;
 }
 
 .bum-date-input {
   flex: 1;
-  background-color: var(--bum-gray-700);
+  background-color: #374151;
   color: white;
-  border-radius: var(--bum-radius-lg);
-  padding: var(--bum-spacing-2) var(--bum-spacing-4);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
   border: none;
   outline: none;
 }
 
 .bum-date-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bum-blue-500);
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 .bum-date-input::placeholder {
-  color: var(--bum-gray-400);
+  color: #9ca3af;
 }
 
 .bum-date-clear-btn {
-  padding: var(--bum-spacing-2) var(--bum-spacing-4);
+  padding: 0.5rem 1rem;
   background-color: var(--bum-orange-600);
   color: white;
-  border-radius: var(--bum-radius-lg);
+  border-radius: 0.5rem;
   font-weight: 500;
-  transition: var(--bum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   white-space: nowrap;
   border: none;
   cursor: pointer;
@@ -694,40 +694,40 @@
 .bum-date-filter-hint {
   display: flex;
   flex-direction: column;
-  gap: var(--bum-spacing-1);
+  gap: 0.25rem;
 }
 
 .bum-date-filter-info {
   font-size: 0.75rem;
   line-height: 1rem;
-  color: var(--bum-green-600);
+  color: #16a34a;
 }
 
 .bum-date-filter-info-icon {
-  margin-right: var(--bum-spacing-1);
+  margin-right: 0.25rem;
 }
 
 /* ===== 비밀번호 변경 섹션 (숨김) ===== */
 .bum-password-section-hidden {
   display: none;
-  border-top: 1px solid var(--bum-gray-700);
-  padding-top: var(--bum-spacing-4);
+  border-top: 1px solid #374151;
+  padding-top: 1rem;
 }
 
 .bum-password-form {
   display: flex;
   flex-direction: column;
-  gap: var(--bum-spacing-2);
+  gap: 0.5rem;
 }
 
 .bum-password-change-btn {
   width: 100%;
   background-color: var(--bum-orange-600);
   color: white;
-  padding: var(--bum-spacing-2);
-  border-radius: var(--bum-radius-lg);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
   font-weight: 500;
-  transition: var(--bum-transition-colors);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   border: none;
   cursor: pointer;
 }
@@ -738,9 +738,9 @@
 
 /* ===== 편집 모달 푸터 ===== */
 .bum-edit-footer {
-  padding: var(--bum-spacing-6) var(--bum-spacing-6) var(--bum-spacing-4);
-  border-top: 1px solid var(--bum-gray-700);
+  padding: 1.5rem 1.5rem 1rem;
+  border-top: 1px solid #374151;
   display: flex;
-  gap: var(--bum-spacing-3);
+  gap: 0.75rem;
   flex-shrink: 0;
 }
