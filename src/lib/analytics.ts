@@ -27,15 +27,27 @@ const isDevelopment = () => {
     return false;
 };
 
+// 빌보드 페이지 감지 (자동 재생 페이지)
+const isBillboardPage = () => {
+    if (typeof window === 'undefined') return false;
+    return window.location.pathname.startsWith('/billboard/');
+};
+
 /**
  * Google Analytics 초기화
  * 앱 시작 시 한 번만 호출
- * 개발 환경(localhost)에서는 초기화하지 않음
+ * 개발 환경(localhost) 및 빌보드 페이지에서는 초기화하지 않음
  */
 export const initGA = () => {
     // 개발 환경에서는 GA 비활성화
     if (isDevelopment()) {
         console.log('[Analytics] Development environment detected - Analytics disabled');
+        return;
+    }
+
+    // 빌보드 페이지에서는 GA 비활성화 (자동 재생으로 인한 통계 왜곡 방지)
+    if (isBillboardPage()) {
+        console.log('[Analytics] Billboard page detected - Analytics disabled');
         return;
     }
 
