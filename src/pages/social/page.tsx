@@ -15,7 +15,7 @@ export default function SocialPage() {
   const [showEventModal, setShowEventModal] = useState(false);
 
   // Layout State
-  const [headerHeight, setHeaderHeight] = useState(0);
+
   const headerRef = useRef<HTMLDivElement>(null);
 
   // Data Fetching Hook
@@ -23,17 +23,6 @@ export default function SocialPage() {
     events,
     loading: schedulesLoading
   } = useSocialSchedules();
-
-  useEffect(() => {
-    const headerElement = headerRef.current;
-    if (!headerElement) return;
-
-    const observer = new ResizeObserver(() => {
-      setHeaderHeight(headerElement.offsetHeight);
-    });
-    observer.observe(headerElement);
-    return () => observer.disconnect();
-  }, []);
 
   // Listeners from MobileShell
   useEffect(() => {

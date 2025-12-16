@@ -83,15 +83,15 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                 console.error('Practice rooms search error:', practiceError);
             }
 
-            // Search social places
+            // Search social schedules (as places)
             const { data: socialData, error: socialError } = await supabase
-                .from('social_places')
-                .select('place_id, name, description, address')
-                .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
+                .from('social_schedules')
+                .select('id, title, place_name, description, address')
+                .or(`title.ilike.%${searchTerm}%,place_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
                 .limit(10);
 
             if (socialError) {
-                console.error('Social places search error:', socialError);
+                console.error('Social schedules search error:', socialError);
             }
 
             setResults({
@@ -112,9 +112,9 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                 })),
                 shopping: [], // Shopping table doesn't exist
                 social_places: (socialData || []).map(sp => ({
-                    id: String(sp.place_id),
-                    title: sp.name,
-                    description: sp.description,
+                    id: String(sp.id),
+                    title: sp.title, // Use title as the main identifier
+                    description: sp.place_name ? `${sp.place_name} - ${sp.description || ''}` : sp.description, // Show place name in description
                     type: 'social_place' as const,
                     thumbnail: undefined
                 }))

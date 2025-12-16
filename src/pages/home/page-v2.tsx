@@ -505,7 +505,6 @@ export default function HomePageV2() {
                     onBillboardOpen={handleBillboardOpen}
                     onBillboardSettingsOpen={handleBillboardSettingsOpen}
                     viewMode={viewMode}
-                    onViewModeChange={handleViewModeChange}
                     billboardEnabled={settings.enabled}
                 />
 
