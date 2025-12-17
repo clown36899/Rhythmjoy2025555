@@ -292,76 +292,40 @@ export default function BoardPage() {
           <h1 className="board-header-title">자유게시판</h1>
 
           <div className="board-header-actions">
-            {user ? (
-              <>
-                {userData ? (
-                  <>
-                    <button
-                      onClick={() => setShowProfileEditModal(true)}
-                      className="board-btn-profile"
-                      style={{
-                        backgroundColor: '#4b5563',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        cursor: 'pointer',
-                        marginRight: '8px'
-                      }}
-                    >
-                      <i className="ri-user-settings-line"></i>
-                      내 정보
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedPost(null);
-                        setShowEditorModal(true);
-                      }}
-                      className="board-btn-write"
-                    >
-                      <i className="ri-add-line"></i>
-                      글쓰기
-                    </button>
-                  </>
-                ) : (
-                  <span className="board-btn-registering">
-                    <i className="ri-user-add-line"></i>
-                    회원가입 중...
-                  </span>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="board-btn-logout"
-                >
-                  <i className="ri-logout-box-line"></i>
-                  로그아웃
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={async () => {
-                  try {
-                    setIsLoggingIn(true);
-                    await signInWithKakao();
-                  } catch (error: any) {
-                    console.error('로그인 실패:', error);
-                    alert(error?.message || '로그인에 실패했습니다. 다시 시도해주세요.');
-                  } finally {
-                    setIsLoggingIn(false);
+            <button
+              onClick={async () => {
+                // 1. Check Login
+                if (!user) {
+                  if (window.confirm('로그인이 필요한 서비스입니다.\n카카오 로그인을 하시겠습니까?')) {
+                    try {
+                      setIsLoggingIn(true);
+                      await signInWithKakao();
+                    } catch (error: any) {
+                      alert('로그인 중 오류가 발생했습니다.');
+                    } finally {
+                      setIsLoggingIn(false);
+                    }
                   }
-                }}
-                className="board-btn-kakao"
-                disabled={isLoggingIn}
-              >
-                <i className="ri-kakao-talk-fill"></i>
-                {isLoggingIn ? '로그인 중...' : '카카오 로그인'}
-              </button>
-            )}
-            {/* 📸 심사 캡처용 임시 버튼 삭제됨 */}
+                  return;
+                }
+
+                // 2. Check Registration (Nickname)
+                if (!userData) {
+                  // Trigger Registration Modal
+                  setShowRegistrationModal(true);
+                  return;
+                }
+
+                // 3. Open Editor
+                setSelectedPost(null);
+                setShowEditorModal(true);
+              }}
+              className="board-btn-write"
+              disabled={isLoggingIn}
+            >
+              <i className="ri-pencil-line"></i>
+              {isLoggingIn ? '로그인 중...' : '글쓰기'}
+            </button>
           </div>
         </div>
       </div>
@@ -465,68 +429,80 @@ export default function BoardPage() {
       </div>
 
       {/* Registration Modal */}
-      {showRegistrationModal && user && (
-        <UserRegistrationModal
-          isOpen={showRegistrationModal}
-          onClose={() => setShowRegistrationModal(false)}
-          onRegistered={handleUserRegistered}
-          userId={user.id}
-        />
-      )}
+      {
+        showRegistrationModal && user && (
+          <UserRegistrationModal
+            isOpen={showRegistrationModal}
+            onClose={() => setShowRegistrationModal(false)}
+            onRegistered={handleUserRegistered}
+            userId={user.id}
+          />
+        )
+      }
 
       {/* Profile Edit Modal */}
-      {showProfileEditModal && userData && user && (
-        <ProfileEditModal
-          isOpen={showProfileEditModal}
-          onClose={() => setShowProfileEditModal(false)}
-          currentUser={{
-            nickname: userData.nickname,
-            profile_image: undefined // Add profile_image to UserData if needed, currently passing undefined or need to fetch
-          }}
-          onProfileUpdated={checkUserRegistration}
-          userId={user.id}
-        />
-      )}
+      {
+        showProfileEditModal && userData && user && (
+          <ProfileEditModal
+            isOpen={showProfileEditModal}
+            onClose={() => setShowProfileEditModal(false)}
+            currentUser={{
+              nickname: userData.nickname,
+              profile_image: undefined // Add profile_image to UserData if needed, currently passing undefined or need to fetch
+            }}
+            onProfileUpdated={checkUserRegistration}
+            userId={user.id}
+          />
+        )
+      }
 
       {/* User Management Modal (Admin Only) */}
-      {showUserManagementModal && isAdmin && (
-        <BoardUserManagementModal
-          isOpen={showUserManagementModal}
-          onClose={() => setShowUserManagementModal(false)}
-        />
-      )}
+      {
+        showUserManagementModal && isAdmin && (
+          <BoardUserManagementModal
+            isOpen={showUserManagementModal}
+            onClose={() => setShowUserManagementModal(false)}
+          />
+        )
+      }
 
       {/* Registration Form Preview (Admin Only) */}
-      {showRegistrationPreview && isAdmin && (
-        <UserRegistrationModal
-          isOpen={showRegistrationPreview}
-          onClose={() => setShowRegistrationPreview(false)}
-          onRegistered={() => { }}
-          userId="preview"
-          previewMode={true}
-        />
-      )}
+      {
+        showRegistrationPreview && isAdmin && (
+          <UserRegistrationModal
+            isOpen={showRegistrationPreview}
+            onClose={() => setShowRegistrationPreview(false)}
+            onRegistered={() => { }}
+            userId="preview"
+            previewMode={true}
+          />
+        )
+      }
 
       {/* Prefix Management Modal (Admin Only) */}
-      {showPrefixManagementModal && isAdmin && (
-        <BoardPrefixManagementModal
-          isOpen={showPrefixManagementModal}
-          onClose={() => setShowPrefixManagementModal(false)}
-        />
-      )}
+      {
+        showPrefixManagementModal && isAdmin && (
+          <BoardPrefixManagementModal
+            isOpen={showPrefixManagementModal}
+            onClose={() => setShowPrefixManagementModal(false)}
+          />
+        )
+      }
 
       {/* Editor Modal */}
-      {showEditorModal && userData && (
-        <PostEditorModal
-          isOpen={showEditorModal}
-          onClose={() => setShowEditorModal(false)}
-          onPostCreated={handlePostCreated}
-          post={selectedPost}
-          userNickname={userData.nickname}
-        />
-      )}
+      {
+        showEditorModal && userData && (
+          <PostEditorModal
+            isOpen={showEditorModal}
+            onClose={() => setShowEditorModal(false)}
+            onPostCreated={handlePostCreated}
+            post={selectedPost}
+            userNickname={userData.nickname}
+          />
+        )
+      }
 
 
-    </div>
+    </div >
   );
 }

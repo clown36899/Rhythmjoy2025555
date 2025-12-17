@@ -61,6 +61,25 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                             <div className="drawer-user-info">
                                 <span className="drawer-username">{nickname}</span>
                                 <span className="drawer-email">{user.email}</span>
+                                <button
+                                    className="drawer-profile-edit-btn"
+                                    onClick={() => {
+                                        window.dispatchEvent(new CustomEvent('openProfileEdit'));
+                                        onClose();
+                                    }}
+                                    style={{
+                                        marginTop: '4px',
+                                        fontSize: '0.75rem',
+                                        color: '#a1a1aa',
+                                        background: 'transparent',
+                                        border: '1px solid #3f3f46',
+                                        borderRadius: '4px',
+                                        padding: '2px 8px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    내 정보 수정
+                                </button>
                             </div>
                         </div>
                     ) : (

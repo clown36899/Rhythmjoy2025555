@@ -1,174 +1,217 @@
-/* userreg.css - UserRegistrationModal 전용 스타일 */
+/* userreg.css - Modern, Clean Design */
+
+:root {
+  --ur-bg-overlay: rgba(0, 0, 0, 0.65);
+  --ur-bg-modal: #1e1e1e;
+  --ur-text-primary: #ffffff;
+  --ur-text-secondary: #a1a1aa;
+  --ur-border-color: #3f3f46;
+  --ur-accent-color: #FEE500;
+  --ur-accent-text: #000000;
+  --ur-radius: 16px;
+  --ur-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
 
 /* ===== 모달 오버레이 ===== */
 .userreg-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--ur-bg-overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-4);
-  z-index: 999999;
+  padding: 20px;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
 }
 
 /* ===== 모달 컨테이너 ===== */
 .userreg-modal {
-  background-color: #1f2937;
-  border-radius: var(--radius-lg);
-  max-width: 28rem;
+  background-color: var(--ur-bg-modal);
+  border-radius: var(--ur-radius);
+  box-shadow: var(--ur-shadow);
   width: 100%;
-  max-height: 90svh;
-  position: relative;
-  z-index: 999999;
+  max-width: 360px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid var(--ur-border-color);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ===== 헤더 ===== */
 .userreg-header {
-  padding: var(--spacing-4);
-  border-bottom: 1px solid #374151;
-  flex-shrink: 0;
-}
-
-.userreg-header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  padding: 24px 24px 0 24px;
+  text-align: center;
+  position: relative;
 }
 
 .userreg-title {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: white;
-  flex: 1;
-  text-align: center;
-}
-
-.userreg-close-btn {
-  color: #9ca3af;
-  cursor: pointer;
-  border: none;
-  background: none;
-  padding: 0;
-}
-
-.userreg-close-btn:hover {
-  color: white;
-}
-
-.userreg-preview-notice {
-  background-color: rgba(30, 58, 138, 0.3);
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.userreg-preview-text {
-  color: #93c5fd;
-  font-size: 0.75rem;
+  color: var(--ur-text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .userreg-subtitle {
-  color: #9ca3af;
-  font-size: 0.875rem;
-  text-align: center;
+  color: var(--ur-text-secondary);
+  font-size: 0.95rem;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.userreg-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--ur-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.userreg-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--ur-text-primary);
 }
 
 /* ===== 폼 컨텐츠 ===== */
 .userreg-form {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--spacing-4);
+  padding: 0 24px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .userreg-field {
-  margin-bottom: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .userreg-label {
   display: block;
-  color: #d1d5db;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-}
-
-.userreg-required {
-  color: #ef4444;
+  color: var(--ur-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
 .userreg-input {
   width: 100%;
-  background-color: #374151;
-  color: white;
-  border-radius: var(--radius-lg);
-  padding: 0.5rem 0.75rem;
-  border: none;
+  background-color: #27272a;
+  color: var(--ur-text-primary);
+  border: 1px solid var(--ur-border-color);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  outline: none;
 }
 
 .userreg-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px #2563eb;
+  border-color: #71717a;
+  background-color: #313135;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
 }
 
-.userreg-select {
-  width: 100%;
-  background-color: #374151;
-  color: white;
-  border-radius: var(--radius-lg);
-  padding: 0.5rem 0.75rem;
-  border: none;
+.userreg-input::placeholder {
+  color: #52525b;
 }
 
-.userreg-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px #2563eb;
-}
-
-/* ===== 안내 메시지 ===== */
-.userreg-notice {
-  background-color: rgba(30, 58, 138, 0.3);
-  border: 1px solid #2563eb;
-  border-radius: var(--radius-lg);
-  padding: 0.75rem;
-}
-
-.userreg-notice-text {
-  color: #93c5fd;
-  font-size: 0.875rem;
-}
-
-/* ===== 푸터 ===== */
-.userreg-footer {
-  padding: var(--spacing-4);
-  border-top: 1px solid #374151;
-  flex-shrink: 0;
-  display: flex;
-  gap: 0.5rem;
-}
-
+/* ===== 버튼 ===== */
 .userreg-submit-btn {
-  flex: 1;
-  background-color: #2563eb;
-  color: white;
-  padding: 0.5rem;
-  border-radius: var(--radius-lg);
-  font-weight: 500;
-  transition: background-color 0.2s ease;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
   border: none;
+  transition: transform 0.1s ease, filter 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .userreg-submit-btn:hover {
-  background-color: #1d4ed8;
+  filter: brightness(1.05);
+}
+
+.userreg-submit-btn:active {
+  transform: scale(0.98);
 }
 
 .userreg-submit-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== 애니메이션 ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===== 프로필 이미지 업로드 ===== */
+.profile-upload-container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
+  background-color: #27272a;
+  border: 2px solid var(--ur-border-color);
+}
+
+.profile-upload-container:hover {
+  transform: scale(1.05);
+  border-color: #71717a;
+}
+
+.profile-upload-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.profile-upload-container:hover .profile-upload-overlay {
+  opacity: 1;
 }

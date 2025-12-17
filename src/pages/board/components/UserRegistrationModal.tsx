@@ -112,11 +112,7 @@ export default function UserRegistrationModal({
             닉네임만 정하면 가입이 완료됩니다.
           </p>
 
-          {previewMode && (
-            <div style={{ backgroundColor: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', marginTop: '10px', display: 'inline-block' }}>
-              관리자 미리보기 모드
-            </div>
-          )}
+
         </div>
 
         {/* Content */}

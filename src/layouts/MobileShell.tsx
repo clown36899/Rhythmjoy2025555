@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import '../styles/components/MobileShell.css';
 import { BottomNavigation } from "./BottomNavigation";
 import { logUserInteraction } from "../lib/analytics";
+import ProfileEditModal from "../pages/board/components/ProfileEditModal"; // Global Modal
 
 export function MobileShell() {
   const location = useLocation();
@@ -24,6 +25,7 @@ export function MobileShell() {
   // @ts-ignore - Used in event listener (setSortBy called in handleSortByChanged)
   const [sortBy, setSortBy] = useState<'random' | 'time' | 'title'>('random');
   const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
+  const [showProfileEditModal, setShowProfileEditModal] = useState(false);
 
   // Helper for login guard
   const handleProtectedAction = (action: () => void) => {
@@ -35,6 +37,17 @@ export function MobileShell() {
     }
     action();
   };
+
+  // Profile Edit Modal Listener
+  useEffect(() => {
+    const handleOpenProfileEdit = () => {
+      setShowProfileEditModal(true);
+    };
+    window.addEventListener('openProfileEdit', handleOpenProfileEdit);
+    return () => {
+      window.removeEventListener('openProfileEdit', handleOpenProfileEdit);
+    };
+  }, []);
 
 
   // 달력 월/뷰모드 변경 감지
@@ -507,6 +520,21 @@ export function MobileShell() {
           </div>
         )}
       </div>
+      {/* Global Profile Edit Modal */}
+      {showProfileEditModal && user && (
+        <ProfileEditModal
+          isOpen={showProfileEditModal}
+          onClose={() => setShowProfileEditModal(false)}
+          currentUser={{
+            nickname: user.user_metadata?.name || '',
+            profile_image: user.user_metadata?.avatar_url
+          }}
+          onProfileUpdated={() => {
+            window.location.reload();
+          }}
+          userId={user.id}
+        />
+      )}
     </div>
   );
 }
