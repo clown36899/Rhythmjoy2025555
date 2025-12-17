@@ -7,12 +7,13 @@ import { BottomNavigation } from "./BottomNavigation";
 import { logUserInteraction } from "../lib/analytics";
 import ProfileEditModal from "../pages/board/components/ProfileEditModal"; // Global Modal
 import SideDrawer from "../components/SideDrawer";
+import GlobalLoadingOverlay from "../components/GlobalLoadingOverlay";
 
 export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAdmin, user, signInWithKakao } = useAuth();
+  const { isAdmin, user, signInWithKakao, isAuthProcessing } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
   // @ts-ignore - Used in event listener (setSelectedDate called in handleSelectedDateChanged)
@@ -663,11 +664,16 @@ export function MobileShell() {
         />
       )}
 
-      {/* Side Drawer */}
       <SideDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onLoginClick={signInWithKakao}
+      />
+
+      {/* Global Auth Loading Overlay (Blocks entire UI) */}
+      <GlobalLoadingOverlay
+        isLoading={isAuthProcessing}
+        message="로그인 중..."
       />
     </div>
   );

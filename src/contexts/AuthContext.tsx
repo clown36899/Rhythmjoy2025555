@@ -19,6 +19,7 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   loading: boolean;
+  isAuthProcessing: boolean;
   billboardUserId: string | null;
   billboardUserName: string | null;
   setBillboardUser: (userId: string | null, userName: string | null) => void;
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthProcessing, setIsAuthProcessing] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
     return localStorage.getItem('billboardUserId');
@@ -184,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 이전 로그 초기화
     localStorage.removeItem('login_debug_logs');
 
+    setIsAuthProcessing(true); // Start blocking UI
     logToStorage('[signInWithKakao] ========== 로그인 시작 ==========');
 
     try {
@@ -295,6 +298,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             logToStorage('[signInWithKakao] ❌ 서버에서 세션 데이터 없음');
           }
 
+
+          // 성공 후 스피너 해제 (중요: 리로드가 발생하지 않는다면 필수)
+          // 만약 리로드를 한다면 이 코드는 리로드 직전까지 실행됨
+          setIsAuthProcessing(false);
+
           return authData;
         } catch (error: any) {
           lastError = error;
@@ -313,7 +321,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw lastError || new Error('인증에 실패했습니다');
     } catch (error: any) {
       logToStorage('[signInWithKakao] ❌ 최종 에러: ' + error.message);
+      setIsAuthProcessing(false); // Stop blocking UI on error
       throw error;
+    } finally {
+      // NOTE: 성공 시에는 페이지 리로드/이동이 발생하므로 여기서 false로 돌리면 깜빡일 수 있음.
+      // 하지만 "안 없어지는" 문제를 방지하기 위해, 만약 리로드가 지연되거면 끄는게 안전할 수 있음.
+      // 일단 에러 케이스는 catch에서 처리했으니 여기서는 놔둠.
+      // 성공 시: window.location.reload() 등이 없으므로, 상위 컴포넌트나 Router에서 처리가 되어야 함.
+      // 현재 로직상 signInWithKakao 성공 -> 반환 -> 컴포넌트 리렌더링.
+      // 리로드가 없다면 여기서 false로 해줘야 함!
+      // Kakao 로그인 후 페이지 리로드가 발생하지 않는 구조라면 반드시 여기서 false로!
+      // 확인: signInWithKakao는 값을 반환하고 끝남. MobileShell에서는 별도 처리 없음.
+      // AuthStateChange가 트리거되면서 UI가 업데이트됨. 
+      // 따라서 성공 시에도 스피너를 꺼줘야 함.
     }
   };
 
@@ -341,6 +361,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 이전 로그 초기화
     localStorage.removeItem('logout_debug_logs');
 
+    setIsAuthProcessing(true); // Start blocking UI
     logToStorage('[AuthContext.signOut] ========== 로그아웃 시작 ==========');
     logToStorage('[AuthContext.signOut] User Agent: ' + navigator.userAgent);
     logToStorage('[AuthContext.signOut] 현재 URL: ' + window.location.href);
@@ -399,14 +420,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logToStorage('[AuthContext.signOut] 7단계: Analytics 로깅');
       logEvent('Auth', 'Logout', 'Success');
 
-      // 7. 페이지 강제 리로드 (React 상태 완전 초기화)
       logToStorage('[AuthContext.signOut] 8단계: 페이지 리다이렉트 실행 - window.location.replace("/")');
       logToStorage('[AuthContext.signOut] ========== 리다이렉트 직전 ==========');
+
+      // 리다이렉트 직전에 false로 돌리면 리로드 전에 잠깐 UI가 풀릴 수 있음
+      // 하지만 리로드가 실패하거나 늦어지면 영원히 도는 문제 발생
+      // 타임아웃을 걸어서 강제로 끄는 방법 또는 그냥 두는 방법.
+      // "안 없어지는데?" 라는 피드백을 받았으므로, 안전장치로 리로드 호출 후에도 혹시 모를 상황 대비는 어려움(페이지 넘어가니까)
+      // 에러 발생 시 catch 블록에서 리로드함.
+
       window.location.replace('/');
     } catch (error) {
       logToStorage('[AuthContext.signOut] ❌ 에러 발생: ' + (error as Error).message);
       // 실패해도 페이지 리로드로 강제 초기화
       window.location.replace('/');
+    } finally {
+      // 성공하든 실패하든 리로드가 호출됨.
+      // 브라우저가 리로드를 처리하는 동안 JS 실행이 멈추거나 페이지가 전환됨.
+      // 만약 리로드가 즉시 되지 않는다면 Finally가 실행될 수 있음.
+      // 안전하게 false로 설정
+      // setIsAuthProcessing(false); <-- 이걸 하면 리로드 직전에 깜빡일 수 있음.
+      // 하지만 사용자가 "안 없어진다"고 했으므로, signInWithKakao 쪽 문제일 가능성이 큼.
+      // signOut은 window.location.replace('/')를 호출하므로 거의 무적.
+      // signInWithKakao는 replace를 안함!
     }
   };
 
@@ -433,6 +469,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     isAdmin,
     loading,
+    isAuthProcessing,
     billboardUserId,
     billboardUserName,
     setBillboardUser,
