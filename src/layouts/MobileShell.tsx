@@ -230,7 +230,7 @@ export function MobileShell() {
   const isCalendarPage = location.pathname === '/calendar';
   const isSocialPage = location.pathname.startsWith('/social');
   const isPracticePage = location.pathname === '/practice';
-  const isBoardPage = location.pathname === '/board';
+  const isBoardPage = location.pathname.startsWith('/board'); // Changed to startsWith to include detail pages
   const isShoppingPage = location.pathname.startsWith('/shopping');
   const isGuidePage = location.pathname === '/guide';
   const category = searchParams.get('category') || 'all';

@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 3rem !important;
+  /* height: 3rem !important; */
   padding-left: 9px;
   padding-right: 9px;
   overflow: hidden;

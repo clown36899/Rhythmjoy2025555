@@ -3,24 +3,25 @@
 .board-detail-container {
     min-height: 100vh;
 
-    /* Account for fixed header */
-    padding-bottom: 6rem;
-    /* Bottom spacing */
-    /* background-color: var(--page-bg-color); */
-    color: var(--text-primary);
+
+
+    height: 100vh;
+    overflow-y: auto;
+    margin-top: 60px;
+    padding-bottom: 142px;
 }
 
 .board-detail-content-wrapper {
     max-width: 800px;
     margin: 0 auto;
-    padding: 1.5rem;
+    padding: 0 1.5rem;
 }
 
 /* Header Section */
 .board-detail-header {
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 1.5rem;
-    margin-bottom: 2rem;
+
 }
 
 .board-detail-title-section {
