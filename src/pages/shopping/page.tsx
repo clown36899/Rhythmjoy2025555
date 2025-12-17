@@ -90,12 +90,7 @@ export default function ShoppingPage() {
   return (
     <div className="shop-page-container" >
       {/* 고정 헤더 */}
-      <div
-        className="shop-header global-header"
 
-      >
-        <SimpleHeader title="쇼핑" />
-      </div>
 
       {/* 쇼핑몰 목록 */}
 

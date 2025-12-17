@@ -108,6 +108,17 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent }: 
                                 className="cal-search-item"
                                 onClick={() => handleSelectEvent(event)}
                             >
+                                {(event.image_thumbnail || event.image) && (
+                                    <div className="cal-search-item-image">
+                                        <img
+                                            src={event.image_thumbnail || event.image}
+                                            alt={event.title}
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none';
+                                            }}
+                                        />
+                                    </div>
+                                )}
                                 <div className="cal-search-item-date">
                                     {new Date(event.start_date || event.date || '').toLocaleDateString('ko-KR', {
                                         month: 'short',

@@ -301,7 +301,16 @@ export function MobileShell() {
         <div className="header-right-buttons">
           {/* Search Button - Always Visible */}
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('openCalendarSearch'))}
+            onClick={() => {
+              console.log('[MobileShell] Search button clicked, isCalendarPage:', isCalendarPage);
+              if (isCalendarPage) {
+                console.log('[MobileShell] Dispatching openCalendarSearch');
+                window.dispatchEvent(new CustomEvent('openCalendarSearch'));
+              } else {
+                console.log('[MobileShell] Dispatching openEventSearch');
+                window.dispatchEvent(new CustomEvent('openEventSearch'));
+              }
+            }}
             className="header-search-btn"
           >
             <i className="ri-search-line"></i>
@@ -333,8 +342,19 @@ export function MobileShell() {
             }}
           >
             <div className="shell-top-bar-content">
-              {/* Left Side: Calendar Controls */}
+              {/* Left Side: Admin Button + Calendar Controls */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                {/* Admin Button - 이벤트 페이지에서만 표시 */}
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowAdminPanel(!showAdminPanel)}
+                    className="shell-admin-btn-topbar"
+                  >
+                    <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-settings-3-line'}`}></i>
+                    <span>{showAdminPanel ? '닫기' : '관리'}</span>
+                  </button>
+                )}
+
                 {/* Calendar Search Button - 전체 달력 모드에서만 표시 */}
                 {calendarMode === "fullscreen" && (
                   <button
@@ -352,7 +372,6 @@ export function MobileShell() {
                     <span style={{ fontSize: '12px', fontWeight: 500 }}>검색</span>
                   </button>
                 )}
-
 
               </div>
 
@@ -394,15 +413,6 @@ export function MobileShell() {
                 {/* Date-specific register button removed - no longer needed */}
               </div>
             </div>
-
-            {isAdmin && (
-              <button
-                onClick={() => setShowAdminPanel(!showAdminPanel)}
-                className="shell-btn-admin"
-              >
-                <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} shell-icon-sm`}></i>
-              </button>
-            )}
           </div>
         )}
 
@@ -443,8 +453,27 @@ export function MobileShell() {
           </div>
         )}
 
-        {/* 관리자 상태 표시 - 모든 페이지 공통 */}
-        {!isEventsPage && !isCalendarPage && (
+        {/* Board Page Top Bar - 글쓰기 버튼 */}
+        {isBoardPage && (
+          <div className="shell-top-bar" style={{ minHeight: '32px' }}>
+            <div className="shell-top-bar-content">
+              <div style={{ flex: 1 }}></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Write Button */}
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('boardWriteClick'))}
+                  className="shell-btn-register-topbar"
+                >
+                  <i className="ri-pencil-line"></i>
+                  <span>글쓰기</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 관리자 상태 표시 - 모든 페이지 공통 (이벤트, 캘린더, 보드 제외) */}
+        {!isEventsPage && !isCalendarPage && !isBoardPage && (
           <div
             className="shell-top-bar"
             style={{
@@ -501,14 +530,6 @@ export function MobileShell() {
                   <span>등록</span>
                 </button>
               )} */}
-              {isAdmin && (
-                <button
-                  onClick={() => setShowAdminPanel(!showAdminPanel)}
-                  className="shell-btn-admin"
-                >
-                  <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-admin-line'} shell-icon-sm`}></i>
-                </button>
-              )}
             </div>
           </div>
         )}

@@ -76,9 +76,7 @@ export default function GuidePage() {
   return (
     <div className="guide-page-container">
       {/* Fixed Header */}
-      <div className="guide-header global-header">
-        <SimpleHeader title="안내" />
-      </div>
+
 
       {/* Guide Content */}
       <div className="guide-content">

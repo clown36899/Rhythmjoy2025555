@@ -147,7 +147,7 @@ export default function HomePageV2() {
     const [qrLoading, setQrLoading] = useState(false);
 
 
-    const [showSearchModal, setShowSearchModal] = useState(false);
+    const [showInputModal, setShowInputModal] = useState(false);
     const [showSortModal, setShowSortModal] = useState(false);
     const [sortBy, setSortBy] = useState<"random" | "time" | "title">("random");
     const [highlightEvent, setHighlightEvent] = useState<{ id: number; nonce: number } | null>(null);
@@ -227,7 +227,7 @@ export default function HomePageV2() {
 
     // 모달이 열렸을 때 배경 컨텐츠의 상호작용을 막기 위한 `inert` 속성 관리
     useEffect(() => {
-        const isAnyModalOpen = showSearchModal ||
+        const isAnyModalOpen = showInputModal ||
             showSortModal ||
             showRegistrationModal ||
             isBillboardSettingsOpen ||
@@ -244,7 +244,7 @@ export default function HomePageV2() {
         return () => {
             if (container) container.inert = false;
         };
-    }, [showSearchModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, selectedEvent, showEditModal, showPasswordModal]);
+    }, [showInputModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, selectedEvent, showEditModal, showPasswordModal]);
 
     const handleHorizontalSwipe = (direction: 'next' | 'prev') => {
         setCurrentMonth((prev) => {
@@ -344,7 +344,6 @@ export default function HomePageV2() {
             }
         };
         const handleOpenSortModal = () => setShowSortModal(true);
-        const handleOpenSearchModal = () => setShowSearchModal(true);
 
         const handleResetV2MainView = () => {
             // Clear URL parameters
@@ -384,7 +383,6 @@ export default function HomePageV2() {
 
         window.addEventListener('goToToday', handleGoToToday);
         window.addEventListener('openSortModal', handleOpenSortModal);
-        window.addEventListener('openSearchModal', handleOpenSearchModal);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('resetV2MainView', handleResetV2MainView);
         window.addEventListener('prevMonth', handlePrevMonth);
@@ -396,7 +394,6 @@ export default function HomePageV2() {
 
             window.removeEventListener('goToToday', handleGoToToday);
             window.removeEventListener('openSortModal', handleOpenSortModal);
-            window.removeEventListener('openSearchModal', handleOpenSearchModal);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
             window.removeEventListener('resetV2MainView', handleResetV2MainView);
             window.removeEventListener('prevMonth', handlePrevMonth);
@@ -511,6 +508,7 @@ export default function HomePageV2() {
 
     const closeModal = () => {
         setSelectedEvent(null);
+        // Don't close search modal - keep it open so user can select other events
     };
 
     const handleEditClick = (event: AppEvent, e?: React.MouseEvent) => {
@@ -740,6 +738,16 @@ export default function HomePageV2() {
     useEffect(() => { if (!searchTerm) navigateWithCategory("all"); }, [searchTerm, navigateWithCategory]);
     useEffect(() => { if (selectedDate && !qrLoading) { const scrollContainer = document.querySelector(".overflow-y-auto"); if (scrollContainer) scrollContainer.scrollTop = 0; } }, [selectedDate, qrLoading]);
     useEffect(() => { const handleClearDate = () => { setSelectedDate(null); setFromBanner(false); setBannerMonthBounds(null); }; window.addEventListener("clearSelectedDate", handleClearDate); return () => window.removeEventListener("clearSelectedDate", handleClearDate); }, []);
+
+    // Event Search from Header
+    useEffect(() => {
+        const handleOpenEventSearch = () => {
+            console.log('[Page.tsx] openEventSearch event received');
+            setShowInputModal(true);
+        };
+        window.addEventListener("openEventSearch", handleOpenEventSearch);
+        return () => window.removeEventListener("openEventSearch", handleOpenEventSearch);
+    }, []);
     useEffect(() => {
         const handleResetToToday = () => { const today = new Date(); setCurrentMonth(today); setSelectedDate(null); navigateWithCategory("all"); };
         window.addEventListener("resetToToday", handleResetToToday); return () => window.removeEventListener("resetToToday", handleResetToToday);
@@ -831,8 +839,6 @@ export default function HomePageV2() {
                             searchTerm={searchTerm}
                             setSearchTerm={setSearchTerm}
                             onSearchStart={handleSearchStart}
-                            showSearchModal={showSearchModal}
-                            setShowSearchModal={setShowSearchModal}
                             showSortModal={showSortModal}
                             setShowSortModal={setShowSortModal}
                             sortBy={sortBy}
@@ -953,11 +959,15 @@ export default function HomePageV2() {
                         <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
                     )
                 }
-                {/* Calendar Search Modal */}
+                {/* Search Input Modal */}
                 <CalendarSearchModal
-                    isOpen={showCalendarSearch}
-                    onClose={() => setShowCalendarSearch(false)}
-                    onSelectEvent={handleCalendarSearchSelect}
+                    isOpen={showInputModal}
+                    onClose={() => setShowInputModal(false)}
+                    onSelectEvent={(event) => {
+                        // Show event detail modal directly
+                        setSelectedEvent(event);
+                        setShowInputModal(false);
+                    }}
                 />
             </div>
         </div >

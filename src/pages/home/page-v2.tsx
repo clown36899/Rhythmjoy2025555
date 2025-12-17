@@ -421,6 +421,16 @@ export default function HomePageV2() {
         window.addEventListener("resetToToday", handleResetToToday); return () => window.removeEventListener("resetToToday", handleResetToToday);
     }, [navigateWithCategory, sortBy]);
 
+    // Event Search from Header
+    useEffect(() => {
+        const handleOpenEventSearch = () => {
+            console.log('[HomePageV2] openEventSearch event received');
+            setShowSearchModal(true);
+        };
+        window.addEventListener("openEventSearch", handleOpenEventSearch);
+        return () => window.removeEventListener("openEventSearch", handleOpenEventSearch);
+    }, []);
+
     useEffect(() => {
         const handleCreateEvent = (e: Event) => {
             const customEvent = e as CustomEvent;

@@ -44,12 +44,7 @@ export default function SocialPage() {
   return (
     <div className="social-page-container" style={{}}>
       {/* 상단 고정 헤더 - SimpleHeader 사용으로 통일성 확보 */}
-      <div
-        ref={headerRef}
-        className="social-header global-header"
-      >
-        <SimpleHeader title="정기 소셜 일정" />
-      </div>
+
 
       {/* 메인 콘텐츠 */}
       <div style={{ paddingBottom: '80px' }}>

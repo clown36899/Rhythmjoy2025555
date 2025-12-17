@@ -54,21 +54,7 @@ export default function PracticeRoomsPage() {
   return (
     <div className="practice-page-container" >
       {/* Fixed Header - Conditional */}
-      <div className="practice-header global-header">
-        {roomId ? (
-          <div className="practice-header-inner">
-            <div className="practice-header-content">
-              <div className="practice-header-left">
-                <button onClick={handleCloseDetail} className="practice-back-btn">
-                  <span>❮ 돌아가기</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <SimpleHeader title="연습실" />
-        )}
-      </div>
+
 
       {/* Main Content - Show either list or detail */}
       <div className="practice-main-content">

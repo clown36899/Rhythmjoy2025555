@@ -135,6 +135,31 @@
   color: var(--text-primary);
 }
 
+/* Admin Button in Top Bar */
+.shell-admin-btn-topbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fbbf24;
+  height: 24px;
+}
+
+.shell-admin-btn-topbar:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.shell-admin-btn-topbar i {
+  font-size: 0.9rem;
+}
+
 /* ===== 네비게이션 바 ===== */
 .shell-nav-bar {
   display: flex;
@@ -263,13 +288,13 @@
 /* Global Header Styles */
 .shell-header.global-header-fixed {
   position: fixed;
-  top: 4;
+  top: 0;
   padding: 0px 12px !important;
   left: 0;
   right: 0;
   height: 60px;
   background-color: #000000;
-  z-index: 1000;
+  z-index: 49;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -293,7 +318,7 @@
 }
 
 .header-logo {
-  height: 52px;
+  height: 39px;
   width: auto;
   object-fit: contain;
 }
