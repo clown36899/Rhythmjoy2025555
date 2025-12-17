@@ -28,6 +28,7 @@ export function MobileShell() {
   const [sortBy, setSortBy] = useState<'random' | 'time' | 'title'>('random');
   const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
+  const [profileData, setProfileData] = useState<{ nickname: string; profile_image?: string } | null>(null);
 
   // Helper for login guard
   const handleProtectedAction = (action: () => void) => {
@@ -42,14 +43,36 @@ export function MobileShell() {
 
   // Profile Edit Modal Listener
   useEffect(() => {
-    const handleOpenProfileEdit = () => {
+    const handleOpenProfileEdit = async () => {
+      if (!user) return;
+
+      // Fetch profile data from board_users table
+      const { data: boardUser } = await supabase
+        .from('board_users')
+        .select('nickname, profile_image')
+        .eq('user_id', user.id)
+        .single();
+
+      if (boardUser) {
+        setProfileData({
+          nickname: boardUser.nickname || user.email?.split('@')[0] || '',
+          profile_image: boardUser.profile_image || user.user_metadata?.avatar_url
+        });
+      } else {
+        // Fallback to metadata
+        setProfileData({
+          nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
+          profile_image: user.user_metadata?.avatar_url
+        });
+      }
+
       setShowProfileEditModal(true);
     };
     window.addEventListener('openProfileEdit', handleOpenProfileEdit);
     return () => {
       window.removeEventListener('openProfileEdit', handleOpenProfileEdit);
     };
-  }, []);
+  }, [user]);
 
 
   // 달력 월/뷰모드 변경 감지
@@ -652,15 +675,13 @@ export function MobileShell() {
         )}
       </div>
       {/* Global Profile Edit Modal */}
-      {showProfileEditModal && user && (
+      {showProfileEditModal && user && profileData && (
         <ProfileEditModal
           isOpen={showProfileEditModal}
           onClose={() => setShowProfileEditModal(false)}
-          currentUser={{
-            nickname: user!.user_metadata?.name || '',
-            profile_image: user!.user_metadata?.avatar_url
-          }}
+          currentUser={profileData}
           onProfileUpdated={() => {
+            // Reload page to reflect changes from database
             window.location.reload();
           }}
           userId={user!.id}

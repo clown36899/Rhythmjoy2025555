@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
+import { convertToWebP, extractStoragePath } from '../../../utils/imageUtils';
 import './userreg.css'; // Reusing similar styles
 
 interface ProfileEditModalProps {
@@ -25,6 +26,8 @@ export default function ProfileEditModal({
     const [previewImage, setPreviewImage] = useState<string | null>(currentUser.profile_image || null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [oldImagePath, setOldImagePath] = useState<string | null>(null);
+    const [imageDeleted, setImageDeleted] = useState(false); // 이미지 삭제 플래그
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -32,10 +35,18 @@ export default function ProfileEditModal({
             setNickname(currentUser.nickname || '');
             setPreviewImage(currentUser.profile_image || null);
             setSelectedFile(null);
+            setImageDeleted(false); // 모달 열 때 초기화
+            // 기존 이미지 경로 저장 (삭제용)
+            if (currentUser.profile_image) {
+                const path = extractStoragePath(currentUser.profile_image);
+                setOldImagePath(path);
+            } else {
+                setOldImagePath(null);
+            }
         }
     }, [isOpen, currentUser]);
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) { // 5MB limit
@@ -43,12 +54,20 @@ export default function ProfileEditModal({
                 return;
             }
             setSelectedFile(file);
+            setImageDeleted(false); // 새 이미지 선택 시 삭제 플래그 해제
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreviewImage(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleDeleteImage = () => {
+        // 화면에서만 제거, 실제 삭제는 저장 시
+        setPreviewImage(null);
+        setSelectedFile(null);
+        setImageDeleted(true); // 삭제 플래그 설정
     };
 
     const handleSubmit = async () => {
@@ -60,19 +79,45 @@ export default function ProfileEditModal({
         setIsSubmitting(true);
 
         try {
-            let profileImageUrl = currentUser.profile_image;
+            let profileImageUrl: string | null | undefined = currentUser.profile_image;
 
-            // 1. 이미지 업로드 (새 이미지가 있다면)
-            if (selectedFile) {
-                const fileExt = selectedFile.name.split('.').pop();
-                const fileName = `${userId}-${Date.now()}.${fileExt}`;
-                const filePath = `profiles/${fileName}`; // Assuming 'profiles' folder in storage bucket
+            // 1. 이미지 처리
+            if (imageDeleted) {
+                // 이미지 삭제가 요청된 경우
+                if (oldImagePath) {
+                    const { error: deleteError } = await supabase.storage
+                        .from('images')
+                        .remove([oldImagePath]);
 
-                // Use standard storage upload (make sure bucket 'images' or 'profiles' exists)
-                // Here assuming 'images' bucket and 'profiles' folder based on typical setup
+                    if (deleteError) {
+                        console.error('이미지 삭제 실패:', deleteError);
+                    }
+                }
+                profileImageUrl = null; // DB에 null 저장
+            } else if (selectedFile) {
+                // 새 이미지 업로드
+                // 기존 이미지 삭제
+                if (oldImagePath) {
+                    const { error: deleteError } = await supabase.storage
+                        .from('images')
+                        .remove([oldImagePath]);
+
+                    if (deleteError) {
+                        console.error('기존 이미지 삭제 실패:', deleteError);
+                    }
+                }
+
+                // WebP로 변환 및 압축
+                const webpBlob = await convertToWebP(selectedFile, 200, 200, 0.8);
+                const fileName = `${userId}-${Date.now()}.webp`;
+                const filePath = `profiles/${fileName}`;
+
                 const { error: uploadError } = await supabase.storage
                     .from('images')
-                    .upload(filePath, selectedFile);
+                    .upload(filePath, webpBlob, {
+                        contentType: 'image/webp',
+                        upsert: false
+                    });
 
                 if (uploadError) throw uploadError;
 
@@ -82,8 +127,9 @@ export default function ProfileEditModal({
 
                 profileImageUrl = publicUrl;
             }
+            // else: 이미지 변경 없음, 기존 이미지 유지
 
-            // 2. DB 업데이트
+            // 2. DB 업데이트 (board_users 테이블)
             const { error } = await supabase
                 .from('board_users')
                 .update({
@@ -131,7 +177,7 @@ export default function ProfileEditModal({
                                 borderRadius: '50%',
                                 overflow: 'hidden',
                                 backgroundColor: '#333',
-                                marginBottom: '10px',
+                                // marginBottom: '10px',
                                 cursor: 'pointer',
                                 position: 'relative'
                             }}
@@ -159,6 +205,25 @@ export default function ProfileEditModal({
                             style={{ display: 'none' }}
                             accept="image/*"
                         />
+                        {previewImage && (
+                            <button
+                                onClick={handleDeleteImage}
+                                disabled={isSubmitting}
+                                style={{
+                                    marginTop: '8px',
+                                    padding: '4px 12px',
+                                    fontSize: '12px',
+                                    color: '#ef4444',
+                                    backgroundColor: 'transparent',
+                                    border: '1px solid #ef4444',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <i className="ri-delete-bin-line" style={{ marginRight: '4px' }}></i>
+                                이미지 삭제
+                            </button>
+                        )}
                     </div>
 
                     {/* 닉네임 */}

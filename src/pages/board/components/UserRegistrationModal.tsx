@@ -17,6 +17,7 @@ export interface UserData {
   real_name: string; // Deprecated, but keeping structure for compatibility
   phone: string;     // Deprecated
   gender: string;    // Deprecated
+  profile_image?: string; // Profile image URL
 }
 
 export default function UserRegistrationModal({

@@ -47,35 +47,50 @@ export default function BoardDetailPage() {
 
             if (error) throw error;
 
-            // Transform prefix from array to single object if needed (though single() usually handles this for 1:1, Supabase might return array for joins)
-            // But based on previous code it seemed it Returns array sometimes?
-            // Actually .single() on the main query means one post.
-            // The joined 'prefix' might be an object or array depending on relation.
-            // Let's handle it safely.
+            // Fetch profile image if user_id exists
+            let profileImage = null;
+            if (data.user_id) {
+                const { data: userData } = await supabase
+                    .from('board_users')
+                    .select('profile_image')
+                    .eq('user_id', data.user_id)
+                    .single();
+                profileImage = userData?.profile_image || null;
+            }
+
             const transformedPost = {
                 ...data,
-                prefix: Array.isArray(data.prefix) ? data.prefix[0] : data.prefix
+                prefix: Array.isArray(data.prefix) ? data.prefix[0] : data.prefix,
+                author_profile_image: profileImage
             };
 
             setPost(transformedPost as BoardPost);
 
             // Increment views
-            // We usually don't wait for this to render
             incrementViews(postId, data.views);
 
         } catch (error) {
             console.error('게시글 로딩 실패:', error);
-            // navigate('/board'); // Optionally redirect on error
         } finally {
             setLoading(false);
         }
     };
 
     const incrementViews = async (postId: string, currentViews: number) => {
-        await supabase
-            .from('board_posts')
-            .update({ views: currentViews + 1 })
-            .eq('id', postId);
+        // Check if user has already viewed this post
+        const viewedPosts = JSON.parse(localStorage.getItem('viewedPosts') || '[]');
+
+        if (!viewedPosts.includes(postId)) {
+            // User hasn't viewed this post yet, increment view count
+            await supabase
+                .from('board_posts')
+                .update({ views: currentViews + 1 })
+                .eq('id', postId);
+
+            // Mark this post as viewed
+            viewedPosts.push(postId);
+            localStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+        }
     };
 
     const handleDelete = async () => {
@@ -184,7 +199,15 @@ export default function BoardDetailPage() {
 
                     <div className="board-detail-meta">
                         <div className="board-detail-meta-item">
-                            <i className="ri-user-line"></i>
+                            {post.author_profile_image ? (
+                                <img
+                                    src={post.author_profile_image}
+                                    alt="Profile"
+                                    className="board-detail-author-avatar"
+                                />
+                            ) : (
+                                <i className="ri-user-line"></i>
+                            )}
                             {post.author_nickname || post.author_name}
                         </div>
                         <div className="board-detail-meta-divider"></div>

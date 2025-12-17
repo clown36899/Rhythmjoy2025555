@@ -18,6 +18,7 @@ export interface BoardPost {
   content: string;
   author_name: string;
   author_nickname?: string;
+  author_profile_image?: string;
   password?: string;
   user_id?: string;
   views: number;
@@ -176,7 +177,8 @@ export default function BoardPage() {
           nickname: data.nickname,
           real_name: data.real_name,
           phone: data.phone,
-          gender: data.gender
+          gender: data.gender,
+          profile_image: data.profile_image || undefined
         });
       } else {
         // 일반 사용자만 회원가입 모달 표시
@@ -201,7 +203,7 @@ export default function BoardPage() {
           title, 
           content, 
           author_name, 
-          author_nickname, 
+          author_nickname,
           user_id, 
           views, 
           is_notice, 
@@ -215,13 +217,27 @@ export default function BoardPage() {
 
       if (error) throw error;
 
-      // Transform prefix from array to single object
-      const transformedData = data?.map(post => ({
-        ...post,
-        prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix
-      })) || [];
+      // Fetch profile images for posts with user_id
+      const postsWithProfiles = await Promise.all(
+        (data || []).map(async (post: any) => {
+          let profileImage = null;
+          if (post.user_id) {
+            const { data: userData } = await supabase
+              .from('board_users')
+              .select('profile_image')
+              .eq('user_id', post.user_id)
+              .single();
+            profileImage = userData?.profile_image || null;
+          }
+          return {
+            ...post,
+            prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
+            author_profile_image: profileImage
+          };
+        })
+      );
 
-      setPosts(transformedData as BoardPost[]);
+      setPosts(postsWithProfiles as BoardPost[]);
     } catch (error) {
       console.error('게시글 로딩 실패:', error);
     } finally {
@@ -392,7 +408,15 @@ export default function BoardPage() {
                   <div className="board-post-meta">
                     <div className="board-post-meta-left">
                       <span className="board-post-meta-item">
-                        <i className="ri-user-line board-post-meta-icon"></i>
+                        {post.author_profile_image ? (
+                          <img
+                            src={post.author_profile_image}
+                            alt="Profile"
+                            className="board-post-author-avatar"
+                          />
+                        ) : (
+                          <i className="ri-user-line board-post-meta-icon"></i>
+                        )}
                         {post.author_nickname || post.author_name}
                       </span>
                       <span className="board-post-meta-item">
@@ -464,7 +488,7 @@ export default function BoardPage() {
             onClose={() => setShowProfileEditModal(false)}
             currentUser={{
               nickname: userData.nickname,
-              profile_image: undefined // Add profile_image to UserData if needed, currently passing undefined or need to fetch
+              profile_image: userData.profile_image
             }}
             onProfileUpdated={checkUserRegistration}
             userId={user.id}
@@ -565,7 +589,15 @@ export default function BoardPage() {
                       <div className="board-search-item-preview">{post.content}</div>
                       <div className="board-search-item-meta">
                         <span>
-                          <i className="ri-user-line"></i>
+                          {post.author_profile_image ? (
+                            <img
+                              src={post.author_profile_image}
+                              alt="Profile"
+                              className="board-search-author-avatar"
+                            />
+                          ) : (
+                            <i className="ri-user-line"></i>
+                          )}
                           {post.author_nickname || post.author_name}
                         </span>
                         <span>{formatDate(post.created_at)}</span>

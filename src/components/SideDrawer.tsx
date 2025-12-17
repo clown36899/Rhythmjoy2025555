@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import '../styles/components/SideDrawer.css'; // We will create this CSS
 
 interface SideDrawerProps {
@@ -17,17 +18,31 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [profileImage, setProfileImage] = useState<string | null>(null);
 
     useEffect(() => {
-        if (user) {
-            // Try to get nickname from metadata or billboard
-            const metaName = user.user_metadata?.name;
-            setNickname(billboardUserName || metaName || user.email?.split('@')[0] || 'Member');
-            // Profile image from metadata (if saved)
-            // Note: We need to ensure we save profile_image in metadata or board_users hook
-            setProfileImage(user.user_metadata?.avatar_url || null);
-        } else {
-            setNickname('Guest');
-            setProfileImage(null);
-        }
+        const loadProfile = async () => {
+            if (user) {
+                // Try to get profile from board_users table first
+                const { data: boardUser } = await supabase
+                    .from('board_users')
+                    .select('nickname, profile_image')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (boardUser) {
+                    setNickname(boardUser.nickname || user.email?.split('@')[0] || 'Member');
+                    setProfileImage(boardUser.profile_image || user.user_metadata?.avatar_url || null);
+                } else {
+                    // Fallback to metadata
+                    const metaName = user.user_metadata?.name;
+                    setNickname(billboardUserName || metaName || user.email?.split('@')[0] || 'Member');
+                    setProfileImage(user.user_metadata?.avatar_url || null);
+                }
+            } else {
+                setNickname('Guest');
+                setProfileImage(null);
+            }
+        };
+
+        loadProfile();
     }, [user, billboardUserName]);
 
     if (!isOpen) return null;
