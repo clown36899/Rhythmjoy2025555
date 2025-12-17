@@ -173,112 +173,148 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithKakao = async () => {
-    await initKakaoSDK();
-    await loginWithKakao();
+    // localStorage에 로그 저장 (새로고침 후에도 확인 가능)
+    const logToStorage = (msg: string) => {
+      const logs = JSON.parse(localStorage.getItem('login_debug_logs') || '[]');
+      logs.push(`${new Date().toISOString().split('T')[1].slice(0, 12)} - ${msg}`);
+      localStorage.setItem('login_debug_logs', JSON.stringify(logs));
+      console.log(msg);
+    };
 
-    const accessToken = getKakaoAccessToken();
-    if (!accessToken) {
-      throw new Error('카카오 액세스 토큰을 가져올 수 없습니다');
-    }
+    // 이전 로그 초기화
+    localStorage.removeItem('login_debug_logs');
 
-    // 개발 환경(Replit)에서는 Vite 프록시(/api), 프로덕션(Netlify)에서는 Netlify Functions
-    // 함수 이름을 kakao-auth -> kakao-login으로 변경하여 캐시/빌드 문제 회피
-    const authEndpoint = import.meta.env.DEV
-      ? '/.netlify/functions/kakao-login'
-      : '/.netlify/functions/kakao-login';
+    logToStorage('[signInWithKakao] ========== 로그인 시작 ==========');
 
-    // 재시도 로직 (2단계 인증 대응)
-    let lastError: Error | null = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        // 60초 타임아웃 설정
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+    try {
+      logToStorage('[signInWithKakao] 1단계: 카카오 SDK 초기화');
+      await initKakaoSDK();
+      logToStorage('[signInWithKakao] 1단계: 카카오 SDK 초기화 완료');
 
-        const response = await fetch(authEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            kakaoAccessToken: accessToken,
-          }),
-          signal: controller.signal,
-        });
+      logToStorage('[signInWithKakao] 2단계: 카카오 로그인 팝업');
+      await loginWithKakao();
+      logToStorage('[signInWithKakao] 2단계: 카카오 로그인 완료');
 
-        clearTimeout(timeoutId);
+      const accessToken = getKakaoAccessToken();
+      if (!accessToken) {
+        logToStorage('[signInWithKakao] ❌ 액세스 토큰 없음');
+        throw new Error('카카오 액세스 토큰을 가져올 수 없습니다');
+      }
+      logToStorage('[signInWithKakao] 3단계: 액세스 토큰 획득 완료');
 
-        if (!response.ok) {
-          let errorMessage = '인증에 실패했습니다';
-          try {
-            const error = await response.json();
-            errorMessage = error.error || error.message || errorMessage;
+      // 개발 환경(Replit)에서는 Vite 프록시(/api), 프로덕션(Netlify)에서는 Netlify Functions
+      // 함수 이름을 kakao-auth -> kakao-login으로 변경하여 캐시/빌드 문제 회피
+      const authEndpoint = import.meta.env.DEV
+        ? '/.netlify/functions/kakao-login'
+        : '/.netlify/functions/kakao-login';
 
-            // 디버그 정보가 있으면 포함
-            if (error.debug) {
-              errorMessage += '\n\n[Debug Info]\n' + JSON.stringify(error.debug, null, 2);
-            }
-          } catch (e) {
-            // JSON 파싱 실패 시 HTTP 상태 코드로 메시지 생성
-            // HTML 응답일 수 있으니 텍스트로 읽어보기
-            try {
-              const text = await response.text();
-              console.error('[카카오 로그인] 서버 에러 본문:', text);
-              if (text.includes('Task timed out')) {
-                errorMessage = '서버 응답 시간 초과 (10초)';
-              } else {
-                errorMessage = `서버 오류 (${response.status})\n서버 로그를 확인해주세요.`;
-              }
-            } catch (textError) {
-              errorMessage = `서버 오류 (${response.status}): ${response.statusText}`;
-            }
-          }
-          throw new Error(errorMessage);
-        }
+      logToStorage('[signInWithKakao] 4단계: 서버 인증 시작 - ' + authEndpoint);
 
-        let authData;
+      // 재시도 로직 (2단계 인증 대응)
+      let lastError: Error | null = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          authData = await response.json();
-        } catch (e) {
-          console.error('[카카오 로그인] JSON 파싱 실패:', e);
-          throw new Error('서버 응답을 처리할 수 없습니다. 네트워크 연결을 확인해주세요.');
-        }
+          logToStorage(`[signInWithKakao] 시도 ${attempt}/3`);
 
-        // 서버에서 받은 세션으로 자동 로그인
-        if (authData.session) {
-          console.log('[카카오 로그인] Supabase 세션 설정 시작');
-          const { data, error } = await supabase.auth.setSession({
-            access_token: authData.session.access_token,
-            refresh_token: authData.session.refresh_token,
+          // 60초 타임아웃 설정
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+          const response = await fetch(authEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              kakaoAccessToken: accessToken,
+            }),
+            signal: controller.signal,
           });
 
-          if (error) {
-            console.error('[카카오 로그인] 세션 설정 실패:', error);
-            throw new Error('로그인에 실패했습니다');
+          clearTimeout(timeoutId);
+          logToStorage(`[signInWithKakao] 서버 응답: ${response.status} ${response.statusText}`);
+
+          if (!response.ok) {
+            let errorMessage = '인증에 실패했습니다';
+            try {
+              const error = await response.json();
+              errorMessage = error.error || error.message || errorMessage;
+              logToStorage('[signInWithKakao] 서버 에러: ' + errorMessage);
+
+              // 디버그 정보가 있으면 포함
+              if (error.debug) {
+                errorMessage += '\n\n[Debug Info]\n' + JSON.stringify(error.debug, null, 2);
+              }
+            } catch (e) {
+              // JSON 파싱 실패 시 HTTP 상태 코드로 메시지 생성
+              // HTML 응답일 수 있으니 텍스트로 읽어보기
+              try {
+                const text = await response.text();
+                console.error('[카카오 로그인] 서버 에러 본문:', text);
+                logToStorage('[signInWithKakao] 서버 에러 본문 길이: ' + text.length);
+                if (text.includes('Task timed out')) {
+                  errorMessage = '서버 응답 시간 초과 (10초)';
+                } else {
+                  errorMessage = `서버 오류 (${response.status})\n서버 로그를 확인해주세요.`;
+                }
+              } catch (textError) {
+                errorMessage = `서버 오류 (${response.status}): ${response.statusText}`;
+              }
+            }
+            throw new Error(errorMessage);
           }
 
-          console.log('[카카오 로그인] Supabase 세션 설정 완료:', {
-            hasSession: !!data.session,
-            userEmail: data.session?.user?.email
-          });
-        } else {
-          console.error('[카카오 로그인] 서버에서 세션 데이터를 받지 못함');
-        }
+          let authData;
+          try {
+            authData = await response.json();
+            logToStorage('[signInWithKakao] 5단계: 서버 응답 파싱 완료');
+          } catch (e) {
+            console.error('[카카오 로그인] JSON 파싱 실패:', e);
+            logToStorage('[signInWithKakao] ❌ JSON 파싱 실패');
+            throw new Error('서버 응답을 처리할 수 없습니다. 네트워크 연결을 확인해주세요.');
+          }
 
-        return authData;
-      } catch (error: any) {
-        lastError = error;
-        console.warn(`카카오 인증 시도 ${attempt}/3 실패:`, error.message);
+          // 서버에서 받은 세션으로 자동 로그인
+          if (authData.session) {
+            logToStorage('[signInWithKakao] 6단계: Supabase 세션 설정 시작');
+            const { data, error } = await supabase.auth.setSession({
+              access_token: authData.session.access_token,
+              refresh_token: authData.session.refresh_token,
+            });
 
-        // 마지막 시도가 아니면 1초 대기 후 재시도
-        if (attempt < 3) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+            if (error) {
+              console.error('[카카오 로그인] 세션 설정 실패:', error);
+              logToStorage('[signInWithKakao] ❌ 세션 설정 실패: ' + error.message);
+              throw new Error('로그인에 실패했습니다');
+            }
+
+            logToStorage('[signInWithKakao] 6단계: Supabase 세션 설정 완료');
+            logToStorage('[signInWithKakao] ========== 로그인 성공 ==========');
+          } else {
+            console.error('[카카오 로그인] 서버에서 세션 데이터를 받지 못함');
+            logToStorage('[signInWithKakao] ❌ 서버에서 세션 데이터 없음');
+          }
+
+          return authData;
+        } catch (error: any) {
+          lastError = error;
+          logToStorage(`[signInWithKakao] 시도 ${attempt}/3 실패: ${error.message}`);
+          console.warn(`카카오 인증 시도 ${attempt}/3 실패:`, error.message);
+
+          // 마지막 시도가 아니면 1초 대기 후 재시도
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
       }
-    }
 
-    // 3번 모두 실패
-    throw lastError || new Error('인증에 실패했습니다');
+      // 3번 모두 실패
+      logToStorage('[signInWithKakao] ❌ 모든 시도 실패');
+      throw lastError || new Error('인증에 실패했습니다');
+    } catch (error: any) {
+      logToStorage('[signInWithKakao] ❌ 최종 에러: ' + error.message);
+      throw error;
+    }
   };
 
   const setBillboardUser = (userId: string | null, userName: string | null) => {
@@ -294,25 +330,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    console.log('[로그아웃] 시작');
+    // localStorage에 로그 저장 (새로고침 후에도 확인 가능)
+    const logToStorage = (msg: string) => {
+      const logs = JSON.parse(localStorage.getItem('logout_debug_logs') || '[]');
+      logs.push(`${new Date().toISOString().split('T')[1].slice(0, 12)} - ${msg}`);
+      localStorage.setItem('logout_debug_logs', JSON.stringify(logs));
+      console.log(msg);
+    };
+
+    // 이전 로그 초기화
+    localStorage.removeItem('logout_debug_logs');
+
+    logToStorage('[AuthContext.signOut] ========== 로그아웃 시작 ==========');
+    logToStorage('[AuthContext.signOut] User Agent: ' + navigator.userAgent);
+    logToStorage('[AuthContext.signOut] 현재 URL: ' + window.location.href);
 
     try {
       // 1. 카카오 로그아웃
+      logToStorage('[AuthContext.signOut] 1단계: 카카오 로그아웃 시작');
       await logoutKakao();
-      console.log('[로그아웃] 카카오 로그아웃 완료');
+      logToStorage('[AuthContext.signOut] 1단계: 카카오 로그아웃 완료');
 
       // 2. Supabase 로그아웃
+      logToStorage('[AuthContext.signOut] 2단계: Supabase 로그아웃 시작');
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('[로그아웃] Supabase 로그아웃 실패:', error);
-        throw error;
+        // "Auth session missing" 에러는 이미 로그아웃된 상태이므로 무시
+        if (error.message === 'Auth session missing!') {
+          logToStorage('[AuthContext.signOut] 2단계: 세션 없음 (이미 로그아웃 상태) - 계속 진행');
+        } else {
+          logToStorage('[AuthContext.signOut] Supabase 로그아웃 실패: ' + error.message);
+          throw error;
+        }
+      } else {
+        logToStorage('[AuthContext.signOut] 2단계: Supabase 로그아웃 완료');
       }
-      console.log('[로그아웃] Supabase 로그아웃 완료');
 
       // 3. Billboard 사용자 정보 초기화
+      logToStorage('[AuthContext.signOut] 3단계: Billboard 사용자 정보 초기화');
       setBillboardUser(null, null);
 
       // 4. localStorage 완전 정리 (Supabase 관련 항목)
+      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 시작');
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -321,32 +380,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
-      console.log('[로그아웃] localStorage 정리 완료:', keysToRemove.length + '개 항목');
+      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + keysToRemove.length + '개 항목');
 
       // 5. sessionStorage 완전 정리
+      logToStorage('[AuthContext.signOut] 5단계: sessionStorage 정리');
       sessionStorage.clear();
-      console.log('[로그아웃] sessionStorage 정리 완료');
 
       // 6. Service Worker 캐시 정리 (PWA)
+      logToStorage('[AuthContext.signOut] 6단계: 캐시 정리 시작');
       if ('serviceWorker' in navigator && 'caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(
           cacheNames.map(cacheName => caches.delete(cacheName))
         );
-        console.log('[로그아웃] Service Worker 캐시 정리 완료:', cacheNames.length + '개');
+        logToStorage('[AuthContext.signOut] 6단계: 캐시 정리 완료: ' + cacheNames.length + '개');
       }
 
-      console.log('[로그아웃] 완료 - 페이지 리로드');
-
-      // Analytics: Track logout
+      logToStorage('[AuthContext.signOut] 7단계: Analytics 로깅');
       logEvent('Auth', 'Logout', 'Success');
 
       // 7. 페이지 강제 리로드 (React 상태 완전 초기화)
-      window.location.href = '/';
+      logToStorage('[AuthContext.signOut] 8단계: 페이지 리다이렉트 실행 - window.location.replace("/")');
+      logToStorage('[AuthContext.signOut] ========== 리다이렉트 직전 ==========');
+      window.location.replace('/');
     } catch (error) {
-      console.error('[로그아웃] 실패:', error);
+      logToStorage('[AuthContext.signOut] ❌ 에러 발생: ' + (error as Error).message);
       // 실패해도 페이지 리로드로 강제 초기화
-      window.location.href = '/';
+      window.location.replace('/');
     }
   };
 

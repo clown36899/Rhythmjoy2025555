@@ -41,7 +41,8 @@ html {
 .calendar-page-weekday-header {
     /* position: relative; */
     /* top: 0; */
-    z-index: 20;
+    z-index: 10;
+    /* 글로벌 헤더(z-index: 1000)보다 낮게 설정 */
     background-color: #000000;
     margin-top: -2px;
 }

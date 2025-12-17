@@ -147,16 +147,28 @@ export default function CalendarPage() {
             setShowRegisterModal(true);
         };
 
+        const handlePrevMonth = () => {
+            handleNavigateMonth('prev');
+        };
+
+        const handleNextMonth = () => {
+            handleNavigateMonth('next');
+        };
+
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('openCalendarRegistration', handleOpenCalendarRegistration);
+        window.addEventListener('prevMonth', handlePrevMonth);
+        window.addEventListener('nextMonth', handleNextMonth);
 
         return () => {
             window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
             window.removeEventListener('openCalendarRegistration', handleOpenCalendarRegistration);
+            window.removeEventListener('prevMonth', handlePrevMonth);
+            window.removeEventListener('nextMonth', handleNextMonth);
         };
-    }, [navigate]);
+    }, [navigate, handleNavigateMonth]);
 
     // Shell State Sync
     useEffect(() => {
@@ -180,7 +192,7 @@ export default function CalendarPage() {
 
     return (
         <div className="calendar-page-container" ref={containerRef}>
-            <div className="calendar-page-header global-header">
+            {/* <div className="calendar-page-header global-header">
                 <Header
                     calendarMode="fullscreen" // 항상 전체화면 모드로 표시
                     currentMonth={currentMonth}
@@ -189,7 +201,7 @@ export default function CalendarPage() {
                     onTodayClick={handleGoToToday}
                 // onSectionViewModeChange를 통해 Back 버튼 로직이 트리거될 수 있음
                 />
-            </div>
+            </div> */}
 
             {/* Sticky Weekday Header */}
             <div className="calendar-page-weekday-header">

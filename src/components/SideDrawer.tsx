@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,9 +38,20 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     };
 
     const handleLogout = async () => {
-        await signOut();
-        onClose();
+        console.log('[SideDrawer] 로그아웃 버튼 클릭됨');
+        console.log('[SideDrawer] User Agent:', navigator.userAgent);
+        console.log('[SideDrawer] Screen size:', window.innerWidth, 'x', window.innerHeight);
+        try {
+            console.log('[SideDrawer] signOut 호출 시작');
+            await signOut();
+            console.log('[SideDrawer] signOut 완료 (이 로그가 보이면 리다이렉트 실패)');
+        } catch (error) {
+            console.error('[SideDrawer] signOut 에러:', error);
+            alert('로그아웃 중 오류 발생: ' + error);
+        }
+        // onClose() removed - signOut() already redirects to '/' which resets everything
     };
+
 
     return createPortal(
         <div className="drawer-overlay" onClick={onClose}>

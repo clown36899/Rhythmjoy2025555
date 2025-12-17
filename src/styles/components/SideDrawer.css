@@ -15,7 +15,8 @@
     top: 0;
     right: 0;
     width: 280px;
-    height: 100%;
+    height: 100dvh;
+    /* 모바일 주소창 감안한 동적 뷰포트 높이 */
     background-color: var(--bg-color, #1f2937);
     box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
     display: flex;
