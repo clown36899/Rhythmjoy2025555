@@ -20,9 +20,9 @@ const PrivacyPage = () => {
                     <h2 className="text-xl font-bold text-white mb-2">2. 처리하는 개인정보의 항목</h2>
                     <p>서비스는 카카오 로그인을 통해 다음과 같은 정보를 수집합니다:</p>
                     <ul className="list-disc list-inside mt-2 text-sm text-gray-400">
-                        <li>필수항목: 닉네임, 이메일</li>
-                        <li>선택항목: (카카오 설정에 따라) 프로필 이미지, 출생연도 등</li>
-                        <li>* 전화번호와 본명은 카카오 로그인 시 제공받지 않거나, 별도의 동의 절차를 거쳐 직접 입력받을 수 있습니다.</li>
+                        <li>필수항목: 닉네임, 이메일, 이름, 성별, 전화번호(카카오계정)</li>
+                        <li>선택항목: 생일, 출생연도, 프로필 이미지(카카오 설정에 따름)</li>
+                        <li>* 위 정보는 카카오 로그인 시 동의를 거쳐 제공받습니다.</li>
                     </ul>
                 </section>
 
