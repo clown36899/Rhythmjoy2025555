@@ -20,7 +20,7 @@ html {
 /* 모바일에서는 120px */
 @media (max-width: 768px) {
     .calendar-page-container {
-        padding-bottom: 120px;
+        /* padding-bottom: 120px; */
     }
 }
 

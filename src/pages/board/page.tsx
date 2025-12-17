@@ -49,8 +49,6 @@ export default function BoardPage() {
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [showRegistrationPreview, setShowRegistrationPreview] = useState(false);
   const [showPrefixManagementModal, setShowPrefixManagementModal] = useState(false);
-  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
-  const [warningShown, setWarningShown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -65,12 +63,12 @@ export default function BoardPage() {
     if (!user) return;
 
     const SESSION_TIMEOUT = 30 * 60 * 1000; // 30분
-    const WARNING_TIME = 5 * 60 * 1000; // 5분 전 경고
+    let lastActivity = Date.now();
+    let hasLoggedOut = false; // 로그아웃 중복 방지
 
     // 활동 감지 함수
     const updateActivity = () => {
-      setLastActivityTime(Date.now());
-      setWarningShown(false); // 활동 시 경고 플래그 리셋
+      lastActivity = Date.now();
     };
 
     // 이벤트 리스너 등록
@@ -81,20 +79,16 @@ export default function BoardPage() {
 
     // 타임아웃 체크
     const checkTimeout = setInterval(() => {
-      const inactiveTime = Date.now() - lastActivityTime;
+      const inactiveTime = Date.now() - lastActivity;
 
-      // 25분 후 경고 (5분 남음) - 한 번만 표시
-      if (inactiveTime >= SESSION_TIMEOUT - WARNING_TIME && !warningShown) {
-        setWarningShown(true);
-        alert('5분 후 자동 로그아웃됩니다. 활동하시면 연장됩니다.');
-      }
-
-      // 30분 후 자동 로그아웃
-      if (inactiveTime >= SESSION_TIMEOUT) {
+      // 30분 후 자동 로그아웃 (경고 없이)
+      if (inactiveTime >= SESSION_TIMEOUT && !hasLoggedOut) {
+        hasLoggedOut = true;
+        clearInterval(checkTimeout);
         alert('30분 동안 활동이 없어 자동 로그아웃됩니다.');
         handleLogout();
       }
-    }, 1000);
+    }, 5000); // 5초마다 체크 (1초는 너무 자주 체크)
 
     return () => {
       events.forEach(event => {
@@ -102,7 +96,7 @@ export default function BoardPage() {
       });
       clearInterval(checkTimeout);
     };
-  }, [user, lastActivityTime, warningShown]);
+  }, [user]); // user만 의존성으로 설정
 
   useEffect(() => {
     if (user) {
