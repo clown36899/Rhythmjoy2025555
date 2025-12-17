@@ -40,8 +40,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // GET 요청만 캐시에 저장 (POST는 캐시 불가)
-        if (event.request.method === 'GET') {
+        // GET 요청이면서 http/https 프로토콜인 경우만 캐시 (chrome-extension 등 제외)
+        if (event.request.method === 'GET' &&
+          (event.request.url.startsWith('http://') || event.request.url.startsWith('https://'))) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
