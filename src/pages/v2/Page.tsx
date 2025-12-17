@@ -377,6 +377,9 @@ export default function HomePageV2() {
             setShowCalendarSearch(true);
         };
 
+        const handlePrevMonth = () => handleHorizontalSwipe('prev');
+        const handleNextMonth = () => handleHorizontalSwipe('next');
+
         window.addEventListener('toggleCalendarMode', handleToggleCalendarMode);
 
         window.addEventListener('goToToday', handleGoToToday);
@@ -384,6 +387,8 @@ export default function HomePageV2() {
         window.addEventListener('openSearchModal', handleOpenSearchModal);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('resetV2MainView', handleResetV2MainView);
+        window.addEventListener('prevMonth', handlePrevMonth);
+        window.addEventListener('nextMonth', handleNextMonth);
 
 
         return () => {
@@ -394,6 +399,8 @@ export default function HomePageV2() {
             window.removeEventListener('openSearchModal', handleOpenSearchModal);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
             window.removeEventListener('resetV2MainView', handleResetV2MainView);
+            window.removeEventListener('prevMonth', handlePrevMonth);
+            window.removeEventListener('nextMonth', handleNextMonth);
 
         };
     }, [calendarMode, sortBy, navigateWithCategory, handleSectionViewModeChange]);
@@ -795,34 +802,8 @@ export default function HomePageV2() {
                 minHeight: '100svh'
             }}
         >
-            <div ref={headerRef} className="home-header global-header" style={{ touchAction: "auto" }}>
-                <Header
-                    onAdminModeToggle={handleAdminModeToggle}
-                    onBillboardOpen={handleBillboardOpen}
-                    onBillboardSettingsOpen={handleBillboardSettingsOpen}
-                    billboardEnabled={settings.enabled}
-                    calendarMode={calendarMode}
-                    currentMonth={currentMonth}
-                    onNavigateMonth={(dir) => {
-                        const newM = new Date(currentMonth);
-                        newM.setDate(1);
-                        if (false) newM.setFullYear(currentMonth.getFullYear() + (dir === "prev" ? -1 : 1));
-                        else newM.setMonth(currentMonth.getMonth() + (dir === "prev" ? -1 : 1));
-                        setCurrentMonth(newM);
-                        setSelectedDate(null);
-                    }}
-                    viewMode="month"
-
-                    sectionViewMode={sectionViewMode}
-                    onSectionViewModeChange={handleSectionViewModeChange}
-                    onTodayClick={() => {
-                        const today = new Date();
-                        // 1일로 설정하여 달력 상태 초기화
-                        today.setDate(1);
-                        handleMonthChange(today);
-                        setSelectedDate(null);
-                    }}
-                />
+            <div ref={headerRef} className="home-header global-header-shim" style={{ touchAction: "auto", display: 'none' }}>
+                {/* Header components moved to MobileShell */}
             </div>
 
             {/* Sticky Weekday Header - Only visible in Fullscreen Mode */}
@@ -913,7 +894,7 @@ export default function HomePageV2() {
                                     setFromFloatingBtn(false);
                                 }
                             }}
-                            selectedDate={selectedDate}
+                            selectedDate={selectedDate!}
                             onMonthChange={(d) => setCurrentMonth(d)}
                             onEventCreated={(d, id) => {
                                 setShowRegistrationModal(false);
@@ -966,7 +947,7 @@ export default function HomePageV2() {
                 )}
 
 
-                <EventDetailModal isOpen={!!selectedEvent} event={selectedEvent} onClose={closeModal} onEdit={handleEditClick} onDelete={handleDeleteClick} isAdminMode={effectiveIsAdmin} />
+                <EventDetailModal isOpen={!!selectedEvent} event={selectedEvent!} onClose={closeModal} onEdit={handleEditClick} onDelete={handleDeleteClick} isAdminMode={effectiveIsAdmin} />
                 {
                     showPasswordModal && eventToEdit && (
                         <EventPasswordModal event={eventToEdit} password={eventPassword} onPasswordChange={setEventPassword} onSubmit={handlePasswordSubmit} onClose={() => { setShowPasswordModal(false); setEventPassword(""); setEventToEdit(null); }} />
@@ -979,6 +960,6 @@ export default function HomePageV2() {
                     onSelectEvent={handleCalendarSearchSelect}
                 />
             </div>
-        </div>
+        </div >
     );
 }

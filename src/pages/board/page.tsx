@@ -282,53 +282,47 @@ export default function BoardPage() {
     }
   };
 
+  // Global Header Event Listener for Write Button
+  useEffect(() => {
+    const handleBoardWriteClick = async () => {
+      // 1. Check Login
+      if (!user) {
+        if (window.confirm('로그인이 필요한 서비스입니다.\n카카오 로그인을 하시겠습니까?')) {
+          try {
+            setIsLoggingIn(true);
+            await signInWithKakao();
+          } catch (error: any) {
+            alert('로그인 중 오류가 발생했습니다.');
+          } finally {
+            setIsLoggingIn(false);
+          }
+        }
+        return;
+      }
+
+      // 2. Check Registration (Nickname)
+      if (!userData) {
+        setShowRegistrationModal(true);
+        return;
+      }
+
+      // 3. Open Editor
+      setSelectedPost(null);
+      setShowEditorModal(true);
+    };
+
+    window.addEventListener('boardWriteClick', handleBoardWriteClick);
+    return () => {
+      window.removeEventListener('boardWriteClick', handleBoardWriteClick);
+    };
+  }, [user, userData, signInWithKakao]);
+
   return (
     <div className="board-page-container">
       <GlobalLoadingOverlay isLoading={isLoggingIn} message="로그인 중입니다..." />
 
-      {/* Header */}
-      <div className="board-header global-header">
-        <div className="board-header-content">
-          <h1 className="board-header-title">자유게시판</h1>
+      {/* Header removed - now using Global Header */}
 
-          <div className="board-header-actions">
-            <button
-              onClick={async () => {
-                // 1. Check Login
-                if (!user) {
-                  if (window.confirm('로그인이 필요한 서비스입니다.\n카카오 로그인을 하시겠습니까?')) {
-                    try {
-                      setIsLoggingIn(true);
-                      await signInWithKakao();
-                    } catch (error: any) {
-                      alert('로그인 중 오류가 발생했습니다.');
-                    } finally {
-                      setIsLoggingIn(false);
-                    }
-                  }
-                  return;
-                }
-
-                // 2. Check Registration (Nickname)
-                if (!userData) {
-                  // Trigger Registration Modal
-                  setShowRegistrationModal(true);
-                  return;
-                }
-
-                // 3. Open Editor
-                setSelectedPost(null);
-                setShowEditorModal(true);
-              }}
-              className="board-btn-write"
-              disabled={isLoggingIn}
-            >
-              <i className="ri-pencil-line"></i>
-              {isLoggingIn ? '로그인 중...' : '글쓰기'}
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Post List */}
       <div className="board-posts-container">

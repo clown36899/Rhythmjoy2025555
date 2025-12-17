@@ -6,6 +6,7 @@ import '../styles/components/MobileShell.css';
 import { BottomNavigation } from "./BottomNavigation";
 import { logUserInteraction } from "../lib/analytics";
 import ProfileEditModal from "../pages/board/components/ProfileEditModal"; // Global Modal
+import SideDrawer from "../components/SideDrawer";
 
 export function MobileShell() {
   const location = useLocation();
@@ -211,10 +212,129 @@ export function MobileShell() {
   const category = searchParams.get('category') || 'all';
 
 
+  // SideDrawer State
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // SideDrawer Event Listener
+  useEffect(() => {
+    const handleOpenSideDrawer = () => setIsDrawerOpen(true);
+    window.addEventListener('openSideDrawer', handleOpenSideDrawer);
+    return () => window.removeEventListener('openSideDrawer', handleOpenSideDrawer);
+  }, []);
+
   return (
     <div className="shell-container">
-      {/* Main Content */}
-      <Outlet context={{ category, eventCounts }} />
+      {/* Global Fixed Header */}
+      <header className="shell-header global-header-fixed" style={{
+        position: 'fixed', top: 0, left: 0, right: 0, height: '60px',
+        backgroundColor: 'var(--header-bg-color, #1f2937)', zIndex: 1000,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px', borderBottom: '1px solid #374151'
+      }}>
+        {/* ... existing header content ... */}
+        {/* Left/Center Content based on Route */}
+        <div className="header-left-content" style={{ display: 'flex', alignItems: 'center', flex: 1, overflow: 'hidden' }}>
+
+          {/* 1. Events Page (Home) */}
+          {isEventsPage && (
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <h1 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white', marginRight: 'auto' }}>
+                RhythmJoy
+              </h1>
+              {/* Search Button for Events */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('openCalendarSearch'))}
+                style={{ background: 'none', border: 'none', color: 'white', marginRight: '16px' }}
+              >
+                <i className="ri-search-line" style={{ fontSize: '1.2rem' }}></i>
+              </button>
+            </div>
+          )}
+
+          {/* 2. Calendar Page (Full Screen) */}
+          {(isCalendarPage || calendarMode === 'fullscreen') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button
+                onClick={() => {
+                  setCalendarMode('collapsed');
+                  navigate('/');
+                }}
+                style={{ background: 'none', border: 'none', color: 'white' }}
+              >
+                <i className="ri-arrow-left-line" style={{ fontSize: '1.5rem' }}></i>
+              </button>
+              {/* Month Navigation Buttons */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
+                  style={{ background: 'none', border: '1px solid #555', borderRadius: '4px', color: 'white', padding: '2px 8px' }}
+                >
+                  <i className="ri-arrow-left-s-line"></i>
+                </button>
+                <span style={{ color: 'white', fontWeight: 'bold' }}>
+                  {calendarView.year}.{String(calendarView.month + 1).padStart(2, '0')}
+                </span>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('nextMonth'))}
+                  style={{ background: 'none', border: '1px solid #555', borderRadius: '4px', color: 'white', padding: '2px 8px' }}
+                >
+                  <i className="ri-arrow-right-s-line"></i>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 3. Board Page */}
+          {isBoardPage && (
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <h1 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white', marginRight: 'auto' }}>
+                자유게시판
+              </h1>
+              {/* Write Button (Logic moved from BoardPage) */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('boardWriteClick'))}
+                className="board-btn-write-header"
+                style={{
+                  backgroundColor: 'var(--primary-color)', color: 'white',
+                  border: 'none', padding: '6px 12px', borderRadius: '6px',
+                  fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px',
+                  marginRight: '12px'
+                }}
+              >
+                <i className="ri-pencil-line"></i>
+                글쓰기
+              </button>
+            </div>
+          )}
+
+          {/* 4. Other Pages (Social, Shopping, etc.) */}
+          {(!isEventsPage && !isCalendarPage && !isBoardPage && calendarMode !== 'fullscreen') && (
+            <h1 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>
+              {isSocialPage && '소셜 이벤트'}
+              {isPracticePage && '연습실'}
+              {isShoppingPage && '쇼핑'}
+              {isGuidePage && '이용가이드'}
+            </h1>
+          )}
+        </div>
+
+        {/* Right Content: Hamburger Menu (Always Fixed) */}
+        <button
+          onClick={() => setIsDrawerOpen(true)}
+          className="header-hamburger-btn"
+          style={{
+            background: 'none', border: 'none', color: 'white',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+        >
+          <i className="ri-menu-line" style={{ fontSize: '1.5rem' }}></i>
+        </button>
+      </header>
+
+      {/* Main Content (with padding for fixed header) */}
+      <div style={{ paddingTop: '60px', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <Outlet context={{ category, eventCounts }} />
+      </div>
 
       {/* Bottom Navigation - 모든 페이지 공통 */}
       <div data-id="bottom-nav" className="shell-bottom-nav">
@@ -526,15 +646,22 @@ export function MobileShell() {
           isOpen={showProfileEditModal}
           onClose={() => setShowProfileEditModal(false)}
           currentUser={{
-            nickname: user.user_metadata?.name || '',
-            profile_image: user.user_metadata?.avatar_url
+            nickname: user!.user_metadata?.name || '',
+            profile_image: user!.user_metadata?.avatar_url
           }}
           onProfileUpdated={() => {
             window.location.reload();
           }}
-          userId={user.id}
+          userId={user!.id}
         />
       )}
+
+      {/* Side Drawer */}
+      <SideDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onLoginClick={signInWithKakao}
+      />
     </div>
   );
 }

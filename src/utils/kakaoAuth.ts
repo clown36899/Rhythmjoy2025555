@@ -126,15 +126,30 @@ export const getKakaoAccessToken = (): string | null => {
 };
 
 // 카카오 로그아웃
+// 카카오 로그아웃
 export const logoutKakao = (): Promise<void> => {
   return new Promise((resolve) => {
-    if (!window.Kakao || !window.Kakao.Auth.getAccessToken()) {
+    // SDK가 없거나 토큰이 없으면 즉시 종료
+    if (!window.Kakao || !window.Kakao.Auth || !window.Kakao.Auth.getAccessToken()) {
       resolve();
       return;
     }
 
-    window.Kakao.Auth.logout(() => {
+    // 3초 타임아웃 레이스 (SDK 응답 없음을 대비)
+    const timeoutId = setTimeout(() => {
+      console.warn('[KakaoAuth] 로그아웃 타임아웃 - 강제 진행');
       resolve();
-    });
+    }, 3000);
+
+    try {
+      window.Kakao.Auth.logout(() => {
+        clearTimeout(timeoutId);
+        resolve();
+      });
+    } catch (err) {
+      console.error('[KakaoAuth] 로그아웃 호출 중 에러:', err);
+      clearTimeout(timeoutId);
+      resolve();
+    }
   });
 };
