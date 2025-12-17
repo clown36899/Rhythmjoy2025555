@@ -964,9 +964,8 @@ export default function HomePageV2() {
                     isOpen={showInputModal}
                     onClose={() => setShowInputModal(false)}
                     onSelectEvent={(event) => {
-                        // Show event detail modal directly
+                        // Show event detail modal directly, keep search modal open
                         setSelectedEvent(event);
-                        setShowInputModal(false);
                     }}
                 />
             </div>

@@ -66,7 +66,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent }: 
 
     const handleSelectEvent = (event: Event) => {
         onSelectEvent(event);
-        onClose();
+        // Don't close modal - keep it open so user can select other events
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
