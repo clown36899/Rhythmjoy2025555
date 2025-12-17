@@ -43,6 +43,10 @@
   z-index: var(--z-20);
   max-width: 650px;
   margin: 0 auto;
+  touch-action: none;
+  /* Prevent scrolling on touch */
+  overscroll-behavior: contain;
+  /* Prevent scroll chaining */
 }
 
 /* ===== 상단 바 클래스 ===== */

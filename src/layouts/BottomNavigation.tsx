@@ -79,7 +79,11 @@ export function BottomNavigation() {
     };
 
     return (
-        <div className="bottom-nav-container">
+        <div
+            className="bottom-nav-container"
+            onTouchMove={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+        >
             {NAVIGATION_ITEMS.map((item) => {
                 let isActive = false;
 
