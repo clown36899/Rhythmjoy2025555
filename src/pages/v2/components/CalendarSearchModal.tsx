@@ -16,9 +16,11 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
     const [events, setEvents] = useState<Event[]>([]);
     const [practiceRooms, setPracticeRooms] = useState<any[]>([]);
     const [shoppingItems, setShoppingItems] = useState<any[]>([]);
+    const [boardPosts, setBoardPosts] = useState<any[]>([]);
     const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
     const [filteredPracticeRooms, setFilteredPracticeRooms] = useState<any[]>([]);
     const [filteredShoppingItems, setFilteredShoppingItems] = useState<any[]>([]);
+    const [filteredBoardPosts, setFilteredBoardPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -62,13 +64,22 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                     return name.includes(query) || description.includes(query);
                 });
                 setFilteredShoppingItems(filteredShopping);
+
+                const filteredPosts = boardPosts.filter(post => {
+                    const title = post.title?.toLowerCase() || '';
+                    const content = post.content?.toLowerCase() || '';
+                    const nickname = post.author_nickname?.toLowerCase() || '';
+                    return title.includes(query) || content.includes(query) || nickname.includes(query);
+                });
+                setFilteredBoardPosts(filteredPosts);
             }
         } else {
             setFilteredEvents([]);
             setFilteredPracticeRooms([]);
             setFilteredShoppingItems([]);
+            setFilteredBoardPosts([]);
         }
-    }, [searchQuery, events, practiceRooms, shoppingItems, searchMode]);
+    }, [searchQuery, events, practiceRooms, shoppingItems, boardPosts, searchMode]);
 
     const fetchAllData = async () => {
         setLoading(true);
@@ -112,7 +123,21 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                     console.error('Error fetching shopping:', shoppingError);
                 } else {
                     // Shopping items use logo_url, not images array
+                    // Shopping items use logo_url, not images array
                     setShoppingItems(shoppingData || []);
+                }
+
+                // Fetch board posts
+                const { data: postsData, error: postsError } = await supabase
+                    .from('board_posts')
+                    .select('id, title, content, author_nickname, created_at')
+                    .order('created_at', { ascending: false })
+                    .limit(100); // Limit to 100 recent posts for performance
+
+                if (postsError) {
+                    console.error('Error fetching posts:', postsError);
+                } else {
+                    setBoardPosts(postsData || []);
                 }
             }
         } catch (err) {
@@ -157,7 +182,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                         <div className="cal-search-loading">검색 중...</div>
                     ) : searchQuery.trim() === '' ? (
                         <div className="cal-search-empty">검색어를 입력하세요</div>
-                    ) : (filteredEvents.length === 0 && filteredPracticeRooms.length === 0 && filteredShoppingItems.length === 0) ? (
+                    ) : (filteredEvents.length === 0 && filteredPracticeRooms.length === 0 && filteredShoppingItems.length === 0 && filteredBoardPosts.length === 0) ? (
                         <div className="cal-search-empty">검색 결과가 없습니다</div>
                     ) : (
                         <>
@@ -272,6 +297,28 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                                                 )}
                                             </div>
                                             <div className="cal-search-item-category">쇼핑</div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* Board Posts Section */}
+                            {searchMode === 'all' && filteredBoardPosts.length > 0 && (
+                                <>
+                                    <div className="cal-search-category-title">게시글</div>
+                                    {filteredBoardPosts.map(post => (
+                                        <div
+                                            key={post.id}
+                                            className="cal-search-item"
+                                            onClick={() => window.location.href = `/board/${post.id}`}
+                                        >
+                                            <div className="cal-search-item-content" style={{ flex: 1 }}>
+                                                <div className="cal-search-item-title">{post.title}</div>
+                                                <div className="cal-search-item-location">
+                                                    {post.content ? post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '') : ''}
+                                                </div>
+                                            </div>
+                                            <div className="cal-search-item-category">자유게시판</div>
                                         </div>
                                     ))}
                                 </>

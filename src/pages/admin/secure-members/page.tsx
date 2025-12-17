@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import AdminUserInfoModal from '../../../components/AdminUserInfoModal';
-import "../../../styles/components/BoardUserManagementModal.css"; // Reusing existing styles
+import "../../../components/BoardUserManagementModal.css"; // Reusing existing styles
 import "./page.css"; // Custom overrides
 
 interface BoardUser {
