@@ -111,8 +111,14 @@ export default function GuidePage() {
             </div>
             <h3 className="guide-card-title">무료 등록</h3>
             <p className="guide-card-description">
-              로그인 없이 누구나<br />
-              일정을 무료로 등록할 수 있습니다
+              1초카톡 로그인으로 누구나<br />
+              일정을 무료로 등록할 수 있습니다<br /><br />
+              개인정보는 따로 저장하지않고 <br />
+              익명성으로 인한 사고를 방지하기위해
+              관리자는 카톡가입시 <br />사용자가 승인한 정보를 조회할수있습니다.<br /><br />
+
+              게시판 글은 닉네임을 사용할수있지만 <br />
+              관리자는 위급시에 사용자가 <br />동의한 정보를 조회할수있습니다.
             </p>
           </div>
 
@@ -125,11 +131,11 @@ export default function GuidePage() {
             <div className="guide-card-description guide-card-list">
               <div className="guide-list-item">
                 <i className="ri-checkbox-circle-line"></i>
-                <span>자율 등록 후 비밀번호 설정</span>
+                <span>카톡로그인후 자율등록,수정</span>
               </div>
               <div className="guide-list-item">
                 <i className="ri-checkbox-circle-line"></i>
-                <span>비밀번호로 수정 가능</span>
+                <span>읽을때는 로그인 필요없음</span>
               </div>
             </div>
           </div>
