@@ -967,6 +967,7 @@ export default function HomePageV2() {
                         // Show event detail modal directly, keep search modal open
                         setSelectedEvent(event);
                     }}
+                    searchMode="all"
                 />
             </div>
         </div >

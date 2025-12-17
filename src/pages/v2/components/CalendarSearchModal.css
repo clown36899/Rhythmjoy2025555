@@ -69,7 +69,7 @@
 .cal-search-results {
     overflow-y: auto;
     flex: 1;
-    padding: 0.5rem;
+    padding: 0 0.5rem;
 }
 
 .cal-search-loading,
@@ -154,4 +154,13 @@
     padding: 0.25rem 0.5rem;
     background-color: #1a1a1a;
     border-radius: 4px;
+}
+
+.cal-search-category-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #fff;
+    padding: 0.75rem 1rem;
+    /* margin-top: 0.5rem;
+    background-color: #1f1f1f; */
 }

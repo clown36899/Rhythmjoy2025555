@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import SimpleHeader from '../../components/SimpleHeader';
 import ShopCard from './components/ShopCard';
 import ShopRegisterModal from './components/ShopRegisterModal';
+import CalendarSearchModal from '../v2/components/CalendarSearchModal';
 import './shopping.css';
 
 // 데이터 타입 정의
@@ -29,6 +30,8 @@ export default function ShoppingPage() {
   const [randomizedShops, setRandomizedShops] = useState<Shop[]>([]); // 랜덤 정렬된 목록 저장
   const [loading, setLoading] = useState(true);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   const fetchShops = async () => {
     setLoading(true);
@@ -74,6 +77,13 @@ export default function ShoppingPage() {
     fetchShops();
   }, []);
 
+  // Event search from header
+  useEffect(() => {
+    const handleOpenEventSearch = () => setShowGlobalSearch(true);
+    window.addEventListener('openEventSearch', handleOpenEventSearch);
+    return () => window.removeEventListener('openEventSearch', handleOpenEventSearch);
+  }, []);
+
   // 커스텀 이벤트 리스너: 쇼핑몰 등록 모달 열기
   useEffect(() => {
     const handleOpenRegister = () => {
@@ -111,6 +121,16 @@ export default function ShoppingPage() {
         isOpen={showRegisterModal}
         onClose={() => setShowRegisterModal(false)}
         onSuccess={fetchShops}
+      />
+
+      {/* Global Search Modal */}
+      <CalendarSearchModal
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+        onSelectEvent={(event) => {
+          setSelectedEvent(event);
+        }}
+        searchMode="all"
       />
     </div>
   );

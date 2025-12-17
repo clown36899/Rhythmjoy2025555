@@ -1,8 +1,20 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import SimpleHeader from "../../components/SimpleHeader";
+import CalendarSearchModal from '../v2/components/CalendarSearchModal';
 import './guide.css';
 
 export default function GuidePage() {
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+
+  // Event search from header
+  useEffect(() => {
+    const handleOpenEventSearch = () => setShowGlobalSearch(true);
+    window.addEventListener('openEventSearch', handleOpenEventSearch);
+    return () => window.removeEventListener('openEventSearch', handleOpenEventSearch);
+  }, []);
+
   const handleShare = async () => {
     const shareData = {
       title: '댄스빌보드 - 이벤트 발견 플랫폼',
@@ -199,6 +211,16 @@ export default function GuidePage() {
           </div>
         </div>
       </div>
+
+      {/* Global Search Modal */}
+      <CalendarSearchModal
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+        onSelectEvent={(event) => {
+          setSelectedEvent(event);
+        }}
+        searchMode="all"
+      />
     </div>
   );
 }

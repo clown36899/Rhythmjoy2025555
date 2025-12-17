@@ -8,24 +8,31 @@ interface CalendarSearchModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSelectEvent: (event: Event) => void;
+    searchMode?: 'events-only' | 'all';
 }
 
-export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent }: CalendarSearchModalProps) {
+export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, searchMode = 'events-only' }: CalendarSearchModalProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [events, setEvents] = useState<Event[]>([]);
+    const [practiceRooms, setPracticeRooms] = useState<any[]>([]);
+    const [shoppingItems, setShoppingItems] = useState<any[]>([]);
     const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+    const [filteredPracticeRooms, setFilteredPracticeRooms] = useState<any[]>([]);
+    const [filteredShoppingItems, setFilteredShoppingItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
-            fetchAllEvents();
+            fetchAllData();
             setSearchQuery('');
         }
-    }, [isOpen]);
+    }, [isOpen, searchMode]);
 
     useEffect(() => {
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
+
+            // Filter events
             const filtered = events.filter(event => {
                 const title = event.title?.toLowerCase() || '';
                 const description = event.description?.toLowerCase() || '';
@@ -38,27 +45,78 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent }: 
                     organizer.includes(query);
             });
             setFilteredEvents(filtered);
+
+            // Filter practice rooms and shopping if searchMode is 'all'
+            if (searchMode === 'all') {
+                const filteredPractice = practiceRooms.filter(room => {
+                    const name = room.name?.toLowerCase() || '';
+                    const description = room.description?.toLowerCase() || '';
+                    const address = room.address?.toLowerCase() || '';
+                    return name.includes(query) || description.includes(query) || address.includes(query);
+                });
+                setFilteredPracticeRooms(filteredPractice);
+
+                const filteredShopping = shoppingItems.filter(item => {
+                    const name = item.name?.toLowerCase() || '';
+                    const description = item.description?.toLowerCase() || '';
+                    return name.includes(query) || description.includes(query);
+                });
+                setFilteredShoppingItems(filteredShopping);
+            }
         } else {
             setFilteredEvents([]);
+            setFilteredPracticeRooms([]);
+            setFilteredShoppingItems([]);
         }
-    }, [searchQuery, events]);
+    }, [searchQuery, events, practiceRooms, shoppingItems, searchMode]);
 
-    const fetchAllEvents = async () => {
+    const fetchAllData = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            // Always fetch events
+            const { data: eventsData, error: eventsError } = await supabase
                 .from('events')
                 .select('*')
                 .order('date', { ascending: true });
 
-            if (error) {
-                console.error('Error fetching events:', error);
-                return;
+            if (eventsError) {
+                console.error('Error fetching events:', eventsError);
+            } else {
+                setEvents(eventsData || []);
             }
 
-            setEvents(data || []);
+            // Fetch practice rooms and shopping only if searchMode is 'all'
+            if (searchMode === 'all') {
+                const { data: practiceData, error: practiceError } = await supabase
+                    .from('practice_rooms')
+                    .select('*')
+                    .order('name', { ascending: true });
+
+                if (practiceError) {
+                    console.error('Error fetching practice rooms:', practiceError);
+                } else {
+                    // Parse images JSON string to array
+                    const processedPractice = (practiceData || []).map(room => ({
+                        ...room,
+                        images: typeof room.images === 'string' ? JSON.parse(room.images) : (room.images ?? [])
+                    }));
+                    setPracticeRooms(processedPractice);
+                }
+
+                const { data: shoppingData, error: shoppingError } = await supabase
+                    .from('shops')
+                    .select('*')
+                    .order('name', { ascending: true });
+
+                if (shoppingError) {
+                    console.error('Error fetching shopping:', shoppingError);
+                } else {
+                    // Shopping items use logo_url, not images array
+                    setShoppingItems(shoppingData || []);
+                }
+            }
         } catch (err) {
-            console.error('Unexpected error fetching events:', err);
+            console.error('Unexpected error fetching data:', err);
         } finally {
             setLoading(false);
         }
@@ -99,46 +157,126 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent }: 
                         <div className="cal-search-loading">검색 중...</div>
                     ) : searchQuery.trim() === '' ? (
                         <div className="cal-search-empty">검색어를 입력하세요</div>
-                    ) : filteredEvents.length === 0 ? (
+                    ) : (filteredEvents.length === 0 && filteredPracticeRooms.length === 0 && filteredShoppingItems.length === 0) ? (
                         <div className="cal-search-empty">검색 결과가 없습니다</div>
                     ) : (
-                        filteredEvents.map(event => (
-                            <div
-                                key={event.id}
-                                className="cal-search-item"
-                                onClick={() => handleSelectEvent(event)}
-                            >
-                                {(event.image_thumbnail || event.image) && (
-                                    <div className="cal-search-item-image">
-                                        <img
-                                            src={event.image_thumbnail || event.image}
-                                            alt={event.title}
-                                            onError={(e) => {
-                                                e.currentTarget.style.display = 'none';
-                                            }}
-                                        />
-                                    </div>
-                                )}
-                                <div className="cal-search-item-date">
-                                    {new Date(event.start_date || event.date || '').toLocaleDateString('ko-KR', {
-                                        month: 'short',
-                                        day: 'numeric'
-                                    })}
-                                </div>
-                                <div className="cal-search-item-content">
-                                    <div className="cal-search-item-title">{event.title}</div>
-                                    {event.location && (
-                                        <div className="cal-search-item-location">
-                                            <i className="ri-map-pin-line"></i>
-                                            {event.location}
+                        <>
+                            {/* Events Section */}
+                            {filteredEvents.length > 0 && (
+                                <>
+                                    {searchMode === 'all' && <div className="cal-search-category-title">이벤트</div>}
+                                    {filteredEvents.map(event => (
+                                        <div
+                                            key={event.id}
+                                            className="cal-search-item"
+                                            onClick={() => handleSelectEvent(event)}
+                                        >
+                                            {(event.image_thumbnail || event.image) && (
+                                                <div className="cal-search-item-image">
+                                                    <img
+                                                        src={event.image_thumbnail || event.image}
+                                                        alt={event.title}
+                                                        onError={(e) => {
+                                                            e.currentTarget.style.display = 'none';
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="cal-search-item-date">
+                                                {new Date(event.start_date || event.date || '').toLocaleDateString('ko-KR', {
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                })}
+                                            </div>
+                                            <div className="cal-search-item-content">
+                                                <div className="cal-search-item-title">{event.title}</div>
+                                                {event.location && (
+                                                    <div className="cal-search-item-location">
+                                                        <i className="ri-map-pin-line"></i>
+                                                        {event.location}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="cal-search-item-category">
+                                                {event.category === 'class' ? '강습' : '행사'}
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                                <div className="cal-search-item-category">
-                                    {event.category === 'class' ? '강습' : '행사'}
-                                </div>
-                            </div>
-                        ))
+                                    ))}
+                                </>
+                            )}
+
+                            {/* Practice Rooms Section */}
+                            {searchMode === 'all' && filteredPracticeRooms.length > 0 && (
+                                <>
+                                    <div className="cal-search-category-title">연습실</div>
+                                    {filteredPracticeRooms.map(room => (
+                                        <div
+                                            key={room.id}
+                                            className="cal-search-item"
+                                            onClick={() => window.location.href = `/practice/${room.id}`}
+                                        >
+                                            {room.images && room.images[0] && (
+                                                <div className="cal-search-item-image">
+                                                    <img
+                                                        src={room.images[0]}
+                                                        alt={room.name}
+                                                        onError={(e) => {
+                                                            e.currentTarget.style.display = 'none';
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="cal-search-item-content" style={{ flex: 1 }}>
+                                                <div className="cal-search-item-title">{room.name}</div>
+                                                {room.address && (
+                                                    <div className="cal-search-item-location">
+                                                        <i className="ri-map-pin-line"></i>
+                                                        {room.address}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="cal-search-item-category">연습실</div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* Shopping Section */}
+                            {searchMode === 'all' && filteredShoppingItems.length > 0 && (
+                                <>
+                                    <div className="cal-search-category-title">쇼핑</div>
+                                    {filteredShoppingItems.map(item => (
+                                        <div
+                                            key={item.id}
+                                            className="cal-search-item"
+                                            onClick={() => window.location.href = `/shopping?id=${item.id}`}
+                                        >
+                                            {item.logo_url && (
+                                                <div className="cal-search-item-image">
+                                                    <img
+                                                        src={item.logo_url}
+                                                        alt={item.name}
+                                                        onError={(e) => {
+                                                            e.currentTarget.style.display = 'none';
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="cal-search-item-content" style={{ flex: 1 }}>
+                                                <div className="cal-search-item-title">{item.name}</div>
+                                                {item.description && (
+                                                    <div className="cal-search-item-location">
+                                                        {item.description.substring(0, 50)}
+                                                        {item.description.length > 50 ? '...' : ''}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="cal-search-item-category">쇼핑</div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

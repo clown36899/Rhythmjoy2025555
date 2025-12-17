@@ -4,6 +4,7 @@ import PracticeRoomList from "./components/PracticeRoomList";
 import PracticeRoomModal from "../../components/PracticeRoomModal";
 import PracticeRoomDetail from "./components/PracticeRoomDetail";
 import SimpleHeader from "../../components/SimpleHeader";
+import CalendarSearchModal from "../v2/components/CalendarSearchModal";
 import { useAuth } from "../../contexts/AuthContext";
 import './practice.css';
 
@@ -14,6 +15,8 @@ export default function PracticeRoomsPage() {
   const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">("random");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   const { isAdmin } = useAuth();
   const isDevAdmin = localStorage.getItem('isDevAdmin') === 'true';
@@ -25,6 +28,13 @@ export default function PracticeRoomsPage() {
   // 페이지 로드 시 랜덤 순서 초기화 (새로고침 시 재정렬)
   useEffect(() => {
     sessionStorage.removeItem('practiceRoomsRandomOrder');
+  }, []);
+
+  // Event search from header
+  useEffect(() => {
+    const handleOpenEventSearch = () => setShowGlobalSearch(true);
+    window.addEventListener('openEventSearch', handleOpenEventSearch);
+    return () => window.removeEventListener('openEventSearch', handleOpenEventSearch);
   }, []);
 
   useEffect(() => {
@@ -93,6 +103,16 @@ export default function PracticeRoomsPage() {
           </div>
         </div>
       )}
+
+      {/* Global Search Modal */}
+      <CalendarSearchModal
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+        onSelectEvent={(event) => {
+          setSelectedEvent(event);
+        }}
+        searchMode="all"
+      />
     </div>
   );
 }
