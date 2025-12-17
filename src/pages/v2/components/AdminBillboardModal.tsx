@@ -609,7 +609,7 @@ export default function AdminBillboardModal({
                           )}
                           {!hasMedia && (
                             <span className="abm-event-no-media-badge">
-                              [이미지 없음 - 광고판 미노출]
+                              [이미지 없음 - 댄스빌보드 미노출]
                             </span>
                           )}
                         </span>
@@ -672,18 +672,18 @@ export default function AdminBillboardModal({
           <div className="abm-super-header">
             <h2 className="abm-super-title">
               <i className="ri-image-2-line"></i>
-              메인 광고판 설정
+              메인 댄스빌보드 설정
             </h2>
           </div>
 
           {/* Content - 스크롤 가능 */}
           <div className="abm-super-content"><div className="abm-super-content-inner">
-            {/* 광고판 활성화/비활성화 */}
+            {/* 댄스빌보드 활성화/비활성화 */}
             <div className="abm-toggle-container">
               <div className="abm-toggle-content">
-                <label className="abm-toggle-label">광고판 활성화</label>
+                <label className="abm-toggle-label">댄스빌보드 활성화</label>
                 <p className="abm-toggle-desc">
-                  광고판 기능을 전체적으로 켜거나 끕니다
+                  댄스빌보드 기능을 전체적으로 켜거나 끕니다
                 </p>
               </div>
               <button
@@ -707,7 +707,7 @@ export default function AdminBillboardModal({
                 </span>
               </div>
               <p className="abm-slider-desc">
-                광고판 이미지가 자동으로 넘어가는 시간 간격 (1초 ~ 30초)
+                댄스빌보드 이미지가 자동으로 넘어가는 시간 간격 (1초 ~ 30초)
               </p>
               <input
                 type="range"
@@ -736,7 +736,7 @@ export default function AdminBillboardModal({
                 </span>
               </div>
               <p className="abm-slider-desc">
-                사용자 활동이 없을 때 광고판을 자동으로 표시하는 시간 (0분 = 비활성 ~ 60분)
+                사용자 활동이 없을 때 댄스빌보드을 자동으로 표시하는 시간 (0분 = 비활성 ~ 60분)
               </p>
               <input
                 type="range"
@@ -761,7 +761,7 @@ export default function AdminBillboardModal({
               <div className="abm-toggle-content">
                 <label className="abm-toggle-label">첫 방문 시 자동 표시</label>
                 <p className="abm-toggle-desc">
-                  페이지를 처음 열 때 광고판을 자동으로 표시합니다
+                  페이지를 처음 열 때 댄스빌보드을 자동으로 표시합니다
                 </p>
               </div>
               <button
@@ -811,7 +811,7 @@ export default function AdminBillboardModal({
             <div className="abm-playorder-section">
               <label className="abm-playorder-label">재생 순서</label>
               <p className="abm-playorder-desc">
-                광고판 이미지를 표시하는 순서를 설정합니다
+                댄스빌보드 이미지를 표시하는 순서를 설정합니다
               </p>
               <div className="abm-playorder-grid">
                 <button
@@ -847,7 +847,7 @@ export default function AdminBillboardModal({
             <div className="abm-daterange-section">
               <label className="abm-daterange-label">일정 날짜 범위</label>
               <p className="abm-daterange-desc">
-                특정 기간의 일정만 광고판에 표시합니다 (미설정 시 전체 표시)
+                특정 기간의 일정만 댄스빌보드에 표시합니다 (미설정 시 전체 표시)
               </p>
               <div className="abm-daterange-inputs">
                 <div className="abm-daterange-input-group">
@@ -911,7 +911,7 @@ export default function AdminBillboardModal({
                 <div className="abm-daterange-toggle-content">
                   <label className="abm-daterange-toggle-label">날짜 범위 표시</label>
                   <p className="abm-daterange-toggle-desc">
-                    광고판에 날짜 범위를 표시합니다
+                    댄스빌보드에 날짜 범위를 표시합니다
                   </p>
                 </div>
                 <button
@@ -1005,7 +1005,7 @@ export default function AdminBillboardModal({
                           </span>
                           {!hasMedia && (
                             <span className="abm-events-badge">
-                              [이미지 없음 - 광고판 미노출]
+                              [이미지 없음 - 댄스빌보드 미노출]
                             </span>
                           )}
                         </span>
@@ -1097,7 +1097,7 @@ export default function AdminBillboardModal({
               </h4>
               <div className="abm-summary-list">
                 <div className="abm-summary-row">
-                  <span>광고판:</span>
+                  <span>댄스빌보드:</span>
                   <span className={settings.enabled ? "abm-summary-value-green" : "abm-summary-value-red"}>
                     {settings.enabled ? "활성화" : "비활성화"}
                   </span>

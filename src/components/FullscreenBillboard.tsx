@@ -83,7 +83,7 @@ export default memo(function FullscreenBillboard({
 
   useEffect(() => {
     if (!isOpen || sortedImages.length === 0) {
-      // 광고판이 닫히거나 이미지가 없으면 타이머 정리 및 인덱스 초기화
+      // 댄스빌보드이 닫히거나 이미지가 없으면 타이머 정리 및 인덱스 초기화
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;

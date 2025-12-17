@@ -398,7 +398,7 @@ export default memo(function Header({
                     }}
                   />
                   <span style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "var(--header-title-font-size)" }}>
-                    스윙빌보드
+                    댄스빌보드
                   </span>
                   <div className="header-search-container" >
                     <input
@@ -606,9 +606,9 @@ export default memo(function Header({
                   {/* 서브 관리자 전용 레이아웃 */}
                   {billboardUserId !== null ? (
                     <div className="header-btn-group-vertical">
-                      {/* 광고판 설정 + 주소/공유 섹션 */}
+                      {/* 댄스빌보드 설정 + 주소/공유 섹션 */}
                       <div className="header-billboard-section header-btn-group-vertical">
-                        {/* 광고판 설정 - 넓게 */}
+                        {/* 댄스빌보드 설정 - 넓게 */}
                         <button
                           onClick={() => {
                             onBillboardSettingsOpen?.();
@@ -616,7 +616,7 @@ export default memo(function Header({
                           className="header-btn-base header-btn-purple header-btn-icon"
                         >
                           <i className="ri-image-2-line header-icon-lg"></i>
-                          광고판 설정
+                          댄스빌보드 설정
                         </button>
 
                         {/* 주소 복사 (2/3) + 공유 (1/3) */}
@@ -696,7 +696,7 @@ export default memo(function Header({
                         className="header-btn-admin header-btn-purple"
                       >
                         <i className="ri-image-2-line header-icon-base"></i>
-                        광고판 설정
+                        댄스빌보드 설정
                       </button>
                       {isEffectiveAdmin && billboardUserId === null && (
                         <>

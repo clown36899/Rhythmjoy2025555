@@ -400,7 +400,7 @@ export function MobileShell() {
               className="shell-admin-panel-btn"
             >
               <i className="ri-image-2-line"></i>
-              광고판 설정
+              댄스빌보드 설정
             </button>
             <button
               onClick={() => {

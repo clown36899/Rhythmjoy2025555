@@ -5,8 +5,8 @@ import './guide.css';
 export default function GuidePage() {
   const handleShare = async () => {
     const shareData = {
-      title: '광고판 - 이벤트 발견 플랫폼',
-      text: '광고판에서 다양한 이벤트와 강습을 확인하세요!',
+      title: '댄스빌보드 - 이벤트 발견 플랫폼',
+      text: '댄스빌보드에서 다양한 이벤트와 강습을 확인하세요!',
       url: window.location.href, // 현재 페이지 전체 주소 공유
     };
 
@@ -85,7 +85,7 @@ export default function GuidePage() {
         <div className="guide-hero-section">
           <h1 className="guide-hero-title">
             <i className="ri-megaphone-line"></i>
-            광고판 사용 안내
+            댄스빌보드 사용 안내
           </h1>
           <p className="guide-hero-subtitle">
             누구나 자유롭게 이벤트와 강습을 등록하고 공유할 수 있습니다

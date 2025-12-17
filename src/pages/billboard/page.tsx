@@ -972,7 +972,7 @@ export default function BillboardPage() {
       document.title = `댄싱조이 - ${billboardUser.name} 빌보드`;
     }
     return () => {
-      document.title = "광고판 - Event Discovery Platform";
+      document.title = "댄스빌보드 - Event Discovery Platform";
     };
   }, [billboardUser]);
 

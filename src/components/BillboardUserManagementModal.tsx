@@ -593,7 +593,7 @@ export default function BillboardUserManagementModal({
                                     <span className="bum-exclude-badge-excluded">[제외됨]</span>
                                   )}
                                   {!hasMedia && (
-                                    <span className="bum-exclude-badge-no-media">[이미지 없음 - 광고판 미노출]</span>
+                                    <span className="bum-exclude-badge-no-media">[이미지 없음 - 댄스빌보드 미노출]</span>
                                   )}
                                 </span>
                               </label>

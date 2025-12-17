@@ -511,7 +511,7 @@ export default function EventList({
     }
   }, [currentMonth, selectedCategory]);
 
-  // 광고판에서 이벤트 선택 이벤트 리스너
+  // 댄스빌보드에서 이벤트 선택 이벤트 리스너
   // REMOVED: This was causing duplicate modals to open because Page.tsx also listens to eventSelected
   // The Page.tsx listener handles fullscreen calendar event clicks
   // useEffect(() => {
