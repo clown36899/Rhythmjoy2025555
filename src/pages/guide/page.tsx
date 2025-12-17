@@ -98,7 +98,7 @@ export default function GuidePage() {
             댄스빌보드 사용 안내
           </h1>
           <p className="guide-hero-subtitle">
-            누구나 자유롭게 이벤트와 강습을 등록하고 공유할 수 있습니다
+            누구나 자유롭게 이벤트와 강습을 <br></br>등록하고 공유할 수 있습니다
           </p>
         </div>
 
@@ -111,14 +111,14 @@ export default function GuidePage() {
             </div>
             <h3 className="guide-card-title">무료 등록</h3>
             <p className="guide-card-description">
-              1초카톡 로그인으로 누구나<br />
-              일정을 무료로 등록할 수 있습니다<br /><br />
-              개인정보는 따로 저장하지않고 <br />
-              익명성으로 인한 사고를 방지하기위해
-              관리자는 카톡가입시 <br />사용자가 승인한 정보를 조회할수있습니다.<br /><br />
-
-              게시판 글은 닉네임을 사용할수있지만 <br />
-              관리자는 위급시에 사용자가 <br />동의한 정보를 조회할수있습니다.
+              카카오 간편 로그인으로 누구나<br />
+              쉽고 빠르게 일정을 등록할 수 있습니다.<br /><br />
+              건전한 커뮤니티 환경 조성을 위해,<br />
+              서비스 이용 시 필요한 최소한의 정보가<br />
+              암호화되어 안전하게 관리됩니다.<br /><br />
+              게시판은 자유롭게 닉네임으로 활동 가능하며,<br />
+              문제 발생 시 원활한 해결을 위해<br />
+              관리자는 동의된 정보를 조회할 수 있습니다.
             </p>
           </div>
 
@@ -131,11 +131,11 @@ export default function GuidePage() {
             <div className="guide-card-description guide-card-list">
               <div className="guide-list-item">
                 <i className="ri-checkbox-circle-line"></i>
-                <span>카톡로그인후 자율등록,수정</span>
+                <span>카카오 로그인 후 자유롭게 등록/수정</span>
               </div>
               <div className="guide-list-item">
                 <i className="ri-checkbox-circle-line"></i>
-                <span>읽을때는 로그인 필요없음</span>
+                <span>게시글 열람은 로그인 없이 가능</span>
               </div>
             </div>
           </div>
@@ -147,8 +147,9 @@ export default function GuidePage() {
             </div>
             <h3 className="guide-card-title">유의사항</h3>
             <p className="guide-card-description">
-              관리자 판단하에<br />
-              이유 불문 삭제/수정될 수 있습니다
+              운영 정책에 위반되거나 부적절한 게시물은<br />
+              관리자에 의해 사전 통보 없이<br />
+              삭제 또는 수정될 수 있습니다.
             </p>
           </div>
 
@@ -159,8 +160,9 @@ export default function GuidePage() {
             </div>
             <h3 className="guide-card-title">연습실 등록</h3>
             <p className="guide-card-description">
-              연습실은 별도 문의 필요<br />
-              (사용 불가능한 연습실은 등록 불가)
+              연습실 등록을 원하시면<br />
+              관리자에게 별도로 문의해 주세요.<br />
+              (현재 운영 중인 연습실만 등록 가능)
             </p>
           </div>
         </div>
@@ -172,7 +174,7 @@ export default function GuidePage() {
             <span>친구에게 공유하기</span>
           </button>
           <p className="guide-share-hint">
-            클릭하면 링크를 공유할 수 있습니다
+            버튼을 클릭하여 링크를 공유해 보세요
           </p>
         </div>
 
@@ -180,7 +182,7 @@ export default function GuidePage() {
         <div className="guide-footer-section">
           <div className="guide-footer-content">
             <p className="guide-footer-description">
-              이 사이트는 누구나 자유롭게 입력 및 공유할 수 있습니다.
+              댄스빌보드는 누구나 자유롭게 정보를 공유할 수 있는 열린 공간입니다.
             </p>
             <div className="guide-footer-divider"></div>
             <p className="guide-footer-copyright">© since 2025. 제작-joy.</p>
@@ -227,6 +229,6 @@ export default function GuidePage() {
         }}
         searchMode="all"
       />
-    </div>
+    </div >
   );
 }

@@ -159,11 +159,13 @@
   flex-direction: column;
   gap: 0.5rem;
   text-align: left;
+
+  align-items: center;
 }
 
 .guide-list-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.5rem;
   font-size: 0.8125rem;
   color: #9ca3af;
