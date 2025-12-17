@@ -52,6 +52,7 @@
   align-items: center;
   gap: 0.75rem;
   pointer-events: none;
+  z-index: 10;
 }
 
 .header-center>* {
