@@ -9,6 +9,7 @@ import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 import "../../../styles/components/Header.css";
 import "../../../styles/components/HeaderSearch.css";
+import SideDrawer from "../../../components/SideDrawer";
 
 interface HeaderProps {
   onAdminModeToggle?: (
@@ -43,6 +44,7 @@ export default memo(function Header({
   onTodayClick,
 }: HeaderProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccessType, setLoginSuccessType] = useState("");
   const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
@@ -516,15 +518,35 @@ export default memo(function Header({
                 </div>
               )}
               <button
-                onClick={handleSettingsClick}
-                className="header-settings-btn"
+                onClick={() => setShowDrawer(true)}
+                className="header-hamburger-btn"
               >
-                <i className="ri-settings-3-line header-settings-icon"></i>
+                {billboardUserId ? (
+                  // 로그인된 유저 (빌보드 유저)는 아바타 표시? 아니면 그냥 햄버거? 
+                  // 기획상 "오른쪽 위에 3줄 모바일 사이드바? 버튼 만들어서" 라고 했으므로 햄버거가 기본.
+                  // 근데 로그인 여부 표시도 필요.
+                  // 사이드바 안에서 로그인 정보를 보여주므로, 여기서는 그냥 햄버거로 통일하거나
+                  // 읽지 않은 알림이 있으면 뱃지 등을 표시.
+                  <i className="ri-menu-line header-hamburger-icon"></i>
+                ) : (
+                  <i className="ri-menu-line header-hamburger-icon"></i>
+                )}
               </button>
             </div>
           </div>
         </div>
       </header>
+
+      <SideDrawer
+        isOpen={showDrawer}
+        onClose={() => setShowDrawer(false)}
+        onLoginClick={() => {
+          // 사이드바에서 로그인 버튼 누르면 -> 로그인 모달 오픈
+          // or perform login action directly
+          handleKakaoLogin();
+        }}
+      />
+
 
       {/* Settings Modal */}
       {showSettingsModal &&

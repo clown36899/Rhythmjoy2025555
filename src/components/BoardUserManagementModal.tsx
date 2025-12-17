@@ -13,10 +13,9 @@ interface BoardUser {
   id: number;
   user_id: string;
   nickname: string;
-  real_name: string;
-  phone: string;
   gender: string;
   created_at: string;
+  profile_image?: string;
 }
 
 export default function BoardUserManagementModal({
@@ -56,8 +55,12 @@ export default function BoardUserManagementModal({
 
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase.rpc('get_all_board_users');
+
+      // Fetch users from public schema (system_keys and user_tokens are protected, but board_users is visible)
+      const { data, error } = await supabase
+        .from('board_users')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setUsers(data || []);
@@ -78,9 +81,7 @@ export default function BoardUserManagementModal({
     const term = searchTerm.toLowerCase();
     const filtered = users.filter(
       (user) =>
-        user.nickname.toLowerCase().includes(term) ||
-        user.real_name.toLowerCase().includes(term) ||
-        user.phone.includes(term)
+        user.nickname.toLowerCase().includes(term)
     );
     setFilteredUsers(filtered);
   };
@@ -128,7 +129,7 @@ export default function BoardUserManagementModal({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="닉네임, 본명, 전화번호로 검색..."
+                placeholder="닉네임으로 검색..."
                 className="boum-search-input"
               />
               <i className="boum-search-icon ri-search-line"></i>
@@ -163,8 +164,6 @@ export default function BoardUserManagementModal({
                 <thead>
                   <tr className="boum-table-head">
                     <th className="boum-table-header">닉네임</th>
-                    <th className="boum-table-header">본명</th>
-                    <th className="boum-table-header">전화번호</th>
                     <th className="boum-table-header">성별</th>
                     <th className="boum-table-header">가입일</th>
                   </tr>
@@ -175,22 +174,23 @@ export default function BoardUserManagementModal({
                       <td className="boum-table-cell">
                         <div className="boum-nickname-cell">
                           <div className="boum-avatar">
-                            {user.nickname.charAt(0)}
+                            {user.profile_image ? (
+                              <img src={user.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              user.nickname.charAt(0)
+                            )}
                           </div>
                           <span className="boum-nickname">{user.nickname}</span>
                         </div>
                       </td>
-                      <td className="boum-table-cell boum-text-gray">{user.real_name}</td>
-                      <td className="boum-table-cell boum-text-gray">{user.phone}</td>
                       <td className="boum-table-cell">
                         <span
-                          className={`boum-gender-badge ${
-                            user.gender === 'male'
-                              ? 'boum-gender-male'
-                              : user.gender === 'female'
+                          className={`boum-gender-badge ${user.gender === 'male'
+                            ? 'boum-gender-male'
+                            : user.gender === 'female'
                               ? 'boum-gender-female'
                               : 'boum-gender-other'
-                          }`}
+                            }`}
                         >
                           {getGenderText(user.gender)}
                         </span>

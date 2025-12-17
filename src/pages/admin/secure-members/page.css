@@ -1,0 +1,23 @@
+.secure-page-wrapper {
+    background-color: #111827;
+    min-height: 100vh;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.secure-container-override {
+    max-width: 1000px;
+    height: 85vh;
+    border: 1px solid #374151;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.secure-page-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #111827;
+    color: white;
+}

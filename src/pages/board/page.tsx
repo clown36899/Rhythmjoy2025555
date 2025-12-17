@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import PostEditorModal from './components/PostEditorModal';
 
 import UserRegistrationModal, { type UserData } from './components/UserRegistrationModal';
+import ProfileEditModal from './components/ProfileEditModal';
 import BoardUserManagementModal from '../../components/BoardUserManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
 import GlobalLoadingOverlay from '../../components/GlobalLoadingOverlay';
@@ -44,6 +45,7 @@ export default function BoardPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [showUserManagementModal, setShowUserManagementModal] = useState(false);
+  const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [showRegistrationPreview, setShowRegistrationPreview] = useState(false);
   const [showPrefixManagementModal, setShowPrefixManagementModal] = useState(false);
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
@@ -293,16 +295,38 @@ export default function BoardPage() {
             {user ? (
               <>
                 {userData ? (
-                  <button
-                    onClick={() => {
-                      setSelectedPost(null);
-                      setShowEditorModal(true);
-                    }}
-                    className="board-btn-write"
-                  >
-                    <i className="ri-add-line"></i>
-                    글쓰기
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setShowProfileEditModal(true)}
+                      className="board-btn-profile"
+                      style={{
+                        backgroundColor: '#4b5563',
+                        color: 'white',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        marginRight: '8px'
+                      }}
+                    >
+                      <i className="ri-user-settings-line"></i>
+                      내 정보
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedPost(null);
+                        setShowEditorModal(true);
+                      }}
+                      className="board-btn-write"
+                    >
+                      <i className="ri-add-line"></i>
+                      글쓰기
+                    </button>
+                  </>
                 ) : (
                   <span className="board-btn-registering">
                     <i className="ri-user-add-line"></i>
@@ -446,6 +470,20 @@ export default function BoardPage() {
           isOpen={showRegistrationModal}
           onClose={() => setShowRegistrationModal(false)}
           onRegistered={handleUserRegistered}
+          userId={user.id}
+        />
+      )}
+
+      {/* Profile Edit Modal */}
+      {showProfileEditModal && userData && user && (
+        <ProfileEditModal
+          isOpen={showProfileEditModal}
+          onClose={() => setShowProfileEditModal(false)}
+          currentUser={{
+            nickname: userData.nickname,
+            profile_image: undefined // Add profile_image to UserData if needed, currently passing undefined or need to fetch
+          }}
+          onProfileUpdated={checkUserRegistration}
           userId={user.id}
         />
       )}

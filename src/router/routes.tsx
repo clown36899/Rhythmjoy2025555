@@ -37,10 +37,13 @@ const PrivacyPage = lazy(prefetchPrivacyPage);
 export const prefetchCalendarPage = () => import('../pages/calendar/page');
 const CalendarPage = lazy(prefetchCalendarPage);
 
+const SecureMembersPage = lazy(() => import("../pages/admin/secure-members/page"));
+
 export const routes: RouteObject[] = [
     {
         element: <MobileShell />,
         children: [
+            { path: "admin/secure-members", element: <SecureMembersPage />, },
             { path: '/', element: <Navigate to="/v2" replace /> },
             { path: '/v2', element: <HomePageV2 /> },
             { path: '/social', element: <SocialPage /> },

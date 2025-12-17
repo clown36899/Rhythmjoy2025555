@@ -10,7 +10,7 @@ export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user, signInWithKakao } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
   // @ts-ignore - Used in event listener (setSelectedDate called in handleSelectedDateChanged)
@@ -24,6 +24,17 @@ export function MobileShell() {
   // @ts-ignore - Used in event listener (setSortBy called in handleSortByChanged)
   const [sortBy, setSortBy] = useState<'random' | 'time' | 'title'>('random');
   const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
+
+  // Helper for login guard
+  const handleProtectedAction = (action: () => void) => {
+    if (!user) {
+      if (window.confirm("로그인이 필요한 서비스입니다.\n카카오 로그인을 하시겠습니까?")) {
+        signInWithKakao();
+      }
+      return;
+    }
+    action();
+  };
 
 
   // 달력 월/뷰모드 변경 감지
@@ -249,10 +260,10 @@ export function MobileShell() {
 
                 {/* 3. Event Registration Button */}
                 <button
-                  onClick={() => {
+                  onClick={() => handleProtectedAction(() => {
                     logUserInteraction('Button', 'Click', 'EventRegistration-TopBar');
                     window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }));
-                  }}
+                  })}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -302,7 +313,7 @@ export function MobileShell() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {/* Event Registration Button */}
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('openCalendarRegistration'))}
+                  onClick={() => handleProtectedAction(() => window.dispatchEvent(new CustomEvent('openCalendarRegistration')))}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -324,10 +335,10 @@ export function MobileShell() {
             {isShoppingPage ? (
               <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => {
+                  onClick={() => handleProtectedAction(() => {
                     logUserInteraction('Button', 'Click', 'ShopRegistration');
                     window.dispatchEvent(new CustomEvent('openShopRegistration'));
-                  }}
+                  })}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -348,10 +359,10 @@ export function MobileShell() {
               {/* Social: Register Button */}
               {isSocialPage && (
                 <button
-                  onClick={() => {
+                  onClick={() => handleProtectedAction(() => {
                     logUserInteraction('Button', 'Click', 'SocialRegistration');
                     window.dispatchEvent(new CustomEvent('openSocialRegistration'));
-                  }}
+                  })}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>

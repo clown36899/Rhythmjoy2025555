@@ -1,0 +1,171 @@
+.admin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 99999;
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-modal {
+    background-color: #1f2937;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.admin-modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.admin-modal-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    font-size: 20px;
+    padding: 4px;
+}
+
+.admin-modal-body {
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.security-icon i {
+    font-size: 48px;
+    color: #ef4444;
+    /* Red for security warning */
+    margin-bottom: 16px;
+    display: block;
+}
+
+.security-warning {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.security-warning b {
+    color: #facc15;
+}
+
+.password-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.password-form input {
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    color: #fff;
+    font-size: 16px;
+    text-align: center;
+}
+
+.password-form input:focus {
+    outline: none;
+    border-color: #facc15;
+}
+
+.password-form button {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.password-form button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.error-msg {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: 12px;
+}
+
+/* User Info Display */
+.user-info-display {
+    text-align: left;
+}
+
+.info-row {
+    margin-bottom: 12px;
+}
+
+.info-row label {
+    display: block;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.info-row span {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.info-row .phone-number {
+    color: #facc15;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.warning-box {
+    margin-top: 24px;
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ef4444;
+    font-size: 13px;
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import './userreg.css';
@@ -8,14 +8,15 @@ interface UserRegistrationModalProps {
   onClose: () => void;
   onRegistered: (userData: UserData) => void;
   userId: string;
-  previewMode?: boolean; // 관리자 미리보기 모드
+  kakaoInitialNickname?: string; // 카카오에서 받은 닉네임 (있다면)
+  previewMode?: boolean;
 }
 
 export interface UserData {
   nickname: string;
-  real_name: string;
-  phone: string;
-  gender: string;
+  real_name: string; // Deprecated, but keeping structure for compatibility
+  phone: string;     // Deprecated
+  gender: string;    // Deprecated
 }
 
 export default function UserRegistrationModal({
@@ -23,78 +24,66 @@ export default function UserRegistrationModal({
   onClose,
   onRegistered,
   userId,
+  kakaoInitialNickname = '',
   previewMode = false
 }: UserRegistrationModalProps) {
-  const [formData, setFormData] = useState<UserData>({
-    nickname: '',
-    real_name: '',
-    phone: '',
-    gender: ''
-  });
+  // 초기 닉네임은 카카오 닉네임으로 설정
+  const [nickname, setNickname] = useState(kakaoInitialNickname);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  // 카카오 닉네임이 늦게 들어올 경우를 대비해 effect 추가
+  useEffect(() => {
+    if (kakaoInitialNickname) {
+      setNickname(kakaoInitialNickname);
+    }
+  }, [kakaoInitialNickname]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     // 미리보기 모드면 실제 저장하지 않음
     if (previewMode) {
       alert('미리보기 모드입니다. 실제 가입은 되지 않습니다.');
       return;
     }
 
-    if (!formData.nickname.trim()) {
+    if (!nickname.trim()) {
       alert('닉네임을 입력해주세요.');
-      return;
-    }
-
-    if (!formData.real_name.trim()) {
-      alert('본명을 입력해주세요.');
-      return;
-    }
-
-    const phoneRegex = /^01[0-9]-\d{3,4}-\d{4}$/;
-    if (!phoneRegex.test(formData.phone)) {
-      alert('올바른 휴대전화 번호 형식이 아닙니다. (예: 010-1234-5678)');
-      return;
-    }
-
-    if (!formData.gender) {
-      alert('성별을 선택해주세요.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      /* RPC 함수 모호성 에러(ambiguous function) 회피를 위해 직접 Insert 사용 */
+      /* 
+       * 카카오 로그인을 통해 이미 인증된 상태이므로, 
+       * 추가적인 개인정보(실명, 전화번호 등)는 수집하지 않고 
+       * 닉네임만 board_users 테이블에 저장합니다.
+       * (나머지 필드는 빈 값 또는 기본값 처리) 
+       */
       const { error } = await supabase
         .from('board_users')
-        .insert({
+        .upsert({
           user_id: userId,
-          nickname: formData.nickname,
-          real_name: formData.real_name,
-          phone: formData.phone,
-          gender: formData.gender
-        });
+          nickname: nickname,
+          updated_at: new Date().toISOString()
+          // real_name, phone, gender 등은 스키마에서 nullable처리 했거나 기본값 사용 권장
+        }, { onConflict: 'user_id' }); // upsert to handle re-registration or update
 
       if (error) throw error;
 
-      alert('회원가입이 완료되었습니다!');
-      onRegistered(formData);
+      alert('환영합니다! 가입이 완료되었습니다.');
+
+      // 상위 컴포넌트에 알림
+      onRegistered({
+        nickname: nickname,
+        real_name: '',
+        phone: '',
+        gender: ''
+      });
+
       onClose();
     } catch (error: any) {
-      console.error('회원가입 실패:', error);
-      alert(`회원가입 중 오류가 발생했습니다:\n${error.message || error.details || JSON.stringify(error)}`);
+      console.error('가입 실패:', error);
+      alert(`가입 중 오류가 발생했습니다: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -104,139 +93,72 @@ export default function UserRegistrationModal({
 
   const modalContent = (
     <div className="userreg-overlay">
-      <div className="userreg-modal">
+      <div className="userreg-modal" style={{ maxWidth: '360px' }}> {/* 더 컴팩트하게 */}
+
         {/* Header */}
-        <div className="userreg-header">
-          <div className="userreg-header-top">
-            <h2 className="userreg-title">
-              {previewMode ? '회원가입 폼 미리보기' : '회원가입'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="userreg-close-btn"
-            >
-              <i className="ri-close-line text-2xl"></i>
-            </button>
-          </div>
+        <div className="userreg-header" style={{ textAlign: 'center', paddingBottom: '10px' }}>
+          <button
+            onClick={onClose}
+            className="userreg-close-btn"
+            style={{ position: 'absolute', right: '16px', top: '16px' }}
+          >
+            <i className="ri-close-line text-2xl"></i>
+          </button>
+
+          <h2 className="userreg-title" style={{ fontSize: '1.25rem' }}>
+            환영합니다!
+          </h2>
+          <p className="userreg-subtitle" style={{ marginTop: '8px' }}>
+            닉네임만 정하면 가입이 완료됩니다.
+          </p>
+
           {previewMode && (
-            <div className="userreg-preview-notice">
-              <p className="userreg-preview-text">
-                <i className="ri-eye-line"></i>
-                관리자 미리보기 모드 - 실제 가입은 되지 않습니다
-              </p>
+            <div style={{ backgroundColor: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', marginTop: '10px', display: 'inline-block' }}>
+              관리자 미리보기 모드
             </div>
           )}
-          <p className="userreg-subtitle">
-            게시판 이용을 위해 정보를 입력해주세요
-          </p>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="userreg-form">
-          {/* 닉네임 */}
+        <div className="userreg-form">
           <div className="userreg-field">
             <label className="userreg-label">
-              닉네임 <span className="userreg-required">*</span>
+              닉네임
             </label>
             <input
               type="text"
-              name="nickname"
-              value={formData.nickname}
-              onChange={handleInputChange}
-              required
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
               className="userreg-input"
-              placeholder="게시판에 표시될 닉네임"
+              placeholder="멋진 닉네임을 지어주세요"
+              autoFocus
             />
-          </div>
-
-          {/* 본명 */}
-          <div className="userreg-field">
-            <label className="userreg-label">
-              본명 <span className="userreg-required">*</span>
-            </label>
-            <input
-              type="text"
-              name="real_name"
-              value={formData.real_name}
-              onChange={handleInputChange}
-              required
-              className="userreg-input"
-              placeholder="실명을 입력하세요"
-            />
-          </div>
-
-          {/* 전화번호 */}
-          <div className="userreg-field">
-            <label className="userreg-label">
-              전화번호 <span className="userreg-required">*</span>
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={(e) => {
-                // 숫자만 추출
-                const numbers = e.target.value.replace(/[^0-9]/g, '');
-                let formatted = numbers;
-
-                // 010-0000-0000 포맷팅
-                if (numbers.length < 4) {
-                  formatted = numbers;
-                } else if (numbers.length < 8) {
-                  formatted = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-                } else if (numbers.length < 12) {
-                  formatted = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
-                } else {
-                  // 11자리 초과 시 잘라냄
-                  formatted = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-                }
-
-                setFormData(prev => ({ ...prev, phone: formatted }));
-              }}
-              required
-              className="userreg-input"
-              placeholder="010-0000-0000"
-              maxLength={13}
-            />
-          </div>
-
-          {/* 성별 */}
-          <div className="userreg-field">
-            <label className="userreg-label">
-              성별 <span className="userreg-required">*</span>
-            </label>
-            <select
-              name="gender"
-              value={formData.gender}
-              onChange={handleInputChange}
-              required
-              className="userreg-select"
-            >
-              <option value="">선택하세요</option>
-              <option value="male">남성</option>
-              <option value="female">여성</option>
-              <option value="other">기타</option>
-            </select>
-          </div>
-
-          {/* 안내 메시지 */}
-          <div className="userreg-notice">
-            <p className="userreg-notice-text">
-              <i className="ri-information-line"></i>
-              입력하신 정보는 게시판 관리 목적으로만 사용됩니다.
+            <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+              * 추후 내 정보에서 언제든 변경할 수 있습니다.
             </p>
           </div>
-        </form>
 
-        {/* Footer */}
-        <div className="userreg-footer">
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="userreg-submit-btn"
-          >
-            {isSubmitting ? '가입 중...' : '가입하기'}
-          </button>
+          <div style={{ marginTop: '20px' }}>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="userreg-submit-btn"
+              style={{
+                backgroundColor: '#FEE500',
+                color: '#000000',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <i className="ri-kakao-talk-fill" style={{ fontSize: '1.2rem' }}></i>
+              {isSubmitting ? '처리 중...' : '카카오로 1초 만에 시작하기'}
+            </button>
+          </div>
+
+
         </div>
       </div>
     </div>
