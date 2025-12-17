@@ -1,7 +1,8 @@
 # Security and Performance Headers
 /*
   # Security Headers
-  X-Frame-Options: SAMEORIGIN
+  # Allow iframe embedding from specific domain
+  Content-Security-Policy: frame-ancestors 'self' https://리듬앤조이일정표.com https://xn--9m1bu8iv0ao6ao5fsta.com
   X-Content-Type-Options: nosniff
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
