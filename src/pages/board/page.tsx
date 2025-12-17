@@ -52,6 +52,8 @@ export default function BoardPage() {
   const [warningShown, setWarningShown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadPosts();
@@ -317,6 +319,26 @@ export default function BoardPage() {
     };
   }, [user, userData, signInWithKakao]);
 
+  // Search from header
+  useEffect(() => {
+    const handleOpenSearch = () => setShowSearchModal(true);
+    window.addEventListener('openEventSearch', handleOpenSearch);
+    return () => window.removeEventListener('openEventSearch', handleOpenSearch);
+  }, []);
+
+  // Filter posts based on search query
+  const filteredPosts = searchQuery.trim()
+    ? posts.filter(post => {
+      const query = searchQuery.toLowerCase();
+      return (
+        post.title?.toLowerCase().includes(query) ||
+        post.content?.toLowerCase().includes(query) ||
+        post.author_name?.toLowerCase().includes(query) ||
+        post.author_nickname?.toLowerCase().includes(query)
+      );
+    })
+    : posts;
+
   return (
     <div className="board-page-container">
       <GlobalLoadingOverlay isLoading={isLoggingIn} message="로그인 중입니다..." />
@@ -497,6 +519,65 @@ export default function BoardPage() {
       }
 
 
+      {/* Search Modal */}
+      {showSearchModal && (
+        <div className="board-search-overlay" onClick={() => setShowSearchModal(false)}>
+          <div className="board-search-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="board-search-header">
+              <input
+                type="text"
+                className="board-search-input"
+                placeholder="게시물 검색..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              <button className="board-search-close" onClick={() => setShowSearchModal(false)}>
+                <i className="ri-close-line"></i>
+              </button>
+            </div>
+            <div className="board-search-results">
+              {searchQuery.trim() === '' ? (
+                <div className="board-search-empty">검색어를 입력하세요</div>
+              ) : filteredPosts.length === 0 ? (
+                <div className="board-search-empty">검색 결과가 없습니다</div>
+              ) : (
+                filteredPosts.map(post => (
+                  <div
+                    key={post.id}
+                    className="board-search-item"
+                    onClick={() => {
+                      setShowSearchModal(false);
+                      setSearchQuery('');
+                      handlePostClick(post);
+                    }}
+                  >
+                    <div className="board-search-item-content">
+                      {post.prefix && (
+                        <span
+                          className="board-search-item-prefix"
+                          style={{ backgroundColor: post.prefix.color }}
+                        >
+                          {post.prefix.name}
+                        </span>
+                      )}
+                      <div className="board-search-item-title">{post.title}</div>
+                      <div className="board-search-item-preview">{post.content}</div>
+                      <div className="board-search-item-meta">
+                        <span>
+                          <i className="ri-user-line"></i>
+                          {post.author_nickname || post.author_name}
+                        </span>
+                        <span>{formatDate(post.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 }

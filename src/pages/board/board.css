@@ -345,3 +345,145 @@
   background-color: var(--color-gray-600);
   color: white;
 }
+
+/* ===== Search Modal Styles ===== */
+.board-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 49;
+  padding-top: 60px;
+}
+
+.board-search-modal {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.board-search-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+  gap: 0.5rem;
+}
+
+.board-search-input {
+  flex: 1;
+  background-color: #2a2a2a;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.board-search-input:focus {
+  outline: none;
+  background-color: #333;
+}
+
+.board-search-close {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.board-search-close:hover {
+  color: #fff;
+}
+
+.board-search-results {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 0.5rem;
+}
+
+.board-search-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.board-search-item {
+  padding: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.board-search-item:hover {
+  background-color: #2a2a2a;
+}
+
+.board-search-item:active {
+  transform: scale(0.98);
+}
+
+.board-search-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.board-search-item-prefix {
+  color: white;
+  font-size: 10px;
+  padding: 0.125rem 0.25rem;
+  border-radius: 4px;
+  font-weight: 500;
+  display: inline-block;
+  width: fit-content;
+}
+
+.board-search-item-title {
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.board-search-item-preview {
+  color: #999;
+  font-size: 0.875rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.board-search-item-meta {
+  color: #666;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.board-search-item-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.board-search-item-meta i {
+  font-size: 0.875rem;
+}

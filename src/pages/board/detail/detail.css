@@ -2,11 +2,11 @@
 
 .board-detail-container {
     min-height: 100vh;
-    padding-top: 51px;
+
     /* Account for fixed header */
     padding-bottom: 6rem;
     /* Bottom spacing */
-    background-color: var(--page-bg-color);
+    /* background-color: var(--page-bg-color); */
     color: var(--text-primary);
 }
 

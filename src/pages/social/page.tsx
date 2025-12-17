@@ -4,15 +4,18 @@ import {
 } from './components';
 import SocialEditModal from './components/SocialEditModal';
 import SimpleHeader from '../../components/SimpleHeader';
+import CalendarSearchModal from '../v2/components/CalendarSearchModal';
+import EventDetailModal from '../v2/components/EventDetailModal';
 import './social.css';
 
 import { useSocialSchedules } from './hooks/useSocialSchedules';
 
 
 export default function SocialPage() {
-
   // Modal State
   const [showEventModal, setShowEventModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   // Layout State
 
@@ -31,6 +34,13 @@ export default function SocialPage() {
     return () => window.removeEventListener('openSocialRegistration', handleOpenRegistration);
   }, []);
 
+  // Search from header
+  useEffect(() => {
+    const handleOpenSearch = () => setShowSearchModal(true);
+    window.addEventListener('openEventSearch', handleOpenSearch);
+    return () => window.removeEventListener('openEventSearch', handleOpenSearch);
+  }, []);
+
   // Edit State
   const [selectedEventForEdit, setSelectedEventForEdit] = useState<any | null>(null);
 
@@ -38,6 +48,10 @@ export default function SocialPage() {
   // 강제 새로고침 핸들러 (사용자 요청: 확실한 반영을 위해)
   const handleForceReload = () => {
     window.location.reload();
+  };
+
+  const closeModal = () => {
+    setSelectedEvent(null);
   };
 
   // 메인 화면: 주간 스케줄표 (상단)
@@ -82,6 +96,26 @@ export default function SocialPage() {
           }}
         />
       )}
+
+      {/* Global Search Modal */}
+      <CalendarSearchModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onSelectEvent={(event) => {
+          setSelectedEvent(event);
+        }}
+        searchMode="all"
+      />
+
+      {/* Event Detail Modal */}
+      <EventDetailModal
+        isOpen={!!selectedEvent}
+        event={selectedEvent!}
+        onClose={closeModal}
+        onEdit={() => { }}
+        onDelete={() => { }}
+        isAdminMode={false}
+      />
     </div>
   );
 }

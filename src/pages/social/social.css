@@ -614,3 +614,121 @@
     font-size: 0.875rem;
   }
 }
+
+/* Search Modal Styles */
+.social-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 49;
+  padding-top: 60px;
+}
+
+.social-search-modal {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.social-search-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+  gap: 0.5rem;
+}
+
+.social-search-input {
+  flex: 1;
+  background-color: #2a2a2a;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.social-search-input:focus {
+  outline: none;
+  background-color: #333;
+}
+
+.social-search-close {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.social-search-close:hover {
+  color: #fff;
+}
+
+.social-search-results {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 0.5rem;
+}
+
+.social-search-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.social-search-item {
+  padding: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.social-search-item:hover {
+  background-color: #2a2a2a;
+}
+
+.social-search-item:active {
+  transform: scale(0.98);
+}
+
+.social-search-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.social-search-item-title {
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.social-search-item-place,
+.social-search-item-time {
+  color: #999;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.social-search-item-place i,
+.social-search-item-time i {
+  font-size: 1rem;
+}
