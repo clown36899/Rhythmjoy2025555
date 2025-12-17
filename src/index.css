@@ -25,6 +25,8 @@ body {
   max-width: 650px !important;
   margin: 0 auto !important;
   width: 100% !important;
+  overflow: hidden;
+  height: 100%;
   /* overflow-x 제거 - sticky가 작동하려면 필요 */
 }
 

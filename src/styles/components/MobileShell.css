@@ -302,6 +302,23 @@
   /* border-bottom: 1px solid #374151; */
 }
 
+/* Global Header Styles */
+.shell-header.global-header-fixed-bottom {
+  position: relative;
+  top: 0;
+  padding: 0px 12px !important;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: #000000;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  /* border-bottom: 1px solid #374151; */
+}
+
 .header-left-content {
   display: flex;
   align-items: center;

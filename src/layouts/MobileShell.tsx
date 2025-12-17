@@ -326,9 +326,12 @@ export function MobileShell() {
           </button>
         </div>
       </header>
+      <div className="shell-header global-header-fixed-bottom">
+
+      </div>
 
       {/* Main Content (with padding for fixed header) */}
-      <div style={{ paddingTop: '60px', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Outlet context={{ category, eventCounts }} />
       </div>
 
