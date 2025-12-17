@@ -4,10 +4,12 @@
 .shop-page-container {
   min-height: 100vh;
   padding-bottom: 8rem;
+  height: 100vh;
+  overflow-y: auto;
+  margin-top: 60px;
+  padding-bottom: 142px;
   /* background-color: rgb(39 39 39); */
 }
-
-
 
 
 /* ===== 헤더 등록 버튼 ===== */

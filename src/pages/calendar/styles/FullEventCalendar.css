@@ -1593,6 +1593,11 @@
   box-sizing: border-box;
 }
 
+/* Remove bottom border from last row cells */
+.calendar-grid-container>.calendar-cell-fullscreen:nth-last-child(-n+7) {
+  border-bottom: none;
+}
+
 /* Transitioning state overrides */
 .calendar-transitioning .calendar-cell-fullscreen {
   min-height: 0 !important;

@@ -17,7 +17,13 @@
 /* --- SocialPage --- */
 .social-page-container {
   min-height: 100vh;
-  padding-bottom: 8rem;
+
+
+  height: 100vh;
+  overflow-y: auto;
+  margin-top: 60px;
+  padding-bottom: 142px;
+
   /* pb-32 */
   /* background-color: var(--page-bg-color); */
 }

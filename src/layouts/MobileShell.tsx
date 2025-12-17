@@ -326,14 +326,14 @@ export function MobileShell() {
           </button>
         </div>
       </header>
-      <div className="shell-header global-header-fixed-bottom">
 
-      </div>
 
+      {/* <div className="shell-header global-header-fixed-bottom">
+
+      </div> */}
+      <Outlet context={{ category, eventCounts }} />
       {/* Main Content (with padding for fixed header) */}
-      <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Outlet context={{ category, eventCounts }} />
-      </div>
+
 
       {/* Bottom Navigation - 모든 페이지 공통 */}
       <div data-id="bottom-nav" className="shell-bottom-nav">

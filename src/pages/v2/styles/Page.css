@@ -9,6 +9,12 @@
   user-select: none;
   -webkit-user-select: none;
   background-color: #000000;
+
+  height: 100vh;
+  overflow-y: auto;
+  margin-top: 60px;
+  padding-bottom: 142px;
+
 }
 
 /* ===== 헤더 ===== */

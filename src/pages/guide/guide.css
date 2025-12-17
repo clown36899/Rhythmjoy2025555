@@ -4,8 +4,10 @@
 
 /* ===== 페이지 컨테이너 ===== */
 .guide-page-container {
-  min-height: 100vh;
-  /* background-color: #272727; */
+  height: 100vh;
+  overflow-y: auto;
+  margin-top: 60px;
+  padding-bottom: 142px;
 
 }
 
