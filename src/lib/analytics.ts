@@ -66,11 +66,12 @@ export const initGA = () => {
 /**
  * 페이지뷰 추적
  * @param path - 페이지 경로 (예: /v2, /practice)
+ * @param title - 페이지 제목 (선택사항, 가상 페이지뷰 시 사용)
  */
-export const logPageView = (path: string) => {
+export const logPageView = (path: string, title?: string) => {
     if (MEASUREMENT_ID) {
-        ReactGA.send({ hitType: 'pageview', page: path });
-        console.log('[Analytics] Page view:', path);
+        ReactGA.send({ hitType: 'pageview', page: path, title: title });
+        console.log('[Analytics] Page view:', { path, title });
     }
 };
 

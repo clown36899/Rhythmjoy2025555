@@ -42,7 +42,9 @@ export default memo(function QRCodeModal({ isOpen, onClose }: QRCodeModalProps) 
   // Enable mobile back gesture to close modal
   useModalHistory(isOpen, onClose);
 
-  const currentUrl = typeof window !== "undefined" ? window.location.href.split("?")[0] : "";
+  const currentUrl = typeof window !== "undefined"
+    ? (window.location.href.split("?")[0] + "?utm_source=billboard&utm_medium=qr")
+    : "";
 
   // QRCodeModal.tsx의 handleCopyUrl 함수 수정
 

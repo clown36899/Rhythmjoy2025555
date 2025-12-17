@@ -5,6 +5,7 @@ import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
 import { useModalHistory } from '../../../hooks/useModalHistory';
+import { logEvent, logPageView } from '../../../lib/analytics';
 import "../../../styles/components/EventDetailModal.css";
 
 interface Event extends BaseEvent {
@@ -90,6 +91,18 @@ export default memo(function EventDetailModal({
 
   // Enable mobile back gesture to close modal
   useModalHistory(isOpen, onClose);
+
+  // Analytics: Log virtual page view for better reporting (Pages and Screens)
+  useEffect(() => {
+    if (isOpen && event) {
+      // 1. 이벤트성 로그 (기존)
+      logEvent('Event', 'View Detail', `${event.title} (ID: ${event.id})`);
+
+      // 2. 가상 페이지뷰 로그 (신규 - 페이지 보고서 용)
+      // 실제 URL은 변하지 않지만, GA4에는 페이지가 바뀐 것처럼 전송
+      logPageView(`/event/${event.id}`, event.title);
+    }
+  }, [isOpen, event]);
 
   if (!isOpen || !event) {
     return null;

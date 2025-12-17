@@ -127,7 +127,7 @@
 .compact-image-wrapper {
   width: 100%;
   aspect-ratio: 16/16;
-  border-radius: 4px;
+  border-radius: 5rem;
   overflow: hidden;
   margin-bottom: 6px;
   background-color: rgba(255, 255, 255, 0.05);
