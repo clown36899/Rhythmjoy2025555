@@ -148,7 +148,17 @@ export default memo(function PracticeRoomModal({
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Helper
+  const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length + imageItems.length > 7) {
       alert("이미지는 최대 7개까지 업로드할 수 있습니다.");
@@ -156,12 +166,17 @@ export default memo(function PracticeRoomModal({
     }
 
     // 새로운 이미지들을 기존 이미지 목록에 추가
-    const newImageItems: ImageItem[] = files.map((file, index) => ({
-      id: `new_${Date.now()}_${index}`,
-      url: URL.createObjectURL(file),
-      file: file,
-      isExisting: false,
-    }));
+    const newImageItems: ImageItem[] = [];
+
+    for (const [index, file] of files.entries()) {
+      const url = await fileToDataURL(file);
+      newImageItems.push({
+        id: `new_${Date.now()}_${index}`,
+        url: url,
+        file: file,
+        isExisting: false,
+      });
+    }
 
     setImageItems((prev) => [...prev, ...newImageItems]);
 
@@ -172,11 +187,7 @@ export default memo(function PracticeRoomModal({
   const removeImage = (id: string) => {
     setImageItems((prev) => {
       const updatedItems = prev.filter((item) => item.id !== id);
-      // URL 정리 (메모리 누수 방지)
-      const itemToRemove = prev.find((item) => item.id === id);
-      if (itemToRemove && !itemToRemove.isExisting) {
-        URL.revokeObjectURL(itemToRemove.url);
-      }
+      // Data URL does not need revoke
       return updatedItems;
     });
   };

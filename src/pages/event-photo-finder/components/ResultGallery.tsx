@@ -14,6 +14,50 @@ interface ResultGalleryProps {
     onRestart: () => void;
 }
 
+// Helper for safety
+const blobToDataURL = (blob: Blob): Promise<string> => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(blob);
+    });
+}
+
+// Component for individual photo to handle async data url generation
+const PhotoItem = ({ photo, isSelected, onToggle }: { photo: MatchedPhoto, isSelected: boolean, onToggle: () => void }) => {
+    const [src, setSrc] = React.useState<string>("");
+
+    React.useEffect(() => {
+        let cancelled = false;
+        blobToDataURL(photo.blob).then(url => {
+            if (!cancelled) setSrc(url);
+        });
+        return () => { cancelled = true; };
+    }, [photo.id]); // Only re-run if photo ID changes
+
+    if (!src) return <div className="aspect-square bg-gray-800 animate-pulse rounded-lg" />;
+
+    return (
+        <div
+            className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 ${isSelected ? 'border-blue-500' : 'border-transparent'}`}
+            onClick={onToggle}
+        >
+            <img
+                src={src}
+                alt={photo.filename}
+                className="w-full h-full object-cover"
+            />
+            {isSelected && (
+                <div className="absolute top-1 right-1 bg-blue-500 rounded-full p-0.5">
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const ResultGallery: React.FC<ResultGalleryProps> = ({ photos, onRestart }) => {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(photos.map(p => p.id)));
 
@@ -33,14 +77,13 @@ export const ResultGallery: React.FC<ResultGalleryProps> = ({ photos, onRestart 
 
         // Sequential download
         for (const photo of targets) {
-            const url = URL.createObjectURL(photo.blob);
+            const url = await blobToDataURL(photo.blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = photo.filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
 
             // Small delay to prevent browser throttling
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -78,33 +121,14 @@ export const ResultGallery: React.FC<ResultGalleryProps> = ({ photos, onRestart 
                     </div>
                 ) : (
                     <div className="grid grid-cols-3 gap-2">
-                        {photos.map((photo) => {
-                            const url = URL.createObjectURL(photo.blob); // Ideally should memoize or revoke
-                            const isSelected = selectedIds.has(photo.id);
-
-                            return (
-                                <div
-                                    key={photo.id}
-                                    className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 ${isSelected ? 'border-blue-500' : 'border-transparent'}`}
-                                    onClick={() => toggleSelection(photo.id)}
-                                >
-                                    <img
-                                        src={url}
-                                        alt={photo.filename}
-                                        className="w-full h-full object-cover"
-                                        onLoad={() => URL.revokeObjectURL(url)} // Revoke on load to save memory? Use caution with re-renders. Actually better inside useEffect. 
-                                    // Better approach for React: create object URL once in parent or component
-                                    />
-                                    {isSelected && (
-                                        <div className="absolute top-1 right-1 bg-blue-500 rounded-full p-0.5">
-                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                        {photos.map((photo) => (
+                            <PhotoItem
+                                key={photo.id}
+                                photo={photo}
+                                isSelected={selectedIds.has(photo.id)}
+                                onToggle={() => toggleSelection(photo.id)}
+                            />
+                        ))}
                     </div>
                 )}
             </div>

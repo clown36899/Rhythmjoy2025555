@@ -837,7 +837,7 @@ export default memo(function EventRegistrationModal({
 
       {/* Image Crop Modal */}
       <ImageCropModal
-        key={tempImageSrc || 'register-crop-modal'}
+        key="event-registration-crop-modal"
         isOpen={isCropModalOpen}
         onClose={() => setIsCropModalOpen(false)}
         imageUrl={tempImageSrc}

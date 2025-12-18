@@ -1049,8 +1049,8 @@ export default memo(function EventEditModal({
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (editImagePreview.startsWith("blob:")) {
-                                                    // Blob URL인 경우 다운로드 처리
+                                                if (editImagePreview.startsWith("data:")) {
+                                                    // Data URL인 경우 다운로드 처리
                                                     const a = document.createElement("a");
                                                     a.href = editImagePreview;
                                                     a.download = "thumbnail.jpg";

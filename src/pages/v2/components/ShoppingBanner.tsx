@@ -23,6 +23,16 @@ function ShoppingBanner() {
     // Minimum swipe distance (in px) to trigger navigation
     const minSwipeDistance = 50;
 
+    // Helper to convert blob to data URL
+    const blobToDataURL = (blob: Blob): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    };
+
     // Fetch shops from Supabase
     const fetchShops = async () => {
         setLoading(true);
@@ -34,14 +44,14 @@ function ShoppingBanner() {
         if (data && !error) {
             setShops(data);
 
-            // Prefetch images as Blobs to prevent network requests during rotation
+            // Prefetch images as Data URLs (safer than Blobs) to prevent network requests during rotation
             const blobs: Record<number, string> = {};
             await Promise.all(data.map(async (shop) => {
                 if (shop.logo_url) {
                     try {
                         const response = await fetch(shop.logo_url);
                         const blob = await response.blob();
-                        blobs[shop.id] = URL.createObjectURL(blob);
+                        blobs[shop.id] = await blobToDataURL(blob);
                     } catch (e) {
                         console.error('Failed to prefetch image:', shop.logo_url);
                     }
@@ -57,10 +67,7 @@ function ShoppingBanner() {
 
     useEffect(() => {
         fetchShops();
-        // Cleanup blobs on unmount
-        return () => {
-            Object.values(imageBlobs).forEach(url => URL.revokeObjectURL(url));
-        };
+        // No cleanup needed for Data URLs
     }, []);
 
     // Auto-slide timer (only when visible, not hovered, and not swiping)

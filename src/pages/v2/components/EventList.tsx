@@ -3530,7 +3530,7 @@ export default function EventList({
 
       {/* Image Crop Modal for Edit Mode */}
       <ImageCropModal
-        key={editTempImageSrc || 'modal'}
+        key="event-list-edit-crop-modal"
         isOpen={editCropModalOpen}
         onClose={() => setEditCropModalOpen(false)}
         imageUrl={editTempImageSrc || ''}
