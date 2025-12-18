@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // 2순위: 이메일 비교 (fallback)
+    // 2순위: 이메일 비교 (fallback)
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
     return !!(currentUser.email && adminEmail && currentUser.email === adminEmail);
   };
