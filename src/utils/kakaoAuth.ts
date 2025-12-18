@@ -9,12 +9,9 @@ declare global {
 export interface KakaoUserInfo {
   id: number;
   kakao_account: {
-    profile?: {
-      nickname?: string;
-      profile_image_url?: string;
-    };
     email?: string;
     name?: string;
+    phone_number?: string;
   };
 }
 
@@ -63,7 +60,7 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
     }
 
     const loginOptions: any = {
-      scope: 'account_email', // 이메일 권한 요청
+      scope: 'account_email,name,phone_number', // 이메일, 본명, 전화번호 권한 요청
       throughTalk: false, // 웹 브라우저에서는 항상 웹 기반 OAuth 사용 (intent:// 에러 방지)
       success: () => {
         // 사용자 정보 요청

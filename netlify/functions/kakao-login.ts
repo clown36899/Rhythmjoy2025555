@@ -47,6 +47,8 @@ export const handler: Handler = async (event) => {
 
     const kakaoUser = await kakaoUserResponse.json();
     const email = kakaoUser.kakao_account?.email;
+    const realName = kakaoUser.kakao_account?.name;
+    const phone = kakaoUser.kakao_account?.phone_number;
     const nickname = kakaoUser.kakao_account?.profile?.nickname || 'Unknown';
     const profileImage = kakaoUser.kakao_account?.profile?.profile_image_url;
     const kakaoId = kakaoUser.id.toString();
@@ -58,7 +60,7 @@ export const handler: Handler = async (event) => {
     // 2. Supabase 사용자 처리 (생성 또는 조회)
     let userId: string;
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    // 이메일로 간단 매칭 (대규모 앱에서는 listUsers가 페이징되므로 주의 필요하지만 현재 규모엔 적합)
+    // 이메일로 간단 매칭
     const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
     if (existingUser) {
@@ -70,13 +72,18 @@ export const handler: Handler = async (event) => {
         email,
         password: randomPassword,
         email_confirm: true,
-        user_metadata: { name: nickname, kakao_id: kakaoId }
+        user_metadata: {
+          name: realName || nickname,
+          kakao_id: kakaoId,
+          full_name: realName,
+          phone: phone
+        }
       });
       if (createError || !newUser.user) throw createError;
       userId = newUser.user.id;
     }
 
-    // 3. board_users 업데이트 (닉네임, 프로필 이미지만 저장, PII 제외)
+    // 3. board_users 업데이트 (닉네임, 프로필페이지만 저장하며 PII는 저장하지 않음)
     const { error: upsertError } = await supabaseAdmin
       .from('board_users')
       .upsert({
