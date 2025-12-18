@@ -21,6 +21,37 @@ function RootApp() {
 
     // Google Analytics 초기화
     initGA();
+
+    // 🚀 Version Mismatch Auto-Reload Logic
+    // 배포 후 구버전 사용자가 청크 로드 실패 시 자동 새로고침
+    const handleChunkError = (event: ErrorEvent | PromiseRejectionEvent) => {
+      const error = 'reason' in event ? event.reason : event.error;
+      const message = error?.message || '';
+
+      if (
+        message.includes('Failed to fetch dynamically imported module') ||
+        message.includes('Importing a module script failed')
+      ) {
+        console.warn('⚠️ New version detected (Chunk load failed). Reloading...');
+        // Prevent infinite reload loop if the error persists
+        const lastReload = sessionStorage.getItem('chunk_reload');
+        if (lastReload && Date.now() - parseInt(lastReload) < 10000) {
+          console.error('Reload loop detected, stopping auto-reload.');
+          return;
+        }
+
+        sessionStorage.setItem('chunk_reload', Date.now().toString());
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('error', handleChunkError);
+    window.addEventListener('unhandledrejection', handleChunkError);
+
+    return () => {
+      window.removeEventListener('error', handleChunkError);
+      window.removeEventListener('unhandledrejection', handleChunkError);
+    };
   }, []);
 
   return (

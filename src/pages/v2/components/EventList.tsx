@@ -938,7 +938,14 @@ export default function EventList({
       return true;
     });
 
-    // 방금 등록된 이벤트(highlightEvent)가 있으면 맨 앞으로 정렬
+    // 3. Shuffle (Randomize fairness) for Classes
+    // "처음 새로고침했을때 랜덤으로 배치"
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+
+    // 4. 방금 등록된 이벤트(highlightEvent)가 있으면 맨 앞으로 정렬 (Override random)
     if (highlightEvent?.id) {
       result.sort((a, b) => {
         if (a.id === highlightEvent.id) return -1;
