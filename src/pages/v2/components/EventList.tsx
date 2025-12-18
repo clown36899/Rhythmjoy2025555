@@ -1221,7 +1221,8 @@ export default function EventList({
     const isOwner = user.id === event.user_id;
     // isAdminMode prop is passed to EventList, assume it's reliable.
     // Also check generic admin rights via user metadata just in case.
-    const isSuperAdmin = user.app_metadata?.is_admin === true || user.email === import.meta.env.VITE_ADMIN_EMAIL;
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+    const isSuperAdmin = user.app_metadata?.is_admin === true || (!!adminEmail && user.email === adminEmail);
 
     if (!isOwner && !isAdminMode && !isSuperAdmin && !adminType) {
       alert("본인이 작성한 이벤트만 수정할 수 있습니다.");

@@ -49,7 +49,9 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         // Let's blindly trust the specific check: if not owner and not adminType, block.
 
         // 더 정확한 체크를 위해 user.app_metadata.is_admin 확인 (AuthContext의 user 객체)
-        const isSuperAdmin = user.app_metadata?.is_admin === true || user.email === import.meta.env.VITE_ADMIN_EMAIL;
+        // 더 정확한 체크를 위해 user.app_metadata.is_admin 확인 (AuthContext의 user 객체)
+        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+        const isSuperAdmin = user.app_metadata?.is_admin === true || (!!adminEmail && user.email === adminEmail);
 
         if (!isOwner && !isSuperAdmin && !adminType) {
             alert("본인이 작성한 이벤트만 수정할 수 있습니다.");

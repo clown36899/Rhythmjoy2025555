@@ -647,13 +647,16 @@ export default function EventDetailModal({
                     <i className="ri-share-line action-icon"></i>
                   </button>
 
-                  <button
-                    onClick={(e) => onEdit(selectedEvent, e)}
-                    className="action-button edit"
-                    title="이벤트 수정"
-                  >
-                    <i className="ri-edit-line action-icon"></i>
-                  </button>
+                  {/* Only show edit button if admin or owner */}
+                  {(isAdminMode || (currentUserId && currentUserId === selectedEvent.user_id)) && (
+                    <button
+                      onClick={(e) => onEdit(selectedEvent, e)}
+                      className="action-button edit"
+                      title="이벤트 수정"
+                    >
+                      <i className="ri-edit-line action-icon"></i>
+                    </button>
+                  )}
 
                   {/* Only show delete button if admin or owner */}
                   {(isAdminMode || (currentUserId && currentUserId === selectedEvent.user_id)) && (
