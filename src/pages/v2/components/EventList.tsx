@@ -2248,12 +2248,7 @@ export default function EventList({
       {searchTerm.trim() || selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none') ? (
         // 검색 또는 날짜 선택 시: 단일 뷰
         <div
-          className="event-list-search-container evt-single-view-scroll evt-list-bg-container"
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            paddingBottom: "5rem"
-          }}
+          className="event-list-search-container evt-single-view-scroll evt-list-bg-container evt-single-view-container"
         >
           {/* Grid layout with 3 columns - poster ratio */}
           <div className="evt-grid-3-4-10">
@@ -2266,7 +2261,7 @@ export default function EventList({
                 className="evt-cursor-pointer"
                 title="전체 일정 보기"
               >
-                <div className="evt-add-banner-legacy" style={{ borderRadius: "0.3rem" }}>
+                <div className="evt-add-banner-legacy evt-radius-sm">
                   <div className="evt-icon-absolute-center">
                     <i className="ri-arrow-go-back-line event-list-view-all-icon"></i>
                     <span className="event-list-view-all-text">전체 일정 보기</span>
@@ -2344,17 +2339,13 @@ export default function EventList({
 
             return (
               <div
-                style={{
-                  flex: 1,
-                  overflowY: "auto",
-                  paddingBottom: "5rem"
-                }}
+                className="evt-single-view-container"
               >
                 {/* Unified Filter Bar (Sticky) */}
                 <div className="evt-sticky-header evt-sticky-header-container">
                   <div className="evt-sticky-header-inner">
                     {/* Category Tabs */}
-                    <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+                    <div className="evt-flex-1-gap-8">
                       <button
                         onClick={() => setViewCategory('all')}
                         className={`evt-filter-chip ${viewCategory === 'all' ? 'active' : ''}`}
@@ -2388,8 +2379,7 @@ export default function EventList({
                           }
                           setSearchParams(params);
                         }}
-                        className="evt-genre-select"
-                        style={{ width: 'auto', minWidth: '100px' }}
+                        className="evt-genre-select evt-width-auto-min-100"
                       >
                         <option value="">모든 장르</option>
                         {allGenres.map(genre => (
@@ -2623,8 +2613,7 @@ export default function EventList({
         ref={editFileInputRef}
         onChange={handleEditImageSelect}
         accept="image/*"
-        className="hidden"
-        style={{ display: 'none' }}
+        className="hidden evt-hidden"
       />
 
       {/* Image Crop Modal for Edit Mode */}
