@@ -18,22 +18,17 @@ export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth, billboardUserId } = useAuth();
+  const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth, billboardUserId, userProfile, refreshUserProfile } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
-  // @ts-ignore - Used in event listener (setSelectedDate called in handleSelectedDateChanged)
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [calendarView, setCalendarView] = useState<{ year: number; month: number; viewMode: 'month' | 'year' }>({
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
     viewMode: 'month'
   });
   const [calendarMode, setCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen'>('collapsed');
-  // @ts-ignore - Used in event listener (setSortBy called in handleSortByChanged)
-  const [sortBy, setSortBy] = useState<'random' | 'time' | 'title'>('random');
   const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
-  const [profileData, setProfileData] = useState<{ nickname: string; profile_image?: string } | null>(null);
   const [showPreLoginRegistrationModal, setShowPreLoginRegistrationModal] = useState(false);
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -55,6 +50,17 @@ export function MobileShell() {
     }
 
     // Already logged in: check if still needs registration (safety check)
+    // Optimization: Check userProfile first if available, otherwise fallback to DB check
+    // Actually, AuthContext should ensure userProfile is loaded if user exists.
+    // For safety, we keep the DB check here only if really critical, but board_users existence IS the check.
+    // If userProfile is present, it means board_users record exists (or we created a fake one from metadata).
+    // Wait, refreshUserProfile creates a fallback from metadata even if no DB record.
+    // So userProfile != null doesn't guarantee DB record exists?
+    // Let's look at refreshUserProfile again.
+    // "if (data) ... else if (user) ... fallback to metadata"
+    // So yes, userProfile exists even if not in DB.
+    // We need to check if the user is TRULY registered.
+    // For now, let's keep the explicitly safety check on board_users for protected actions.
     const { data: boardUser } = await supabase
       .from('board_users')
       .select('id')
@@ -72,29 +78,8 @@ export function MobileShell() {
 
   // Profile Edit Modal Listener
   useEffect(() => {
-    const handleOpenProfileEdit = async () => {
+    const handleOpenProfileEdit = () => {
       if (!user) return;
-
-      // Fetch profile data from board_users table
-      const { data: boardUser } = await supabase
-        .from('board_users')
-        .select('nickname, profile_image')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (boardUser) {
-        setProfileData({
-          nickname: boardUser.nickname || user.email?.split('@')[0] || '',
-          profile_image: boardUser.profile_image || user.user_metadata?.avatar_url
-        });
-      } else {
-        // Fallback to metadata
-        setProfileData({
-          nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
-          profile_image: user.user_metadata?.avatar_url
-        });
-      }
-
       setShowProfileEditModal(true);
     };
     window.addEventListener('openProfileEdit', handleOpenProfileEdit);
@@ -123,47 +108,14 @@ export function MobileShell() {
     return () => window.removeEventListener('reopenAdminSettings', handleReopenAdminSettings);
   }, []);
 
-  // Load profile data when user logs in
+  // Side Drawer Listener
   useEffect(() => {
     const handleOpenDrawer = () => setIsDrawerOpen(true);
     window.addEventListener('openSideDrawer', handleOpenDrawer);
-
-    const loadProfileData = async () => {
-      if (!user) {
-        setProfileData(null);
-        return;
-      }
-
-      try {
-        const { data: boardUser } = await supabase
-          .from('board_users')
-          .select('nickname, profile_image')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (boardUser) {
-          setProfileData({
-            nickname: boardUser.nickname || user.user_metadata?.name || user.email?.split('@')[0] || '',
-            profile_image: boardUser.profile_image || user.user_metadata?.avatar_url
-          });
-        } else {
-          // Fallback to metadata
-          setProfileData({
-            nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
-            profile_image: user.user_metadata?.avatar_url
-          });
-        }
-      } catch (error) {
-        console.error('프로필 데이터 로드 실패:', error);
-      }
-    };
-
-    loadProfileData();
-
     return () => {
       window.removeEventListener('openSideDrawer', handleOpenDrawer);
     };
-  }, [user]);
+  }, []);
 
 
 
@@ -196,32 +148,16 @@ export function MobileShell() {
     };
   }, [navigate]);
 
-  // selectedDate 변경 감지
-  useEffect(() => {
-    const handleSelectedDateChanged = (e: CustomEvent) => {
-      setSelectedDate(e.detail);
-    };
-
-    window.addEventListener('selectedDateChanged', handleSelectedDateChanged as EventListener);
-
-    return () => {
-      window.removeEventListener('selectedDateChanged', handleSelectedDateChanged as EventListener);
-    };
-  }, []);
-
   // Page State Synchronization
   useEffect(() => {
     const handleCalendarModeChanged = (e: CustomEvent) => setCalendarMode(e.detail);
-    const handleSortByChanged = (e: CustomEvent) => setSortBy(e.detail);
     const handleIsCurrentMonthVisibleChanged = (e: CustomEvent) => setIsCurrentMonthVisible(e.detail);
 
     window.addEventListener('calendarModeChanged', handleCalendarModeChanged as EventListener);
-    window.addEventListener('sortByChanged', handleSortByChanged as EventListener);
     window.addEventListener('isCurrentMonthVisibleChanged', handleIsCurrentMonthVisibleChanged as EventListener);
 
     return () => {
       window.removeEventListener('calendarModeChanged', handleCalendarModeChanged as EventListener);
-      window.removeEventListener('sortByChanged', handleSortByChanged as EventListener);
       window.removeEventListener('isCurrentMonthVisibleChanged', handleIsCurrentMonthVisibleChanged as EventListener);
     };
   }, []);
@@ -450,9 +386,9 @@ export function MobileShell() {
             title={user ? "프로필" : "로그인"}
           >
             {user ? (
-              profileData?.profile_image ? (
+              userProfile?.profile_image ? (
                 <img
-                  src={profileData.profile_image}
+                  src={userProfile.profile_image}
                   alt="프로필"
                   className="header-user-avatar"
                 />
@@ -795,14 +731,17 @@ export function MobileShell() {
         )}
       </div>
       {/* Global Profile Edit Modal */}
-      {showProfileEditModal && user && profileData && (
+      {showProfileEditModal && user && userProfile && (
         <ProfileEditModal
           isOpen={showProfileEditModal}
           onClose={() => setShowProfileEditModal(false)}
-          currentUser={profileData}
+          currentUser={{
+            ...userProfile,
+            profile_image: userProfile.profile_image
+          }}
           onProfileUpdated={() => {
-            // Reload page to reflect changes from database
-            window.location.reload();
+            // Refresh user profile in global state instead of reloading page
+            refreshUserProfile();
           }}
           userId={user!.id}
         />

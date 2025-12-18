@@ -27,6 +27,8 @@ interface AuthContextType {
   signInWithKakao: () => Promise<KakaoAuthResult>;
   signOut: () => Promise<void>;
   cancelAuth: () => void;
+  userProfile: { nickname: string; profile_image: string | null } | null;
+  refreshUserProfile: () => Promise<void>;
   signInAsDevAdmin?: () => void; // 개발 환경 전용 - UI 플래그만
 }
 
@@ -44,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [billboardUserName, setBillboardUserName] = useState<string | null>(() => {
     return localStorage.getItem('billboardUserName');
   });
+
+  // User Profile State
+  const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(null);
 
   // 수동 취소 함수
   const cancelAuth = () => {
@@ -64,6 +69,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
     return !!(currentUser.email && adminEmail && currentUser.email === adminEmail);
   };
+
+  // 프로필 데이터 가져오기
+  const refreshUserProfile = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('board_users')
+        .select('nickname, profile_image')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (data) {
+        console.log('[AuthContext] User profile loaded:', data);
+        setUserProfile({
+          nickname: data.nickname || user.user_metadata?.name || user.email?.split('@')[0] || '',
+          profile_image: data.profile_image || user.user_metadata?.avatar_url || null
+        });
+      } else if (user) {
+        // Fallback to metadata if no board_user record yet
+        setUserProfile({
+          nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
+          profile_image: user.user_metadata?.avatar_url || null
+        });
+      }
+    } catch (e) {
+      console.error('[AuthContext] Failed to load user profile:', e);
+    }
+  };
+
+  // Load profile when user changes
+  useEffect(() => {
+    if (user) {
+      refreshUserProfile();
+    } else {
+      setUserProfile(null);
+    }
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true; // 마운트 상태 추적
@@ -140,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
         setUser(null);
         setIsAdmin(false);
+        setUserProfile(null); // Clear profile
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         console.log('[AuthContext] 세션 설정:', currentUser?.email);
         setSession(session);
@@ -337,7 +380,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 성공 시: window.location.reload() 등이 없으므로, 상위 컴포넌트나 Router에서 처리가 되어야 함.
       // 현재 로직상 signInWithKakao 성공 -> 반환 -> 컴포넌트 리렌더링.
       // 리로드가 없다면 여기서 false로 해줘야 함!
-      // Kakao 로그인 후 페이지 리로드가 발생하지 않는 구조라면 반드시 여기서 false로!
       // 확인: signInWithKakao는 값을 반환하고 끝남. MobileShell에서는 별도 처리 없음.
       // AuthStateChange가 트리거되면서 UI가 업데이트됨. 
       // 따라서 성공 시에도 스피너를 꺼줘야 함.
@@ -479,7 +521,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthProcessing,
     billboardUserId,
     billboardUserName,
+    userProfile,
     setBillboardUser,
+    refreshUserProfile,
     signIn,
     signInWithKakao,
     signOut,

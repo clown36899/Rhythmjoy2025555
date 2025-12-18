@@ -2413,3 +2413,105 @@
   background-color: white;
   color: var(--color-blue-600);
 }
+
+/* ===== Semantic Utility Classes (Refactored from inline styles) ===== */
+.evt-flex-col-full {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.evt-spacer-5 {
+  width: 5px;
+  height: 1px;
+  flex-shrink: 0;
+}
+
+.evt-spacer-11 {
+  width: 11px;
+  height: 1px;
+  flex-shrink: 0;
+}
+
+.evt-spacer-16 {
+  width: 16px;
+  height: 1px;
+  flex-shrink: 0;
+}
+
+.evt-icon-xs {
+  font-size: 11px;
+}
+
+.evt-icon-xxs {
+  font-size: 10px;
+}
+
+.evt-mb-4 {
+  margin-bottom: 1rem;
+}
+
+.evt-mt-4 {
+  margin-top: 1rem;
+}
+
+.evt-mt-8 {
+  margin-top: 2rem;
+}
+
+.evt-px-4 {
+  padding: 0 1rem;
+}
+
+.evt-ml-2 {
+  margin-left: 8px;
+}
+
+/* Filter Chip Button */
+.evt-filter-chip {
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.evt-filter-chip.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.evt-loading-fallback {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.evt-single-view-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 5rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+.evt-sticky-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.evt-sticky-header-container {
+  top: 0;
+  z-index: 10;
+  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 1rem;
+}

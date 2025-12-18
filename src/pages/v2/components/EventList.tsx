@@ -1971,7 +1971,7 @@ export default function EventList({
   }
 
   return (
-    <div className="no-select" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className="no-select evt-flex-col-full">
       {/* 삭제 로딩 오버레이 */}
       {isDeleting && createPortal(
         <div
@@ -2001,7 +2001,7 @@ export default function EventList({
               className="evt-search-close-btn"
               aria-label="검색 재실행"
             >
-              <i className="ri-search-line" style={{ fontSize: '11px' }}></i>
+              <i className="ri-search-line evt-icon-xs"></i>
               <span>"{searchTerm}"</span>
             </button>
             <button
@@ -2009,7 +2009,7 @@ export default function EventList({
               className="evt-date-remove-btn"
               aria-label="검색 취소"
             >
-              <i className="ri-close-line" style={{ fontSize: '10px' }}></i>
+              <i className="ri-close-line evt-icon-xxs"></i>
             </button>
           </div>
         </div>
@@ -2047,7 +2047,7 @@ export default function EventList({
 
               {futureEvents.length > 0 ? (
                 <div className="evt-v2-horizontal-scroll">
-                  <div style={{ width: '5px', height: '1px', flexShrink: 0 }}></div>
+                  <div className="evt-spacer-5"></div>
                   {futureEvents.map(event => (
                     <EventCard
                       key={event.id}
@@ -2063,7 +2063,7 @@ export default function EventList({
                       hideGenre={true}
                     />
                   ))}
-                  <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
+                  <div className="evt-spacer-11"></div>
                 </div>
               ) : (
                 <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
@@ -2090,8 +2090,7 @@ export default function EventList({
                       }
                       setSearchParams(params);
                     }}
-                    className="evt-genre-select"
-                    style={{ marginLeft: '8px' }}
+                    className="evt-genre-select evt-ml-2"
                   >
                     <option value="">장르 선택</option>
                     {allGenres.map(genre => (
@@ -2114,7 +2113,7 @@ export default function EventList({
 
               {futureClasses.length > 0 ? (
                 <div className="evt-v2-horizontal-scroll">
-                  <div style={{ width: '5px', height: '1px', flexShrink: 0 }}></div>
+                  <div className="evt-spacer-5"></div>
                   {futureClasses.map(event => (
                     <EventCard
                       key={event.id}
@@ -2130,7 +2129,7 @@ export default function EventList({
                       hideGenre={true}
                     />
                   ))}
-                  <div style={{ width: '11px', height: '1px', flexShrink: 0 }}></div>
+                  <div className="evt-spacer-11"></div>
                 </div>
               ) : (
                 <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
@@ -2139,11 +2138,11 @@ export default function EventList({
             </div>
 
             {/* Social Schedule Section (Readonly) */}
-            <div className="evt-v2-section social-section-schedule-preview" style={{ marginBottom: '1rem' }}>
+            <div className="evt-v2-section social-section-schedule-preview evt-mb-4">
               <div className="evt-v2-section-title">
                 <span>정기 소셜 일정</span>
               </div>
-              <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>로딩 중...</div>}>
+              <Suspense fallback={<div className="evt-loading-fallback">로딩 중...</div>}>
                 <SocialCalendar
                   showModal={false}
                   setShowModal={() => { }}
@@ -2190,7 +2189,7 @@ export default function EventList({
                   </div>
 
                   <div className="evt-v2-horizontal-scroll">
-                    <div style={{ width: '5px', height: '1px', flexShrink: 0 }}></div>
+                    <div className="evt-spacer-5"></div>
                     {genreEvents.map(event => (
                       <EventCard
                         key={event.id}
@@ -2209,20 +2208,12 @@ export default function EventList({
                 </div>
               );
             })}
-            <div style={{ width: '16px', height: '1px', flexShrink: 0 }}></div>
+            <div className="evt-spacer-16"></div>
           </div>
         ) : (
           // 전체보기 모드
           <div
-            className="event-list-search-container evt-single-view-scroll evt-list-bg-container"
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              paddingBottom: "5rem",
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain',
-              scrollBehavior: 'smooth'
-            }}
+            className="event-list-search-container evt-single-view-scroll evt-list-bg-container evt-single-view-container"
           >
             {/* 제목 */}
             <div className="evt-v2-section-title" >
@@ -2360,28 +2351,25 @@ export default function EventList({
                 }}
               >
                 {/* Unified Filter Bar (Sticky) */}
-                <div className="evt-sticky-header" style={{ top: 0, zIndex: 10, marginBottom: '1rem', flexDirection: 'column', gap: '8px', padding: '12px 1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <div className="evt-sticky-header evt-sticky-header-container">
+                  <div className="evt-sticky-header-inner">
                     {/* Category Tabs */}
                     <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
                       <button
                         onClick={() => setViewCategory('all')}
                         className={`evt-filter-chip ${viewCategory === 'all' ? 'active' : ''}`}
-                        style={{ padding: '6px 12px', borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: viewCategory === 'all' ? 'var(--primary-color)' : 'transparent', color: viewCategory === 'all' ? 'white' : 'var(--text-secondary)', fontSize: '13px' }}
                       >
                         전체 {totalCount}
                       </button>
                       <button
                         onClick={() => setViewCategory('event')}
                         className={`evt-filter-chip ${viewCategory === 'event' ? 'active' : ''}`}
-                        style={{ padding: '6px 12px', borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: viewCategory === 'event' ? 'var(--primary-color)' : 'transparent', color: viewCategory === 'event' ? 'white' : 'var(--text-secondary)', fontSize: '13px' }}
                       >
                         행사 {eventCount}
                       </button>
                       <button
                         onClick={() => setViewCategory('class')}
                         className={`evt-filter-chip ${viewCategory === 'class' ? 'active' : ''}`}
-                        style={{ padding: '6px 12px', borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: viewCategory === 'class' ? 'var(--primary-color)' : 'transparent', color: viewCategory === 'class' ? 'white' : 'var(--text-secondary)', fontSize: '13px' }}
                       >
                         강습 {classCount}
                       </button>
@@ -2414,7 +2402,7 @@ export default function EventList({
 
                 {/* Single Filtered Grid */}
                 {finalFilteredEvents.length > 0 ? (
-                  <div className="evt-grid-3-4-10" style={{ padding: '0 1rem' }}>
+                  <div className="evt-grid-3-4-10 evt-px-4">
                     {finalFilteredEvents.map((event) => (
                       <EventCard
                         key={event.id}
@@ -2430,14 +2418,14 @@ export default function EventList({
                     ))}
                   </div>
                 ) : (
-                  <div className="evt-v2-empty" style={{ marginTop: '2rem' }}>
+                  <div className="evt-v2-empty evt-mt-8">
                     조건에 맞는 일정이 없습니다
                   </div>
                 )}
 
 
                 {/* 등록 버튼 배너 (항상 마지막에 표시) */}
-                <div className="evt-grid-3-4-10" style={{ marginTop: '1rem', padding: '0 1rem' }}>
+                <div className="evt-grid-3-4-10 evt-mt-4 evt-px-4">
                   <div
                     onClick={() => {
                       const monthDate = currentMonth || new Date();

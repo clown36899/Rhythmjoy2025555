@@ -13,37 +13,11 @@ interface SideDrawerProps {
 
 export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawerProps) {
     const navigate = useNavigate();
-    const { user, billboardUserName, signOut } = useAuth();
-    const [nickname, setNickname] = useState<string>('Guest');
-    const [profileImage, setProfileImage] = useState<string | null>(null);
+    const { user, billboardUserName, signOut, userProfile } = useAuth();
 
-    useEffect(() => {
-        const loadProfile = async () => {
-            if (user) {
-                // Try to get profile from board_users table first
-                const { data: boardUser } = await supabase
-                    .from('board_users')
-                    .select('nickname, profile_image')
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-
-                if (boardUser) {
-                    setNickname(boardUser.nickname || user.email?.split('@')[0] || 'Member');
-                    setProfileImage(boardUser.profile_image || user.user_metadata?.avatar_url || null);
-                } else {
-                    // Fallback to metadata
-                    const metaName = user.user_metadata?.name;
-                    setNickname(billboardUserName || metaName || user.email?.split('@')[0] || 'Member');
-                    setProfileImage(user.user_metadata?.avatar_url || null);
-                }
-            } else {
-                setNickname('Guest');
-                setProfileImage(null);
-            }
-        };
-
-        loadProfile();
-    }, [user, billboardUserName]);
+    // Derive display values from userProfile or fallback to user metadata
+    const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
+    const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
 
     if (!isOpen) return null;
 

@@ -9,7 +9,7 @@ interface ProfileEditModalProps {
     onClose: () => void;
     currentUser: {
         nickname: string;
-        profile_image?: string;
+        profile_image?: string | null;
     };
     onProfileUpdated: () => void;
     userId: string;
