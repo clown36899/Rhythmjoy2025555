@@ -464,8 +464,6 @@ export default function BoardPage() {
               setShowRegistrationPreview(false);
             }}
             onRegistered={() => { }}
-            userId="preview"
-            previewMode={true}
           />
         )
       }

@@ -385,9 +385,7 @@ export default function HomePageV2() {
         window.addEventListener('openSortModal', handleOpenSortModal);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('resetV2MainView', handleResetV2MainView);
-        window.addEventListener('prevMonth', handlePrevMonth);
-        window.addEventListener('nextMonth', handleNextMonth);
-
+        window.addEventListener('openBillboardSettings', handleBillboardSettingsOpen);
 
         return () => {
             window.removeEventListener('toggleCalendarMode', handleToggleCalendarMode);

@@ -9,12 +9,16 @@ import ProfileEditModal from "../pages/board/components/ProfileEditModal"; // Gl
 import UserRegistrationModal from "../pages/board/components/UserRegistrationModal";
 import SideDrawer from "../components/SideDrawer";
 import GlobalLoadingOverlay from "../components/GlobalLoadingOverlay";
+import ColorSettingsModal from "../components/ColorSettingsModal";
+import DefaultThumbnailSettingsModal from "../components/DefaultThumbnailSettingsModal";
+import BillboardUserManagementModal from "../components/BillboardUserManagementModal";
+import InvitationManagementModal from "../components/InvitationManagementModal";
 
 export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth } = useAuth();
+  const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth, billboardUserId } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
   // @ts-ignore - Used in event listener (setSelectedDate called in handleSelectedDateChanged)
@@ -31,7 +35,15 @@ export function MobileShell() {
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [profileData, setProfileData] = useState<{ nickname: string; profile_image?: string } | null>(null);
   const [showPreLoginRegistrationModal, setShowPreLoginRegistrationModal] = useState(false);
+
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Admin Modal States
+  const [showColorSettings, setShowColorSettings] = useState(false);
+  const [showDefaultThumbnailSettings, setShowDefaultThumbnailSettings] = useState(false);
+  const [showBillboardUserManagement, setShowBillboardUserManagement] = useState(false);
+  const [showInvitationManagement, setShowInvitationManagement] = useState(false);
+  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
 
   // Helper for login guard
   const handleProtectedAction = async (action: () => void) => {
@@ -103,6 +115,13 @@ export function MobileShell() {
     window.addEventListener('requestProtectedAction' as any, handleRequest);
     return () => window.removeEventListener('requestProtectedAction' as any, handleRequest);
   }, [user]);
+
+  // Reopen Admin Settings Listener
+  useEffect(() => {
+    const handleReopenAdminSettings = () => setTimeout(() => setShowAdminPanel(true), 100);
+    window.addEventListener('reopenAdminSettings', handleReopenAdminSettings);
+    return () => window.removeEventListener('reopenAdminSettings', handleReopenAdminSettings);
+  }, []);
 
   // Load profile data when user logs in
   useEffect(() => {
@@ -672,61 +691,65 @@ export function MobileShell() {
         {isAdmin && showAdminPanel && (
           <div className="shell-admin-panel">
             <div className="shell-admin-panel-title">관리자 패널</div>
+
+
+
             <button
               onClick={() => {
-                setShowAdminPanel(false);
-                navigate('/');
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('openBillboardSettings'));
-                }, 100);
+                window.dispatchEvent(new CustomEvent('openBillboardSettings'));
               }}
               className="shell-admin-panel-btn"
             >
               <i className="ri-image-2-line"></i>
               댄스빌보드 설정
             </button>
+
             <button
               onClick={() => {
-                setShowAdminPanel(false);
-                navigate('/');
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('openBillboardUserManagement'));
-                }, 100);
-              }}
-              className="shell-admin-panel-btn"
-            >
-              <i className="ri-user-settings-line"></i>
-              빌보드 사용자 관리
-            </button>
-            <button
-              onClick={() => {
-                setShowAdminPanel(false);
-                navigate('/');
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('openDefaultThumbnailSettings'));
-                }, 100);
+                setShowDefaultThumbnailSettings(true);
               }}
               className="shell-admin-panel-btn"
             >
               <i className="ri-image-line"></i>
               기본 썸네일 설정
             </button>
+
             <button
               onClick={() => {
-                setShowAdminPanel(false);
-                navigate('/');
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('openColorSettings'));
-                }, 100);
+                setShowColorSettings(true);
               }}
               className="shell-admin-panel-btn"
             >
               <i className="ri-palette-line"></i>
               색상 설정
             </button>
+
+            {isAdmin && !billboardUserId && (
+              <>
+                <button
+                  onClick={() => {
+                    setShowBillboardUserManagement(true);
+                  }}
+                  className="shell-admin-panel-btn"
+                >
+                  <i className="ri-user-settings-line"></i>
+                  빌보드 회원 관리
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowInvitationManagement(true);
+                  }}
+                  className="shell-admin-panel-btn"
+                >
+                  <i className="ri-mail-send-line"></i>
+                  초대 관리
+                </button>
+              </>
+            )}
+
             <button
               onClick={() => {
-                setShowAdminPanel(false);
                 navigate('/board');
                 setTimeout(() => {
                   window.dispatchEvent(new CustomEvent('openBoardUserManagement'));
@@ -737,9 +760,9 @@ export function MobileShell() {
               <i className="ri-group-line"></i>
               게시판 회원 관리
             </button>
+
             <button
               onClick={() => {
-                setShowAdminPanel(false);
                 navigate('/board');
                 setTimeout(() => {
                   window.dispatchEvent(new CustomEvent('openPrefixManagement'));
@@ -750,34 +773,24 @@ export function MobileShell() {
               <i className="ri-price-tag-3-line"></i>
               머릿말 관리
             </button>
-            <button
-              onClick={() => {
-                // Save current path to return after preview
-                sessionStorage.setItem('previewReturnPath', location.pathname);
-                setShowAdminPanel(false);
-                navigate('/board');
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('openRegistrationFormPreview'));
-                }, 100);
-              }}
-              className="shell-admin-panel-btn"
-            >
-              <i className="ri-file-edit-line"></i>
-              회원가입 폼 미리보기
-            </button>
-            <button
-              onClick={() => {
-                setShowAdminPanel(false);
-                navigate('/');
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('openSettings'));
-                }, 100);
-              }}
-              className="shell-admin-panel-btn"
-            >
-              <i className="ri-settings-3-line"></i>
-              전체 설정
-            </button>
+
+            {/* Sub Admin specific actions like Copy/Share can be added here if needed */}
+            {billboardUserId && (
+              <button
+                onClick={() => {
+                  const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
+                  navigator.clipboard.writeText(billboardUrl);
+                  setShowCopySuccessModal(true);
+                  setTimeout(() => setShowCopySuccessModal(false), 1500);
+                  setShowAdminPanel(false);
+                }}
+                className="shell-admin-panel-btn"
+              >
+                <i className="ri-link"></i>
+                내 빌보드 주소 복사
+              </button>
+            )}
+
           </div>
         )}
       </div>
@@ -853,6 +866,45 @@ export function MobileShell() {
           setShowPreLoginRegistrationModal(true);
         }}
       />
+
+      {/* Admin Modals */}
+      <ColorSettingsModal
+        isOpen={showColorSettings}
+        onClose={() => setShowColorSettings(false)}
+      />
+
+      <DefaultThumbnailSettingsModal
+        isOpen={showDefaultThumbnailSettings}
+        onClose={() => setShowDefaultThumbnailSettings(false)}
+      />
+
+      <BillboardUserManagementModal
+        isOpen={showBillboardUserManagement}
+        onClose={() => setShowBillboardUserManagement(false)}
+      />
+
+      <InvitationManagementModal
+        isOpen={showInvitationManagement}
+        onClose={() => setShowInvitationManagement(false)}
+      />
+
+      {/* Copy Success Modal */}
+      {showCopySuccessModal && (
+        <div className="header-modal-overlay-super" style={{ zIndex: 9999 }}>
+          <div className="header-modal header-modal-shadow">
+            <div className="header-success-container">
+              <div className="header-success-icon-wrapper">
+                <div className="header-success-icon-circle header-success-icon-green">
+                  <i className="ri-check-line header-icon-3xl" style={{ color: 'white' }}></i>
+                </div>
+              </div>
+              <p className="header-success-text-lg">
+                빌보드 주소가 복사되었습니다!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Global Auth Loading Overlay (Blocks entire UI) */}
       <GlobalLoadingOverlay

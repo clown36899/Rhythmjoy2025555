@@ -68,7 +68,7 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
     const loginOptions: any = {
       scope: 'account_email,profile_nickname,name,phone_number', // 이메일, 닉네임, 본명, 전화번호 권한 요청
       throughTalk: false, // 웹 브라우저에서는 항상 웹 기반 OAuth 사용 (intent:// 에러 방지)
-      success: function (authObj: any) {
+      success: function () {
         clearTimeout(timeoutId); // 성공 시 타이머 해제
 
         // 사용자 정보 요청

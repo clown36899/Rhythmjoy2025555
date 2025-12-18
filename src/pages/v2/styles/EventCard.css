@@ -95,18 +95,11 @@
 
 /* ===== Category별 독립 스타일 ===== */
 /* 이벤트 카드 전용 스타일 */
-.card-category-event {
-  /* flex: 0 0 auto !important;
-  width: 34% !important; */
-}
 
-.card-category-event .card-image-wrapper {
-  /* 이벤트 카드 이미지 래퍼 스타일 */
-}
 
-.card-category-event .card-title-text {
-  /* 이벤트 카드 제목 스타일 */
-}
+
+
+
 
 /* 강습 카드 전용 스타일 */
 .card-category-class {
@@ -119,13 +112,9 @@
   /* background-color: #ffffff; */
 }
 
-.card-category-class .card-image-wrapper {
-  /* 강습 카드 이미지 래퍼 스타일 */
-}
 
-.card-category-class .card-title-text {
-  /* 강습 카드 제목 스타일 */
-}
+
+
 
 /* ===== 이미지 래퍼 ===== */
 .card-image-wrapper {
@@ -153,13 +142,7 @@
 } */
 
 /* 강습 카드 이미지 래퍼 - 완전 독립 */
-.card-image-wrapper-class {
-  /* aspect-ratio: 3 / 3; */
-  /* border-radius: 12px 12px 0 0; */
-  /* background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); */
-  /* margin-bottom: 12px; */
-  /* box-shadow: 0px 0px 8px rgb(0 0 0 / 32%); */
-}
+
 
 /* .card-container:hover .card-image-wrapper-class {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -266,21 +249,13 @@
 }
 
 /* 이벤트 카드 배지 전용 스타일 */
-.card-category-event .card-badge {
-  /* 이벤트 배지 전용 스타일 */
-  /* 예: background, border, shadow 등 */
-}
+
 
 /* 강습 카드 배지 전용 스타일 */
-.card-category-class .card-badge {
-  /* 강습 배지 전용 스타일 */
-  /* 예: background, border, shadow 등 */
-}
+
 
 /* ===== 텍스트 컨테이너 ===== */
-.card-text-container {
-  /* 기본 공통 스타일 */
-}
+
 
 /* 이벤트 카드 텍스트 컨테이너 */
 .card-text-container-event {
@@ -301,17 +276,13 @@
 }
 
 /* 이벤트 카드 장르 텍스트 */
-.card-genre-text-event {
-  /* 이벤트 장르 텍스트 전용 스타일 */
-}
+
 
 /* 강습 카드 장르 텍스트 */
-.card-genre-text-class {
-  /* 강습 장르 텍스트 전용 스타일 */
-}
+
 
 /* ===== 제목 텍스트 ===== */
-.card-title-text {}
+
 
 /* 이벤트 카드 제목 텍스트 */
 .card-title-text-event {
@@ -322,6 +293,7 @@
   margin: 0 0 0.3rem 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -337,6 +309,7 @@
   margin: 0 0 0.3rem 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -350,14 +323,10 @@
 }
 
 /* 이벤트 카드 날짜 텍스트 */
-.card-date-text-event {
-  /* 이벤트 날짜 텍스트 전용 스타일 */
-}
+
 
 /* 강습 카드 날짜 텍스트 */
-.card-date-text-class {
-  /* 강습 날짜 텍스트 전용 스타일 */
-}
+
 
 /* ===== 날짜 컨테이너 ===== */
 .card-date-container {
@@ -375,9 +344,7 @@
 }
 
 /* 이벤트 카드 날짜 컨테이너 */
-.card-date-container-event {
-  /* 이벤트 날짜 컨테이너 전용 스타일 */
-}
+
 
 /* 강습 카드 날짜 컨테이너 */
 .card-date-container-class {
