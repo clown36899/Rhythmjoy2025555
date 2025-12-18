@@ -85,6 +85,7 @@ export default memo(function EventRegistrationModal({
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 }); // Offset (0,0) by default
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>(""); // Stable preview URL
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Ref for EditableEventDetail to trigger modals
@@ -216,6 +217,9 @@ export default memo(function EventRegistrationModal({
         setVideoUrl(editEventData.video_url || "");
         if (editEventData.video_url) handleVideoChange(editEventData.video_url);
 
+        // Initialize image preview
+        setImagePreview(editEventData.image || "");
+
         // Handle Image
         // Note: For existing images, we don't have a File object, so imageFile remains null.
         // We rely on the fact that if imageFile is null, we preserve the existing image URL in submit (or handle it logically).
@@ -241,6 +245,7 @@ export default memo(function EventRegistrationModal({
         setVideoUrl("");
         setImageFile(null);
         setOriginalImageFile(null);
+        setImagePreview("");
         setImagePosition({ x: 0, y: 0 });
       }
       // Common Reset
@@ -287,8 +292,14 @@ export default memo(function EventRegistrationModal({
       setOriginalImageFile(file);
       setImageFile(file);
       setImagePosition({ x: 0, y: 0 });
-      setTempImageSrc(URL.createObjectURL(file));
-      setIsCropModalOpen(true);
+
+      try {
+        const dataUrl = await fileToDataURL(file);
+        setTempImageSrc(dataUrl);
+        setIsCropModalOpen(true);
+      } catch (err) {
+        console.error("Thumbnail error", err);
+      }
     } catch (e) {
       console.error("Failed to extract thumbnail", e);
       alert("썸네일 추출 중 오류가 발생했습니다.");
@@ -357,6 +368,10 @@ export default memo(function EventRegistrationModal({
       lastModified: Date.now(),
     });
     setImageFile(croppedFile);
+
+    // Update stable preview
+    fileToDataURL(croppedFile).then(setImagePreview).catch(console.error);
+
     setTempImageSrc(null);
     setIsCropModalOpen(false);
   };
@@ -618,7 +633,7 @@ export default memo(function EventRegistrationModal({
     description: description,
     category: category,
     genre: genre,
-    image: imageFile ? URL.createObjectURL(imageFile) : (editEventData?.image || ""),
+    image: imagePreview || editEventData?.image || "",
     link1: link1,
     link_name1: linkName1,
     video_url: videoUrl,

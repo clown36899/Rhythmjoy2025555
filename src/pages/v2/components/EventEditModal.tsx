@@ -400,7 +400,12 @@ export default memo(function EventEditModal({
             // 이미지 변경 핸들러와 동일한 로직 수행
             const resizedImages = await createResizedImages(file);
             setEditImageFile(file);
-            setEditImagePreview(URL.createObjectURL(resizedImages.medium));
+            // Use Data URL for preview to avoid ERR_UPLOAD_FILE_CHANGED
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setEditImagePreview(e.target?.result as string);
+            };
+            reader.readAsDataURL(resizedImages.medium);
             setShowThumbnailSelector(false);
         } catch (error) {
             console.error("썸네일 선택 오류:", error);

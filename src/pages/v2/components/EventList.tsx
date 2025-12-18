@@ -1299,15 +1299,29 @@ export default function EventList({
     setEditFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Helper to convert File to Data URL (Base64) to prevent ERR_UPLOAD_FILE_CHANGED
+  const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = (e) => reject(e);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleEditImageUpload = () => {
     if (editImageFile) {
-      setEditTempImageSrc(URL.createObjectURL(editImageFile));
+      fileToDataURL(editImageFile).then(url => {
+        setEditTempImageSrc(url);
+        setEditCropModalOpen(true);
+      }).catch(console.error);
     } else if (editImagePreview) {
       setEditTempImageSrc(editImagePreview);
+      setEditCropModalOpen(true);
     } else {
       setEditTempImageSrc(null);
+      setEditCropModalOpen(true);
     }
-    setEditCropModalOpen(true);
   };
 
   const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1316,7 +1330,8 @@ export default function EventList({
       setEditOriginalImageForCrop(file);
       setEditImageFile(file);
       setEditImagePosition({ x: 0, y: 0 });
-      setEditTempImageSrc(URL.createObjectURL(file));
+
+      fileToDataURL(file).then(setEditTempImageSrc).catch(console.error);
       // Modal is already open
     }
     e.target.value = '';
@@ -1326,7 +1341,7 @@ export default function EventList({
     setEditOriginalImageForCrop(file);
     setEditImageFile(file);
     setEditImagePosition({ x: 0, y: 0 });
-    setEditTempImageSrc(URL.createObjectURL(file));
+    fileToDataURL(file).then(setEditTempImageSrc).catch(console.error);
   };
 
   const handleEditCropComplete = async (croppedBlob: Blob, _previewUrl: string, _isModified: boolean) => {
@@ -1340,7 +1355,7 @@ export default function EventList({
     });
 
     setEditImageFile(croppedFile);
-    setEditImagePreview(URL.createObjectURL(croppedFile));
+    fileToDataURL(croppedFile).then(setEditImagePreview).catch(console.error);
     setEditTempImageSrc(null);
     setEditCropModalOpen(false);
   };
@@ -1348,7 +1363,7 @@ export default function EventList({
   const handleEditRestoreCropOriginal = () => {
     if (editOriginalImageForCrop) {
       setEditImageFile(editOriginalImageForCrop);
-      setEditTempImageSrc(URL.createObjectURL(editOriginalImageForCrop));
+      fileToDataURL(editOriginalImageForCrop).then(setEditTempImageSrc).catch(console.error);
     } else if (editOriginalImageUrl) {
       // URL로 복원하는 경우, 이미지는 그대로 두고 미리보기만 변경
       setEditImageFile(null); // 편집된 파일 제거
@@ -1359,8 +1374,10 @@ export default function EventList({
 
   const handleEditReEditImage = () => {
     if (editImageFile) {
-      setEditTempImageSrc(URL.createObjectURL(editImageFile));
-      setEditCropModalOpen(true);
+      fileToDataURL(editImageFile).then(url => {
+        setEditTempImageSrc(url);
+        setEditCropModalOpen(true);
+      }).catch(console.error);
     } else if (editImagePreview) {
       setEditTempImageSrc(editImagePreview);
       setEditCropModalOpen(true);
@@ -1393,8 +1410,14 @@ export default function EventList({
       setEditOriginalImageForCrop(file);
       setEditImageFile(file);
       setEditImagePosition({ x: 0, y: 0 });
-      setEditTempImageSrc(URL.createObjectURL(file));
-      setEditCropModalOpen(true);
+
+      try {
+        const dataUrl = await fileToDataURL(file);
+        setEditTempImageSrc(dataUrl);
+        setEditCropModalOpen(true);
+      } catch (err) {
+        console.error("Thumbnail preview failed", err);
+      }
     } catch (e) {
       console.error("Failed to extract thumbnail", e);
       alert("썸네일 추출 중 오류가 발생했습니다.");
@@ -1739,9 +1762,12 @@ export default function EventList({
           reader.readAsDataURL(file);
         }
 
-        const blobUrl = URL.createObjectURL(blob);
-        setEditTempImageSrc(blobUrl);
-        setEditCropModalOpen(true);
+        const reader2 = new FileReader();
+        reader2.onload = (e) => {
+          setEditTempImageSrc(e.target?.result as string);
+          setEditCropModalOpen(true);
+        };
+        reader2.readAsDataURL(blob);
       } catch (error) {
         console.error('이미지 로드 실패:', error);
         alert('이미지를 불러오는 중 오류가 발생했습니다.');
