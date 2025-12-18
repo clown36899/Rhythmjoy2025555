@@ -333,12 +333,26 @@ export default function BoardDetailPage() {
                                 }
 
                                 if (currentUserId) {
-                                    // Check if nickname taken by ANOTHER user
+                                    // 1. Check if ALREADY registered
+                                    const { data: existingUser } = await supabase
+                                        .from('board_users')
+                                        .select('nickname, real_name, phone, gender, profile_image')
+                                        .eq('user_id', currentUserId)
+                                        .maybeSingle();
+
+                                    if (existingUser) {
+                                        console.log('[BoardDetailPage] Existing user found, keeping nickname:', existingUser.nickname);
+                                        localStorage.setItem('is_registered', 'true');
+                                        handleUserRegistered(existingUser as any);
+                                        setShowRegistrationModal(false);
+                                        return;
+                                    }
+
+                                    // 2. New User - Check if nickname taken by ANOTHER user
                                     const { data: nameTakenByOther } = await supabase
                                         .from('board_users')
                                         .select('user_id')
                                         .eq('nickname', newUserData.nickname)
-                                        .neq('user_id', currentUserId)
                                         .maybeSingle();
 
                                     if (nameTakenByOther) {
@@ -346,7 +360,7 @@ export default function BoardDetailPage() {
                                         return;
                                     }
 
-                                    // Save to DB
+                                    // 3. New User - Save to DB
                                     const { error } = await supabase.from('board_users').upsert({
                                         user_id: currentUserId,
                                         nickname: newUserData.nickname,

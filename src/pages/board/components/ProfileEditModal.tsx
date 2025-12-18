@@ -312,9 +312,14 @@ export default function ProfileEditModal({
                     <div className="userreg-footer" style={{ marginTop: '20px' }}>
                         <button
                             onClick={handleSubmit}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking}
                             className="userreg-submit-btn"
-                            style={{ backgroundColor: 'var(--primary-color)', color: 'white' }}
+                            style={{
+                                backgroundColor: 'var(--primary-color)',
+                                color: 'white',
+                                opacity: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 0.6 : 1,
+                                cursor: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 'not-allowed' : 'pointer'
+                            }}
                         >
                             {isSubmitting ? '저장 중...' : '저장하기'}
                         </button>

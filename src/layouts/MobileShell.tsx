@@ -823,25 +823,41 @@ export function MobileShell() {
               }
 
               if (currentUserId) {
-                // 2. Check if the NICKNAME is already taken by ANOTHER user
+                // 2. Check if this user is ALREADY registered
+                const { data: existingUser } = await supabase
+                  .from('board_users')
+                  .select('nickname')
+                  .eq('user_id', currentUserId)
+                  .maybeSingle();
+
+                if (existingUser) {
+                  // User already exists, keep their old nickname and proceed
+                  console.log('[MobileShell] Existing user found, keeping nickname:', existingUser.nickname);
+                  localStorage.setItem('is_registered', 'true');
+                  setShowPreLoginRegistrationModal(false);
+
+                  if ((window as any)._pendingAction) {
+                    (window as any)._pendingAction();
+                    (window as any)._pendingAction = null;
+                  }
+                  return;
+                }
+
+                // 3. New user - Check if requested nickname is already taken by SOMEONE ELSE
                 const { data: nameTakenByOther } = await supabase
                   .from('board_users')
                   .select('user_id')
                   .eq('nickname', userData.nickname)
-                  .neq('user_id', currentUserId)
-                  .maybeSingle();
+                  .maybeSingle(); // For new users, we don't have a record yet, so no neq('user_id') needed
 
                 if (nameTakenByOther) {
                   alert(`'${userData.nickname}'은(는) 이미 다른 사용자가 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.`);
                   setIsProcessing(false);
-                  return; // Don't close modal, let user change nickname
+                  return;
                 }
 
-                // 3. Mark as registered in localStorage
-                localStorage.setItem('is_registered', 'true');
-
-                // 4. Save/Update record in DB
-                console.log('[MobileShell] Saving nickname after login:', userData.nickname);
+                // 4. New user - Save record to DB
+                console.log('[MobileShell] New user registration, saving nickname:', userData.nickname);
                 const { error } = await supabase.from('board_users').upsert({
                   user_id: currentUserId,
                   nickname: userData.nickname,
@@ -855,7 +871,8 @@ export function MobileShell() {
                   return;
                 }
 
-                // 5. Execute pending action if any
+                localStorage.setItem('is_registered', 'true');
+
                 if ((window as any)._pendingAction) {
                   (window as any)._pendingAction();
                   (window as any)._pendingAction = null;

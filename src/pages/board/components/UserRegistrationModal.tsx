@@ -214,7 +214,7 @@ export default function UserRegistrationModal({
           <div style={{ marginTop: '20px' }}>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking}
               className="userreg-submit-btn"
               style={{
                 backgroundColor: '#FEE500',
@@ -223,7 +223,9 @@ export default function UserRegistrationModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                opacity: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 0.6 : 1,
+                cursor: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 'not-allowed' : 'pointer'
               }}
             >
               <i className="ri-kakao-talk-fill" style={{ fontSize: '1.2rem' }}></i>
