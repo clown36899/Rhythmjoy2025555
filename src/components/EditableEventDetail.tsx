@@ -1092,19 +1092,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
 
 
-                    {/* Delete Button */}
-                    {onDelete && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete();
-                            }}
-                            className="editable-action-btn icon-only editable-delete-btn"
-                            title="삭제하기"
-                        >
-                            <i className="ri-delete-bin-line editable-action-icon"></i>
-                        </button>
-                    )}
+
 
                     {/* Close Button */}
                     <button
