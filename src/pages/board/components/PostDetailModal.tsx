@@ -23,6 +23,8 @@ export default function PostDetailModal({
 }: PostDetailModalProps) {
   const { isAdmin, user } = useAuth();
 
+  // Debugging permissions removed
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('ko-KR', {

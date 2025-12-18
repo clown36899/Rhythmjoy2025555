@@ -382,7 +382,7 @@ export default function EventList({
 
       const fetchPromise = (async () => {
         // 필요한 컬럼만 선택 (성능 최적화)
-        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path";
+        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,user_id";
 
         if (isAdminMode) {
           // 관리자 모드: 모든 이벤트 조회 (종료된 이벤트 포함)
@@ -437,7 +437,7 @@ export default function EventList({
       console.log('[📋 이벤트 목록] 백그라운드 새로고침...');
       // Don't set loading state - update silently
 
-      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path";
+      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,user_id";
 
       let data: Event[] | null = null;
 
@@ -1513,10 +1513,17 @@ export default function EventList({
         video_url: editFormData.videoUrl,
       };
 
-      const { error } = await supabase
+      let query = supabase
         .from("events")
         .update(updateData)
         .eq("id", eventToEdit.id);
+
+      // Security: If not admin, restrict update to own events
+      if (!isAdminMode) {
+        query = query.eq('user_id', user?.id);
+      }
+
+      const { error } = await query;
 
       if (error) throw error;
 
@@ -2505,6 +2512,7 @@ export default function EventList({
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
           isAdminMode={isAdminMode}
+          currentUserId={user?.id}
         />
       </Suspense>
 

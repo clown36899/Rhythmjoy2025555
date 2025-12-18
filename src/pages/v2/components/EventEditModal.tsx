@@ -174,7 +174,13 @@ export default memo(function EventEditModal({
                 // 이미지 리사이징 (미리보기용)
                 const resizedImages = await createResizedImages(file);
                 setEditImageFile(file);
-                setEditImagePreview(URL.createObjectURL(resizedImages.medium));
+
+                // Use Data URL for preview to avoid ERR_UPLOAD_FILE_CHANGED
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    setEditImagePreview(e.target?.result as string);
+                };
+                reader.readAsDataURL(resizedImages.medium);
             } catch (error) {
                 console.error("Image resize error:", error);
                 alert("이미지 처리 중 오류가 발생했습니다.");

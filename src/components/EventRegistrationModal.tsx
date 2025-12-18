@@ -304,31 +304,55 @@ export default memo(function EventRegistrationModal({
   // I should use multi_replace.
 
 
+  // Helper to read file as Data URL
+  const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = (e) => reject(e);
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Image Handlers
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setOriginalImageFile(file);
       setImageFile(file); // Initially set as current image
       setImagePosition({ x: 0, y: 0 }); // Reset position
-      setTempImageSrc(URL.createObjectURL(file));
-      setIsCropModalOpen(true); // Open crop modal after file selection
+
+      try {
+        const dataUrl = await fileToDataURL(file);
+        setTempImageSrc(dataUrl);
+        setIsCropModalOpen(true); // Open crop modal after file selection
+      } catch (error) {
+        console.error("Failed to load image:", error);
+        alert("이미지를 불러오는데 실패했습니다.");
+      }
     }
     // Reset input value to allow selecting same file again
     e.target.value = '';
   };
 
-  const handleImageUpdate = (file: File) => {
+  const handleImageUpdate = async (file: File) => {
     setOriginalImageFile(file);
     setImageFile(file);
     setImagePosition({ x: 0, y: 0 });
-    setTempImageSrc(URL.createObjectURL(file));
+    try {
+      const dataUrl = await fileToDataURL(file);
+      setTempImageSrc(dataUrl);
+    } catch (error) {
+      console.error("Failed to update image preview:", error);
+    }
   };
 
   const handleCropComplete = async (croppedBlob: Blob, _previewUrl: string, _isModified: boolean) => {
+    // Clone blob to ensure stability
+    const arrayBuffer = await croppedBlob.arrayBuffer();
+    const blobClone = new Blob([arrayBuffer], { type: 'image/jpeg' });
 
-
-    const croppedFile = new File([croppedBlob], originalImageFile?.name || "cropped.jpg", {
+    const croppedFile = new File([blobClone], originalImageFile?.name || "cropped.jpg", {
       type: "image/jpeg",
       lastModified: Date.now(),
     });
@@ -337,37 +361,50 @@ export default memo(function EventRegistrationModal({
     setIsCropModalOpen(false);
   };
 
-  const handleRestoreOriginal = () => {
+  const handleRestoreOriginal = async () => {
     if (originalImageFile) {
       setImageFile(originalImageFile);
-      setTempImageSrc(URL.createObjectURL(originalImageFile));
+      try {
+        const dataUrl = await fileToDataURL(originalImageFile);
+        setTempImageSrc(dataUrl);
+      } catch (error) {
+        console.error("Failed to restore original image:", error);
+      }
       // Don't close modal, just update the image being cropped
     }
   };
 
-  const handleReEditImage = (e?: React.MouseEvent) => {
+  const handleReEditImage = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (imageFile) {
-      setTempImageSrc(URL.createObjectURL(imageFile));
-    } else if (originalImageFile) {
-      setTempImageSrc(URL.createObjectURL(originalImageFile));
-    } else if (editEventData?.image) {
-      setTempImageSrc(editEventData.image);
+    try {
+      if (imageFile) {
+        setTempImageSrc(await fileToDataURL(imageFile));
+      } else if (originalImageFile) {
+        setTempImageSrc(await fileToDataURL(originalImageFile));
+      } else if (editEventData?.image) {
+        setTempImageSrc(editEventData.image);
+      }
+      setIsCropModalOpen(true);
+    } catch (error) {
+      console.error("Failed to load image for re-edit:", error);
     }
-    setIsCropModalOpen(true);
   };
 
-  const handleImageClick = () => {
-    if (imageFile) {
-      setTempImageSrc(URL.createObjectURL(imageFile));
-    } else if (originalImageFile) {
-      setTempImageSrc(URL.createObjectURL(originalImageFile));
-    } else if (editEventData?.image) {
-      setTempImageSrc(editEventData.image);
-    } else {
-      setTempImageSrc(null);
+  const handleImageClick = async () => {
+    try {
+      if (imageFile) {
+        setTempImageSrc(await fileToDataURL(imageFile));
+      } else if (originalImageFile) {
+        setTempImageSrc(await fileToDataURL(originalImageFile));
+      } else if (editEventData?.image) {
+        setTempImageSrc(editEventData.image);
+      } else {
+        setTempImageSrc(null);
+      }
+      setIsCropModalOpen(true);
+    } catch (error) {
+      console.error("Failed to load image:", error);
     }
-    setIsCropModalOpen(true);
   };
 
   // Submit Handler
@@ -513,11 +550,26 @@ export default memo(function EventRegistrationModal({
 
       if (editEventData) {
         // Update existing event
-        const { data, error } = await supabase
+        let query = supabase
           .from("events")
           .update(eventData)
-          .eq('id', editEventData.id)
-          .select();
+          .eq('id', editEventData.id);
+
+        // Security: If not admin, restrict update to own events
+        if (!isAdmin) {
+          query = query.eq('user_id', user?.id);
+        }
+
+        const { data, error } = await query.select();
+
+        // Check if any row was actually updated
+        if (!data || data.length === 0) {
+          if (!error) {
+            // No error but no rows updated -> Permission issue (or deleted)
+            throw new Error("수정 권한이 없거나 이미 삭제된 이벤트입니다.");
+          }
+        }
+
         resultData = data;
         resultError = error;
       } else {
