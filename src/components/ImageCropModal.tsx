@@ -396,13 +396,15 @@ export default memo(function ImageCropModal({
               </ReactCrop>
             ) : (
               /* 3. 이미지 없음 (Placeholder) */
-              <div className="crop-placeholder-container">
+              <div
+                className="crop-placeholder-container"
+                onClick={handleChangeImageClick}
+              >
                 <div className="crop-placeholder-icon-bg">
                   <i className="ri-image-add-line crop-placeholder-icon"></i>
                 </div>
                 <p className="crop-placeholder-text">편집할 이미지가 없습니다</p>
                 <button
-                  onClick={handleChangeImageClick}
                   className="crop-upload-link"
                 >
                   이미지 업로드

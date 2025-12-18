@@ -390,41 +390,41 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         <>
                             <div className={`category-bg-overlay ${event.category === "class" ? "class" : "event"}`}></div>
                             {/* Explicit Upload Prompt */}
-                            <div className="absolute inset-0 flex flex-row items-center justify-center text-white z-10 p-6 gap-8">
+                            <div className="image-upload-container">
                                 {/* Image Upload */}
                                 <div
-                                    className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+                                    className="upload-option"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onImageUpload();
                                     }}
                                 >
-                                    <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 backdrop-blur-sm border border-white/20">
-                                        <i className="ri-image-add-line text-3xl"></i>
+                                    <div className="upload-icon-circle">
+                                        <i className="ri-image-add-line"></i>
                                     </div>
-                                    <span className="font-bold text-lg opacity-90">대표 이미지</span>
-                                    <span className="text-xs opacity-70 mt-1">클릭하여 업로드</span>
+                                    <span className="upload-title">대표 이미지</span>
+                                    <span className="upload-subtitle">클릭하여 업로드</span>
                                 </div>
 
                                 {/* Divider */}
-                                <div className="w-px h-16 bg-white/20"></div>
+                                <div className="upload-divider"></div>
 
                                 {/* Video Upload */}
                                 <div
-                                    className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+                                    className="upload-option"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setTempVideoUrl(videoUrl || "");
                                         setActiveModal('video');
                                     }}
                                 >
-                                    <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3 backdrop-blur-sm border border-white/20">
-                                        <i className="ri-youtube-line text-3xl"></i>
+                                    <div className="upload-icon-circle">
+                                        <i className="ri-youtube-line"></i>
                                     </div>
-                                    <span className="font-bold text-lg opacity-90">{videoUrl ? '동영상 수정' : '동영상 등록'}</span>
-                                    <div className="flex flex-col items-center mt-1">
-                                        <span className="text-xs text-red-300 font-medium opacity-90">(필수x, 유튜브만 가능)</span>
-                                        <span className="text-[10px] opacity-60">빌보드 전용</span>
+                                    <span className="upload-title">{videoUrl ? '동영상 수정' : '동영상 등록'}</span>
+                                    <div className="upload-video-info">
+                                        <span className="upload-video-required">(필수x, 유튜브만 가능)</span>
+                                        <span className="upload-video-note">빌보드 전용</span>
                                     </div>
                                 </div>
                             </div>

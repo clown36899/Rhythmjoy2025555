@@ -123,20 +123,21 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.125rem 0.5rem;
+  padding: 0.45rem 0.5rem 0.45rem 0.3rem;
   border-radius: 0.25rem;
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 500;
   border-radius: 5rem;
   border: 0;
   transition: all 0.2s ease;
   background-color: #3b82f6;
   color: #ffffff;
-  height: 24px;
+  /* height: 24px; */
 }
 
-.shell-btn-register-topbar:hover {
-  color: var(--text-primary);
+.shell-btn-register-topbar:active {
+  background-color: #2563eb;
+  transform: scale(0.95);
 }
 
 /* Admin Button in Top Bar */

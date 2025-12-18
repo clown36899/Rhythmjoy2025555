@@ -437,3 +437,83 @@
     margin-right: 0.375rem;
     /* mr-1.5 */
 }
+
+/* Image Upload Section */
+.image-upload-container {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 10;
+    padding: 1.5rem;
+    gap: 2rem;
+}
+
+.upload-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.upload-option:hover {
+    opacity: 0.8;
+}
+
+.upload-icon-circle {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.upload-icon-circle i {
+    font-size: 1.875rem;
+}
+
+.upload-title {
+    font-weight: 700;
+    font-size: 1.125rem;
+    opacity: 0.9;
+}
+
+.upload-subtitle {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 0.25rem;
+}
+
+.upload-divider {
+    width: 1px;
+    height: 4rem;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.upload-video-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.upload-video-required {
+    font-size: 0.75rem;
+    color: #fca5a5;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.upload-video-note {
+    font-size: 0.625rem;
+    opacity: 0.6;
+}
