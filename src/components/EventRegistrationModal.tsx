@@ -328,6 +328,7 @@ export default memo(function EventRegistrationModal({
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           if (!ctx) {
+            console.error('[fileToDataURL] Canvas context not available');
             reject(new Error('Canvas context not available'));
             return;
           }
@@ -353,10 +354,16 @@ export default memo(function EventRegistrationModal({
           const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
           resolve(dataUrl);
         };
-        img.onerror = reject;
+        img.onerror = (err) => {
+          console.error('[fileToDataURL] Image load error:', err);
+          reject(err);
+        };
         img.src = e.target?.result as string;
       };
-      reader.onerror = reject;
+      reader.onerror = (err) => {
+        console.error('[fileToDataURL] FileReader error:', err);
+        reject(err);
+      };
       reader.readAsDataURL(file);
     });
   };
