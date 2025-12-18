@@ -75,6 +75,43 @@ export function MobileShell() {
   }, [user]);
 
 
+  // Load profile data when user logs in
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (!user) {
+        setProfileData(null);
+        return;
+      }
+
+      try {
+        const { data: boardUser } = await supabase
+          .from('board_users')
+          .select('nickname, profile_image')
+          .eq('user_id', user.id)
+          .single();
+
+        if (boardUser) {
+          setProfileData({
+            nickname: boardUser.nickname || user.email?.split('@')[0] || '',
+            profile_image: boardUser.profile_image || user.user_metadata?.avatar_url
+          });
+        } else {
+          // Fallback to metadata
+          setProfileData({
+            nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
+            profile_image: user.user_metadata?.avatar_url
+          });
+        }
+      } catch (error) {
+        console.error('프로필 데이터 로드 실패:', error);
+      }
+    };
+
+    loadProfileData();
+  }, [user]);
+
+
+
   // 달력 월/뷰모드 변경 감지
   useEffect(() => {
     const handleCalendarMonthChanged = (e: CustomEvent) => {
@@ -338,6 +375,33 @@ export function MobileShell() {
             className="header-search-btn"
           >
             <i className="ri-search-line"></i>
+          </button>
+
+          {/* User Profile Button - Shows login status */}
+          <button
+            onClick={() => {
+              if (user) {
+                setIsDrawerOpen(true);
+              } else {
+                signInWithKakao();
+              }
+            }}
+            className="header-user-btn"
+            title={user ? "프로필" : "로그인"}
+          >
+            {user ? (
+              profileData?.profile_image ? (
+                <img
+                  src={profileData.profile_image}
+                  alt="프로필"
+                  className="header-user-avatar"
+                />
+              ) : (
+                <i className="ri-user-3-fill"></i>
+              )
+            ) : (
+              <i className="ri-login-box-line"></i>
+            )}
           </button>
 
           {/* Hamburger Menu Button - Always Visible */}

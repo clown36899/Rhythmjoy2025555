@@ -388,6 +388,37 @@
   opacity: 0.7;
 }
 
+/* User Profile Button */
+.header-user-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.header-user-btn:hover {
+  opacity: 0.7;
+}
+
+.header-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  /* border: 2px solid rgba(255, 255, 255, 0.3); */
+}
+
+
 /* Board Page Header */
 .header-board-content {
   display: flex;
