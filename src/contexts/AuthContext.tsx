@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
-import { initKakaoSDK, loginWithKakao, logoutKakao, getKakaoAccessToken } from '../utils/kakaoAuth';
+import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
+
 import { setUserProperties, logEvent } from '../lib/analytics';
 
 interface KakaoAuthResult {
@@ -24,7 +25,7 @@ interface AuthContextType {
   billboardUserName: string | null;
   setBillboardUser: (userId: string | null, userName: string | null) => void;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithKakao: () => Promise<KakaoAuthResult>;
+  signInWithKakao: () => void;
   signOut: () => Promise<void>;
   cancelAuth: () => void;
   userProfile: { nickname: string; profile_image: string | null } | null;
@@ -224,161 +225,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const signInWithKakao = async () => {
-    // localStorage에 로그 저장 (새로고침 후에도 확인 가능)
-    const logToStorage = (msg: string) => {
-      const logs = JSON.parse(localStorage.getItem('login_debug_logs') || '[]');
-      logs.push(`${new Date().toISOString().split('T')[1].slice(0, 12)} - ${msg}`);
-      localStorage.setItem('login_debug_logs', JSON.stringify(logs));
-      console.log(msg);
-    };
-
-    // 이전 로그 초기화
-    localStorage.removeItem('login_debug_logs');
-
-    setIsAuthProcessing(true); // Start blocking UI
-    logToStorage('[signInWithKakao] ========== 로그인 시작 ==========');
-
+  const signInWithKakao = () => {
     try {
-      logToStorage('[signInWithKakao] 1단계: 카카오 SDK 초기화');
-      await initKakaoSDK();
-      logToStorage('[signInWithKakao] 1단계: 카카오 SDK 초기화 완료');
+      console.log('[signInWithKakao] 카카오 로그인 시작 (리다이렉트 방식)');
 
-      logToStorage('[signInWithKakao] 2단계: 카카오 로그인 팝업');
-      await loginWithKakao();
-      logToStorage('[signInWithKakao] 2단계: 카카오 로그인 완료');
+      // SDK 초기화 (동기적으로 처리 - 이미 로드되어 있을 것으로 예상)
+      initKakaoSDK().then(() => {
+        // 리다이렉트 방식으로 로그인 (이 함수는 페이지를 이동시키므로 여기서 종료됨)
+        loginWithKakao();
+      }).catch((error) => {
+        console.error('[signInWithKakao] SDK 초기화 실패:', error);
+        alert(error.message || '카카오 SDK 초기화에 실패했습니다.');
+      });
 
-      const accessToken = getKakaoAccessToken();
-      if (!accessToken) {
-        logToStorage('[signInWithKakao] ❌ 액세스 토큰 없음');
-        throw new Error('카카오 액세스 토큰을 가져올 수 없습니다');
-      }
-      logToStorage('[signInWithKakao] 3단계: 액세스 토큰 획득 완료');
-
-      // 개발 환경(Replit)에서는 Vite 프록시(/api), 프로덕션(Netlify)에서는 Netlify Functions
-      // 함수 이름을 kakao-auth -> kakao-login으로 변경하여 캐시/빌드 문제 회피
-      const authEndpoint = import.meta.env.DEV
-        ? '/.netlify/functions/kakao-login'
-        : '/.netlify/functions/kakao-login';
-
-      logToStorage('[signInWithKakao] 4단계: 서버 인증 시작 - ' + authEndpoint);
-
-      // 재시도 로직 (2단계 인증 대응)
-      let lastError: Error | null = null;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          logToStorage(`[signInWithKakao] 시도 ${attempt}/3`);
-
-          // 60초 타임아웃 설정
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-          const response = await fetch(authEndpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              kakaoAccessToken: accessToken,
-            }),
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-          logToStorage(`[signInWithKakao] 서버 응답: ${response.status} ${response.statusText}`);
-
-          if (!response.ok) {
-            let errorMessage = '인증에 실패했습니다';
-            try {
-              const error = await response.json();
-              errorMessage = error.error || error.message || errorMessage;
-              logToStorage('[signInWithKakao] 서버 에러: ' + errorMessage);
-
-              // 디버그 정보가 있으면 포함
-              if (error.debug) {
-                errorMessage += '\n\n[Debug Info]\n' + JSON.stringify(error.debug, null, 2);
-              }
-            } catch (e) {
-              // JSON 파싱 실패 시 HTTP 상태 코드로 메시지 생성
-              // HTML 응답일 수 있으니 텍스트로 읽어보기
-              try {
-                const text = await response.text();
-                console.error('[카카오 로그인] 서버 에러 본문:', text);
-                logToStorage('[signInWithKakao] 서버 에러 본문 길이: ' + text.length);
-                if (text.includes('Task timed out')) {
-                  errorMessage = '서버 응답 시간 초과 (10초)';
-                } else {
-                  errorMessage = `서버 오류 (${response.status})\n서버 로그를 확인해주세요.`;
-                }
-              } catch (textError) {
-                errorMessage = `서버 오류 (${response.status}): ${response.statusText}`;
-              }
-            }
-            throw new Error(errorMessage);
-          }
-
-          let authData;
-          try {
-            authData = await response.json();
-            logToStorage('[signInWithKakao] 5단계: 서버 응답 파싱 완료');
-          } catch (e) {
-            console.error('[카카오 로그인] JSON 파싱 실패:', e);
-            logToStorage('[signInWithKakao] ❌ JSON 파싱 실패');
-            throw new Error('서버 응답을 처리할 수 없습니다. 네트워크 연결을 확인해주세요.');
-          }
-
-          // 서버에서 받은 세션으로 자동 로그인
-          if (authData.session) {
-            logToStorage('[signInWithKakao] 6단계: Supabase 세션 설정 시작');
-            const { error } = await supabase.auth.setSession({
-              access_token: authData.session.access_token,
-              refresh_token: authData.session.refresh_token,
-            });
-
-            if (error) {
-              console.error('[카카오 로그인] 세션 설정 실패:', error);
-              logToStorage('[signInWithKakao] ❌ 세션 설정 실패: ' + error.message);
-              throw new Error('로그인에 실패했습니다');
-            }
-
-            logToStorage('[signInWithKakao] 6단계: Supabase 세션 설정 완료');
-            logToStorage('[signInWithKakao] ========== 로그인 성공 ==========');
-          } else {
-            console.error('[카카오 로그인] 서버에서 세션 데이터를 받지 못함');
-            logToStorage('[signInWithKakao] ❌ 서버에서 세션 데이터 없음');
-          }
-
-
-          // 성공 후 스피너 해제 (중요: 리로드가 발생하지 않는다면 필수)
-          // 만약 리로드를 한다면 이 코드는 리로드 직전까지 실행됨
-          setIsAuthProcessing(false);
-
-          return authData;
-        } catch (error: any) {
-          lastError = error;
-          logToStorage(`[signInWithKakao] 시도 ${attempt}/3 실패: ${error.message}`);
-          console.warn(`카카오 인증 시도 ${attempt}/3 실패:`, error.message);
-
-          // 마지막 시도가 아니면 1초 대기 후 재시도
-          if (attempt < 3) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-      }
-
-      // 3번 모두 실패
-      logToStorage('[signInWithKakao] ❌ 모든 시도 실패');
-      throw lastError || new Error('인증에 실패했습니다');
+      // 리다이렉트되므로 아래 코드는 실행되지 않음
     } catch (error: any) {
-      logToStorage('[signInWithKakao] ❌ 최종 에러: ' + error.message);
-      setIsAuthProcessing(false); // Stop blocking UI on error
-      throw error;
-    } finally {
-      // NOTE: 성공 시에는 페이지 리로드/이동이 발생하므로 여기서 false로 돌리면 깜빡일 수 있음.
-      // 하지만 "안 없어지는" 문제를 방지하기 위해, 만약 리로드가 지연되거면 끄는게 안전할 수 있음.
-      // 일단 에러 케이스는 catch에서 처리했으니 여기서는 놔둠.
-      // 성공 시: window.location.reload() 등이 없으므로, 상위 컴포넌트나 Router에서 처리가 되어야 함.
-      // 현재 로직상 signInWithKakao 성공 -> 반환 -> 컴포넌트 리렌더링.
+      console.error('[signInWithKakao] 에러:', error);
+      alert(error.message || '카카오 로그인에 실패했습니다.');
       // 리로드가 없다면 여기서 false로 해줘야 함!
       // 확인: signInWithKakao는 값을 반환하고 끝남. MobileShell에서는 별도 처리 없음.
       // AuthStateChange가 트리거되면서 UI가 업데이트됨. 

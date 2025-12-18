@@ -27,13 +27,46 @@ export const handler: Handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { kakaoAccessToken, kakaoRefreshToken } = body;
+    const { code, redirectUri } = body;
 
-    if (!kakaoAccessToken) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing Kakao Access Token' }) };
+    if (!code) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing authorization code' }) };
     }
 
-    // 1. 카카오 사용자 정보 가져오기
+    // 1. 인증 코드로 액세스 토큰 교환
+    const restApiKey = process.env.VITE_KAKAO_REST_API_KEY || process.env.KAKAO_REST_API_KEY;
+
+    if (!restApiKey) {
+      console.error('[kakao-login] Missing KAKAO_REST_API_KEY environment variable');
+      return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error: Missing API key' }) };
+    }
+
+    console.log('[kakao-login] Exchanging authorization code for token...');
+
+    const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: restApiKey,
+        redirect_uri: redirectUri,
+        code: code,
+      }).toString()
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('[kakao-login] Token exchange failed:', errorText);
+      return { statusCode: 401, body: JSON.stringify({ error: 'Failed to exchange authorization code', details: errorText }) };
+    }
+
+    const tokenData = await tokenResponse.json();
+    const kakaoAccessToken = tokenData.access_token;
+    const kakaoRefreshToken = tokenData.refresh_token;
+
+    // 2. 카카오 사용자 정보 가져오기
     const kakaoUserResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
       headers: {
         Authorization: `Bearer ${kakaoAccessToken}`,
@@ -89,6 +122,7 @@ export const handler: Handler = async (event) => {
         kakao_id: kakaoId,
         nickname: nickname,
         profile_image: profileImage,
+        gender: null, // gender 컬럼이 NOT NULL이면 null 명시
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
 
@@ -145,17 +179,27 @@ export const handler: Handler = async (event) => {
       email,
     });
 
-    if (linkError || !linkData) throw linkError;
+    if (linkError || !linkData) {
+      console.error('[kakao-login] Link generation failed:', linkError);
+      throw linkError;
+    }
 
     const sessionParams = new URL(linkData.properties.action_link).searchParams;
     const tokenHash = sessionParams.get('token');
+
+    if (!tokenHash) {
+      throw new Error('Token hash not found in magic link');
+    }
 
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
       token_hash: tokenHash,
       type: 'magiclink'
     });
 
-    if (sessionError || !sessionData.session) throw sessionError;
+    if (sessionError || !sessionData.session) {
+      console.error('[kakao-login] Session verification failed:', sessionError);
+      throw sessionError;
+    }
 
     return {
       statusCode: 200,

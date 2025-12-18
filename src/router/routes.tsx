@@ -38,6 +38,7 @@ export const prefetchCalendarPage = () => import('../pages/calendar/page');
 const CalendarPage = lazy(prefetchCalendarPage);
 
 const SecureMembersPage = lazy(() => import("../pages/admin/secure-members/page"));
+const KakaoCallbackPage = lazy(() => import("../pages/auth/kakao-callback/page"));
 
 export const routes: RouteObject[] = [
     {
@@ -56,6 +57,7 @@ export const routes: RouteObject[] = [
             { path: '/shopping', element: <ShoppingPage /> },
             { path: '/privacy', element: <PrivacyPage /> },
             { path: '/calendar', element: <CalendarPage /> },
+            { path: '/auth/kakao-callback', element: <KakaoCallbackPage /> },
         ],
     },
     {

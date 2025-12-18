@@ -52,69 +52,24 @@ export const initKakaoSDK = () => {
 
 
 
-// 카카오 로그인
-export const loginWithKakao = (): Promise<KakaoUserInfo> => {
-  return new Promise((resolve, reject) => {
-    if (!window.Kakao) {
-      reject(new Error('카카오 SDK가 초기화되지 않았습니다.'));
-      return;
-    }
+// 카카오 로그인 (리다이렉트 방식)
+export const loginWithKakao = (): void => {
+  if (!window.Kakao) {
+    throw new Error('카카오 SDK가 초기화되지 않았습니다.');
+  }
 
-    // 60초 타임아웃 타이머 (팝업 닫힘 감지 실패 시 무한 스피너 방지)
-    const timeoutId = setTimeout(() => {
-      reject(new Error('로그인 대기 시간이 초과되었습니다. (60초 타임아웃)'));
-    }, 60000);
+  // 현재 페이지 URL 저장 (로그인 후 복귀용)
+  sessionStorage.setItem('kakao_login_return_url', window.location.pathname + window.location.search);
 
-    const loginOptions: any = {
-      scope: 'account_email,profile_nickname,name,phone_number', // 이메일, 닉네임, 본명, 전화번호 권한 요청
-      throughTalk: false, // 웹 브라우저에서는 항상 웹 기반 OAuth 사용 (intent:// 에러 방지)
-      success: function () {
-        clearTimeout(timeoutId); // 성공 시 타이머 해제
-
-        // 사용자 정보 요청
-        window.Kakao.API.request({
-          url: '/v2/user/me',
-          success: (response: KakaoUserInfo) => {
-            console.log('[KakaoAuth] User Info Success:', response);
-            resolve(response);
-          },
-          fail: (error: any) => {
-            console.error('[KakaoAuth] User Info Error:', error);
-            reject(new Error('사용자 정보 요청 실패: ' + JSON.stringify(error)));
-          },
-        });
-      },
-      fail: (error: any) => {
-        clearTimeout(timeoutId); // 실패 시 타이머 해제
-
-        const currentUrl = window.location.origin;
-        let errorMessage = '카카오 로그인 실패';
-
-        // 에러 코드별 한글 메시지
-        if (error.error === 'KOE004') {
-          errorMessage = '카카오 로그인이 비활성화되어 있습니다. 개발자 콘솔에서 활성화해주세요.';
-        } else if (error.error === 'KOE005') {
-          errorMessage = '테스트 계정이 팀원으로 등록되지 않았습니다. 개발자 콘솔 > 팀 관리에서 초대해주세요.';
-        } else if (error.error === 'KOE006' || error.error === 'invalid_request') {
-          errorMessage = `Redirect URI가 등록되지 않았습니다.\\n현재 URL: ${currentUrl}\\n카카오 개발자 콘솔에 이 URL을 등록해주세요.`;
-        } else if (error.error_description) {
-          errorMessage += ': ' + error.error_description;
-        }
-
-        console.error('[Kakao 로그인 실패]', {
-          error: error.error,
-          description: error.error_description,
-          currentUrl
-        });
-
-        reject(new Error(errorMessage));
-      },
-    };
-
-    // console.log('[KakaoAuth] Requesting Scope:', loginOptions.scope);
-    window.Kakao.Auth.login(loginOptions);
+  // 리다이렉트 방식으로 카카오 로그인
+  window.Kakao.Auth.authorize({
+    redirectUri: `${window.location.origin}/auth/kakao-callback`,
+    scope: 'account_email,profile_nickname,name,phone_number',
   });
+
+  // 리다이렉트되므로 이 함수는 여기서 종료됨
 };
+
 
 // 카카오 액세스 토큰 가져오기
 export const getKakaoAccessToken = (): string | null => {
