@@ -505,7 +505,14 @@ export default function BoardPage() {
         showRegistrationPreview && isAdmin && (
           <UserRegistrationModal
             isOpen={showRegistrationPreview}
-            onClose={() => setShowRegistrationPreview(false)}
+            onClose={() => {
+              const returnPath = sessionStorage.getItem('previewReturnPath');
+              if (returnPath && returnPath !== '/board') {
+                navigate(returnPath);
+              }
+              sessionStorage.removeItem('previewReturnPath');
+              setShowRegistrationPreview(false);
+            }}
             onRegistered={() => { }}
             userId="preview"
             previewMode={true}

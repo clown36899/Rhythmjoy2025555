@@ -647,6 +647,8 @@ export function MobileShell() {
             </button>
             <button
               onClick={() => {
+                // Save current path to return after preview
+                sessionStorage.setItem('previewReturnPath', location.pathname);
                 setShowAdminPanel(false);
                 navigate('/board');
                 setTimeout(() => {

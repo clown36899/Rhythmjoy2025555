@@ -120,3 +120,16 @@ export interface Invitation {
   created_at: string;
   updated_at: string;
 }
+
+export interface BoardComment {
+  id: string;
+  post_id: number;
+  user_id: string;
+  author_name: string;
+  author_nickname?: string;
+  author_profile_image?: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+

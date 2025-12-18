@@ -1,0 +1,331 @@
+/* comment.css - Comment Section Styles */
+
+/* Comment Section */
+.comment-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.comment-section-header {
+    margin-bottom: 1.5rem;
+}
+
+.comment-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comment-count {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Comment Form */
+.comment-form {
+    margin-bottom: 2rem;
+}
+
+.comment-form-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+    resize: vertical;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.comment-form-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.comment-form-textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+.comment-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.comment-form-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.comment-form-btn-submit {
+    background-color: var(--primary-color);
+    color: #000;
+}
+
+.comment-form-btn-submit:hover:not(:disabled) {
+    filter: brightness(0.95);
+}
+
+.comment-form-btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.comment-form-btn-cancel {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.comment-form-btn-cancel:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.comment-form-login-required {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.comment-login-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.comment-login-content i {
+    font-size: 1.5rem;
+    opacity: 0.7;
+}
+
+.comment-login-content p {
+    margin: 0;
+    font-size: 0.9375rem;
+}
+
+.comment-login-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background-color: #FEE500;
+    color: #000000;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.comment-login-btn:hover {
+    background-color: #FDD835;
+    transform: translateY(-1px);
+}
+
+.comment-login-btn i {
+    font-size: 1.125rem;
+}
+
+/* Comment List */
+.comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.comment-loading,
+.comment-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    color: var(--text-secondary);
+}
+
+.comment-loading i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    animation: spin 1s linear infinite;
+}
+
+.comment-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Comment Item */
+.comment-item {
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.comment-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.comment-item-author {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comment-item-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-item-avatar-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--border-color);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+}
+
+.comment-item-author-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.comment-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.comment-item-edited {
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.comment-item-content {
+    color: var(--text-primary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.9375rem;
+    margin-bottom: 0.75rem;
+}
+
+.comment-item-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.comment-item-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.comment-item-btn-edit {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.comment-item-btn-edit:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.comment-item-btn-delete {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.comment-item-btn-delete:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .comment-section-title {
+        font-size: 1.125rem;
+    }
+
+    .comment-item {
+        padding: 0.875rem;
+    }
+
+    .comment-item-avatar,
+    .comment-item-avatar-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 1.125rem;
+    }
+
+    .comment-form-login-required {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .comment-login-content {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .comment-login-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

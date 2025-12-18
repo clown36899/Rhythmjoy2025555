@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import PostEditorModal from '../components/PostEditorModal'; // Reusing the editor modal
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
+import CommentSection from '../components/CommentSection';
 import '../board.css';
 import './detail.css';
 import type { BoardPost } from '../page';
@@ -227,6 +228,9 @@ export default function BoardDetailPage() {
                 <div className="board-detail-body">
                     {post.content}
                 </div>
+
+                {/* Comment Section */}
+                <CommentSection postId={post.id} />
 
                 {/* Actions Section */}
                 <div className="board-detail-actions">
