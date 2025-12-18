@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
-import "../styles/components/Header.css"; // Reusing Header styles for color panel for now
+import "./ColorSettingsModal.css";
 
 interface ColorSettingsModalProps {
     isOpen: boolean;

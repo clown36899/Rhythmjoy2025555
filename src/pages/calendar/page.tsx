@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import Header from "../v2/components/Header";
+
 import FullEventCalendar from "./components/FullEventCalendar";
 import "./styles/CalendarPage.css";
 import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";

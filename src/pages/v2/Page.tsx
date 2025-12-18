@@ -6,7 +6,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 
 
 import EventList from "./components/EventList";
-import Header from "./components/Header";
+
 
 import FullscreenBillboard from "../../components/FullscreenBillboard";
 // Lazy loading으로 성능 최적화 - 큰 모달 컴포넌트들
@@ -221,7 +221,6 @@ export default function HomePageV2() {
     const containerRef = useRef<HTMLDivElement>(null!);
     const eventListElementRef = useRef<HTMLDivElement>(null!);
     const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null);
-    const headerRef = useRef<HTMLDivElement>(null);
 
 
 
@@ -317,7 +316,6 @@ export default function HomePageV2() {
     // --------------------------------------------------------------------------------
     // 6. 핸들러 및 기타 로직
     // --------------------------------------------------------------------------------
-    useEffect(() => { if (headerRef.current) { /* setHeaderHeight(headerRef.current.offsetHeight); */ } }, []);
     useEffect(() => { if (effectiveIsAdmin && !billboardUserId && adminType !== "super") setAdminType("super"); else if (!effectiveIsAdmin && !billboardUserId && adminType !== null) { setAdminType(null); setIsAdminModeOverride(false); } }, [effectiveIsAdmin, billboardUserId, adminType]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("monthChanged", { detail: { month: currentMonth.toISOString() } })); }, [currentMonth]);
     useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode: "month" } })); }, []);
@@ -808,9 +806,7 @@ export default function HomePageV2() {
                 minHeight: '100svh'
             }}
         >
-            <div ref={headerRef} className="home-header global-header-shim" style={{ touchAction: "auto", display: 'none' }}>
-                {/* Header components moved to MobileShell */}
-            </div>
+
 
             {/* Sticky Weekday Header - Only visible in Fullscreen Mode */}
 
