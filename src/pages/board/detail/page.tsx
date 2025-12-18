@@ -5,7 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import PostEditorModal from '../components/PostEditorModal'; // Reusing the editor modal
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import CommentSection from '../components/CommentSection';
-import UserRegistrationModal, { type UserData } from '../components/UserRegistrationModal';
+import { type UserData } from '../components/UserRegistrationModal';
 import '../board.css';
 import './detail.css';
 import type { BoardPost } from '../page';
@@ -13,12 +13,11 @@ import type { BoardPost } from '../page';
 export default function BoardDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user, isAdmin, signInWithKakao } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [post, setPost] = useState<BoardPost | null>(null);
     const [loading, setLoading] = useState(true);
     const [showEditorModal, setShowEditorModal] = useState(false);
     const [updating, setUpdating] = useState(false);
-    const [showRegistrationModal, setShowRegistrationModal] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
 
 
@@ -37,7 +36,7 @@ export default function BoardDetailPage() {
             try {
                 const { data } = await supabase
                     .from('board_users')
-                    .select('nickname, real_name, phone, gender, profile_image')
+                    .select('nickname, profile_image')
                     .eq('user_id', user.id)
                     .maybeSingle();
 
@@ -51,12 +50,7 @@ export default function BoardDetailPage() {
         loadUserData();
     }, [user]);
 
-    const handleUserRegistered = (newUserData: UserData) => {
-        setUserData({
-            ...newUserData,
-            gender: 'other'
-        });
-    };
+
 
     const loadPost = async (postId: string) => {
         try {
@@ -315,80 +309,7 @@ export default function BoardDetailPage() {
                 />
             )}
 
-            {/* Registration Modal */}
-            {
-                showRegistrationModal && (
-                    <UserRegistrationModal
-                        isOpen={showRegistrationModal}
-                        onClose={() => setShowRegistrationModal(false)}
-                        onRegistered={async (newUserData) => {
-                            try {
-                                let currentUserId = user?.id;
 
-                                if (!currentUserId) {
-                                    await signInWithKakao();
-                                    await new Promise(resolve => setTimeout(resolve, 2000));
-                                    const { data: { user: newUser } } = await supabase.auth.getUser();
-                                    if (newUser) currentUserId = newUser.id;
-                                }
-
-                                if (currentUserId) {
-                                    // 1. Check if ALREADY registered
-                                    const { data: existingUser } = await supabase
-                                        .from('board_users')
-                                        .select('nickname, real_name, phone, gender, profile_image')
-                                        .eq('user_id', currentUserId)
-                                        .maybeSingle();
-
-                                    if (existingUser) {
-                                        console.log('[BoardDetailPage] Existing user found, keeping nickname:', existingUser.nickname);
-                                        localStorage.setItem('is_registered', 'true');
-                                        handleUserRegistered(existingUser as any);
-                                        setShowRegistrationModal(false);
-                                        return;
-                                    }
-
-                                    // 2. New User - Check if nickname taken by ANOTHER user
-                                    const { data: nameTakenByOther } = await supabase
-                                        .from('board_users')
-                                        .select('user_id')
-                                        .eq('nickname', newUserData.nickname)
-                                        .maybeSingle();
-
-                                    if (nameTakenByOther) {
-                                        alert(`'${newUserData.nickname}'은(는) 이미 다른 사용자가 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.`);
-                                        return;
-                                    }
-
-                                    // 3. New User - Save to DB
-                                    const { error } = await supabase.from('board_users').upsert({
-                                        user_id: currentUserId,
-                                        nickname: newUserData.nickname,
-                                        gender: 'other',
-                                        updated_at: new Date().toISOString()
-                                    }, { onConflict: 'user_id' });
-
-                                    if (error) {
-                                        console.error('가입 저장 실패:', error);
-                                        alert(`가입 저장 실패: ${error.message}`);
-                                        return;
-                                    }
-
-                                    localStorage.setItem('is_registered', 'true');
-                                    handleUserRegistered({
-                                        ...newUserData,
-                                        gender: 'other'
-                                    });
-                                }
-                                setShowRegistrationModal(false);
-                            } catch (error) {
-                                console.error('가입 중 오류:', error);
-                            }
-                        }}
-                        userId={user?.id}
-                    />
-                )
-            }
         </div>
     );
 }

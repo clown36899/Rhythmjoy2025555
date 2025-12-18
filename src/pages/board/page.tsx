@@ -34,14 +34,13 @@ export interface BoardPost {
 }
 
 export default function BoardPage() {
-  const { user, isAdmin, signInWithKakao, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditorModal, setShowEditorModal] = useState(false);
 
   const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
-  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [showUserManagementModal, setShowUserManagementModal] = useState(false);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
@@ -105,7 +104,7 @@ export default function BoardPage() {
       try {
         const { data } = await supabase
           .from('board_users')
-          .select('nickname, real_name, phone, gender, profile_image')
+          .select('nickname, profile_image')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -161,13 +160,7 @@ export default function BoardPage() {
     };
   }, [isAdmin]);
 
-  // handleUserRegistered is now used by UserRegistrationModal.onRegistered
-  const handleUserRegistered = (newUserData: UserData) => {
-    setUserData({
-      ...newUserData,
-      gender: 'other' // Ensure schema compliance
-    });
-  };
+
 
   const loadPosts = async () => {
     try {
@@ -278,42 +271,23 @@ export default function BoardPage() {
 
   // Global Header Event Listener for Write Button
   useEffect(() => {
-    const handleBoardWriteClick = async () => {
-      // Use the same logic as MobileShell's handleProtectedAction
-      if (!user) {
-        // Since handleBoardWriteClick is a custom event listener, 
-        // we can't easily wait for MobileShell's handleProtectedAction.
-        // But we can trigger a login/registration flow here too.
-
-        const isRegistered = localStorage.getItem('is_registered') === 'true';
-        if (isRegistered) {
-          try {
-            await signInWithKakao();
-          } catch (error) {
-            console.error('로그인 실패:', error);
+    const handleBoardWriteClick = () => {
+      // Dispatch event to MobileShell to handle auth/reg flow
+      window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+        detail: {
+          action: () => {
+            setSelectedPost(null);
+            setShowEditorModal(true);
           }
-        } else {
-          setShowRegistrationModal(true);
         }
-        return;
-      }
-
-      // Check if registered in DB
-      if (!userData) {
-        setShowRegistrationModal(true);
-        return;
-      }
-
-      // Open Editor
-      setSelectedPost(null);
-      setShowEditorModal(true);
+      }));
     };
 
     window.addEventListener('boardWriteClick', handleBoardWriteClick);
     return () => {
       window.removeEventListener('boardWriteClick', handleBoardWriteClick);
     };
-  }, [user, userData, signInWithKakao]);
+  }, [user, userData]);
 
   // Search from header
   useEffect(() => {
@@ -448,81 +422,7 @@ export default function BoardPage() {
         )}
       </div>
 
-      {/* Registration Modal */}
-      {
-        showRegistrationModal && (
-          <UserRegistrationModal
-            isOpen={showRegistrationModal}
-            onClose={() => setShowRegistrationModal(false)}
-            onRegistered={async (newUserData) => {
-              try {
-                // Same logic as MobileShell for consistency
-                let currentUserId = user?.id;
 
-                if (!currentUserId) {
-                  await signInWithKakao();
-                  await new Promise(resolve => setTimeout(resolve, 2000));
-                  const { data: { user: newUser } } = await supabase.auth.getUser();
-                  if (newUser) currentUserId = newUser.id;
-                }
-
-                if (currentUserId) {
-                  // 1. Check if ALREADY registered
-                  const { data: existingUser } = await supabase
-                    .from('board_users')
-                    .select('nickname, real_name, phone, gender, profile_image')
-                    .eq('user_id', currentUserId)
-                    .maybeSingle();
-
-                  if (existingUser) {
-                    console.log('[BoardPage] Existing user found, keeping nickname:', existingUser.nickname);
-                    localStorage.setItem('is_registered', 'true');
-                    handleUserRegistered(existingUser as any);
-                    setShowRegistrationModal(false);
-                    return;
-                  }
-
-                  // 2. New User - Check if nickname taken by ANOTHER user
-                  const { data: nameTakenByOther } = await supabase
-                    .from('board_users')
-                    .select('user_id')
-                    .eq('nickname', newUserData.nickname)
-                    .maybeSingle();
-
-                  if (nameTakenByOther) {
-                    alert(`'${newUserData.nickname}'은(는) 이미 다른 사용자가 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.`);
-                    return;
-                  }
-
-                  // 3. New User - Save to DB
-                  const { error } = await supabase.from('board_users').upsert({
-                    user_id: currentUserId,
-                    nickname: newUserData.nickname,
-                    gender: 'other',
-                    updated_at: new Date().toISOString()
-                  }, { onConflict: 'user_id' });
-
-                  if (error) {
-                    console.error('가입 저장 실패:', error);
-                    alert(`가입 저장 실패: ${error.message}`);
-                    return;
-                  }
-
-                  localStorage.setItem('is_registered', 'true');
-                  handleUserRegistered({
-                    ...newUserData,
-                    gender: 'other'
-                  });
-                }
-                setShowRegistrationModal(false);
-              } catch (error) {
-                console.error('가입 중 오류:', error);
-              }
-            }}
-            userId={user?.id}
-          />
-        )
-      }
 
       {/* Profile Edit Modal */}
       {

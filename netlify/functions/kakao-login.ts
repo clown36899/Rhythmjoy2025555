@@ -73,10 +73,8 @@ export const handler: Handler = async (event) => {
         password: randomPassword,
         email_confirm: true,
         user_metadata: {
-          name: realName || nickname,
-          kakao_id: kakaoId,
-          full_name: realName,
-          phone: phone
+          name: nickname,
+          kakao_id: kakaoId
         }
       });
       if (createError || !newUser.user) throw createError;

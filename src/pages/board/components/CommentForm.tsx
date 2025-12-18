@@ -12,7 +12,7 @@ interface CommentFormProps {
 }
 
 export default function CommentForm({ postId, onCommentAdded, editingComment, onCancelEdit }: CommentFormProps) {
-    const { user, signInWithKakao } = useAuth();
+    const { user } = useAuth();
     const [content, setContent] = useState(editingComment?.content || '');
     const [submitting, setSubmitting] = useState(false);
 
@@ -67,41 +67,25 @@ export default function CommentForm({ postId, onCommentAdded, editingComment, on
         }
     };
 
-    const handleLogin = async () => {
-        try {
-            await signInWithKakao();
-
-            // Wait for session
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            const { data: { user: newUser } } = await supabase.auth.getUser();
-            if (newUser) {
-                const { data: boardUser } = await supabase
-                    .from('board_users')
-                    .select('id')
-                    .eq('user_id', newUser.id)
-                    .maybeSingle();
-
-                if (!boardUser) {
-                    // Registration modal is handled by the parent (BoardDetailPage)
-                    // which has a useEffect watching for 'user' changes.
-                    // So we don't strictly need to trigger it here, 
-                    // but we can ensure it's handled.
+    const handleLoginClick = () => {
+        window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+            detail: {
+                action: () => {
+                    // Action after login: just let the form re-render to show input
+                    console.log('[CommentForm] Login/Registration successful');
                 }
             }
-        } catch (error) {
-            console.error('로그인 실패:', error);
-        }
+        }));
     };
 
     if (!user) {
         return (
-            <div className="comment-form-login-required">
+            <div className="comment-form-login-required" onClick={handleLoginClick} style={{ cursor: 'pointer' }}>
                 <div className="comment-login-content">
                     <i className="ri-chat-3-line"></i>
                     <p>댓글을 작성하려면 로그인이 필요합니다</p>
                 </div>
-                <button onClick={handleLogin} className="comment-login-btn">
+                <button className="comment-login-btn">
                     <i className="ri-kakao-talk-fill"></i>
                     카카오 로그인
                 </button>

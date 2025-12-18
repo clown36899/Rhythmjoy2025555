@@ -9,7 +9,8 @@ import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 import "../../../styles/components/Header.css";
 import "../../../styles/components/HeaderSearch.css";
-import SideDrawer from "../../../components/SideDrawer";
+import "../../../styles/components/Header.css";
+import "../../../styles/components/HeaderSearch.css";
 
 interface HeaderProps {
   onAdminModeToggle?: (
@@ -44,8 +45,6 @@ export default memo(function Header({
   onTodayClick,
 }: HeaderProps) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showDrawer, setShowDrawer] = useState(false);
-  const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccessType, setLoginSuccessType] = useState("");
   const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
   const [isDevAdmin, setIsDevAdmin] = useState(() => {
@@ -53,7 +52,7 @@ export default memo(function Header({
     return localStorage.getItem('isDevAdmin') === 'true';
   });
 
-  const { isAdmin, billboardUserId, billboardUserName, setBillboardUser, signOut, signInWithKakao, signInAsDevAdmin } = useAuth();
+  const { isAdmin, billboardUserId, billboardUserName, setBillboardUser, signOut, signInAsDevAdmin } = useAuth();
 
   // isDevAdmin 상태 변경 시 localStorage 동기화
   useEffect(() => {
@@ -89,64 +88,15 @@ export default memo(function Header({
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSettingsClick = () => {
-    setShowSettingsModal(true);
-  };
+
 
   const handleKakaoLogin = async () => {
-    setLoginLoading(true);
-    try {
-      const result = await signInWithKakao();
-
-      // 서버 응답에 따라 자동으로 권한 설정
-      let loginTypeText = '';
-      let isBillboardAdmin = false;
-
-      if (result.isAdmin) {
-        // 슈퍼 관리자
-        onAdminModeToggle?.(true, "super", null, "");
-        loginTypeText = '전체 관리자 모드';
-      } else if (result.isBillboardUser && result.billboardUserId && result.billboardUserName) {
-        // 서브 관리자 (빌보드 사용자)
-        setBillboardUser(result.billboardUserId, result.billboardUserName);
-        onAdminModeToggle?.(true, "sub", result.billboardUserId, result.billboardUserName);
-        loginTypeText = '개인빌보드 관리자 모드';
-        isBillboardAdmin = true;
-      } else {
-        // 권한 없음
-        await signOut();
-        setLoginLoading(false);
-        setShowSettingsModal(false);
-        // 에러 메시지는 표시하지 않고 조용히 닫기
-        return;
-      }
-
-      setLoginSuccessName(result.name);
-      setLoginSuccessType(loginTypeText);
-
-      if (isBillboardAdmin) {
-        // 서브 관리자는 성공 모달 없이 바로 관리 패널 유지
-        // 설정 모달이 닫혔다가 다시 열리면서 관리 패널이 표시됨
-        setShowSettingsModal(false);
-        setTimeout(() => {
-          setShowSettingsModal(true);
-        }, 100);
-      } else {
-        // 슈퍼 관리자는 성공 모달 표시
-        setShowSettingsModal(false);
-        setShowLoginSuccessModal(true);
-      }
-    } catch (error: any) {
-      console.log('[카카오 로그인] 취소 또는 실패:', error.message);
-      // 에러 메시지 표시
-      if (error?.message) {
-        alert(error.message);
-      }
-      // 로그인 취소/실패 시 모달 닫기
-      setShowSettingsModal(false);
-    } finally {
-      setLoginLoading(false);
-    }
+    // Force the unified registration modal
+    console.log('[Header] Force registration modal for guest');
+    window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+      detail: { action: () => { window.location.reload(); } }
+    }));
+    setShowSettingsModal(false);
   };
 
   const handleAdminLogout = async () => {
@@ -518,7 +468,7 @@ export default memo(function Header({
                 </div>
               )}
               <button
-                onClick={() => setShowDrawer(true)}
+                onClick={() => window.dispatchEvent(new CustomEvent('openSideDrawer'))}
                 className="header-hamburger-btn"
               >
                 {billboardUserId ? (
@@ -537,15 +487,7 @@ export default memo(function Header({
         </div>
       </header>
 
-      <SideDrawer
-        isOpen={showDrawer}
-        onClose={() => setShowDrawer(false)}
-        onLoginClick={() => {
-          // 사이드바에서 로그인 버튼 누르면 -> 로그인 모달 오픈
-          // or perform login action directly
-          handleKakaoLogin();
-        }}
-      />
+      {/* SideDrawer REDUNDANT - Removed to use MobileShell's SideDrawer */}
 
 
       {/* Settings Modal */}
@@ -569,20 +511,10 @@ export default memo(function Header({
                   <div className="header-btn-group-vertical">
                     <button
                       onClick={handleKakaoLogin}
-                      disabled={loginLoading}
                       className="header-btn-base header-btn-yellow header-btn-icon"
                     >
-                      {loginLoading ? (
-                        <>
-                          <div className="header-icon-spinner"></div>
-                          로그인 중...
-                        </>
-                      ) : (
-                        <>
-                          <i className="ri-kakao-talk-fill header-icon-xl"></i>
-                          카카오로 로그인
-                        </>
-                      )}
+                      <i className="ri-kakao-talk-fill header-icon-xl"></i>
+                      카카오로 로그인
                     </button>
 
                     {signInAsDevAdmin && (

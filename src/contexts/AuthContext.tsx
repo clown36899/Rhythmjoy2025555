@@ -26,6 +26,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithKakao: () => Promise<KakaoAuthResult>;
   signOut: () => Promise<void>;
+  cancelAuth: () => void;
   signInAsDevAdmin?: () => void; // 개발 환경 전용 - UI 플래그만
 }
 
@@ -43,6 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [billboardUserName, setBillboardUserName] = useState<string | null>(() => {
     return localStorage.getItem('billboardUserName');
   });
+
+  // 수동 취소 함수
+  const cancelAuth = () => {
+    console.warn('[AuthContext] 인증 프로세스 수동 취소됨');
+    setIsAuthProcessing(false);
+  };
 
   // 관리자 권한 계산 헬퍼 함수
   const computeIsAdmin = (currentUser: User | null): boolean => {
@@ -280,7 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // 서버에서 받은 세션으로 자동 로그인
           if (authData.session) {
             logToStorage('[signInWithKakao] 6단계: Supabase 세션 설정 시작');
-            const { data, error } = await supabase.auth.setSession({
+            const { error } = await supabase.auth.setSession({
               access_token: authData.session.access_token,
               refresh_token: authData.session.refresh_token,
             });
@@ -476,6 +483,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signInWithKakao,
     signOut,
+    cancelAuth,
     ...(import.meta.env.DEV && { signInAsDevAdmin }),
   };
 

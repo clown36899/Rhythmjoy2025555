@@ -21,6 +21,7 @@ export const initKakaoSDK = () => {
     if (window.Kakao) {
       if (!window.Kakao.isInitialized()) {
         const jsKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
+        console.log('[KakaoAuth] Initializing with key:', jsKey);
         if (!jsKey) {
           reject(new Error('카카오 JavaScript 키가 설정되지 않았습니다.'));
           return;
@@ -29,9 +30,9 @@ export const initKakaoSDK = () => {
       }
       resolve();
     } else {
-      // SDK 로드
+      // SDK 로드 (캐시 방지 캐시버스터 추가)
       const script = document.createElement('script');
-      script.src = 'https://developers.kakao.com/sdk/js/kakao.js';
+      script.src = `https://developers.kakao.com/sdk/js/kakao.js?cb=${new Date().getTime()}`;
       script.onload = () => {
         const jsKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
         if (!jsKey) {
@@ -59,22 +60,33 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
       return;
     }
 
+    // 60초 타임아웃 타이머 (팝업 닫힘 감지 실패 시 무한 스피너 방지)
+    const timeoutId = setTimeout(() => {
+      reject(new Error('로그인 대기 시간이 초과되었습니다. (60초 타임아웃)'));
+    }, 60000);
+
     const loginOptions: any = {
-      scope: 'account_email,name,phone_number', // 이메일, 본명, 전화번호 권한 요청
+      scope: 'account_email,profile_nickname,name,phone_number', // 이메일, 닉네임, 본명, 전화번호 권한 요청
       throughTalk: false, // 웹 브라우저에서는 항상 웹 기반 OAuth 사용 (intent:// 에러 방지)
-      success: () => {
+      success: function (authObj: any) {
+        clearTimeout(timeoutId); // 성공 시 타이머 해제
+
         // 사용자 정보 요청
         window.Kakao.API.request({
           url: '/v2/user/me',
           success: (response: KakaoUserInfo) => {
+            console.log('[KakaoAuth] User Info Success:', response);
             resolve(response);
           },
           fail: (error: any) => {
-            reject(new Error('사용자 정보 요청 실패: ' + error.msg));
+            console.error('[KakaoAuth] User Info Error:', error);
+            reject(new Error('사용자 정보 요청 실패: ' + JSON.stringify(error)));
           },
         });
       },
       fail: (error: any) => {
+        clearTimeout(timeoutId); // 실패 시 타이머 해제
+
         const currentUrl = window.location.origin;
         let errorMessage = '카카오 로그인 실패';
 
@@ -89,7 +101,7 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
           errorMessage += ': ' + error.error_description;
         }
 
-        console.error('[카카오 로그인 실패]', {
+        console.error('[Kakao 로그인 실패]', {
           error: error.error,
           description: error.error_description,
           currentUrl
@@ -99,6 +111,7 @@ export const loginWithKakao = (): Promise<KakaoUserInfo> => {
       },
     };
 
+    // console.log('[KakaoAuth] Requesting Scope:', loginOptions.scope);
     window.Kakao.Auth.login(loginOptions);
   });
 };

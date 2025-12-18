@@ -9,7 +9,6 @@ interface BoardUser {
     id: number;
     user_id: string;
     nickname: string;
-    gender: string;
     created_at: string;
     profile_image?: string;
 }
@@ -43,7 +42,7 @@ export default function SecureMembersPage() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('board_users')
-                .select('*')
+                .select('id, user_id, nickname, profile_image, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;

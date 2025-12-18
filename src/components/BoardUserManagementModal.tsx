@@ -13,7 +13,6 @@ interface BoardUser {
   id: number;
   user_id: string;
   nickname: string;
-  gender: string;
   created_at: string;
   profile_image?: string;
 }
@@ -59,7 +58,7 @@ export default function BoardUserManagementModal({
       // Fetch users from public schema (system_keys and user_tokens are protected, but board_users is visible)
       const { data, error } = await supabase
         .from('board_users')
-        .select('*')
+        .select('id, user_id, nickname, profile_image, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -97,18 +96,7 @@ export default function BoardUserManagementModal({
     });
   };
 
-  const getGenderText = (gender: string) => {
-    switch (gender) {
-      case 'male':
-        return '남성';
-      case 'female':
-        return '여성';
-      case 'other':
-        return '기타';
-      default:
-        return gender;
-    }
-  };
+
 
   if (!isOpen) return null;
 
@@ -164,7 +152,6 @@ export default function BoardUserManagementModal({
                 <thead>
                   <tr className="boum-table-head">
                     <th className="boum-table-header">닉네임</th>
-                    <th className="boum-table-header">성별</th>
                     <th className="boum-table-header">가입일</th>
                   </tr>
                 </thead>
@@ -183,18 +170,7 @@ export default function BoardUserManagementModal({
                           <span className="boum-nickname">{user.nickname}</span>
                         </div>
                       </td>
-                      <td className="boum-table-cell">
-                        <span
-                          className={`boum-gender-badge ${user.gender === 'male'
-                            ? 'boum-gender-male'
-                            : user.gender === 'female'
-                              ? 'boum-gender-female'
-                              : 'boum-gender-other'
-                            }`}
-                        >
-                          {getGenderText(user.gender)}
-                        </span>
-                      </td>
+
                       <td className="boum-table-cell boum-date-text">
                         {formatDate(user.created_at)}
                       </td>
