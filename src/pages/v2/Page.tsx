@@ -434,20 +434,10 @@ export default function HomePageV2() {
                             isOpen={showRegistrationModal}
                             onClose={() => {
                                 setShowRegistrationModal(false);
-                                if (fromBanner) {
-                                    setSelectedDate(null);
-                                    setFromBanner(false);
-                                    setBannerMonthBounds(null);
-                                }
-                                if (fromFloatingBtn) {
-                                    setSelectedDate(null);
-                                    // Only collapse if registration didn't start from fullscreen
-                                    if (registrationCalendarMode !== 'fullscreen') {
-                                        handleSectionViewModeChange('preview'); // 프리뷰 모드로 강제 전환
-                                        setCalendarMode('collapsed'); // 달력 접기
-                                    }
-                                    setFromFloatingBtn(false);
-                                }
+                                setSelectedDate(null); // Always clear to prevent unused date view
+                                setFromBanner(false);
+                                setFromFloatingBtn(false);
+                                setBannerMonthBounds(null);
                             }}
                             selectedDate={selectedDate!}
                             onMonthChange={(d) => setCurrentMonth(d)}
@@ -488,6 +478,11 @@ export default function HomePageV2() {
                                     }, 300); // 300ms per toggle
                                 } else {
                                     // Preview mode: current behavior (show in list)
+                                    // Restore intended behavior: Go to Preview Page
+                                    setSelectedDate(null); // Clear selected date to exit "Unused Screen" (Date view)
+                                    handleSectionViewModeChange('preview'); // Reset to default view
+                                    setCalendarMode('collapsed'); // Ensure calendar is collapsed
+
                                     setEventJustCreated(Date.now());
                                     setHighlightEvent({ id: id || 0, nonce: Date.now() });
                                 }

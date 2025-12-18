@@ -29,8 +29,8 @@ interface EditableEventDetailProps {
     className?: string;
     style?: React.CSSProperties;
     // Footer Props
-    password?: string;
-    setPassword?: (password: string) => void;
+    // password props removed - using RLS
+
     link?: string;
     setLink?: (link: string) => void;
     linkName?: string;
@@ -89,8 +89,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     onImageUpload,
     genreSuggestions,
     className = "",
-    password,
-    setPassword,
+    // password props removed
+
     link,
     setLink,
     linkName,
@@ -1008,24 +1008,6 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                 />
                             </div>
                             <EditBadge isStatic />
-                        </div>
-                    </div>
-
-                    {/* Password Input - Moved below content */}
-                    <div className="info-divider">
-                        <div id="password-input-section" className="password-input-row info-item group" style={{ justifyContent: 'flex-end' }}>
-                            <div className="password-input-container">
-                                <i className="ri-lock-line editable-password-icon"></i>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword?.(e.target.value)}
-                                    placeholder="비밀번호"
-                                    className="password-input-field"
-                                    maxLength={4}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
                         </div>
                     </div>
                 </div >

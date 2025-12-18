@@ -54,7 +54,7 @@ export default memo(function EventRegistrationModal({
   onEventUpdated,
   onDelete,
 }: EventRegistrationModalProps) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   // Preview Mode State
   const [previewMode, setPreviewMode] = useState<'detail' | 'card' | 'billboard'>('detail');
@@ -69,7 +69,8 @@ export default memo(function EventRegistrationModal({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<"class" | "event" | "">("");
   const [genre, setGenre] = useState("");
-  const [password, setPassword] = useState("");
+  // Password state removed - using RLS-based ownership
+
   const [link1, setLink1] = useState("");
   const [linkName1, setLinkName1] = useState("");
 
@@ -208,7 +209,8 @@ export default memo(function EventRegistrationModal({
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
 
-        setPassword(editEventData.password || "");
+        // Password removed - using RLS
+
         setLink1(editEventData.link1 || "");
         setLinkName1(editEventData.link_name1 || "");
         setVideoUrl(editEventData.video_url || "");
@@ -232,7 +234,8 @@ export default memo(function EventRegistrationModal({
         setDescription("");
         setCategory("");
         setGenre("");
-        setPassword("");
+        // setPassword removed
+
         setLink1("");
         setLinkName1("");
         setVideoUrl("");
@@ -396,15 +399,8 @@ export default memo(function EventRegistrationModal({
       return;
     }
 
-    if (!password.trim() && !isAdmin) {
-      alert("비밀번호를 입력해주세요.");
-      // Scroll to password input
-      const passwordSection = document.getElementById('password-input-section');
-      if (passwordSection) {
-        passwordSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      return;
-    }
+    // Password validation removed - using RLS
+
 
     // New Validation: Image OR Video is required (only for new events or if explicit removal logic exists)
     // For edit, if they haven't changed the image (imageFile is null) but there was an existing image, it's fine.
@@ -497,7 +493,7 @@ export default memo(function EventRegistrationModal({
         description,
         category,
         genre: genre || undefined,
-        password,
+        // password 필드 제거 (RLS 기반 권한 관리로 전환)
         link1,
         link_name1: linkName1,
         image: imageUrl,
@@ -509,6 +505,7 @@ export default memo(function EventRegistrationModal({
         organizer: '익명', // Default value since input is removed
         organizer_name: isAdmin ? '관리자' : null,
         created_at: new Date().toISOString(),
+        user_id: user?.id || null, // 작성자 ID 저장
       };
 
       let resultData;
@@ -589,7 +586,8 @@ export default memo(function EventRegistrationModal({
       case 'description': setDescription(value); break;
       case 'category': setCategory(value); break;
       case 'genre': setGenre(value); break;
-      case 'password': setPassword(value); break;
+      // password case removed
+
       case 'link1': setLink1(value); break;
       case 'link_name1': setLinkName1(value); break;
     }
@@ -653,8 +651,8 @@ export default memo(function EventRegistrationModal({
           eventDates={eventDates}
           setEventDates={setEventDates}
           // Footer Props
-          password={password}
-          setPassword={setPassword}
+          // password props removed
+
           link={link1}
           setLink={setLink1}
           linkName={linkName1}

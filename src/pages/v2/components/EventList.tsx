@@ -35,6 +35,7 @@ import "../styles/EventListSections.css";
 // Lazy loading으로 성능 최적화
 const SocialCalendar = lazy(() => import("../../social/components/SocialCalendar"));
 import { useSocialSchedules } from "../../social/hooks/useSocialSchedules";
+import { useAuth } from "../../../contexts/AuthContext";
 import PracticeRoomBanner from "./PracticeRoomBanner";
 
 registerLocale("ko", ko);
@@ -133,6 +134,7 @@ export default function EventList({
   sectionViewMode = 'preview',
   onSectionViewModeChange,
 }: EventListProps) {
+  const { user } = useAuth();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') ?? 'all';
@@ -1177,76 +1179,69 @@ export default function EventList({
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
 
-    if (isAdminMode) {
-      // 개발자 모드(관리자 모드)에서는 비밀번호 없이 바로 EditableEventDetail 열기
-      setEventToEdit(event);
+    // 비밀번호 확인 로직 제거, 바로 수정 모달 열기 (RLS가 저장 시 권한 체크)
+    setEventToEdit(event);
 
-      // Convert event dates to Date objects
-      const hasEventDates = event.event_dates && event.event_dates.length > 0;
+    // Convert event dates to Date objects
+    const hasEventDates = event.event_dates && event.event_dates.length > 0;
 
-      if (hasEventDates) {
-        // Individual dates mode
-        setEditEventDates(event.event_dates || []);
-        setEditEventDates(event.event_dates || []);
-        setEditDate(null);
-        setEditEndDate(null);
-      } else {
-        // Range or single date mode
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
-
-        setEditDate(startDate ? new Date(startDate) : null);
-        setEditEndDate(endDate ? new Date(endDate) : null);
-        setEditEventDates([]);
-      }
-
-      // Set other edit states
-      setEditPassword(event.password || "");
-      setEditLink(event.link1 || "");
-      setEditLinkName(event.link_name1 || "");
-      setEditImagePosition({
-        x: (event as any).image_position_x || 0,
-        y: (event as any).image_position_y || 0
-      });
-      setEditOriginalImageUrl(event.image || null);
-      setEditOriginalImageForCrop(null);
-
-      // Populate editFormData for the event object
-      setEditFormData({
-        title: event.title,
-        description: event.description || "",
-        time: event.time,
-        location: event.location,
-        locationLink: event.location_link || "",
-        category: event.category,
-        genre: event.genre || "",
-        organizer: event.organizer,
-        organizerName: event.organizer_name || "",
-        organizerPhone: event.organizer_phone || "",
-        contact: event.contact || "",
-        link1: event.link1 || "",
-        link2: event.link2 || "",
-        link3: event.link3 || "",
-        linkName1: event.link_name1 || "",
-        linkName2: event.link_name2 || "",
-        linkName3: event.link_name3 || "",
-        image: event?.image || "",
-        start_date: event.start_date || event.date || "",
-        end_date: event.end_date || event.date || "",
-        event_dates: event.event_dates || [],
-        dateMode: hasEventDates ? "specific" : "range",
-        showTitleOnBillboard: event.show_title_on_billboard ?? true,
-        videoUrl: event?.video_url || "",
-      });
-
-      setIsEditingWithDetail(true);
-      setSelectedEvent(null); // 상세 모달 닫기
+    if (hasEventDates) {
+      // Individual dates mode
+      setEditEventDates(event.event_dates || []);
+      setEditEventDates(event.event_dates || []);
+      setEditDate(null);
+      setEditEndDate(null);
     } else {
-      // 일반 모드에서는 비밀번호 확인
-      setEventToEdit(event);
-      setShowPasswordModal(true);
-      setSelectedEvent(null); // 상세 모달 닫기
+      // Range or single date mode
+      const startDate = event.start_date || event.date;
+      const endDate = event.end_date || event.date;
+
+      setEditDate(startDate ? new Date(startDate) : null);
+      setEditEndDate(endDate ? new Date(endDate) : null);
+      setEditEventDates([]);
     }
+
+    // Set other edit states
+    setEditPassword(event.password || "");
+    setEditLink(event.link1 || "");
+    setEditLinkName(event.link_name1 || "");
+    setEditImagePosition({
+      x: (event as any).image_position_x || 0,
+      y: (event as any).image_position_y || 0
+    });
+    setEditOriginalImageUrl(event.image || null);
+    setEditOriginalImageForCrop(null);
+
+    // Populate editFormData for the event object
+    setEditFormData({
+      title: event.title,
+      description: event.description || "",
+      time: event.time,
+      location: event.location,
+      locationLink: event.location_link || "",
+      category: event.category,
+      genre: event.genre || "",
+      organizer: event.organizer,
+      organizerName: event.organizer_name || "",
+      organizerPhone: event.organizer_phone || "",
+      contact: event.contact || "",
+      link1: event.link1 || "",
+      link2: event.link2 || "",
+      link3: event.link3 || "",
+      linkName1: event.link_name1 || "",
+      linkName2: event.link_name2 || "",
+      linkName3: event.link_name3 || "",
+      image: event?.image || "",
+      start_date: event.start_date || event.date || "",
+      end_date: event.end_date || event.date || "",
+      event_dates: event.event_dates || [],
+      dateMode: hasEventDates ? "specific" : "range",
+      showTitleOnBillboard: event.show_title_on_billboard ?? true,
+      videoUrl: event?.video_url || "",
+    });
+
+    setIsEditingWithDetail(true);
+    setSelectedEvent(null); // 상세 모달 닫기
   };
 
   // EditableEventDetail handlers
@@ -1497,48 +1492,37 @@ export default function EventList({
   const handleDeleteClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
 
-    // 슈퍼 관리자 모드일 경우 비밀번호 확인 없이 바로 삭제
-    if (adminType === "super") {
-      if (confirm("정말로 이 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-        deleteEvent(event.id);
-      }
-      return;
-    }
-
-    // 일반 모드에서는 비밀번호 확인
-    const password = prompt("이벤트 삭제를 위한 비밀번호를 입력하세요:");
-    if (password === null) {
-      return;
-    }
-
-    // 클라이언트에서 비밀번호를 먼저 간단히 확인 (빠른 피드백)
-    if (password !== event.password) {
-      alert("비밀번호가 올바르지 않습니다.");
-      return;
-    }
-
-    if (confirm("정말로 이 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-      // Edge Function에 비밀번호와 함께 삭제 요청
-      deleteEvent(event.id, password);
+    // 확인 메시지만 표시 (비밀번호 프롬프트 제거, RLS가 권한 체크)
+    if (confirm('정말로 이 이벤트를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+      deleteEvent(event.id);
     }
   };
 
-  const deleteEvent = async (eventId: number, password: string | null = null) => {
-    // 실제 삭제 로직은 Edge Function으로 이동
+  const deleteEvent = async (eventId: number) => {
     setIsDeleting(true);
     try {
-      console.log(`[🚀 함수 호출] 'delete-event' 호출 시작 (ID: ${eventId})`);
+      console.log(`[삭제 시작] Event ID: ${eventId}`);
 
-      // Edge Function 호출
-      const { error } = await supabase.functions.invoke('delete-event', {
-        body: { eventId, password },
-      });
+      // 직접 Supabase 쿼리 (RLS가 권한 체크)
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
 
       if (error) {
-        throw error;
+        console.error('삭제 실패:', error);
+
+        // RLS 권한 에러 처리
+        if (error.code === 'PGRST301' || error.message?.includes('policy')) {
+          alert('권한이 없습니다.\n본인이 작성한 글이거나 관리자만 삭제할 수 있습니다.');
+        } else {
+          alert('삭제 중 오류가 발생했습니다.');
+        }
+        setIsDeleting(false);
+        return;
       }
 
-      console.log(`[✅ 함수 호출] 'delete-event' 성공 (ID: ${eventId})`);
+      console.log(`[삭제 성공] Event ID: ${eventId}`);
       setIsEditingWithDetail(false); // Close edit modal immediately
       setEventToEdit(null);
       closeModal(); // Close detail modal if open

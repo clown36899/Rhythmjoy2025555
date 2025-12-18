@@ -60,6 +60,7 @@ export interface Event {
   password?: string;
   created_at?: string;
   updated_at?: string;
+  user_id?: string | null;
   show_title_on_billboard?: boolean | null; // 👈 이 줄을 추가해주세요
 }
 
