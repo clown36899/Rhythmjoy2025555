@@ -423,7 +423,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                     </div>
                                     <span className="upload-title">{videoUrl ? '동영상 수정' : '동영상 등록'}</span>
                                     <div className="upload-video-info">
-                                        <span className="upload-video-required">(필수x, 유튜브만 가능)</span>
+                                        <span className="upload-video-required">(선택, 유튜브만 가능)</span>
                                         <span className="upload-video-note">빌보드 전용</span>
                                     </div>
                                 </div>

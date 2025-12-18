@@ -122,22 +122,51 @@
 .shell-btn-register-topbar {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.45rem 0.5rem 0.45rem 0.3rem;
-  border-radius: 0.25rem;
-  font-size: 1rem;
-  font-weight: 500;
-  border-radius: 5rem;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
   border: 0;
-  transition: all 0.2s ease;
-  background-color: #3b82f6;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #ffffff;
-  /* height: 24px; */
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.shell-btn-register-topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.shell-btn-register-topbar:hover::before {
+  opacity: 1;
+}
+
+.shell-btn-register-topbar i {
+  font-size: 1.125rem;
+  transition: transform 0.3s ease;
+}
+
+.shell-btn-register-topbar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.shell-btn-register-topbar:hover i {
+  transform: rotate(90deg);
 }
 
 .shell-btn-register-topbar:active {
-  background-color: #2563eb;
-  transform: scale(0.95);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 /* Admin Button in Top Bar */

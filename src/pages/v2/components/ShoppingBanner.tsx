@@ -15,6 +15,14 @@ function ShoppingBanner() {
 
     const [imageBlobs, setImageBlobs] = useState<Record<number, string>>({});
 
+    // Touch swipe state
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const [isSwiping, setIsSwiping] = useState(false);
+
+    // Minimum swipe distance (in px) to trigger navigation
+    const minSwipeDistance = 50;
+
     // Fetch shops from Supabase
     const fetchShops = async () => {
         setLoading(true);
@@ -55,16 +63,16 @@ function ShoppingBanner() {
         };
     }, []);
 
-    // Auto-slide timer (only when visible and not hovered)
+    // Auto-slide timer (only when visible, not hovered, and not swiping)
     useEffect(() => {
-        if (shops.length === 0 || isHovered || !isIntersecting) return;
+        if (shops.length === 0 || isHovered || !isIntersecting || isSwiping) return;
 
         const timer = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % shops.length);
         }, 4000); // 4 seconds
 
         return () => clearInterval(timer);
-    }, [shops.length, isHovered, isIntersecting]);
+    }, [shops.length, isHovered, isIntersecting, isSwiping]);
 
     const handlePrev = () => {
         setCurrentIndex((prev) => (prev - 1 + shops.length) % shops.length);
@@ -81,6 +89,39 @@ function ShoppingBanner() {
 
     const handleUpdate = () => {
         fetchShops();
+    };
+
+    // Touch event handlers
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null); // Reset touch end
+        setTouchStart(e.targetTouches[0].clientX);
+        setIsSwiping(true);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+        if (!touchStart || !touchEnd) {
+            setIsSwiping(false);
+            return;
+        }
+
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            handleNext();
+        } else if (isRightSwipe) {
+            handlePrev();
+        }
+
+        // Reset touch state
+        setTouchStart(null);
+        setTouchEnd(null);
+        setIsSwiping(false);
     };
 
     // Show skeleton while loading or if no shops available
@@ -112,6 +153,9 @@ function ShoppingBanner() {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 onClick={() => handleShopClick(currentShop)}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
             >
                 {/* Navigation Arrows */}
                 {shops.length > 1 && (
