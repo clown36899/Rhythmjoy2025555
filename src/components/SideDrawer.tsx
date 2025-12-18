@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import '../styles/components/SideDrawer.css'; // We will create this CSS
+import '../styles/components/SideDrawer.css';
 
 interface SideDrawerProps {
     isOpen: boolean;
@@ -18,8 +16,6 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     // Derive display values from userProfile or fallback to user metadata
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
     const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
-
-    if (!isOpen) return null;
 
     const handleNavigation = (path: string) => {
         navigate(path);
@@ -43,7 +39,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
 
     return createPortal(
-        <div className="drawer-overlay" onClick={onClose}>
+        <div className={`drawer-overlay ${isOpen ? 'open' : ''}`} onClick={onClose}>
             <div
                 className={`drawer-container ${isOpen ? 'open' : ''}`}
                 onClick={(e) => e.stopPropagation()}
