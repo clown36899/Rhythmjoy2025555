@@ -59,13 +59,17 @@ async function createCroppedImage(
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => {
+      async (blob) => {
         if (!blob) {
           reject(new Error('Canvas is empty'));
           return;
         }
 
-        const file = new File([blob], fileName, {
+        // Clone the blob to avoid ERR_UPLOAD_FILE_CHANGED
+        const arrayBuffer = await blob.arrayBuffer();
+        const blobClone = new Blob([arrayBuffer], { type: 'image/jpeg' });
+
+        const file = new File([blobClone], fileName, {
           type: 'image/jpeg',
           lastModified: Date.now(),
         });

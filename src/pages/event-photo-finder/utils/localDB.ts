@@ -33,10 +33,15 @@ export class LocalDB {
 
     async addPhoto(file: File, faceVector: Float32Array): Promise<void> {
         const db = await this.dbPromise;
+
+        // Clone the file data to avoid ERR_UPLOAD_FILE_CHANGED if the original file changes (e.g., iCloud sync)
+        const arrayBuffer = await file.arrayBuffer();
+        const blobClone = new Blob([arrayBuffer], { type: file.type });
+
         await db.put(STORE_NAME, {
             id: crypto.randomUUID(),
             filename: file.name,
-            blob: file,
+            blob: blobClone, // Store the clone, not the original File reference
             faceVector: Array.from(faceVector),
             uploadedAt: Date.now(),
         });
