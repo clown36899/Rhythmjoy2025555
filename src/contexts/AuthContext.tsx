@@ -61,13 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const computeIsAdmin = (currentUser: User | null): boolean => {
     if (!currentUser) return false;
 
-    // 1순위: app_metadata의 is_admin 플래그 확인
-    if (currentUser.app_metadata?.is_admin === true) {
-      return true;
-    }
-
-    // 2순위: 이메일 비교 (fallback)
-    // 2순위: 이메일 비교 (fallback)
+    // 2순위: 이메일 비교 (fallback) -> 이제 유일한 확인 방법
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
     return !!(currentUser.email && adminEmail && currentUser.email === adminEmail);
   };

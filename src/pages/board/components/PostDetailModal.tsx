@@ -36,6 +36,7 @@ export default function PostDetailModal({
 
   const handleActionClick = (type: 'edit' | 'delete') => {
     // 본인 글이거나 관리자만 수정/삭제 가능
+    // isAdmin은 AuthContext에서 검증된 값이지만, 더 확실한 보안을 위해 로직 명시
     if (!isAdmin && post.user_id !== user?.id) {
       alert('본인이 작성한 글만 수정/삭제할 수 있습니다.');
       return;
