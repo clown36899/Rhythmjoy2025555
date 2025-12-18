@@ -886,7 +886,13 @@ export default function EventList({
   // Category: 'event'
   // Date: From today to future (no limit)
   const futureEvents = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    // Use local date string instead of UTC to fix "passed one day" logic
+    // const today = new Date().toISOString().split('T')[0]; // UTC (WRONG for local filtering)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const today = `${year}-${month}-${day}`;
 
     const result = events.filter(event => {
       if (event.category !== 'event') return false;
@@ -925,7 +931,12 @@ export default function EventList({
   // Date: From today to future (no limit)
   // Genre Filter Applied
   const futureClasses = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    // const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const today = `${year}-${month}-${day}`;
 
     const result = events.filter(event => {
       if (event.category !== 'class') return false;
@@ -965,7 +976,13 @@ export default function EventList({
 
   // 장르 목록 추출 (진행중인 강습만)
   const allGenres = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    // const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const today = `${year}-${month}-${day}`;
+
     const genres = new Set<string>();
 
     events.forEach(event => {
