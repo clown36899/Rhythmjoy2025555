@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import PostEditorModal from '../components/PostEditorModal'; // Reusing the editor modal
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import CommentSection from '../components/CommentSection';
+import UserRegistrationModal, { type UserData } from '../components/UserRegistrationModal';
 import '../board.css';
 import './detail.css';
 import type { BoardPost } from '../page';
@@ -17,12 +18,66 @@ export default function BoardDetailPage() {
     const [loading, setLoading] = useState(true);
     const [showEditorModal, setShowEditorModal] = useState(false);
     const [updating, setUpdating] = useState(false);
+    const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+    const [userData, setUserData] = useState<UserData | null>(null);
 
     useEffect(() => {
         if (id) {
             loadPost(id);
         }
     }, [id]);
+
+    useEffect(() => {
+        if (user) {
+            checkUserRegistration();
+        }
+    }, [user]);
+
+    const checkUserRegistration = async () => {
+        if (!user?.id) return;
+
+        // 관리자는 회원가입 없이 바로 사용 가능
+        if (isAdmin) {
+            setUserData({
+                nickname: '관리자',
+                real_name: '관리자',
+                phone: '',
+                gender: 'other'
+            });
+            return;
+        }
+
+        try {
+            // RPC 함수로 본인 정보 조회
+            const { data, error } = await supabase.rpc('get_my_board_user', {
+                p_user_id: user.id
+            });
+
+            if (error) {
+                console.error('회원 정보 조회 실패:', error);
+                return;
+            }
+
+            if (data) {
+                setUserData({
+                    nickname: data.nickname,
+                    real_name: data.real_name,
+                    phone: data.phone,
+                    gender: data.gender,
+                    profile_image: data.profile_image || undefined
+                });
+            } else {
+                // 일반 사용자만 회원가입 모달 표시
+                setShowRegistrationModal(true);
+            }
+        } catch (error) {
+            console.error('회원 정보 확인 실패:', error);
+        }
+    };
+
+    const handleUserRegistered = (newUserData: UserData) => {
+        setUserData(newUserData);
+    };
 
     const loadPost = async (postId: string) => {
         try {
@@ -275,6 +330,18 @@ export default function BoardDetailPage() {
                     userNickname={post.author_nickname || "익명"} // Fallback
                 />
             )}
+
+            {/* Registration Modal */}
+            {
+                showRegistrationModal && user && (
+                    <UserRegistrationModal
+                        isOpen={showRegistrationModal}
+                        onClose={() => setShowRegistrationModal(false)}
+                        onRegistered={handleUserRegistered}
+                        userId={user.id}
+                    />
+                )
+            }
         </div>
     );
 }
