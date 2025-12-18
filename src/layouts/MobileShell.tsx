@@ -6,6 +6,7 @@ import '../styles/components/MobileShell.css';
 import { BottomNavigation } from "./BottomNavigation";
 import { logUserInteraction } from "../lib/analytics";
 import ProfileEditModal from "../pages/board/components/ProfileEditModal"; // Global Modal
+import UserRegistrationModal from "../pages/board/components/UserRegistrationModal";
 import SideDrawer from "../components/SideDrawer";
 import GlobalLoadingOverlay from "../components/GlobalLoadingOverlay";
 
@@ -29,15 +30,46 @@ export function MobileShell() {
   const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [profileData, setProfileData] = useState<{ nickname: string; profile_image?: string } | null>(null);
+  const [showPreLoginRegistrationModal, setShowPreLoginRegistrationModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Helper for login guard
-  const handleProtectedAction = (action: () => void) => {
+  const handleProtectedAction = async (action: () => void) => {
     if (!user) {
-      if (window.confirm("로그인이 필요한 서비스입니다.\n카카오 로그인을 하시겠습니까?")) {
-        signInWithKakao();
+      // Check if user has registered before on this device
+      const isRegistered = localStorage.getItem('is_registered') === 'true';
+
+      if (isRegistered) {
+        // Already registered user: direct login
+        try {
+          await signInWithKakao();
+          // After login, execute action (session change will trigger re-render)
+          // action(); // action might need stable session, but wait for re-render is usually better
+        } catch (error) {
+          console.error('[handleProtectedAction] Login failed:', error);
+        }
+      } else {
+        // New user: show registration modal FIRST
+        setShowPreLoginRegistrationModal(true);
+        // Save the pending action to execute after registration/login
+        (window as any)._pendingAction = action;
       }
       return;
     }
+
+    // Already logged in: check if still needs registration (safety check)
+    const { data: boardUser } = await supabase
+      .from('board_users')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!boardUser) {
+      setShowPreLoginRegistrationModal(true);
+      (window as any)._pendingAction = action;
+      return;
+    }
+
     action();
   };
 
@@ -51,7 +83,7 @@ export function MobileShell() {
         .from('board_users')
         .select('nickname, profile_image')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (boardUser) {
         setProfileData({
@@ -88,7 +120,7 @@ export function MobileShell() {
           .from('board_users')
           .select('nickname, profile_image')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (boardUser) {
           setProfileData({
@@ -109,6 +141,10 @@ export function MobileShell() {
 
     loadProfileData();
   }, [user]);
+
+
+
+
 
 
 
@@ -379,11 +415,20 @@ export function MobileShell() {
 
           {/* User Profile Button - Shows login status */}
           <button
-            onClick={() => {
+            onClick={async () => {
               if (user) {
                 setIsDrawerOpen(true);
               } else {
-                signInWithKakao();
+                const isRegistered = localStorage.getItem('is_registered') === 'true';
+                if (isRegistered) {
+                  try {
+                    await signInWithKakao();
+                  } catch (error) {
+                    console.error('로그인 실패:', error);
+                  }
+                } else {
+                  setShowPreLoginRegistrationModal(true);
+                }
               }
             }}
             className="header-user-btn"
@@ -754,16 +799,103 @@ export function MobileShell() {
         />
       )}
 
+      {/* Pre-Login Registration Modal */}
+      {showPreLoginRegistrationModal && (
+        <UserRegistrationModal
+          isOpen={showPreLoginRegistrationModal}
+          onClose={() => setShowPreLoginRegistrationModal(false)}
+          onRegistered={async (userData) => {
+            setIsProcessing(true);
+            try {
+              // 1. If not logged in, trigger Kakao Login first
+              let currentUserId = user?.id;
+
+              if (!currentUserId) {
+                await signInWithKakao();
+                // Wait for session stability
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                const { data: { user: newUser }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+                if (newUser) {
+                  currentUserId = newUser.id;
+                }
+              }
+
+              if (currentUserId) {
+                // 2. Check if the NICKNAME is already taken by ANOTHER user
+                const { data: nameTakenByOther } = await supabase
+                  .from('board_users')
+                  .select('user_id')
+                  .eq('nickname', userData.nickname)
+                  .neq('user_id', currentUserId)
+                  .maybeSingle();
+
+                if (nameTakenByOther) {
+                  alert(`'${userData.nickname}'은(는) 이미 다른 사용자가 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.`);
+                  setIsProcessing(false);
+                  return; // Don't close modal, let user change nickname
+                }
+
+                // 3. Mark as registered in localStorage
+                localStorage.setItem('is_registered', 'true');
+
+                // 4. Save/Update record in DB
+                console.log('[MobileShell] Saving nickname after login:', userData.nickname);
+                const { error } = await supabase.from('board_users').upsert({
+                  user_id: currentUserId,
+                  nickname: userData.nickname,
+                  gender: 'other',
+                  updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+
+                if (error) {
+                  console.error('[MobileShell] Failed to save nickname:', error);
+                  alert(`닉네임 저장 실패: ${error.message}`);
+                  return;
+                }
+
+                // 5. Execute pending action if any
+                if ((window as any)._pendingAction) {
+                  (window as any)._pendingAction();
+                  (window as any)._pendingAction = null;
+                }
+              }
+            } catch (error: any) {
+              console.error('로그인/가입 실패:', error);
+              // alert(`오류가 발생했습니다: ${error.message}`);
+            } finally {
+              setIsProcessing(false);
+              setShowPreLoginRegistrationModal(false);
+            }
+          }}
+          previewMode={false}
+          kakaoInitialNickname=""
+        />
+      )}
+
       <SideDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        onLoginClick={signInWithKakao}
+        onLoginClick={async () => {
+          if (user) return;
+          const isRegistered = localStorage.getItem('is_registered') === 'true';
+          if (isRegistered) {
+            try {
+              await signInWithKakao();
+            } catch (error) {
+              console.error('로그인 실패:', error);
+            }
+          } else {
+            setShowPreLoginRegistrationModal(true);
+          }
+        }}
       />
 
       {/* Global Auth Loading Overlay (Blocks entire UI) */}
       <GlobalLoadingOverlay
-        isLoading={isAuthProcessing}
-        message="로그인 중..."
+        isLoading={isAuthProcessing || isProcessing}
+        message={isAuthProcessing ? "로그인 중..." : "사용자 정보 저장 중..."}
       />
     </div>
   );

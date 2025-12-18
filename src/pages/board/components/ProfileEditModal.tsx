@@ -28,7 +28,57 @@ export default function ProfileEditModal({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [oldImagePath, setOldImagePath] = useState<string | null>(null);
     const [imageDeleted, setImageDeleted] = useState(false); // 이미지 삭제 플래그
+    const [nicknameStatus, setNicknameStatus] = useState<{
+        isAvailable: boolean;
+        message: string;
+        checking: boolean;
+    } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Debounced check
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const timer = setTimeout(() => {
+            if (nickname.trim() && nickname !== currentUser.nickname) {
+                checkNicknameAvailability(nickname.trim());
+            } else if (nickname === currentUser.nickname) {
+                setNicknameStatus({ isAvailable: true, message: '현재 사용 중인 닉네임입니다', checking: false });
+            } else {
+                setNicknameStatus(null);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [nickname, isOpen, currentUser.nickname]);
+
+    const checkNicknameAvailability = async (name: string) => {
+        if (!name || name.length < 2) {
+            setNicknameStatus({ isAvailable: false, message: '2자 이상 입력해주세요', checking: false });
+            return;
+        }
+
+        setNicknameStatus(prev => ({ ...prev, isAvailable: false, message: '확인 중...', checking: true }));
+
+        try {
+            const { data, error } = await supabase
+                .from('board_users')
+                .select('user_id')
+                .eq('nickname', name)
+                .neq('user_id', userId)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (data) {
+                setNicknameStatus({ isAvailable: false, message: '이미 사용 중인 닉네임입니다', checking: false });
+            } else {
+                setNicknameStatus({ isAvailable: true, message: '사용 가능한 닉네임입니다', checking: false });
+            }
+        } catch (err) {
+            console.error('닉네임 중복 체크 실패:', err);
+            setNicknameStatus(null);
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -74,6 +124,21 @@ export default function ProfileEditModal({
         if (!nickname.trim()) {
             alert('닉네임을 입력해주세요.');
             return;
+        }
+
+        if (nickname !== currentUser.nickname) {
+            // 최종 중복 체크
+            const { data: nameTakenByOther } = await supabase
+                .from('board_users')
+                .select('user_id')
+                .eq('nickname', nickname.trim())
+                .neq('user_id', userId)
+                .maybeSingle();
+
+            if (nameTakenByOther) {
+                alert(`'${nickname}'은(는) 이미 다른 사용자가 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.`);
+                return;
+            }
         }
 
         setIsSubmitting(true);
@@ -235,6 +300,13 @@ export default function ProfileEditModal({
                             onChange={(e) => setNickname(e.target.value)}
                             className="userreg-input"
                         />
+                        <p style={{
+                            fontSize: '12px',
+                            color: nicknameStatus ? (nicknameStatus.isAvailable ? '#4ade80' : '#f87171') : '#666',
+                            marginTop: '4px'
+                        }}>
+                            {nicknameStatus ? nicknameStatus.message : '* 멋진 닉네임을 지어주세요.'}
+                        </p>
                     </div>
 
                     <div className="userreg-footer" style={{ marginTop: '20px' }}>

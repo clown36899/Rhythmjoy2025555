@@ -59,7 +59,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                             .from('board_users')
                             .select('profile_image')
                             .eq('user_id', comment.user_id)
-                            .single();
+                            .maybeSingle();
                         profileImage = userData?.profile_image || null;
                     }
                     return {

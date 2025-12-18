@@ -9,7 +9,6 @@ import UserRegistrationModal, { type UserData } from './components/UserRegistrat
 import ProfileEditModal from './components/ProfileEditModal';
 import BoardUserManagementModal from '../../components/BoardUserManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
-import GlobalLoadingOverlay from '../../components/GlobalLoadingOverlay';
 import './board.css';
 
 export interface BoardPost {
@@ -39,7 +38,6 @@ export default function BoardPage() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showEditorModal, setShowEditorModal] = useState(false);
 
   const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
@@ -99,8 +97,31 @@ export default function BoardPage() {
   }, [user]); // user만 의존성으로 설정
 
   useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) {
+        setUserData(null);
+        return;
+      }
+      try {
+        const { data } = await supabase
+          .from('board_users')
+          .select('nickname, real_name, phone, gender, profile_image')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (data) {
+          setUserData(data);
+        }
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+      }
+    };
+    loadUserData();
+  }, [user]);
+
+  useEffect(() => {
     if (user) {
-      checkUserRegistration();
+      // checkUserRegistration handled by loadUserData effect
     }
   }, [user]);
 
@@ -140,51 +161,12 @@ export default function BoardPage() {
     };
   }, [isAdmin]);
 
-  const checkUserRegistration = async () => {
-    if (!user?.id) return;
-
-    // 관리자는 회원가입 없이 바로 사용 가능
-    if (isAdmin) {
-      console.log('[게시판] 관리자 모드 - 회원가입 불필요');
-      setUserData({
-        nickname: '관리자',
-        real_name: '관리자',
-        phone: '',
-        gender: 'other'
-      });
-      return;
-    }
-
-    try {
-      // RPC 함수로 본인 정보 조회
-      const { data, error } = await supabase.rpc('get_my_board_user', {
-        p_user_id: user.id
-      });
-
-      if (error) {
-        console.error('회원 정보 조회 실패:', error);
-        return;
-      }
-
-      if (data) {
-        setUserData({
-          nickname: data.nickname,
-          real_name: data.real_name,
-          phone: data.phone,
-          gender: data.gender,
-          profile_image: data.profile_image || undefined
-        });
-      } else {
-        // 일반 사용자만 회원가입 모달 표시
-        setShowRegistrationModal(true);
-      }
-    } catch (error) {
-      console.error('회원 정보 확인 실패:', error);
-    }
-  };
-
+  // handleUserRegistered is now used by UserRegistrationModal.onRegistered
   const handleUserRegistered = (newUserData: UserData) => {
-    setUserData(newUserData);
+    setUserData({
+      ...newUserData,
+      gender: 'other' // Ensure schema compliance
+    });
   };
 
   const loadPosts = async () => {
@@ -220,7 +202,7 @@ export default function BoardPage() {
               .from('board_users')
               .select('profile_image')
               .eq('user_id', post.user_id)
-              .single();
+              .maybeSingle();
             profileImage = userData?.profile_image || null;
           }
           return {
@@ -297,28 +279,32 @@ export default function BoardPage() {
   // Global Header Event Listener for Write Button
   useEffect(() => {
     const handleBoardWriteClick = async () => {
-      // 1. Check Login
+      // Use the same logic as MobileShell's handleProtectedAction
       if (!user) {
-        if (window.confirm('로그인이 필요한 서비스입니다.\n카카오 로그인을 하시겠습니까?')) {
+        // Since handleBoardWriteClick is a custom event listener, 
+        // we can't easily wait for MobileShell's handleProtectedAction.
+        // But we can trigger a login/registration flow here too.
+
+        const isRegistered = localStorage.getItem('is_registered') === 'true';
+        if (isRegistered) {
           try {
-            setIsLoggingIn(true);
             await signInWithKakao();
-          } catch (error: any) {
-            alert('로그인 중 오류가 발생했습니다.');
-          } finally {
-            setIsLoggingIn(false);
+          } catch (error) {
+            console.error('로그인 실패:', error);
           }
+        } else {
+          setShowRegistrationModal(true);
         }
         return;
       }
 
-      // 2. Check Registration (Nickname)
+      // Check if registered in DB
       if (!userData) {
         setShowRegistrationModal(true);
         return;
       }
 
-      // 3. Open Editor
+      // Open Editor
       setSelectedPost(null);
       setShowEditorModal(true);
     };
@@ -351,7 +337,7 @@ export default function BoardPage() {
 
   return (
     <div className="board-page-container">
-      <GlobalLoadingOverlay isLoading={isLoggingIn} message="로그인 중입니다..." />
+      {/* GlobalLoadingOverlay is handled by MobileShell */}
 
       {/* Header removed - now using Global Header */}
 
@@ -464,12 +450,62 @@ export default function BoardPage() {
 
       {/* Registration Modal */}
       {
-        showRegistrationModal && user && (
+        showRegistrationModal && (
           <UserRegistrationModal
             isOpen={showRegistrationModal}
             onClose={() => setShowRegistrationModal(false)}
-            onRegistered={handleUserRegistered}
-            userId={user.id}
+            onRegistered={async (newUserData) => {
+              try {
+                // Same logic as MobileShell for consistency
+                let currentUserId = user?.id;
+
+                if (!currentUserId) {
+                  await signInWithKakao();
+                  await new Promise(resolve => setTimeout(resolve, 2000));
+                  const { data: { user: newUser } } = await supabase.auth.getUser();
+                  if (newUser) currentUserId = newUser.id;
+                }
+
+                if (currentUserId) {
+                  // Check if nickname taken by ANOTHER user
+                  const { data: nameTakenByOther } = await supabase
+                    .from('board_users')
+                    .select('user_id')
+                    .eq('nickname', newUserData.nickname)
+                    .neq('user_id', currentUserId)
+                    .maybeSingle();
+
+                  if (nameTakenByOther) {
+                    alert(`'${newUserData.nickname}'은(는) 이미 다른 사용자가 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.`);
+                    return;
+                  }
+
+                  // Save to DB
+                  const { error } = await supabase.from('board_users').upsert({
+                    user_id: currentUserId,
+                    nickname: newUserData.nickname,
+                    gender: 'other',
+                    updated_at: new Date().toISOString()
+                  }, { onConflict: 'user_id' });
+
+                  if (error) {
+                    console.error('가입 저장 실패:', error);
+                    alert(`가입 저장 실패: ${error.message}`);
+                    return;
+                  }
+
+                  localStorage.setItem('is_registered', 'true');
+                  handleUserRegistered({
+                    ...newUserData,
+                    gender: 'other'
+                  });
+                }
+                setShowRegistrationModal(false);
+              } catch (error) {
+                console.error('가입 중 오류:', error);
+              }
+            }}
+            userId={user?.id}
           />
         )
       }
@@ -484,7 +520,7 @@ export default function BoardPage() {
               nickname: userData.nickname,
               profile_image: userData.profile_image
             }}
-            onProfileUpdated={checkUserRegistration}
+            onProfileUpdated={() => window.location.reload()}
             userId={user.id}
           />
         )

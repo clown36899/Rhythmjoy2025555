@@ -28,7 +28,7 @@ export default function CommentForm({ postId, onCommentAdded, editingComment, on
                 .from('board_users')
                 .select('nickname, profile_image')
                 .eq('user_id', user.id)
-                .single();
+                .maybeSingle();
 
             if (editingComment) {
                 // Update existing comment
@@ -70,6 +70,25 @@ export default function CommentForm({ postId, onCommentAdded, editingComment, on
     const handleLogin = async () => {
         try {
             await signInWithKakao();
+
+            // Wait for session
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const { data: { user: newUser } } = await supabase.auth.getUser();
+            if (newUser) {
+                const { data: boardUser } = await supabase
+                    .from('board_users')
+                    .select('id')
+                    .eq('user_id', newUser.id)
+                    .maybeSingle();
+
+                if (!boardUser) {
+                    // Registration modal is handled by the parent (BoardDetailPage)
+                    // which has a useEffect watching for 'user' changes.
+                    // So we don't strictly need to trigger it here, 
+                    // but we can ensure it's handled.
+                }
+            }
         } catch (error) {
             console.error('로그인 실패:', error);
         }

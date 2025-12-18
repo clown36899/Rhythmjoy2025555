@@ -7,7 +7,7 @@ interface UserRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRegistered: (userData: UserData) => void;
-  userId: string;
+  userId?: string; // Optional for pre-login mode
   kakaoInitialNickname?: string; // 카카오에서 받은 닉네임 (있다면)
   previewMode?: boolean;
 }
@@ -31,6 +31,57 @@ export default function UserRegistrationModal({
   // 초기 닉네임은 카카오 닉네임으로 설정
   const [nickname, setNickname] = useState(kakaoInitialNickname);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nicknameStatus, setNicknameStatus] = useState<{
+    isAvailable: boolean;
+    message: string;
+    checking: boolean;
+  } | null>(null);
+
+  // Debounced check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (nickname.trim()) {
+        checkNicknameAvailability(nickname.trim());
+      } else {
+        setNicknameStatus(null);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [nickname]);
+
+  const checkNicknameAvailability = async (name: string) => {
+    if (!name || name.length < 2) {
+      setNicknameStatus({ isAvailable: false, message: '2자 이상 입력해주세요', checking: false });
+      return;
+    }
+
+    setNicknameStatus(prev => ({ ...prev, isAvailable: false, message: '확인 중...', checking: true }));
+
+    try {
+      const { data, error } = await supabase
+        .from('board_users')
+        .select('user_id')
+        .eq('nickname', name)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        // 이미 존재하는 닉네임인 경우
+        if (userId && data.user_id === userId) {
+          // 본인의 현재 닉네임인 경우
+          setNicknameStatus({ isAvailable: true, message: '현재 사용 중인 닉네임입니다', checking: false });
+        } else {
+          setNicknameStatus({ isAvailable: false, message: '이미 사용 중인 닉네임입니다', checking: false });
+        }
+      } else {
+        setNicknameStatus({ isAvailable: true, message: '사용 가능한 닉네임입니다', checking: false });
+      }
+    } catch (err) {
+      console.error('닉네임 중복 체크 실패:', err);
+      setNicknameStatus(null);
+    }
+  };
 
   // 카카오 닉네임이 늦게 들어올 경우를 대비해 effect 추가
   useEffect(() => {
@@ -51,34 +102,55 @@ export default function UserRegistrationModal({
       return;
     }
 
+    // Pre-login mode: Trigger Kakao login and then save
+    if (!userId) {
+      setIsSubmitting(true);
+      try {
+        // 상위에서 전달된 signInWithKakao 같은 것을 쓰거나, 직접 호출
+        // 여기서는 MobileShell에서 이 모달을 띄울 때 onRegistered를 통해 결과를 처리하도록 함
+        // 하지만 사용자의 요구사항은 "카톡버튼 누르면 카톡에서 가입절차 진행"임.
+        // 따라서 여기서 직접 로그인을 트리거하는 것이 자연스러움.
+
+        // 하지만 UserRegistrationModal은 순수 UI 컴포넌트로 남겨두고, 
+        // MobileShell에서 전달받은 로직을 실행하는 것이 좋음.
+        // props에 onLoginAndRegister 추가 고려.
+
+        onRegistered({
+          nickname: nickname,
+          real_name: '',
+          phone: '',
+          gender: 'other'
+        });
+      } catch (error) {
+        console.error('로그인 중 오류:', error);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // Post-login mode: Save to database
     setIsSubmitting(true);
 
     try {
-      /* 
-       * 카카오 로그인을 통해 이미 인증된 상태이므로, 
-       * 추가적인 개인정보(실명, 전화번호 등)는 수집하지 않고 
-       * 닉네임만 board_users 테이블에 저장합니다.
-       * (나머지 필드는 빈 값 또는 기본값 처리) 
-       */
       const { error } = await supabase
         .from('board_users')
         .upsert({
           user_id: userId,
           nickname: nickname,
+          gender: 'other', // Required field in schema
           updated_at: new Date().toISOString()
-          // real_name, phone, gender 등은 스키마에서 nullable처리 했거나 기본값 사용 권장
-        }, { onConflict: 'user_id' }); // upsert to handle re-registration or update
+        }, { onConflict: 'user_id' });
 
       if (error) throw error;
 
-      alert('환영합니다! 가입이 완료되었습니다.');
+      // No success alert as per user request
 
-      // 상위 컴포넌트에 알림
       onRegistered({
         nickname: nickname,
         real_name: '',
         phone: '',
-        gender: ''
+        gender: 'other'
       });
 
       onClose();
@@ -94,7 +166,7 @@ export default function UserRegistrationModal({
 
   const modalContent = (
     <div className="userreg-overlay">
-      <div className="userreg-modal" style={{ maxWidth: '360px' }}> {/* 더 컴팩트하게 */}
+      <div className="userreg-modal" style={{ maxWidth: '360px' }}>
 
         {/* Header */}
         <div className="userreg-header" style={{ textAlign: 'center', paddingBottom: '10px' }}>
@@ -130,8 +202,12 @@ export default function UserRegistrationModal({
               placeholder="멋진 닉네임을 지어주세요"
               autoFocus
             />
-            <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              * 추후 내 정보에서 언제든 변경할 수 있습니다.
+            <p style={{
+              fontSize: '12px',
+              color: nicknameStatus ? (nicknameStatus.isAvailable ? '#4ade80' : '#f87171') : '#666',
+              marginTop: '4px'
+            }}>
+              {nicknameStatus ? nicknameStatus.message : '* 추후 내 정보에서 언제든 변경할 수 있습니다.'}
             </p>
           </div>
 
@@ -151,7 +227,7 @@ export default function UserRegistrationModal({
               }}
             >
               <i className="ri-kakao-talk-fill" style={{ fontSize: '1.2rem' }}></i>
-              {isSubmitting ? '처리 중...' : '카카오로 1초 만에 시작하기'}
+              {isSubmitting ? '처리 중...' : userId ? '가입 완료하기' : '카카오로 1초 만에 시작하기'}
             </button>
           </div>
 

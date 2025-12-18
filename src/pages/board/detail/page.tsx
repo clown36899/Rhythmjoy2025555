@@ -13,13 +13,14 @@ import type { BoardPost } from '../page';
 export default function BoardDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, signInWithKakao } = useAuth();
     const [post, setPost] = useState<BoardPost | null>(null);
     const [loading, setLoading] = useState(true);
     const [showEditorModal, setShowEditorModal] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [showRegistrationModal, setShowRegistrationModal] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
+
 
     useEffect(() => {
         if (id) {
@@ -28,55 +29,33 @@ export default function BoardDetailPage() {
     }, [id]);
 
     useEffect(() => {
-        if (user) {
-            checkUserRegistration();
-        }
-    }, [user]);
-
-    const checkUserRegistration = async () => {
-        if (!user?.id) return;
-
-        // 관리자는 회원가입 없이 바로 사용 가능
-        if (isAdmin) {
-            setUserData({
-                nickname: '관리자',
-                real_name: '관리자',
-                phone: '',
-                gender: 'other'
-            });
-            return;
-        }
-
-        try {
-            // RPC 함수로 본인 정보 조회
-            const { data, error } = await supabase.rpc('get_my_board_user', {
-                p_user_id: user.id
-            });
-
-            if (error) {
-                console.error('회원 정보 조회 실패:', error);
+        const loadUserData = async () => {
+            if (!user) {
+                setUserData(null);
                 return;
             }
+            try {
+                const { data } = await supabase
+                    .from('board_users')
+                    .select('nickname, real_name, phone, gender, profile_image')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
 
-            if (data) {
-                setUserData({
-                    nickname: data.nickname,
-                    real_name: data.real_name,
-                    phone: data.phone,
-                    gender: data.gender,
-                    profile_image: data.profile_image || undefined
-                });
-            } else {
-                // 일반 사용자만 회원가입 모달 표시
-                setShowRegistrationModal(true);
+                if (data) {
+                    setUserData(data);
+                }
+            } catch (error) {
+                console.error('사용자 정보 로드 실패:', error);
             }
-        } catch (error) {
-            console.error('회원 정보 확인 실패:', error);
-        }
-    };
+        };
+        loadUserData();
+    }, [user]);
 
     const handleUserRegistered = (newUserData: UserData) => {
-        setUserData(newUserData);
+        setUserData({
+            ...newUserData,
+            gender: 'other'
+        });
     };
 
     const loadPost = async (postId: string) => {
@@ -99,9 +78,14 @@ export default function BoardDetailPage() {
                     updated_at
                 `)
                 .eq('id', postId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
+            if (!data) {
+                setPost(null);
+                setLoading(false);
+                return;
+            }
 
             // Fetch profile image if user_id exists
             let profileImage = null;
@@ -110,7 +94,7 @@ export default function BoardDetailPage() {
                     .from('board_users')
                     .select('profile_image')
                     .eq('user_id', data.user_id)
-                    .single();
+                    .maybeSingle();
                 profileImage = userData?.profile_image || null;
             }
 
@@ -327,18 +311,67 @@ export default function BoardDetailPage() {
                     onClose={() => setShowEditorModal(false)}
                     onPostCreated={handlePostUpdated} // It's actually updated
                     post={post}
-                    userNickname={post.author_nickname || "익명"} // Fallback
+                    userNickname={userData?.nickname || post.author_nickname || "익명"} // Use current nickname if available
                 />
             )}
 
             {/* Registration Modal */}
             {
-                showRegistrationModal && user && (
+                showRegistrationModal && (
                     <UserRegistrationModal
                         isOpen={showRegistrationModal}
                         onClose={() => setShowRegistrationModal(false)}
-                        onRegistered={handleUserRegistered}
-                        userId={user.id}
+                        onRegistered={async (newUserData) => {
+                            try {
+                                let currentUserId = user?.id;
+
+                                if (!currentUserId) {
+                                    await signInWithKakao();
+                                    await new Promise(resolve => setTimeout(resolve, 2000));
+                                    const { data: { user: newUser } } = await supabase.auth.getUser();
+                                    if (newUser) currentUserId = newUser.id;
+                                }
+
+                                if (currentUserId) {
+                                    // Check if nickname taken by ANOTHER user
+                                    const { data: nameTakenByOther } = await supabase
+                                        .from('board_users')
+                                        .select('user_id')
+                                        .eq('nickname', newUserData.nickname)
+                                        .neq('user_id', currentUserId)
+                                        .maybeSingle();
+
+                                    if (nameTakenByOther) {
+                                        alert(`'${newUserData.nickname}'은(는) 이미 다른 사용자가 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.`);
+                                        return;
+                                    }
+
+                                    // Save to DB
+                                    const { error } = await supabase.from('board_users').upsert({
+                                        user_id: currentUserId,
+                                        nickname: newUserData.nickname,
+                                        gender: 'other',
+                                        updated_at: new Date().toISOString()
+                                    }, { onConflict: 'user_id' });
+
+                                    if (error) {
+                                        console.error('가입 저장 실패:', error);
+                                        alert(`가입 저장 실패: ${error.message}`);
+                                        return;
+                                    }
+
+                                    localStorage.setItem('is_registered', 'true');
+                                    handleUserRegistered({
+                                        ...newUserData,
+                                        gender: 'other'
+                                    });
+                                }
+                                setShowRegistrationModal(false);
+                            } catch (error) {
+                                console.error('가입 중 오류:', error);
+                            }
+                        }}
+                        userId={user?.id}
                     />
                 )
             }

@@ -25,7 +25,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     .from('board_users')
                     .select('nickname, profile_image')
                     .eq('user_id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 if (boardUser) {
                     setNickname(boardUser.nickname || user.email?.split('@')[0] || 'Member');
