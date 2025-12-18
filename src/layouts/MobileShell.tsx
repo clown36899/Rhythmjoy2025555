@@ -769,6 +769,8 @@ export function MobileShell() {
 
               // 2. Already logged in but needs registration record
               const kakaoNickname = user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown';
+              // Check for kakao_id in metadata (provider_id might be used by Supabase Auth)
+              const kakaoId = user.user_metadata?.kakao_id || user.user_metadata?.provider_id || null;
 
               const { data: existingUser } = await supabase
                 .from('board_users')
@@ -780,6 +782,7 @@ export function MobileShell() {
                 const { error } = await supabase.from('board_users').upsert({
                   user_id: user.id,
                   nickname: kakaoNickname,
+                  kakao_id: kakaoId, // Include kakao_id in client-side repair
                   updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id' });
 

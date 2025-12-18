@@ -36,7 +36,7 @@ export default function HomePageV2() {
     // --------------------------------------------------------------------------------
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { isAdmin } = useAuth();
+    const { isAdmin, user, signInWithKakao } = useAuth();
     const { settings, updateSettings, resetSettings } = useBillboardSettings();
 
     registerLocale("ko", ko); // Move side effect here or keep outside? Keep here is fine.
@@ -88,7 +88,7 @@ export default function HomePageV2() {
         selectedEvent, setSelectedEvent,
         handleDailyModalEventClick, closeModal,
         handleEditClick, handleDeleteClick
-    } = useEventActions({ adminType });
+    } = useEventActions({ adminType, user, signInWithKakao });
 
     // Deep Link & QR Logic
     const {
@@ -497,7 +497,15 @@ export default function HomePageV2() {
                 )}
 
 
-                <EventDetailModal isOpen={!!selectedEvent} event={selectedEvent!} onClose={closeModal} onEdit={handleEditClick} onDelete={handleDeleteClick} isAdminMode={effectiveIsAdmin} />
+                <EventDetailModal
+                    isOpen={!!selectedEvent}
+                    event={selectedEvent!}
+                    onClose={closeModal}
+                    onEdit={handleEditClick}
+                    onDelete={handleDeleteClick}
+                    isAdminMode={effectiveIsAdmin}
+                    currentUserId={user?.id}
+                />
                 {/* Search Input Modal */}
                 {/* Search Input Modal */}
                 <CalendarSearchModal

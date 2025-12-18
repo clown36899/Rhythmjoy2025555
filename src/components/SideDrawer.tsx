@@ -101,6 +101,13 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         <i className="ri-calendar-event-line"></i>
                         <span>소셜 (이벤트)</span>
                     </div>
+                    <div className="drawer-menu-item" onClick={() => {
+                        window.open('/event-photo-finder', '_blank');
+                        onClose();
+                    }}>
+                        <i className="ri-camera-face-line"></i>
+                        <span>내 사진 찾기 (AI)</span>
+                    </div>
                     <div className="drawer-menu-item" onClick={() => handleNavigation('/calendar')}>
                         <i className="ri-calendar-line"></i>
                         <span>전체 일정</span>

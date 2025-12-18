@@ -39,6 +39,7 @@ const CalendarPage = lazy(prefetchCalendarPage);
 
 const SecureMembersPage = lazy(() => import("../pages/admin/secure-members/page"));
 const KakaoCallbackPage = lazy(() => import("../pages/auth/kakao-callback/page"));
+const EventPhotoFinderPage = lazy(() => import("../pages/event-photo-finder/page"));
 
 export const routes: RouteObject[] = [
     {
@@ -63,5 +64,9 @@ export const routes: RouteObject[] = [
     {
         path: '/billboard/:userId',
         element: <BillboardPage />,
+    },
+    {
+        path: '/event-photo-finder',
+        element: <EventPhotoFinderPage />,
     },
 ];

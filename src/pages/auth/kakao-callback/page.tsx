@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import '../../../styles/pages/auth-callback.css';
@@ -7,11 +7,15 @@ export default function KakaoCallbackPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
+    const processingRef = useRef(false); // Ref to track processing state across renders
+
     useEffect(() => {
-        let cancelled = false; // Prevent duplicate execution in React Strict Mode
+        let cancelled = false;
 
         const handleCallback = async () => {
-            if (cancelled) return;
+            // Prevent double execution in Strict Mode or if called multiple times
+            if (processingRef.current) return;
+            processingRef.current = true;
 
             try {
                 // 1. URL에서 인증 코드 추출

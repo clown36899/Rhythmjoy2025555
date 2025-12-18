@@ -5,9 +5,11 @@ import type { Event as AppEvent } from "../../../lib/supabase";
 
 interface UseEventActionsProps {
     adminType: "super" | "sub" | null;
+    user: any; // User type from AuthContext
+    signInWithKakao: () => void;
 }
 
-export function useEventActions({ adminType }: UseEventActionsProps) {
+export function useEventActions({ adminType, user, signInWithKakao }: UseEventActionsProps) {
     const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
 
     const handleDailyModalEventClick = useCallback((event: AppEvent) => {
@@ -25,13 +27,42 @@ export function useEventActions({ adminType }: UseEventActionsProps) {
     const handleEditClick = useCallback((event: AppEvent, e?: React.MouseEvent) => {
         e?.stopPropagation();
 
+        // 1. 로그인 체크
+        if (!user) {
+            if (confirm("이벤트를 수정하려면 로그인이 필요합니다.\n로그인 하시겠습니까?")) {
+                signInWithKakao();
+            }
+            return;
+        }
+
+        // 2. 권한 체크 (관리자 또는 작성자 본인)
+        // adminType이 있거나(관리자 모드), 사용자 ID가 일치해야 함
+        // isAdminMode는 Page.tsx에서 effectiveIsAdmin으로 넘겨받는게 좋은데, 
+        // 여기서는 user 객체와 adminType을 활용
+        const isOwner = user.id === event.user_id;
+        // 하지만 여기선 user.app_metadata.is_admin 체크가 더 안전할 수도 있음.
+        // 심플하게: user.id === event.user_id 체크가 핵심.
+
+        // Note: adminType is derived from Page.tsx logic which considers isAdmin.
+        // If adminType is set, it means we are in some admin mode.
+        // However, Page.tsx passes `adminType` based on complex logic.
+        // Let's blindly trust the specific check: if not owner and not adminType, block.
+
+        // 더 정확한 체크를 위해 user.app_metadata.is_admin 확인 (AuthContext의 user 객체)
+        const isSuperAdmin = user.app_metadata?.is_admin === true || user.email === import.meta.env.VITE_ADMIN_EMAIL;
+
+        if (!isOwner && !isSuperAdmin && !adminType) {
+            alert("본인이 작성한 이벤트만 수정할 수 있습니다.");
+            return;
+        }
+
         // Close detail modal
         setSelectedEvent(null);
 
         // Dispatch event for EventList to handle editing
         // Page.tsx delegates editing UI to EventList via this event
         window.dispatchEvent(new CustomEvent('editEventFromDetail', { detail: event }));
-    }, []);
+    }, [user, signInWithKakao, adminType]);
 
     const deleteEvent = async (eventId: number, password: string | null = null) => {
         try {

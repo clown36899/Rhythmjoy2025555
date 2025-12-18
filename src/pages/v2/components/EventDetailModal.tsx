@@ -1,4 +1,4 @@
-import { useState, memo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as BaseEvent } from '../../../lib/supabase';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
@@ -49,16 +49,24 @@ interface EventDetailModalProps {
   onClose: () => void;
   onEdit: (event: Event, e?: React.MouseEvent) => void;
   onDelete: (event: Event, e?: React.MouseEvent) => void;
-  isAdminMode: boolean;
+  isAdminMode?: boolean;
+  currentUserId?: string; // Add currentUserId prop
 }
 
-export default memo(function EventDetailModal({
+export default function EventDetailModal({
   event,
   isOpen,
   onClose,
   onEdit,
-  isAdminMode,
+  onDelete,
+  isAdminMode = false,
+  currentUserId,
 }: EventDetailModalProps) {
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
@@ -647,6 +655,17 @@ export default memo(function EventDetailModal({
                     <i className="ri-edit-line action-icon"></i>
                   </button>
 
+                  {/* Only show delete button if admin or owner */}
+                  {(isAdminMode || (currentUserId && currentUserId === selectedEvent.user_id)) && (
+                    <button
+                      onClick={(e) => onDelete(selectedEvent, e)}
+                      className="action-button delete"
+                      title="이벤트 삭제"
+                    >
+                      <i className="ri-delete-bin-line action-icon"></i>
+                    </button>
+                  )}
+
                   <button
                     onClick={(e) => {
                       e.preventDefault();
@@ -712,4 +731,4 @@ export default memo(function EventDetailModal({
         )}
     </>
   );
-});
+}

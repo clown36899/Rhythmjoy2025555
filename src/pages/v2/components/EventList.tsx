@@ -134,7 +134,7 @@ export default function EventList({
   sectionViewMode = 'preview',
   onSectionViewModeChange,
 }: EventListProps) {
-  const { user } = useAuth();
+  const { user, signInWithKakao } = useAuth();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') ?? 'all';
@@ -1178,6 +1178,25 @@ export default function EventList({
 
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
+
+    // 1. 로그인 체크
+    if (!user) {
+      if (confirm("이벤트를 수정하려면 로그인이 필요합니다.\n로그인 하시겠습니까?")) {
+        signInWithKakao();
+      }
+      return;
+    }
+
+    // 2. 권한 체크
+    const isOwner = user.id === event.user_id;
+    // isAdminMode prop is passed to EventList, assume it's reliable.
+    // Also check generic admin rights via user metadata just in case.
+    const isSuperAdmin = user.app_metadata?.is_admin === true || user.email === import.meta.env.VITE_ADMIN_EMAIL;
+
+    if (!isOwner && !isAdminMode && !isSuperAdmin && !adminType) {
+      alert("본인이 작성한 이벤트만 수정할 수 있습니다.");
+      return;
+    }
 
     // 비밀번호 확인 로직 제거, 바로 수정 모달 열기 (RLS가 저장 시 권한 체크)
     setEventToEdit(event);
@@ -3400,18 +3419,21 @@ export default function EventList({
                 {/* 하단 고정 버튼 */}
                 <div className="evt-footer-sticky">
                   <div className="event-list-button-group">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (eventToEdit) {
-                          handleDeleteClick(eventToEdit);
-                        }
-                      }}
-                      className="evt-btn-red-footer"
-                    >
-                      삭제
-                    </button>
+                    {/* Only show delete button if admin or owner */}
+                    {(isAdminMode || (user && eventToEdit && user.id === eventToEdit.user_id)) && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (eventToEdit) {
+                            handleDeleteClick(eventToEdit);
+                          }
+                        }}
+                        className="evt-btn-red-footer"
+                      >
+                        삭제
+                      </button>
+                    )}
                     <div className="event-list-button-group-flex">
                       <button
                         type="button"
