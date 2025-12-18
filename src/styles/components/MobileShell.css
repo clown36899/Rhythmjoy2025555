@@ -154,12 +154,7 @@
   transition: transform 0.3s ease;
 }
 
-.shell-btn-register-topbar:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-
-.shell-btn-register-topbar:hover i {
+.compact-event-card .shell-btn-register-topbar:hover i {
   transform: rotate(90deg);
 }
 
