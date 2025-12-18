@@ -93,6 +93,7 @@ export default memo(function EventRegistrationModal({
 
   // Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
 
   // Genre Suggestions
   const [allGenres, setAllGenres] = useState<string[]>([]);
@@ -315,12 +316,47 @@ export default memo(function EventRegistrationModal({
   // I should use multi_replace.
 
 
-  // Helper to read file as Data URL
+  // Helper to read file as Data URL with compression
   const fileToDataURL = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
+      const img = new Image();
       const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = (e) => reject(e);
+
+      reader.onload = (e) => {
+        img.onload = () => {
+          // 1. Canvas로 이미지 압축
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context not available'));
+            return;
+          }
+
+          // 2. 최대 1920px로 리사이즈 (비율 유지)
+          const maxSize = 1920;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 3. 85% 품질로 압축
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   };
@@ -334,12 +370,17 @@ export default memo(function EventRegistrationModal({
       setImagePosition({ x: 0, y: 0 }); // Reset position
 
       try {
+        setIsLoadingImage(true);
+        // 50ms delay로 UI가 업데이트될 시간 확보
+        await new Promise(resolve => setTimeout(resolve, 50));
         const dataUrl = await fileToDataURL(file);
         setTempImageSrc(dataUrl);
         setIsCropModalOpen(true); // Open crop modal after file selection
       } catch (error) {
         console.error("Failed to load image:", error);
         alert("이미지를 불러오는데 실패했습니다.");
+      } finally {
+        setIsLoadingImage(false);
       }
     }
     // Reset input value to allow selecting same file again
