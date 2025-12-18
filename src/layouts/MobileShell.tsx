@@ -290,9 +290,16 @@ export function MobileShell() {
           {isEventsPage && (
             <div className="header-events-content">
               <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
-              <h1 className="header-title">
-                SWINGENJOY.COM
-              </h1>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1' }}>
+                <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>
+                  댄스빌보드
+                </h1>
+                <span style={{ fontSize: '9px', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc' }}>
+                  {'swingenjoy.com'.split('').map((char, i) => (
+                    <span key={i}>{char}</span>
+                  ))}
+                </span>
+              </div>
             </div>
           )}
 
@@ -336,8 +343,7 @@ export function MobileShell() {
               <h1 className="header-title">
                 자유게시판
               </h1>
-            </div>
-          )}
+            </div>)}
 
           {/* 4. Other Pages (Social, Practice, Shopping, Guide) */}
           {(!isEventsPage && !isCalendarPage && !isBoardPage) && (

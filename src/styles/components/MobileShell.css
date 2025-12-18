@@ -293,17 +293,18 @@
 .shell-header.global-header-fixed {
   position: fixed;
   top: 0;
-  padding: 0px 12px !important;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   height: 60px;
   background-color: #000000;
   z-index: 49;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  /* border-bottom: 1px solid #374151; */
+  padding: 0 13px;
+  border-bottom: 0.3px solid #37415199;
 }
 
 /* Global Header Styles */
@@ -348,7 +349,7 @@
   font-size: 1.2rem;
   font-weight: bold;
   color: white;
-  margin-right: auto;
+  /* margin-right: auto; removed as wrapper handles it */
 }
 
 .header-search-btn {
