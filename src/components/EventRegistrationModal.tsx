@@ -15,6 +15,8 @@ import { EditablePreviewCard } from "./EditablePreviewCard";
 import EditableEventDetail, { type EditableEventDetailRef } from './EditableEventDetail';
 import type { Event as AppEvent } from "../lib/supabase";
 import { useModalHistory } from "../hooks/useModalHistory";
+import GlobalLoadingOverlay from "./GlobalLoadingOverlay";
+import { retryOperation } from "../utils/asyncUtils";
 
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
@@ -93,6 +95,7 @@ export default memo(function EventRegistrationModal({
 
   // Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("저장 중...");
   const [isLoadingImage, setIsLoadingImage] = useState(false);
 
   // Genre Suggestions
@@ -501,7 +504,6 @@ export default memo(function EventRegistrationModal({
 
     // Password validation removed - using RLS
 
-
     // New Validation: Image OR Video is required (only for new events or if explicit removal logic exists)
     // For edit, if they haven't changed the image (imageFile is null) but there was an existing image, it's fine.
     const hasExistingImage = editEventData && (editEventData.image || editEventData.image_thumbnail);
@@ -511,156 +513,155 @@ export default memo(function EventRegistrationModal({
     }
 
     setIsSubmitting(true);
+    setLoadingMessage("저장 준비 중...");
 
     try {
-      let imageUrl = editEventData?.image || null;
-      let imageMicroUrl = editEventData?.image_micro || null;
-      let imageThumbnailUrl = editEventData?.image_thumbnail || null;
-      let imageMediumUrl = editEventData?.image_medium || null;
-      let imageFullUrl = editEventData?.image_full || null;
+      // 타임아웃 20초 설정
+      await Promise.race([
+        (async () => {
+          let imageUrl = editEventData?.image || null;
+          let imageMicroUrl = editEventData?.image_micro || null;
+          let imageThumbnailUrl = editEventData?.image_thumbnail || null;
+          let imageMediumUrl = editEventData?.image_medium || null;
+          let imageFullUrl = editEventData?.image_full || null;
 
-      if (imageFile) {
-        const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(2, 15);
-        const basePath = `event-posters`;
+          if (imageFile) {
+            setLoadingMessage("이미지 업로드 중... (자동 재시도)");
+            const timestamp = Date.now();
+            const randomString = Math.random().toString(36).substring(2, 15);
+            const basePath = `event-posters`;
 
-        // 먼저 모든 이미지 리사이즈 (WebP 변환 포함)
-        try {
-          const resizedImages = await createResizedImages(imageFile);
+            // 먼저 모든 이미지 리사이즈 (WebP 변환 포함)
+            try {
+              const resizedImages = await createResizedImages(imageFile);
 
-          // 파일명은 WebP 확장자 사용
-          const fileName = `${timestamp}_${randomString}.webp`;
+              // 파일명은 WebP 확장자 사용
+              const fileName = `${timestamp}_${randomString}.webp`;
 
-          // Upload micro (micro 폴더) - 달력용
-          const microPath = `${basePath}/micro/${fileName}`;
-          await supabase.storage
-            .from("images")
-            .upload(microPath, resizedImages.micro);
-          imageMicroUrl = supabase.storage
-            .from("images")
-            .getPublicUrl(microPath).data.publicUrl;
+              // 이미지 업로드 함수 (재시도 용)
+              const uploadImage = async (path: string, file: Blob) => {
+                const { error } = await supabase.storage.from("images").upload(path, file);
+                if (error) throw error;
+                return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
+              };
 
-          // Upload thumbnail (thumbnails 폴더)
-          const thumbPath = `${basePath}/thumbnails/${fileName}`;
-          await supabase.storage
-            .from("images")
-            .upload(thumbPath, resizedImages.thumbnail);
-          imageThumbnailUrl = supabase.storage
-            .from("images")
-            .getPublicUrl(thumbPath).data.publicUrl;
+              // 병렬 업로드 및 재시도 적용
+              const uploadPromises = [
+                retryOperation(() => uploadImage(`${basePath}/micro/${fileName}`, resizedImages.micro)),
+                retryOperation(() => uploadImage(`${basePath}/thumbnails/${fileName}`, resizedImages.thumbnail)),
+                retryOperation(() => uploadImage(`${basePath}/medium/${fileName}`, resizedImages.medium)),
+                retryOperation(() => uploadImage(`${basePath}/full/${fileName}`, resizedImages.full))
+              ];
 
-          // Upload medium (medium 폴더)
-          const mediumPath = `${basePath}/medium/${fileName}`;
-          await supabase.storage
-            .from("images")
-            .upload(mediumPath, resizedImages.medium);
-          imageMediumUrl = supabase.storage
-            .from("images")
-            .getPublicUrl(mediumPath).data.publicUrl;
+              const [microUrl, thumbUrl, mediumUrl, fullUrl] = await Promise.all(uploadPromises);
 
-          // Upload full (full 폴더) - 원본 대신 사용
-          const fullPath = `${basePath}/full/${fileName}`;
-          await supabase.storage
-            .from("images")
-            .upload(fullPath, resizedImages.full);
-          imageFullUrl = supabase.storage
-            .from("images")
-            .getPublicUrl(fullPath).data.publicUrl;
+              imageMicroUrl = microUrl;
+              imageThumbnailUrl = thumbUrl;
+              imageMediumUrl = mediumUrl;
+              imageFullUrl = fullUrl;
+              imageUrl = imageFullUrl; // 원본도 full과 동일하게 설정
 
-          // 원본도 full과 동일하게 설정
-          imageUrl = imageFullUrl;
-
-        } catch (resizeError) {
-          console.error("Image resize failed:", resizeError);
-          alert("이미지 처리 중 오류가 발생했습니다.");
-          throw resizeError;
-        }
-      }
-
-      // Determine effective start and end dates
-      const sortedDates = eventDates.length > 0 ? [...eventDates].sort() : [];
-      const effectiveStartDate = date ? formatDateForInput(date) : (sortedDates.length > 0 ? sortedDates[0] : null);
-      const effectiveEndDate = endDate ? formatDateForInput(endDate) : (sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : null);
-
-      const eventData = {
-        title,
-        date: effectiveStartDate,
-        start_date: effectiveStartDate,
-        end_date: effectiveEndDate,
-        event_dates: eventDates.length > 0 ? eventDates : null, // Include individual dates
-        location,
-        location_link: locationLink,
-        description,
-        category,
-        genre: genre || undefined,
-        // password 필드 제거 (RLS 기반 권한 관리로 전환)
-        link1,
-        link_name1: linkName1,
-        image: imageUrl,
-        image_micro: imageMicroUrl,
-        image_thumbnail: imageThumbnailUrl,
-        image_medium: imageMediumUrl,
-        image_full: imageFullUrl,
-        video_url: videoUrl,
-        organizer: '익명', // Default value since input is removed
-        organizer_name: isAdmin ? '관리자' : null,
-        created_at: new Date().toISOString(),
-        user_id: user?.id || null, // 작성자 ID 저장
-      };
-
-      let resultData;
-      let resultError;
-
-      if (editEventData) {
-        // Update existing event
-        let query = supabase
-          .from("events")
-          .update(eventData)
-          .eq('id', editEventData.id);
-
-        // Security: If not admin, restrict update to own events
-        if (!isAdmin) {
-          query = query.eq('user_id', user?.id);
-        }
-
-        const { data, error } = await query.select();
-
-        // Check if any row was actually updated
-        if (!data || data.length === 0) {
-          if (!error) {
-            // No error but no rows updated -> Permission issue (or deleted)
-            throw new Error("수정 권한이 없거나 이미 삭제된 이벤트입니다.");
+            } catch (resizeError) {
+              console.error("Image processing failed:", resizeError);
+              throw new Error("이미지 처리 또는 업로드에 실패했습니다. (네크워크 상태를 확인해주세요)");
+            }
           }
-        }
 
-        resultData = data;
-        resultError = error;
-      } else {
-        // Insert new event
-        const { data, error } = await supabase
-          .from("events")
-          .insert([eventData])
-          .select();
-        resultData = data;
-        resultError = error;
+          setLoadingMessage("데이터 저장 중... (자동 재시도)");
+
+          // Determine effective start and end dates
+          const sortedDates = eventDates.length > 0 ? [...eventDates].sort() : [];
+          const effectiveStartDate = date ? formatDateForInput(date) : (sortedDates.length > 0 ? sortedDates[0] : null);
+          const effectiveEndDate = endDate ? formatDateForInput(endDate) : (sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : null);
+
+          const eventData = {
+            title,
+            date: effectiveStartDate,
+            start_date: effectiveStartDate,
+            end_date: effectiveEndDate,
+            event_dates: eventDates.length > 0 ? eventDates : null, // Include individual dates
+            location,
+            location_link: locationLink,
+            description,
+            category,
+            genre: genre || undefined,
+            // password 필드 제거 (RLS 기반 권한 관리로 전환)
+            link1,
+            link_name1: linkName1,
+            image: imageUrl,
+            image_micro: imageMicroUrl,
+            image_thumbnail: imageThumbnailUrl,
+            image_medium: imageMediumUrl,
+            image_full: imageFullUrl,
+            video_url: videoUrl,
+            organizer: '익명', // Default value since input is removed
+            organizer_name: isAdmin ? '관리자' : null,
+            created_at: new Date().toISOString(),
+            user_id: user?.id || null, // 작성자 ID 저장
+            show_title_on_billboard: true, // 기본값 true로 설정
+          };
+
+          let resultData: any[] | null = null;
+
+          if (editEventData) {
+            // Update existing event
+            await retryOperation(async () => {
+              let query = supabase
+                .from("events")
+                .update(eventData)
+                .eq('id', editEventData.id);
+
+              if (!isAdmin) {
+                query = query.eq('user_id', user?.id);
+              }
+
+              const { data, error } = await query.select();
+              if (error) throw error;
+              if (!data || data.length === 0) throw new Error("수정 권한이 없거나 이미 삭제된 이벤트입니다.");
+              resultData = data;
+            });
+          } else {
+            // Insert new event
+            await retryOperation(async () => {
+              const { data, error } = await supabase
+                .from("events")
+                .insert([eventData])
+                .select();
+              if (error) throw error;
+              resultData = data;
+            });
+          }
+
+          if (resultData && resultData[0]) {
+            if (editEventData && onEventUpdated) {
+              onEventUpdated(resultData[0] as AppEvent);
+            } else {
+              onEventCreated(date || new Date(), resultData[0].id);
+              window.dispatchEvent(new CustomEvent("eventCreated", {
+                detail: { event: resultData[0] }
+              }));
+            }
+            onClose();
+          }
+        })(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 20000))
+      ]);
+
+    } catch (error: any) {
+      console.error("Error creating/updating event:", error);
+      let errorMessage = "이벤트 등록 중 오류가 발생했습니다.";
+
+      if (error.message === "Timeout") {
+        errorMessage = "서버 응답이 지연되어 저장이 취소되었습니다.\n작성하신 내용은 유지되니 잠시 후 다시 시도해주세요.";
+      } else if (error.message.includes("이미지")) {
+        errorMessage = error.message;
+      } else if (error.message.includes("수정 권한")) {
+        errorMessage = error.message;
+      } else if (error.message.includes("Failed to fetch")) {
+        errorMessage = "인터넷 연결 상태가 불안정합니다.";
       }
 
-      if (resultError) throw resultError;
-
-      if (resultData && resultData[0]) {
-        if (editEventData && onEventUpdated) {
-          onEventUpdated(resultData[0] as AppEvent);
-        } else {
-          onEventCreated(date || new Date(), resultData[0].id);
-          window.dispatchEvent(new CustomEvent("eventCreated", {
-            detail: { event: resultData[0] }
-          }));
-        }
-        onClose();
-      }
-    } catch (error) {
-      console.error("Error creating event:", error);
-      alert("이벤트 등록 중 오류가 발생했습니다.");
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -895,6 +896,12 @@ export default memo(function EventRegistrationModal({
         onChangeImage={() => fileInputRef.current?.click()}
         onImageUpdate={handleImageUpdate}
         hasOriginal={!!originalImageFile}
+      />
+
+      {/* Blocking Loading Overlay */}
+      <GlobalLoadingOverlay
+        isLoading={isSubmitting}
+        message={loadingMessage}
       />
     </div >,
     document.body
