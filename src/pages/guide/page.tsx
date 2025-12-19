@@ -17,8 +17,8 @@ export default function GuidePage() {
 
   const handleShare = async () => {
     const shareData = {
-      title: '댄스빌보드 - 이벤트 발견 플랫폼',
-      text: '댄스빌보드에서 다양한 이벤트와 강습을 확인하세요!',
+      title: '댄스빌보드 - 스윙  플랫폼',
+      text: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
       url: window.location.href, // 현재 페이지 전체 주소 공유
     };
 
