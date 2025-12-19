@@ -40,7 +40,7 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
           'X-Admin-Email': user?.email || ''
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setInvitations(data.invitations || []);
@@ -91,25 +91,25 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
   };
 
   const copyInviteUrl = (token: string) => {
-    const url = `${window.location.origin}/invite/${token}`;
+    const url = `https://swingenjoy.com/invite/${token}`;
     navigator.clipboard.writeText(url);
     setCopiedToken(token);
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
   const deleteInvitation = async (id: string, email: string, used: boolean) => {
-    const confirmMessage = used 
+    const confirmMessage = used
       ? `'${email}' 사용자의 초대를 삭제하시겠습니까?\n\n⚠️ 이 사용자의 빌보드 계정과 설정도 모두 삭제됩니다.`
       : `'${email}'에게 보낸 초대를 취소하시겠습니까?`;
-    
+
     if (!confirm(confirmMessage)) {
       return;
     }
 
     setLoading(true);
     try {
-      const deleteEndpoint = import.meta.env.DEV 
-        ? `/api/invitations/${id}` 
+      const deleteEndpoint = import.meta.env.DEV
+        ? `/api/invitations/${id}`
         : `/.netlify/functions/invitations-delete`;
 
       const response = await fetch(deleteEndpoint, {

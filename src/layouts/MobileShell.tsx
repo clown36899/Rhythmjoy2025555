@@ -720,7 +720,7 @@ export function MobileShell() {
             {billboardUserId && (
               <button
                 onClick={() => {
-                  const billboardUrl = `${window.location.origin}/billboard/${billboardUserId}`;
+                  const billboardUrl = `https://swingenjoy.com/billboard/${billboardUserId}`;
                   navigator.clipboard.writeText(billboardUrl);
                   setShowCopySuccessModal(true);
                   setTimeout(() => setShowCopySuccessModal(false), 1500);

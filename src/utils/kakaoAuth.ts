@@ -31,23 +31,10 @@ export const initKakaoSDK = () => {
       }
       resolve();
     } else {
-      // SDK 로드 (캐시 방지 캐시버스터 추가)
-      const script = document.createElement('script');
-      script.src = `https://developers.kakao.com/sdk/js/kakao.js?cb=${new Date().getTime()}`;
-      script.onload = () => {
-        // const jsKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
-        const jsKey = '4f36c4e35ab80c9bff7850e63341daa6'; // Share 기능과 키 일치시킴
-        if (!jsKey) {
-          reject(new Error('카카오 JavaScript 키가 설정되지 않았습니다.'));
-          return;
-        }
-        window.Kakao.init(jsKey);
-        resolve();
-      };
-      script.onerror = () => {
-        reject(new Error('카카오 SDK 로드 실패'));
-      };
-      document.head.appendChild(script);
+      // SDK가 로드되지 않은 경우 (index.html에서 로드 실패 등)
+      // 중복 로드 방지를 위해 에러 반환 (또는 재시도 로직으로 변경 가능)
+      console.error('[KakaoAuth] window.Kakao not found. Check index.html script tag.');
+      reject(new Error('카카오 SDK가 로드되지 않았습니다. 새로고침 해주세요.'));
     }
   });
 };
@@ -65,7 +52,7 @@ export const loginWithKakao = (): void => {
 
   // 리다이렉트 방식으로 카카오 로그인
   window.Kakao.Auth.authorize({
-    redirectUri: `${window.location.origin}/auth/kakao-callback`,
+    redirectUri: `https://swingenjoy.com/auth/kakao-callback`,
     scope: 'account_email,profile_nickname,name,phone_number',
   });
 
