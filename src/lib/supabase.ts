@@ -134,6 +134,12 @@ export interface BoardComment {
   updated_at: string;
 }
 
+export interface EventFavorite {
+  id: number;
+  user_id: string;
+  event_id: number;
+  created_at: string;
+}
 
 /**
  * 세션 유효성 검증 및 자동 복구

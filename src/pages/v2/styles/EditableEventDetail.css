@@ -142,7 +142,7 @@
 /* Mobile Responsiveness for Footer Buttons */
 @media (max-width: 480px) {
     .editable-footer-actions {
-        gap: 0.25rem;
+        gap: 1.25rem;
         /* Reduce gap */
     }
 

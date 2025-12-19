@@ -52,7 +52,7 @@ export default function KakaoCallbackPage() {
                     },
                     body: JSON.stringify({
                         code: code,
-                        redirectUri: `https://swingenjoy.com/auth/kakao-callback`,
+                        redirectUri: `${window.location.origin}/auth/kakao-callback`,
                     }),
                 });
 

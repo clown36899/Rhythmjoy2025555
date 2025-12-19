@@ -51,6 +51,8 @@ interface EventDetailModalProps {
   onDelete: (event: Event, e?: React.MouseEvent) => void;
   isAdminMode?: boolean;
   currentUserId?: string; // Add currentUserId prop
+  isFavorite?: boolean;
+  onToggleFavorite?: (e: React.MouseEvent) => void;
 }
 
 export default function EventDetailModal({
@@ -61,6 +63,8 @@ export default function EventDetailModal({
   onDelete,
   isAdminMode = false,
   currentUserId,
+  isFavorite = false,
+  onToggleFavorite,
 }: EventDetailModalProps) {
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -244,9 +248,30 @@ export default function EventDetailModal({
                             onClick={() => setShowFullscreenImage(true)}
                             className="fullscreen-button"
                           >
-                            <i className="ri-zoom-in-line"></i>
                             크게 보기
                           </button>
+
+                          {/* 즐겨찾기 버튼 (이미지 좌측 하단) */}
+                          {onToggleFavorite && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleFavorite(e);
+                              }}
+                              className={`card-favorite-btn ${isFavorite ? 'is-active' : ''}`}
+                              title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                              style={{
+                                top: 'auto',
+                                bottom: '20px',
+                                left: '20px',
+                                right: 'auto',
+                                width: '72px',
+                                height: '72px'
+                              }}
+                            >
+                              <i className={`card-favorite-icon ${isFavorite ? "ri-heart-fill" : "ri-heart-line"}`} style={{ fontSize: '40px' }}></i>
+                            </button>
+                          )}
                         </>
                       ) : (
                         <>
@@ -658,16 +683,7 @@ export default function EventDetailModal({
                     </button>
                   )}
 
-                  {/* Only show delete button if admin or owner */}
-                  {(isAdminMode || (currentUserId && currentUserId === selectedEvent.user_id)) && (
-                    <button
-                      onClick={(e) => onDelete(selectedEvent, e)}
-                      className="action-button delete"
-                      title="이벤트 삭제"
-                    >
-                      <i className="ri-delete-bin-line action-icon"></i>
-                    </button>
-                  )}
+
 
                   <button
                     onClick={(e) => {

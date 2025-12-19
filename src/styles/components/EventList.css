@@ -800,6 +800,21 @@
   max-height: 15rem;
 }
 
+/* ===== Favorites Grid Style ===== */
+.evt-card-favorite {
+  aspect-ratio: 3/4 !important;
+  width: 100%;
+}
+
+.evt-card-favorite .evt-card-image-wrapper {
+  height: 100% !important;
+}
+
+.evt-card-favorite img {
+  object-fit: cover !important;
+  height: 100% !important;
+}
+
 .evt-hover-bg-blue-700:hover {
   background-color: var(--color-blue-700);
 }

@@ -52,7 +52,7 @@ export const loginWithKakao = (): void => {
 
   // 리다이렉트 방식으로 카카오 로그인
   window.Kakao.Auth.authorize({
-    redirectUri: `https://swingenjoy.com/auth/kakao-callback`,
+    redirectUri: `${window.location.origin}/auth/kakao-callback`,
     scope: 'account_email,profile_nickname,name,phone_number',
   });
 

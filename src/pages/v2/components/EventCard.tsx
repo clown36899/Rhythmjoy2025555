@@ -19,9 +19,11 @@ interface EventCardProps {
   selectedDate?: Date | null;
   defaultThumbnailClass: string;
   defaultThumbnailEvent: string;
-  variant?: "single" | "sliding";
+  variant?: "single" | "sliding" | "favorite";
   hideGenre?: boolean;
   hideDate?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: (e: React.MouseEvent) => void;
 }
 
 export const EventCard = memo(({
@@ -36,6 +38,8 @@ export const EventCard = memo(({
   variant = "single",
   hideGenre = false,
   hideDate = false,
+  isFavorite = false,
+  onToggleFavorite,
 }: EventCardProps) => {
   const highlightBorderColor =
     event.category === "class" ? "#9333ea" : "#2563eb";
@@ -106,7 +110,7 @@ export const EventCard = memo(({
     <div
       key={event.id}
       data-event-id={event.id}
-      className={`card-container ${isPast ? 'card-container-past' : ''} ${categoryClass} ${isHighlighted ? 'qr-highlighted' : ''}`}
+      className={`card-container ${isPast ? 'card-container-past' : ''} ${variant === 'favorite' ? 'evt-card-favorite' : categoryClass} ${isHighlighted ? 'qr-highlighted' : ''}`}
       onClick={onClick}
       onMouseEnter={() => onMouseEnter?.(event.id)}
       onMouseLeave={onMouseLeave}
@@ -172,6 +176,19 @@ export const EventCard = memo(({
         >
           {isPast ? "종료" : event.category === "class" ? "강습" : "행사"}
         </div>
+
+        {onToggleFavorite && (
+          <button
+            className={`card-favorite-btn ${isFavorite ? 'is-active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(e);
+            }}
+            title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+          >
+            <i className={`card-favorite-icon ${isFavorite ? "ri-heart-fill" : "ri-heart-line"}`}></i>
+          </button>
+        )}
 
       </div>
 

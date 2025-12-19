@@ -113,6 +113,18 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         <i className="ri-building-line"></i>
                         <span>연습실</span>
                     </div>
+                    {user && (
+                        <div className="drawer-menu-item" onClick={() => {
+                            // Close drawer and scroll/navigate to favorites
+                            onClose();
+                            // If we are on main page, dispatch event or scroll.
+                            // For simplicity, navigate to main page with query param
+                            navigate('/v2?view=favorites');
+                        }}>
+                            <i className="ri-heart-3-line" style={{ color: '#f87171' }}></i>
+                            <span>내 즐겨찾기</span>
+                        </div>
+                    )}
                     <div className="drawer-menu-item" onClick={() => handleNavigation('/board')}>
                         <i className="ri-discuss-line"></i>
                         <span>자유게시판</span>

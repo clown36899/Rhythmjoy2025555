@@ -170,6 +170,107 @@ export default function EventList({
   const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
   const [isGenreInputFocused, setIsGenreInputFocused] = useState(false);
   const [randomizedGenres, setRandomizedGenres] = useState<string[]>([]);
+
+
+  // Favorites State
+  const [favoriteEventIds, setFavoriteEventIds] = useState<Set<number>>(new Set());
+
+  // Fetch Favorites
+  useEffect(() => {
+    if (user) {
+      const fetchFavorites = async () => {
+        const { data, error } = await supabase
+          .from('event_favorites')
+          .select('event_id')
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error fetching favorites:', error);
+        } else {
+          setFavoriteEventIds(new Set(data.map(f => f.event_id)));
+        }
+      };
+      fetchFavorites();
+    } else {
+      setFavoriteEventIds(new Set());
+    }
+  }, [user]);
+
+  // Favorites List Computation
+  const favoriteEventsList = useMemo(() => {
+    if (favoriteEventIds.size === 0) return [];
+    return events.filter(e => favoriteEventIds.has(e.id));
+  }, [events, favoriteEventIds]);
+
+  // Scroll to favorites if view=favorites
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'favorites') {
+      setTimeout(() => {
+        const el = document.querySelector('.evt-v2-section-favorites');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 500);
+    }
+  }, [searchParams, favoriteEventsList.length]);
+
+  const handleToggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!user) {
+      if (confirm('로그인이 필요한 기능입니다. 카카오로 로그인하시겠습니까?')) {
+        try {
+          await signInWithKakao();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      return;
+    }
+
+    const isFav = favoriteEventIds.has(eventId);
+
+    // Optimistic Update
+    setFavoriteEventIds(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(eventId);
+      else next.add(eventId);
+      return next;
+    });
+
+    if (isFav) {
+      // Remove
+      const { error } = await supabase
+        .from('event_favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('event_id', eventId);
+      if (error) {
+        console.error('Error removing favorite:', error);
+        // Rollback
+        setFavoriteEventIds(prev => {
+          const next = new Set(prev);
+          next.add(eventId);
+          return next;
+        });
+      }
+    } else {
+      // Add
+      const { error } = await supabase
+        .from('event_favorites')
+        .insert({ user_id: user.id, event_id: eventId });
+      if (error) {
+        console.error('Error adding favorite:', error);
+        // Rollback
+        setFavoriteEventIds(prev => {
+          const next = new Set(prev);
+          next.delete(eventId);
+          return next;
+        });
+      }
+    }
+  }, [user, favoriteEventIds, signInWithKakao]);
+
   // sectionViewMode는 이제 props로 받음
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
   const setShowSearchModal =
@@ -1013,6 +1114,8 @@ export default function EventList({
       setRandomizedGenres(shuffled);
     }
   }, [allGenres, randomizedGenres.length]);
+
+
 
 
   // 3개월치 이벤트 데이터 계산 (이전/현재/다음 달)
@@ -2125,181 +2228,82 @@ export default function EventList({
       )}
 
       {/* 
-        VIEW 1: 달력이 접혀있을 때 (collapsed) 
-        => '진행중인 행사/강습' 섹션 표시
+        VIEW: Favorites Only
       */}
-      {calendarMode === 'collapsed' && !searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all' || selectedCategory === 'none') ? (
-        sectionViewMode === 'preview' ? (
-          // 프리뷰 모드
-          <div className="evt-ongoing-section evt-preview-section">
-            {/* Shopping Mall Banner */}
-            <ShoppingBanner />
-
-            {/* BillboardSection 제거 - 사용하지 않음 (display: none) */}
-
-
-            {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
-            <div className="evt-v2-section evt-v2-section-events">
-              <div className="evt-v2-section-title">
-
-                <span>진행중인 행사</span>
-                <span className="evt-v2-count">{futureEvents.length}</span>
-                {futureEvents.length > 0 && (
-                  <button
-                    onClick={() => onSectionViewModeChange?.('viewAll-events')}
-                    className="evt-view-all-btn"
-                  >
-                    전체보기 ❯
-                  </button>
-                )}
+      {searchParams.get('view') === 'favorites' ? (
+        <div className="evt-ongoing-section evt-preview-section">
+          {/* Section: My Favorites (Only) */}
+          <div className="evt-v2-section evt-v2-section-favorites">
+            <div className="evt-v2-section-title">
+              <i className="ri-heart-3-fill" style={{ color: '#ff6b6b', marginRight: '6px' }}></i>
+              <span>즐겨찾기</span>
+              <span className="evt-v2-count">{favoriteEventsList.length}</span>
+            </div>
+            {favoriteEventsList.length > 0 ? (
+              <div className="evt-grid-3-4-10 evt-px-4">
+                {favoriteEventsList.map(event => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    onClick={() => handleEventClick(event)}
+                    onMouseEnter={onEventHover}
+                    onMouseLeave={() => onEventHover?.(null)}
+                    isHighlighted={highlightEvent?.id === event.id}
+                    selectedDate={selectedDate}
+                    defaultThumbnailClass={defaultThumbnailClass}
+                    defaultThumbnailEvent={defaultThumbnailEvent}
+                    isFavorite={true}
+                    variant="favorite"
+                    onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                  />
+                ))}
+                <div className="evt-spacer-11"></div>
               </div>
+            ) : (
+              <div className="evt-v2-empty evt-mt-8">
+                아직 찜한 이벤트가 없습니다.
+              </div>
+            )}
+          </div>
+          <div className="evt-spacer-16"></div>
+          <Footer />
+        </div>
+      ) : (
 
-              {futureEvents.length > 0 ? (
-                <div className="evt-v2-horizontal-scroll">
-                  <div className="evt-spacer-5"></div>
-                  {futureEvents.map(event => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onClick={() => handleEventClick(event)}
-                      onMouseEnter={onEventHover}
-                      onMouseLeave={() => onEventHover?.(null)}
-                      isHighlighted={highlightEvent?.id === event.id}
-                      selectedDate={selectedDate}
-                      defaultThumbnailClass={defaultThumbnailClass}
-                      defaultThumbnailEvent={defaultThumbnailEvent}
-                      variant="sliding"
-                      hideGenre={true}
-                    />
-                  ))}
-                  <div className="evt-spacer-11"></div>
+        /* 
+          VIEW 1: 달력이 접혀있을 때 (collapsed) 
+          => '진행중인 행사/강습' 섹션 표시
+        */
+        calendarMode === 'collapsed' && !searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all' || selectedCategory === 'none') ? (
+          sectionViewMode === 'preview' ? (
+            // 프리뷰 모드
+            <div className="evt-ongoing-section evt-preview-section">
+              {/* Shopping Mall Banner */}
+              <ShoppingBanner />
+
+              {/* BillboardSection 제거 - 사용하지 않음 (display: none) */}
+
+
+              {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
+              <div className="evt-v2-section evt-v2-section-events">
+                <div className="evt-v2-section-title">
+
+                  <span>진행중인 행사</span>
+                  <span className="evt-v2-count">{futureEvents.length}</span>
+                  {futureEvents.length > 0 && (
+                    <button
+                      onClick={() => onSectionViewModeChange?.('viewAll-events')}
+                      className="evt-view-all-btn"
+                    >
+                      전체보기 ❯
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
-              )}
-            </div>
 
-
-
-            {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
-            <div className="evt-v2-section evt-v2-section-classes">
-              <div className="evt-v2-section-title">
-                <span>강습</span>
-                <span className="evt-v2-count">{futureClasses.length}</span>
-
-                {allGenres.length > 0 && (
-                  <select
-                    value={selectedGenre || ''}
-                    onChange={(e) => {
-                      const params = new URLSearchParams(searchParams);
-                      if (e.target.value) {
-                        params.set('genre', e.target.value);
-                      } else {
-                        params.delete('genre');
-                      }
-                      setSearchParams(params);
-                    }}
-                    className="evt-genre-select evt-ml-2"
-                  >
-                    <option value="">장르 선택</option>
-                    {allGenres.map(genre => (
-                      <option key={genre} value={genre}>{genre}</option>
-                    ))}
-                  </select>
-                )}
-
-                {futureClasses.length > 0 && (
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
-                    className="evt-view-all-btn"
-
-                  >
-                    전체 달력 ❯
-                  </button>
-                )}
-              </div>
-
-
-              {futureClasses.length > 0 ? (
-                <div className="evt-v2-horizontal-scroll">
-                  <div className="evt-spacer-5"></div>
-                  {futureClasses.map(event => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onClick={() => handleEventClick(event)}
-                      onMouseEnter={onEventHover}
-                      onMouseLeave={() => onEventHover?.(null)}
-                      isHighlighted={highlightEvent?.id === event.id}
-                      selectedDate={selectedDate}
-                      defaultThumbnailClass={defaultThumbnailClass}
-                      defaultThumbnailEvent={defaultThumbnailEvent}
-                      variant="sliding"
-                      hideGenre={true}
-                    />
-                  ))}
-                  <div className="evt-spacer-11"></div>
-                </div>
-              ) : (
-                <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
-              )}
-
-            </div>
-
-            {/* Social Schedule Section (Readonly) */}
-            <div className="evt-v2-section social-section-schedule-preview evt-mb-4">
-              <div className="evt-v2-section-title">
-                <span>정기 소셜 일정</span>
-              </div>
-              <Suspense fallback={<div className="evt-loading-fallback">로딩 중...</div>}>
-                <SocialCalendar
-                  showModal={false}
-                  setShowModal={() => { }}
-                  events={socialEvents}
-                  loading={socialLoading}
-                  onEventCreated={() => { }}
-                  onEventUpdated={() => { }}
-                  onEventDeleted={() => { }}
-                  readonly={true}
-                />
-              </Suspense>
-            </div>
-
-            {/* Practice Room Banner Section */}
-            <PracticeRoomBanner />
-
-            {/* Section 3+: 장르별 이벤트 (랜덤 순서, 진행중인 강습 필터와 독립) - 무조건 표시 */}
-            {(randomizedGenres.length > 0 ? randomizedGenres : allGenres).map((genre) => {
-              // 전체 이벤트에서 해당 장르만 필터링
-              const genreEvents = events.filter(e => {
-                // 강습만 표시
-                if (e.category !== 'class') return false;
-
-                if (!e.genre || e.genre !== genre) return false;
-
-                // 날짜 필터 적용: 진행중이거나 예정된 강습만 표시
-                const today = getLocalDateString();
-                const endDate = e.end_date || e.date;
-
-                // 종료일이 있고 오늘보다 이전이면 숨김 (=이미 끝난 강습)
-                if (endDate && endDate < today) return false;
-
-                return true;
-              });
-
-              if (genreEvents.length === 0) return null;
-
-              return (
-                <div key={genre} className="evt-v2-section">
-                  <div className="evt-v2-section-title">
-
-                    <span>{genre}</span>
-                    <span className="evt-v2-count">{genreEvents.length}</span>
-                  </div>
-
+                {futureEvents.length > 0 ? (
                   <div className="evt-v2-horizontal-scroll">
                     <div className="evt-spacer-5"></div>
-                    {genreEvents.map(event => (
+                    {futureEvents.map(event => (
                       <EventCard
                         key={event.id}
                         event={event}
@@ -2311,47 +2315,228 @@ export default function EventList({
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
                         variant="sliding"
+                        hideGenre={true}
+                        isFavorite={favoriteEventIds.has(event.id)}
+                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                       />
                     ))}
+                    <div className="evt-spacer-11"></div>
+                  </div>
+                ) : (
+                  <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
+                )}
+              </div>
+
+
+
+              {/* Section 2: 진행중인 강습 (Horizontal Scroll) */}
+              <div className="evt-v2-section evt-v2-section-classes">
+                <div className="evt-v2-section-title">
+                  <span>강습</span>
+                  <span className="evt-v2-count">{futureClasses.length}</span>
+
+                  {allGenres.length > 0 && (
+                    <select
+                      value={selectedGenre || ''}
+                      onChange={(e) => {
+                        const params = new URLSearchParams(searchParams);
+                        if (e.target.value) {
+                          params.set('genre', e.target.value);
+                        } else {
+                          params.delete('genre');
+                        }
+                        setSearchParams(params);
+                      }}
+                      className="evt-genre-select evt-ml-2"
+                    >
+                      <option value="">장르 선택</option>
+                      {allGenres.map(genre => (
+                        <option key={genre} value={genre}>{genre}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {futureClasses.length > 0 && (
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
+                      className="evt-view-all-btn"
+
+                    >
+                      전체 달력 ❯
+                    </button>
+                  )}
+                </div>
+
+
+                {futureClasses.length > 0 ? (
+                  <div className="evt-v2-horizontal-scroll">
+                    <div className="evt-spacer-5"></div>
+                    {futureClasses.map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => handleEventClick(event)}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={selectedDate}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        variant="sliding"
+                        hideGenre={true}
+                        isFavorite={favoriteEventIds.has(event.id)}
+                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                      />
+                    ))}
+                    <div className="evt-spacer-11"></div>
+                  </div>
+                ) : (
+                  <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
+                )}
+
+              </div>
+
+              {/* Section: My Favorites (Below Ongoing Classes) - Only show if favorites exist AND we are NOT in view=favorites mode (already handled above) */}
+              {favoriteEventsList.length > 0 && searchParams.get('view') !== 'favorites' && (
+                <div className="evt-v2-section evt-v2-section-favorites">
+                  <div className="evt-v2-section-title">
+                    <i className="ri-heart-3-fill" style={{ color: '#ff6b6b', marginRight: '6px' }}></i>
+                    <span>즐겨찾기</span>
+                    <span className="evt-v2-count">{favoriteEventsList.length}</span>
+                  </div>
+                  <div className="evt-v2-horizontal-scroll">
+                    <div className="evt-spacer-5"></div>
+                    {favoriteEventsList.map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => handleEventClick(event)}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={selectedDate}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        variant="sliding"
+                        isFavorite={true}
+                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                      />
+                    ))}
+                    <div className="evt-spacer-11"></div>
                   </div>
                 </div>
-              );
-            })}
-            <div className="evt-spacer-16"></div>
-          </div>
-        ) : (
-          // 전체보기 모드
-          <div
-            className="event-list-search-container evt-single-view-scroll evt-list-bg-container evt-single-view-container"
-          >
-            {/* 제목 */}
-            <div className="evt-v2-section-title" >
-              <i className={sectionViewMode === 'viewAll-events' ? 'ri-flag-line' : 'ri-graduation-cap-line'}></i>
-              <span>{sectionViewMode === 'viewAll-events' ? '진행중인 행사' : '진행중인 강습'}</span>
-              <span className="evt-v2-count">
-                {sectionViewMode === 'viewAll-events' ? futureEvents.length : futureClasses.length}
-              </span>
-            </div>
+              )}
 
-            {/* 그리드 레이아웃 */}
-            <div className="evt-grid-3-4-10">
-              {(sectionViewMode === 'viewAll-events' ? futureEvents : futureClasses).map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  onClick={() => handleEventClick(event)}
-                  onMouseEnter={onEventHover}
-                  onMouseLeave={() => onEventHover?.(null)}
-                  isHighlighted={highlightEvent?.id === event.id}
-                  selectedDate={selectedDate}
-                  defaultThumbnailClass={defaultThumbnailClass}
-                  defaultThumbnailEvent={defaultThumbnailEvent}
-                />
-              ))}
+              {/* Social Schedule Section (Readonly) */}
+              <div className="evt-v2-section social-section-schedule-preview evt-mb-4">
+                <div className="evt-v2-section-title">
+                  <span>정기 소셜 일정</span>
+                </div>
+                <Suspense fallback={<div className="evt-loading-fallback">로딩 중...</div>}>
+                  <SocialCalendar
+                    showModal={false}
+                    setShowModal={() => { }}
+                    events={socialEvents}
+                    loading={socialLoading}
+                    onEventCreated={() => { }}
+                    onEventUpdated={() => { }}
+                    onEventDeleted={() => { }}
+                    readonly={true}
+                  />
+                </Suspense>
+              </div>
+
+              {/* Practice Room Banner Section */}
+              <PracticeRoomBanner />
+
+              {/* Section 3+: 장르별 이벤트 (랜덤 순서, 진행중인 강습 필터와 독립) - 무조건 표시 */}
+              {(randomizedGenres.length > 0 ? randomizedGenres : allGenres).map((genre) => {
+                // 전체 이벤트에서 해당 장르만 필터링
+                const genreEvents = events.filter(e => {
+                  // 강습만 표시
+                  if (e.category !== 'class') return false;
+
+                  if (!e.genre || e.genre !== genre) return false;
+
+                  // 날짜 필터 적용: 진행중이거나 예정된 강습만 표시
+                  const today = getLocalDateString();
+                  const endDate = e.end_date || e.date;
+
+                  // 종료일이 있고 오늘보다 이전이면 숨김 (=이미 끝난 강습)
+                  if (endDate && endDate < today) return false;
+
+                  return true;
+                });
+
+                if (genreEvents.length === 0) return null;
+
+                return (
+                  <div key={genre} className="evt-v2-section">
+                    <div className="evt-v2-section-title">
+
+                      <span>{genre}</span>
+                      <span className="evt-v2-count">{genreEvents.length}</span>
+                    </div>
+
+                    <div className="evt-v2-horizontal-scroll">
+                      <div className="evt-spacer-5"></div>
+                      {genreEvents.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => handleEventClick(event)}
+                          onMouseEnter={onEventHover}
+                          onMouseLeave={() => onEventHover?.(null)}
+                          isHighlighted={highlightEvent?.id === event.id}
+                          selectedDate={selectedDate}
+                          defaultThumbnailClass={defaultThumbnailClass}
+                          defaultThumbnailEvent={defaultThumbnailEvent}
+                          variant="sliding"
+                          isFavorite={favoriteEventIds.has(event.id)}
+                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="evt-spacer-16"></div>
             </div>
-          </div>
-        )
-      ) : null}
+          ) : (
+            // 전체보기 모드
+            <div
+              className="event-list-search-container evt-single-view-scroll evt-list-bg-container evt-single-view-container"
+            >
+              {/* 제목 */}
+              <div className="evt-v2-section-title" >
+                <i className={sectionViewMode === 'viewAll-events' ? 'ri-flag-line' : 'ri-graduation-cap-line'}></i>
+                <span>{sectionViewMode === 'viewAll-events' ? '진행중인 행사' : '진행중인 강습'}</span>
+                <span className="evt-v2-count">
+                  {sectionViewMode === 'viewAll-events' ? futureEvents.length : futureClasses.length}
+                </span>
+              </div>
+
+              {/* 그리드 레이아웃 */}
+              <div className="evt-grid-3-4-10">
+                {(sectionViewMode === 'viewAll-events' ? futureEvents : futureClasses).map((event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    onClick={() => handleEventClick(event)}
+                    onMouseEnter={onEventHover}
+                    onMouseLeave={() => onEventHover?.(null)}
+                    isHighlighted={highlightEvent?.id === event.id}
+                    selectedDate={selectedDate}
+                    defaultThumbnailClass={defaultThumbnailClass}
+                    defaultThumbnailEvent={defaultThumbnailEvent}
+                    isFavorite={favoriteEventIds.has(event.id)}
+                    onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        ) : null)}
 
       {/* Events List - 3-month sliding layout */}
       {searchTerm.trim() || selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none') ? (
@@ -2390,6 +2575,8 @@ export default function EventList({
                 selectedDate={selectedDate}
                 defaultThumbnailClass={defaultThumbnailClass}
                 defaultThumbnailEvent={defaultThumbnailEvent}
+                isFavorite={favoriteEventIds.has(event.id)}
+                onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
               />
             ))}
 
@@ -2513,6 +2700,8 @@ export default function EventList({
                         selectedDate={null}
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
+                        isFavorite={favoriteEventIds.has(event.id)}
+                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                       />
                     ))}
                   </div>
@@ -2581,6 +2770,8 @@ export default function EventList({
           onDelete={handleDeleteClick}
           isAdminMode={isAdminMode}
           currentUserId={user?.id}
+          isFavorite={selectedEvent ? favoriteEventIds.has(selectedEvent.id) : false}
+          onToggleFavorite={selectedEvent ? (e) => handleToggleFavorite(selectedEvent.id, e) : undefined}
         />
       </Suspense>
 

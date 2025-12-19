@@ -1016,6 +1016,22 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
             {/* Footer Actions */}
             <div className="editable-footer">
                 <div className="editable-footer-actions">
+                    {/* Delete Button (Left Aligned) */}
+                    {onDelete && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
+                                    onDelete();
+                                }
+                            }}
+                            className="editable-action-btn icon-only delete-btn"
+                            title="삭제"
+                            style={{ marginRight: 'auto', color: '#ff6b6b' }}
+                        >
+                            <i className="ri-delete-bin-line editable-action-icon"></i>
+                        </button>
+                    )}
                     {/* Link Input Button */}
                     <button
                         onClick={(e) => {
