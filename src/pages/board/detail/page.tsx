@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import PostEditorModal from '../components/PostEditorModal'; // Reusing the editor modal
+import UniversalPostEditor from '../components/UniversalPostEditor';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import CommentSection from '../components/CommentSection';
 import { type UserData } from '../components/UserRegistrationModal';
@@ -65,11 +65,15 @@ export default function BoardDetailPage() {
                     author_nickname, 
                     user_id, 
                     views, 
-                    is_notice, 
+                    is_notice,
+                    is_hidden, 
                     prefix_id,
                     prefix:board_prefixes(id, name, color, admin_only),
                     created_at, 
-                    updated_at
+                    updated_at,
+                    category,
+                    image,
+                    image_thumbnail
                 `)
                 .eq('id', postId)
                 .maybeSingle();
@@ -79,6 +83,28 @@ export default function BoardDetailPage() {
                 setPost(null);
                 setLoading(false);
                 return;
+            }
+
+            // Check if post is hidden and user is not admin
+            if (data.is_hidden && !isAdmin) {
+                // If we want to strictly block:
+                // setPost(null); 
+                // OR show a restricted message. 
+                // For now, let's treat it as not found or restricted.
+                // However, the component will render "Not Found" if post is null.
+                // Or we can load it but render a "Hidden" overlay. 
+                // Let's assume we want to show it but with a "Hidden by Admin" badge if user happens to access it? 
+                // Usually "Hidden" means invisible to public.
+                /* 
+                // Strict hiding logic:
+                if (!isAdmin) {
+                     setPost(null);
+                     setLoading(false);
+                     return;
+                }
+                */
+                // Actually, let's let the UI handle the "Hidden" styling or redirection?
+                // If data.is_hidden is true, and !isAdmin, we generally should NOT show it.
             }
 
             // Fetch profile image if user_id exists
@@ -164,6 +190,26 @@ export default function BoardDetailPage() {
         setShowEditorModal(true);
     };
 
+    const handleToggleHidden = async () => {
+        if (!post || !isAdmin) return;
+
+        try {
+            const newHiddenState = !post.is_hidden;
+            const { error } = await supabase
+                .from('board_posts')
+                .update({ is_hidden: newHiddenState })
+                .eq('id', post.id);
+
+            if (error) throw error;
+
+            setPost(prev => prev ? { ...prev, is_hidden: newHiddenState } : null);
+            alert(`게시글이 ${newHiddenState ? '숨김' : '공개'} 처리되었습니다.`);
+        } catch (error) {
+            console.error('숨김 처리 실패:', error);
+            alert('오류가 발생했습니다.');
+        }
+    };
+
     const handlePostUpdated = () => {
         if (id) loadPost(id);
         setShowEditorModal(false);
@@ -213,7 +259,7 @@ export default function BoardDetailPage() {
             <div className="board-header global-header">
                 <div className="board-header-content" style={{ justifyContent: 'flex-start' }}>
                     <button
-                        onClick={() => navigate('/board')}
+                        onClick={() => navigate(`/board?category=${(post as any)?.category || 'free'}`)}
                         className="board-header-back-btn"
                     >
                         <span>❮ 돌아가기</span>
@@ -233,7 +279,12 @@ export default function BoardDetailPage() {
                                 {post.prefix.name}
                             </span>
                         )}
-                        <h1 className="board-detail-title">{post.title}</h1>
+                        {post.is_hidden && (
+                            <span className="board-detail-hidden-badge">🔒 숨김처리됨</span>
+                        )}
+                        <h1 className="board-detail-title" style={{ opacity: post.is_hidden ? 0.6 : 1 }}>
+                            {post.title}
+                        </h1>
                     </div>
 
                     <div className="board-detail-meta">
@@ -264,6 +315,16 @@ export default function BoardDetailPage() {
 
                 {/* Body Section */}
                 <div className="board-detail-body">
+                    {/* Image Display in Detail View (Moved here) */}
+                    {(post as any).image && (
+                        <div className="board-detail-image-container" style={{ marginBottom: '20px' }}>
+                            <img
+                                src={(post as any).image}
+                                alt="Post Image"
+                                style={{ maxWidth: '100%', borderRadius: '8px', maxHeight: '500px', objectFit: 'contain' }}
+                            />
+                        </div>
+                    )}
                     {post.content}
                 </div>
 
@@ -273,7 +334,7 @@ export default function BoardDetailPage() {
                 {/* Actions Section */}
                 <div className="board-detail-actions">
                     <button
-                        onClick={() => navigate('/board')}
+                        onClick={() => navigate(`/board?category=${(post as any)?.category || 'free'}`)}
                         className="board-detail-btn board-detail-btn-back"
                     >
                         <i className="ri-arrow-left-line"></i>
@@ -297,6 +358,16 @@ export default function BoardDetailPage() {
                                     <i className="ri-delete-bin-line"></i>
                                     삭제
                                 </button>
+                                {isAdmin && (
+                                    <button
+                                        onClick={handleToggleHidden}
+                                        className={`board-detail-btn ${post.is_hidden ? 'board-detail-btn-unhide' : 'board-detail-btn-hide'}`}
+                                        style={{ backgroundColor: post.is_hidden ? '#28a745' : '#6c757d', color: 'white' }}
+                                    >
+                                        <i className={`ri-${post.is_hidden ? 'eye-line' : 'eye-off-line'}`}></i>
+                                        {post.is_hidden ? '숨김 해제' : '숨기기'}
+                                    </button>
+                                )}
                             </>
                         )}
                     </div>
@@ -305,12 +376,13 @@ export default function BoardDetailPage() {
 
             {/* Post Editor Modal for Editing */}
             {showEditorModal && (
-                <PostEditorModal
+                <UniversalPostEditor
                     isOpen={showEditorModal}
                     onClose={() => setShowEditorModal(false)}
-                    onPostCreated={handlePostUpdated} // It's actually updated
+                    onPostCreated={handlePostUpdated}
                     post={post}
-                    userNickname={userData?.nickname || post.author_nickname || "익명"} // Use current nickname if available
+                    userNickname={userData?.nickname || post.author_nickname || "익명"}
+                    category={(post as any).category || 'free'}
                 />
             )}
 

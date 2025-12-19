@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPostList from './components/BoardPostList';
 import UniversalPostEditor from './components/UniversalPostEditor';
+import BoardManagementModal from './components/BoardManagementModal';
 import './board.css'; // Inherit basic layout styles
 import type { BoardPost } from './page'; // Import types
 
@@ -12,12 +13,19 @@ export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const [isRealAdmin, setIsRealAdmin] = useState(false);
+    const [isAdminChecked, setIsAdminChecked] = useState(false);
+
+    // Force reload trigger
+    console.log("BoardMainContainer rendering"); // New flag to wait for check
 
     // State
     const category = (searchParams.get('category') as BoardCategory) || 'free';
     const [posts, setPosts] = useState<BoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [isManagementOpen, setIsManagementOpen] = useState(false);
+    const [key, setKey] = useState(0); // For forcing re-render of TabBar
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 10;
 
@@ -28,8 +36,44 @@ export default function BoardMainContainer() {
     };
 
     useEffect(() => {
-        loadPosts();
-    }, [category, currentPage]);
+        checkAdminStatus();
+    }, [user]);
+
+    // Load posts ONLY after admin check is done (or if user is null)
+    useEffect(() => {
+        if (isAdminChecked) {
+            loadPosts();
+        }
+    }, [category, currentPage, isAdminChecked, isRealAdmin]); // Re-run if admin status changes
+
+    const checkAdminStatus = async () => {
+        if (!user) {
+            setIsRealAdmin(false);
+            setIsAdminChecked(true); // Check done (no user)
+            return;
+        }
+
+        try {
+            // Check both Context(Env) AND DB (board_admins)
+            const { data } = await supabase.rpc('is_admin_user');
+            if (data) {
+                setIsRealAdmin(true);
+            } else {
+                // Fallback direct check
+                const { data: tableData } = await supabase
+                    .from('board_admins')
+                    .select('user_id')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                setIsRealAdmin(!!tableData);
+            }
+        } catch (e) {
+            console.error(e);
+            setIsRealAdmin(false);
+        } finally {
+            setIsAdminChecked(true); // Check done
+        }
+    };
 
     const loadPosts = async () => {
         try {
@@ -51,11 +95,18 @@ export default function BoardMainContainer() {
           created_at, 
           updated_at,
           category,
-          image_thumbnail
+          image_thumbnail,
+          image,
+          is_hidden
         `)
                 .eq('category', category)  // Filter by category
                 .order('is_notice', { ascending: false })
                 .order('created_at', { ascending: false });
+
+            // Filter hidden posts for non-admins
+            if (!isRealAdmin) {
+                query = query.eq('is_hidden', false);
+            }
 
             // Pagination logic could be server-side, but client-side for simplicity as per original
             // But for better performance, let's do server logic if possible.
@@ -111,11 +162,43 @@ export default function BoardMainContainer() {
 
     return (
         <div className="board-page-container">
-            {/* 1. Tab Bar */}
-            <BoardTabBar
-                activeCategory={category}
-                onCategoryChange={handleCategoryChange}
-            />
+            {/* 1. Header Area with Admin Button */}
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
+                <BoardTabBar
+                    key={key}
+                    activeCategory={category}
+                    onCategoryChange={handleCategoryChange}
+                />
+            </div>
+
+            {/* Admin Floating Button (Guaranteed Visibility) */}
+            {isRealAdmin && (
+                <button
+                    onClick={() => setIsManagementOpen(true)}
+                    className="board-admin-fab"
+                    style={{
+                        position: 'fixed',
+                        bottom: '80px', // Above bottom tab bar if exists
+                        right: '20px',
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '50%',
+                        backgroundColor: '#333',
+                        color: 'white',
+                        border: 'none',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px',
+                        zIndex: 9999,
+                        cursor: 'pointer'
+                    }}
+                    title="게시판 관리"
+                >
+                    <i className="ri-settings-3-fill"></i>
+                </button>
+            )}
 
             {/* 2. Post List */}
             <div className="board-posts-container">
@@ -141,6 +224,15 @@ export default function BoardMainContainer() {
                     }}
                     category={category}
                     userNickname={user?.user_metadata?.name}
+                />
+            )}
+
+            {/* 4. Management Modal */}
+            {isManagementOpen && (
+                <BoardManagementModal
+                    isOpen={isManagementOpen}
+                    onClose={() => setIsManagementOpen(false)}
+                    onUpdate={() => setKey(prev => prev + 1)} // Refresh Tabs
                 />
             )}
         </div>

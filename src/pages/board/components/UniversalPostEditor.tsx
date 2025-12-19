@@ -43,6 +43,7 @@ export default function UniversalPostEditor({
     // Image State (For Market)
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [isImageDeleted, setIsImageDeleted] = useState(false); // Track if image was actively removed
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [prefixes, setPrefixes] = useState<BoardPrefix[]>([]);
@@ -67,6 +68,10 @@ export default function UniversalPostEditor({
                 // Load existing image if any
                 if ((post as any).image_thumbnail) {
                     setImagePreview((post as any).image_thumbnail);
+                    setIsImageDeleted(false);
+                } else {
+                    setImagePreview(null);
+                    setIsImageDeleted(false);
                 }
             } else {
                 // New Mode
@@ -80,6 +85,7 @@ export default function UniversalPostEditor({
                 });
                 setImageFile(null);
                 setImagePreview(null);
+                setIsImageDeleted(false);
             }
         } else {
             document.body.style.overflow = '';
@@ -126,6 +132,7 @@ export default function UniversalPostEditor({
                 setImagePreview(e.target?.result as string);
             };
             reader.readAsDataURL(file);
+            setIsImageDeleted(false); // New image selected, so not deleted
         }
     };
 
@@ -152,8 +159,8 @@ export default function UniversalPostEditor({
                 image_thumbnail: null as string | null,
             };
 
-            // 1. Image Upload (only if file selected and category is market)
-            if (formData.category === 'market' && imageFile) {
+            // 1. Image Upload (only if file selected)
+            if (imageFile) {
                 setLoadingMessage("이미지 업로드 중...");
                 const timestamp = Date.now();
                 const randomString = Math.random().toString(36).substring(2, 15);
@@ -187,8 +194,6 @@ export default function UniversalPostEditor({
             // 2. Save Post
             setLoadingMessage("글 저장 중...");
 
-
-
             if (post) {
                 // Update
                 const updates: any = {
@@ -201,16 +206,12 @@ export default function UniversalPostEditor({
                 };
 
                 if (imageUrls.image) {
-                    updates.image = imageUrls.image; // Assuming we add this column or use generic jsonb if needed? 
-                    // Wait, schema plan didn't explicitly add 'image' column to board_posts.
-                    // I should add it to migration if I want to store it.
-                    // Or I should put it in content? No, structured is better.
-                    // I will add image columns to migration script task? 
-                    // Wait, I already wrote the migration script. I missed 'image' column!
-                    // I will use `image_thumbnail` and `image` columns. I need to update the migration script or assume next step will fix it.
-                    // For now let's include it in the update object, assuming the column will exist.
-                    updates.image_thumbnail = imageUrls.image_thumbnail;
                     updates.image = imageUrls.image;
+                    updates.image_thumbnail = imageUrls.image_thumbnail;
+                } else if (isImageDeleted) {
+                    // Explicitly remove image if deleted and not replaced
+                    updates.image = null;
+                    updates.image_thumbnail = null;
                 }
 
                 const { error } = await supabase
@@ -281,42 +282,41 @@ export default function UniversalPostEditor({
 
                         {/* Category Selector (Optional, maybe fixed) */}
 
-                        {/* Image Upload for Market */}
-                        {formData.category === 'market' && (
-                            <div className="pem-form-group">
-                                <label className="pem-label">대표 이미지</label>
-                                <div className="image-upload-area" onClick={() => fileInputRef.current?.click()}>
-                                    {imagePreview ? (
-                                        <div className="image-preview-wrapper">
-                                            <img src={imagePreview} alt="Preview" className="image-preview" />
-                                            <button
-                                                type="button"
-                                                className="image-remove-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setImageFile(null);
-                                                    setImagePreview(null);
-                                                }}
-                                            >
-                                                <i className="ri-close-circle-fill"></i>
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="image-placeholder">
-                                            <i className="ri-camera-add-line"></i>
-                                            <span>이미지 추가</span>
-                                        </div>
-                                    )}
-                                    <input
-                                        type="file"
-                                        hidden
-                                        ref={fileInputRef}
-                                        accept="image/*"
-                                        onChange={handleImageSelect}
-                                    />
-                                </div>
+                        {/* Image Upload for All Categories */}
+                        <div className="pem-form-group">
+                            <label className="pem-label">대표 이미지 (선택)</label>
+                            <div className="image-upload-area" onClick={() => fileInputRef.current?.click()}>
+                                {imagePreview ? (
+                                    <div className="image-preview-wrapper">
+                                        <img src={imagePreview} alt="Preview" className="image-preview" />
+                                        <button
+                                            type="button"
+                                            className="image-remove-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setImageFile(null);
+                                                setImagePreview(null);
+                                                setIsImageDeleted(true); // Mark as deleted
+                                            }}
+                                        >
+                                            <i className="ri-close-circle-fill"></i>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="image-placeholder">
+                                        <i className="ri-camera-add-line"></i>
+                                        <span>이미지 추가</span>
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    hidden
+                                    ref={fileInputRef}
+                                    accept="image/*"
+                                    onChange={handleImageSelect}
+                                />
                             </div>
-                        )}
+                        </div>
 
                         {/* Title & Content (Existing fields) */}
                         {/* ... Copied from PostEditorModal logic but simplified ... */}
@@ -383,19 +383,20 @@ export default function UniversalPostEditor({
                         )}
 
                     </div>
+
+                    {/* Footer */}
+                    <div className="pem-modal-footer">
+                        <button type="button" onClick={onClose} className="pem-btn pem-btn-cancel">취소</button>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="pem-btn pem-btn-submit"
+                        >
+                            {isSubmitting ? (loadingMessage || '저장 중...') : '등록하기'}
+                        </button>
+                    </div>
                 </form>
 
-                {/* Footer */}
-                <div className="pem-modal-footer">
-                    <button type="button" onClick={onClose} className="pem-btn pem-btn-cancel">취소</button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="pem-btn pem-btn-submit"
-                    >
-                        {isSubmitting ? (loadingMessage || '저장 중...') : '등록하기'}
-                    </button>
-                </div>
             </div>
         </div>
     );

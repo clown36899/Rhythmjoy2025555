@@ -51,6 +51,23 @@
     margin: 0;
 }
 
+/* Image container */
+.board-detail-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+    width: 100%;
+}
+
+.board-detail-image-container img {
+    max-width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
 .board-detail-meta {
     display: flex;
     align-items: center;

@@ -22,6 +22,7 @@ export interface BoardPost {
   user_id?: string;
   views: number;
   is_notice?: boolean;
+  is_hidden?: boolean; // Added for admin control
   prefix_id?: number;
   prefix?: {
     id: number;
@@ -31,6 +32,8 @@ export interface BoardPost {
   };
   created_at: string;
   updated_at: string;
+  image?: string;
+  image_thumbnail?: string;
 }
 
 export default function BoardPage() {

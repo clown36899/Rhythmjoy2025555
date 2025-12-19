@@ -76,6 +76,7 @@ export default function BoardPostList({
                             ? 'board-post-card-notice'
                             : 'board-post-card-normal'
                             }`}
+                        style={{ opacity: post.is_hidden ? 0.6 : 1 }}
                     >
                         {/* Market View: Thumbnail functionality will be added here if 'image' field exists in post
                 For now, we just structure it. 
@@ -84,7 +85,7 @@ export default function BoardPostList({
                 For isolation, we will just use what's available and prepare the structure. 
             */}
 
-                        {(category === 'market' && (post as any).image_thumbnail) && (
+                        {(post as any).image_thumbnail && (
                             <div className="board-post-thumbnail">
                                 <img src={(post as any).image_thumbnail} alt="thumbnail" />
                             </div>
@@ -111,6 +112,13 @@ export default function BoardPostList({
                                         : 'board-post-title-normal'
                                         }`}
                                 >
+                                    {post.is_hidden && <span className="post-hidden-badge">🔒</span>}
+                                    {/* Hidden Status Indicator (Admin only) */}
+                                    {(post as any).is_hidden && (
+                                        <span style={{ marginRight: '6px', color: '#ff4d4f', display: 'flex', alignItems: 'center' }} title="숨김 처리된 게시글">
+                                            <i className="ri-lock-2-fill"></i>
+                                        </span>
+                                    )}
                                     {post.title}
                                 </h3>
                             </div>
@@ -139,42 +147,44 @@ export default function BoardPostList({
                         </div>
                     </div>
                 ))}
-            </div>
+            </div >
 
             {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="board-pagination">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onPageChange(currentPage - 1); }}
-                        disabled={currentPage === 1}
-                        className="board-page-btn"
-                    >
-                        <i className="ri-arrow-left-s-line"></i>
-                    </button>
-
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            {
+                totalPages > 1 && (
+                    <div className="board-pagination">
                         <button
-                            key={page}
-                            onClick={(e) => { e.stopPropagation(); onPageChange(page); }}
-                            className={
-                                currentPage === page
-                                    ? 'board-page-btn-active'
-                                    : 'board-page-btn-inactive'
-                            }
+                            onClick={(e) => { e.stopPropagation(); onPageChange(currentPage - 1); }}
+                            disabled={currentPage === 1}
+                            className="board-page-btn"
                         >
-                            {page}
+                            <i className="ri-arrow-left-s-line"></i>
                         </button>
-                    ))}
 
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onPageChange(currentPage + 1); }}
-                        disabled={currentPage === totalPages}
-                        className="board-page-btn"
-                    >
-                        <i className="ri-arrow-right-s-line"></i>
-                    </button>
-                </div>
-            )}
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                onClick={(e) => { e.stopPropagation(); onPageChange(page); }}
+                                className={
+                                    currentPage === page
+                                        ? 'board-page-btn-active'
+                                        : 'board-page-btn-inactive'
+                                }
+                            >
+                                {page}
+                            </button>
+                        ))}
+
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onPageChange(currentPage + 1); }}
+                            disabled={currentPage === totalPages}
+                            className="board-page-btn"
+                        >
+                            <i className="ri-arrow-right-s-line"></i>
+                        </button>
+                    </div>
+                )
+            }
         </>
     );
 }

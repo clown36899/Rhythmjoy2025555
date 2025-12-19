@@ -1,7 +1,14 @@
 /* board.css - BoardPage 컴포넌트 전용 스타일 */
 
 /* ===== 페이지 컨테이너 ===== */
-.board-page-container {}
+.board-page-container {
+  padding-top: 60px;
+  /* Safe Area for Header (60px) + Tabs (40px) + Spacing */
+  /* Push content below fixed header */
+  position: relative;
+  height: 100vh;
+  box-sizing: border-box;
+}
 
 /* ===== 헤더 ===== */
 /* Header styles handled by global-header class from index.css */
@@ -119,10 +126,12 @@
   padding-right: 0;
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
-  height: 100vh;
+  height: calc(100vh - 110px);
+  /* Adjust for header + tabs */
   overflow-y: auto;
-  margin-top: 60px;
-  padding-bottom: 142px;
+  margin-top: 0;
+  /* Handled by flex/flow now */
+  padding-bottom: 80px;
 
 }
 

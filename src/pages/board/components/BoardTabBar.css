@@ -1,9 +1,9 @@
 .board-tab-bar {
     background-color: var(--header-bg-color, #1f2937);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: sticky;
-    top: 60px;
-    /* Adjust based on global header height */
+    /* position: sticky was causing issues */
+    position: relative;
+    top: 0;
     z-index: 10;
     width: 100%;
 }
