@@ -62,9 +62,6 @@ export default function GuidePage() {
     if (window.Kakao.isInitialized()) {
       console.log('[KakaoShare] sendDefault 호출 시작');
 
-      // 캐시 방지를 위한 타임스탬프 추가
-      const shareUrl = `https://swingenjoy.com?t=${Date.now()}`;
-
       try {
         window.Kakao.Share.sendDefault({
           objectType: 'feed',
@@ -73,16 +70,16 @@ export default function GuidePage() {
             description: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
             imageUrl: 'https://swingenjoy.com/kakao-share-card.png',
             link: {
-              mobileWebUrl: shareUrl,
-              webUrl: shareUrl,
+              mobileWebUrl: 'https://swingenjoy.com',
+              webUrl: 'https://swingenjoy.com',
             },
           },
           buttons: [
             {
               title: '구경하러 가기',
               link: {
-                mobileWebUrl: shareUrl,
-                webUrl: shareUrl,
+                mobileWebUrl: 'https://swingenjoy.com',
+                webUrl: 'https://swingenjoy.com',
               },
             },
           ],

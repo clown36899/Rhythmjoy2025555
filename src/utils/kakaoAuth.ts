@@ -20,7 +20,8 @@ export const initKakaoSDK = () => {
   return new Promise<void>((resolve, reject) => {
     if (window.Kakao) {
       if (!window.Kakao.isInitialized()) {
-        const jsKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
+        // const jsKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
+        const jsKey = '4f36c4e35ab80c9bff7850e63341daa6'; // Share 기능과 키 일치시킴
         console.log('[KakaoAuth] Initializing with key:', jsKey);
         if (!jsKey) {
           reject(new Error('카카오 JavaScript 키가 설정되지 않았습니다.'));
@@ -34,7 +35,8 @@ export const initKakaoSDK = () => {
       const script = document.createElement('script');
       script.src = `https://developers.kakao.com/sdk/js/kakao.js?cb=${new Date().getTime()}`;
       script.onload = () => {
-        const jsKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
+        // const jsKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
+        const jsKey = '4f36c4e35ab80c9bff7850e63341daa6'; // Share 기능과 키 일치시킴
         if (!jsKey) {
           reject(new Error('카카오 JavaScript 키가 설정되지 않았습니다.'));
           return;
