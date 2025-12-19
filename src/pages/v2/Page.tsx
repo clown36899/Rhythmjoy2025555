@@ -152,14 +152,15 @@ export default function HomePageV2() {
     // 5. Effects
     // --------------------------------------------------------------------------------
     // 모바일 바운스 방지
-    useEffect(() => {
-        document.documentElement.style.overscrollBehavior = 'none';
-        document.body.style.overscrollBehavior = 'none';
-        return () => {
-            document.documentElement.style.overscrollBehavior = '';
-            document.body.style.overscrollBehavior = '';
-        };
-    }, []);
+    // 모바일 바운스 방지 - 제거됨 (Pull-to-Refresh 활성화)
+    // useEffect(() => {
+    //     document.documentElement.style.overscrollBehavior = 'none';
+    //     document.body.style.overscrollBehavior = 'none';
+    //     return () => {
+    //         document.documentElement.style.overscrollBehavior = '';
+    //         document.body.style.overscrollBehavior = '';
+    //     };
+    // }, []);
 
     // --------------------------------------------------------------------------------
     // Refs & Layout Effects

@@ -15,19 +15,16 @@ body {
   /* 수직 스크롤만 허용, 수평 슬라이드는 JS로 제어 */
   /* passive event listener 에러 방지 */
   touch-action: pan-y;
-  /* 모바일 끌어내림 새로고침 비활성화 */
-  overscroll-behavior-y: contain;
-  /* iOS Safari pull-to-refresh 완전 차단 */
-  overscroll-behavior: none;
+
 }
 
 #root {
   max-width: 650px !important;
   margin: 0 auto !important;
   width: 100% !important;
-  overflow: hidden;
-  height: 100%;
-  /* overflow-x 제거 - sticky가 작동하려면 필요 */
+  min-height: 100vh;
+  /* overflow: hidden; 제거 - body 스크롤 활성화 */
+  /* height: 100%; 제거 */
 }
 
 body,

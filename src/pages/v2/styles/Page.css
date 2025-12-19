@@ -2,16 +2,18 @@
 
 /* ===== 메인 컨테이너 ===== */
 .home-container {
-  height: 100vh;
+  /* height: 100vh; */
+  min-height: 100vh;
+  /* Allow body scroll */
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* overflow: hidden; */
   user-select: none;
   -webkit-user-select: none;
   background-color: #000000;
 
-  height: 100vh;
-  overflow-y: auto;
+  /* height: 100vh; */
+  /* overflow-y: auto; */
   margin-top: 60px;
   padding-bottom: 142px;
 
@@ -31,8 +33,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* overflow-y: auto; */
+  /* overflow-x: hidden; */
   position: relative;
   /* padding-top: 51px !important; */
   /* Fixed header height - !important for mobile consistency */
@@ -43,9 +45,9 @@
 /* ===== 컨텐츠 스크롤 영역 ===== */
 .home-content-scroll {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior-y: contain;
+  /* overflow-y: auto; */
+  /* overflow-x: hidden; */
+  /* overscroll-behavior-y: contain; 제거 */
 }
 
 /* ===== 달력/카테고리 버튼 영역 ===== */

@@ -40,16 +40,15 @@ export default function CalendarPage() {
     const eventListElementRef = useRef<HTMLDivElement>(null!); // Dummy ref for useCalendarGesture
 
     // 초기화
-    useEffect(() => {
-        // 모바일 바운스 방지
-        document.documentElement.style.overscrollBehavior = 'none';
-        document.body.style.overscrollBehavior = 'none';
-
-        return () => {
-            document.documentElement.style.overscrollBehavior = '';
-            document.body.style.overscrollBehavior = '';
-        };
-    }, []);
+    // 모바일 바운스 방지 - 제거됨 (Pull-to-Refresh 활성화)
+    // useEffect(() => {
+    //     document.documentElement.style.overscrollBehavior = 'none';
+    //     document.body.style.overscrollBehavior = 'none';
+    //     return () => {
+    //         document.documentElement.style.overscrollBehavior = '';
+    //         document.body.style.overscrollBehavior = '';
+    //     };
+    // }, []);
 
     // 모달 열렸을 때 배경 스크롤 방지
     useEffect(() => {
