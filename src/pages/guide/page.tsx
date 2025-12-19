@@ -23,36 +23,74 @@ export default function GuidePage() {
 
   useEffect(() => {
     // Kakao SDK 초기화
-    if (window.Kakao && !window.Kakao.isInitialized()) {
-      window.Kakao.init('4f36c4e35ab80c9bff7850e63341daa6'); // javascript key
+    if (window.Kakao) {
+      if (!window.Kakao.isInitialized()) {
+        console.log('[KakaoShare] 초기화 시도...');
+        window.Kakao.init('4f36c4e35ab80c9bff7850e63341daa6');
+        console.log('[KakaoShare] 초기화 완료:', window.Kakao.isInitialized());
+      } else {
+        console.log('[KakaoShare] 이미 초기화되어 있습니다.');
+      }
+    } else {
+      console.warn('[KakaoShare] window.Kakao 객체를 찾을 수 없습니다. 스크립트 로드 실패 가능성.');
     }
   }, []);
 
   const handleKakaoShare = () => {
-    if (window.Kakao && window.Kakao.isInitialized()) {
-      window.Kakao.Share.sendDefault({
-        objectType: 'feed',
-        content: {
-          title: '스윙 일정통합 플랫폼 댄스빌보드',
-          description: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
-          imageUrl: 'https://rhythmjoy.netlify.app/icon-512.png',
-          link: {
-            mobileWebUrl: window.location.origin,
-            webUrl: window.location.origin,
-          },
-        },
-        buttons: [
-          {
-            title: '구경하러 가기',
+    console.log('[KakaoShare] 버튼 클릭됨');
+    console.log('[KakaoShare] 현재 도메인:', window.location.origin);
+
+    // 1. Kakao 객체 존재 확인
+    if (!window.Kakao) {
+      console.error('[KakaoShare] Error: window.Kakao is undefined');
+      alert('카카오톡 SDK가 아직 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+
+    // 2. 초기화 안 되어 있으면 즉시 초기화 시도 (Lazy Init)
+    if (!window.Kakao.isInitialized()) {
+      console.log('[KakaoShare] Lazy Init 시도...');
+      try {
+        window.Kakao.init('4f36c4e35ab80c9bff7850e63341daa6');
+        console.log('[KakaoShare] Lazy Init 성공');
+      } catch (e) {
+        console.error('[KakaoShare] Init 실패:', e);
+      }
+    }
+
+    // 3. 공유하기 실행
+    if (window.Kakao.isInitialized()) {
+      console.log('[KakaoShare] sendDefault 호출 시작');
+      try {
+        window.Kakao.Share.sendDefault({
+          objectType: 'feed',
+          content: {
+            title: '스윙 일정통합 플랫폼 댄스빌보드',
+            description: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
+            imageUrl: window.location.origin + '/logo.png',
             link: {
               mobileWebUrl: window.location.origin,
               webUrl: window.location.origin,
             },
           },
-        ],
-      });
+          buttons: [
+            {
+              title: '구경하러 가기',
+              link: {
+                mobileWebUrl: window.location.origin,
+                webUrl: window.location.origin,
+              },
+            },
+          ],
+        });
+        console.log('[KakaoShare] sendDefault 호출 완료');
+      } catch (err) {
+        console.error('[KakaoShare] sendDefault 에러:', err);
+        alert('카카오 공유 중 오류가 발생했습니다: ' + JSON.stringify(err));
+      }
     } else {
-      alert('카카오톡 공유 기능을 사용할 수 없습니다.');
+      console.error('[KakaoShare] 초기화 실패 상태로 중단');
+      alert('도메인 등록 문제로 카카오 공유를 사용할 수 없습니다. (현재 도메인: ' + window.location.origin + ')');
     }
   };
 
