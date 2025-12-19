@@ -4,6 +4,12 @@ import SimpleHeader from "../../components/SimpleHeader";
 import CalendarSearchModal from '../v2/components/CalendarSearchModal';
 import './guide.css';
 
+declare global {
+  interface Window {
+    Kakao: any;
+  }
+}
+
 export default function GuidePage() {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -15,9 +21,44 @@ export default function GuidePage() {
     return () => window.removeEventListener('openEventSearch', handleOpenEventSearch);
   }, []);
 
+  useEffect(() => {
+    // Kakao SDK 초기화
+    if (window.Kakao && !window.Kakao.isInitialized()) {
+      window.Kakao.init('4f36c4e35ab80c9bff7850e63341daa6'); // javascript key
+    }
+  }, []);
+
+  const handleKakaoShare = () => {
+    if (window.Kakao && window.Kakao.isInitialized()) {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: '스윙 일정통합 플랫폼 댄스빌보드',
+          description: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
+          imageUrl: 'https://rhythmjoy.netlify.app/icon-512.png',
+          link: {
+            mobileWebUrl: window.location.origin,
+            webUrl: window.location.origin,
+          },
+        },
+        buttons: [
+          {
+            title: '구경하러 가기',
+            link: {
+              mobileWebUrl: window.location.origin,
+              webUrl: window.location.origin,
+            },
+          },
+        ],
+      });
+    } else {
+      alert('카카오톡 공유 기능을 사용할 수 없습니다.');
+    }
+  };
+
   const handleShare = async () => {
     const shareData = {
-      title: '댄스빌보드 - 스윙  플랫폼',
+      title: '스윙 일정확인 플랫폼 댄스빌보드',
       text: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
       url: window.location.origin, // 메인 홈페이지 주소 공유
     };
@@ -169,12 +210,22 @@ export default function GuidePage() {
 
         {/* Share Section */}
         <div className="guide-action-section">
-          <button onClick={handleShare} className="guide-share-button">
-            <i className="ri-share-line"></i>
-            <span>친구에게 공유하기</span>
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={handleKakaoShare}
+              className="guide-share-button"
+              style={{ backgroundColor: '#FEE500', color: '#000000', border: 'none' }}
+            >
+              <i className="ri-kakao-talk-fill" style={{ fontSize: '1.2rem' }}></i>
+              <span>카카오톡 공유</span>
+            </button>
+            <button onClick={handleShare} className="guide-share-button">
+              <i className="ri-share-line"></i>
+              <span>링크 복사/기타</span>
+            </button>
+          </div>
           <p className="guide-share-hint">
-            버튼을 클릭하여 링크를 공유해 보세요
+            친구들에게 댄스빌보드를 알려주세요!
           </p>
         </div>
 
