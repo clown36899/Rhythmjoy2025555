@@ -48,9 +48,11 @@ export default function BillboardPage() {
   const [dateLocationFontSize, setDateLocationFontSize] = useState(31); // 날짜+장소 폰트 크기
   const slideTimerRef = useRef<NodeJS.Timeout | null>(null); // 슬라이드 전환 타이머
   const slideStartTimeRef = useRef<number>(0); // 슬라이드 시작 시간
+  const videoTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 영상 재생 타임아웃 타이머
   const playerRefsRef = useRef<(YouTubePlayerHandle | null)[]>([]); // 슬라이드별 Player 참조
   const prevIndexRef = useRef<number>(0); // 이전 슬라이드 인덱스
   const currentActiveIndexRef = useRef<number>(0); // 현재 활성 슬라이드 인덱스 (attemptPlay 취소용)
+  const isPausedRef = useRef<boolean>(false); // 일시정지 상태 (마우스 호버 등) 중복 실행 방지
   const youtubeApiReady = useYouTubeAPI(); // YouTube API 준비 상태
   const loadBillboardDataRef = useRef<(() => Promise<void>) | null>(null); // loadBillboardData 함수 ref
   const lastSlideChangeTimeRef = useRef<number>(Date.now()); // 워치독: 마지막 슬라이드 전환 시간
@@ -143,12 +145,12 @@ export default function BillboardPage() {
     };
   }, []);
 
-  // 🛡️ 워치독(Watchdog): 3분간 슬라이드 전환 없으면 자동 새로고침
+  // 🛡️ 워치독(Watchdog): 15분간 슬라이드 전환 없으면 자동 새로고침
   useEffect(() => {
-    const WATCHDOG_INTERVAL = 30000; // 30초마다 체크
-    const STALL_THRESHOLD = 180000; // 3분(180초) 동안 변화 없으면 새로고침
+    const WATCHDOG_INTERVAL = 60000; // 60초마다 체크
+    const STALL_THRESHOLD = 900000; // 15분(900초) 동안 변화 없으면 새로고침
 
-    log('[워치독] 안전장치 시작 - 3분간 슬라이드 전환 없으면 자동 새로고침');
+    log('[워치독] 안전장치 시작 - 15분간 슬라이드 전환 없으면 자동 새로고침');
 
     watchdogTimerRef.current = setInterval(() => {
       const now = Date.now();
@@ -185,9 +187,9 @@ export default function BillboardPage() {
 
         console.error(`[워치독] 🚨 ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음! 자동 새로고침 실행`);
         window.location.reload();
-      } else if (timeSinceLastChange >= 120000) {
-        // 2분 경과 시 경고 로그
-        warn(`[워치독] ⚠️ ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음 (1분 후 자동 새로고침)`);
+      } else if (timeSinceLastChange >= 600000) {
+        // 10분 경과 시 경고 로그
+        warn(`[워치독] ⚠️ ${minutesStalled}분 ${secondsStalled}초간 슬라이드 전환 없음 (5분 후 자동 새로고침)`);
       }
     }, WATCHDOG_INTERVAL);
 
@@ -444,17 +446,22 @@ export default function BillboardPage() {
   }, [clearAllTimers]); // clearAllTimers 함수 포함 (타이머 정리)
 
 
-  // [리팩토링] 다음 슬라이드로 즉시 전환하는 함수
-  const advanceToNextSlide = useCallback((reason: 'ended' | 'error') => {
+  // [리팩토링] 다음 슬라이드로 이동
+  const advanceToNextSlide = useCallback((reason: string = 'timer') => {
+    // 멈춤 상태면 전환 안함
+    if (isPausedRef.current) return;
+
+    // 마지막 슬라이드 변경 시간 업데이트
+    lastSlideChangeTimeRef.current = Date.now();
     warn(`[🔄 강제 전환] 사유: ${reason} → 즉시 다음 슬라이드로 전환`);
     clearAllTimers();
 
-    const transitionTimer = setTimeout(() => {
-      const latestEvents = eventsRef.current;
-      const latestSettings = settingsRef.current;
-      const latestShuffledPlaylist = shuffledPlaylistRef.current;
-      const currentActiveIndex = currentActiveIndexRef.current;
+    const latestEvents = eventsRef.current;
+    const latestSettings = settingsRef.current;
+    const latestShuffledPlaylist = shuffledPlaylistRef.current;
+    const currentActiveIndex = currentActiveIndexRef.current;
 
+    const transitionTimer = setTimeout(() => {
       if (latestSettings?.play_order === "random") {
         const nextPlaylistIndex = playlistIndexRef.current + 1;
         if (nextPlaylistIndex >= latestShuffledPlaylist.length) {
@@ -491,6 +498,14 @@ export default function BillboardPage() {
   // YouTube 영상 재생 시작 콜백
   const handleVideoPlaying = useCallback((slideIndex: number) => {
     log('[빌보드] 영상 재생 시작 감지 (onStateChange), 슬라이드:', slideIndex);
+
+    // ✅ 영상 재생 성공: 타임아웃 취소
+    if (videoTimeoutRef.current) {
+      log(`[타임아웃] 영상 재생 성공으로 타임아웃 취소`);
+      clearTimeout(videoTimeoutRef.current);
+      videoTimeoutRef.current = null;
+    }
+
     if (slideIndex === currentActiveIndexRef.current) {
       const currentSettings = settingsRef.current;
       if (currentSettings) {
@@ -962,9 +977,20 @@ export default function BillboardPage() {
       startSlideTimer(slideInterval);
     } else {
       // 영상 슬라이드는 handleVideoPlaying 콜백에서 타이머를 시작함
-      log(`[슬라이드 ${currentIndex}] 영상 감지 - 실제 재생 시작 시 타이머 시작 예정`);
+      // ✅ 안전장치: 30초 내에 재생 시작 안되면 강제 전환 (GPU 오류 등으로 재생 불가능할 경우 대비)
+      const VIDEO_TIMEOUT_MS = 30000;
+      log(`[슬라이드 ${currentIndex}] 영상 감지 - 재생 대기 (타임아웃: ${VIDEO_TIMEOUT_MS / 1000}초)`);
+
+      if (videoTimeoutRef.current) clearTimeout(videoTimeoutRef.current);
+
+      videoTimeoutRef.current = setTimeout(() => {
+        if (currentIndex === currentActiveIndexRef.current) {
+          console.error(`[🚨 영상 타임아웃] ${VIDEO_TIMEOUT_MS / 1000}초 동안 재생되지 않음. 다음 슬라이드로 강제 전환.`);
+          advanceToNextSlide('timeout');
+        }
+      }, VIDEO_TIMEOUT_MS);
     }
-  }, [events, settings, currentIndex, startSlideTimer]);
+  }, [events, settings, currentIndex, startSlideTimer, advanceToNextSlide]);
 
   // 문서 제목 설정
   useEffect(() => {
