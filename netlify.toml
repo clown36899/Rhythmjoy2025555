@@ -6,6 +6,13 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Allow this site to be embedded in iframes from specific domains
+    Content-Security-Policy = "frame-ancestors 'self' https://xn--9m1bu8iv0ao6ao5fsta.com https://리듬앤조이일정표.com https://xn--9m1bu8iv0ao6ao5fsta.com"
+    X-Frame-Options = "ALLOW-FROM https://리듬앤조이일정표.com"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
