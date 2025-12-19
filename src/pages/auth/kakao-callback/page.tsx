@@ -113,12 +113,14 @@ export default function KakaoCallbackPage() {
             }
         };
 
-        // Strict Mode에서의 이중 호출 방지를 위한 Debounce (300ms)
-        // 첫 번째 마운트(Effect)는 즉시 Unmount되면서 cleanup에서 타이머를 해제하므로 실행되지 않음
-        // 두 번째 마운트(Effect)만 타이머가 완료되어 실행됨
+        // Strict Mode에서의 이중 호출 방지를 위한 Debounce
+        // 개발 모드(import.meta.env.DEV)에서는 Strict Mode로 인해 300ms 지연 필요
+        // 실제 배포 모드(PROD)에서는 지연 없이 즉시 실행하여 속도 향상
+        const delay = import.meta.env.DEV ? 300 : 0;
+
         uniqueTimer = setTimeout(() => {
             handleCallback();
-        }, 300);
+        }, delay);
 
         return () => {
             cancelled = true; // Cleanup: prevent state updates after unmount
