@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import type { Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import AutoImport from "unplugin-auto-import/vite";
 import { visualizer } from 'rollup-plugin-visualizer';
 
@@ -48,11 +48,16 @@ function buildVersionPlugin(): Plugin {
   };
 }
 
+// package.json에서 버전 읽기
+const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
+const APP_VERSION = pkg.version;
+
 // https://vite.dev/config/
 export default defineConfig({
   define: {
     __BASE_PATH__: JSON.stringify(base),
     __IS_PREVIEW__: JSON.stringify(isPreview),
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
   },
   plugins: [
     react(),

@@ -96,7 +96,6 @@ export default memo(function EventRegistrationModal({
   // Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("저장 중...");
-  const [isLoadingImage, setIsLoadingImage] = useState(false);
 
   // Genre Suggestions
   const [allGenres, setAllGenres] = useState<string[]>([]);
@@ -380,7 +379,7 @@ export default memo(function EventRegistrationModal({
       setImagePosition({ x: 0, y: 0 }); // Reset position
 
       try {
-        setIsLoadingImage(true);
+
         // 50ms delay로 UI가 업데이트될 시간 확보
         await new Promise(resolve => setTimeout(resolve, 50));
         const dataUrl = await fileToDataURL(file);
@@ -390,7 +389,7 @@ export default memo(function EventRegistrationModal({
         console.error("Failed to load image:", error);
         alert("이미지를 불러오는데 실패했습니다.");
       } finally {
-        setIsLoadingImage(false);
+
       }
     }
     // Reset input value to allow selecting same file again
@@ -636,9 +635,10 @@ export default memo(function EventRegistrationModal({
             if (editEventData && onEventUpdated) {
               onEventUpdated(resultData[0] as AppEvent);
             } else {
-              onEventCreated(date || new Date(), resultData[0].id);
+              const createdEvent = resultData[0] as AppEvent;
+              onEventCreated(date || new Date(), createdEvent.id);
               window.dispatchEvent(new CustomEvent("eventCreated", {
-                detail: { event: resultData[0] }
+                detail: { event: createdEvent }
               }));
             }
             onClose();

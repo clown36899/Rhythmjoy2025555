@@ -138,7 +138,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         </button>
                     )}
                     <div className="drawer-version">
-                        v2.0.0
+                        v{__APP_VERSION__}
                     </div>
                 </div>
             </div>

@@ -57,7 +57,6 @@ export default function HomePageV2() {
     // Modal & View State
     const [showRegistrationModal, setShowRegistrationModal] = useState(false);
     const [fromBanner, setFromBanner] = useState(false);
-    const [fromFloatingBtn, setFromFloatingBtn] = useState(false);
     const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
     const [registrationCalendarMode, setRegistrationCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen' | null>(null);
 
@@ -437,7 +436,7 @@ export default function HomePageV2() {
                                 setShowRegistrationModal(false);
                                 setSelectedDate(null); // Always clear to prevent unused date view
                                 setFromBanner(false);
-                                setFromFloatingBtn(false);
+
                                 setBannerMonthBounds(null);
                             }}
                             selectedDate={selectedDate!}
@@ -445,7 +444,7 @@ export default function HomePageV2() {
                             onEventCreated={(d, id) => {
                                 setShowRegistrationModal(false);
                                 setFromBanner(false);
-                                setFromFloatingBtn(false);
+
                                 setBannerMonthBounds(null);
                                 setCurrentMonth(d);
 

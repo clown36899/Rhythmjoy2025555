@@ -97,7 +97,7 @@ html {
   -khtml-user-drag: none;
   -moz-user-drag: none;
   -o-user-drag: none;
-  user-drag: none;
+
 }
 
 /* 달력 날짜 칸 - 동적 높이 (grid-auto-rows로 제어) */

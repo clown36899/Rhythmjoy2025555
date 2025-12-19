@@ -7,7 +7,6 @@ import "./styles/CalendarPage.css";
 import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";
 import { useEventModal } from "../../hooks/useEventModal";
 import { supabase } from "../../lib/supabase";
-import type { Event as AppEvent } from "../../lib/supabase";
 
 import EventDetailModal from "../v2/components/EventDetailModal";
 import CalendarSearchModal from "../v2/components/CalendarSearchModal";
@@ -109,11 +108,7 @@ export default function CalendarPage() {
         if (date) setSelectedWeekday(null);
     }, []);
 
-    const handleGoToToday = useCallback(() => {
-        const today = new Date();
-        today.setDate(1);
-        handleMonthChange(today);
-    }, [handleMonthChange]);
+
 
     // Event handlers are now provided by useEventModal Hook
 
