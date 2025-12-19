@@ -1,19 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, validateAndRecoverSession } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 
 import { setUserProperties, logEvent } from '../lib/analytics';
 
-interface KakaoAuthResult {
-  email: string;
-  name: string;
-  isAdmin: boolean;
-  isBillboardUser: boolean;
-  billboardUserId: string | null;
-  billboardUserName: string | null;
-}
+
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +24,7 @@ interface AuthContextType {
   userProfile: { nickname: string; profile_image: string | null } | null;
   refreshUserProfile: () => Promise<void>;
   signInAsDevAdmin?: () => void; // 개발 환경 전용 - UI 플래그만
+  validateSession: () => Promise<void>; // 수동 세션 검증
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,10 +45,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // User Profile State
   const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(null);
 
-  // 수동 취소 함수
   const cancelAuth = () => {
     console.warn('[AuthContext] 인증 프로세스 수동 취소됨');
     setIsAuthProcessing(false);
+  };
+
+  // 만료되거나 손상된 세션 정리 (좀비 토큰 제거)
+  const cleanupStaleSession = async (forceReload = false) => {
+    console.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
+
+    try {
+      // 1. Supabase 세션 제거 (로컬만)
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      console.warn('[AuthContext] SignOut during cleanup failed (expected):', e);
+    }
+
+    // 2. localStorage의 Supabase 관련 항목 제거 (더 강력하게)
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth-token'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => {
+      console.log('[AuthContext] 🗑️ Removing stale key:', key);
+      localStorage.removeItem(key);
+    });
+
+    // 3. sessionStorage도 정리
+    sessionStorage.clear();
+
+    // 4. 상태 초기화
+    setSession(null);
+    setUser(null);
+    setIsAdmin(false);
+    setUserProfile(null);
+
+    console.log('[AuthContext] ✅ Stale session cleaned up');
+
+    // 5. 강제 리로드가 필요하면 실행 (심각한 오류 상황)
+    if (forceReload) {
+      console.warn('[AuthContext] 🔁 Force reloading page to clear memory state');
+      window.location.reload();
+    }
   };
 
   // 관리자 권한 계산 헬퍼 함수
@@ -103,6 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  // 수동 세션 검증 메서드
+  const validateSession = async () => {
+    console.log('[AuthContext] 🕵️‍♂️ Manual session validation requested');
+    const validSession = await validateAndRecoverSession();
+    if (!validSession) {
+      console.warn('[AuthContext] 🕵️‍♂️ Session became invalid during validation');
+      await cleanupStaleSession();
+    } else {
+      console.log('[AuthContext] 🕵️‍♂️ Session is valid');
+    }
+  };
+
   useEffect(() => {
     let isMounted = true; // 마운트 상태 추적
 
@@ -117,53 +164,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 2초 timeout 설정 (빠른 실패로 UX 개선)
-    const timeoutId = setTimeout(() => {
-      if (isMounted) {
-        console.warn('[AuthContext] getSession timeout - loading false로 설정');
+    // 3초 timeout 설정 (조금 더 여유있게) - 실패 시 강제 정리
+    const timeoutId = setTimeout(async () => {
+      if (isMounted && loading) {
+        console.warn('[AuthContext] ⏱️ Session check timeout (3s) - Force cleaning stale session');
+        // 타임아웃 발생 시 좀비 세션으로 간주하고 정리, 하지만 false로 세팅하여 앱 진입은 허용 (비로그인 상태)
+        await cleanupStaleSession();
         setLoading(false);
       }
-    }, 2000);
+    }, 3000);
 
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!isMounted) return; // 언마운트 후 실행 방지
-
+    // 개선된 세션 검증 및 복구 로직 사용
+    validateAndRecoverSession()
+      .then(async (recoveredSession: Session | null) => {
+        if (!isMounted) return;
         clearTimeout(timeoutId);
-        const currentUser = session?.user ?? null;
-        const adminStatus = computeIsAdmin(currentUser);
 
-        console.log('[AuthContext] 초기 세션:', {
-          hasSession: !!session,
-          userEmail: currentUser?.email,
-          appMetadataIsAdmin: currentUser?.app_metadata?.is_admin,
-          isAdmin: adminStatus,
-          adminEmail: import.meta.env.VITE_ADMIN_EMAIL,
-          isProduction: import.meta.env.PROD
-        });
+        if (recoveredSession) {
+          const currentUser = recoveredSession.user;
+          const adminStatus = computeIsAdmin(currentUser);
 
-        setSession(session);
-        setUser(currentUser);
-        setIsAdmin(adminStatus);
+          console.log('[AuthContext] ✨ Session recovered/verified:', {
+            email: currentUser.email,
+            expiresAt: recoveredSession.expires_at,
+          });
+
+          setSession(recoveredSession);
+          setUser(currentUser);
+          setIsAdmin(adminStatus);
+        } else {
+          // 세션이 없거나 복구 실패 시
+          console.log('[AuthContext] ℹ️ No valid session found or recovery failed');
+          setSession(null);
+          setUser(null);
+          setIsAdmin(false);
+        }
+
         setLoading(false);
       })
-      .catch((error) => {
-        if (!isMounted) return; // 언마운트 후 실행 방지
-
-        console.error('[AuthContext] getSession error:', error);
+      .catch(async (error: any) => {
+        if (!isMounted) return;
         clearTimeout(timeoutId);
+
+        console.error('[AuthContext] 💥 Critical session initialization error:', error);
+        await cleanupStaleSession();
         setLoading(false);
       });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return; // 언마운트 후 실행 방지
 
       const currentUser = session?.user ?? null;
       const adminStatus = computeIsAdmin(currentUser);
 
-      console.log('[AuthContext] Auth state changed:', {
+      console.log('[AuthContext] 🔄 Auth state changed:', {
         event,
         hasSession: !!session,
         userEmail: currentUser?.email,
@@ -172,15 +228,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionExpiry: session?.expires_at
       });
 
+      // 세션 만료 체크
+      if (session?.expires_at) {
+        const expiresAt = new Date(session.expires_at * 1000);
+        if (expiresAt < new Date()) {
+          console.warn('[AuthContext] ⚠️ Session expired in auth state change');
+          await cleanupStaleSession();
+          return;
+        }
+      }
+
       if (event === 'SIGNED_OUT') {
         // 로그아웃 시 명확히 상태 초기화
-        console.log('[AuthContext] 로그아웃 처리');
+        console.log('[AuthContext] 👋 로그아웃 처리');
         setSession(null);
         setUser(null);
         setIsAdmin(false);
         setUserProfile(null); // Clear profile
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        console.log('[AuthContext] 세션 설정:', currentUser?.email);
+      }
+      // TOKEN_REFRESHED 처리
+      else if (event === 'TOKEN_REFRESHED') {
+        console.log('[AuthContext] 🔄 Token refreshed successfully');
+        setSession(session);
+        setUser(currentUser);
+        setIsAdmin(adminStatus);
+      }
+      // 토큰 갱신 실패 처리 (User updated but no session)
+      else if (event === 'USER_UPDATED' && !session) {
+        console.warn('[AuthContext] ⚠️ User updated but no session - possible refresh failure');
+        await cleanupStaleSession();
+      }
+      else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        console.log('[AuthContext] 👤 세션 설정:', currentUser?.email);
         setSession(session);
         setUser(currentUser);
         setIsAdmin(adminStatus);
@@ -197,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // 기타 이벤트
-        console.log('[AuthContext] 기타 이벤트 처리');
+        console.log('[AuthContext] 📝 기타 이벤트 처리');
         setSession(session);
         setUser(currentUser);
         setIsAdmin(adminStatus);
@@ -386,8 +465,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithKakao,
     signOut,
     cancelAuth,
+    validateSession, // 새로 추가된 메서드
     ...(import.meta.env.DEV && { signInAsDevAdmin }),
   };
+
+  // 로딩 중일 때는 앱 렌더링을 차단하여, 하위 컴포넌트가 불안정한 세션 상태(좀비 토큰 등)로 API를 호출하는 것을 방지
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        backgroundColor: '#ffffff'
+      }}>
+        <div className="auth-callback-spinner" style={{ width: '40px', height: '40px' }}></div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={contextValue}>

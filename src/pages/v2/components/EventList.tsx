@@ -134,7 +134,7 @@ export default function EventList({
   sectionViewMode = 'preview',
   onSectionViewModeChange,
 }: EventListProps) {
-  const { user, signInWithKakao } = useAuth();
+  const { user, signInWithKakao, validateSession } = useAuth();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') ?? 'all';
@@ -423,13 +423,20 @@ export default function EventList({
         setEvents(eventList);
       }
     } catch (error: unknown) {
-      console.error("이벤트 상세 로딩 실패:", (error as Error).message);
-      setLoadError((error as Error).message || "알 수 없는 오류");
+      const errorMessage = (error as Error).message;
+      console.error("이벤트 상세 로딩 실패:", errorMessage);
+      setLoadError(errorMessage || "알 수 없는 오류");
       setEvents([]);
+
+      // 타임아웃 발생 시 세션 검증 시도 (좀비 토큰 가능성)
+      if (errorMessage.includes("시간 초과")) {
+        console.warn("[EventList] ⏱️ Timeout detected, verifying session integrity...");
+        await validateSession();
+      }
     } finally {
       setLoading(false);
     }
-  }, [isAdminMode]);
+  }, [isAdminMode, validateSession]);
 
   // Silent refresh for background updates (no loading spinner)
   const fetchEventsSilently = useCallback(async () => {

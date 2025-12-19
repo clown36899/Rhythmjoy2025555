@@ -166,6 +166,11 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      // Netlify Functions 프록시 (로컬 개발용)
+      '/.netlify': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+      },
     },
     // allowedHosts 설정은 그대로 유지하여 Blocked Request 방지
     allowedHosts: [".replit.dev", ".repl.co", "localhost", "127.0.0.1"],

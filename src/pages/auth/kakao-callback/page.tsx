@@ -7,38 +7,40 @@ export default function KakaoCallbackPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
-    const processingRef = useRef(false); // Ref to track processing state across renders
+    // Ref to track processing state within a single mount (still useful for manual double-invoke protection)
+    const processingRef = useRef(false);
 
     useEffect(() => {
+        let uniqueTimer: NodeJS.Timeout | null = null;
         let cancelled = false;
 
         const handleCallback = async () => {
-            // Prevent double execution in Strict Mode or if called multiple times
+            // Prevent execution if already processing (local guard)
             if (processingRef.current) return;
             processingRef.current = true;
 
+            const code = searchParams.get('code');
+            const error = searchParams.get('error');
+            const errorDescription = searchParams.get('error_description');
+
+            if (error) {
+                if (cancelled) return;
+                console.error('[Kakao Callback] Error:', error, errorDescription);
+                alert(errorDescription || '카카오 로그인에 실패했습니다.');
+                navigate('/', { replace: true });
+                return;
+            }
+
+            // 코드 존재 여부 체크
+            if (!code) {
+                if (cancelled) return;
+                alert('인증 코드가 없습니다.');
+                navigate('/', { replace: true });
+                return;
+            }
+
             try {
-                // 1. URL에서 인증 코드 추출
-                const code = searchParams.get('code');
-                const error = searchParams.get('error');
-                const errorDescription = searchParams.get('error_description');
-
-                if (error) {
-                    if (cancelled) return;
-                    console.error('[Kakao Callback] Error:', error, errorDescription);
-                    alert(errorDescription || '카카오 로그인에 실패했습니다.');
-                    navigate('/', { replace: true });
-                    return;
-                }
-
-                if (!code) {
-                    if (cancelled) return;
-                    alert('인증 코드가 없습니다.');
-                    navigate('/', { replace: true });
-                    return;
-                }
-
-                console.log('[Kakao Callback] 인증 코드 수신:', code.substring(0, 10) + '...');
+                console.log('[Kakao Callback] 인증 코드 수신 (Debounced):', code.substring(0, 10) + '...');
 
                 // 2. 서버로 인증 코드 전송
                 const authEndpoint = '/.netlify/functions/kakao-login';
@@ -73,7 +75,7 @@ export default function KakaoCallbackPage() {
 
                 // 3. Supabase 세션 설정
                 if (authData.session) {
-                    console.log('[Kakao Callback] Session data:', JSON.stringify(authData.session, null, 2));
+                    console.log('[Kakao Callback] Session data obtained successfully');
                     const { error: sessionError } = await supabase.auth.setSession({
                         access_token: authData.session.access_token,
                         refresh_token: authData.session.refresh_token,
@@ -99,18 +101,30 @@ export default function KakaoCallbackPage() {
             } catch (error: any) {
                 if (cancelled) return;
                 console.error('[Kakao Callback] Error:', error);
-                alert(error.message || '알 수 없는 오류가 발생했습니다');
+
+                // KOE320 에러는 이미 사용된 코드라는 뜻이므로, 사용자에게는 조용히 넘어가거나 재로그인 유도
+                if (error.message?.includes('KOE320')) {
+                    alert('인증 코드가 만료되었습니다. 다시 로그인해주세요.');
+                } else {
+                    alert(error.message || '알 수 없는 오류가 발생했습니다');
+                }
+
                 navigate('/', { replace: true });
             }
         };
 
-        handleCallback();
+        // Strict Mode에서의 이중 호출 방지를 위한 Debounce (300ms)
+        // 첫 번째 마운트(Effect)는 즉시 Unmount되면서 cleanup에서 타이머를 해제하므로 실행되지 않음
+        // 두 번째 마운트(Effect)만 타이머가 완료되어 실행됨
+        uniqueTimer = setTimeout(() => {
+            handleCallback();
+        }, 300);
 
         return () => {
             cancelled = true; // Cleanup: prevent state updates after unmount
+            if (uniqueTimer) clearTimeout(uniqueTimer); // 취소된 Effect의 타이머 해제
         };
     }, [searchParams, navigate]);
-
 
     return (
         <div className="auth-callback-container">
