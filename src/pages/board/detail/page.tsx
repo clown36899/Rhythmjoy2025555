@@ -116,14 +116,19 @@ export default function BoardDetailPage() {
 
         if (!viewedPosts.includes(postId)) {
             // User hasn't viewed this post yet, increment view count
-            await supabase
-                .from('board_posts')
-                .update({ views: currentViews + 1 })
-                .eq('id', postId);
+            // User hasn't viewed this post yet, increment view count
+            const { error } = await supabase.rpc('increment_board_post_views', {
+                p_post_id: postId
+            });
 
-            // Mark this post as viewed
-            viewedPosts.push(postId);
-            localStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+            if (!error) {
+                // Update local state to reflect the change immediately
+                setPost(prev => prev ? { ...prev, views: currentViews + 1 } : null);
+
+                // Mark this post as viewed
+                viewedPosts.push(postId);
+                localStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+            }
         }
     };
 

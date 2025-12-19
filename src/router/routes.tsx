@@ -16,7 +16,7 @@ const PracticePage = lazy(prefetchPracticePage);
 export const prefetchPracticeDetailPage = () => import('../pages/practice/detail/page');
 const PracticeDetailPage = lazy(prefetchPracticeDetailPage);
 
-export const prefetchBoardPage = () => import('../pages/board/page');
+export const prefetchBoardPage = () => import('../pages/board/BoardMainContainer');
 const BoardPage = lazy(prefetchBoardPage);
 
 export const prefetchBoardDetailPage = () => import('../pages/board/detail/page');
