@@ -288,7 +288,11 @@ export function MobileShell() {
 
           {/* 1. Events Page (Home) */}
           {isEventsPage && (
-            <div className="header-events-content">
+            <div
+              className="header-events-content"
+              onClick={() => window.location.reload()}
+              style={{ cursor: 'pointer' }}
+            >
               <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1' }}>
                 <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>

@@ -31,7 +31,7 @@
     /* 기본적으로 부모 스타일 상속 */
 
     /* 테스트: 강습 섹션만 다른 패딩 적용 */
-    padding: 0 0 25px 0;
+    padding: 0 0 0px 0;
 }
 
 .evt-v2-section-classes .evt-v2-horizontal-scroll {

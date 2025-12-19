@@ -322,13 +322,18 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  height: 60px;
+  /* height: 60px; - safe area 적용을 위해 제거 */
+  height: calc(60px + env(safe-area-inset-top));
+  /* safe area 만큼 높이 확장 */
+  padding-top: env(safe-area-inset-top);
+  /* safe area 만큼 상단 여백 추가 */
   background-color: #000000;
   z-index: 49;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 13px;
+  padding-left: 13px;
+  padding-right: 13px;
   border-bottom: 0.3px solid #37415199;
 }
 
@@ -336,16 +341,19 @@
 .shell-header.global-header-fixed-bottom {
   position: relative;
   top: 0;
-  padding: 0px 12px !important;
+  /* padding: 0px 12px !important; - safe area 적용을 위해 수정 */
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: env(safe-area-inset-top);
   left: 0;
   right: 0;
-  height: 60px;
+  /* height: 60px; - safe area 적용을 위해 제거 */
+  height: calc(60px + env(safe-area-inset-top));
   background-color: #000000;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
   /* border-bottom: 1px solid #374151; */
 }
 
@@ -437,8 +445,8 @@
 }
 
 .header-user-avatar {
-  width: 28px;
-  height: 28px;
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
   object-fit: cover;
   /* border: 2px solid rgba(255, 255, 255, 0.3); */

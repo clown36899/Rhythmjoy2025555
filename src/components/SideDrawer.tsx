@@ -11,7 +11,7 @@ interface SideDrawerProps {
 
 export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawerProps) {
     const navigate = useNavigate();
-    const { user, billboardUserName, signOut, userProfile } = useAuth();
+    const { user, billboardUserName, signOut, userProfile, isAdmin } = useAuth();
 
     // Derive display values from userProfile or fallback to user metadata
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
@@ -93,6 +93,49 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                 </div>
 
                 <nav className="drawer-nav">
+                    {/* 1. 개인 메뉴 (로그인 시에만 표시) */}
+                    {user && (
+                        <>
+                            <div className="drawer-section-title">MY MENU</div>
+                            <div className="drawer-menu-item" onClick={() => {
+                                onClose();
+                                navigate('/v2?view=favorites');
+                            }}>
+                                <i className="ri-heart-3-line" style={{ color: '#f87171' }}></i>
+                                <span>내 즐겨찾기</span>
+                            </div>
+                            {/* 내가 쓴 이벤트 (추후 구현 예정, 현재는 UI만 배치하거나 숨김 처리) */}
+                            {/* 
+                            <div className="drawer-menu-item" onClick={() => handleNavigation('/my-events')}>
+                                <i className="ri-file-list-3-line"></i>
+                                <span>내가 등록한 행사</span>
+                            </div> 
+                            */}
+                            <div className="drawer-divider"></div>
+                        </>
+                    )}
+
+                    {/* 2. 베타/테스트 기능 */}
+                    <div className="drawer-section-title">BETA / LAB</div>
+                    <div
+                        className="drawer-menu-item"
+                        onClick={() => {
+                            if (isAdmin) {
+                                handleNavigation('/event-photo-finder');
+                            } else {
+                                alert('관리자 및 승인된 사용자만 이용 가능한 기능입니다.');
+                            }
+                        }}
+                        style={!isAdmin ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                    >
+                        <i className="ri-camera-lens-line" style={{ color: '#fb923c' }}></i>
+                        <span>AI 사진 찾기 <span className="drawer-badge">New</span></span>
+                        {!isAdmin && <i className="ri-lock-line" style={{ marginLeft: 'auto', fontSize: '14px', color: '#9ca3af' }}></i>}
+                    </div>
+                    <div className="drawer-divider"></div>
+
+                    {/* 3. 전체 메뉴 */}
+                    <div className="drawer-section-title">SERVICE</div>
                     <div className="drawer-menu-item" onClick={() => handleNavigation('/v2')}>
                         <i className="ri-home-4-line"></i>
                         <span>홈</span>
@@ -100,10 +143,6 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     <div className="drawer-menu-item" onClick={() => handleNavigation('/social')}>
                         <i className="ri-calendar-event-line"></i>
                         <span>소셜 (이벤트)</span>
-                    </div>
-                    <div className="drawer-menu-item" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-                        <i className="ri-camera-face-line"></i>
-                        <span>내 사진 찾기 (AI) <span style={{ fontSize: '0.7em', marginLeft: '4px', color: '#fb923c' }}>(개발중)</span></span>
                     </div>
                     <div className="drawer-menu-item" onClick={() => handleNavigation('/calendar')}>
                         <i className="ri-calendar-line"></i>
@@ -113,18 +152,6 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         <i className="ri-building-line"></i>
                         <span>연습실</span>
                     </div>
-                    {user && (
-                        <div className="drawer-menu-item" onClick={() => {
-                            // Close drawer and scroll/navigate to favorites
-                            onClose();
-                            // If we are on main page, dispatch event or scroll.
-                            // For simplicity, navigate to main page with query param
-                            navigate('/v2?view=favorites');
-                        }}>
-                            <i className="ri-heart-3-line" style={{ color: '#f87171' }}></i>
-                            <span>내 즐겨찾기</span>
-                        </div>
-                    )}
                     <div className="drawer-menu-item" onClick={() => handleNavigation('/board')}>
                         <i className="ri-discuss-line"></i>
                         <span>자유게시판</span>

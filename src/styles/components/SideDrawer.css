@@ -124,6 +124,36 @@
     padding: 20px 0;
 }
 
+/* Section Title */
+.drawer-section-title {
+    padding: 8px 24px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+/* Divider */
+.drawer-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 12px 24px;
+}
+
+/* Badge */
+.drawer-badge {
+    background-color: #f97316;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
 .drawer-menu-item {
     padding: 14px 24px;
     display: flex;
@@ -148,6 +178,8 @@
 .drawer-menu-item span {
     font-size: 15px;
     font-weight: 500;
+    display: flex;
+    align-items: center;
 }
 
 .drawer-footer {
