@@ -206,14 +206,13 @@ export default function EventList({
   useEffect(() => {
     const view = searchParams.get('view');
     if (view === 'favorites') {
-      setTimeout(() => {
-        const el = document.querySelector('.evt-v2-section-favorites');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 500);
+      // "모아보기" 모드에서는 페이지 최상단으로 이동 (전용 페이지처럼 동작)
+      // body가 스크롤 컨테이너인 경우(overflow: auto)와 window 스크롤인 경우 모두 대응
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+      if (document.documentElement) document.documentElement.scrollTop = 0;
     }
-  }, [searchParams, favoriteEventsList.length]);
+  }, [searchParams]);
 
   const handleToggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -2240,7 +2239,7 @@ export default function EventList({
               <span className="evt-v2-count">{favoriteEventsList.length}</span>
             </div>
             {favoriteEventsList.length > 0 ? (
-              <div className="evt-grid-3-4-10 evt-px-4">
+              <div className="evt-favorites-grid evt-px-4">
                 {favoriteEventsList.map(event => (
                   <EventCard
                     key={event.id}
@@ -2403,6 +2402,16 @@ export default function EventList({
                     <i className="ri-heart-3-fill" style={{ color: '#ff6b6b', marginRight: '6px' }}></i>
                     <span>즐겨찾기</span>
                     <span className="evt-v2-count">{favoriteEventsList.length}</span>
+                    <button
+                      className="evt-view-all-btn"
+                      onClick={() => {
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.set('view', 'favorites');
+                        setSearchParams(newParams);
+                      }}
+                    >
+                      모아보기 ❯
+                    </button>
                   </div>
                   <div className="evt-v2-horizontal-scroll">
                     <div className="evt-spacer-5"></div>

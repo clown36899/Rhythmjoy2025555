@@ -815,6 +815,42 @@
   height: 100% !important;
 }
 
+/* ===== Managed Separately: Favorites View Grid ===== */
+.evt-favorites-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.4rem !important;
+  padding: 0 18px;
+}
+
+@media (min-width: 640px) {
+  .evt-favorites-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .evt-favorites-grid {
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+  }
+}
+
+.evt-favorites-grid .card-container {
+  aspect-ratio: 3/4 !important;
+  width: 100% !important;
+}
+
+.evt-favorites-grid .card-image-wrapper {
+  height: 100% !important;
+  padding-top: 0 !important;
+}
+
+.evt-favorites-grid img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
 .evt-hover-bg-blue-700:hover {
   background-color: var(--color-blue-700);
 }

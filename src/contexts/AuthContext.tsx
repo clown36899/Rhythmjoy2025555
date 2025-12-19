@@ -415,11 +415,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // "안 없어지는데?" 라는 피드백을 받았으므로, 안전장치로 리로드 호출 후에도 혹시 모를 상황 대비는 어려움(페이지 넘어가니까)
       // 에러 발생 시 catch 블록에서 리로드함.
 
-      window.location.replace('/');
+      // ⚠️ [중요] 빌보드 페이지(/billboard/)에서는 리다이렉트 하지 않음
+      // 빌보드는 로그인이 필요 없는 공개 페이지이지만, 이전에 로그인했던(관리자 등) 세션 찌꺼기로 인해 
+      // 403 에러 -> signOut()이 트리거될 수 있음. 이때 메인으로 튕기면 안됨.
+      if (!window.location.pathname.includes('/billboard/')) {
+        window.location.replace('/');
+      } else {
+        logToStorage('[AuthContext.signOut] 빌보드 페이지 감지 - 리다이렉트 건너뜀 (현재 페이지 유지)');
+      }
     } catch (error) {
       logToStorage('[AuthContext.signOut] ❌ 에러 발생: ' + (error as Error).message);
-      // 실패해도 페이지 리로드로 강제 초기화
-      window.location.replace('/');
+      // 실패해도 페이지 리로드로 강제 초기화 (단, 빌보드는 제외)
+      if (!window.location.pathname.includes('/billboard/')) {
+        window.location.replace('/');
+      } else {
+        logToStorage('[AuthContext.signOut] 빌보드 페이지 에러 발생 - 리다이렉트 건너뜀');
+      }
     } finally {
       // 성공하든 실패하든 리로드가 호출됨.
       // 브라우저가 리로드를 처리하는 동안 JS 실행이 멈추거나 페이지가 전환됨.
