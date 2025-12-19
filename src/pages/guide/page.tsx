@@ -67,7 +67,7 @@ export default function GuidePage() {
           content: {
             title: '스윙 일정통합 플랫폼 댄스빌보드',
             description: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
-            imageUrl: window.location.origin + '/logo.png',
+            imageUrl: window.location.origin + '/kakao-share-card.png',
             link: {
               mobileWebUrl: window.location.origin,
               webUrl: window.location.origin,
