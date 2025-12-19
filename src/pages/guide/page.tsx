@@ -69,16 +69,16 @@ export default function GuidePage() {
             description: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
             imageUrl: window.location.origin + '/kakao-share-card.png',
             link: {
-              mobileWebUrl: window.location.origin,
-              webUrl: window.location.origin,
+              mobileWebUrl: 'https://swingenjoy.com',
+              webUrl: 'https://swingenjoy.com',
             },
           },
           buttons: [
             {
               title: '구경하러 가기',
               link: {
-                mobileWebUrl: window.location.origin,
-                webUrl: window.location.origin,
+                mobileWebUrl: 'https://swingenjoy.com',
+                webUrl: 'https://swingenjoy.com',
               },
             },
           ],
@@ -98,7 +98,7 @@ export default function GuidePage() {
     const shareData = {
       title: '스윙 일정확인 플랫폼 댄스빌보드',
       text: '댄스빌보드에서 다양한 이벤트와 강습, 쇼핑정보를 확인하세요!',
-      url: window.location.origin, // 메인 홈페이지 주소 공유
+      url: 'https://swingenjoy.com', // 공식 도메인 공유
     };
 
     // 1. Web Share API (모바일 기본 공유 화면) 우선 시도
