@@ -205,8 +205,6 @@ export default function BoardMainContainer() {
                 })
             );
 
-            // console.log('Loaded Posts with Prefixes:', ...); // Removed debug log
-
             setPosts(postsWithProfiles as BoardPost[]);
         } catch (error) {
             console.error('게시글 로딩 실패:', error);
@@ -219,60 +217,7 @@ export default function BoardMainContainer() {
     const totalPages = Math.ceil(posts.length / postsPerPage);
     const currentPosts = posts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
 
-    // Auto-Release Note Logic
-    useEffect(() => {
-        if (isRealAdmin && category === 'dev-log') {
-            checkAndAutoPublish();
-        }
-    }, [isRealAdmin, category]);
-
-    const checkAndAutoPublish = async () => {
-        try {
-            // 1. Check if this version is already recorded
-            const { data: versionData } = await supabase
-                .from('app_versions')
-                .select('*')
-                .eq('version', __APP_VERSION__)
-                .maybeSingle();
-
-            if (versionData) return; // Already published
-
-            // 2. Publish Post
-            const title = `Version ${__APP_VERSION__} 업데이트 안내`;
-            const content = `안녕하세요, 리듬앤조이 개발팀입니다.\n\n금일 업데이트(v${__APP_VERSION__})를 통해 다음과 같은 기능 개선이 이루어졌습니다.\n\n[주요 변경사항]\n- \n- \n- \n\n감사합니다.`;
-
-            const { error: postError } = await supabase
-                .from('board_posts')
-                .insert({
-                    title,
-                    content,
-                    category: 'dev-log',
-                    user_id: user?.id,
-                    author_name: user?.user_metadata?.name || '관리자',
-                    is_notice: true
-                });
-
-            if (postError) throw postError;
-
-            // 3. Record Version
-            await supabase
-                .from('app_versions')
-                .insert({ version: __APP_VERSION__, released_by: user?.id });
-
-            alert(`[자동 알림] v${__APP_VERSION__} 배포 공지가 자동 작성되었습니다.\n내용을 수정해주세요!`);
-            loadPosts(); // Refresh list
-
-        } catch (e) {
-            console.error('Auto-publish failed:', e);
-        }
-    };
-
-    const handleReleaseNoteClick = () => {
-        // ... (Manual trigger if needed, but logic is now auto)
-        checkAndAutoPublish();
-    };
-
-    // ... existing global listener ...
+    // Global Write Event Listener (from MobileShell)
     useEffect(() => {
         const handleWriteClick = () => {
             setIsEditorOpen(true);
@@ -307,20 +252,6 @@ export default function BoardMainContainer() {
                 }}>
                     {showAdminMenu && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                            {category === 'dev-log' && (
-                                <button
-                                    onClick={() => { handleReleaseNoteClick(); setShowAdminMenu(false); }}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
-                                        backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '20px',
-                                        boxShadow: '0 4px 6px rgba(0,0,0,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
-                                        fontSize: '14px', fontWeight: '500'
-                                    }}
-                                >
-                                    <span>🚀 배포 공지 작성</span>
-                                    <i className="ri-rocket-line"></i>
-                                </button>
-                            )}
                             <button
                                 onClick={() => { setIsManagementOpen(true); setShowAdminMenu(false); }}
                                 style={{

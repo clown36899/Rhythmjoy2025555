@@ -36,18 +36,22 @@ const isBillboardPage = () => {
 /**
  * Google Analytics 초기화
  * 앱 시작 시 한 번만 호출
- * 개발 환경(localhost) 및 빌보드 페이지에서는 초기화하지 않음
+ * 실제 서비스 도메인(swingenjoy.com, swingandjoy.com)에서만 초기화
  */
 export const initGA = () => {
-    // 개발 환경에서는 GA 비활성화
-    if (isDevelopment()) {
-        console.log('[Analytics] Development environment detected - Analytics disabled');
+    // 1. 개발 환경/빌보드 페이지 차단 (기존 로직 유지)
+    if (isDevelopment() || isBillboardPage()) {
+        console.log('[Analytics] Analytics disabled (Dev/Billboard)');
         return;
     }
 
-    // 빌보드 페이지에서는 GA 비활성화 (자동 재생으로 인한 통계 왜곡 방지)
-    if (isBillboardPage()) {
-        console.log('[Analytics] Billboard page detected - Analytics disabled');
+    // 2. 도메인 화이트리스트 체크 (Prod Only)
+    const hostname = window.location.hostname;
+    const allowedDomains = ['swingenjoy.com', 'swingandjoy.com', 'www.swingenjoy.com', 'www.swingandjoy.com'];
+
+    // 리듬앤조이 공식 도메인이 아니면 차단 (Netlify Preview, Replit 등)
+    if (!allowedDomains.includes(hostname)) {
+        console.log(`[Analytics] Analytics disabled (Non-production domain: ${hostname})`);
         return;
     }
 
