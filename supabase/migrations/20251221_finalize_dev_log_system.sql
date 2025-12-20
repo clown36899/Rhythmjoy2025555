@@ -28,22 +28,22 @@ ALTER TABLE board_posts ADD CONSTRAINT check_category
 
 -- Insert 'dev-log' category metadata
 INSERT INTO board_categories (code, name, display_order, is_active)
-VALUES ('dev-log', '개발일지', -1, true)
-ON CONFLICT (code) DO UPDATE SET is_active = true, display_order = -1;
+VALUES ('dev-log', '개발일지', 100, true)
+ON CONFLICT (code) DO UPDATE SET is_active = true, display_order = 100;
 
 
 -- ==========================================
--- 3. Initial Data Seeding (Version 2.2.2)
+-- 3. Initial Data Seeding (Version 2.2.3)
 -- ==========================================
--- 3-1. Record Version 2.2.2 in app_versions
-INSERT INTO app_versions (version) VALUES ('2.2.2') ON CONFLICT DO NOTHING;
+-- 3-1. Record Version 2.2.3 in app_versions
+INSERT INTO app_versions (version) VALUES ('2.2.3') ON CONFLICT DO NOTHING;
 
--- 3-2. Create the v2.2.2 Announcement Post (Idempotent check)
+-- 3-2. Create the v2.2.3 Announcement Post (Idempotent check)
 DO $$
 DECLARE
   admin_id UUID;
   admin_name TEXT;
-  post_title TEXT := 'Version 2.2.2 업데이트 안내';
+  post_title TEXT := 'Version 2.2.3 업데이트 안내';
 BEGIN
   -- Find an admin to be the author
   SELECT id, email INTO admin_id, admin_name FROM auth.users ORDER BY created_at ASC LIMIT 1;
@@ -61,7 +61,7 @@ BEGIN
       post_title, 
       '안녕하세요, 리듬앤조이 개발팀입니다.
 
-금일 업데이트(v2.2.2)를 통해 다음과 같은 기능 개선이 이루어졌습니다.
+금일 업데이트(v2.2.3)를 통해 다음과 같은 기능 개선이 이루어졌습니다.
 
 1. **메뉴 순서 재배치**
    - 하단 메뉴바의 순서가 [이벤트 > 전체달력 > 자유게시판 > 연습실 > 쇼핑 > 안내] 순으로 변경되었습니다.
