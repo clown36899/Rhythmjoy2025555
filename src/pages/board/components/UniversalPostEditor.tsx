@@ -98,10 +98,18 @@ export default function UniversalPostEditor({
 
     const loadPrefixes = async () => {
         try {
-            const { data, error } = await supabase
+            // Filter by board_category_code matching the current post's category
+            // We use formData.category since that's what controls the current post
+            let query = supabase
                 .from('board_prefixes')
                 .select('*')
                 .order('display_order', { ascending: true });
+
+            if (formData.category) {
+                query = query.eq('board_category_code', formData.category);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             setPrefixes(data || []);
@@ -109,6 +117,13 @@ export default function UniversalPostEditor({
             console.error('머릿말 로드 실패:', error);
         }
     };
+
+    // Reload prefixes when category changes
+    useEffect(() => {
+        if (formData.category) {
+            loadPrefixes();
+        }
+    }, [formData.category]);
 
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import AdminUserInfoModal from '../../../components/AdminUserInfoModal';
@@ -14,6 +15,7 @@ interface BoardUser {
 }
 
 export default function SecureMembersPage() {
+    const navigate = useNavigate();
     const { isAdmin } = useAuth();
     const [users, setUsers] = useState<BoardUser[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<BoardUser[]>([]);
@@ -83,6 +85,21 @@ export default function SecureMembersPage() {
                 <div className="boum-header">
                     <div className="boum-header-top">
                         <h2 className="boum-title">🛡️ 관리자 보안 조회 시스템</h2>
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="boum-close-btn"
+                            style={{
+                                color: '#9ca3af',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '1.5rem',
+                                padding: '8px'
+                            }}
+                            title="돌아가기"
+                        >
+                            <i className="ri-close-line"></i>
+                        </button>
                     </div>
 
                     <div className="boum-search-area">

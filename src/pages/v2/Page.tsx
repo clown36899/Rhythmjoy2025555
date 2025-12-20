@@ -398,6 +398,7 @@ export default function HomePageV2() {
                             onSharedEventOpened={() => setSharedEventId(null)}
                             dragOffset={dragOffset}
                             isAnimating={isAnimating}
+                            onEventClickInFullscreen={(event) => setSelectedEvent(event)}
                             slideContainerRef={eventListSlideContainerRef}
                             onMonthChange={setCurrentMonth}
                             calendarMode={calendarMode}

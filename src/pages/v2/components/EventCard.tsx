@@ -24,6 +24,7 @@ interface EventCardProps {
   hideDate?: boolean;
   isFavorite?: boolean;
   onToggleFavorite?: (e: React.MouseEvent) => void;
+  className?: string; // Add className prop
 }
 
 export const EventCard = memo(({
@@ -40,6 +41,7 @@ export const EventCard = memo(({
   hideDate = false,
   isFavorite = false,
   onToggleFavorite,
+  className = "", // Destructure className
 }: EventCardProps) => {
   const highlightBorderColor =
     event.category === "class" ? "#9333ea" : "#2563eb";
@@ -110,7 +112,7 @@ export const EventCard = memo(({
     <div
       key={event.id}
       data-event-id={event.id}
-      className={`card-container ${isPast ? 'card-container-past' : ''} ${variant === 'favorite' ? 'evt-card-favorite' : categoryClass} ${isHighlighted ? 'qr-highlighted' : ''}`}
+      className={`card-container ${isPast ? 'card-container-past' : ''} ${variant === 'favorite' ? 'evt-card-favorite' : categoryClass} ${isHighlighted ? 'qr-highlighted' : ''} ${className}`}
       onClick={onClick}
       onMouseEnter={() => onMouseEnter?.(event.id)}
       onMouseLeave={onMouseLeave}

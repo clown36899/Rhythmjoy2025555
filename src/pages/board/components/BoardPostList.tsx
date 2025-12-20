@@ -11,6 +11,8 @@ interface BoardPostListProps {
     currentPage: number;
     totalPages: number;
     onPageChange: (page: number) => void;
+    likedPostIds: Set<number>;
+    onToggleLike: (postId: number) => void;
 }
 
 export default function BoardPostList({
@@ -20,7 +22,9 @@ export default function BoardPostList({
     onPostClick,
     currentPage,
     totalPages,
-    onPageChange
+    onPageChange,
+    likedPostIds,
+    onToggleLike
 }: BoardPostListProps) {
 
     const formatDate = (dateString: string) => {
@@ -113,18 +117,17 @@ export default function BoardPostList({
                                         }`}
                                 >
                                     {post.is_hidden && <span className="post-hidden-badge">🔒</span>}
-                                    {/* Hidden Status Indicator (Admin only) */}
-                                    {(post as any).is_hidden && (
-                                        <span style={{ marginRight: '6px', color: '#ff4d4f', display: 'flex', alignItems: 'center' }} title="숨김 처리된 게시글">
-                                            <i className="ri-lock-2-fill"></i>
-                                        </span>
-                                    )}
+                                    {/* Duplicate hidden icon removed */}
                                     {post.title}
                                 </h3>
                             </div>
                             <p className="board-post-content">{post.content}</p>
                             <div className="board-post-meta">
                                 <div className="board-post-meta-left">
+                                    <span className="board-post-meta-item">
+                                        No.{post.id}
+                                    </span>
+                                    <span className="board-post-meta-separator">·</span>
                                     <span className="board-post-meta-item">
                                         {post.author_profile_image ? (
                                             <img
@@ -137,9 +140,21 @@ export default function BoardPostList({
                                         )}
                                         {post.author_nickname || post.author_name}
                                     </span>
+                                    <span className="board-post-meta-separator">·</span>
                                     <span className="board-post-meta-item">
                                         <i className="ri-eye-line board-post-meta-icon"></i>
                                         {post.views}
+                                    </span>
+                                    <span className="board-post-meta-separator">·</span>
+                                    <span
+                                        className={`board-post-meta-item board-post-like-btn ${likedPostIds.has(post.id) ? 'liked' : ''}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onToggleLike(post.id);
+                                        }}
+                                    >
+                                        <i className={`${likedPostIds.has(post.id) ? 'ri-heart-3-fill' : 'ri-heart-3-line'} board-post-meta-icon`}></i>
+                                        {/* Optional: Add count if available later */}
                                     </span>
                                 </div>
                                 <span>{formatDate(post.created_at)}</span>

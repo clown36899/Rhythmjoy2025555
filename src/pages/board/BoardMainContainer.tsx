@@ -6,6 +6,7 @@ import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPostList from './components/BoardPostList';
 import UniversalPostEditor from './components/UniversalPostEditor';
 import BoardManagementModal from './components/BoardManagementModal';
+import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
 import './board.css'; // Inherit basic layout styles
 import type { BoardPost } from './page'; // Import types
 
@@ -17,14 +18,19 @@ export default function BoardMainContainer() {
     const [isAdminChecked, setIsAdminChecked] = useState(false);
 
     // Force reload trigger
-    console.log("BoardMainContainer rendering"); // New flag to wait for check
+    console.log("BoardMainContainer rendering");
 
     // State
     const category = (searchParams.get('category') as BoardCategory) || 'free';
     const [posts, setPosts] = useState<BoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
-    const [isManagementOpen, setIsManagementOpen] = useState(false);
+
+    // Admin States
+    const [showAdminMenu, setShowAdminMenu] = useState(false);
+    const [isManagementOpen, setIsManagementOpen] = useState(false); // Categories
+    const [isPrefixManagementOpen, setIsPrefixManagementOpen] = useState(false); // Prefixes
+
     const [key, setKey] = useState(0); // For forcing re-render of TabBar
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 10;
@@ -75,6 +81,71 @@ export default function BoardMainContainer() {
         }
     };
 
+    // Likes State
+    const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set());
+
+    // Load Likes
+    useEffect(() => {
+        if (user) {
+            fetchLikes();
+        } else {
+            setLikedPostIds(new Set());
+        }
+    }, [user]);
+
+    const fetchLikes = async () => {
+        if (!user) return;
+        const { data } = await supabase
+            .from('board_post_likes')
+            .select('post_id')
+            .eq('user_id', user.id);
+
+        if (data) {
+            setLikedPostIds(new Set(data.map(l => l.post_id)));
+        }
+    };
+
+    const handleToggleLike = async (postId: number) => {
+        if (!user) {
+            alert('로그인이 필요한 기능입니다.');
+            return;
+        }
+
+        const isLiked = likedPostIds.has(postId);
+
+        // Optimistic Update
+        setLikedPostIds(prev => {
+            const next = new Set(prev);
+            if (isLiked) next.delete(postId);
+            else next.add(postId);
+            return next;
+        });
+
+        try {
+            if (isLiked) {
+                await supabase
+                    .from('board_post_likes')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('post_id', postId);
+            } else {
+                await supabase
+                    .from('board_post_likes')
+                    .insert({ user_id: user.id, post_id: postId });
+            }
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            // Rollback on error
+            setLikedPostIds(prev => {
+                const next = new Set(prev);
+                if (isLiked) next.add(postId);
+                else next.delete(postId);
+                return next;
+            });
+            alert('좋아요 처리 중 오류가 발생했습니다.');
+        }
+    };
+
     const loadPosts = async () => {
         try {
             setLoading(true);
@@ -108,13 +179,6 @@ export default function BoardMainContainer() {
                 query = query.eq('is_hidden', false);
             }
 
-            // Pagination logic could be server-side, but client-side for simplicity as per original
-            // But for better performance, let's do server logic if possible.
-            // Original code did client-side pagination. Let's stick to client-side for "Isolation" safely, 
-            // OR let's try to infer if we should fetch all. 
-            // Original: fetched ALL posts then sliced.
-            // We will follow suit to minimize backend logic changes risk.
-
             const { data, error } = await query;
 
             if (error) throw error;
@@ -138,6 +202,8 @@ export default function BoardMainContainer() {
                     };
                 })
             );
+
+            // console.log('Loaded Posts with Prefixes:', ...); // Removed debug log
 
             setPosts(postsWithProfiles as BoardPost[]);
         } catch (error) {
@@ -171,33 +237,82 @@ export default function BoardMainContainer() {
                 />
             </div>
 
-            {/* Admin Floating Button (Guaranteed Visibility) */}
+            {/* Admin Floating Action Button (FAB) Menu */}
             {isRealAdmin && (
-                <button
-                    onClick={() => setIsManagementOpen(true)}
-                    className="board-admin-fab"
-                    style={{
-                        position: 'fixed',
-                        bottom: '80px', // Above bottom tab bar if exists
-                        right: '20px',
-                        width: '50px',
-                        height: '50px',
-                        borderRadius: '50%',
-                        backgroundColor: '#333',
-                        color: 'white',
-                        border: 'none',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '24px',
-                        zIndex: 9999,
-                        cursor: 'pointer'
-                    }}
-                    title="게시판 관리"
-                >
-                    <i className="ri-settings-3-fill"></i>
-                </button>
+                <div style={{
+                    position: 'fixed',
+                    bottom: '80px', // Above bottom tab bar if exists
+                    right: '20px',
+                    zIndex: 9999,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    gap: '10px'
+                }}>
+                    {showAdminMenu && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                            <button
+                                onClick={() => { setIsManagementOpen(true); setShowAdminMenu(false); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
+                                    backgroundColor: '#4B5563', color: 'white', border: 'none', borderRadius: '20px',
+                                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
+                                    fontSize: '14px', fontWeight: '500'
+                                }}
+                            >
+                                <span>게시판 관리</span>
+                                <i className="ri-layout-masonry-line"></i>
+                            </button>
+                            <button
+                                onClick={() => { setIsPrefixManagementOpen(true); setShowAdminMenu(false); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
+                                    backgroundColor: '#4B5563', color: 'white', border: 'none', borderRadius: '20px',
+                                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
+                                    fontSize: '14px', fontWeight: '500'
+                                }}
+                            >
+                                <span>머릿말 관리</span>
+                                <i className="ri-text-spacing"></i>
+                            </button>
+                            <button
+                                onClick={() => { navigate('/admin/secure-members'); setShowAdminMenu(false); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
+                                    backgroundColor: '#4B5563', color: 'white', border: 'none', borderRadius: '20px',
+                                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
+                                    fontSize: '14px', fontWeight: '500'
+                                }}
+                            >
+                                <span>회원 관리</span>
+                                <i className="ri-user-settings-line"></i>
+                            </button>
+                        </div>
+                    )}
+                    <button
+                        onClick={() => setShowAdminMenu(!showAdminMenu)}
+                        className="board-admin-fab"
+                        style={{
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: '50%',
+                            backgroundColor: showAdminMenu ? '#666' : '#1f2937',
+                            color: 'white',
+                            border: 'none',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '24px',
+                            zIndex: 9999,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                        }}
+                        title="관리자 메뉴 도구"
+                    >
+                        {showAdminMenu ? <i className="ri-close-line"></i> : <i className="ri-settings-3-fill"></i>}
+                    </button>
+                </div>
             )}
 
             {/* 2. Post List */}
@@ -210,6 +325,8 @@ export default function BoardMainContainer() {
                     currentPage={currentPage}
                     totalPages={totalPages}
                     onPageChange={setCurrentPage}
+                    likedPostIds={likedPostIds}
+                    onToggleLike={handleToggleLike}
                 />
             </div>
 
@@ -227,12 +344,23 @@ export default function BoardMainContainer() {
                 />
             )}
 
-            {/* 4. Management Modal */}
+            {/* 4. Management Modals */}
             {isManagementOpen && (
                 <BoardManagementModal
                     isOpen={isManagementOpen}
                     onClose={() => setIsManagementOpen(false)}
                     onUpdate={() => setKey(prev => prev + 1)} // Refresh Tabs
+                />
+            )}
+
+            {/* Prefix Management */}
+            {isPrefixManagementOpen && (
+                <BoardPrefixManagementModal
+                    isOpen={isPrefixManagementOpen}
+                    onClose={() => {
+                        setIsPrefixManagementOpen(false);
+                        loadPosts(); // Reload posts to reflect any name/color changes
+                    }}
                 />
             )}
         </div>

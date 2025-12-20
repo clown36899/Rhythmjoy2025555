@@ -188,12 +188,20 @@
 }
 
 /* ===== 게시글 카드 ===== */
+/* ===== 게시글 카드 ===== */
 .board-post-card {
-  padding: 1rem 1rem 1rem;
+  padding: 12px;
   transition: var(--transition-colors);
   cursor: pointer;
   margin: 0.4rem;
-  border-radius: 1rem;
+  border-radius: 12px;
+  display: flex;
+  /* Flexbox for side-by-side layout */
+  gap: 12px;
+  /* Spacing between image and content */
+  align-items: flex-start;
+  /* Align to top */
+  /* Background colors are set by specific classes normal/notice */
 }
 
 .board-post-card:hover {
@@ -205,60 +213,102 @@
 }
 
 .board-post-card-notice {
-  background-color: rgba(59, 130, 246, 0.2);
+  background-color: rgba(59, 130, 246, 0.15);
+  /* Slightly Adjusted opacity */
 }
+
+/* Thumbnail on the LEFT */
+.board-post-thumbnail {
+  width: 70px;
+  /* Fixed width for thumbnail */
+  height: 70px;
+  /* Fixed height for thumbnail */
+  flex-shrink: 0;
+  /* Prevent shrinking */
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.board-post-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Main Content on the RIGHT */
+.board-post-main-content {
+  flex: 1;
+  /* Take remaining space */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 70px;
+  /* Match thumbnail height for balance */
+  overflow: hidden;
+  /* For text truncation */
+}
+
 
 .board-post-header {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  margin-bottom: 0.125rem;
-  align-content: center;
-  flex-direction: row;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 
 .board-post-prefix {
   color: white;
   font-size: 10px;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-  border-radius: var(--radius-sm);
-  font-weight: 500;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.board-notice-badge {
+  background-color: #ef4444;
+  /* Red badge for notice */
+  color: white;
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
 .board-post-title {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-  word-break: break-word;
-  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Single line title */
   margin: 0;
   padding: 0;
+  color: #fff;
 }
 
-.board-post-title-normal {
-  color: white;
-}
-
+/* Hide separate title colors, just use white for consistency */
+.board-post-title-normal,
 .board-post-title-notice {
-  color: #93c5fd;
+  color: #ffffff !important;
+  /* Force white for visibility */
 }
 
 .board-post-content {
-  color: var(--color-gray-300);
-  font-size: 0.75rem;
-  margin-bottom: 0.25rem;
+  color: #d1d5db;
+  /* Light gray (Gray 300 equivalent) */
+  font-size: 13px;
+  margin-bottom: 8px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+  /* Clamp to 1 line */
   line-clamp: 1;
 }
 
@@ -266,33 +316,38 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 10px;
-  color: var(--color-gray-400);
+  font-size: 11px;
+  color: #888;
 }
 
 .board-post-meta-left {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: 10px;
 }
 
 .board-post-meta-item {
   display: flex;
   align-items: center;
-  gap: 0.125rem;
+  gap: 4px;
+}
+
+.board-post-meta-separator {
+  color: #4b5563;
+  /* Gray-600 */
+  margin: 0 2px;
 }
 
 .board-post-meta-icon {
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 /* Profile Avatar Styles */
 .board-post-author-avatar {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 2px;
 }
 
 .board-search-author-avatar {
@@ -510,6 +565,26 @@
   gap: 0.25rem;
 }
 
-.board-search-item-meta i {
-  font-size: 0.875rem;
+
+/* Like Button */
+.board-post-like-btn {
+  cursor: pointer;
+  transition: transform 0.2s, color 0.2s;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.board-post-like-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.board-post-like-btn.liked {
+  color: #f87171;
+  /* Red-400 */
+}
+
+.board-post-like-btn:not(.liked) {
+  color: #9ca3af;
+  /* Gray-400 */
 }

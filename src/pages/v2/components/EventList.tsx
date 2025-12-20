@@ -37,6 +37,8 @@ const SocialCalendar = lazy(() => import("../../social/components/SocialCalendar
 import { useSocialSchedules } from "../../social/hooks/useSocialSchedules";
 import { useAuth } from "../../../contexts/AuthContext";
 import PracticeRoomBanner from "./PracticeRoomBanner";
+import BoardPostList from "../../board/components/BoardPostList";
+import { useNavigate } from "react-router-dom";
 
 registerLocale("ko", ko);
 
@@ -135,6 +137,7 @@ export default function EventList({
   onSectionViewModeChange,
 }: EventListProps) {
   const { user, signInWithKakao, validateSession } = useAuth();
+  const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') ?? 'all';
@@ -174,6 +177,7 @@ export default function EventList({
 
   // Favorites State
   const [favoriteEventIds, setFavoriteEventIds] = useState<Set<number>>(new Set());
+  const [pastEventsViewMode, setPastEventsViewMode] = useState<'grid-5' | 'grid-2' | 'genre'>('grid-5');
 
   // Fetch Favorites
   useEffect(() => {
@@ -197,10 +201,50 @@ export default function EventList({
   }, [user]);
 
   // Favorites List Computation
-  const favoriteEventsList = useMemo(() => {
-    if (favoriteEventIds.size === 0) return [];
-    return events.filter(e => favoriteEventIds.has(e.id));
+  const { futureFavorites, pastFavorites } = useMemo(() => {
+    if (favoriteEventIds.size === 0) return { futureFavorites: [], pastFavorites: [] };
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    const favorites = events.filter(e => favoriteEventIds.has(e.id));
+
+    // Sort logic (can be customized if needed, currently reusing general sort or just by date)
+    // Sort by start_date ascending for future, descending for past?
+    // Let's keep it simple: separate them first.
+
+    const future: Event[] = [];
+    const past: Event[] = [];
+
+    favorites.forEach(event => {
+      // Is Past Logic: effectiveEndDate < today
+      const endDate = event.end_date || (event.event_dates && event.event_dates.length > 0 ? event.event_dates[event.event_dates.length - 1] : null) || event.date;
+
+      if (endDate && endDate < todayStr) {
+        past.push(event);
+      } else {
+        future.push(event);
+      }
+    });
+
+    // Sort Future: Ascending Date
+    future.sort((a, b) => {
+      const dateA = a.start_date || a.date || '';
+      const dateB = b.start_date || b.date || '';
+      return dateA.localeCompare(dateB);
+    });
+
+    // Sort Past: Descending Date
+    past.sort((a, b) => {
+      const dateA = a.start_date || a.date || '';
+      const dateB = b.start_date || b.date || '';
+      return dateB.localeCompare(dateA);
+    });
+
+    return { futureFavorites: future, pastFavorites: past };
   }, [events, favoriteEventIds]);
+
+  const favoriteEventsList = [...futureFavorites, ...pastFavorites];
 
   // Scroll to favorites if view=favorites
   useEffect(() => {
@@ -269,6 +313,82 @@ export default function EventList({
       }
     }
   }, [user, favoriteEventIds, signInWithKakao]);
+
+  // Board Post Favorites Logic
+  const [likedBoardPosts, setLikedBoardPosts] = useState<any[]>([]); // Use any[] initially to avoid type issues, or import BoardPost
+
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'favorites' && user) {
+      const fetchLikedPosts = async () => {
+        // 1. Get Liked Post IDs
+        const { data: likesData } = await supabase
+          .from('board_post_likes')
+          .select('post_id')
+          .eq('user_id', user.id);
+
+        if (!likesData || likesData.length === 0) {
+          setLikedBoardPosts([]);
+          return;
+        }
+
+        const postIds = likesData.map(l => l.post_id);
+
+        // 2. Fetch Posts Details
+        const { data: postsData } = await supabase
+          .from('board_posts')
+          .select(`
+                id, title, content, author_name, author_nickname, user_id, views, is_notice, 
+                prefix_id, prefix:board_prefixes(id, name, color, admin_only), 
+                created_at, updated_at, category, image_thumbnail, image, is_hidden
+            `)
+          .in('id', postIds)
+          .order('created_at', { ascending: false });
+
+        if (postsData) {
+          // Fetch profile images for posts
+          const postsWithProfiles = await Promise.all(
+            postsData.map(async (post: any) => {
+              let profileImage = null;
+              if (post.user_id) {
+                const { data: userData } = await supabase
+                  .from('board_users')
+                  .select('profile_image')
+                  .eq('user_id', post.user_id)
+                  .maybeSingle();
+                profileImage = userData?.profile_image || null;
+              }
+              return {
+                ...post,
+                prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
+                author_profile_image: profileImage
+              };
+            })
+          );
+          setLikedBoardPosts(postsWithProfiles);
+        }
+      };
+
+      fetchLikedPosts();
+    }
+  }, [searchParams, user]);
+
+  const handleToggleLikeBoardPost = async (postId: number) => {
+    // For favorites list, toggling like means REMOVING it from the list
+    if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
+
+    try {
+      await supabase
+        .from('board_post_likes')
+        .delete()
+        .eq('user_id', user!.id)
+        .eq('post_id', postId);
+
+      setLikedBoardPosts(prev => prev.filter(p => p.id !== postId));
+    } catch (error) {
+      console.error('Error removing like:', error);
+    }
+  };
 
   // sectionViewMode는 이제 props로 받음
   const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
@@ -2231,20 +2351,23 @@ export default function EventList({
       */}
       {searchParams.get('view') === 'favorites' ? (
         <div className="evt-ongoing-section evt-preview-section">
-          {/* Section: My Favorites (Only) */}
-          <div className="evt-v2-section evt-v2-section-favorites">
-            <div className="evt-v2-section-title">
-              <i className="ri-heart-3-fill" style={{ color: '#ff6b6b', marginRight: '6px' }}></i>
-              <span>즐겨찾기</span>
-              <span className="evt-v2-count">{favoriteEventsList.length}</span>
-            </div>
-            {favoriteEventsList.length > 0 ? (
-              <div className="evt-favorites-grid evt-px-4">
-                {favoriteEventsList.map(event => (
+          <div className="evt-v2-section-title" style={{ padding: '0 16px', marginTop: '16px' }}>
+            <i className="ri-heart-3-fill" style={{ color: '#ff6b6b', marginRight: '6px' }}></i>
+            <span>내 즐겨찾기</span>
+          </div>
+
+          {/* 1. Future Events Section */}
+          {futureFavorites.length > 0 && (
+            <div className="evt-favorites-section">
+              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                진행 예정/중인 행사 <span className="evt-favorites-count">{futureFavorites.length}</span>
+              </h3>
+              <div className="evt-favorites-grid-2" style={{ padding: '0 8px' }}>
+                {futureFavorites.map(event => (
                   <EventCard
                     key={event.id}
                     event={event}
-                    onClick={() => handleEventClick(event)}
+                    onClick={() => onEventClickInFullscreen?.(event)}
                     onMouseEnter={onEventHover}
                     onMouseLeave={() => onEventHover?.(null)}
                     isHighlighted={highlightEvent?.id === event.id}
@@ -2252,18 +2375,138 @@ export default function EventList({
                     defaultThumbnailClass={defaultThumbnailClass}
                     defaultThumbnailEvent={defaultThumbnailEvent}
                     isFavorite={true}
-                    variant="favorite"
                     onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                   />
                 ))}
-                <div className="evt-spacer-11"></div>
               </div>
-            ) : (
-              <div className="evt-v2-empty evt-mt-8">
-                아직 찜한 이벤트가 없습니다.
+            </div>
+          )}
+
+          {/* 2. Liked Board Posts Section */}
+          {likedBoardPosts.length > 0 && (
+            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
+              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                찜한 게시글 <span className="evt-favorites-count">{likedBoardPosts.length}</span>
+              </h3>
+              <div className="board-posts-list" style={{ padding: '0 12px' }}>
+                <BoardPostList
+                  posts={likedBoardPosts}
+                  loading={false}
+                  category="all" // Dummy category
+                  onPostClick={(post) => {
+                    navigate(`/board/${post.id}`);
+                  }}
+                  currentPage={1}
+                  totalPages={1}
+                  onPageChange={() => { }}
+                  likedPostIds={new Set(likedBoardPosts.map(p => p.id))}
+                  onToggleLike={handleToggleLikeBoardPost}
+                />
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* 3. Past Events Section */}
+          {pastFavorites.length > 0 && (
+            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
+              <div className="evt-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px', marginBottom: '12px' }}>
+                <h3 className="evt-favorites-title" style={{ fontSize: '14px', color: '#ccc', margin: 0 }}>
+                  지난 행사 <span className="evt-favorites-count">{pastFavorites.length}</span>
+                </h3>
+                <div className="evt-view-mode-toggle">
+                  <button
+                    className={`evt-view-mode-btn ${pastEventsViewMode === 'grid-5' ? 'active' : ''}`}
+                    onClick={() => setPastEventsViewMode('grid-5')}
+                  >
+                    5열
+                  </button>
+                  <button
+                    className={`evt-view-mode-btn ${pastEventsViewMode === 'grid-2' ? 'active' : ''}`}
+                    onClick={() => setPastEventsViewMode('grid-2')}
+                  >
+                    2열
+                  </button>
+                  <button
+                    className={`evt-view-mode-btn ${pastEventsViewMode === 'genre' ? 'active' : ''}`}
+                    onClick={() => setPastEventsViewMode('genre')}
+                  >
+                    장르
+                  </button>
+                </div>
+              </div>
+
+              {pastEventsViewMode === 'genre' ? (
+                <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  {Object.entries(pastFavorites.reduce((acc, event) => {
+                    const genre = event.genre || '기타';
+                    if (!acc[genre]) acc[genre] = [];
+                    acc[genre].push(event);
+                    return acc;
+                  }, {} as Record<string, typeof pastFavorites>)).map(([genre, events]) => (
+                    <div key={genre}>
+                      <h4 style={{ fontSize: '12px', color: '#999', marginBottom: '8px', paddingLeft: '4px' }}>{genre}</h4>
+                      <div className="evt-favorites-grid-5">
+                        {events.map(event => (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            onClick={() => onEventClickInFullscreen?.(event)}
+                            onMouseEnter={onEventHover}
+                            onMouseLeave={() => onEventHover?.(null)}
+                            isHighlighted={highlightEvent?.id === event.id}
+                            selectedDate={selectedDate}
+                            defaultThumbnailClass={defaultThumbnailClass}
+                            defaultThumbnailEvent={defaultThumbnailEvent}
+                            variant="sliding"
+                            className="evt-card-compact"
+                            hideDate={true}
+                            hideGenre={true}
+                            isFavorite={true}
+                            onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  className={`evt-grid-container ${pastEventsViewMode === 'grid-5' ? 'evt-favorites-grid-5' : 'evt-favorites-grid-2'}`}
+                  style={{
+                    padding: '0 8px', // Reduced padding to give more width
+                  }}
+                >
+                  {pastFavorites.map(event => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onClick={() => onEventClickInFullscreen?.(event)}
+                      onMouseEnter={onEventHover}
+                      onMouseLeave={() => onEventHover?.(null)}
+                      isHighlighted={highlightEvent?.id === event.id}
+                      selectedDate={selectedDate}
+                      defaultThumbnailClass={defaultThumbnailClass}
+                      defaultThumbnailEvent={defaultThumbnailEvent}
+                      // For 5-col grid, we use 'sliding' variant (compact) but add a class for further customization if needed
+                      variant={pastEventsViewMode === 'grid-5' ? 'sliding' : 'single'}
+                      className={pastEventsViewMode === 'grid-5' ? 'evt-card-compact' : ''}
+                      hideDate={pastEventsViewMode === 'grid-5'}
+                      hideGenre={pastEventsViewMode === 'grid-5'}
+                      isFavorite={true}
+                      onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {futureFavorites.length === 0 && likedBoardPosts.length === 0 && pastFavorites.length === 0 && (
+            <div className="evt-v2-empty evt-mt-8">
+              아직 찜한 항목이 없습니다.
+            </div>
+          )}
+
           <div className="evt-spacer-16"></div>
           <Footer />
         </div>
@@ -2426,7 +2669,7 @@ export default function EventList({
                         selectedDate={selectedDate}
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
-                        variant="sliding"
+                        variant="favorite"
                         isFavorite={true}
                         onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                       />

@@ -10,12 +10,15 @@ import { supabase } from "../../lib/supabase";
 
 import EventDetailModal from "../v2/components/EventDetailModal";
 import CalendarSearchModal from "../v2/components/CalendarSearchModal";
+import { useAuth } from "../../contexts/AuthContext";
+
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 
 
 export default function CalendarPage() {
     const navigate = useNavigate();
+    const { user, signInWithKakao, isAdmin: authIsAdmin } = useAuth();
 
     // 상태 관리
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -34,6 +37,8 @@ export default function CalendarPage() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
 
+    // Favorites
+    const [favoriteEventIds, setFavoriteEventIds] = useState<Set<number>>(new Set());
 
     const containerRef = useRef<HTMLDivElement>(null!);
     const eventListElementRef = useRef<HTMLDivElement>(null!); // Dummy ref for useCalendarGesture
@@ -73,17 +78,42 @@ export default function CalendarPage() {
         }
     }, [showRegisterModal, eventModal.showEditModal, eventModal.showPasswordModal, eventModal.selectedEvent]);
 
-    // Auth Check
+    // Auth Check (Keep existing logic or sync with AuthContext)
     useEffect(() => {
-        const checkAdmin = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user?.email === "admin@rhythmjoy.com") {
-                setIsAdmin(true);
-                setAdminType("super");
+        if (authIsAdmin) {
+            setIsAdmin(true);
+            setAdminType("super");
+        }
+        // Fallback or explicit check if needed, but useAuth is preferred.
+        // Keeping original check as fallback if needed, but strictly useAuth is better.
+        // For now, syncing from useAuth is safest.
+    }, [authIsAdmin]);
+
+    // Fetch Favorites
+    useEffect(() => {
+        if (!user) {
+            setFavoriteEventIds(new Set());
+            return;
+        }
+
+        const fetchFavorites = async () => {
+            const { data, error } = await supabase
+                .from('event_favorites')
+                .select('event_id')
+                .eq('user_id', user.id);
+
+            if (error) {
+                console.error('Error fetching favorites:', error);
+                return;
+            }
+
+            if (data) {
+                setFavoriteEventIds(new Set(data.map(item => item.event_id)));
             }
         };
-        checkAdmin();
-    }, []);
+
+        fetchFavorites();
+    }, [user]);
 
     // Handlers
     const handleMonthChange = useCallback((newMonth: Date) => {
@@ -107,6 +137,68 @@ export default function CalendarPage() {
         setSelectedDate(date);
         if (date) setSelectedWeekday(null);
     }, []);
+
+    const handleToggleFavorite = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        const eventId = eventModal.selectedEvent?.id;
+        if (!eventId) return;
+
+        if (!user) {
+            if (confirm('로그인이 필요한 기능입니다. 카카오로 로그인하시겠습니까?')) {
+                try {
+                    signInWithKakao();
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+            return;
+        }
+
+        const isFav = favoriteEventIds.has(eventId);
+
+        // Optimistic Update
+        setFavoriteEventIds(prev => {
+            const next = new Set(prev);
+            if (isFav) next.delete(eventId);
+            else next.add(eventId);
+            return next;
+        });
+
+        if (isFav) {
+            // Remove
+            const { error } = await supabase
+                .from('event_favorites')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('event_id', eventId);
+
+            if (error) {
+                console.error('Error removing favorite:', error);
+                // Rollback
+                setFavoriteEventIds(prev => {
+                    const next = new Set(prev);
+                    next.add(eventId);
+                    return next;
+                });
+            }
+        } else {
+            // Add
+            const { error } = await supabase
+                .from('event_favorites')
+                .insert({ user_id: user.id, event_id: eventId });
+
+            if (error) {
+                console.error('Error adding favorite:', error);
+                // Rollback
+                setFavoriteEventIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(eventId);
+                    return next;
+                });
+            }
+        }
+    };
 
 
 
@@ -253,6 +345,8 @@ export default function CalendarPage() {
                     adminType={adminType}
                     onDelete={(id) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
                     onEdit={(event) => eventModal.handleEditClick(event)}
+                    isFavorite={favoriteEventIds.has(eventModal.selectedEvent.id)}
+                    onToggleFavorite={handleToggleFavorite}
                 />
             )}
 
