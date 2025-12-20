@@ -32,12 +32,12 @@ export default memo(function FullEventCalendar({
   onMonthChange,
   onEventsUpdate,
   viewMode,
-  onViewModeChange,
+  onViewModeChange: _onViewModeChange,
   calendarHeightPx,
   dragOffset,
   isAnimating,
   onEventClick,
-  isAdminMode = false,
+  isAdminMode: _isAdminMode = false,
   selectedCategory = "all",
   highlightedEventId = null,
 }: FullEventCalendarProps) {
@@ -47,8 +47,8 @@ export default memo(function FullEventCalendar({
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
   // Internal state for swipe gestures
-  const [internalDragOffset, setInternalDragOffset] = useState(0);
-  const [internalIsAnimating, setInternalIsAnimating] = useState(false);
+  const [internalDragOffset, _setInternalDragOffset] = useState(0);
+  const [internalIsAnimating, _setInternalIsAnimating] = useState(false);
 
   // Use external props if provided, otherwise use internal state
   const effectiveDragOffset = dragOffset !== undefined ? dragOffset : internalDragOffset;
@@ -338,12 +338,18 @@ export default memo(function FullEventCalendar({
           {/* 헤더: 날짜 숫자 */}
           <div className="calendar-cell-fullscreen-header">
             <span
-              className={`calendar-date-number-fullscreen ${todayFlag ? "calendar-date-number-today" : ""}`}
-
+              className={`calendar-date-number-fullscreen ${todayFlag
+                  ? "calendar-date-number-today"
+                  : day.getDay() === 0
+                    ? "calendar-date-sunday"
+                    : day.getDay() === 6
+                      ? "calendar-date-saturday"
+                      : ""
+                }`}
             >
               <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
               <span style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8 }}>
-                {["일", "월", "화", "수", "목", "금", "토"][day.getDay()]}
+                {todayFlag ? "오늘" : ["일", "월", "화", "수", "목", "금", "토"][day.getDay()]}
               </span>
             </span>
           </div>

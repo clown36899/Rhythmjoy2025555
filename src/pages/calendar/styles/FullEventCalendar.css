@@ -756,6 +756,8 @@
   left: 4px;
   z-index: 30;
   font-weight: 700;
+  color: #d1d5db;
+  /* Default text color for dark background */
 }
 
 .calendar-date-number-today {
@@ -764,14 +766,39 @@
   font-size: 12px;
   font-weight: 700;
   /* width: 20px; */
-  padding: 1px 12px;
-  height: 20px;
+  width: fit-content;
+  min-width: 20px;
+  max-width: calc(100% - 8px);
+  /* Ensure it doesn't overflow cell */
+  white-space: nowrap;
+
+  /* Responsive sizing */
+  padding: 1px clamp(4px, 1.5vw, 10px);
+  font-size: clamp(10px, 2.5vw, 12px);
+
+  height: auto;
+  min-height: 20px;
+
   display: flex;
   align-items: center;
+  justify-content: center;
+  /* Center content when shrunk */
   border-radius: 9999px;
   background-color: #3b82f6;
   color: white;
+  overflow: hidden;
+  /* Hide overflow if it gets too small */
 }
+
+/* 요일별 색상 */
+.calendar-date-sunday {
+  color: var(--color-red-500, #ef4444);
+}
+
+.calendar-date-saturday {
+  color: var(--color-blue-500, #3b82f6);
+}
+
 
 .calendar-event-count {
   position: absolute;
