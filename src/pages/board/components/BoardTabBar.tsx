@@ -66,6 +66,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
             case 'market': return 'ri-store-2-line';
             case 'trade': return 'ri-exchange-line';
             case 'free': return 'ri-chat-1-line';
+            case 'dev-log': return 'ri-code-box-line';
             default: return 'ri-chat-3-line';
         }
     };
