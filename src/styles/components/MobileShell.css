@@ -51,7 +51,7 @@
 
 /* ===== 상단 바 클래스 ===== */
 .shell-top-bar {
-  /* border-top: 1px solid #323232; */
+  border-top: 1px solid #323232;
   display: flex;
   align-items: center;
   justify-content: space-between;

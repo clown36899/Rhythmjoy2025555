@@ -1,14 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import SimpleHeader from '../../../components/SimpleHeader';
 import ImageCropModal from '../../../components/ImageCropModal';
+import { useAuth } from '../../../contexts/AuthContext';
 import './shopreg.css';
 
 export default function ShoppingRegisterPage() {
   const navigate = useNavigate();
+  const { user, signInWithKakao } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Check login
+  useEffect(() => {
+    if (!user) {
+      if (confirm('쇼핑몰을 등록하려면 로그인이 필요합니다.\n로그인 페이지로 이동하시겠습니까?')) {
+        // Since we don't have a dedicated login page, trigger modal via header if possible or use signInWithKakao directly?
+        // Actually, just alert and maybe redirect home or trigger auth.
+        // But for now, let's redirect to home if not logged in, or show a blocker.
+        // Better: trigger Kakao login or show alert.
+        signInWithKakao();
+      } else {
+        navigate('/shopping');
+      }
+    }
+  }, [user, navigate, signInWithKakao]);
 
   // Shop Info
   const [shopName, setShopName] = useState('');
@@ -23,7 +40,6 @@ export default function ShoppingRegisterPage() {
   const [itemLink, setItemLink] = useState('');
   const [itemImageFile, setItemImageFile] = useState<File | null>(null);
   const [itemImagePreview, setItemImagePreview] = useState('');
-  const [password, setPassword] = useState('');
 
   // Image Crop Modal States
   const [showLogoCropModal, setShowLogoCropModal] = useState(false);
@@ -160,7 +176,11 @@ export default function ShoppingRegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shopName || !shopUrl || !password) {
+    if (!user) {
+      setError('로그인이 필요합니다.');
+      return;
+    }
+    if (!shopName || !shopUrl) {
       setError('필수 항목을 모두 입력해주세요.');
       return;
     }
@@ -188,7 +208,7 @@ export default function ShoppingRegisterPage() {
           description: shopDescription,
           website_url: shopUrl,
           logo_url: logoUrl,
-          password: password,
+          user_id: user.id, // Store owner ID
         })
         .select()
         .single();
@@ -257,15 +277,6 @@ export default function ShoppingRegisterPage() {
               </div>
             )}
           </div>
-          <input
-            type="password"
-            placeholder="수정용 비밀번호 *"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="shopreg-input"
-            minLength={4}
-          />
-          <p className="shopreg-helper-text">* 쇼핑몰 정보 수정 시 필요한 비밀번호입니다 (최소 4자)</p>
         </div>
 
         {/* Featured Item Information */}

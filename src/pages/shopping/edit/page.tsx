@@ -1,19 +1,21 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import SimpleHeader from '../../../components/SimpleHeader';
 import ImageCropModal from '../../../components/ImageCropModal';
 import '../register/shopreg.css';
+import { useAuth } from '../../../contexts/AuthContext';
 import type { FeaturedItem } from '../page';
 
 export default function ShoppingEditPage() {
     const { shopId } = useParams<{ shopId: string }>();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [fetchLoading, setFetchLoading] = useState(true);
     const [error, setError] = useState('');
-    const [showPasswordPrompt, setShowPasswordPrompt] = useState(true);
-    const [enteredPassword, setEnteredPassword] = useState('');
+
 
     // Shop Info
     const [shopName, setShopName] = useState('');
@@ -95,7 +97,7 @@ export default function ShoppingEditPage() {
             try {
                 const { data, error } = await supabase
                     .from('shops')
-                    .select(`*, featured_items (*)`)
+                    .select(`*, featured_items(*)`)
                     .eq('id', shopId)
                     .single();
 
@@ -107,7 +109,7 @@ export default function ShoppingEditPage() {
                     setShopUrl(data.website_url);
                     setExistingLogoUrl(data.logo_url || '');
                     setShopLogoPreview(data.logo_url || '');
-                    setOriginalLogoUrl(data.logo_url || null); // Set original for restore
+                    setOriginalLogoUrl(data.logo_url || null);
 
                     const featuredItem = (data.featured_items as FeaturedItem[])?.[0];
                     if (featuredItem) {
@@ -117,7 +119,27 @@ export default function ShoppingEditPage() {
                         setItemLink(featuredItem.item_link);
                         setExistingItemImageUrl(featuredItem.item_image_url || '');
                         setItemImagePreview(featuredItem.item_image_url || '');
-                        setOriginalItemUrl(featuredItem.item_image_url || null); // Set original for restore
+                        setOriginalItemUrl(featuredItem.item_image_url || null);
+                    }
+
+                    // Permission Logic
+                    // Permission Logic: Strict Auth Check
+                    if (data.user_id) {
+                        if (user && user.id === data.user_id) {
+                            // Valid owner, proceed
+                        } else {
+                            setError('수정 권한이 없습니다.');
+                        }
+                    } else {
+                        // Legacy Shop but NO password support requested.
+                        // User stated: "기존 유저도 그냥 로그인 유저아이디만 가지고 수정 등록 하게 해야해"
+                        // This implies backfilling was done or strict ownership is required even if null?
+                        // If null, no one owns it. So no one can edit?
+                        // Or if null, maybe allow anyone? NO, "즉 비번은 요구하지않게하라".
+                        // Safest assumption based on "Strict Auth": if no user_id match, denied.
+                        // However, if the user explicitly backfilled, then data.user_id won't be null.
+                        // If it IS null, it's an error state or unowned.
+                        setError('수정 권한이 없습니다. (소유자 정보 없음)');
                     }
                 }
             } catch (err: any) {
@@ -128,35 +150,13 @@ export default function ShoppingEditPage() {
             }
         };
 
+        // If user status changes (e.g. login completes), we might need to re-check permissions if data is already loaded.
+        // But simpler to just run logic inside fetchShopData or useEffect dependency.
+        // Adding user to dependencies will re-trigger fetch, which is fine.
         fetchShopData();
-    }, [shopId]);
+    }, [shopId, user]);
 
-    const handlePasswordSubmit = async () => {
-        if (!enteredPassword) {
-            setError('비밀번호를 입력해주세요.');
-            return;
-        }
 
-        try {
-            const { data, error } = await supabase
-                .from('shops')
-                .select('password')
-                .eq('id', shopId)
-                .single();
-
-            if (error) throw error;
-
-            if (data.password === enteredPassword) {
-                setShowPasswordPrompt(false);
-                setError('');
-            } else {
-                setError('비밀번호가 일치하지 않습니다.');
-            }
-        } catch (err: any) {
-            console.error('비밀번호 확인 실패:', err);
-            setError('비밀번호 확인 중 오류가 발생했습니다.');
-        }
-    };
 
     const handleLogoCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
         setShopLogoFile(croppedFile);
@@ -325,6 +325,23 @@ export default function ShoppingEditPage() {
         }
     };
 
+    // If error, show error screen
+    if (error) {
+        return (
+            <div className="shopreg-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
+                <div className="shopreg-header" style={{ backgroundColor: 'var(--header-bg-color)' }}>
+                    <SimpleHeader title="쇼핑몰 수정" />
+                </div>
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>
+                    <p style={{ marginBottom: '1rem' }}>{error}</p>
+                    <button onClick={() => navigate('/shopping')} className="shopreg-submit-btn">
+                        돌아가기
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (fetchLoading) {
         return (
             <div className="shopreg-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
@@ -336,34 +353,7 @@ export default function ShoppingEditPage() {
         );
     }
 
-    if (showPasswordPrompt) {
-        return (
-            <div className="shopreg-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>
-                <div className="shopreg-header" style={{ backgroundColor: 'var(--header-bg-color)' }}>
-                    <SimpleHeader title="쇼핑몰 수정" />
-                </div>
-                <div style={{ padding: '2rem', maxWidth: '400px', margin: '0 auto' }}>
-                    <h3 style={{ color: 'white', marginBottom: '1rem' }}>비밀번호 확인</h3>
-                    <p style={{ color: '#9ca3af', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-                        쇼핑몰 정보를 수정하려면 등록 시 설정한 비밀번호를 입력해주세요.
-                    </p>
-                    <input
-                        type="password"
-                        placeholder="비밀번호"
-                        value={enteredPassword}
-                        onChange={(e) => setEnteredPassword(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-                        className="shopreg-input"
-                        style={{ marginBottom: '1rem' }}
-                    />
-                    {error && <p className="shopreg-error">{error}</p>}
-                    <button onClick={handlePasswordSubmit} className="shopreg-submit-btn">
-                        확인
-                    </button>
-                </div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="shopreg-page-container" style={{ backgroundColor: 'var(--page-bg-color)' }}>

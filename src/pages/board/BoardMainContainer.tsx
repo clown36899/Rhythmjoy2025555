@@ -168,7 +168,8 @@ export default function BoardMainContainer() {
           category,
           image_thumbnail,
           image,
-          is_hidden
+          is_hidden,
+          comment_count
         `)
                 .eq('category', category)  // Filter by category
                 .order('is_notice', { ascending: false })
@@ -198,7 +199,8 @@ export default function BoardMainContainer() {
                     return {
                         ...post,
                         prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
-                        author_profile_image: profileImage
+                        author_profile_image: profileImage,
+                        comment_count: post.comment_count || 0
                     };
                 })
             );
@@ -229,7 +231,8 @@ export default function BoardMainContainer() {
     return (
         <div className="board-page-container">
             {/* 1. Header Area with Admin Button */}
-            <div style={{ position: 'relative', marginBottom: '10px' }}>
+            {/* BoardTabBar Placeholder: height must match TabBar height (approx 50px) + margin */}
+            <div style={{ position: 'relative', height: '54px', marginBottom: '10px' }}>
                 <BoardTabBar
                     key={key}
                     activeCategory={category}

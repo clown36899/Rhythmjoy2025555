@@ -25,11 +25,11 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-orange-500',
     },
     {
-        label: '소셜',
-        path: '/social',
-        icon: 'ri-map-pin-line',
-        iconFilled: 'ri-map-pin-fill',
-        activeColor: 'text-green-500',
+        label: '자유게시판',
+        path: '/board',
+        icon: 'ri-chat-3-line',
+        iconFilled: 'ri-chat-3-fill',
+        activeColor: 'text-purple-500',
     },
     {
         label: '연습실',
@@ -46,17 +46,17 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-yellow-500',
     },
     {
-        label: '자유게시판',
-        path: '/board',
-        icon: 'ri-chat-3-line',
-        iconFilled: 'ri-chat-3-fill',
-        activeColor: 'text-purple-500',
-    },
-    {
         label: '안내',
         path: '/guide',
         icon: 'ri-information-line',
         iconFilled: 'ri-information-fill',
         activeColor: 'text-blue-500',
+    },
+    {
+        label: '소셜',
+        path: '/social',
+        icon: 'ri-map-pin-line',
+        iconFilled: 'ri-map-pin-fill',
+        activeColor: 'text-green-500',
     },
 ];

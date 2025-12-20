@@ -22,6 +22,7 @@ export interface Shop {
   description?: string;
   logo_url?: string;
   website_url: string;
+  user_id?: string;
   featured_items: FeaturedItem[]; // Join을 통해 가져올 대표 상품 정보
 }
 

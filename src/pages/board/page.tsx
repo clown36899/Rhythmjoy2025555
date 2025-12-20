@@ -34,6 +34,8 @@ export interface BoardPost {
   updated_at: string;
   image?: string;
   image_thumbnail?: string;
+  comment_count?: number;
+  likes: number; // Added likes property
 }
 
 export default function BoardPage() {
@@ -181,13 +183,27 @@ export default function BoardPage() {
           is_notice, 
           prefix_id,
           prefix:board_prefixes(id, name, color, admin_only),
+          comment_count,
           created_at, 
           updated_at
         `)
         .order('is_notice', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('SUPABASE ERROR:', error);
+        throw error;
+      }
+
+      console.log('--- SUPABASE RAW DATA ---');
+      if (data && data.length > 0) {
+        console.log('Sample Post [0]:', data[0]);
+        console.log('Has comment_count?', 'comment_count' in data[0]);
+        console.log('Value of comment_count:', data[0].comment_count);
+      } else {
+        console.log('No data returned');
+      }
+      console.log('-------------------------');
 
       // Fetch profile images for posts with user_id
       const postsWithProfiles = await Promise.all(
@@ -204,7 +220,8 @@ export default function BoardPage() {
           return {
             ...post,
             prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
-            author_profile_image: profileImage
+            author_profile_image: profileImage,
+            comment_count: post.comment_count || 0
           };
         })
       );

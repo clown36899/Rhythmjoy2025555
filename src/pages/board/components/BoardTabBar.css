@@ -1,11 +1,13 @@
 .board-tab-bar {
     background-color: var(--header-bg-color, #1f2937);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    /* position: sticky was causing issues */
-    position: relative;
-    top: 0;
-    z-index: 10;
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
     width: 100%;
+    max-width: 650px;
 }
 
 .board-tab-scroller {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardComment } from '../../../lib/supabase';
@@ -15,6 +15,15 @@ export default function CommentForm({ postId, onCommentAdded, editingComment, on
     const { user } = useAuth();
     const [content, setContent] = useState(editingComment?.content || '');
     const [submitting, setSubmitting] = useState(false);
+
+    // Sync state when editingComment changes
+    useEffect(() => {
+        if (editingComment) {
+            setContent(editingComment.content);
+        } else {
+            setContent('');
+        }
+    }, [editingComment]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

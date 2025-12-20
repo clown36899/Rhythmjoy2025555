@@ -28,8 +28,6 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
     const [loading, setLoading] = useState(false);
     const [fetchLoading, setFetchLoading] = useState(true);
     const [error, setError] = useState('');
-    const [showPasswordPrompt, setShowPasswordPrompt] = useState(true);
-    const [enteredPassword, setEnteredPassword] = useState('');
 
     // Shop Info
     const [shopName, setShopName] = useState('');
@@ -224,32 +222,6 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
         fetchShopData();
     }, [isOpen, shopId]);
 
-    const handlePasswordSubmit = async () => {
-        if (!enteredPassword) {
-            setError('비밀번호를 입력해주세요.');
-            return;
-        }
-
-        try {
-            const { data, error } = await supabase
-                .from('shops')
-                .select('password')
-                .eq('id', shopId)
-                .single();
-
-            if (error) throw error;
-
-            if (data.password === enteredPassword) {
-                setShowPasswordPrompt(false);
-                setError('');
-            } else {
-                setError('비밀번호가 일치하지 않습니다.');
-            }
-        } catch (err: any) {
-            console.error('비밀번호 확인 실패:', err);
-            setError('비밀번호 확인 중 오류가 발생했습니다.');
-        }
-    };
 
     const uploadImage = async (file: File, folder: string): Promise<string> => {
         const { createResizedImages } = await import('../../../utils/imageResize');
@@ -418,8 +390,6 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
     const handleClose = () => {
         console.log('[ShopEditModal] handleClose called, loading:', loading);
         if (!loading) {
-            setShowPasswordPrompt(true);
-            setEnteredPassword('');
             setError('');
             onClose();
         }
@@ -442,32 +412,6 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
                                 </button>
                             </div>
                             <div className="shop-edit-modal-loading">로딩 중...</div>
-                        </>
-                    ) : showPasswordPrompt ? (
-                        <>
-                            <div className="shop-edit-modal-header">
-                                <h2 className="shop-edit-modal-title">비밀번호 확인</h2>
-                                <button onClick={handleClose} className="shop-edit-modal-close">
-                                    <i className="ri-close-line"></i>
-                                </button>
-                            </div>
-                            <div className="shop-edit-modal-password">
-                                <p className="shop-edit-password-desc">
-                                    쇼핑몰 정보를 수정하려면 등록 시 설정한 비밀번호를 입력해주세요.
-                                </p>
-                                <input
-                                    type="password"
-                                    placeholder="비밀번호"
-                                    value={enteredPassword}
-                                    onChange={(e) => setEnteredPassword(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-                                    className="shop-edit-input"
-                                />
-                                {error && <p className="shop-edit-error">{error}</p>}
-                                <button onClick={handlePasswordSubmit} className="shop-edit-submit-btn">
-                                    확인
-                                </button>
-                            </div>
                         </>
                     ) : (
                         <>

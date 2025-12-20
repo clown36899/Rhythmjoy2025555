@@ -89,75 +89,91 @@ export default function BoardPostList({
                 For isolation, we will just use what's available and prepare the structure. 
             */}
 
-                        {(post as any).image_thumbnail && (
-                            <div className="board-post-thumbnail">
-                                <img src={(post as any).image_thumbnail} alt="thumbnail" />
-                            </div>
-                        )}
+                        <div className="board-post-top-row">
+                            {/* Thumbnail */}
+                            {(post as any).image_thumbnail ? (
+                                <div className="board-post-thumbnail">
+                                    <img src={(post as any).image_thumbnail} alt="thumbnail" />
+                                </div>
+                            ) : (post as any).image ? (
+                                <div className="board-post-thumbnail">
+                                    <img src={(post as any).image} alt="thumbnail" />
+                                </div>
+                            ) : null}
 
-                        <div className="board-post-main-content">
-                            <div className="board-post-header">
-                                {post.prefix && (
-                                    <span
-                                        className="board-post-prefix"
-                                        style={{ backgroundColor: post.prefix.color }}
+                            <div className="board-post-main-content">
+                                <div className="board-post-header">
+                                    {post.prefix && (
+                                        <span
+                                            className="board-post-prefix"
+                                            style={{ backgroundColor: post.prefix.color }}
+                                        >
+                                            {post.prefix.name}
+                                        </span>
+                                    )}
+                                    {/* Notice Badge */}
+                                    {category === 'notice' && post.is_notice && (
+                                        <span className="board-notice-badge">공지</span>
+                                    )}
+
+                                    <h3
+                                        className={`board-post-title ${post.is_notice
+                                            ? 'board-post-title-notice'
+                                            : 'board-post-title-normal'
+                                            }`}
                                     >
-                                        {post.prefix.name}
-                                    </span>
-                                )}
-                                {/* Notice Badge */}
-                                {category === 'notice' && post.is_notice && (
-                                    <span className="board-notice-badge">공지</span>
-                                )}
-
-                                <h3
-                                    className={`board-post-title ${post.is_notice
-                                        ? 'board-post-title-notice'
-                                        : 'board-post-title-normal'
-                                        }`}
-                                >
-                                    {post.is_hidden && <span className="post-hidden-badge">🔒</span>}
-                                    {/* Duplicate hidden icon removed */}
-                                    {post.title}
-                                </h3>
+                                        {post.is_hidden && <span className="post-hidden-badge">🔒</span>}
+                                        {post.title}
+                                    </h3>
+                                </div>
+                                <p className="board-post-content">{post.content}</p>
                             </div>
-                            <p className="board-post-content">{post.content}</p>
-                            <div className="board-post-meta">
-                                <div className="board-post-meta-left">
-                                    <span className="board-post-meta-item">
-                                        No.{post.id}
-                                    </span>
-                                    <span className="board-post-meta-separator">·</span>
-                                    <span className="board-post-meta-item">
-                                        {post.author_profile_image ? (
-                                            <img
-                                                src={post.author_profile_image}
-                                                alt="Profile"
-                                                className="board-post-author-avatar"
-                                            />
-                                        ) : (
-                                            <i className="ri-user-line board-post-meta-icon"></i>
-                                        )}
+                        </div>
+
+                        {/* Meta Data Row (Bottom) */}
+                        <div className="board-post-meta">
+                            <div className="board-post-meta-left">
+                                <span className="board-post-meta-item">
+                                    {post.author_profile_image ? (
+                                        <img
+                                            src={post.author_profile_image}
+                                            alt="Profile"
+                                            className="board-post-author-avatar"
+                                        />
+                                    ) : (
+                                        <i className="ri-user-line board-post-meta-icon"></i>
+                                    )}
+                                    <span className="board-post-meta-nickname">
                                         {post.author_nickname || post.author_name}
                                     </span>
-                                    <span className="board-post-meta-separator">·</span>
-                                    <span className="board-post-meta-item">
-                                        <i className="ri-eye-line board-post-meta-icon"></i>
-                                        {post.views}
-                                    </span>
-                                    <span className="board-post-meta-separator">·</span>
-                                    <span
-                                        className={`board-post-meta-item board-post-like-btn ${likedPostIds.has(post.id) ? 'liked' : ''}`}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onToggleLike(post.id);
-                                        }}
-                                    >
-                                        <i className={`${likedPostIds.has(post.id) ? 'ri-heart-3-fill' : 'ri-heart-3-line'} board-post-meta-icon`}></i>
-                                        {/* Optional: Add count if available later */}
-                                    </span>
-                                </div>
-                                <span>{formatDate(post.created_at)}</span>
+                                </span>
+                                <span className="board-post-meta-separator">·</span>
+                                <span className="board-post-meta-item">
+                                    {formatDate(post.created_at)}
+                                </span>
+                            </div>
+
+                            <div className="board-post-meta-right">
+                                <span className="board-post-meta-item">
+                                    <i className="ri-eye-line board-post-meta-icon"></i>
+                                    {post.views}
+                                </span>
+                                <span className="board-post-meta-separator">·</span>
+                                <span className="board-post-meta-item">
+                                    <i className="ri-chat-1-line board-post-meta-icon"></i>
+                                    {post.comment_count || 0}
+                                </span>
+                                <span className="board-post-meta-separator">·</span>
+                                <span
+                                    className={`board-post-meta-item board-post-like-btn ${likedPostIds.has(post.id) ? 'liked' : ''}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleLike(post.id);
+                                    }}
+                                >
+                                    <i className={`${likedPostIds.has(post.id) ? 'ri-heart-fill' : 'ri-heart-line'} board-post-meta-icon`}></i>
+                                    {post.likes}
+                                </span>
                             </div>
                         </div>
                     </div>

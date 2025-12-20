@@ -3,122 +3,22 @@
 /* ===== 페이지 컨테이너 ===== */
 .board-page-container {
   padding-top: 60px;
-  /* Safe Area for Header (60px) + Tabs (40px) + Spacing */
-  /* Push content below fixed header */
+  /* Safe Area for Header (60px) */
   position: relative;
   height: 100vh;
+  /* Fallback */
+  height: 100dvh;
+  /* Mobile Address Bar Fix */
   box-sizing: border-box;
-}
-
-/* ===== 헤더 ===== */
-/* Header styles handled by global-header class from index.css */
-
-.board-header-content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  /* height: 3rem !important; */
-  padding-left: 9px;
-  padding-right: 9px;
+  /* NEW: Use Flexbox */
+  flex-direction: column;
+  /* Stack children vertically */
   overflow: hidden;
-  white-space: nowrap;
-  box-sizing: border-box;
+  /* Prevent body scroll */
 }
 
-.board-header-title {
-  font-size: var(--header-title-font-size);
-  font-weight: 700;
-  color: white;
-}
-
-.board-header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-/* ===== 버튼 스타일 ===== */
-.board-btn-write {
-  background-color: var(--color-blue-600);
-  color: white;
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-  padding-top: var(--spacing-2);
-  padding-bottom: var(--spacing-2);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  transition: var(--transition-colors);
-  cursor: pointer;
-  border: none;
-}
-
-.board-btn-write:hover {
-  background-color: var(--color-blue-700);
-}
-
-.board-btn-registering {
-  background-color: #242424;
-  color: var(--color-gray-400);
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-  padding-top: var(--spacing-2);
-  padding-bottom: var(--spacing-2);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-.board-btn-logout {
-  background-color: #242424;
-  color: var(--color-gray-300);
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-  padding-top: var(--spacing-2);
-  padding-bottom: var(--spacing-2);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  transition: var(--transition-colors);
-  cursor: pointer;
-  border: none;
-}
-
-.board-btn-logout:hover {
-  background-color: var(--color-gray-600);
-  color: white;
-}
-
-.board-btn-kakao {
-  background-color: #ca8a04;
-  color: white;
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-  padding-top: var(--spacing-2);
-  padding-bottom: var(--spacing-2);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  transition: var(--transition-colors);
-  cursor: pointer;
-  border: none;
-}
-
-.board-btn-kakao:hover {
-  background-color: #a16207;
-}
+/* ... existing code ... */
 
 /* ===== 게시글 목록 컨테이너 ===== */
 .board-posts-container {
@@ -126,13 +26,16 @@
   padding-right: 0;
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
-  height: calc(100vh - 110px);
-  /* Adjust for header + tabs */
+  /* height: calc(100vh - 110px); REMOVED */
+  flex: 1;
+  /* NEW: Fill remaining vertical space automatically */
   overflow-y: auto;
+  /* Internal scroll */
   margin-top: 0;
-  /* Handled by flex/flow now */
-  padding-bottom: 80px;
-
+  padding-bottom: 150px;
+  /* Generous bottom padding */
+  -webkit-overflow-scrolling: touch;
+  /* Smooth scroll for iOS */
 }
 
 /* ===== 로딩 상태 ===== */
@@ -196,12 +99,14 @@
   margin: 0.4rem;
   border-radius: 12px;
   display: flex;
-  /* Flexbox for side-by-side layout */
-  gap: 12px;
-  /* Spacing between image and content */
-  align-items: flex-start;
-  /* Align to top */
-  /* Background colors are set by specific classes normal/notice */
+  flex-direction: column;
+  /* Changed to Column for 2-tier layout */
+  gap: 8px;
+  /* Gap between top row and meta row */
+  overflow: hidden;
+  /* Prevent overflow */
+  background-color: #242424;
+  /* Default background */
 }
 
 .board-post-card:hover {
@@ -217,12 +122,21 @@
   /* Slightly Adjusted opacity */
 }
 
+/* New Top Row container for Image + Content */
+.board-post-top-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
 /* Thumbnail on the LEFT */
 .board-post-thumbnail {
-  width: 70px;
-  /* Fixed width for thumbnail */
-  height: 70px;
-  /* Fixed height for thumbnail */
+  width: 80px;
+  /* Increased slightly for better visibility */
+  height: 80px;
+  /* Square aspect ratio */
   flex-shrink: 0;
   /* Prevent shrinking */
   border-radius: 8px;
@@ -239,17 +153,17 @@
   object-fit: cover;
 }
 
-/* Main Content on the RIGHT */
+/* Main Content on the RIGHT (inside top row) */
 .board-post-main-content {
   flex: 1;
   /* Take remaining space */
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 70px;
-  /* Match thumbnail height for balance */
-  overflow: hidden;
-  /* For text truncation */
+  justify-content: flex-start;
+  /* Align content to top */
+  min-width: 0;
+  /* Critical for text truncation in flex items */
+  gap: 4px;
 }
 
 
@@ -257,7 +171,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .board-post-prefix {
@@ -303,33 +217,62 @@
   color: #d1d5db;
   /* Light gray (Gray 300 equivalent) */
   font-size: 13px;
-  margin-bottom: 8px;
+  margin: 0;
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   /* Clamp to 1 line */
-  line-clamp: 1;
+  line-clamp: 2;
 }
 
+/* Meta Data Row (Bottom Layer) */
 .board-post-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
   color: #888;
+  width: 100%;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  /* Optional subtle separator */
 }
 
 .board-post-meta-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  /* Slightly reduced gap */
+  min-width: 0;
+  /* Enable shrinking */
+  flex: 1;
+}
+
+.board-post-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  /* Push to right */
 }
 
 .board-post-meta-item {
   display: flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+  /* Prevent wrap */
+}
+
+/* Specific truncation for nickname container */
+.board-post-meta-nickname {
+  max-width: 80px;
+  /* Limit nickname width */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .board-post-meta-separator {

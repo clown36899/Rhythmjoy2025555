@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { useState } from 'react';
 import type { Shop } from '../page';
 import { useModalHistory } from '../../../hooks/useModalHistory';
+import { useAuth } from '../../../contexts/AuthContext';
 import ShopEditModal from './ShopEditModal';
 import './shopdetailmodal.css';
 
@@ -13,6 +14,7 @@ interface ShopDetailModalProps {
 }
 
 export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: ShopDetailModalProps) {
+    const { user } = useAuth();
     const [showEditModal, setShowEditModal] = useState(false);
 
     // Enable mobile back gesture to close modal
@@ -38,9 +40,12 @@ export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: Sho
             <div className="shop-modal-overlay" onClick={onClose}>
                 <div className="shop-modal-content" onClick={(e) => e.stopPropagation()}>
                     {/* Edit Button */}
-                    <button onClick={handleEdit} className="shop-modal-edit" title="수정하기">
-                        <i className="ri-pencil-line"></i>
-                    </button>
+                    {/* Edit Button - Only show if owner */}
+                    {shop.user_id && user && user.id === shop.user_id && (
+                        <button onClick={handleEdit} className="shop-modal-edit" title="수정하기">
+                            <i className="ri-pencil-line"></i>
+                        </button>
+                    )}
 
                     {/* Close Button */}
                     <button onClick={onClose} className="shop-modal-close">

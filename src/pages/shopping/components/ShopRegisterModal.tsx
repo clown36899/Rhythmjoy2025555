@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
+
+import { useAuth } from '../../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import './ShopRegisterModal.css';
 
 interface ShopRegisterModalProps {
@@ -23,6 +26,9 @@ interface FeaturedItem {
 }
 
 export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRegisterModalProps) {
+
+    const { user, signInWithKakao } = useAuth();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -32,7 +38,6 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
     const [shopUrl, setShopUrl] = useState('');
     const [shopLogoFile, setShopLogoFile] = useState<File | null>(null);
     const [shopLogoPreview, setShopLogoPreview] = useState('');
-    const [password, setPassword] = useState('');
 
     // Logo Image Crop Modal States
     const [showLogoCropModal, setShowLogoCropModal] = useState(false);
@@ -187,7 +192,22 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!shopName || !shopUrl || !password) {
+
+        // 0. Auth Check
+        if (!user) {
+            if (confirm('쇼핑몰을 등록하려면 로그인이 필요합니다.\n로그인 페이지로 이동하시겠습니까?')) {
+                // Since this is a modal, simpler to redirect or try login directly.
+                // Assuming Kakao login redirect flow:
+                try {
+                    await signInWithKakao();
+                } catch (loginErr) {
+                    console.error("Login failed", loginErr);
+                }
+            }
+            return;
+        }
+
+        if (!shopName || !shopUrl) {
             setError('필수 항목을 모두 입력해주세요.');
             return;
         }
@@ -209,7 +229,7 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
                     description: shopDescription,
                     website_url: shopUrl,
                     logo_url: logoUrl,
-                    password: password,
+                    user_id: user.id, // Assign ownership
                 })
                 .select()
                 .single();
@@ -247,7 +267,7 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
             setShopUrl('');
             setShopLogoFile(null);
             setShopLogoPreview('');
-            setPassword('');
+            setShopLogoPreview('');
             setLogoTempUrl(null);
             setOriginalLogoUrl(null);
             setFeaturedItems([]);
@@ -339,16 +359,6 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
                                     </div>
                                 )}
                             </div>
-                            <input
-                                type="password"
-                                placeholder="수정용 비밀번호 *"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="shop-register-input"
-                                minLength={4}
-                                disabled={loading}
-                            />
-                            <p className="shop-register-helper-text">* 쇼핑몰 정보 수정 시 필요한 비밀번호입니다 (최소 4자)</p>
                         </div>
 
                         {/* Featured Items Section */}
