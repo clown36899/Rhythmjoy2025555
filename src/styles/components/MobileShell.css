@@ -334,7 +334,7 @@
   justify-content: space-between;
   padding-left: 13px;
   padding-right: 13px;
-  border-bottom: 0.3px solid #37415199;
+  /* border-bottom: 0.3px solid #37415199; */
 }
 
 /* Global Header Styles */

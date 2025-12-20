@@ -321,7 +321,6 @@ export default memo(function FullEventCalendar({
       const dayNum = String(day.getDate()).padStart(2, "0");
       const dateString = `${year}-${month}-${dayNum}`;
       const todayFlag = isToday(day);
-      const isOtherMonth = day.getMonth() !== monthDate.getMonth();
       const isLastRow = index >= days.length - 7;
       const dayEvents = getEventsForDate(day);
 
@@ -340,14 +339,7 @@ export default memo(function FullEventCalendar({
           <div className="calendar-cell-fullscreen-header">
             <span
               className={`calendar-date-number-fullscreen ${todayFlag ? "calendar-date-number-today" : ""}`}
-              style={{
-                opacity: isOtherMonth ? 0.3 : 1,
-                color: isOtherMonth ? '#6b7280' : '#e5e7eb',
-                fontSize: '12px',
-                fontWeight: 700,
-                width: todayFlag ? '20px' : undefined,
-                height: todayFlag ? '20px' : undefined,
-              }}
+
             >
               <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
               <span style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8 }}>

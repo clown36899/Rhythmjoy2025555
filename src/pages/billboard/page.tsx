@@ -41,10 +41,8 @@ export default function BillboardPage() {
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
   const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
-  const [bottomInfoHeight, setBottomInfoHeight] = useState(0); // 하단 정보 영역 높이 (화면의 10%)
   const [qrSize, setQrSize] = useState(144); // QR 코드 크기
   const [titleFontSize, setTitleFontSize] = useState(56); // 제목 폰트 크기
-  const [dateLocationHeight, setDateLocationHeight] = useState(0); // 날짜+장소 영역 높이 (화면의 8%)
   const [dateLocationFontSize, setDateLocationFontSize] = useState(31); // 날짜+장소 폰트 크기
   const slideTimerRef = useRef<NodeJS.Timeout | null>(null); // 슬라이드 전환 타이머
   const slideStartTimeRef = useRef<number>(0); // 슬라이드 시작 시간
@@ -106,7 +104,6 @@ export default function BillboardPage() {
       // 화면 높이의 10% 계산 (회전 여부에 따라) - 제목+QR 영역
       const effectiveHeight = isLandscape ? window.innerWidth : window.innerHeight;
       const maxHeight = effectiveHeight * 0.1;
-      setBottomInfoHeight(maxHeight);
 
       // QR 코드 크기: 최대 높이의 80% 정도, 최소 60px, 최대 150px
       const calculatedQrSize = Math.min(150, Math.max(60, maxHeight * 0.8));
@@ -120,7 +117,6 @@ export default function BillboardPage() {
 
       // 날짜+장소 영역: 화면 높이의 8%
       const dateLocationMax = effectiveHeight * 0.08;
-      setDateLocationHeight(dateLocationMax);
 
       // 날짜+장소 폰트 크기: 영역의 30% 정도, 최소 18px, 최대 36px
       const dateLocationFont = Math.min(36, Math.max(18, dateLocationMax * 0.3));

@@ -759,9 +759,15 @@
 }
 
 .calendar-date-number-today {
+  opacity: 1;
+
+  font-size: 12px;
+  font-weight: 700;
+  /* width: 20px; */
+  padding: 1px 12px;
+  height: 20px;
   display: flex;
   align-items: center;
-  justify-content: center;
   border-radius: 9999px;
   background-color: #3b82f6;
   color: white;

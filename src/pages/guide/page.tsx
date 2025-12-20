@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import SimpleHeader from "../../components/SimpleHeader";
 import CalendarSearchModal from '../v2/components/CalendarSearchModal';
 import './guide.css';
 
@@ -12,7 +11,6 @@ declare global {
 
 export default function GuidePage() {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   // Event search from header
   useEffect(() => {
@@ -315,7 +313,8 @@ export default function GuidePage() {
         isOpen={showGlobalSearch}
         onClose={() => setShowGlobalSearch(false)}
         onSelectEvent={(event) => {
-          setSelectedEvent(event);
+          // No-op or navigate
+          console.log('Selected event:', event);
         }}
         searchMode="all"
       />

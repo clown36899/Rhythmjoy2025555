@@ -82,6 +82,35 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
         }
     };
 
+    const handleMoveCategory = async (index: number, direction: 'up' | 'down') => {
+        if (loading) return;
+        if (direction === 'up' && index === 0) return;
+        if (direction === 'down' && index === categories.length - 1) return;
+
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        const currentCat = categories[index];
+        const targetCat = categories[targetIndex];
+
+        // Optimistic update
+        const newCategories = [...categories];
+        newCategories[index] = { ...targetCat, display_order: currentCat.display_order };
+        newCategories[targetIndex] = { ...currentCat, display_order: targetCat.display_order };
+        // Sort by display_order to maintain visual order
+        newCategories.sort((a, b) => a.display_order - b.display_order);
+        setCategories(newCategories);
+
+        try {
+            await Promise.all([
+                supabase.from('board_categories').update({ display_order: targetCat.display_order }).eq('code', currentCat.code),
+                supabase.from('board_categories').update({ display_order: currentCat.display_order }).eq('code', targetCat.code)
+            ]);
+        } catch (error) {
+            console.error('Reorder failed:', error);
+            alert('순서 변경 실패');
+            loadCategories(); // Revert
+        }
+    };
+
     if (!isOpen) return null;
 
     const modalContent = (
@@ -104,16 +133,35 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
                         <table className="bmm-table">
                             <thead>
                                 <tr>
-                                    <th style={{ width: '50px' }}>순서</th>
+                                    <th style={{ width: '80px', textAlign: 'center' }}>순서</th>
                                     <th>코드</th>
                                     <th>이름 (수정)</th>
                                     <th style={{ width: '80px', textAlign: 'center' }}>상태</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {categories.map((cat) => (
+                                {categories.map((cat, index) => (
                                     <tr key={cat.code}>
-                                        <td>{cat.display_order}</td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                                <button
+                                                    onClick={() => handleMoveCategory(index, 'up')}
+                                                    disabled={index === 0}
+                                                    className="bmm-order-btn"
+                                                    style={{ opacity: index === 0 ? 0.3 : 1 }}
+                                                >
+                                                    <i className="ri-arrow-up-s-line"></i>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleMoveCategory(index, 'down')}
+                                                    disabled={index === categories.length - 1}
+                                                    className="bmm-order-btn"
+                                                    style={{ opacity: index === categories.length - 1 ? 0.3 : 1 }}
+                                                >
+                                                    <i className="ri-arrow-down-s-line"></i>
+                                                </button>
+                                            </div>
+                                        </td>
                                         <td style={{ color: '#888', fontSize: '0.85rem' }}>{cat.code}</td>
                                         <td>
                                             <input

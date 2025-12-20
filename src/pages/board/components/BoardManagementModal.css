@@ -1,25 +1,30 @@
-/* BoardManagementModal.css */
+/* Board Management Modal Dedicated Styles */
+
 .bmm-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5);
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 99999 !important;
-    /* Force on top */
+    /* Extremely high z-index to prevent hiding */
+    backdrop-filter: blur(4px);
 }
 
 .bmm-container {
-    background: white;
+    background-color: #1e1e1e;
     width: 90%;
-    max-width: 500px;
+    max-width: 600px;
+    max-height: 80vh;
     border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #333;
     animation: bmm-fade-in 0.2s ease-out;
 }
 
@@ -37,95 +42,137 @@
 
 .bmm-header {
     padding: 16px 20px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #333;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #f9fafb;
 }
 
 .bmm-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #111827;
     margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
 }
 
 .bmm-close-btn {
     background: none;
     border: none;
+    color: #888;
     cursor: pointer;
     padding: 4px;
-    color: #6b7280;
     border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
 .bmm-close-btn:hover {
-    background-color: #e5e7eb;
-    color: #374151;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .bmm-content {
     padding: 20px;
-    max-height: 70vh;
     overflow-y: auto;
+    flex: 1;
 }
 
 .bmm-table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 0.95rem;
 }
 
 .bmm-table th {
     text-align: left;
-    padding: 8px;
+    padding: 10px;
+    color: #888;
+    border-bottom: 1px solid #333;
+    font-weight: 500;
     font-size: 0.85rem;
-    color: #6b7280;
-    border-bottom: 2px solid #e5e7eb;
 }
 
 .bmm-table td {
-    padding: 12px 8px;
-    border-bottom: 1px solid #f3f4f6;
+    padding: 12px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    color: #eee;
     vertical-align: middle;
 }
 
 .bmm-input {
     width: 100%;
-    padding: 6px 10px;
-    border: 1px solid #d1d5db;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
     border-radius: 6px;
-    font-size: 0.9rem;
+    padding: 8px 12px;
+    color: white;
+    font-size: 0.95rem;
+    box-sizing: border-box;
 }
 
 .bmm-input:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    border-color: var(--primary-color, #fbbf24);
 }
 
 .bmm-btn {
     padding: 6px 12px;
     border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
     border: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .bmm-btn-active {
-    background-color: #dcfce7;
-    color: #166534;
+    background-color: var(--primary-color, #fbbf24);
+    color: black;
 }
 
 .bmm-btn-inactive {
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: #333;
+    color: #888;
 }
 
 .bmm-loading {
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     padding: 40px;
-    color: #6b7280;
+    color: #888;
+}
+
+/* Order Buttons */
+.bmm-order-btn {
+    background-color: #333;
+    border: 1px solid #444;
+    color: #ccc;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bmm-order-btn:hover:not(:disabled) {
+    background-color: #444;
+    color: white;
+    border-color: #555;
+}
+
+.bmm-order-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+}
+
+.bmm-order-btn i {
+    font-size: 16px;
 }

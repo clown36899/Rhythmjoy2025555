@@ -109,8 +109,6 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     onImagePositionChange,
     videoUrl,
     onVideoChange,
-
-    onExtractThumbnail
 }, ref) => {
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null);
