@@ -35,4 +35,5 @@ export interface UnifiedSocialEvent {
   linkUrl?: string;
   description?: string;
   placeId?: number;
+  venueId?: string;
 }

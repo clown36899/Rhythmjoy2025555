@@ -6,9 +6,10 @@ interface SocialDetailModalProps {
     onClose: () => void;
     onEdit: () => void;
     readonly?: boolean;
+    onVenueClick?: (venueId: string) => void;
 }
 
-export default function SocialDetailModal({ item, onClose, onEdit, readonly = false }: SocialDetailModalProps) {
+export default function SocialDetailModal({ item, onClose, onEdit, readonly = false, onVenueClick }: SocialDetailModalProps) {
     return (
         <div className="spdm-overlay" onClick={onClose}>
             <div className="spdm-container" onClick={(e) => e.stopPropagation()}>
@@ -40,14 +41,23 @@ export default function SocialDetailModal({ item, onClose, onEdit, readonly = fa
                         <h2 className="spdm-title">{item.title}</h2>
 
                         {item.placeName && (
-                            <div style={{
-                                color: '#3b82f6',
-                                fontWeight: 600,
-                                marginBottom: '0.75rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}>
+                            <div
+                                onClick={() => {
+                                    if (item.venueId && onVenueClick) {
+                                        onVenueClick(item.venueId);
+                                    }
+                                }}
+                                style={{
+                                    color: item.venueId ? '#3b82f6' : '#3b82f6',
+                                    fontWeight: 600,
+                                    marginBottom: '0.75rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    cursor: item.venueId ? 'pointer' : 'default',
+                                    textDecoration: item.venueId ? 'underline' : 'none'
+                                }}
+                            >
                                 <i className="ri-map-pin-2-fill" style={{ fontSize: '1.1rem' }}></i>
                                 <span>{item.placeName}</span>
                             </div>

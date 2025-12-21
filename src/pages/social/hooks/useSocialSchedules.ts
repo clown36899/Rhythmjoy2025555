@@ -25,6 +25,7 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
         linkUrl: schedule.link_url,
         description: schedule.description,
         imageUrl: schedule.image,
+        venueId: schedule.venue_id,
     };
 };
 
@@ -44,7 +45,7 @@ export function useSocialSchedules() {
                 .from('social_schedules')
                 .select(`
           id, title, date, start_time, day_of_week, 
-          inquiry_contact, link_name, link_url, description, place_name, address, category, image
+          inquiry_contact, link_name, link_url, description, place_name, address, category, image, venue_id
         `)
                 .order('day_of_week', { ascending: true })
                 .order('start_time', { ascending: true });

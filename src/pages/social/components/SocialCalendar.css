@@ -215,3 +215,17 @@
     border-radius: 4px;
   }
 }
+
+/* 오늘 요일 동그라미 표시 */
+.day-name.today {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}

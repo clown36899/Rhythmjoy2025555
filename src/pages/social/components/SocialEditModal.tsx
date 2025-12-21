@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { resizeImage } from '../../../utils/imageResize';
+import { useAuth } from '../../../contexts/AuthContext';
+import VenueSelectModal from '../../v2/components/VenueSelectModal';
 import './SocialEditModal.css';
 
 interface SocialEditModalProps {
@@ -21,13 +23,16 @@ interface FormDataType {
   link_name?: string;
   link_url?: string;
   image?: string;
+  venue_id?: string | null;
 }
 
 export default function SocialEditModal({ item, itemType, onClose, onSuccess }: SocialEditModalProps) {
   const [formData, setFormData] = useState<FormDataType>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
+  const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
+
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     if (item) {
@@ -47,6 +52,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
         link_name: item.link_name || '',
         link_url: item.link_url || '',
         image: item.image || '',
+        venue_id: item.venue_id || null,
       });
     }
   }, [item, itemType]);
@@ -65,31 +71,13 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
     setLoading(true);
     setError('');
 
-    if (!passwordInput) {
-      setError('수정을 위해 비밀번호를 입력해주세요.');
-      setLoading(false);
-      return;
-    }
-
-    if (passwordInput !== item.password) {
-      setError('비밀번호가 올바르지 않습니다.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      // Schedule Update - Direct update instead of RPC
-      // First verify password (double check with server)
-      const { data: scheduleData, error: fetchError } = await supabase
-        .from('social_schedules')
-        .select('password')
-        .eq('id', item.id)
-        .single();
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (fetchError) throw fetchError;
-
-      if (scheduleData?.password !== passwordInput) {
-        throw new Error('비밀번호가 올바르지 않습니다.');
+      // Verify permission: user_id must match OR user is admin
+      if (item.user_id !== user?.id && !isAdmin) {
+        throw new Error('수정 권한이 없습니다.');
       }
 
       // Then update
@@ -106,6 +94,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
           link_name: formData.link_name || null,
           link_url: formData.link_url || null,
           image: formData.image || null,
+          venue_id: formData.venue_id || null,
         })
         .eq('id', item.id)
         .select()
@@ -123,13 +112,26 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
     }
   };
 
+  const handleVenueSelect = (venue: any) => {
+    setFormData(prev => ({
+      ...prev,
+      venue_id: venue?.id || null,
+      place_name: venue.name,
+      address: venue?.address || '',
+    }));
+    setShowVenueSelectModal(false);
+  };
+
   const handleDelete = async () => {
-    const inputPassword = prompt('삭제를 위해 비밀번호를 입력하세요:');
-    if (inputPassword === null) return;
-    if (inputPassword !== item.password) {
-      alert('비밀번호가 올바르지 않습니다.');
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Verify permission
+    if (item.user_id !== user?.id) {
+      alert('삭제 권한이 없습니다.');
       return;
     }
+
     if (!confirm('정말로 삭제하시겠습니까?')) return;
 
     setLoading(true);
@@ -171,7 +173,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
               <option value="0">일요일</option>
             </select>
 
-            <input type="text" name="place_name" placeholder="장소명 *" value={formData.place_name || ''} onChange={handleInputChange} required className="sed-form-input" />
+
 
             <input type="text" name="address" placeholder="주소" value={formData.address || ''} onChange={handleInputChange} className="sed-form-input" />
 
@@ -181,11 +183,26 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
               <option value="swing-bar">스윙바</option>
             </select>
 
+            <button
+              type="button"
+              onClick={() => setShowVenueSelectModal(true)}
+              className="sed-form-input"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                marginBottom: '1rem'
+              }}
+            >
+              <span style={{ color: formData.place_name ? '#fff' : '#888' }}>
+                {formData.place_name || '장소 선택 *'}
+              </span>
+              <i className="ri-map-pin-line" style={{ fontSize: '1.2rem', color: '#3b82f6' }}></i>
+            </button>
             <input type="text" name="inquiry_contact" placeholder="문의 연락처" value={formData.inquiry_contact || ''} onChange={handleInputChange} className="sed-form-input" />
-            <div className="sed-link-group" style={{ display: 'flex', gap: '5px' }}>
-              <input type="text" name="link_name" placeholder="링크명" value={formData.link_name || ''} onChange={handleInputChange} className="sed-form-input half" style={{ flex: 1 }} />
-              <input type="text" name="link_url" placeholder="링크 URL" value={formData.link_url || ''} onChange={handleInputChange} className="sed-form-input half" style={{ flex: 1 }} />
-            </div>
 
             <div style={{ marginBottom: '10px' }}>
               <label className="sed-form-label" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#ccc' }}>
@@ -254,22 +271,12 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
             <textarea name="description" placeholder="설명" value={formData.description || ''} onChange={handleInputChange} className="sed-form-textarea" rows={6}></textarea>
           </div>
 
+
           {/* Fixed Bottom Section */}
           <div className="sed-modal-bottom">
             {error && <p className="sed-error-message">{error}</p>}
 
             <div className="sed-bottom-row">
-              <input
-                type="password"
-                name="password"
-                placeholder="비밀번호 *"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                required
-                className="sed-password-input"
-                autoComplete="current-password"
-              />
-
               <div className="sed-button-group">
                 <button type="button" onClick={handleDelete} disabled={loading} className="sed-delete-button">삭제</button>
                 <button type="button" onClick={onClose} className="sed-close-button" title="닫기">
@@ -281,6 +288,23 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
           </div>
         </form>
       </div>
+      {/* Venue Select Modal */}
+      {showVenueSelectModal && (
+        <VenueSelectModal
+          isOpen={showVenueSelectModal}
+          onClose={() => setShowVenueSelectModal(false)}
+          onSelect={handleVenueSelect}
+          onManualInput={(venueName, venueLink) => {
+            setFormData(prev => ({
+              ...prev,
+              venue_id: null,
+              place_name: venueName,
+              address: '',
+            }));
+            setShowVenueSelectModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

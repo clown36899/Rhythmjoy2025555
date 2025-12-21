@@ -34,8 +34,12 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
 
     const fetchVenue = async () => {
         try {
+            // Check if venueId is a UUID or integer
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(venueId);
+            const tableName = isUUID ? "venues" : "practice_rooms";
+
             const { data, error } = await supabase
-                .from("venues")
+                .from(tableName)
                 .select("*")
                 .eq("id", venueId)
                 .single();
