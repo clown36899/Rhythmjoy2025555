@@ -52,12 +52,8 @@ export default function PracticeRoomsPage() {
 
   useEffect(() => {
     const handleRegisterEvent = () => {
-      if (isEffectiveAdmin) {
-        setEditingVenueId(null);
-        setShowRegisterModal(true);
-      } else {
-        setShowContactModal(true);
-      }
+      setEditingVenueId(null);
+      setShowRegisterModal(true);
     };
 
     window.addEventListener('practiceRoomRegister', handleRegisterEvent);
@@ -181,7 +177,7 @@ export default function PracticeRoomsPage() {
         <VenueDetailModal
           venueId={selectedVenueId}
           onClose={handleCloseDetail}
-          onEdit={isEffectiveAdmin ? () => handleEditVenue(selectedVenueId) : undefined}
+          onEdit={() => handleEditVenue(selectedVenueId)}
         />
       )}
 

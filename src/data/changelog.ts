@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: "2.9.1",
+        date: "2025-12-22",
+        changes: [
+            "소셜 스케줄 링크 기능 추가 (링크 이름/URL 직접 입력)",
+            "연습실/소셜 등록 시 로그인 유도 오버레이 추가",
+            "연습실 소유자 권한 확인 및 수정 기능 개선",
+            "연습실 즐겨찾기 스키마 개선"
+        ]
+    },
+    {
         version: "2.9.0",
         date: "2025-12-21",
         changes: [

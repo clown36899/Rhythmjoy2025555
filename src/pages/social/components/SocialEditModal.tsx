@@ -204,6 +204,27 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
             </button>
             <input type="text" name="inquiry_contact" placeholder="문의 연락처" value={formData.inquiry_contact || ''} onChange={handleInputChange} className="sed-form-input" />
 
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input
+                type="text"
+                name="link_name"
+                placeholder="링크 이름 (예: 신청하기)"
+                value={formData.link_name || ''}
+                onChange={handleInputChange}
+                className="sed-form-input"
+                style={{ flex: 1, marginBottom: 0 }}
+              />
+              <input
+                type="text"
+                name="link_url"
+                placeholder="링크 URL (https://...)"
+                value={formData.link_url || ''}
+                onChange={handleInputChange}
+                className="sed-form-input"
+                style={{ flex: 2, marginBottom: 0 }}
+              />
+            </div>
+
             <div style={{ marginBottom: '10px' }}>
               <label className="sed-form-label" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#ccc' }}>
                 대표 이미지 (선택)

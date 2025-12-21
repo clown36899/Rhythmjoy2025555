@@ -27,7 +27,72 @@ export default function UniversalPostEditor({
     userNickname,
     category
 }: UniversalPostEditorProps) {
-    const { isAdmin, user } = useAuth();
+    const { isAdmin, user, signInWithKakao } = useAuth();
+    const handleLogin = () => signInWithKakao();
+
+    // Login Overlay Component
+    const LoginOverlay = () => (
+        <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 100,
+            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem',
+            textAlign: 'center',
+            borderRadius: 'inherit' // Inherit border radius from container
+        }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>로그인 필요</h2>
+            <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+                글쓰기를 위해 로그인이 필요합니다.<br />
+                간편하게 로그인하고 계속하세요!
+            </p>
+            <button
+                onClick={handleLogin}
+                style={{
+                    width: '100%',
+                    maxWidth: '300px',
+                    padding: '1rem',
+                    background: '#FEE500',
+                    color: '#000000',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    marginBottom: '1rem'
+                }}
+            >
+                <i className="ri-kakao-talk-fill" style={{ fontSize: '1.5rem' }}></i>
+                카카오로 로그인
+            </button>
+            <button
+                onClick={onClose}
+                style={{
+                    width: '100%',
+                    maxWidth: '300px',
+                    padding: '0.75rem',
+                    background: 'transparent',
+                    color: '#9ca3af',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer'
+                }}
+            >
+                취소
+            </button>
+        </div>
+    );
 
     // Form State
     const [formData, setFormData] = useState({
@@ -280,7 +345,10 @@ export default function UniversalPostEditor({
 
     const modalContent = (
         <div className="pem-modal-overlay">
-            <div className="pem-modal-container universal-editor-container">
+            <div className="pem-modal-container universal-editor-container" style={{ position: 'relative' }}>
+                {/* Login Requirement Overlay */}
+                {!user && <LoginOverlay />}
+
                 {/* Header */}
                 <div className="pem-modal-header">
                     <h2 className="pem-modal-title">

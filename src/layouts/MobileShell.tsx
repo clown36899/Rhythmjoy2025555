@@ -495,10 +495,10 @@ export function MobileShell() {
 
                 {/* 3. Event Registration Button */}
                 <button
-                  onClick={() => handleProtectedAction(() => {
+                  onClick={() => {
                     logUserInteraction('Button', 'Click', 'EventRegistration-TopBar');
                     window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }));
-                  })}
+                  }}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -539,7 +539,7 @@ export function MobileShell() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {/* Event Registration Button */}
                 <button
-                  onClick={() => handleProtectedAction(() => window.dispatchEvent(new CustomEvent('openCalendarRegistration')))}
+                  onClick={() => window.dispatchEvent(new CustomEvent('openCalendarRegistration'))}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -580,10 +580,10 @@ export function MobileShell() {
             {isShoppingPage ? (
               <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => handleProtectedAction(() => {
+                  onClick={() => {
                     logUserInteraction('Button', 'Click', 'ShopRegistration');
                     window.dispatchEvent(new CustomEvent('openShopRegistration'));
-                  })}
+                  }}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>
@@ -604,10 +604,10 @@ export function MobileShell() {
               {/* Social: Register Button */}
               {isSocialPage && (
                 <button
-                  onClick={() => handleProtectedAction(() => {
+                  onClick={() => {
                     logUserInteraction('Button', 'Click', 'SocialRegistration');
                     window.dispatchEvent(new CustomEvent('openSocialRegistration'));
-                  })}
+                  }}
                   className="shell-btn-register-topbar"
                 >
                   <i className="ri-add-line"></i>

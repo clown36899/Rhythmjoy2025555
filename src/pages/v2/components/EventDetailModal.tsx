@@ -7,6 +7,7 @@ import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLi
 import { useModalHistory } from '../../../hooks/useModalHistory';
 import { logEvent, logPageView } from '../../../lib/analytics';
 import "../../../styles/components/EventDetailModal.css";
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface Event extends BaseEvent {
   storage_path?: string | null;
@@ -63,11 +64,14 @@ export default function EventDetailModal({
   onEdit,
   onDelete: _onDelete,
   isAdminMode = false,
-  currentUserId,
+  currentUserId: _currentUserId,
   isFavorite = false,
   onToggleFavorite,
   onOpenVenueDetail,
 }: EventDetailModalProps) {
+  const { user, signInWithKakao } = useAuth();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -119,6 +123,10 @@ export default function EventDetailModal({
     }
   }, [isOpen, event]);
 
+  const handleLogin = () => {
+    signInWithKakao();
+  };
+
   if (!isOpen || !event) {
     return null;
   }
@@ -141,9 +149,71 @@ export default function EventDetailModal({
           >
             <div
               className="event-detail-modal-container"
-              style={{ borderColor: "rgb(89, 89, 89)" }}
+              style={{ borderColor: "rgb(89, 89, 89)", position: 'relative' }} // relative for login overlay
               onClick={(e) => e.stopPropagation()}
             >
+              {/* 로그인 유도 오버레이 */}
+              {showLoginPrompt && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                  zIndex: 100,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  borderRadius: 'inherit'
+                }}>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>로그인 필요</h2>
+                  <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+                    수정/삭제하려면 로그인이 필요합니다.<br />
+                    간편하게 로그인하고 계속하세요!
+                  </p>
+                  <button
+                    onClick={handleLogin}
+                    style={{
+                      width: '100%',
+                      padding: '1rem',
+                      background: '#FEE500',
+                      color: '#000000',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '1rem'
+                    }}
+                  >
+                    <i className="ri-kakao-talk-fill" style={{ fontSize: '1.5rem' }}></i>
+                    카카오로 로그인
+                  </button>
+                  <button
+                    onClick={() => setShowLoginPrompt(false)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'transparent',
+                      color: '#9ca3af',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    취소
+                  </button>
+                </div>
+              )}
+
               {/* 스크롤 가능한 전체 영역 */}
               <div
                 className="modal-scroll-container"
@@ -688,18 +758,20 @@ export default function EventDetailModal({
                     <i className="ri-share-line action-icon"></i>
                   </button>
 
-                  {/* Only show edit button if admin or owner */}
-                  {(isAdminMode || (currentUserId && currentUserId === selectedEvent.user_id)) && (
-                    <button
-                      onClick={(e) => onEdit(selectedEvent, e)}
-                      className="action-button edit"
-                      title="이벤트 수정"
-                    >
-                      <i className="ri-edit-line action-icon"></i>
-                    </button>
-                  )}
-
-
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!user) {
+                        setShowLoginPrompt(true);
+                      } else {
+                        onEdit(selectedEvent, e);
+                      }
+                    }}
+                    className="action-button edit"
+                    title="이벤트 수정"
+                  >
+                    <i className="ri-edit-line action-icon"></i>
+                  </button>
 
                   <button
                     onClick={(e) => {

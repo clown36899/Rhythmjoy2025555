@@ -19,23 +19,16 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
   const [category, setCategory] = useState<'club' | 'swing-bar' | ''>('');
   const [description, setDescription] = useState('');
   const [inquiryContact, setInquiryContact] = useState('');
+  const [linkName, setLinkName] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [venueId, setVenueId] = useState<string | null>(null);
   const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
 
-  const { user } = useAuth();
+  const { user, signInWithKakao } = useAuth();
 
-  const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: {
-        redirectTo: window.location.origin + '/social'
-      }
-    });
-    if (error) {
-      console.error('Login error:', error);
-      alert('로그인에 실패했습니다.');
-    }
+  const handleLogin = () => {
+    signInWithKakao();
   };
 
   const [loading, setLoading] = useState(false);
@@ -67,7 +60,8 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
           venue_id: venueId,
           description,
           inquiry_contact: inquiryContact,
-          venue_id: venueId,
+          link_name: linkName || null,
+          link_url: linkUrl || null,
           image: imageUrl
         })
         .select()
@@ -98,10 +92,21 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
       <div className="sem-modal-overlay" onClick={onClose}>
         <div className="sem-modal-container" onClick={(e) => e.stopPropagation()}>
           {!user ? (
-            <div className="sem-login-required">
-              <h2 className="sem-modal-title">정기 스케줄 등록</h2>
-              <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', textAlign: 'center' }}>
-                일정을 등록하려면 로그인이 필요합니다.
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2rem',
+              textAlign: 'center',
+              height: '100%',
+              backgroundColor: 'rgba(30, 41, 59, 1)', // Background matching the theme
+              borderRadius: 'inherit'
+            }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>로그인 필요</h2>
+              <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+                일정을 등록하려면 로그인이 필요합니다.<br />
+                간편하게 로그인하고 계속하세요!
               </p>
               <button
                 onClick={handleLogin}
@@ -118,7 +123,8 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.5rem'
+                  gap: '0.5rem',
+                  marginBottom: '1rem'
                 }}
               >
                 <i className="ri-kakao-talk-fill" style={{ fontSize: '1.5rem' }}></i>
@@ -127,7 +133,6 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
               <button
                 onClick={onClose}
                 style={{
-                  marginTop: '1rem',
                   width: '100%',
                   padding: '0.75rem',
                   background: 'transparent',
@@ -198,6 +203,25 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
               <textarea placeholder="간단한 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="sem-form-textarea" rows={2}></textarea>
 
               <input type="text" placeholder="문의 연락처" value={inquiryContact} onChange={(e) => setInquiryContact(e.target.value)} className="sem-form-input" />
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="링크 이름 (예: 신청하기)"
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  className="sem-form-input"
+                  style={{ flex: 1 }}
+                />
+                <input
+                  type="text"
+                  placeholder="링크 URL (https://...)"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  className="sem-form-input"
+                  style={{ flex: 2 }}
+                />
+              </div>
 
 
 
@@ -273,7 +297,7 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
           isOpen={showVenueSelectModal}
           onClose={() => setShowVenueSelectModal(false)}
           onSelect={handleVenueSelect}
-          onManualInput={(venueName, venueLink) => {
+          onManualInput={(venueName, _venueLink) => {
             setVenueId(null);
             setPlaceName(venueName);
             setAddress('');
