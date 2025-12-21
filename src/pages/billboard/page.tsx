@@ -64,6 +64,14 @@ export default function BillboardPage() {
   const settingsChannelRef = useRef<any>(null);
   const deployChannelRef = useRef<any>(null);
 
+  // 🛡️ 네트워크 워치독 상태 (각 채널별 상태 추적)
+  const [channelStates, setChannelStates] = useState({
+    events: 'CONNECTING',
+    settings: 'CONNECTING',
+    deploy: 'CONNECTING'
+  });
+  const networkWatchdogTimerRef = useRef<NodeJS.Timeout | null>(null); // 네트워크 복구 타이머
+
   // 빌보드 페이지 배경색을 검은색으로 설정 + 스크롤 금지
   useEffect(() => {
     document.body.style.backgroundColor = '#000000';
@@ -241,6 +249,12 @@ export default function BillboardPage() {
     }
 
     log('[🧹 타이머 정리] ✅ 슬라이드 타이머 정리 완료 (watchdog은 계속 실행 중)');
+
+    // 네트워크 워치독 타이머도 정리
+    if (networkWatchdogTimerRef.current) {
+      clearTimeout(networkWatchdogTimerRef.current);
+      networkWatchdogTimerRef.current = null;
+    }
   }, []);
 
   // 슬라이드 타이머 시작 함수
@@ -704,7 +718,9 @@ export default function BillboardPage() {
       )
       .subscribe((status) => {
         log('[📡 채널 관리] eventsChannel 상태:', status);
-        setRealtimeStatus(`데이터: ${status}`);
+        setChannelStates(prev => ({ ...prev, events: status }));
+        if (status === 'SUBSCRIBED') setRealtimeStatus(`데이터: 연결됨`);
+        else setRealtimeStatus(`데이터: ${status}`);
       });
 
     settingsChannelRef.current = supabase
@@ -745,7 +761,9 @@ export default function BillboardPage() {
       )
       .subscribe((status) => {
         log('[📡 채널 관리] settingsChannel 상태:', status);
-        setRealtimeStatus(`설정: ${status}`);
+        setChannelStates(prev => ({ ...prev, settings: status }));
+        if (status === 'SUBSCRIBED') setRealtimeStatus(`설정: 연결됨`);
+        else setRealtimeStatus(`설정: ${status}`);
       });
 
     deployChannelRef.current = supabase
@@ -762,7 +780,9 @@ export default function BillboardPage() {
       )
       .subscribe((status) => {
         log('[📡 채널 관리] deployChannel 상태:', status);
-        setRealtimeStatus(`배포: ${status}`);
+        setChannelStates(prev => ({ ...prev, deploy: status }));
+        if (status === 'SUBSCRIBED') setRealtimeStatus(`배포감지: 연결됨`);
+        else setRealtimeStatus(`배포감지: ${status}`);
       });
 
     log('[📡 채널 관리] ✅ 3개 채널 생성 완료 (중복 방지됨)');
@@ -792,6 +812,39 @@ export default function BillboardPage() {
       log('[📡 채널 관리] ✅ 모든 채널 제거 완료');
     };
   }, [userId, clearAllTimers]);
+
+  // 🛡️ 네트워크 워치독: 연결 끊김이 5초 이상 지속되면 강제 새로고침
+  useEffect(() => {
+    // 1. 연결 실패 상태 감지 (SUBSCRIBED가 아닌 모든 상태)
+    const hasError = Object.values(channelStates).some(
+      status => status !== 'SUBSCRIBED'
+    );
+
+    // 2. 완전 복구 상태 감지 (모두 연결됨)
+    const allConnected = Object.values(channelStates).every(
+      status => status === 'SUBSCRIBED'
+    );
+
+    if (hasError) {
+      if (!networkWatchdogTimerRef.current) {
+        log('[워치독] 🚨 네트워크 연결 끊김 감지! 5초 후 재접속(새로고침) 시도 예정...', channelStates);
+        setRealtimeStatus(`⚠️ 연결 끊김! 5초 후 자동복구...`);
+
+        networkWatchdogTimerRef.current = setTimeout(() => {
+          log('[워치독] 💥 5초 경과: 연결 복구 실패 → 강제 새로고침 실행');
+          window.location.reload();
+        }, 5000); // 5초 대기
+      }
+    } else if (allConnected) {
+      // 완전 복구: 타이머 있으면 제거
+      if (networkWatchdogTimerRef.current) {
+        log('[워치독] ✅ 네트워크 연결 완전 복구! 재접속 타이머 해제');
+        clearTimeout(networkWatchdogTimerRef.current);
+        networkWatchdogTimerRef.current = null;
+        setRealtimeStatus('연결됨 (복구완료)');
+      }
+    }
+  }, [channelStates]);
 
   const filterEvents = useCallback((
     allEvents: Event[],
