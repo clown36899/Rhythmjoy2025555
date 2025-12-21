@@ -97,13 +97,12 @@
 
 /* Compact Event Card - Modern & Card-like */
 .compact-event-card {
-  /* background-color: rgba(255, 255, 255, 0.05); */
+  background-color: rgb(255 255 255 / 12%);
   border-radius: 6px;
-  /* padding: 8px 6px; */
+  padding: 8px 6px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
   border: 1px solid transparent;
-  /* Prepare for hover border */
   display: flex;
   flex-direction: column;
   gap: 2px;

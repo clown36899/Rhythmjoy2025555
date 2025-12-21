@@ -32,6 +32,13 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-purple-500',
     },
     {
+        label: '소셜',
+        path: '/social',
+        icon: 'ri-map-pin-line',
+        iconFilled: 'ri-map-pin-fill',
+        activeColor: 'text-green-500',
+    },
+    {
         label: '연습실',
         path: '/practice',
         icon: 'ri-music-2-line',
@@ -51,12 +58,5 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         icon: 'ri-information-line',
         iconFilled: 'ri-information-fill',
         activeColor: 'text-blue-500',
-    },
-    {
-        label: '소셜',
-        path: '/social',
-        icon: 'ri-map-pin-line',
-        iconFilled: 'ri-map-pin-fill',
-        activeColor: 'text-green-500',
     },
 ];

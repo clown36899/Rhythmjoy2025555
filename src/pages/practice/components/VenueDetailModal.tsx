@@ -9,7 +9,7 @@ interface Venue {
     address: string;
     phone?: string;
     description: string;
-    images: string[];
+    images: (string | any)[];
     website_url?: string;
     map_url?: string;
     category: string;
@@ -204,15 +204,18 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                                 <i className="ri-image-line"></i>
                                 사진 ({venue.images.length})
                             </h3>
-                            {venue.images.map((image, index) => (
-                                <img
-                                    key={index}
-                                    src={image}
-                                    alt={`${venue.name} ${index + 1}`}
-                                    className="venue-vertical-image"
-                                    loading="lazy"
-                                />
-                            ))}
+                            {venue.images.map((image, index) => {
+                                const imageUrl = typeof image === 'string' ? image : (image.medium || image.full || image.thumbnail);
+                                return (
+                                    <img
+                                        key={index}
+                                        src={imageUrl}
+                                        alt={`${venue.name} ${index + 1}`}
+                                        className="venue-vertical-image"
+                                        loading="lazy"
+                                    />
+                                );
+                            })}
                         </div>
                     )}
 

@@ -1329,6 +1329,16 @@ export default memo(function EventEditModal({
                 isOpen={showVenueSelectModal}
                 onClose={() => setShowVenueSelectModal(false)}
                 onSelect={handleVenueSelect}
+                onManualInput={(venueName, venueLink) => {
+                    setEditFormData((prev) => ({
+                        ...prev,
+                        venueId: null,
+                        venueName: "",
+                        location: venueName,
+                        locationLink: venueLink,
+                        venueCustomLink: venueLink,
+                    }));
+                }}
             />
         </div>,
         document.body

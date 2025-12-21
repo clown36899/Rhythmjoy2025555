@@ -8,7 +8,7 @@ interface Venue {
     address: string;
     phone?: string;
     description: string;
-    images: string[];
+    images: (string | any)[];
     category: string;
 }
 
@@ -45,7 +45,14 @@ export default function VenueSelectList({ activeCategory, onVenueClick }: VenueS
                 const uniqueVenues = data.filter((venue, index, self) =>
                     index === self.findIndex((t) => t.name === venue.name)
                 );
-                setVenues(uniqueVenues);
+
+                // Parse images if needed
+                const parsedVenues = uniqueVenues.map(venue => ({
+                    ...venue,
+                    images: typeof venue.images === 'string' ? JSON.parse(venue.images) : (venue.images || [])
+                }));
+
+                setVenues(parsedVenues);
             } else {
                 setVenues([]);
             }
@@ -80,17 +87,9 @@ export default function VenueSelectList({ activeCategory, onVenueClick }: VenueS
             {venues.map((venue) => {
                 // 이미지 URL 처리
                 let imageUrl = null;
-                if (venue.images) {
-                    if (Array.isArray(venue.images) && venue.images.length > 0) {
-                        imageUrl = venue.images[0];
-                    } else if (typeof venue.images === 'string') {
-                        try {
-                            const parsed = JSON.parse(venue.images);
-                            imageUrl = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
-                        } catch {
-                            imageUrl = venue.images;
-                        }
-                    }
+                if (venue.images && venue.images.length > 0) {
+                    const img = venue.images[0];
+                    imageUrl = typeof img === 'string' ? img : (img.micro || img.thumbnail || img.medium || img.full);
                 }
 
                 return (

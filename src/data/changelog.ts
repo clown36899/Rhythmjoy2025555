@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: "2.8.1",
+        date: "2025-12-21",
+        changes: [
+            "연습실 상세 모달 표시 오류 수정 (이중 모달 제거)",
+            "이벤트 삭제 시 즐겨찾기 오류 수정 (연관 데이터 자동 삭제)",
+            "장소 선택 모달 과부하 수정 (로그 최적화)",
+            "이벤트 클릭 시 모달 동작 통합"
+        ]
+    },
+    {
         version: "2.8.0",
         date: "2025-12-21",
         changes: [

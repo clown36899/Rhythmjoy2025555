@@ -9,7 +9,7 @@ interface PracticeRoom {
   address: string;
   address_link: string;
   additional_link: string;
-  images: string[];
+  images: (string | any)[];
   description: string;
   created_at?: string;
   additional_link_title?: string;
@@ -401,7 +401,10 @@ export default function PracticeRoomList({
                 {room.images && room.images.length > 0 && (
                   <div className="prl-card-image-wrapper">
                     <img
-                      src={room.images[0]}
+                      src={(() => {
+                        const img = room.images[0];
+                        return typeof img === 'string' ? img : (img.thumbnail || img.medium || img.full);
+                      })()}
                       alt={room.name}
                       className="prl-card-image"
                     />

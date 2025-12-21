@@ -342,3 +342,174 @@
         max-width: 700px;
     }
 }
+/* Inline Tab Bar Styles */
+.venue-tab-bar-inline {
+    width: 100%;
+}
+
+.venue-tab-scroller-inline {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.venue-tab-scroller-inline::-webkit-scrollbar {
+    display: none;
+}
+
+.venue-tab-item-inline {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.625rem 1rem;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.venue-tab-item-inline:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e5e7eb;
+}
+
+.venue-tab-item-inline.active {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.venue-tab-icon {
+    font-size: 1.125rem;
+}
+
+.venue-tab-label {
+    font-size: 0.9375rem;
+}
+
+/* Manual Input Form Styles */
+.venue-manual-input-form {
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.venue-manual-field {
+    margin-bottom: 1.5rem;
+}
+
+.venue-manual-field:last-of-type {
+    margin-bottom: 2rem;
+}
+
+.venue-manual-label {
+    display: block;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin-bottom: 0.625rem;
+    letter-spacing: -0.01em;
+}
+
+.venue-manual-required {
+    color: #ef4444;
+    font-weight: 700;
+}
+
+.venue-manual-optional {
+    color: #6b7280;
+    font-weight: 400;
+    font-size: 0.875rem;
+}
+
+.venue-manual-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    color: #ffffff;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(4px);
+}
+
+.venue-manual-input::placeholder {
+    color: #6b7280;
+}
+
+.venue-manual-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 
+        0 0 0 3px rgba(59, 130, 246, 0.1),
+        0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.venue-manual-buttons {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+}
+
+.venue-manual-btn {
+    padding: 0.875rem 1.75rem;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    letter-spacing: -0.01em;
+}
+
+.venue-manual-btn-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.venue-manual-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.venue-manual-btn-cancel:active {
+    transform: translateY(0);
+}
+
+.venue-manual-btn-submit {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    box-shadow:
+        0 0 0 1px rgba(59, 130, 246, 0.2),
+        0 4px 12px rgba(37, 99, 235, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.venue-manual-btn-submit:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-2px);
+    box-shadow:
+        0 0 0 1px rgba(59, 130, 246, 0.4),
+        0 8px 20px rgba(37, 99, 235, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.venue-manual-btn-submit:active {
+    transform: translateY(0);
+}

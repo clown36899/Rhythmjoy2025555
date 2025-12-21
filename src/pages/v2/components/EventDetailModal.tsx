@@ -410,17 +410,9 @@ export default function EventDetailModal({
                               onOpenVenueDetail?.(venueId);
                             }}
                             className="venue-link-button"
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              padding: 0,
-                              color: 'var(--primary-color, #3b82f6)',
-                              cursor: 'pointer',
-                              textDecoration: 'underline',
-                              fontSize: 'inherit',
-                            }}
                           >
-                            {selectedEvent.location}
+                            <span>{selectedEvent.location}</span>
+                            <i className="ri-arrow-right-s-line" style={{ fontSize: '1.1em' }}></i>
                           </button>
                         ) : (
                           <span>{selectedEvent.location}</span>

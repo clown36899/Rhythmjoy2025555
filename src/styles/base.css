@@ -128,9 +128,9 @@
   --border-light: #374151;
 
   /* 달력 전용 보더 색상 */
-  --calendar-vertical-border: #3d3d3d;
+  --calendar-vertical-border: #3d3d3d81;
   /* 요일 사이 세로 경계선 */
-  --calendar-week-border: #303030;
+  --calendar-week-border: #303030ac;
   /* 주 단위 분리 가로선 */
   --calendar-weekday-border: #4b5563;
   /* 요일 헤더 하단 경계선 */

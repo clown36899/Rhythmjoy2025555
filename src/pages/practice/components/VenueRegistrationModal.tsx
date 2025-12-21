@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalHistory } from "../../../hooks/useModalHistory";
+import { createResizedImages } from "../../../utils/imageResize";
 import "./VenueRegistrationModal.css";
 
 interface VenueRegistrationModalProps {
@@ -21,7 +22,7 @@ interface VenueFormData {
     description: string;
     website_url: string;
     map_url: string;
-    images: string[];
+    images: (string | any)[]; // Supports legacy strings and new objects
 }
 
 export default function VenueRegistrationModal({
@@ -48,8 +49,13 @@ export default function VenueRegistrationModal({
     });
 
     const [loading, setLoading] = useState(false);
-    const [imageFiles, setImageFiles] = useState<File[]>([]);
-    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+    // Unified Image State
+    type ImageItem =
+        | { type: 'existing', url: string | any, preview: string }
+        | { type: 'new', file: File, preview: string };
+
+    const [images, setImages] = useState<ImageItem[]>([]);
 
     useModalHistory(isOpen, onClose);
 
@@ -69,8 +75,7 @@ export default function VenueRegistrationModal({
                 map_url: "",
                 images: []
             });
-            setImageFiles([]);
-            setImagePreviews([]);
+            setImages([]);
         }
     }, [isOpen, editVenueId]);
 
@@ -93,9 +98,17 @@ export default function VenueRegistrationModal({
                 map_url: data.map_url || "",
                 images: typeof data.images === 'string' ? JSON.parse(data.images) : (data.images || [])
             });
-            // Set existing images as previews
-            const existingImages = typeof data.images === 'string' ? JSON.parse(data.images) : (data.images || []);
-            setImagePreviews(existingImages);
+
+            // Set existing images
+            const rawImages = typeof data.images === 'string' ? JSON.parse(data.images) : (data.images || []);
+            const loadedImages: ImageItem[] = rawImages.map((img: any) => {
+                let preview = "";
+                if (typeof img === 'string') preview = img;
+                else preview = img.medium || img.full || img.thumbnail || "";
+
+                return { type: 'existing', url: img, preview };
+            });
+            setImages(loadedImages);
         }
         setLoading(false);
     };
@@ -107,16 +120,18 @@ export default function VenueRegistrationModal({
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
-            const newPreviews = files.map(file => URL.createObjectURL(file));
+            const newItems: ImageItem[] = files.map(file => ({
+                type: 'new',
+                file,
+                preview: URL.createObjectURL(file)
+            }));
 
-            setImageFiles(prev => [...prev, ...files]);
-            setImagePreviews(prev => [...prev, ...newPreviews]);
+            setImages(prev => [...prev, ...newItems]);
         }
     };
 
     const removeImage = (index: number) => {
-        setImageFiles(prev => prev.filter((_, i) => i !== index));
-        setImagePreviews(prev => prev.filter((_, i) => i !== index));
+        setImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleSubmit = async () => {
@@ -124,42 +139,49 @@ export default function VenueRegistrationModal({
 
         setLoading(true);
         try {
-            let finalImages = [...formData.images]; // Start with existing
+            // Process images sequentially or parallel
+            const finalImages = await Promise.all(images.map(async (item) => {
+                if (item.type === 'existing') {
+                    return item.url;
+                } else {
+                    // Upload new image
+                    const file = item.file;
+                    const baseName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
 
-            // Upload new images
-            if (imageFiles.length > 0) {
-                const uploadPromises = imageFiles.map(async (file) => {
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-                    const filePath = `venue-images/${fileName}`;
+                    // 1. Generate 4 sizes (WebP)
+                    const resized = await createResizedImages(file);
 
-                    const { error: uploadError } = await supabase.storage
-                        .from('images')
-                        .upload(filePath, file);
+                    // 2. Upload function helper
+                    const uploadVariant = async (variantFile: File, suffix: string) => {
+                        const fileName = `${baseName}_${suffix}.webp`;
+                        const filePath = `venue-images/${fileName}`;
 
-                    if (uploadError) throw uploadError;
+                        const { error: uploadError } = await supabase.storage
+                            .from('images')
+                            .upload(filePath, variantFile);
 
-                    const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-                    return data.publicUrl;
-                });
+                        if (uploadError) throw uploadError;
 
-                const newUrls = await Promise.all(uploadPromises);
-                finalImages = [...finalImages, ...newUrls]; // Append new
-                // Note: Logic needs to handle "Removing existing images" correctly if user deleted them from preview
-                // Current simplistic logic assumes appending.
-                // For accurate editing, we should track which existing images were kept.
-                // Let's assume imagePreviews contains EVERYTHING (existing URLs + new blob URLs).
-                // But blob URLs are not valid for DB.
+                        const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+                        return data.publicUrl;
+                    };
 
-                // Revised Logic:
-                // Filter imagePreviews to find which are http/https (existing)
-                const keptExisting = imagePreviews.filter(url => url.startsWith('http'));
-                finalImages = [...keptExisting, ...newUrls];
-            } else {
-                // Just keep existing if no new files
-                const keptExisting = imagePreviews.filter(url => url.startsWith('http'));
-                finalImages = keptExisting;
-            }
+                    // 3. Upload all variants in parallel
+                    const [micro, thumbnail, medium, full] = await Promise.all([
+                        uploadVariant(resized.micro, 'micro'),
+                        uploadVariant(resized.thumbnail, 'thumb'),
+                        uploadVariant(resized.medium, 'medium'),
+                        uploadVariant(resized.full, 'full')
+                    ]);
+
+                    return {
+                        micro,
+                        thumbnail,
+                        medium,
+                        full
+                    };
+                }
+            }));
 
             const payload = {
                 ...formData,
@@ -306,9 +328,9 @@ export default function VenueRegistrationModal({
                             </label>
 
                             <div className="vrm-image-list">
-                                {imagePreviews.map((src, idx) => (
+                                {images.map((item, idx) => (
                                     <div key={idx} className="vrm-image-preview">
-                                        <img src={src} alt="" />
+                                        <img src={item.preview} alt="" />
                                         <button onClick={() => removeImage(idx)}><i className="ri-close-circle-fill"></i></button>
                                     </div>
                                 ))}

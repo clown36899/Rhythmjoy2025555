@@ -1235,21 +1235,22 @@ export default function EventList({
       if (event.category !== 'event') return false;
 
       const startDate = event.start_date || event.date;
-      const endDate = event.end_date || event.date;
 
       if (!startDate) return false;
 
-      // Event must not have ended yet
-      if (endDate && endDate < today) return false;
+      // Show events where start_date is today or in the future
+      // Hide events where start_date is in the past (already started before today)
+      if (startDate < today) return false;
 
       return true;
     });
 
-    // 3. Shuffle (Randomize fairness) for Events
-    for (let i = result.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [result[i], result[j]] = [result[j], result[i]];
-    }
+    // Sort by start_date (earliest first)
+    result.sort((a, b) => {
+      const dateA = a.start_date || a.date || '';
+      const dateB = b.start_date || b.date || '';
+      return dateA.localeCompare(dateB);
+    });
 
     // 4. 방금 등록된 이벤트(highlightEvent)가 있으면 맨 앞으로 정렬
     if (highlightEvent?.id) {
@@ -1279,12 +1280,12 @@ export default function EventList({
       if (event.category !== 'class') return false;
 
       const startDate = event.start_date || event.date;
-      const endDate = event.end_date || event.date;
 
       if (!startDate) return false;
 
-      // Class must not have ended yet
-      if (endDate && endDate < today) return false;
+      // Show classes where start_date is today or in the future
+      // Hide classes where start_date is in the past
+      if (startDate < today) return false;
 
       // Genre Filter
       if (selectedGenre && event.genre !== selectedGenre) return false;
@@ -2826,26 +2827,6 @@ export default function EventList({
                   <span>강습</span>
                   <span className="evt-v2-count">{futureClasses.length}</span>
 
-                  {allGenres.length > 0 && (
-                    <select
-                      value={selectedGenre || ''}
-                      onChange={(e) => {
-                        const params = new URLSearchParams(searchParams);
-                        if (e.target.value) {
-                          params.set('genre', e.target.value);
-                        } else {
-                          params.delete('genre');
-                        }
-                        setSearchParams(params);
-                      }}
-                      className="evt-genre-select evt-ml-2"
-                    >
-                      <option value="">장르 선택</option>
-                      {allGenres.map(genre => (
-                        <option key={genre} value={genre}>{genre}</option>
-                      ))}
-                    </select>
-                  )}
 
                   {futureClasses.length > 0 && (
                     <button
@@ -2857,6 +2838,34 @@ export default function EventList({
                     </button>
                   )}
                 </div>
+
+                {allGenres.length > 0 && (
+                  <div className="evt-genre-tab-container">
+                    <button
+                      onClick={() => {
+                        const params = new URLSearchParams(searchParams);
+                        params.delete('genre');
+                        setSearchParams(params);
+                      }}
+                      className={`evt-genre-tab ${!selectedGenre ? 'active' : ''}`}
+                    >
+                      전체
+                    </button>
+                    {allGenres.map(genre => (
+                      <button
+                        key={genre}
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams);
+                          params.set('genre', genre);
+                          setSearchParams(params);
+                        }}
+                        className={`evt-genre-tab ${selectedGenre === genre ? 'active' : ''}`}
+                      >
+                        {genre}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
 
                 {futureClasses.length > 0 ? (
@@ -3004,37 +3013,85 @@ export default function EventList({
               <div className="evt-spacer-16"></div>
             </div>
           ) : (
-            // 전체보기 모드
+            // 전체보기 모드 - 가로 카드 레이아웃
             <div
               className="event-list-search-container evt-single-view-scroll evt-list-bg-container evt-single-view-container"
             >
-              {/* 제목 */}
-              <div className="evt-v2-section-title" >
-                <i className={sectionViewMode === 'viewAll-events' ? 'ri-flag-line' : 'ri-graduation-cap-line'}></i>
-                <span>{sectionViewMode === 'viewAll-events' ? '진행중인 행사' : '진행중인 강습'}</span>
-                <span className="evt-v2-count">
-                  {sectionViewMode === 'viewAll-events' ? futureEvents.length : futureClasses.length}
-                </span>
-              </div>
+              {/* 년도/월별 그룹화된 가로 카드 레이아웃 */}
+              {(() => {
+                const events = sectionViewMode === 'viewAll-events' ? futureEvents : futureClasses;
 
-              {/* 그리드 레이아웃 */}
-              <div className="evt-grid-3-4-10">
-                {(sectionViewMode === 'viewAll-events' ? futureEvents : futureClasses).map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onClick={() => handleEventClick(event)}
-                    onMouseEnter={onEventHover}
-                    onMouseLeave={() => onEventHover?.(null)}
-                    isHighlighted={highlightEvent?.id === event.id}
-                    selectedDate={selectedDate}
-                    defaultThumbnailClass={defaultThumbnailClass}
-                    defaultThumbnailEvent={defaultThumbnailEvent}
-                    isFavorite={favoriteEventIds.has(event.id)}
-                    onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                  />
-                ))}
-              </div>
+                // 년도/월별로 그룹화
+                const groupedByYearMonth: { [key: string]: typeof events } = {};
+                events.forEach(event => {
+                  const date = event.start_date || event.date;
+                  if (date) {
+                    const [year, month] = date.split('-');
+                    const key = `${year}-${month}`;
+                    if (!groupedByYearMonth[key]) {
+                      groupedByYearMonth[key] = [];
+                    }
+                    groupedByYearMonth[key].push(event);
+                  }
+                });
+
+                // 년도/월 키를 시간순으로 정렬
+                const sortedKeys = Object.keys(groupedByYearMonth).sort();
+
+                return sortedKeys.map(yearMonth => {
+                  const [year, month] = yearMonth.split('-');
+                  const monthEvents = groupedByYearMonth[yearMonth];
+
+                  return (
+                    <div key={yearMonth} className="evt-year-month-group">
+                      {/* 년도/월 헤더 */}
+                      <div className="evt-year-month-header">
+                        <span className="evt-year">{year}년</span>
+                        <span className="evt-month">{parseInt(month)}월</span>
+                      </div>
+
+                      {/* 가로 카드 리스트 */}
+                      <div className="evt-horizontal-card-list">
+                        {monthEvents.map((event) => (
+                          <div
+                            key={event.id}
+                            className="evt-horizontal-card"
+                            onClick={() => handleEventClick(event)}
+                          >
+                            {/* 왼쪽: 이미지 */}
+                            <div className="evt-horizontal-card-image">
+                              {event.image ? (
+                                <img src={event.image} alt={event.title} />
+                              ) : event.video_url ? (
+                                <img src={defaultThumbnailEvent} alt={event.title} />
+                              ) : (
+                                <img src={defaultThumbnailEvent} alt={event.title} />
+                              )}
+                            </div>
+
+                            {/* 오른쪽: 정보 */}
+                            <div className="evt-horizontal-card-content">
+                              <h3 className="evt-horizontal-card-title">{event.title}</h3>
+                              <p className="evt-horizontal-card-date">
+                                {event.start_date === event.end_date || !event.end_date
+                                  ? new Date(event.start_date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
+                                  : `${new Date(event.start_date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })} - ${new Date(event.end_date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}`
+                                }
+                              </p>
+                              {event.location && (
+                                <p className="evt-horizontal-card-location">
+                                  <i className="ri-map-pin-line"></i>
+                                  {event.location}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )
         ) : null)}
@@ -4306,7 +4363,16 @@ export default function EventList({
           }));
           setShowVenueSelectModal(false);
         }}
-        onManualInput={() => setShowVenueSelectModal(false)}
+        onManualInput={(venueName, venueLink) => {
+          setEditFormData((prev) => ({
+            ...prev,
+            venueId: null,
+            venueName: "",
+            location: venueName,
+            locationLink: venueLink,
+            venueCustomLink: venueLink,
+          }));
+        }}
       />
     </div >
   );
