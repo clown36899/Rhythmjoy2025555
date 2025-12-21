@@ -2566,3 +2566,25 @@
   gap: 8px;
   padding: 12px 1rem;
 }
+/* ===== 하이라이트 애니메이션 ===== */
+@keyframes highlight-pulse-animation {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 15px rgba(59, 130, 246, 0);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    transform: scale(1);
+  }
+}
+
+.event-highlight-pulse {
+  animation: highlight-pulse-animation 1.5s ease-out;
+  position: relative;
+  z-index: 10;
+  border-radius: var(--radius-lg);
+}

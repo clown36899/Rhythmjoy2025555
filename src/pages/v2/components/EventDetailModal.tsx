@@ -53,6 +53,7 @@ interface EventDetailModalProps {
   currentUserId?: string; // Add currentUserId prop
   isFavorite?: boolean;
   onToggleFavorite?: (e: React.MouseEvent) => void;
+  onOpenVenueDetail?: (venueId: string) => void;
 }
 
 export default function EventDetailModal({
@@ -60,11 +61,12 @@ export default function EventDetailModal({
   isOpen,
   onClose,
   onEdit,
-  onDelete,
+  onDelete: _onDelete,
   isAdminMode = false,
   currentUserId,
   isFavorite = false,
   onToggleFavorite,
+  onOpenVenueDetail,
 }: EventDetailModalProps) {
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -72,6 +74,7 @@ export default function EventDetailModal({
     }
   };
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
+
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
   // Smooth Transition State
@@ -128,9 +131,7 @@ export default function EventDetailModal({
         (
           <div
             className="event-detail-modal-overlay"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) onClose();
-            }}
+            onClick={handleOverlayClick}
             onTouchStartCapture={(e) => {
               e.stopPropagation();
             }}
@@ -400,10 +401,33 @@ export default function EventDetailModal({
                     <div className="info-item">
                       <i className="ri-map-pin-line info-icon"></i>
                       <div className="info-flex-gap-1">
-                        <span>{selectedEvent.location}</span>
-                        {selectedEvent.location_link && (
+                        {(selectedEvent as any).venue_id ? (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const venueId = (selectedEvent as any).venue_id;
+                              onOpenVenueDetail?.(venueId);
+                            }}
+                            className="venue-link-button"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              color: 'var(--primary-color, #3b82f6)',
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                              fontSize: 'inherit',
+                            }}
+                          >
+                            {selectedEvent.location}
+                          </button>
+                        ) : (
+                          <span>{selectedEvent.location}</span>
+                        )}
+                        {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
                           <a
-                            href={selectedEvent.location_link}
+                            href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="location-link"
@@ -748,6 +772,8 @@ export default function EventDetailModal({
             </div>, document.body
           )
         )}
+
+      {/* Venue Detail Modal - Removed (Hoisted to Page) */}
     </>
   );
 }

@@ -1,5 +1,5 @@
 import './BoardTabBar.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 
 export type BoardCategory = string; // Relaxed type for dynamic categories
@@ -19,6 +19,9 @@ const DEFAULT_CATEGORIES = [
 
 export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardTabBarProps) {
     const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
+    const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+    const scrollerRef = useRef<HTMLDivElement | null>(null);
+    const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
     useEffect(() => {
         loadCategories();
@@ -80,20 +83,46 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
         }
     };
 
+    // Update indicator position when active category changes
+    useEffect(() => {
+        const activeIndex = categories.findIndex(cat => cat.id === activeCategory);
+        if (activeIndex !== -1 && tabRefs.current[activeIndex] && scrollerRef.current) {
+            const activeTab = tabRefs.current[activeIndex];
+            const scroller = scrollerRef.current;
+            const left = activeTab.offsetLeft;
+            const width = activeTab.offsetWidth;
+            setIndicatorStyle({ left, width });
+
+            // Scroll active tab into view
+            activeTab.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [activeCategory, categories]);
+
     return (
         <div className="board-tab-bar">
-            <div className="board-tab-scroller">
-                {categories.map((cat) => (
+            <div className="board-tab-scroller" ref={scrollerRef}>
+                {categories.map((cat, index) => (
                     <button
                         key={cat.id}
+                        ref={el => tabRefs.current[index] = el}
                         className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
                         onClick={() => onCategoryChange(cat.id as BoardCategory)}
                     >
                         <i className={`${cat.icon} board-tab-icon`}></i>
                         <span className="board-tab-label">{cat.label}</span>
-                        {activeCategory === cat.id && <div className="board-tab-indicator" />}
                     </button>
                 ))}
+                <div
+                    className="board-tab-indicator"
+                    style={{
+                        transform: `translateX(${indicatorStyle.left}px)`,
+                        width: `${indicatorStyle.width}px`
+                    }}
+                />
             </div>
         </div>
     );

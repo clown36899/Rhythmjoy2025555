@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 import "./PracticeRoomList.css";
 
 interface PracticeRoom {
-  id: number;
+  id: string; // Changed to string for UUID
   name: string;
   address: string;
   address_link: string;
@@ -28,6 +27,9 @@ interface PracticeRoomListProps {
   setShowSortModal: (show: boolean) => void;
   sortBy: "random" | "time" | "title" | "newest";
   setSortBy: (sortBy: "random" | "time" | "title" | "newest") => void;
+  activeCategory: string;
+  onVenueClick: (venueId: string) => void;
+  refreshTrigger?: number;
 }
 
 export default function PracticeRoomList({
@@ -37,9 +39,11 @@ export default function PracticeRoomList({
   showSortModal,
   setShowSortModal,
   sortBy,
-  setSortBy
+  setSortBy,
+  activeCategory,
+  onVenueClick,
+  refreshTrigger = 0
 }: PracticeRoomListProps) {
-  const navigate = useNavigate();
   const { user, signInWithKakao } = useAuth();
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
   const [randomizedRooms, setRandomizedRooms] = useState<PracticeRoom[]>([]); // 랜덤 정렬된 목록 저장
@@ -47,11 +51,11 @@ export default function PracticeRoomList({
   const [searchQuery, setSearchQuery] = useState("");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-  const [favoritePracticeRoomIds, setFavoritePracticeRoomIds] = useState<Set<number>>(new Set());
+  const [favoritePracticeRoomIds, setFavoritePracticeRoomIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchRooms();
-  }, []);
+  }, [activeCategory, refreshTrigger]); // activeCategory 변경 또는 refreshTrigger 시 데이터 재로드
 
   // Fetch favorites when user logs in
   useEffect(() => {
@@ -74,6 +78,7 @@ export default function PracticeRoomList({
       if (error) {
         console.error('Error fetching practice room favorites:', error);
       } else {
+        // data.map(f => f.practice_room_id) will be strings (UUIDs)
         setFavoritePracticeRoomIds(new Set(data.map(f => f.practice_room_id)));
       }
     } catch (err) {
@@ -81,7 +86,7 @@ export default function PracticeRoomList({
     }
   };
 
-  const handleToggleFavorite = async (roomId: number, e?: React.MouseEvent) => {
+  const handleToggleFavorite = async (roomId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
 
     if (!user) {
@@ -144,9 +149,11 @@ export default function PracticeRoomList({
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("practice_rooms")
+        .from("venues")
         .select("*")
-        .order("created_at", { ascending: true });
+        .eq("category", activeCategory)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
 
       if (error) {
         console.error("Error fetching practice rooms:", error);
@@ -167,7 +174,7 @@ export default function PracticeRoomList({
       const savedRandomOrder = sessionStorage.getItem('practiceRoomsRandomOrder');
       if (savedRandomOrder) {
         try {
-          const savedIds = JSON.parse(savedRandomOrder) as number[];
+          const savedIds = JSON.parse(savedRandomOrder) as string[];
           // 저장된 순서대로 정렬
           const orderedRooms = savedIds
             .map(id => processedData.find(room => room.id === id))
@@ -195,8 +202,9 @@ export default function PracticeRoomList({
   };
 
   const handleRoomClick = (room: PracticeRoom) => {
-    navigate(`/practice?id=${room.id}`);
+    onVenueClick(room.id);
   };
+
   // 검색 필터링 및 정렬된 연습실 목록
   const filteredAndSortedRooms = useMemo(() => {
     // 정렬 기준에 따라 소스 선택

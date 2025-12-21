@@ -53,6 +53,8 @@ interface EditableEventDetailProps {
     videoUrl?: string;
     onVideoChange?: (url: string) => void;
     onExtractThumbnail?: () => void;
+    // Venue Selection
+    onVenueSelectClick?: () => void;
 }
 
 const genreColorPalette = [
@@ -109,6 +111,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     onImagePositionChange,
     videoUrl,
     onVideoChange,
+    onVenueSelectClick,
 }, ref) => {
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -908,9 +911,16 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         className="location-selector-row editable-info-item"
                         onClick={(e) => {
                             e.stopPropagation();
-                            setTempLocation(event.location);
-                            setTempLocationLink(event.location_link || "");
-                            setActiveModal('location');
+                            // If onVenueSelectClick is provided, use venue selection instead of manual input
+                            if (onVenueSelectClick) {
+                                console.log('🔘 Location clicked - opening venue selection');
+                                onVenueSelectClick();
+                            } else {
+                                // Fallback to manual input
+                                setTempLocation(event.location);
+                                setTempLocationLink(event.location_link || "");
+                                setActiveModal('location');
+                            }
                         }}
                     >
                         <i className="ri-map-pin-line editable-info-icon"></i>

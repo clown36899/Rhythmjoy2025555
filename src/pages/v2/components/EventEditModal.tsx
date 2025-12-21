@@ -13,6 +13,7 @@ import {
 } from "../../../utils/videoThumbnail";
 import { formatDateForInput } from "../../../utils/fileUtils";
 import CustomDatePickerHeader from "../../../components/CustomDatePickerHeader";
+import VenueSelectModal from "./VenueSelectModal";
 
 // ForwardRef 커스텀 입력 컴포넌트
 interface CustomInputProps {
@@ -89,6 +90,9 @@ export default memo(function EventEditModal({
         dateMode: "range" as "range" | "specific",
         videoUrl: "",
         showTitleOnBillboard: true,
+        venueId: null as string | null,
+        venueName: "",
+        venueCustomLink: "",
     });
 
     const [editImageFile, setEditImageFile] = useState<File | null>(null);
@@ -101,6 +105,7 @@ export default memo(function EventEditModal({
     const [thumbnailOptions, setThumbnailOptions] = useState<
         VideoThumbnailOption[]
     >([]);
+    const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
 
 
     // Preview Mode State
@@ -143,6 +148,9 @@ export default memo(function EventEditModal({
                 dateMode: dateMode,
                 videoUrl: event.video_url || "",
                 showTitleOnBillboard: event.show_title_on_billboard !== false,
+                venueId: (event as any).venue_id || null,
+                venueName: (event as any).venue_name || "",
+                venueCustomLink: (event as any).venue_custom_link || "",
             });
 
             setEditImagePreview(event.image || "");
@@ -236,6 +244,9 @@ export default memo(function EventEditModal({
                 link_name3: editFormData.linkName3,
                 video_url: editFormData.videoUrl,
                 show_title_on_billboard: editFormData.showTitleOnBillboard,
+                venue_id: editFormData.venueId,
+                venue_name: editFormData.venueId ? editFormData.venueName : editFormData.location,
+                venue_custom_link: editFormData.venueId ? null : editFormData.venueCustomLink,
             };
 
             // 날짜 데이터 처리
@@ -388,6 +399,21 @@ export default memo(function EventEditModal({
     const handleGenreFocus = () => {
         setIsGenreInputFocused(true);
         setGenreSuggestions(allGenres);
+    };
+
+    // Venue selection handler
+    const handleVenueSelect = (venue: any) => {
+        console.log('🎯 EventEditModal.handleVenueSelect called with:', venue);
+        setEditFormData((prev) => ({
+            ...prev,
+            venueId: venue.id,
+            venueName: venue.name,
+            location: venue.name,
+            venueCustomLink: "",
+            locationLink: "",
+        }));
+        console.log('✅ Venue selected, closing modal');
+        setShowVenueSelectModal(false);
     };
 
     // 썸네일 선택 핸들러
@@ -683,39 +709,76 @@ export default memo(function EventEditModal({
                             </div>
                         </div>
 
-                        {/* 장소 이름 & 주소 링크 (한 줄) */}
-                        <div className="edit-modal-grid-row">
-                            <div>
-                                <label className="edit-modal-label">장소 이름</label>
-                                <input
-                                    type="text"
-                                    value={editFormData.location}
-                                    onChange={(e) =>
+                        {/* 장소 입력 */}
+                        <div>
+                            <label className="edit-modal-label">장소</label>
+                            <input
+                                type="text"
+                                value={editFormData.venueId ? editFormData.venueName : editFormData.location}
+                                onChange={(e) => {
+                                    if (!editFormData.venueId) {
                                         setEditFormData((prev) => ({
                                             ...prev,
                                             location: e.target.value,
-                                        }))
+                                        }));
                                     }
-                                    className="edit-modal-input"
-                                    placeholder="예: 홍대 연습실"
-                                />
+                                }}
+                                disabled={!!editFormData.venueId}
+                                className="edit-modal-input"
+                                placeholder="장소를 입력하거나 선택하세요"
+                            />
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        console.log('🔘 "등록된 장소 선택" 버튼 클릭');
+                                        setShowVenueSelectModal(true);
+                                    }}
+                                    className="edit-modal-button edit-modal-button-secondary"
+                                    style={{ flex: 1 }}
+                                >
+                                    <i className="ri-map-pin-line"></i>
+                                    등록된 장소 선택
+                                </button>
+                                {editFormData.venueId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditFormData((prev) => ({
+                                                ...prev,
+                                                venueId: null,
+                                                venueName: "",
+                                                location: prev.venueName,
+                                            }));
+                                        }}
+                                        className="edit-modal-button edit-modal-button-secondary"
+                                    >
+                                        <i className="ri-close-line"></i>
+                                        선택 취소
+                                    </button>
+                                )}
                             </div>
+                        </div>
+
+                        {/* 장소 링크 (등록된 장소가 아닐 때만 표시) */}
+                        {!editFormData.venueId && (
                             <div>
-                                <label className="edit-modal-label">주소 링크 (선택)</label>
+                                <label className="edit-modal-label">장소 링크 (선택사항)</label>
                                 <input
                                     type="text"
-                                    value={editFormData.locationLink}
+                                    value={editFormData.venueCustomLink || editFormData.locationLink}
                                     onChange={(e) =>
                                         setEditFormData((prev) => ({
                                             ...prev,
+                                            venueCustomLink: e.target.value,
                                             locationLink: e.target.value,
                                         }))
                                     }
                                     className="edit-modal-input"
-                                    placeholder="지도 링크"
+                                    placeholder="지도 링크 (예: 네이버 지도, 카카오맵)"
                                 />
                             </div>
-                        </div>
+                        )}
 
                         {/* 날짜 선택 섹션 (통합 박스) */}
                         <div className="edit-modal-date-box">
@@ -1260,6 +1323,13 @@ export default memo(function EventEditModal({
                     </div>
                 </div>
             )}
+
+            {/* Venue Select Modal */}
+            <VenueSelectModal
+                isOpen={showVenueSelectModal}
+                onClose={() => setShowVenueSelectModal(false)}
+                onSelect={handleVenueSelect}
+            />
         </div>,
         document.body
     );

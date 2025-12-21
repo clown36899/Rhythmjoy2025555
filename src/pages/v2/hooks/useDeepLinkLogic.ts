@@ -81,7 +81,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
                 try {
                     const { data: event } = await supabase
                         .from("events")
-                        .select("id, start_date, date, category")
+                        .select("id, start_date, date, category, venue_id")
                         .eq("id", id)
                         .single();
 

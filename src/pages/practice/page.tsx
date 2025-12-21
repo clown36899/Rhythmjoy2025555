@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
 import PracticeRoomList from "./components/PracticeRoomList";
-import PracticeRoomModal from "../../components/PracticeRoomModal";
-import PracticeRoomDetail from "./components/PracticeRoomDetail";
-import SimpleHeader from "../../components/SimpleHeader";
+import VenueTabBar from "./components/VenueTabBar";
+import VenueDetailModal from "./components/VenueDetailModal";
+import VenueRegistrationModal from "./components/VenueRegistrationModal";
 import CalendarSearchModal from "../v2/components/CalendarSearchModal";
 import { useAuth } from "../../contexts/AuthContext";
 import './practice.css';
@@ -14,9 +15,13 @@ export default function PracticeRoomsPage() {
   const [showSortModal, setShowSortModal] = useState(false);
   const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">("random");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [editingVenueId, setEditingVenueId] = useState<string | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("연습실");
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const { isAdmin } = useAuth();
   const isDevAdmin = localStorage.getItem('isDevAdmin') === 'true';
@@ -30,6 +35,14 @@ export default function PracticeRoomsPage() {
     sessionStorage.removeItem('practiceRoomsRandomOrder');
   }, []);
 
+  // Handle URL param for room detail
+  useEffect(() => {
+    if (roomId) {
+      setSelectedVenueId(roomId);
+      setShowDetailModal(true);
+    }
+  }, [roomId]);
+
   // Event search from header
   useEffect(() => {
     const handleOpenEventSearch = () => setShowGlobalSearch(true);
@@ -40,6 +53,7 @@ export default function PracticeRoomsPage() {
   useEffect(() => {
     const handleRegisterEvent = () => {
       if (isEffectiveAdmin) {
+        setEditingVenueId(null);
         setShowRegisterModal(true);
       } else {
         setShowContactModal(true);
@@ -54,43 +68,133 @@ export default function PracticeRoomsPage() {
   }, [isEffectiveAdmin]);
 
   const handleCloseDetail = () => {
-    // Use navigate to go back in history instead of just clearing params
-    // This ensures back button works correctly
+    setShowDetailModal(false);
+    setSelectedVenueId(null);
+    // Clear URL param
     const params = new URLSearchParams(searchParams);
     params.delete('id');
     setSearchParams(params, { replace: true });
   };
 
+  const handleVenueClick = (venueId: string) => {
+    setSelectedVenueId(venueId);
+    setShowDetailModal(true);
+    // Update URL param
+    const params = new URLSearchParams(searchParams);
+    params.set('id', venueId);
+    setSearchParams(params, { replace: true });
+  };
+
+  const handleEditVenue = (venueId: string) => {
+    setEditingVenueId(venueId);
+    setShowDetailModal(false); // Close detail modal
+    setShowRegisterModal(true); // Open registration modal in edit mode
+  };
+
+  const handleVenueCreatedOrUpdated = () => {
+    setEditingVenueId(null);
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Swipe Navigation
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const minSwipeDistance = 50;
+
+  // Load venue categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data } = await supabase
+          .from('venues')
+          .select('category')
+          .eq('is_active', true);
+
+        if (data) {
+          const uniqueCategories = [...new Set(data.map(v => v.category))];
+          setCategories(uniqueCategories);
+        }
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    const currentIndex = categories.findIndex(cat => cat === activeCategory);
+
+    if (isLeftSwipe && currentIndex < categories.length - 1) {
+      setActiveCategory(categories[currentIndex + 1]);
+    }
+    if (isRightSwipe && currentIndex > 0) {
+      setActiveCategory(categories[currentIndex - 1]);
+    }
+  };
+
   return (
     <div className="practice-page-container" >
-      {/* Fixed Header - Conditional */}
+      {/* Main Content */}
+      <div className="practice-main-content"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Tab Menu */}
+        <VenueTabBar
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+        />
 
-
-      {/* Main Content - Show either list or detail */}
-      <div className="practice-main-content">
-        {roomId ? (
-          <PracticeRoomDetail roomId={roomId} onClose={handleCloseDetail} />
-        ) : (
-          <PracticeRoomList
-            adminType={isEffectiveAdmin ? "super" : null}
-            showSearchModal={showSearchModal}
-            setShowSearchModal={setShowSearchModal}
-            showSortModal={showSortModal}
-            setShowSortModal={setShowSortModal}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-          />
-        )}
+        {/* Venue List */}
+        <PracticeRoomList
+          adminType={isEffectiveAdmin ? "super" : null}
+          showSearchModal={showSearchModal}
+          setShowSearchModal={setShowSearchModal}
+          showSortModal={showSortModal}
+          setShowSortModal={setShowSortModal}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          activeCategory={activeCategory}
+          onVenueClick={handleVenueClick}
+          refreshTrigger={refreshTrigger}
+        />
       </div>
 
-      {/* Registration Modal */}
-      <PracticeRoomModal
+      {/* Venue Detail Modal */}
+      {showDetailModal && selectedVenueId && (
+        <VenueDetailModal
+          venueId={selectedVenueId}
+          onClose={handleCloseDetail}
+          onEdit={isEffectiveAdmin ? () => handleEditVenue(selectedVenueId) : undefined}
+        />
+      )}
+
+      {/* Registration Modal - Replaces old PracticeRoomModal */}
+      <VenueRegistrationModal
         isOpen={showRegisterModal}
         onClose={() => {
           setShowRegisterModal(false);
+          setEditingVenueId(null);
         }}
-        isAdminMode={isEffectiveAdmin}
-        openToForm={true}
+        editVenueId={editingVenueId}
+        onVenueCreated={handleVenueCreatedOrUpdated}
+        onVenueDeleted={handleVenueCreatedOrUpdated}
       />
 
       {/* Contact Modal */}
@@ -108,11 +212,18 @@ export default function PracticeRoomsPage() {
       <CalendarSearchModal
         isOpen={showGlobalSearch}
         onClose={() => setShowGlobalSearch(false)}
-        onSelectEvent={(event) => {
-          setSelectedEvent(event);
-        }}
+        onSelectEvent={() => { }}
         searchMode="all"
       />
+      <button
+        className="practice-fab-btn"
+        onClick={() => {
+          const event = new CustomEvent('practiceRoomRegister');
+          window.dispatchEvent(event);
+        }}
+      >
+        <i className="ri-pencil-fill"></i>
+      </button>
     </div>
   );
 }

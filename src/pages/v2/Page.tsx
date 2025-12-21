@@ -14,6 +14,7 @@ const AdminBillboardModal = lazy(() => import("./components/AdminBillboardModal"
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 
 import EventDetailModal from "./components/EventDetailModal";
+import VenueDetailModal from "../practice/components/VenueDetailModal";
 // EventPasswordModal removed
 import CalendarSearchModal from "./components/CalendarSearchModal";
 import { registerLocale } from "react-datepicker";
@@ -86,7 +87,8 @@ export default function HomePageV2() {
     const {
         selectedEvent, setSelectedEvent,
         handleDailyModalEventClick, closeModal,
-        handleEditClick, handleDeleteClick
+        handleEditClick, handleDeleteClick,
+        selectedVenueId, handleVenueClick, closeVenueModal
     } = useEventActions({ adminType, user, signInWithKakao });
 
     // Deep Link & QR Logic
@@ -396,15 +398,20 @@ export default function HomePageV2() {
                             onHighlightComplete={() => setHighlightEvent(null)}
                             sharedEventId={sharedEventId}
                             onSharedEventOpened={() => setSharedEventId(null)}
-                            dragOffset={dragOffset}
                             isAnimating={isAnimating}
                             onEventClickInFullscreen={(event) => setSelectedEvent(event)}
+                            onEventClick={(event) => {
+                                setSelectedEvent(event);
+                            }}
                             slideContainerRef={eventListSlideContainerRef}
                             onMonthChange={setCurrentMonth}
                             calendarMode={calendarMode}
 
-                            onModalStateChange={() => { }}
-                            selectedWeekday={selectedWeekday}
+                            onModalStateChange={(isModalOpen) => {
+                                // This prop might need review as internal modal is gone, but it can still signal other modals
+                                const container = containerRef.current;
+                                if (container) container.inert = isModalOpen;
+                            }} selectedWeekday={selectedWeekday}
                             sectionViewMode={sectionViewMode}
                             onSectionViewModeChange={handleSectionViewModeChange}
                         />
@@ -506,7 +513,16 @@ export default function HomePageV2() {
                     onDelete={handleDeleteClick}
                     isAdminMode={effectiveIsAdmin}
                     currentUserId={user?.id}
+                    onOpenVenueDetail={handleVenueClick}
                 />
+
+                {/* Venue Detail Modal - Hoisted to Page Level for persistence */}
+                {selectedVenueId && (
+                    <VenueDetailModal
+                        venueId={selectedVenueId}
+                        onClose={closeVenueModal}
+                    />
+                )}
                 {/* Search Input Modal */}
                 {/* Search Input Modal */}
                 <CalendarSearchModal

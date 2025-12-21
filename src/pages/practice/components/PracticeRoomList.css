@@ -62,8 +62,9 @@
 .prl-main-container {
   padding-left: var(--spacing-4);
   padding-right: var(--spacing-4);
-  padding-top: 5px;
-  padding-bottom: calc(var(--spacing-6) + 80px);
+  padding-top: 60px;
+  /* 탭 메뉴 공간 확보 (게시판과 동일) */
+  padding-bottom: calc(var(--spacing-6) + 180px);
   /* Extra space for mobile bottom nav */
 }
 

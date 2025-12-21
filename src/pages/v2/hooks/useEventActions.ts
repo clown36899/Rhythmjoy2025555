@@ -98,7 +98,18 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         if (confirm("정말로 이 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
             deleteEvent(event.id, password);
         }
-    }, [adminType, closeModal]); // deleteEvent captures closure
+    }, [adminType, closeModal]);
+
+    const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+
+    const handleVenueClick = useCallback((venueId: string) => {
+        // Prevent event propagation if triggered from UI
+        setSelectedVenueId(venueId);
+    }, []);
+
+    const closeVenueModal = useCallback(() => {
+        setSelectedVenueId(null);
+    }, []);
 
     return {
         selectedEvent,
@@ -106,6 +117,9 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         handleDailyModalEventClick,
         closeModal,
         handleEditClick,
-        handleDeleteClick
+        handleDeleteClick,
+        selectedVenueId,
+        handleVenueClick,
+        closeVenueModal
     };
 }

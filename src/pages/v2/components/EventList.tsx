@@ -23,11 +23,12 @@ import "react-datepicker/dist/react-datepicker.css";
 import { EventCard } from "./EventCard";
 // Modals Lazy Loading
 const EventPasswordModal = lazy(() => import("./EventPasswordModal"));
-const EventDetailModal = lazy(() => import("./EventDetailModal"));
+
 const EventSearchModal = lazy(() => import("./EventSearchModal"));
 const EventSortModal = lazy(() => import("./EventSortModal"));
 import Footer from "./Footer";
 import EditableEventDetail, { type EditableEventDetailRef } from "../../../components/EditableEventDetail";
+import VenueSelectModal from "./VenueSelectModal";
 import ShoppingBanner from "./ShoppingBanner";
 import "../../../styles/components/EventList.css";
 import "../../../components/EventRegistrationModal.css";
@@ -106,6 +107,7 @@ interface EventListProps {
   onFilterDataUpdate?: (data: { categoryCounts: { all: number; event: number; class: number }; genres: string[] }) => void;
   sectionViewMode?: 'preview' | 'viewAll-events' | 'viewAll-classes';
   onSectionViewModeChange?: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
+  onEventClick?: (event: Event) => void;
 }
 
 export default function EventList({
@@ -137,6 +139,7 @@ export default function EventList({
   onFilterDataUpdate,
   sectionViewMode = 'preview',
   onSectionViewModeChange,
+  onEventClick,
 }: EventListProps) {
   const { user, signInWithKakao, validateSession } = useAuth();
   const navigate = useNavigate();
@@ -151,9 +154,7 @@ export default function EventList({
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
   const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
 
-
-
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  // selectedEvent removed - delegated to props
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -421,9 +422,9 @@ export default function EventList({
 
       const roomIds = favData.map(f => f.practice_room_id);
 
-      // 2. Fetch practice room details
+      // 2. Fetch practice room details (from venues)
       const { data: roomsData } = await supabase
-        .from('practice_rooms')
+        .from('venues')
         .select('*')
         .in('id', roomIds);
 
@@ -470,7 +471,7 @@ export default function EventList({
     }
   };
 
-  const handleRemovePracticeRoomFavorite = async (roomId: number) => {
+  const handleRemovePracticeRoomFavorite = async (roomId: string) => {
     if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
 
     try {
@@ -535,7 +536,11 @@ export default function EventList({
     dateMode: "range" as "range" | "specific",
     videoUrl: "",
     showTitleOnBillboard: true,
+    venueId: null as string | null,
+    venueName: "",
+    venueCustomLink: "",
   });
+  const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
   const [editVideoPreview, setEditVideoPreview] = useState<{
@@ -580,10 +585,10 @@ export default function EventList({
   }>({});
   // 내부 모달 상태가 변경될 때마다 부모 컴포넌트(HomePage)에 알림
   useEffect(() => {
-    const isAnyModalOpen = !!(selectedEvent || showEditModal || showPasswordModal);
+    const isAnyModalOpen = !!(showEditModal || showPasswordModal);
 
     onModalStateChange(isAnyModalOpen);
-  }, [selectedEvent, showEditModal, showPasswordModal, onModalStateChange]);
+  }, [showEditModal, showPasswordModal, onModalStateChange]);
   // 날짜 변경 감지 (자정에만 실행)
   useEffect(() => {
     const scheduleNextMidnight = () => {
@@ -714,7 +719,7 @@ export default function EventList({
 
       const fetchPromise = (async () => {
         // 필요한 컬럼만 선택 (성능 최적화)
-        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,user_id";
+        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,user_id,venue_id,venue_name,venue_custom_link";
 
         if (isAdminMode) {
           // 관리자 모드: 모든 이벤트 조회 (종료된 이벤트 포함)
@@ -776,7 +781,7 @@ export default function EventList({
       console.log('[📋 이벤트 목록] 백그라운드 새로고침...');
       // Don't set loading state - update silently
 
-      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,user_id";
+      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,user_id,venue_id,venue_name,venue_custom_link";
 
       let data: Event[] | null = null;
 
@@ -860,7 +865,9 @@ export default function EventList({
   //
   //   const handleEventSelected = (e: CustomEvent) => {
   //     if (e.detail) {
-  //       setSelectedEvent(e.detail);
+  //        if (onEventClick && e.detail) {
+  //          onEventClick(e.detail);
+  //        }
   //     }
   //   };
   //
@@ -881,25 +888,16 @@ export default function EventList({
   // props로 전달받은 공유 이벤트 ID로 상세 모달 자동 열기
   useEffect(() => {
     if (sharedEventId && events.length > 0) {
-      console.log('[공유 링크] 이벤트 ID:', sharedEventId);
-      console.log('[공유 링크] 로드된 이벤트 수:', events.length);
-
       const event = events.find(e => e.id === sharedEventId);
-
-      console.log('[공유 링크] 찾은 이벤트:', event ? event.title : '없음');
 
       if (event) {
         // 상세 모달 자동 열기
-        console.log('[공유 링크] 상세 모달 열기 시도');
         setTimeout(() => {
-          setSelectedEvent(event);
+          onEventClick?.(event);
           if (onSharedEventOpened) {
             onSharedEventOpened();
           }
-          console.log('[공유 링크] 모달 열림 완료');
         }, 500);
-      } else {
-        console.log('[공유 링크] 이벤트를 찾지 못함. ID:', sharedEventId);
       }
     }
   }, [sharedEventId, events, onSharedEventOpened]);
@@ -1533,19 +1531,14 @@ export default function EventList({
   }, [sortedCurrentEvents, selectedDate]);
 
   const handleEventClick = (event: Event) => {
-    console.log(`[EventList] handleEventClick triggered for event ID: ${event.id}`);
     if (calendarMode === 'fullscreen' && onEventClickInFullscreen) {
-      console.log('[EventList] Fullscreen mode detected, calling onEventClickInFullscreen.');
       onEventClickInFullscreen(event);
     } else {
-      console.log('[EventList] Default mode, calling setSelectedEvent to open detail modal.');
-      setSelectedEvent(event);
+      onEventClick?.(event);
     }
   };
 
-  const closeModal = () => {
-    setSelectedEvent(null);
-  };
+
 
   const handleEditClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -1629,10 +1622,14 @@ export default function EventList({
       dateMode: hasEventDates ? "specific" : "range",
       showTitleOnBillboard: event.show_title_on_billboard ?? true,
       videoUrl: event?.video_url || "",
+      venueId: (event as any).venue_id || null,
+      venueName: (event as any).venue_name || "",
+      venueCustomLink: (event as any).venue_custom_link || "",
     });
 
     setIsEditingWithDetail(true);
-    setSelectedEvent(null); // 상세 모달 닫기
+    // Do nothing or call onOpen?.(null) if needed, but managing modal close is usually done by parent
+    // setSelectedEvent(null); // Detail modal close managed by parent
   };
 
   // EditableEventDetail handlers
@@ -1900,6 +1897,9 @@ export default function EventList({
         category: editFormData.category,
         genre: editFormData.genre || undefined,
         password: editPassword,
+        venue_id: editFormData.venueId,
+        venue_name: editFormData.venueId ? editFormData.venueName : editFormData.location,
+        venue_custom_link: editFormData.venueId ? null : editFormData.venueCustomLink,
         link1: editLink,
         link_name1: editLinkName,
         image: imageUrl,
@@ -1926,11 +1926,24 @@ export default function EventList({
 
       if (error) throw error;
 
+      const editedEventId = eventToEdit.id;
       alert("이벤트가 수정되었습니다.");
       setIsEditingWithDetail(false);
       setEventToEdit(null);
-      fetchEventsSilently(); // Silent refresh - no loading spinner
+      await fetchEventsSilently(); // Silent refresh - no loading spinner
       window.dispatchEvent(new Event("eventUpdated"));
+
+      // Scroll to the edited event
+      setTimeout(() => {
+        const element = document.querySelector(`[data-event-id="${editedEventId}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          element.classList.add("event-highlight-pulse");
+          setTimeout(() => {
+            element.classList.remove("event-highlight-pulse");
+          }, 2000);
+        }
+      }, 300);
     } catch (error) {
       console.error("Error updating event:", error);
       alert("이벤트 수정 중 오류가 발생했습니다.");
@@ -1959,7 +1972,18 @@ export default function EventList({
     try {
       console.log(`[삭제 시작] Event ID: ${eventId}`);
 
-      // 직접 Supabase 쿼리 (RLS가 권한 체크)
+      // 1. 참조 데이터 삭제 (event_favorites)
+      // CASCADE 설정이 DB에 없다면 수동으로 삭제해야 함
+      const { error: favError } = await supabase
+        .from('event_favorites')
+        .delete()
+        .eq('event_id', eventId);
+
+      if (favError) {
+        console.warn('즐겨찾기 삭제 중 경고 (무시 가능):', favError);
+      }
+
+      // 2. 이벤트 삭제
       const { error } = await supabase
         .from('events')
         .delete()
@@ -1981,7 +2005,7 @@ export default function EventList({
       console.log(`[삭제 성공] Event ID: ${eventId}`);
       setIsEditingWithDetail(false); // Close edit modal immediately
       setEventToEdit(null);
-      closeModal(); // Close detail modal if open
+      // closeModal(); // Detail modal close managed by parent via eventDeleted
       fetchEventsSilently(); // Silent refresh - no loading spinner
       window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } })); // Notify other components
       alert("이벤트가 삭제되었습니다.");
@@ -2044,6 +2068,9 @@ export default function EventList({
             dateMode: hasEventDates ? "specific" : "range",
             videoUrl: fullEvent.video_url || "",
             showTitleOnBillboard: fullEvent.show_title_on_billboard ?? true,
+            venueId: (fullEvent as any).venue_id || null,
+            venueName: (fullEvent as any).venue_name || "",
+            venueCustomLink: (fullEvent as any).venue_custom_link || "",
           });
           setEditImagePreview(fullEvent.image || "");
           setEditImageFile(null);
@@ -2261,7 +2288,10 @@ export default function EventList({
         video_url: editFormData.videoUrl || undefined,
         show_title_on_billboard: editFormData.showTitleOnBillboard,
         updated_at: new Date().toISOString(), // 캐시 무효화를 위해 항상 갱신
-      };
+        venue_id: editFormData.venueId,
+        venue_name: editFormData.venueId ? editFormData.venueName : editFormData.location,
+        venue_custom_link: editFormData.venueId ? null : editFormData.venueCustomLink,
+      } as any;
 
       // --- 이미지 처리 로직 ---
       const deleteOldImages = async () => {
@@ -3213,6 +3243,15 @@ export default function EventList({
       {/* 정렬 모달 */}
       {/* 정렬 모달 */}
       <Suspense fallback={null}>
+        {showPasswordModal && eventToEdit && (
+          <EventPasswordModal
+            event={eventToEdit}
+            password={eventPassword}
+            onPasswordChange={setEventPassword}
+            onClose={() => setShowPasswordModal(false)}
+            onSubmit={handlePasswordSubmit}
+          />
+        )}
         <EventSortModal
           isOpen={showSortModal}
           onClose={() => setShowSortModal(false)}
@@ -3233,17 +3272,7 @@ export default function EventList({
           events={events}
         />
 
-        <EventDetailModal
-          isOpen={!!selectedEvent}
-          event={selectedEvent}
-          onClose={closeModal}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-          isAdminMode={isAdminMode}
-          currentUserId={user?.id}
-          isFavorite={selectedEvent ? favoriteEventIds.has(selectedEvent.id) : false}
-          onToggleFavorite={selectedEvent ? (e) => handleToggleFavorite(selectedEvent.id, e) : undefined}
-        />
+        {/* Internal EventDetailModal removed - delegated to Page.tsx via onEventClick */}
       </Suspense>
 
       {/* EditableEventDetail for editing */}
@@ -3284,6 +3313,9 @@ export default function EventList({
                 event_dates: editEventDates.length > 0 ? editEventDates : undefined,
                 location: editFormData.location || "",
                 location_link: editFormData.locationLink || undefined,
+                venue_id: editFormData.venueId,
+                venue_name: editFormData.venueId ? editFormData.venueName : undefined,
+                venue_custom_link: editFormData.venueId ? null : editFormData.venueCustomLink,
                 description: editFormData.description || "",
                 category: editFormData.category as "class" | "event",
                 genre: editFormData.genre || undefined,
@@ -3324,6 +3356,7 @@ export default function EventList({
               videoUrl={editFormData.videoUrl}
               onVideoChange={(url) => setEditFormData(prev => ({ ...prev, videoUrl: url }))}
               onExtractThumbnail={handleEditExtractThumbnail}
+              onVenueSelectClick={() => setShowVenueSelectModal(true)}
             />
           ) : editPreviewMode === 'billboard' ? (
             /* Billboard Mode: Directly Render Card */
@@ -3607,8 +3640,16 @@ export default function EventList({
                     {/* 장소 이름 & 주소 링크 (한 줄) */}
                     <div className="evt-grid-cols-2 evt-gap-3">
                       <div>
-                        <label className="evt-form-label">
-                          장소 이름
+                        <label className="evt-form-label evt-flex evt-justify-between evt-items-center">
+                          <span>장소 이름</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowVenueSelectModal(true)}
+                            className="evt-text-xs evt-text-blue-400 evt-underline"
+                          >
+                            <i className="ri-search-line evt-mr-0.5"></i>
+                            장소 검색
+                          </button>
                         </label>
                         <input
                           type="text"
@@ -3617,6 +3658,9 @@ export default function EventList({
                             setEditFormData((prev) => ({
                               ...prev,
                               location: e.target.value,
+                              venueId: null, // 직접 수정 시 연결 해제
+                              venueName: "",
+                              venueCustomLink: "",
                             }))
                           }
                           className="evt-form-input"
@@ -4247,6 +4291,22 @@ export default function EventList({
           (!!editOriginalImageForCrop && editImageFile !== editOriginalImageForCrop) ||
           (!!editOriginalImageUrl && editImagePreview !== editOriginalImageUrl)
         }
+      />
+      <VenueSelectModal
+        isOpen={showVenueSelectModal}
+        onClose={() => setShowVenueSelectModal(false)}
+        onSelect={(venue) => {
+          setEditFormData((prev) => ({
+            ...prev,
+            venueId: String(venue.id),
+            venueName: venue.name,
+            location: venue.name,
+            locationLink: "",
+            venueCustomLink: "",
+          }));
+          setShowVenueSelectModal(false);
+        }}
+        onManualInput={() => setShowVenueSelectModal(false)}
       />
     </div >
   );

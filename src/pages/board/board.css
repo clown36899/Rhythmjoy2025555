@@ -24,7 +24,8 @@
 .board-posts-container {
   padding-left: 0;
   padding-right: 0;
-  padding-top: 0.25rem;
+  padding-top: 60px;
+  /* 탭 메뉴 공간 확보 (연습실과 동일) */
   padding-bottom: 0.25rem;
   /* height: calc(100vh - 110px); REMOVED */
   flex: 1;

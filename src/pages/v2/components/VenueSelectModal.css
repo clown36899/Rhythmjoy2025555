@@ -1,0 +1,344 @@
+/* Venue Select Modal - With VenueTabBar reuse */
+
+.venue-select-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+    animation: overlayFadeIn 0.2s ease-out;
+}
+
+@keyframes overlayFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+
+    to {
+        opacity: 1;
+        backdrop-filter: blur(8px);
+    }
+}
+
+.venue-select-container {
+    background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.25rem;
+    max-width: 800px;
+    width: 100%;
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 20px 40px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(59, 130, 246, 0.15);
+    animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Header */
+.venue-select-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+    position: relative;
+}
+
+.venue-select-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 2rem;
+    right: 2rem;
+    height: 1px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(59, 130, 246, 0.3) 50%,
+            transparent 100%);
+}
+
+.venue-select-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.venue-select-title::before {
+    content: '📍';
+    font-size: 1.75rem;
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+}
+
+.venue-select-close-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    padding: 0;
+    color: #9ca3af;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1.5rem;
+    line-height: 1;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    backdrop-filter: blur(4px);
+}
+
+.venue-select-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    transform: rotate(90deg) scale(1.05);
+}
+
+.venue-select-close-btn:active {
+    transform: rotate(90deg) scale(0.95);
+}
+
+/* Manual Input Button Row */
+.venue-select-manual-row {
+    padding: 0.75rem 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.venue-select-manual-btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: white !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    border-radius: 0.75rem !important;
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow:
+        0 0 0 1px rgba(59, 130, 246, 0.2),
+        0 4px 12px rgba(37, 99, 235, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.venue-select-manual-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+    transform: translateY(-2px);
+    box-shadow:
+        0 0 0 1px rgba(59, 130, 246, 0.4),
+        0 8px 20px rgba(37, 99, 235, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.venue-select-manual-btn:active {
+    transform: translateY(0);
+}
+
+.venue-select-manual-btn i {
+    font-size: 1.125rem;
+}
+
+/* VenueTabBar Wrapper - Override for modal */
+.venue-select-tab-wrapper {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+    position: relative;
+    z-index: 1;
+}
+
+/* Override VenueTabBar fixed positioning for modal */
+.venue-select-tab-wrapper .venue-tab-bar {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.venue-select-tab-wrapper .venue-tab-scroller {
+    padding: 0.75rem 1.5rem;
+}
+
+.venue-select-tab-wrapper .venue-tab-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.625rem 1rem;
+    color: #9ca3af;
+}
+
+.venue-select-tab-wrapper .venue-tab-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e5e7eb;
+}
+
+.venue-select-tab-wrapper .venue-tab-item.active {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.venue-select-tab-wrapper .tab-indicator {
+    display: none !important;
+}
+
+/* Description Section */
+.venue-select-description {
+    padding: 1rem 2rem;
+    background: rgba(59, 130, 246, 0.05);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.venue-select-description p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.venue-select-description i {
+    font-size: 1rem;
+    color: #60a5fa;
+}
+
+.venue-select-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background: #0a0a0a;
+}
+
+/* Custom Scrollbar */
+.venue-select-body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.venue-select-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 5px;
+}
+
+.venue-select-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    border: 2px solid #0a0a0a;
+}
+
+.venue-select-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+    .venue-select-overlay {
+        padding: 1rem;
+        align-items: center;
+    }
+
+    .venue-select-container {
+        max-width: 100%;
+        max-height: 80vh;
+        border-radius: 1.25rem;
+    }
+
+    .venue-select-header {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .venue-select-header::after {
+        left: 1.5rem;
+        right: 1.5rem;
+    }
+
+    .venue-select-title {
+        font-size: 1.375rem;
+    }
+
+    .venue-select-title::before {
+        font-size: 1.625rem;
+    }
+
+    .venue-select-manual-row {
+        padding: 0.75rem 1.5rem;
+    }
+
+    .venue-select-manual-btn {
+        padding: 0.75rem 1.25rem !important;
+        font-size: 0.875rem !important;
+    }
+
+    .venue-select-tab-wrapper .venue-tab-scroller {
+        padding: 0.625rem 1rem;
+    }
+
+    .venue-select-tab-wrapper .venue-tab-item {
+        padding: 0.5rem 0.875rem;
+        font-size: 0.875rem;
+    }
+
+    .venue-select-close-btn {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.375rem;
+    }
+
+    .venue-select-description {
+        padding: 0.875rem 1.5rem;
+    }
+
+    .venue-select-body {
+        padding: 1rem;
+    }
+}
+
+/* Tablet */
+@media (min-width: 641px) and (max-width: 1024px) {
+    .venue-select-container {
+        max-width: 700px;
+    }
+}

@@ -1,4 +1,4 @@
-.board-tab-bar {
+.venue-tab-bar {
     background-color: var(--header-bg-color, #1f2937);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     position: fixed;
@@ -10,28 +10,26 @@
     max-width: 650px;
 }
 
-.board-tab-scroller {
+.venue-tab-scroller {
     display: flex;
     overflow-x: auto;
     scrollbar-width: none;
-    /* Firefox */
     -ms-overflow-style: none;
-    /* IE/Edge */
     padding: 0 16px;
     gap: 16px;
     position: relative;
     /* 인디케이터 위치 기준점 */
 }
 
-.board-tab-scroller::-webkit-scrollbar {
+.venue-tab-scroller::-webkit-scrollbar {
     display: none;
 }
 
-.board-tab-item {
+.venue-tab-item {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 12px 4px 12px 2px;
+    padding: 12px 4px;
     background: none;
     border: none;
     color: #9ca3af;
@@ -43,16 +41,16 @@
     transition: color 0.2s;
 }
 
-.board-tab-item.active {
+.venue-tab-item.active {
     color: var(--primary-color, #3b82f6);
     font-weight: 600;
 }
 
-.board-tab-icon {
+.venue-tab-icon {
     font-size: 1.1rem;
 }
 
-.board-tab-indicator {
+.venue-tab-indicator {
     position: absolute;
     bottom: 0;
     left: 0;

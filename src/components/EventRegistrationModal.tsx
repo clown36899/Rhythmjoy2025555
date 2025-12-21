@@ -9,6 +9,7 @@ import {
 import { downloadThumbnailAsBlob, getVideoThumbnail } from "../utils/videoThumbnail";
 import { useAuth } from "../contexts/AuthContext";
 import ImageCropModal from "./ImageCropModal";
+import VenueSelectModal from "../pages/v2/components/VenueSelectModal";
 import "../styles/components/InteractivePreview.css";
 import "./EventRegistrationModal.css";
 import { EditablePreviewCard } from "./EditablePreviewCard";
@@ -21,6 +22,9 @@ import { retryOperation } from "../utils/asyncUtils";
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
   genre?: string | null;
+  venue_id?: string | null;
+  venue_name?: string | null;
+  venue_custom_link?: string | null;
 }
 
 interface EventRegistrationModalProps {
@@ -89,6 +93,12 @@ export default memo(function EventRegistrationModal({
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(""); // Stable preview URL
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Venue Selection State
+  const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const [venueName, setVenueName] = useState("");
+  const [venueCustomLink, setVenueCustomLink] = useState("");
 
   // Ref for EditableEventDetail to trigger modals
   const detailRef = useRef<EditableEventDetailRef>(null);
@@ -207,6 +217,9 @@ export default memo(function EventRegistrationModal({
         setEventDates(editEventData.event_dates || []);
         setLocation(editEventData.location || "");
         setLocationLink(editEventData.location_link || "");
+        setVenueId((editEventData as any).venue_id || null);
+        setVenueName((editEventData as any).venue_name || "");
+        setVenueCustomLink((editEventData as any).venue_custom_link || "");
         setDescription(editEventData.description || "");
         setCategory((editEventData.category as "class" | "event") || "event");
         setCategory((editEventData.category as "class" | "event") || "event");
@@ -598,6 +611,9 @@ export default memo(function EventRegistrationModal({
             created_at: new Date().toISOString(),
             user_id: user?.id || null, // 작성자 ID 저장
             show_title_on_billboard: true, // 기본값 true로 설정
+            venue_id: venueId,
+            venue_name: venueId ? venueName : location,
+            venue_custom_link: venueId ? null : venueCustomLink,
           };
 
           let resultData: any[] | null = null;
@@ -691,6 +707,9 @@ export default memo(function EventRegistrationModal({
     price: '무료',
     capacity: 0,
     registered: 0,
+    venue_id: venueId,
+    venue_name: venueName,
+    venue_custom_link: venueCustomLink,
   };
 
   // Update handler for EditableEventDetail
@@ -703,10 +722,21 @@ export default memo(function EventRegistrationModal({
       case 'category': setCategory(value); break;
       case 'genre': setGenre(value); break;
       // password case removed
-
       case 'link1': setLink1(value); break;
       case 'link_name1': setLinkName1(value); break;
     }
+  };
+
+  // Venue selection handler
+  const handleVenueSelect = (venue: any) => {
+    console.log('🎯 EventRegistrationModal.handleVenueSelect called with:', venue);
+    setVenueId(venue.id);
+    setVenueName(venue.name);
+    setLocation(venue.name);
+    setLocationLink("");
+    setVenueCustomLink("");
+    setShowVenueSelectModal(false);
+    console.log('✅ Venue selected, modal closed');
   };
 
   // Ensure videoProvider is used or removed. It was used in logic but state variable unused in render.
@@ -780,6 +810,12 @@ export default memo(function EventRegistrationModal({
           onVideoChange={handleVideoChange}
           onExtractThumbnail={handleExtractThumbnail}
           onDelete={onDelete && editEventData ? () => onDelete(editEventData.id) : undefined}
+          onVenueSelectClick={() => {
+            console.log('🎯 EventRegistrationModal.onVenueSelectClick called');
+            console.log('   - showVenueSelectModal before:', showVenueSelectModal);
+            setShowVenueSelectModal(true);
+            console.log('   - setShowVenueSelectModal(true) called');
+          }}
         />
       ) : previewMode === 'billboard' ? (
         /* Billboard mode: Direct card with no container */
@@ -902,6 +938,19 @@ export default memo(function EventRegistrationModal({
       <GlobalLoadingOverlay
         isLoading={isSubmitting}
         message={loadingMessage}
+      />
+
+      {/* Venue Select Modal */}
+      <VenueSelectModal
+        isOpen={showVenueSelectModal}
+        onClose={() => setShowVenueSelectModal(false)}
+        onSelect={handleVenueSelect}
+        onManualInput={() => {
+          console.log('🔘 Manual input clicked - opening location modal');
+          setShowVenueSelectModal(false);
+          // Open the manual location input modal
+          detailRef.current?.openModal('location');
+        }}
       />
     </div >,
     document.body

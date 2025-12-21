@@ -227,17 +227,73 @@ export default function BoardMainContainer() {
         return () => window.removeEventListener('boardWriteClick', handleWriteClick);
     }, []);
 
+    // Swipe Navigation
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        const currentIndex = categories.findIndex((cat: any) => cat.id === category);
+
+        if (isLeftSwipe && currentIndex < categories.length - 1) {
+            // Swipe left -> next tab
+            handleCategoryChange(categories[currentIndex + 1].id);
+        }
+        if (isRightSwipe && currentIndex > 0) {
+            // Swipe right -> previous tab
+            handleCategoryChange(categories[currentIndex - 1].id);
+        }
+    };
+
+    // Load categories for swipe navigation
+    const [categories, setCategories] = useState<any[]>([]);
+    useEffect(() => {
+        loadCategories();
+    }, []);
+
+    const loadCategories = async () => {
+        try {
+            const { data } = await supabase
+                .from('board_categories')
+                .select('*')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true });
+
+            if (data && data.length > 0) {
+                const mapped = data.map((item: any) => ({
+                    id: item.code,
+                    label: item.name
+                }));
+                mapped.push({ id: 'dev-log', label: '개발일지' });
+                setCategories(mapped);
+            }
+        } catch (error) {
+            console.error('Failed to load categories:', error);
+        }
+    };
+
     return (
         <div className="board-page-container">
-            {/* 1. Header Area with Admin Button */}
-            {/* BoardTabBar Placeholder: height must match TabBar height (approx 50px) + margin */}
-            <div style={{ position: 'relative', height: '54px', marginBottom: '10px' }}>
-                <BoardTabBar
-                    key={key}
-                    activeCategory={category}
-                    onCategoryChange={handleCategoryChange}
-                />
-            </div>
+            {/* BoardTabBar */}
+            <BoardTabBar
+                key={key}
+                activeCategory={category}
+                onCategoryChange={handleCategoryChange}
+            />
 
             {/* Admin Floating Action Button (FAB) Menu */}
             {isRealAdmin && (
@@ -318,7 +374,12 @@ export default function BoardMainContainer() {
             )}
 
             {/* 2. Post List or Dev Log */}
-            <div className="board-posts-container">
+            <div
+                className="board-posts-container"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+            >
                 {category === 'dev-log' ? (
                     <DevLog />
                 ) : (
