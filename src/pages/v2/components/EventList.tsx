@@ -39,6 +39,8 @@ import { useAuth } from "../../../contexts/AuthContext";
 import PracticeRoomBanner from "./PracticeRoomBanner";
 import BoardPostList from "../../board/components/BoardPostList";
 import { useNavigate } from "react-router-dom";
+import "../../practice/components/PracticeRoomList.css";
+import "../../shopping/components/shopcard.css";
 
 registerLocale("ko", ko);
 
@@ -387,6 +389,116 @@ export default function EventList({
       setLikedBoardPosts(prev => prev.filter(p => p.id !== postId));
     } catch (error) {
       console.error('Error removing like:', error);
+    }
+  };
+
+  // Practice Room and Shop Favorites Logic
+  const [favoritePracticeRooms, setFavoritePracticeRooms] = useState<any[]>([]);
+  const [favoriteShops, setFavoriteShops] = useState<any[]>([]);
+
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'favorites' && user) {
+      fetchFavoritePracticeRooms();
+      fetchFavoriteShops();
+    }
+  }, [searchParams, user]);
+
+  const fetchFavoritePracticeRooms = async () => {
+    if (!user) return;
+
+    try {
+      // 1. Get favorite practice room IDs
+      const { data: favData } = await supabase
+        .from('practice_room_favorites')
+        .select('practice_room_id')
+        .eq('user_id', user.id);
+
+      if (!favData || favData.length === 0) {
+        setFavoritePracticeRooms([]);
+        return;
+      }
+
+      const roomIds = favData.map(f => f.practice_room_id);
+
+      // 2. Fetch practice room details
+      const { data: roomsData } = await supabase
+        .from('practice_rooms')
+        .select('*')
+        .in('id', roomIds);
+
+      if (roomsData) {
+        const processedRooms = roomsData.map(room => ({
+          ...room,
+          images: typeof room.images === 'string' ? JSON.parse(room.images) : (room.images ?? [])
+        }));
+        setFavoritePracticeRooms(processedRooms);
+      }
+    } catch (error) {
+      console.error('Error fetching favorite practice rooms:', error);
+    }
+  };
+
+  const fetchFavoriteShops = async () => {
+    if (!user) return;
+
+    try {
+      // 1. Get favorite shop IDs
+      const { data: favData } = await supabase
+        .from('shop_favorites')
+        .select('shop_id')
+        .eq('user_id', user.id);
+
+      if (!favData || favData.length === 0) {
+        setFavoriteShops([]);
+        return;
+      }
+
+      const shopIds = favData.map(f => f.shop_id);
+
+      // 2. Fetch shop details with featured items
+      const { data: shopsData } = await supabase
+        .from('shops')
+        .select('*, featured_items (*)')
+        .in('id', shopIds);
+
+      if (shopsData) {
+        setFavoriteShops(shopsData);
+      }
+    } catch (error) {
+      console.error('Error fetching favorite shops:', error);
+    }
+  };
+
+  const handleRemovePracticeRoomFavorite = async (roomId: number) => {
+    if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
+
+    try {
+      await supabase
+        .from('practice_room_favorites')
+        .delete()
+        .eq('user_id', user!.id)
+        .eq('practice_room_id', roomId);
+
+      setFavoritePracticeRooms(prev => prev.filter(r => r.id !== roomId));
+    } catch (error) {
+      console.error('Error removing practice room favorite:', error);
+    }
+  };
+
+  const handleRemoveShopFavorite = async (shopId: number) => {
+    if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
+
+    try {
+      await supabase
+        .from('shop_favorites')
+        .delete()
+        .eq('user_id', user!.id)
+        .eq('shop_id', shopId);
+
+      setFavoriteShops(prev => prev.filter(s => s.id !== shopId));
+    } catch (error) {
+      console.error('Error removing shop favorite:', error);
     }
   };
 
@@ -2406,7 +2518,114 @@ export default function EventList({
             </div>
           )}
 
-          {/* 3. Past Events Section */}
+          {/* 3. Practice Room Favorites Section */}
+          {favoritePracticeRooms.length > 0 && (
+            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
+              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                연습실 즐겨찾기 <span className="evt-favorites-count">{favoritePracticeRooms.length}</span>
+              </h3>
+              <div style={{ padding: '0 12px', display: 'grid', gap: '1rem' }}>
+                {favoritePracticeRooms.map((room) => (
+                  <div
+                    key={room.id}
+                    onClick={() => navigate(`/practice?id=${room.id}`)}
+                    className="prl-card"
+                    style={{ cursor: 'pointer', position: 'relative' }}
+                  >
+                    {/* 즐겨찾기 제거 버튼 */}
+                    <button
+                      className="prl-favorite-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePracticeRoomFavorite(room.id);
+                      }}
+                      title="즐겨찾기 해제"
+                    >
+                      <i className="ri-heart-3-fill"></i>
+                    </button>
+
+                    {/* 왼쪽: 정보 */}
+                    <div className="prl-card-info">
+                      <h3 className="prl-card-name">{room.name}</h3>
+                      {room.address && (
+                        <p className="prl-card-address">
+                          <i className="ri-map-pin-line prl-card-address-icon"></i>
+                          <span className="prl-card-address-text">{room.address}</span>
+                        </p>
+                      )}
+                      {room.description && (
+                        <p className="prl-card-description">{room.description}</p>
+                      )}
+                    </div>
+
+                    {/* 오른쪽: 정사각형 이미지 */}
+                    {room.images && room.images.length > 0 && (
+                      <div className="prl-card-image-wrapper">
+                        <img src={room.images[0]} alt={room.name} className="prl-card-image" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4. Shop Favorites Section */}
+          {favoriteShops.length > 0 && (
+            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
+              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                쇼핑몰 즐겨찾기 <span className="evt-favorites-count">{favoriteShops.length}</span>
+              </h3>
+              <div style={{ padding: '0 12px', display: 'grid', gap: '1rem' }}>
+                {favoriteShops.map((shop) => (
+                  <div
+                    key={shop.id}
+                    onClick={() => navigate('/shopping')}
+                    className="shopcard-banner"
+                    style={{ cursor: 'pointer', position: 'relative' }}
+                  >
+                    {/* 즐겨찾기 제거 버튼 */}
+                    <button
+                      className="shopcard-favorite-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveShopFavorite(shop.id);
+                      }}
+                      title="즐겨찾기 해제"
+                    >
+                      <i className="ri-heart-3-fill"></i>
+                    </button>
+
+                    {/* Left: Image Section */}
+                    <div className="shopcard-image-section">
+                      {shop.logo_url ? (
+                        <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-banner-image" />
+                      ) : (
+                        <div className="shopcard-banner-placeholder">
+                          <i className="ri-store-2-fill"></i>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Content Section */}
+                    <div className="shopcard-content-section">
+                      <div className="shopcard-banner-content">
+                        <h3 className="shopcard-banner-title">{shop.name}</h3>
+                        {shop.description && (
+                          <p className="shopcard-banner-desc">{shop.description}</p>
+                        )}
+                        <button className="shopcard-banner-btn">
+                          <i className="ri-arrow-right-line"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 5. Past Events Section */}
           {pastFavorites.length > 0 && (
             <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
               <div className="evt-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px', marginBottom: '12px' }}>

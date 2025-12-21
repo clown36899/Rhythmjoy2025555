@@ -284,6 +284,55 @@
   transform: scale(1.05);
 }
 
+/* ===== 즐겨찾기 버튼 ===== */
+.prl-favorite-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.prl-favorite-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.prl-favorite-btn i {
+  transition: color 0.2s ease;
+}
+
+.prl-favorite-btn .ri-heart-3-fill {
+  color: #f87171;
+}
+
+.prl-favorite-btn .ri-heart-3-line {
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .prl-favorite-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.875rem;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+}
+
 /* ===== 모달 공통 ===== */
 .prl-modal-overlay {
   position: fixed;

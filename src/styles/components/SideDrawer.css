@@ -182,6 +182,65 @@
     align-items: center;
 }
 
+/* Expandable menu item */
+.drawer-menu-item.expandable {
+    position: relative;
+}
+
+.drawer-expand-icon {
+    margin-left: auto;
+    font-size: 18px !important;
+    transition: transform 0.2s ease;
+}
+
+/* Submenu container */
+.drawer-submenu {
+    background-color: rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease-out;
+    overflow: hidden;
+}
+
+@keyframes slideDown {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+
+    to {
+        max-height: 500px;
+        opacity: 1;
+    }
+}
+
+/* Submenu item */
+.drawer-submenu-item {
+    padding: 12px 24px 12px 56px;
+    /* 왼쪽 들여쓰기 */
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.drawer-submenu-item:active {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.drawer-submenu-item i {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.5);
+    width: 20px;
+    text-align: center;
+}
+
+.drawer-submenu-item span {
+    font-size: 14px;
+    font-weight: 400;
+}
+
 .drawer-footer {
     padding: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);

@@ -11,9 +11,11 @@ interface ShopDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     onUpdate: () => void;
+    isFavorite?: boolean;
+    onToggleFavorite?: (shopId: number, e?: React.MouseEvent) => void;
 }
 
-export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: ShopDetailModalProps) {
+export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate, isFavorite = false, onToggleFavorite }: ShopDetailModalProps) {
     const { user } = useAuth();
     const [showEditModal, setShowEditModal] = useState(false);
 
@@ -44,6 +46,17 @@ export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate }: Sho
                     {shop.user_id && user && user.id === shop.user_id && (
                         <button onClick={handleEdit} className="shop-modal-edit" title="수정하기">
                             <i className="ri-pencil-line"></i>
+                        </button>
+                    )}
+
+                    {/* Favorite Button */}
+                    {onToggleFavorite && (
+                        <button
+                            onClick={(e) => onToggleFavorite(shop.id, e)}
+                            className="shop-modal-favorite"
+                            title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                        >
+                            <i className={isFavorite ? "ri-heart-3-fill" : "ri-heart-3-line"}></i>
                         </button>
                     )}
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import SimpleHeader from '../../components/SimpleHeader';
 import ShopCard from './components/ShopCard';
 import ShopRegisterModal from './components/ShopRegisterModal';
@@ -27,12 +28,14 @@ export interface Shop {
 }
 
 export default function ShoppingPage() {
+  const { user, signInWithKakao } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
   const [randomizedShops, setRandomizedShops] = useState<Shop[]>([]); // 랜덤 정렬된 목록 저장
   const [loading, setLoading] = useState(true);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [favoriteShopIds, setFavoriteShopIds] = useState<Set<number>>(new Set());
 
   const fetchShops = async () => {
     setLoading(true);
@@ -78,6 +81,93 @@ export default function ShoppingPage() {
     fetchShops();
   }, []);
 
+  // Fetch favorites when user logs in
+  useEffect(() => {
+    if (user) {
+      fetchFavorites();
+    } else {
+      setFavoriteShopIds(new Set());
+    }
+  }, [user]);
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('shop_favorites')
+        .select('shop_id')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching shop favorites:', error);
+      } else {
+        setFavoriteShopIds(new Set(data.map(f => f.shop_id)));
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching favorites:', err);
+    }
+  };
+
+  const handleToggleFavorite = async (shopId: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+
+    if (!user) {
+      if (confirm('로그인이 필요한 기능입니다. 카카오로 로그인하시겠습니까?')) {
+        try {
+          await signInWithKakao();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      return;
+    }
+
+    const isFav = favoriteShopIds.has(shopId);
+
+    // Optimistic Update
+    setFavoriteShopIds(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(shopId);
+      else next.add(shopId);
+      return next;
+    });
+
+    if (isFav) {
+      // Remove
+      const { error } = await supabase
+        .from('shop_favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('shop_id', shopId);
+
+      if (error) {
+        console.error('Error removing favorite:', error);
+        // Rollback
+        setFavoriteShopIds(prev => {
+          const next = new Set(prev);
+          next.add(shopId);
+          return next;
+        });
+      }
+    } else {
+      // Add
+      const { error } = await supabase
+        .from('shop_favorites')
+        .insert({ user_id: user.id, shop_id: shopId });
+
+      if (error) {
+        console.error('Error adding favorite:', error);
+        // Rollback
+        setFavoriteShopIds(prev => {
+          const next = new Set(prev);
+          next.delete(shopId);
+          return next;
+        });
+      }
+    }
+  };
+
   // Event search from header
   useEffect(() => {
     const handleOpenEventSearch = () => setShowGlobalSearch(true);
@@ -112,7 +202,15 @@ export default function ShoppingPage() {
           <div className="shop-empty-container">등록된 쇼핑몰이 없습니다.</div>
         ) : (
           <div className="shop-grid">
-            {randomizedShops.map(shop => (<ShopCard key={shop.id} shop={shop} onUpdate={fetchShops} />))}
+            {randomizedShops.map(shop => (
+              <ShopCard
+                key={shop.id}
+                shop={shop}
+                onUpdate={fetchShops}
+                isFavorite={favoriteShopIds.has(shop.id)}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            ))}
           </div>
         )}
       </div>

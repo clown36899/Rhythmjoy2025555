@@ -79,6 +79,45 @@
     font-size: 1.25rem;
 }
 
+/* Favorite Button */
+.shop-modal-favorite {
+    position: absolute;
+    top: 1.25rem;
+    right: 8.75rem;
+    background: rgba(31, 41, 55, 0.95);
+    color: white;
+    border: 1px solid #374151;
+    border-radius: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(12px);
+}
+
+.shop-modal-favorite:hover {
+    background: rgba(0, 0, 0, 0.95);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.shop-modal-favorite i {
+    font-size: 1.25rem;
+    transition: color 0.2s ease;
+}
+
+.shop-modal-favorite .ri-heart-3-fill {
+    color: #f87171;
+}
+
+.shop-modal-favorite .ri-heart-3-line {
+    color: #fff;
+}
+
 .shop-modal-close {
     position: absolute;
     top: 1.25rem;

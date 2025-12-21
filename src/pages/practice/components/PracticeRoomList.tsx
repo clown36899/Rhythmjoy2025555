@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../../contexts/AuthContext";
 import "./PracticeRoomList.css";
 
 interface PracticeRoom {
@@ -39,16 +40,105 @@ export default function PracticeRoomList({
   setSortBy
 }: PracticeRoomListProps) {
   const navigate = useNavigate();
+  const { user, signInWithKakao } = useAuth();
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
   const [randomizedRooms, setRandomizedRooms] = useState<PracticeRoom[]>([]); // 랜덤 정렬된 목록 저장
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [favoritePracticeRoomIds, setFavoritePracticeRoomIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchRooms();
   }, []);
+
+  // Fetch favorites when user logs in
+  useEffect(() => {
+    if (user) {
+      fetchFavorites();
+    } else {
+      setFavoritePracticeRoomIds(new Set());
+    }
+  }, [user]);
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('practice_room_favorites')
+        .select('practice_room_id')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching practice room favorites:', error);
+      } else {
+        setFavoritePracticeRoomIds(new Set(data.map(f => f.practice_room_id)));
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching favorites:', err);
+    }
+  };
+
+  const handleToggleFavorite = async (roomId: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+
+    if (!user) {
+      if (confirm('로그인이 필요한 기능입니다. 카카오로 로그인하시겠습니까?')) {
+        try {
+          await signInWithKakao();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      return;
+    }
+
+    const isFav = favoritePracticeRoomIds.has(roomId);
+
+    // Optimistic Update
+    setFavoritePracticeRoomIds(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(roomId);
+      else next.add(roomId);
+      return next;
+    });
+
+    if (isFav) {
+      // Remove
+      const { error } = await supabase
+        .from('practice_room_favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('practice_room_id', roomId);
+
+      if (error) {
+        console.error('Error removing favorite:', error);
+        // Rollback
+        setFavoritePracticeRoomIds(prev => {
+          const next = new Set(prev);
+          next.add(roomId);
+          return next;
+        });
+      }
+    } else {
+      // Add
+      const { error } = await supabase
+        .from('practice_room_favorites')
+        .insert({ user_id: user.id, practice_room_id: roomId });
+
+      if (error) {
+        console.error('Error adding favorite:', error);
+        // Rollback
+        setFavoritePracticeRoomIds(prev => {
+          const next = new Set(prev);
+          next.delete(roomId);
+          return next;
+        });
+      }
+    }
+  };
 
   const fetchRooms = async () => {
     try {
@@ -268,9 +358,19 @@ export default function PracticeRoomList({
                 onClick={() => handleRoomClick(room)}
                 className="prl-card"
                 style={{
-                  animationDelay: `${index * 100}ms`
+                  animationDelay: `${index * 100}ms`,
+                  position: 'relative'
                 }}
               >
+                {/* 즐겨찾기 버튼 */}
+                <button
+                  className="prl-favorite-btn"
+                  onClick={(e) => handleToggleFavorite(room.id, e)}
+                  title={favoritePracticeRoomIds.has(room.id) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                >
+                  <i className={favoritePracticeRoomIds.has(room.id) ? "ri-heart-3-fill" : "ri-heart-3-line"}></i>
+                </button>
+
                 {/* 왼쪽: 정보 */}
                 <div className="prl-card-info">
                   <h3 className="prl-card-name">

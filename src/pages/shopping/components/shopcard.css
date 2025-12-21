@@ -155,6 +155,55 @@
   font-size: 1rem;
 }
 
+/* ===== 즐겨찾기 버튼 ===== */
+.shopcard-favorite-btn {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.shopcard-favorite-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.shopcard-favorite-btn i {
+  transition: color 0.2s ease;
+}
+
+.shopcard-favorite-btn .ri-heart-3-fill {
+  color: #f87171;
+}
+
+.shopcard-favorite-btn .ri-heart-3-line {
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .shopcard-favorite-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.875rem;
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+}
+
 /* ===== 콘텐츠 ===== */
 .shopcard-banner-content {
   width: 100%;

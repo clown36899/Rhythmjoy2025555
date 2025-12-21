@@ -1,6 +1,8 @@
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { useEffect, useState } from 'react';
 import '../styles/components/SideDrawer.css';
 
 interface SideDrawerProps {
@@ -9,13 +11,55 @@ interface SideDrawerProps {
     onLoginClick: () => void;
 }
 
+interface BoardCategory {
+    code: string;
+    name: string;
+    display_order: number;
+    is_active: boolean;
+}
+
 export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawerProps) {
     const navigate = useNavigate();
     const { user, billboardUserName, signOut, userProfile, isAdmin } = useAuth();
+    const [isBoardExpanded, setIsBoardExpanded] = useState(true); // 기본 펼침 상태
+    const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
 
     // Derive display values from userProfile or fallback to user metadata
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
     const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
+
+    // Load board categories on mount
+    useEffect(() => {
+        loadBoardCategories();
+    }, []);
+
+    const loadBoardCategories = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('board_categories')
+                .select('*')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true });
+
+            if (error) throw error;
+            if (data) {
+                setBoardCategories(data);
+            }
+        } catch (error) {
+            console.error('Failed to load board categories:', error);
+        }
+    };
+
+    const getIconForCategory = (code: string) => {
+        switch (code) {
+            case 'notice': return 'ri-megaphone-line';
+            case 'market': return 'ri-store-2-line';
+            case 'trade': return 'ri-exchange-line';
+            case 'free': return 'ri-chat-1-line';
+            case 'dev-log': return 'ri-code-box-line';
+            default: return 'ri-chat-3-line';
+        }
+    };
 
     const handleNavigation = (path: string) => {
         navigate(path);
@@ -152,10 +196,39 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         <i className="ri-building-line"></i>
                         <span>연습실</span>
                     </div>
-                    <div className="drawer-menu-item" onClick={() => handleNavigation('/board')}>
+                    {/* 게시판 - 펼침/접힘 가능 */}
+                    <div
+                        className="drawer-menu-item expandable"
+                        onClick={() => setIsBoardExpanded(!isBoardExpanded)}
+                    >
                         <i className="ri-discuss-line"></i>
-                        <span>자유게시판</span>
+                        <span>게시판</span>
+                        <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line drawer-expand-icon`}></i>
                     </div>
+
+                    {/* 게시판 서브메뉴 */}
+                    {isBoardExpanded && (
+                        <div className="drawer-submenu">
+                            {boardCategories.map((category) => (
+                                <div
+                                    key={category.code}
+                                    className="drawer-submenu-item"
+                                    onClick={() => handleNavigation(`/board?category=${category.code}`)}
+                                >
+                                    <i className={getIconForCategory(category.code)}></i>
+                                    <span>{category.name}</span>
+                                </div>
+                            ))}
+                            {/* 개발일지 - 하드코딩 */}
+                            <div
+                                className="drawer-submenu-item"
+                                onClick={() => handleNavigation('/board?category=dev-log')}
+                            >
+                                <i className="ri-code-box-line"></i>
+                                <span>개발일지</span>
+                            </div>
+                        </div>
+                    )}
                     <div className="drawer-menu-item" onClick={() => handleNavigation('/shopping')}>
                         <i className="ri-shopping-bag-3-line"></i>
                         <span>쇼핑</span>

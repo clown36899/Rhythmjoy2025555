@@ -7,6 +7,7 @@ import BoardPostList from './components/BoardPostList';
 import UniversalPostEditor from './components/UniversalPostEditor';
 import BoardManagementModal from './components/BoardManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
+import DevLog from './components/DevLog';
 import './board.css'; // Inherit basic layout styles
 import type { BoardPost } from './page'; // Import types
 
@@ -316,19 +317,23 @@ export default function BoardMainContainer() {
                 </div>
             )}
 
-            {/* 2. Post List */}
+            {/* 2. Post List or Dev Log */}
             <div className="board-posts-container">
-                <BoardPostList
-                    posts={currentPosts}
-                    loading={loading}
-                    category={category}
-                    onPostClick={(post) => navigate(`/board/${post.id}`)}
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    likedPostIds={likedPostIds}
-                    onToggleLike={handleToggleLike}
-                />
+                {category === 'dev-log' ? (
+                    <DevLog />
+                ) : (
+                    <BoardPostList
+                        posts={currentPosts}
+                        loading={loading}
+                        category={category}
+                        onPostClick={(post) => navigate(`/board/${post.id}`)}
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        likedPostIds={likedPostIds}
+                        onToggleLike={handleToggleLike}
+                    />
+                )}
             </div>
 
             {/* 3. Editor Modal */}

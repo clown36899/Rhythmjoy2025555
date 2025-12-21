@@ -6,14 +6,27 @@ import './shopcard.css';
 interface ShopCardProps {
   shop: Shop;
   onUpdate: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (shopId: number, e?: React.MouseEvent) => void;
 }
 
-export default function ShopCard({ shop, onUpdate }: ShopCardProps) {
+export default function ShopCard({ shop, onUpdate, isFavorite = false, onToggleFavorite }: ShopCardProps) {
   const [showModal, setShowModal] = useState(false);
 
   return (
     <>
       <div className="shopcard-banner" onClick={() => setShowModal(true)}>
+        {/* Favorite Button */}
+        {onToggleFavorite && (
+          <button
+            className="shopcard-favorite-btn"
+            onClick={(e) => onToggleFavorite(shop.id, e)}
+            title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+          >
+            <i className={isFavorite ? "ri-heart-3-fill" : "ri-heart-3-line"}></i>
+          </button>
+        )}
+
         {/* Left: Image Section */}
         <div className="shopcard-image-section">
           {shop.logo_url ? (
@@ -47,6 +60,8 @@ export default function ShopCard({ shop, onUpdate }: ShopCardProps) {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onUpdate={onUpdate}
+        isFavorite={isFavorite}
+        onToggleFavorite={onToggleFavorite}
       />
     </>
   );

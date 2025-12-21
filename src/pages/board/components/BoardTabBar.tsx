@@ -17,13 +17,6 @@ const DEFAULT_CATEGORIES = [
     { id: 'market', label: '벼룩시장', icon: 'ri-store-2-line' },
 ];
 
-interface BoardCategoryItem {
-    code: string;
-    name: string;
-    display_order: number;
-    is_active: boolean;
-}
-
 export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardTabBarProps) {
     const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
 
@@ -48,15 +41,31 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     label: item.name,
                     icon: getIconForCategory(item.code)
                 }));
+
+                // Add dev-log tab at the end (hardcoded, not from DB)
+                mapped.push({
+                    id: 'dev-log',
+                    label: '개발일지',
+                    icon: 'ri-code-box-line'
+                });
+
                 setCategories(mapped);
             } else {
-                // Failsafe: If DB empty, show defaults
+                // Failsafe: If DB empty, show defaults + dev-log
                 console.warn('DB categories empty, using defaults');
-                setCategories(DEFAULT_CATEGORIES);
+                setCategories([...DEFAULT_CATEGORIES, {
+                    id: 'dev-log',
+                    label: '개발일지',
+                    icon: 'ri-code-box-line'
+                }]);
             }
         } catch (error) {
             console.error('Failed to load board categories:', error);
-            setCategories(DEFAULT_CATEGORIES); // Fallback on error
+            setCategories([...DEFAULT_CATEGORIES, {
+                id: 'dev-log',
+                label: '개발일지',
+                icon: 'ri-code-box-line'
+            }]); // Fallback on error
         }
     };
 
