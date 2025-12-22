@@ -70,7 +70,7 @@ export default function EventDetailModal({
   onEdit: _onEdit,
   onDelete: _onDelete,
   isAdminMode = false,
-  currentUserId: _currentUserId,
+  currentUserId,
   isFavorite = false,
   onToggleFavorite,
   onOpenVenueDetail,
@@ -1220,39 +1220,58 @@ export default function EventDetailModal({
                   <i className="ri-share-line action-icon"></i>
                 </button>
 
-                {/* Edit/Save Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!user) {
-                      setShowLoginPrompt(true);
-                      return;
-                    }
+                {/* Delete Button (Only in Selection/Edit Mode) */}
+                {isSelectionMode && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+                        _onDelete(selectedEvent, e);
+                      }
+                    }}
+                    className="action-button delete"
+                    title="삭제하기"
+                    style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px' }}
+                  >
+                    <i className="ri-delete-bin-line action-icon"></i>
+                  </button>
+                )}
 
-                    if (isSelectionMode) {
-                      // In Edit Mode -> Check for changes
-                      if (!hasChanges()) {
-                        // No changes -> Exit edit mode directly
-                        setIsSelectionMode(false);
+                {/* Edit/Save Button - Only show if authorized */}
+                {(isAdminMode || (currentUserId && selectedEvent.user_id === currentUserId) || !selectedEvent.user_id) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!user) {
+                        setShowLoginPrompt(true);
                         return;
                       }
 
-                      // Has changes -> Confirm and save
-                      if (window.confirm('변경사항을 저장하시겠습니까?')) {
-                        handleFinalSave();
+                      if (isSelectionMode) {
+                        // In Edit Mode -> Check for changes
+                        if (!hasChanges()) {
+                          // No changes -> Exit edit mode directly
+                          setIsSelectionMode(false);
+                          return;
+                        }
+
+                        // Has changes -> Confirm and save
+                        if (window.confirm('변경사항을 저장하시겠습니까?')) {
+                          handleFinalSave();
+                        }
+                        // If canceled, stay in edit mode
+                      } else {
+                        // Not in Edit Mode -> Enter Edit Mode
+                        setIsSelectionMode(true);
                       }
-                      // If canceled, stay in edit mode
-                    } else {
-                      // Not in Edit Mode -> Enter Edit Mode
-                      setIsSelectionMode(true);
-                    }
-                  }}
-                  className={`action-button ${isSelectionMode ? 'save active-mode' : 'edit'}`}
-                  title={isSelectionMode ? "변경사항 저장" : "이벤트 수정"}
-                  style={isSelectionMode ? { backgroundColor: '#3b82f6', color: 'white' } : {}}
-                >
-                  <i className={`ri-${isSelectionMode ? 'save-3-line' : 'edit-line'} action-icon`}></i>
-                </button>
+                    }}
+                    className={`action-button ${isSelectionMode ? 'save active-mode' : 'edit'}`}
+                    title={isSelectionMode ? "변경사항 저장" : "이벤트 수정"}
+                    style={isSelectionMode ? { backgroundColor: '#3b82f6', color: 'white' } : {}}
+                  >
+                    <i className={`ri-${isSelectionMode ? 'save-3-line' : 'edit-line'} action-icon`}></i>
+                  </button>
+                )}
 
                 <button
                   onClick={(e) => {
@@ -1406,27 +1425,52 @@ export default function EventDetailModal({
 
                         {/* 2. Genre Chips */}
                         <div className="genre-chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-                          {structuredGenres[editCategory]?.map(genre => (
+                          {/* Fixed Club Lesson Option for Class */}
+                          {editCategory === 'class' && (
                             <button
-                              key={genre}
                               onClick={() => {
-                                setEditValue(genre);
+                                setEditValue('동호회강습');
                                 setUseDirectInput(false);
                               }}
-                              className={`genre-chip ${!useDirectInput && editValue === genre ? 'active' : ''}`}
+                              className={`genre-chip ${!useDirectInput && editValue === '동호회강습' ? 'active' : ''}`}
                               style={{
                                 padding: '8px 16px',
                                 borderRadius: '9999px',
-                                background: !useDirectInput && editValue === genre ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                border: !useDirectInput && editValue === genre ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                                color: 'white',
+                                background: !useDirectInput && editValue === '동호회강습' ? '#ff9f43' : 'rgba(255,159,67,0.1)', // Distinct color
+                                border: !useDirectInput && editValue === '동호회강습' ? '1px solid #ff9f43' : '1px solid rgba(255,159,67,0.3)',
+                                color: !useDirectInput && editValue === '동호회강습' ? 'white' : '#ff9f43',
                                 cursor: 'pointer',
-                                fontSize: '14px'
+                                fontSize: '14px',
+                                fontWeight: 600
                               }}
                             >
-                              {genre}
+                              동호회강습
                             </button>
-                          ))}
+                          )}
+
+                          {structuredGenres[editCategory]
+                            ?.filter(g => g !== '동호회강습') // Avoid duplicate if already in list
+                            ?.map(genre => (
+                              <button
+                                key={genre}
+                                onClick={() => {
+                                  setEditValue(genre);
+                                  setUseDirectInput(false);
+                                }}
+                                className={`genre-chip ${!useDirectInput && editValue === genre ? 'active' : ''}`}
+                                style={{
+                                  padding: '8px 16px',
+                                  borderRadius: '9999px',
+                                  background: !useDirectInput && editValue === genre ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                  border: !useDirectInput && editValue === genre ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                  color: 'white',
+                                  cursor: 'pointer',
+                                  fontSize: '14px'
+                                }}
+                              >
+                                {genre}
+                              </button>
+                            ))}
 
                           {/* Direct Input Toggle Chip */}
                           <button

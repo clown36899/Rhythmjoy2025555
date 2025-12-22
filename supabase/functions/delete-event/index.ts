@@ -50,7 +50,18 @@ serve(async (req: Request) => {
     const authHeader = req.headers.get('Authorization');
 
     if (authHeader) {
-      const userSupabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '', { global: { headers: { Authorization: authHeader } } });
+      const userSupabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: { headers: { Authorization: authHeader } },
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+        }
+      );
       const { data: { user } } = await userSupabase.auth.getUser();
 
       // 관리자 권한 확인 (Claims 또는 이메일)

@@ -167,39 +167,7 @@ export default function EventList({
   const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
   const isPartialUpdate = useRef(false); // 부분 업데이트 플래그
 
-  // 컴포넌트 외부에 저장 (리마운트 시에도 유지)
-  const lastSortedEventsKey = 'eventList_lastSortedEvents';
-  const lastFutureClassesKey = 'eventList_lastFutureClasses';
 
-  const getLastSortedEvents = () => {
-    try {
-      const stored = sessionStorage.getItem(lastSortedEventsKey);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const setLastSortedEvents = (events: Event[]) => {
-    try {
-      sessionStorage.setItem(lastSortedEventsKey, JSON.stringify(events.map(e => ({ id: e.id }))));
-    } catch { }
-  };
-
-  const getLastFutureClasses = () => {
-    try {
-      const stored = sessionStorage.getItem(lastFutureClassesKey);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const setLastFutureClasses = (events: Event[]) => {
-    try {
-      sessionStorage.setItem(lastFutureClassesKey, JSON.stringify(events.map(e => ({ id: e.id }))));
-    } catch { }
-  };
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -1485,6 +1453,23 @@ export default function EventList({
     globalLastFutureClasses = result;
     return result;
   }, [events, selectedGenre, highlightEvent]);
+
+  // 분리: 동호회 강습 vs 일반 강습
+  const { regularClasses, clubLessons } = useMemo(() => {
+    const regular: Event[] = [];
+    const club: Event[] = [];
+
+    futureClasses.forEach(evt => {
+      // '동호회강습'
+      if (evt.genre === '동호회강습') {
+        club.push(evt);
+      } else {
+        regular.push(evt);
+      }
+    });
+
+    return { regularClasses: regular, clubLessons: club };
+  }, [futureClasses]);
 
   // 장르 목록 추출 (진행중인 강습만)
   // 장르 목록 추출 (카테고리별 분리)
@@ -2938,10 +2923,10 @@ export default function EventList({
               <div className="evt-v2-section evt-v2-section-classes">
                 <div className="evt-v2-section-title">
                   <span>강습</span>
-                  <span className="evt-v2-count">{futureClasses.length}</span>
+                  <span className="evt-v2-count">{regularClasses.length}</span>
 
 
-                  {futureClasses.length > 0 && (
+                  {regularClasses.length > 0 && (
                     <button
                       onClick={() => window.dispatchEvent(new CustomEvent('setFullscreenMode'))}
                       className="evt-view-all-btn"
@@ -2964,7 +2949,7 @@ export default function EventList({
                     >
                       전체
                     </button>
-                    {allGenres.map(genre => (
+                    {allGenres.filter(genre => genre !== '동호회강습').map(genre => (
                       <button
                         key={genre}
                         onClick={() => {
@@ -2981,10 +2966,10 @@ export default function EventList({
                 )}
 
 
-                {futureClasses.length > 0 ? (
+                {regularClasses.length > 0 ? (
                   <div className="evt-v2-horizontal-scroll">
                     <div className="evt-spacer-5"></div>
-                    {futureClasses.map(event => (
+                    {regularClasses.map(event => (
                       <EventCard
                         key={event.id}
                         event={event}
@@ -3008,6 +2993,38 @@ export default function EventList({
                 )}
 
               </div>
+
+              {/* Section 2-2: 동호회 강습 (Horizontal Scroll) */}
+              {clubLessons.length > 0 && (
+                <div className="evt-v2-section evt-v2-section-club-lessons">
+                  <div className="evt-v2-section-title">
+                    <span>동호회 강습</span>
+                    <span className="evt-v2-count">{clubLessons.length}</span>
+                  </div>
+
+                  <div className="evt-v2-horizontal-scroll">
+                    <div className="evt-spacer-5"></div>
+                    {clubLessons.map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => handleEventClick(event)}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={selectedDate}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        variant="sliding"
+                        hideGenre={true}
+                        isFavorite={favoriteEventIds.has(event.id)}
+                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                      />
+                    ))}
+                    <div className="evt-spacer-11"></div>
+                  </div>
+                </div>
+              )}
 
               {/* Section: My Favorites (Below Ongoing Classes) - Only show if favorites exist AND we are NOT in view=favorites mode (already handled above) */}
               {favoriteEventsList.length > 0 && searchParams.get('view') !== 'favorites' && (

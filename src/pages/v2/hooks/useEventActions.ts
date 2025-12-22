@@ -57,6 +57,29 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
     const deleteEvent = async (eventId: number, password: string | null = null) => {
         try {
+            console.log(`[deleteEvent] Deleting event ${eventId}, user: ${user?.id}`);
+
+            // 1. Try Direct RLS Deletion first (for logged-in users)
+            if (user) {
+                // RLS Policy가 권한(본인 또는 관리자)을 확인하므로 단순히 ID로 삭제 요청
+                // .eq('user_id', user.id)를 제거하여 관리자가 타인의 ID를 삭제할 수 있도록 함
+                const { error: rlsError, count } = await supabase
+                    .from('events')
+                    .delete({ count: 'exact' })
+                    .eq('id', eventId);
+
+                if (!rlsError && count !== null && count > 0) {
+                    alert("이벤트가 삭제되었습니다.");
+                    window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
+                    closeModal();
+                    return;
+                }
+
+                // If RLS failed/returned 0 rows, log and proceed to Edge Function
+                if (rlsError) console.warn("Direct delete failed, falling back to Edge Function", rlsError);
+            }
+
+            // 2. Edge Function Fallback (for guests or complex cases)
             const { error } = await supabase.functions.invoke('delete-event', { body: { eventId, password } });
             if (error) throw error;
             alert("이벤트가 삭제되었습니다.");
@@ -64,30 +87,44 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
             closeModal();
         } catch (error: any) {
             console.error("이벤트 삭제 중 오류 발생:", error);
-            alert(`이벤트 삭제 중 오류가 발생했습니다: ${error.context?.error_description || error.message || '알 수 없는 오류'}`);
+            alert(`삭제하지 못했습니다.\n권한이 없거나 오류가 발생했습니다.`);
         }
     };
 
     const handleDeleteClick = useCallback((event: AppEvent, e?: React.MouseEvent) => {
         e?.stopPropagation();
+
+        // 1. Super Admin Request
         if (adminType === "super") {
-            if (confirm("정말로 이 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+            if (confirm("정말로 이 이벤트를 삭제하시겠습니까? (슈퍼관리자 권한)\n이 작업은 되돌릴 수 없습니다.")) {
                 deleteEvent(event.id);
             }
             return;
         }
 
-        // Page.tsx uses native prompt for password in delete action
+        // 2. Owner Request
+        const isOwner = user?.id && event.user_id && user.id === event.user_id;
+        if (isOwner) {
+            if (confirm("정말로 이 이벤트를 삭제하시겠습니까? (작성자 권한)\n이 작업은 되돌릴 수 없습니다.")) {
+                deleteEvent(event.id);
+            }
+            return;
+        }
+
+        // 3. Password Fallback (Guest or legacy events)
         const password = prompt("이벤트 삭제를 위한 비밀번호를 입력하세요:");
         if (password === null) return;
-        if (password !== event.password) {
+
+        // Local password validation (if event has password)
+        if (event.password && password !== event.password) {
             alert("비밀번호가 올바르지 않습니다.");
             return;
         }
-        if (confirm("정말로 이 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+
+        if (confirm("정말로 이 이벤트를 삭제하시겠습니까? (비밀번호 인증)\n이 작업은 되돌릴 수 없습니다.")) {
             deleteEvent(event.id, password);
         }
-    }, [adminType, closeModal]);
+    }, [adminType, closeModal, user]);
 
     const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
 

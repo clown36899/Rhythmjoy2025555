@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.10.6',
+        date: '2025-12-23',
+        changes: [
+            '보안 강화: 이벤트 수정/삭제 버튼 권한 검사 강화 (작성자 외 버튼 숨김)',
+            '버그 수정: 이벤트 삭제 시 관리자/작성자 권한 오류 해결',
+            '최적화: 이벤트 삭제 로직 개선'
+        ]
+    },
+    {
         version: '2.10.4',
         date: '2025-12-23',
         changes: [
