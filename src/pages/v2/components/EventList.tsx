@@ -157,6 +157,7 @@ export default function EventList({
   // selectedEvent removed - delegated to props
 
   const [events, setEvents] = useState<Event[]>([]);
+  const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -577,6 +578,7 @@ export default function EventList({
   const [editOriginalImageUrl, setEditOriginalImageUrl] = useState<string | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const [editPreviewMode, setEditPreviewMode] = useState<'detail' | 'card' | 'billboard'>('detail');
+  const [editTargetField, setEditTargetField] = useState<string | null>(null);
 
   const { defaultThumbnailClass, defaultThumbnailEvent } =
     useDefaultThumbnail();
@@ -620,9 +622,15 @@ export default function EventList({
   useEffect(() => {
     const handleEditFromDetail = (e: CustomEvent) => {
       console.log('[EventList] editEventFromDetail event received:', e.detail);
-      const event = e.detail;
-      if (event) {
-        handleEditClick(event);
+      const detail = e.detail;
+      // Support both new { event, field } structure and legacy event object structure
+      const event = detail.event || detail;
+      const field = detail.field || null;
+
+      if (event && typeof event === 'object') {
+        // handleEditClick signature: (event, arg?: React.MouseEvent | string)
+        // We pass 'field' string directly if present
+        handleEditClick(event, field || undefined);
       }
     };
 
@@ -834,8 +842,11 @@ export default function EventList({
 
   // 이벤트 업데이트/삭제 감지
   useEffect(() => {
-    const handleEventUpdate = () => {
+    const handleEventUpdate = (e: any) => {
       console.log('[📋 이벤트 목록] 이벤트 변경 감지 - 데이터 새로고침');
+      if (e.detail?.id) {
+        setPendingFocusId(Number(e.detail.id));
+      }
       fetchEventsSilently(); // Silent refresh - no loading spinner
     };
 
@@ -849,6 +860,30 @@ export default function EventList({
       window.removeEventListener("eventCreated", handleEventUpdate);
     };
   }, [fetchEventsSilently]);
+
+  // Focus Updated Event Effect
+  useEffect(() => {
+    if (!pendingFocusId) return;
+
+    const checkAndScroll = (retries = 0) => {
+      const element = document.querySelector(`[data-event-id="${pendingFocusId}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        element.classList.add('updated-highlight');
+        setTimeout(() => element.classList.remove('updated-highlight'), 2000);
+        setPendingFocusId(null);
+      } else if (retries < 10) {
+        setTimeout(() => checkAndScroll(retries + 1), 200);
+      } else {
+        setPendingFocusId(null);
+      }
+    };
+
+    const timer = setTimeout(() => checkAndScroll(), 300);
+    return () => clearTimeout(timer);
+  }, [pendingFocusId, events]);
+
+
 
   // 달 변경 및 카테고리 변경 시 스크롤 위치 리셋
   useEffect(() => {
@@ -1549,7 +1584,9 @@ export default function EventList({
 
 
 
-  const handleEditClick = (event: Event, e?: React.MouseEvent) => {
+  const handleEditClick = (event: Event, arg?: React.MouseEvent | string) => {
+    const e = typeof arg === 'object' ? arg : undefined;
+    const field = typeof arg === 'string' ? arg : null;
     e?.stopPropagation();
 
     // 1. 로그인 체크
@@ -1602,6 +1639,7 @@ export default function EventList({
       x: (event as any).image_position_x || 0,
       y: (event as any).image_position_y || 0
     });
+    setEditTargetField(field);
     setEditOriginalImageUrl(event.image || null);
     setEditOriginalImageForCrop(null);
 
