@@ -5,6 +5,7 @@ import { supabase } from "../../../lib/supabase";
 import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
 import { getLocalDateString, sortEvents, isEventMatchingFilter } from "../utils/eventListUtils";
+import { useModal } from "../../../hooks/useModal";
 interface Event extends BaseEvent {
   storage_path?: string | null;
   genre?: string | null;
@@ -22,8 +23,7 @@ import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
 import { EventCard } from "./EventCard";
 // Modals Lazy Loading
-const EventPasswordModal = lazy(() => import("./EventPasswordModal"));
-
+// EventPasswordModal removed
 const EventSearchModal = lazy(() => import("./EventSearchModal"));
 const EventSortModal = lazy(() => import("./EventSortModal"));
 import Footer from "./Footer";
@@ -159,20 +159,25 @@ export default function EventList({
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  // Global modals
+  const eventPasswordModal = useModal('eventPassword');
+  const editableEventDetailModal = useModal('editableEventDetail');
+
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
   const [eventPassword, setEventPassword] = useState("");
-  const [showEditModal, setShowEditModal] = useState(false);
 
   // Local state for expanded view filtering
   const [viewCategory, setViewCategory] = useState<'all' | 'event' | 'class'>('all');
 
-  const [internalShowSearchModal, setInternalShowSearchModal] = useState(false);
+  // Global modals
+  const eventSearchModal = useModal('eventSearch');
+  const eventSortModal = useModal('eventSort');
+
   const [isDeleting, setIsDeleting] = useState(false); // 삭제 로딩 상태
   const [internalSortBy, setInternalSortBy] = useState<
     "random" | "time" | "title"
   >("random");
-  const [internalShowSortModal, setInternalShowSortModal] = useState(false);
   const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
   const [isGenreInputFocused, setIsGenreInputFocused] = useState(false);
   const [randomizedGenres, setRandomizedGenres] = useState<string[]>([]);
@@ -504,11 +509,11 @@ export default function EventList({
   };
 
   // sectionViewMode는 이제 props로 받음
-  const showSearchModal = externalShowSearchModal ?? internalShowSearchModal;
-  const setShowSearchModal =
-    externalSetShowSearchModal ?? setInternalShowSearchModal;
-  const showSortModal = externalShowSortModal ?? internalShowSortModal;
-  const setShowSortModal = externalSetShowSortModal ?? setInternalShowSortModal;
+  // Internal modal state uses useModal, external uses props
+  const showSearchModal = externalShowSearchModal ?? eventSearchModal.isOpen;
+  const setShowSearchModal = externalSetShowSearchModal ?? ((open: boolean) => open ? eventSearchModal.open({}) : eventSearchModal.close());
+  const showSortModal = externalShowSortModal ?? eventSortModal.isOpen;
+  const setShowSortModal = externalSetShowSortModal ?? ((open: boolean) => open ? eventSortModal.open({}) : eventSortModal.close());
   const sortBy = externalSortBy ?? internalSortBy;
   const setSortBy = externalSetSortBy ?? setInternalSortBy;
   const [editFormData, setEditFormData] = useState({
@@ -540,7 +545,11 @@ export default function EventList({
     venueName: "",
     venueCustomLink: "",
   });
-  const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
+
+  // Global modals
+  const venueSelectModal = useModal('venueSelect');
+  const imageCropModal = useModal('imageCrop');
+
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
   const [editVideoPreview, setEditVideoPreview] = useState<{
@@ -563,7 +572,6 @@ export default function EventList({
   const [editImagePosition, setEditImagePosition] = useState({ x: 0, y: 0 });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const editDetailRef = useRef<EditableEventDetailRef>(null);
-  const [editCropModalOpen, setEditCropModalOpen] = useState(false);
   const [editTempImageSrc, setEditTempImageSrc] = useState<string | null>(null);
   const [editOriginalImageForCrop, setEditOriginalImageForCrop] = useState<File | null>(null);
   const [editOriginalImageUrl, setEditOriginalImageUrl] = useState<string | null>(null);
@@ -585,10 +593,10 @@ export default function EventList({
   }>({});
   // 내부 모달 상태가 변경될 때마다 부모 컴포넌트(HomePage)에 알림
   useEffect(() => {
-    const isAnyModalOpen = !!(showEditModal || showPasswordModal);
+    const isAnyModalOpen = !!(editableEventDetailModal.isOpen);
 
     onModalStateChange(isAnyModalOpen);
-  }, [showEditModal, showPasswordModal, onModalStateChange]);
+  }, [editableEventDetailModal.isOpen, onModalStateChange]);
   // 날짜 변경 감지 (자정에만 실행)
   useEffect(() => {
     const scheduleNextMidnight = () => {
@@ -1687,14 +1695,14 @@ export default function EventList({
     if (editImageFile) {
       fileToDataURL(editImageFile).then(url => {
         setEditTempImageSrc(url);
-        setEditCropModalOpen(true);
+        imageCropModal.open({});
       }).catch(console.error);
     } else if (editImagePreview) {
       setEditTempImageSrc(editImagePreview);
-      setEditCropModalOpen(true);
+      imageCropModal.open({});
     } else {
       setEditTempImageSrc(null);
-      setEditCropModalOpen(true);
+      imageCropModal.open({});
     }
   };
 
@@ -1731,7 +1739,7 @@ export default function EventList({
     setEditImageFile(croppedFile);
     fileToDataURL(croppedFile).then(setEditImagePreview).catch(console.error);
     setEditTempImageSrc(null);
-    setEditCropModalOpen(false);
+    imageCropModal.close();
   };
 
   const handleEditRestoreCropOriginal = () => {
@@ -1750,14 +1758,14 @@ export default function EventList({
     if (editImageFile) {
       fileToDataURL(editImageFile).then(url => {
         setEditTempImageSrc(url);
-        setEditCropModalOpen(true);
+        imageCropModal.open({});
       }).catch(console.error);
     } else if (editImagePreview) {
       setEditTempImageSrc(editImagePreview);
-      setEditCropModalOpen(true);
+      imageCropModal.open({});
     } else if (editOriginalImageUrl) {
       setEditTempImageSrc(editOriginalImageUrl);
-      setEditCropModalOpen(true);
+      imageCropModal.open({});
     }
   };
 
@@ -1788,7 +1796,7 @@ export default function EventList({
       try {
         const dataUrl = await fileToDataURL(file);
         setEditTempImageSrc(dataUrl);
-        setEditCropModalOpen(true);
+        imageCropModal.open({});
       } catch (err) {
         console.error("Thumbnail preview failed", err);
       }
@@ -2116,7 +2124,7 @@ export default function EventList({
         return;
       }
 
-      setShowPasswordModal(false);
+      // Password check logic removed as per request
       setIsEditingWithDetail(true);
       setEventPassword("");
     } else {
@@ -2169,7 +2177,11 @@ export default function EventList({
         const reader2 = new FileReader();
         reader2.onload = (e) => {
           setEditTempImageSrc(e.target?.result as string);
-          setEditCropModalOpen(true);
+          imageCropModal.open({});
+          // 4. Reset input value to allow same file selection again
+          if (editFileInputRef.current) {
+            editFileInputRef.current.value = '';
+          }
         };
         reader2.readAsDataURL(blob);
       } catch (error) {
@@ -2179,7 +2191,7 @@ export default function EventList({
     } else {
       // data URL인 경우 바로 사용
       setEditTempImageSrc(editImagePreview);
-      setEditCropModalOpen(true);
+      imageCropModal.open({});
     }
   };
 
@@ -2944,8 +2956,6 @@ export default function EventList({
                 </div>
                 <Suspense fallback={<div className="evt-loading-fallback">로딩 중...</div>}>
                   <SocialCalendar
-                    showModal={false}
-                    setShowModal={() => { }}
                     events={socialEvents}
                     loading={socialLoading}
                     onEventCreated={() => { }}
@@ -3300,15 +3310,7 @@ export default function EventList({
       {/* 정렬 모달 */}
       {/* 정렬 모달 */}
       <Suspense fallback={null}>
-        {showPasswordModal && eventToEdit && (
-          <EventPasswordModal
-            event={eventToEdit}
-            password={eventPassword}
-            onPasswordChange={setEventPassword}
-            onClose={() => setShowPasswordModal(false)}
-            onSubmit={handlePasswordSubmit}
-          />
-        )}
+        {/* EventPasswordModal removed */}
         <EventSortModal
           isOpen={showSortModal}
           onClose={() => setShowSortModal(false)}
@@ -3413,7 +3415,7 @@ export default function EventList({
               videoUrl={editFormData.videoUrl}
               onVideoChange={(url) => setEditFormData(prev => ({ ...prev, videoUrl: url }))}
               onExtractThumbnail={handleEditExtractThumbnail}
-              onVenueSelectClick={() => setShowVenueSelectModal(true)}
+              onVenueSelectClick={() => venueSelectModal.open({})}
             />
           ) : editPreviewMode === 'billboard' ? (
             /* Billboard Mode: Directly Render Card */
@@ -3477,41 +3479,14 @@ export default function EventList({
       />
 
       {/* Image Crop Modal for Edit Mode */}
-      <ImageCropModal
-        isOpen={editCropModalOpen}
-        onClose={() => setEditCropModalOpen(false)}
-        imageUrl={editTempImageSrc || ''}
-        onCropComplete={handleEditCropComplete}
-        onRestoreOriginal={handleEditRestoreCropOriginal}
-        onChangeImage={() => editFileInputRef.current?.click()}
-        hasOriginal={
-          (!!editOriginalImageForCrop && editImageFile !== editOriginalImageForCrop) ||
-          (!!editOriginalImageUrl && editImagePreview !== editOriginalImageUrl)
-        }
-      />
+      {/* Image Crop Modal removed (duplicate) */}
 
-      {/* Password Modal */}
-      <Suspense fallback={null}>
-        {
-          showPasswordModal && eventToEdit && (
-            <EventPasswordModal
-              event={eventToEdit}
-              password={eventPassword}
-              onPasswordChange={setEventPassword}
-              onSubmit={handlePasswordSubmit}
-              onClose={() => {
-                setShowPasswordModal(false);
-                setEventPassword("");
-                setEventToEdit(null);
-              }}
-            />
-          )
-        }
-      </Suspense>
+      {/* Password Modal removed */}
+      <Suspense fallback={null}></Suspense>
 
       {/* Edit Modal */}
       {
-        showEditModal && eventToEdit && createPortal(
+        editableEventDetailModal.isOpen && eventToEdit && createPortal(
           <div
             className={`evt-fixed-inset-edit-modal ${editPreviewMode === 'billboard' ? 'billboard-mode' : ''}`}
             onTouchStartCapture={(e) => {
@@ -3581,7 +3556,7 @@ export default function EventList({
                     </h2>
                     <button
                       onClick={() => {
-                        setShowEditModal(false);
+                        editableEventDetailModal.close();
                         setEventToEdit(null);
                         setEditVideoPreview({ provider: null, embedUrl: null });
                       }}
@@ -3701,7 +3676,7 @@ export default function EventList({
                           <span>장소 이름</span>
                           <button
                             type="button"
-                            onClick={() => setShowVenueSelectModal(true)}
+                            onClick={() => venueSelectModal.open({})}
                             className="evt-text-xs evt-text-blue-400 evt-underline"
                           >
                             <i className="ri-search-line evt-mr-0.5"></i>
@@ -4306,7 +4281,7 @@ export default function EventList({
                       <button
                         type="button"
                         onClick={() => {
-                          setShowEditModal(false);
+                          editableEventDetailModal.close();
                           setEventToEdit(null);
                           setEditVideoPreview({ provider: null, embedUrl: null });
                         }}
@@ -4336,8 +4311,8 @@ export default function EventList({
       {/* Image Crop Modal for Edit Mode */}
       <ImageCropModal
         key="event-list-edit-crop-modal"
-        isOpen={editCropModalOpen}
-        onClose={() => setEditCropModalOpen(false)}
+        isOpen={imageCropModal.isOpen}
+        onClose={() => imageCropModal.close()}
         imageUrl={editTempImageSrc || ''}
         videoUrl={editFormData.videoUrl}
         onCropComplete={handleEditCropComplete}
@@ -4350,8 +4325,8 @@ export default function EventList({
         }
       />
       <VenueSelectModal
-        isOpen={showVenueSelectModal}
-        onClose={() => setShowVenueSelectModal(false)}
+        isOpen={venueSelectModal.isOpen}
+        onClose={() => venueSelectModal.close()}
         onSelect={(venue) => {
           setEditFormData((prev) => ({
             ...prev,
@@ -4361,7 +4336,7 @@ export default function EventList({
             locationLink: "",
             venueCustomLink: "",
           }));
-          setShowVenueSelectModal(false);
+          venueSelectModal.close();
         }}
         onManualInput={(venueName, venueLink) => {
           setEditFormData((prev) => ({

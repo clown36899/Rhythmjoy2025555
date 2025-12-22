@@ -100,7 +100,8 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'eventRegistration': EventRegistrationModal,
     'fullscreenDateEvents': FullscreenDateEventsModal,
     'globalSearch': GlobalSearchModal,
-    'imageCrop': ImageCropModal,
+    'globalSearch': GlobalSearchModal,
+    // 'imageCrop': ImageCropModal, // 로컬 렌더링 사용 (EventList 등에서 중복 렌더링 방지)
     'qrCode': QRCodeModal,
     'colorSettings': ColorSettingsModal,
     'defaultThumbnailSettings': DefaultThumbnailSettingsModal,
