@@ -68,6 +68,7 @@ export default function HomePageV2() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedWeekday] = useState<number | null>(null); // Placeholder for EventList compatibility
     const [eventJustCreated, setEventJustCreated] = useState<number>(0);
+    const [allGenres, setAllGenres] = useState<{ class: string[]; event: string[] }>({ class: [], event: [] });
 
     // --------------------------------------------------------------------------------
     // 3. Custom Logic Hooks (Refactored)
@@ -414,6 +415,7 @@ export default function HomePageV2() {
                             }} selectedWeekday={selectedWeekday}
                             sectionViewMode={sectionViewMode}
                             onSectionViewModeChange={handleSectionViewModeChange}
+                            onGenresLoaded={(genres) => setAllGenres(genres as { class: string[]; event: string[] })}
                         />
                     </div>
                 )}
@@ -514,6 +516,7 @@ export default function HomePageV2() {
                     isAdminMode={effectiveIsAdmin}
                     currentUserId={user?.id}
                     onOpenVenueDetail={handleVenueClick}
+                    allGenres={allGenres}
                 />
 
                 {/* Venue Detail Modal - Hoisted to Page Level for persistence */}

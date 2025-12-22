@@ -7,6 +7,8 @@ export interface Event extends BaseEvent {
     event_dates?: string[];
 }
 
+export const CLUB_LESSON_GENRE = '동호회강습';
+
 // 로컬 날짜를 YYYY-MM-DD 형식으로 반환하는 헬퍼 함수
 export const getLocalDateString = (date: Date = new Date()) => {
     const year = date.getFullYear();

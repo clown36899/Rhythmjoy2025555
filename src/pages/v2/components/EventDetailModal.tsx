@@ -60,6 +60,7 @@ interface EventDetailModalProps {
   isFavorite?: boolean;
   onToggleFavorite?: (e: React.MouseEvent) => void;
   onOpenVenueDetail?: (venueId: string) => void;
+  allGenres?: { class: string[]; event: string[] } | string[]; // Backwards compatibility if needed, but we'll cast to structured
 }
 
 export default function EventDetailModal({
@@ -73,7 +74,13 @@ export default function EventDetailModal({
   isFavorite = false,
   onToggleFavorite,
   onOpenVenueDetail,
+  allGenres = { class: [], event: [] },
 }: EventDetailModalProps) {
+  // Safe cast or normalization
+  const structuredGenres = Array.isArray(allGenres)
+    ? { class: [], event: [] } // Fallback or logic to distribute if we really needed, but generally we expect structured now
+    : allGenres;
+
   const { user, signInWithKakao } = useAuth();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
@@ -248,9 +255,11 @@ export default function EventDetailModal({
 
   // Bottom Sheet Edit State
   // Bottom Sheet Edit State
-  const [activeEditField, setActiveEditField] = useState<'title' | 'description' | 'links' | null>(null);
+  const [activeEditField, setActiveEditField] = useState<'title' | 'description' | 'links' | 'genre' | null>(null);
   const [showVenueSelect, setShowVenueSelect] = useState(false);
   const [editValue, setEditValue] = useState('');
+  const [editCategory, setEditCategory] = useState<'event' | 'class'>('event');
+  const [useDirectInput, setUseDirectInput] = useState(false);
   const [linkEditValues, setLinkEditValues] = useState({
     link1: '', link_name1: '',
     link2: '', link_name2: '',
@@ -261,6 +270,11 @@ export default function EventDetailModal({
   useEffect(() => {
     if (activeEditField && draftEvent) {
       if (activeEditField === 'title') setEditValue(draftEvent.title);
+      if (activeEditField === 'genre') {
+        setEditValue(draftEvent.genre || '');
+        setEditCategory(draftEvent.category === 'class' ? 'class' : 'event');
+        setUseDirectInput(false);
+      }
       // Location moved to VenueSelectModal
       if (activeEditField === 'description') setEditValue(draftEvent.description || '');
       if (activeEditField === 'links') {
@@ -303,6 +317,10 @@ export default function EventDetailModal({
     const updates: Partial<Event> = {};
 
     if (activeEditField === 'title') updates.title = editValue;
+    if (activeEditField === 'genre') {
+      updates.genre = editValue;
+      updates.category = editCategory;
+    }
     if (activeEditField === 'description') updates.description = editValue;
     if (activeEditField === 'links') {
       updates.link1 = linkEditValues.link1;
@@ -326,7 +344,7 @@ export default function EventDetailModal({
 
     // 필드 변경 확인
     const fieldsToCheck = [
-      'title', 'description', 'location', 'location_link', 'venue_id',
+      'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category',
       'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3'
     ];
     return fieldsToCheck.some(field => {
@@ -349,6 +367,8 @@ export default function EventDetailModal({
       // Initialize updates with current draft state
       const updates: any = {
         title: draftEvent.title,
+        genre: draftEvent.genre,
+        category: draftEvent.category,
         description: draftEvent.description,
         location: draftEvent.location,
         location_link: draftEvent.location_link,
@@ -746,10 +766,26 @@ export default function EventDetailModal({
                   )}
                 </div>
 
+                {/* 장르 표시 */}
                 {selectedEvent.genre && (
-                  <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
-                    {selectedEvent.genre}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+                    <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
+                      {selectedEvent.genre}
+                    </p>
+                    {isSelectionMode && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveEditField('genre');
+                        }}
+                        className="edm-edit-trigger-btn"
+                        style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                        title="장르 수정"
+                      >
+                        <i className="ri-pencil-line" style={{ fontSize: '12px' }}></i>
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -1299,6 +1335,7 @@ export default function EventDetailModal({
             <div className="bottom-sheet-handle"></div>
             <h3 className="bottom-sheet-header">
               {activeEditField === 'title' && <><i className="ri-text"></i>제목 수정</>}
+              {activeEditField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
               {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
               {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
             </h3>
@@ -1328,14 +1365,121 @@ export default function EventDetailModal({
                     </div>
                   </div>
                 ) : (
-                  <textarea
-                    className="bottom-sheet-input"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
-                    rows={activeEditField === 'title' ? 3 : 8}
-                    style={{ resize: 'none', minHeight: activeEditField === 'title' ? '100px' : '200px' }}
-                  />
+                  <>
+                    {activeEditField === 'genre' ? (
+                      <div className="genre-edit-container">
+                        {/* 1. Category Selection */}
+                        <div className="genre-category-toggle" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                          <button
+                            onClick={() => setEditCategory('event')}
+                            className={`category-toggle-btn ${editCategory === 'event' ? 'active' : ''}`}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              background: editCategory === 'event' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                              border: editCategory === 'event' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                              color: 'white',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            행사
+                          </button>
+                          <button
+                            onClick={() => setEditCategory('class')}
+                            className={`category-toggle-btn ${editCategory === 'class' ? 'active' : ''}`}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              background: editCategory === 'class' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                              border: editCategory === 'class' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                              color: 'white',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            강습
+                          </button>
+                        </div>
+
+                        {/* 2. Genre Chips */}
+                        <div className="genre-chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                          {structuredGenres[editCategory]?.map(genre => (
+                            <button
+                              key={genre}
+                              onClick={() => {
+                                setEditValue(genre);
+                                setUseDirectInput(false);
+                              }}
+                              className={`genre-chip ${!useDirectInput && editValue === genre ? 'active' : ''}`}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: '9999px',
+                                background: !useDirectInput && editValue === genre ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                border: !useDirectInput && editValue === genre ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                              }}
+                            >
+                              {genre}
+                            </button>
+                          ))}
+
+                          {/* Direct Input Toggle Chip */}
+                          <button
+                            onClick={() => {
+                              setUseDirectInput(true);
+                              setEditValue(''); // Clear or keep? Usually clear for new input.
+                            }}
+                            className={`genre-chip ${useDirectInput ? 'active' : ''}`}
+                            style={{
+                              padding: '8px 16px',
+                              borderRadius: '9999px',
+                              background: useDirectInput ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                              border: useDirectInput ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            직접 입력
+                          </button>
+                        </div>
+
+                        {/* 3. Direct Input Field (Conditional) */}
+                        {useDirectInput && (
+                          <textarea
+                            className="bottom-sheet-input"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            placeholder="장르를 직접 입력하세요"
+                            rows={1}
+                            style={{ resize: 'none', minHeight: '50px', marginBottom: '0' }}
+                            autoFocus
+                          />
+                        )}
+
+                        {!useDirectInput && !editValue && (
+                          <div style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
+                            * 장르를 선택하거나 직접 입력해주세요.
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Normal text input for other fields
+                      <textarea
+                        className="bottom-sheet-input"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
+                        rows={activeEditField === 'title' ? 3 : 8}
+                        style={{ resize: 'none', minHeight: activeEditField === 'title' ? '80px' : '200px' }}
+                      />
+                    )}
+                  </>
                 )}
               </div>
               <div className="bottom-sheet-actions">

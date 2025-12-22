@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
 import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
-import { getLocalDateString, sortEvents, isEventMatchingFilter } from "../utils/eventListUtils";
+import { getLocalDateString, sortEvents, isEventMatchingFilter, CLUB_LESSON_GENRE } from "../utils/eventListUtils";
 import { useModal } from "../../../hooks/useModal";
 
 // 컴포넌트 리마운트 시에도 순서 유지를 위한 전역 변수
@@ -113,6 +113,7 @@ interface EventListProps {
   sectionViewMode?: 'preview' | 'viewAll-events' | 'viewAll-classes';
   onSectionViewModeChange?: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
   onEventClick?: (event: Event) => void;
+  onGenresLoaded?: (genres: { class: string[]; event: string[] } | string[]) => void;
 }
 
 export default function EventList({
@@ -145,6 +146,7 @@ export default function EventList({
   sectionViewMode = 'preview',
   onSectionViewModeChange,
   onEventClick,
+  onGenresLoaded,
 }: EventListProps) {
   const { user, signInWithKakao, validateSession } = useAuth();
   const navigate = useNavigate();
@@ -1485,29 +1487,42 @@ export default function EventList({
   }, [events, selectedGenre, highlightEvent]);
 
   // 장르 목록 추출 (진행중인 강습만)
-  const allGenres = useMemo(() => {
-    // const today = new Date().toISOString().split('T')[0];
+  // 장르 목록 추출 (카테고리별 분리)
+  const allGenresStructured = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const day = String(now.getDate()).padStart(2, "0");
     const today = `${year}-${month}-${day}`;
 
-    const genres = new Set<string>();
+    const classGenres = new Set<string>();
+    const eventGenres = new Set<string>();
 
     events.forEach(event => {
-      // 1. 강습 카테고리여야 함
-      // 2. 장르가 있어야 함
-      if (event.category === 'class' && event.genre) {
-        // 3. 종료되지 않은 강습이어야 함
+      // 장르가 있어야 함
+      if (event.genre) {
+        // 종료 여부 확인 (종료된 것도 편집 시에는 추천에 뜨는 게 좋을 수 있으나, 기존 로직 따름: 유효한 것만)
         const endDate = event.end_date || event.date;
-        if (!endDate || endDate >= today) {
-          genres.add(event.genre);
+        const isValid = !endDate || endDate >= today;
+
+        if (isValid) {
+          if (event.category === 'class') {
+            classGenres.add(event.genre);
+          } else if (event.category === 'event') {
+            eventGenres.add(event.genre);
+          }
         }
       }
     });
-    return Array.from(genres).sort();
+
+    return {
+      class: Array.from(classGenres).sort((a, b) => a.localeCompare(b, "ko")),
+      event: Array.from(eventGenres).sort((a, b) => a.localeCompare(b, "ko"))
+    };
   }, [events]);
+
+  // 기존 allGenres (강습 장르만, 하위 호환성 유지 - 랜덤 셔플용)
+  const allGenres = useMemo(() => allGenresStructured.class, [allGenresStructured]);
 
   // 장르 순서를 랜덤화 (새로고침 시에만)
   useEffect(() => {
@@ -1516,6 +1531,12 @@ export default function EventList({
       setRandomizedGenres(shuffled);
     }
   }, [allGenres, randomizedGenres.length]);
+
+  // 상위 컴포넌트에 장르 목록 전달 (구조화된 데이터)
+  useEffect(() => {
+    // 빈 배열이라도 전달해야 함 (초기화)
+    onGenresLoaded?.(allGenresStructured as any);
+  }, [allGenresStructured, onGenresLoaded]);
 
 
 
@@ -3050,19 +3071,67 @@ export default function EventList({
               <PracticeRoomBanner />
 
               {/* Section 3+: 장르별 이벤트 (랜덤 순서, 진행중인 강습 필터와 독립) - 무조건 표시 */}
-              {(randomizedGenres.length > 0 ? randomizedGenres : allGenres).map((genre) => {
-                // 전체 이벤트에서 해당 장르만 필터링
-                const genreEvents = events.filter(e => {
-                  // 강습만 표시
-                  if (e.category !== 'class') return false;
+              {(randomizedGenres.length > 0 ? randomizedGenres : allGenres)
+                .filter(genre => genre !== CLUB_LESSON_GENRE) // 동호회강습 제외
+                .map((genre) => {
+                  // 전체 이벤트에서 해당 장르만 필터링
+                  const genreEvents = events.filter(e => {
+                    // 강습만 표시
+                    if (e.category !== 'class') return false;
 
+                    if (!e.genre || e.genre !== genre) return false;
+
+                    // 날짜 필터 적용: 진행중이거나 예정된 강습만 표시
+                    const today = getLocalDateString();
+                    const endDate = e.end_date || e.date;
+
+                    // 종료일이 있고 오늘보다 이전이면 숨김 (=이미 끝난 강습)
+                    if (endDate && endDate < today) return false;
+
+                    return true;
+                  });
+
+                  if (genreEvents.length === 0) return null;
+
+                  return (
+                    <div key={genre} className="evt-v2-section">
+                      <div className="evt-v2-section-title">
+                        <span>{genre}</span>
+                        <span className="evt-v2-count">{genreEvents.length}</span>
+                      </div>
+
+                      <div className="evt-v2-horizontal-scroll">
+                        <div className="evt-spacer-5"></div>
+                        {genreEvents.map(event => (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            onClick={() => handleEventClick(event)}
+                            onMouseEnter={onEventHover}
+                            onMouseLeave={() => onEventHover?.(null)}
+                            isHighlighted={highlightEvent?.id === event.id}
+                            selectedDate={selectedDate}
+                            defaultThumbnailClass={defaultThumbnailClass}
+                            defaultThumbnailEvent={defaultThumbnailEvent}
+                            variant="sliding"
+                            isFavorite={favoriteEventIds.has(event.id)}
+                            onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {/* 동호회강습 전용 섹션 (고정 위치) */}
+              {(() => {
+                const genre = CLUB_LESSON_GENRE;
+                const genreEvents = events.filter(e => {
+                  if (e.category !== 'class') return false;
                   if (!e.genre || e.genre !== genre) return false;
 
-                  // 날짜 필터 적용: 진행중이거나 예정된 강습만 표시
                   const today = getLocalDateString();
                   const endDate = e.end_date || e.date;
-
-                  // 종료일이 있고 오늘보다 이전이면 숨김 (=이미 끝난 강습)
                   if (endDate && endDate < today) return false;
 
                   return true;
@@ -3073,7 +3142,6 @@ export default function EventList({
                 return (
                   <div key={genre} className="evt-v2-section">
                     <div className="evt-v2-section-title">
-
                       <span>{genre}</span>
                       <span className="evt-v2-count">{genreEvents.length}</span>
                     </div>
@@ -3099,7 +3167,7 @@ export default function EventList({
                     </div>
                   </div>
                 );
-              })}
+              })()}
               <div className="evt-spacer-16"></div>
             </div>
           ) : (
