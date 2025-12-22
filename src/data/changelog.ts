@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: "2.10.0",
+        date: "2025-12-23",
+        changes: [
+            "전역 모달 시스템 도입: 모든 모달을 중앙 집중식(Context API)으로 통합 관리",
+            "안정성 향상: DOM 충돌 및 z-index 문제 원천 해결 (createPortal 적용)",
+            "성능 최적화: EventList 등 주요 컴포넌트의 불필요한 렌더링 제거 및 코드 경량화",
+            "버그 수정: 이미지 크롭 모달 중복 표시 문제 해결"
+        ]
+    },
+    {
         version: "2.9.1",
         date: "2025-12-22",
         changes: [

@@ -7,6 +7,23 @@
 
 # 변경 이력 (버전별)
 
+## Version 2.10.0 (2025-12-23)
+### 대대적인 변경 (Major Refactoring)
+- **전역 모달 시스템 도입 (Global Modal System)**
+  - 모든 모달(24개)을 중앙 집중식(`ModalContext`, `ModalRegistry`)으로 관리
+  - `useModal` Hook을 통한 일관된 인터페이스 적용
+  - `createPortal`을 사용하여 DOM 계층 구조 및 CSS 충돌(`z-index`, `overflow`) 문제 원천 해결
+- **EventList.tsx 전면 리팩토링**
+  - 복잡한 로컬 상태(`useState`) 제거 및 전역 상태로 마이그레이션
+  - 중복 렌더링 수정 및 성능 최적화
+  - 불필요한 레거시 코드(`showPasswordModal` 등) 제거
+
+### 버그 수정
+- 소셜 공유 이미지 크롭 모달의 중복 렌더링 문제 해결
+- 모달 내 드롭다운/입력창 포커스 문제 개선
+
+---
+
 ## Version 2.9.1 (2025-12-22)
 ### 새 기능
 - 소셜 스케줄 링크 기능 추가 (링크 이름/URL 직접 입력)
