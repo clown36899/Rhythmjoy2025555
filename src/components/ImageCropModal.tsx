@@ -18,6 +18,7 @@ interface ImageCropModalProps {
   onImageUpdate?: (file: File) => void; // 썸네일 등으로 이미지 교체 시 부모에게 알림
   hasOriginal?: boolean;  // 원본이 있는지 여부
   fileName?: string;
+  originalImageUrl?: string | null; // 부모로부터 전달받는 원본 이미지 URL
 }
 
 async function createCroppedImage(
@@ -103,6 +104,7 @@ export default memo(function ImageCropModal({
   onImageUpdate,
   hasOriginal = false,
   fileName = 'cropped.jpg',
+  originalImageUrl = null,
 }: ImageCropModalProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +119,9 @@ export default memo(function ImageCropModal({
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [aspectRatioMode, setAspectRatioMode] = useState<'free' | '3:4' | '1:1'>('free');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // 크롭 전 상태 저장 (되돌리기용)
+  const previousCrop = useRef<Crop | null>(null);
 
   // View States
   const [viewMode, setViewMode] = useState<'crop' | 'source-select' | 'thumbnail-select'>('crop');
@@ -144,6 +149,9 @@ export default memo(function ImageCropModal({
   const [croppedFile, setCroppedFile] = useState<File | null>(null);
   const [isModified, setIsModified] = useState(false);
 
+  // 원본 이미지 URL 저장 (되돌리기용)
+  const [originalImageUrlForRestore, setOriginalImageUrlForRestore] = useState<string | null>(null);
+
   const aspectRatio = aspectRatioMode === 'free' ? undefined : aspectRatioMode === '3:4' ? 3 / 4 : 1;
 
   // 모달이 열릴 때마다 초기화
@@ -161,8 +169,11 @@ export default memo(function ImageCropModal({
       setAspectRatioMode('free');
       setIsModified(false);
       setCroppedFile(null);
+      setCroppedPreviewUrl(null);
+      // 부모로부터 받은 원본 URL을 사용
+      setOriginalImageUrlForRestore(originalImageUrl || null);
     }
-  }, [isOpen]);
+  }, [isOpen, originalImageUrl]);
 
   // Enable mobile back gesture to close modal
   useModalHistory(isOpen, onClose);
@@ -225,6 +236,13 @@ export default memo(function ImageCropModal({
     }
 
     setIsProcessing(true);
+
+    // 크롭 전 원본 이미지 URL 저장 (되돌리기용)
+    if (!originalImageUrlForRestore && imageUrl) {
+      setOriginalImageUrlForRestore(imageUrl);
+    }
+    previousCrop.current = { ...crop };
+
     try {
       const { file, previewUrl } = await createCroppedImage(
         imgRef.current,
@@ -240,6 +258,15 @@ export default memo(function ImageCropModal({
       setCroppedFile(file);
       setCroppedPreviewUrl(previewUrl);
       setIsModified(modified);
+
+      // 크롭 그리드를 전체 이미지로 리셋
+      setCrop({
+        unit: '%',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      });
     } catch (error) {
       console.error('이미지 크롭 실패:', error);
       alert('이미지 크롭 중 오류가 발생했습니다.');
@@ -250,16 +277,29 @@ export default memo(function ImageCropModal({
 
   // Step 2: Restore (Back to Edit)
   const handleRestoreCrop = () => {
+    // 원본 이미지 URL로 복원
+    if (originalImageUrlForRestore && onImageUpdate) {
+      // 원본 이미지를 다시 로드
+      fetch(originalImageUrlForRestore)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], fileName, { type: blob.type });
+          onImageUpdate(file);
+        })
+        .catch(err => console.error('Failed to restore original image:', err));
+    }
+
+    // 이전 크롭 상태 복원
+    if (previousCrop.current) {
+      setCrop(previousCrop.current);
+    }
+
+    // 크롭된 미리보기 제거
     setCroppedPreviewUrl(null);
     setCroppedFile(null);
-  };
 
-  // Step 3: Final Save
-  const handleFinalSave = () => {
-    if (croppedFile && croppedPreviewUrl) {
-      onCropComplete(croppedFile, croppedPreviewUrl, isModified);
-      onClose();
-    }
+    // 원본 URL 리셋
+    setOriginalImageUrlForRestore(null);
   };
 
   const handleCancel = () => {
@@ -271,15 +311,20 @@ export default memo(function ImageCropModal({
       setViewMode('crop');
       return;
     }
-    // If in preview mode, going back means restoring? Or closing?
-    // "Close" button usually closes the modal.
-    // If user wants to restore, they should use "Restore" button.
-    // So Close button closes.
 
+    // 크롭된 이미지가 있으면 저장하지 않고 닫기
     if (onDiscard) {
       onDiscard();
     }
     onClose();
+  };
+
+  // 저장 버튼 핸들러 - 크롭된 이미지를 부모 컴포넌트로 전달
+  const handleSave = () => {
+    if (croppedFile && croppedPreviewUrl) {
+      onCropComplete(croppedFile, croppedPreviewUrl, isModified);
+      onClose();
+    }
   };
 
   // 이미지 크기에 맞는 정확한 비율의 크롭 영역 계산
@@ -356,66 +401,56 @@ export default memo(function ImageCropModal({
 
         {/* 메인 컨텐츠 영역 */}
         <div className="crop-content-area">
-          {/* 1. 크롭된 미리보기 화면 (Final Result) */}
-          {croppedPreviewUrl ? (
-            <div className="crop-preview-container">
+          {/* 크롭 UI - 항상 표시 */}
+          {imageUrl ? (
+            <ReactCrop
+              crop={crop}
+              onChange={(c) => setCrop(c)}
+              onComplete={(displayPixelCrop) => {
+                if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
+                  const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+                  const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+
+                  const naturalPixelCrop: PixelCrop = {
+                    unit: 'px',
+                    x: displayPixelCrop.x * scaleX,
+                    y: displayPixelCrop.y * scaleY,
+                    width: displayPixelCrop.width * scaleX,
+                    height: displayPixelCrop.height * scaleY,
+                  };
+
+                  setCompletedCrop(naturalPixelCrop);
+                }
+              }}
+              aspect={aspectRatio}
+              className="ReactCrop"
+            >
               <img
-                src={croppedPreviewUrl}
-                alt="Cropped Result"
-                className="crop-preview-image"
+                ref={imgRef}
+                src={croppedPreviewUrl || imageUrl}
+                alt="크롭할 이미지"
+                className="crop-image"
+                crossOrigin="anonymous"
               />
-            </div>
+            </ReactCrop>
           ) : (
-            /* 2. 편집 화면 (Editing Mode) */
-            imageUrl ? (
-              <ReactCrop
-                crop={crop}
-                onChange={(c) => setCrop(c)}
-                onComplete={(displayPixelCrop) => {
-                  if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
-                    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-                    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-
-                    const naturalPixelCrop: PixelCrop = {
-                      unit: 'px',
-                      x: displayPixelCrop.x * scaleX,
-                      y: displayPixelCrop.y * scaleY,
-                      width: displayPixelCrop.width * scaleX,
-                      height: displayPixelCrop.height * scaleY,
-                    };
-
-                    setCompletedCrop(naturalPixelCrop);
-                  }
-                }}
-                aspect={aspectRatio}
-                className="ReactCrop"
-              >
-                <img
-                  ref={imgRef}
-                  src={imageUrl}
-                  alt="크롭할 이미지"
-                  className="crop-image"
-                  crossOrigin="anonymous"
-                />
-              </ReactCrop>
-            ) : (
-              /* 3. 이미지 없음 (Placeholder) */
-              <div
-                className="crop-placeholder-container"
-                onClick={handleChangeImageClick}
-              >
-                <div className="crop-placeholder-icon-bg">
-                  <i className="ri-image-add-line crop-placeholder-icon"></i>
-                </div>
-                <p className="crop-placeholder-text">편집할 이미지가 없습니다</p>
-                <button
-                  className="crop-upload-link"
-                >
-                  이미지 업로드
-                </button>
+            /* 3. 이미지 없음 (Placeholder) */
+            <div
+              className="crop-placeholder-container"
+              onClick={handleChangeImageClick}
+            >
+              <div className="crop-placeholder-icon-bg">
+                <i className="ri-image-add-line crop-placeholder-icon"></i>
               </div>
-            )
-          )}
+              <p className="crop-placeholder-text">편집할 이미지가 없습니다</p>
+              <button
+                className="crop-upload-link"
+              >
+                이미지 업로드
+              </button>
+            </div>
+          )
+          }
 
           {/* 썸네일 선택 오버레이 */}
           {viewMode === 'thumbnail-select' && (
@@ -464,105 +499,107 @@ export default memo(function ImageCropModal({
         {/* Footer Area */}
         <div className="crop-modal-footer">
 
-          {/* Phase 1: Editing Controls (Only visible when NOT in preview) */}
-          {!croppedPreviewUrl && (
-            <>
-              {/* Aspect Ratio Controls */}
-              <div className="crop-button-row" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
-                <button
-                  onClick={() => handleAspectRatioChange('free')}
-                  className={`crop-ratio-btn ${aspectRatioMode === 'free' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
-                  disabled={!imageUrl || isProcessing}
-                >
-                  자유
-                </button>
-                <button
-                  onClick={() => handleAspectRatioChange('3:4')}
-                  className={`crop-ratio-btn ${aspectRatioMode === '3:4' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
-                  disabled={!imageUrl || isProcessing}
-                >
-                  3:4
-                </button>
-                <button
-                  onClick={() => handleAspectRatioChange('1:1')}
-                  className={`crop-ratio-btn ${aspectRatioMode === '1:1' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
-                  disabled={!imageUrl || isProcessing}
-                >
-                  1:1
-                </button>
-              </div>
-
-              <div className="crop-footer-content">
-                {/* Source Selection */}
-                <div className="grid grid-cols-2 gap-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <button
-                    onClick={onChangeImage}
-                    className="crop-action-btn crop-change-btn"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <i className="ri-upload-cloud-2-line crop-icon-lg"></i>
-                    업로드
-                  </button>
-                  {videoUrl && ( // Only show thumbnail button if video URL is provided
-                    <button
-                      onClick={loadThumbnails}
-                      className="crop-action-btn crop-thumbnail-btn"
-                      disabled={!videoUrl}
-                      style={{ justifyContent: 'center' }}
-                    >
-                      <i className="ri-youtube-fill crop-icon-lg"></i>
-                      썸네일 가져오기
-                    </button>
-                  )}
-                </div>
-
-                {/* Apply Action */}
-                <div className="crop-button-row">
-                  {/* Restore Original (Reset Image to original props) */}
-                  {hasOriginal && onRestoreOriginal && (
-                    <button
-                      onClick={onRestoreOriginal}
-                      className="crop-action-btn crop-restore-btn"
-                      disabled={isProcessing}
-                      style={{ flex: '0 0 auto' }}
-                    >
-                      원본 복구
-                    </button>
-                  )}
-
-                  <button
-                    onClick={handleApplyCrop} // Changed to Apply Crop
-                    className="crop-action-btn crop-apply-btn"
-                    disabled={isProcessing || !imageUrl}
-                  >
-                    {isProcessing ? '처리 중...' : '자르기'}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Phase 2: Preview & Save Controls (Only visible when IN preview) */}
-          {croppedPreviewUrl && (
-            <div className="crop-button-row">
+          {/* 편집 컨트롤 - 항상 표시 */}
+          <>
+            {/* Aspect Ratio Controls */}
+            <div className="crop-button-row" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
               <button
-                onClick={handleRestoreCrop}
-                className="crop-action-btn crop-cancel-btn"
-                disabled={isProcessing}
+                onClick={() => handleAspectRatioChange('free')}
+                className={`crop-ratio-btn ${aspectRatioMode === 'free' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
+                disabled={!imageUrl || isProcessing}
               >
-                <i className="ri-arrow-go-back-line" style={{ marginRight: '0.5rem' }}></i>
-                되돌리기
+                자유
               </button>
               <button
-                onClick={handleFinalSave}
-                className="crop-action-btn crop-save-btn"
-                disabled={isProcessing}
+                onClick={() => handleAspectRatioChange('3:4')}
+                className={`crop-ratio-btn ${aspectRatioMode === '3:4' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
+                disabled={!imageUrl || isProcessing}
               >
-                <i className="ri-check-line" style={{ marginRight: '0.5rem' }}></i>
-                저장 (완료)
+                3:4
+              </button>
+              <button
+                onClick={() => handleAspectRatioChange('1:1')}
+                className={`crop-ratio-btn ${aspectRatioMode === '1:1' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
+                disabled={!imageUrl || isProcessing}
+              >
+                1:1
               </button>
             </div>
-          )}
+
+            <div className="crop-footer-content">
+              {/* Source Selection */}
+              <div className="grid grid-cols-2 gap-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <button
+                  onClick={onChangeImage}
+                  className="crop-action-btn crop-change-btn"
+                  style={{ justifyContent: 'center' }}
+                >
+                  <i className="ri-upload-cloud-2-line crop-icon-lg"></i>
+                  업로드
+                </button>
+                {videoUrl && ( // Only show thumbnail button if video URL is provided
+                  <button
+                    onClick={loadThumbnails}
+                    className="crop-action-btn crop-thumbnail-btn"
+                    disabled={!videoUrl}
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <i className="ri-youtube-fill crop-icon-lg"></i>
+                    썸네일 가져오기
+                  </button>
+                )}
+              </div>
+
+              {/* Apply Action */}
+              <div className="crop-button-row">
+                {/* Restore Original (Reset Image to original props) */}
+                {hasOriginal && onRestoreOriginal && (
+                  <button
+                    onClick={onRestoreOriginal}
+                    className="crop-action-btn crop-restore-btn"
+                    disabled={isProcessing}
+                    style={{ flex: '0 0 auto' }}
+                  >
+                    원본 복구
+                  </button>
+                )}
+
+                {/* 되돌리기 버튼 - 원본 이미지 URL이 있을 때 표시 */}
+                {originalImageUrlForRestore && (
+                  <button
+                    onClick={handleRestoreCrop}
+                    className="crop-action-btn crop-cancel-btn"
+                    disabled={isProcessing}
+                  >
+                    <i className="ri-arrow-go-back-line" style={{ marginRight: '0.5rem' }}></i>
+                    되돌리기
+                  </button>
+                )}
+
+                <button
+                  onClick={handleApplyCrop} // Changed to Apply Crop
+                  className="crop-action-btn crop-apply-btn"
+                  disabled={isProcessing || !imageUrl}
+                >
+                  {isProcessing ? '처리 중...' : '자르기'}
+                </button>
+
+                {/* 저장 버튼 - 크롭 후에만 표시 */}
+                {croppedPreviewUrl && (
+                  <button
+                    onClick={handleSave}
+                    className="crop-action-btn crop-save-btn"
+                    disabled={isProcessing}
+                    style={{ backgroundColor: '#4CAF50' }}
+                  >
+                    <i className="ri-check-line" style={{ marginRight: '0.5rem' }}></i>
+                    저장
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+
         </div>
       </div>
 

@@ -148,6 +148,7 @@ export default function EventDetailModal({
       setDraftEvent(event);
       setImageFile(null);
       setTempImageSrc(null);
+      setOriginalImageUrl(null); // 원본 이미지 URL 리셋
     }
   }, [isOpen, event]);
   useEffect(() => {
@@ -158,6 +159,9 @@ export default function EventDetailModal({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+
+  // 원본 이미지 정보 보관 (DB 저장 전까지 유지)
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to read file as Data URL
@@ -177,6 +181,10 @@ export default function EventDetailModal({
       if (imageFile) {
         setTempImageSrc(await fileToDataURL(imageFile));
       } else if (draftEvent?.image) {
+        // 원본 이미지 URL 저장 (첫 편집 시에만)
+        if (!originalImageUrl) {
+          setOriginalImageUrl(draftEvent.image);
+        }
         setTempImageSrc(draftEvent.image);
       } else {
         setTempImageSrc(null);
@@ -204,7 +212,7 @@ export default function EventDetailModal({
     }
   };
 
-  const handleCropComplete = (croppedFile: File, previewUrl: string, isModified: boolean) => {
+  const handleCropComplete = (croppedFile: File, previewUrl: string) => {
     if (!draftEvent) return;
 
     setImageFile(croppedFile);
@@ -216,6 +224,22 @@ export default function EventDetailModal({
       image_full: undefined,
       image_thumbnail: undefined
     } as any);
+  };
+
+  const handleImageUpdate = async (file: File) => {
+    if (!draftEvent) return;
+
+    // 파일을 Data URL로 변환하여 미리보기
+    const dataUrl = await fileToDataURL(file);
+    setImageFile(file);
+    setDraftEvent({
+      ...draftEvent,
+      image: dataUrl,
+      image_medium: undefined,
+      image_full: undefined,
+      image_thumbnail: undefined
+    } as any);
+    setTempImageSrc(dataUrl);
   };
 
   // Bottom Sheet Edit State
@@ -268,13 +292,26 @@ export default function EventDetailModal({
     setActiveEditField(null);
   };
 
+  // 변경사항 감지 함수
+  const hasChanges = () => {
+    if (!event || !draftEvent) return false;
+
+    // 이미지 변경 확인
+    if (imageFile) return true;
+
+    // 필드 변경 확인
+    const fieldsToCheck = ['title', 'description', 'location', 'location_link', 'venue_id'];
+    return fieldsToCheck.some(field => {
+      const originalValue = event[field as keyof Event];
+      const draftValue = draftEvent[field as keyof Event];
+      return originalValue !== draftValue;
+    });
+  };
+
   const handleFinalSave = async () => {
     if (!draftEvent) return;
 
-    // Confirm before saving
-    if (!window.confirm('저장하시겠습니까?\n수정된 내용은 즉시 반영됩니다.')) {
-      return;
-    }
+
 
     try {
       setIsSaving(true);
@@ -354,7 +391,19 @@ export default function EventDetailModal({
 
       if (error) throw error;
 
-      window.dispatchEvent(new CustomEvent('eventUpdated', { detail: { id: draftEvent.id } }));
+      // 업데이트된 이벤트 데이터를 가져오기
+      const { data: updatedEvent } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', draftEvent.id)
+        .single();
+
+      window.dispatchEvent(new CustomEvent('eventUpdated', {
+        detail: {
+          id: draftEvent.id,
+          event: updatedEvent || draftEvent // 업데이트된 전체 이벤트 데이터
+        }
+      }));
       setIsSelectionMode(false);
       setImageFile(null);
       setTempImageSrc(null);
@@ -1078,8 +1127,18 @@ export default function EventDetailModal({
                     }
 
                     if (isSelectionMode) {
-                      // In Edit Mode -> Save changes
-                      handleFinalSave();
+                      // In Edit Mode -> Check for changes
+                      if (!hasChanges()) {
+                        // No changes -> Exit edit mode directly
+                        setIsSelectionMode(false);
+                        return;
+                      }
+
+                      // Has changes -> Confirm and save
+                      if (window.confirm('변경사항을 저장하시겠습니까?')) {
+                        handleFinalSave();
+                      }
+                      // If canceled, stay in edit mode
                     } else {
                       // Not in Edit Mode -> Enter Edit Mode
                       setIsSelectionMode(true);
@@ -1208,6 +1267,8 @@ export default function EventDetailModal({
         onCropComplete={handleCropComplete}
         hasOriginal={!!(imageFile)}
         onChangeImage={() => fileInputRef.current?.click()}
+        originalImageUrl={originalImageUrl}
+        onImageUpdate={handleImageUpdate}
       />
       <input
         ref={fileInputRef}

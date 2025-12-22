@@ -6,6 +6,11 @@ import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
 import { getLocalDateString, sortEvents, isEventMatchingFilter } from "../utils/eventListUtils";
 import { useModal } from "../../../hooks/useModal";
+
+// 컴포넌트 리마운트 시에도 순서 유지를 위한 전역 변수
+let globalLastSortedEvents: Event[] = [];
+let globalLastFutureClasses: Event[] = [];
+
 interface Event extends BaseEvent {
   storage_path?: string | null;
   genre?: string | null;
@@ -158,8 +163,53 @@ export default function EventList({
 
   const [events, setEvents] = useState<Event[]>([]);
   const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
+  const isPartialUpdate = useRef(false); // 부분 업데이트 플래그
+
+  // 컴포넌트 외부에 저장 (리마운트 시에도 유지)
+  const lastSortedEventsKey = 'eventList_lastSortedEvents';
+  const lastFutureClassesKey = 'eventList_lastFutureClasses';
+
+  const getLastSortedEvents = () => {
+    try {
+      const stored = sessionStorage.getItem(lastSortedEventsKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const setLastSortedEvents = (events: Event[]) => {
+    try {
+      sessionStorage.setItem(lastSortedEventsKey, JSON.stringify(events.map(e => ({ id: e.id }))));
+    } catch { }
+  };
+
+  const getLastFutureClasses = () => {
+    try {
+      const stored = sessionStorage.getItem(lastFutureClassesKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const setLastFutureClasses = (events: Event[]) => {
+    try {
+      sessionStorage.setItem(lastFutureClassesKey, JSON.stringify(events.map(e => ({ id: e.id }))));
+    } catch { }
+  };
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // 컴포넌트 마운트 감지
+  useEffect(() => {
+    console.log('[📋 EventList] 컴포넌트 마운트됨');
+    return () => {
+      console.log('[📋 EventList] 컴포넌트 언마운트됨');
+    };
+  }, []);
+
 
   // Global modals
 
@@ -843,11 +893,23 @@ export default function EventList({
   // 이벤트 업데이트/삭제 감지
   useEffect(() => {
     const handleEventUpdate = (e: any) => {
-      console.log('[📋 이벤트 목록] 이벤트 변경 감지 - 데이터 새로고침');
-      if (e.detail?.id) {
-        setPendingFocusId(Number(e.detail.id));
+      console.log('[📋 이벤트 목록] 이벤트 변경 감지');
+
+      // 업데이트된 이벤트 데이터가 있으면 해당 이벤트만 교체
+      if (e.detail?.event) {
+        isPartialUpdate.current = true; // 부분 업데이트 플래그 설정
+        setEvents(prevEvents =>
+          prevEvents.map(event =>
+            event.id === e.detail.id ? e.detail.event : event
+          )
+        );
+        console.log('[📋 이벤트 목록] 이벤트 ID', e.detail.id, '만 업데이트됨 (정렬 유지)');
+        // 플래그는 useEffect에서 리셋됨
+      } else {
+        // 데이터가 없으면 전체 새로고침 (삭제 등의 경우)
+        isPartialUpdate.current = false;
+        fetchEventsSilently();
       }
-      fetchEventsSilently(); // Silent refresh - no loading spinner
     };
 
     window.addEventListener("eventDeleted", handleEventUpdate);
@@ -861,6 +923,15 @@ export default function EventList({
     };
   }, [fetchEventsSilently]);
 
+  // 부분 업데이트 플래그 리셋 (모든 useMemo 실행 후)
+  useEffect(() => {
+    if (isPartialUpdate.current) {
+      console.log('[📋 이벤트 목록] 부분 업데이트 플래그 리셋');
+      isPartialUpdate.current = false;
+    }
+  }, [events]); // events가 변경된 후 렌더링 완료 시 리셋
+
+
   // Focus Updated Event Effect
   useEffect(() => {
     if (!pendingFocusId) return;
@@ -868,7 +939,44 @@ export default function EventList({
     const checkAndScroll = (retries = 0) => {
       const element = document.querySelector(`[data-event-id="${pendingFocusId}"]`);
       if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        // 부모 스크롤 컨테이너 찾기
+        let scrollParent = element.parentElement;
+        while (scrollParent) {
+          const overflowY = window.getComputedStyle(scrollParent).overflowY;
+          const overflowX = window.getComputedStyle(scrollParent).overflowX;
+          const isScrollable = (overflowY === 'scroll' || overflowY === 'auto' || overflowX === 'scroll' || overflowX === 'auto');
+
+          if (isScrollable && scrollParent.scrollHeight > scrollParent.clientHeight || scrollParent.scrollWidth > scrollParent.clientWidth) {
+            break;
+          }
+          scrollParent = scrollParent.parentElement;
+        }
+
+        if (scrollParent) {
+          // 스크롤 컨테이너 내에서 요소를 중앙에 배치
+          const elementRect = (element as HTMLElement).getBoundingClientRect();
+          const parentRect = scrollParent.getBoundingClientRect();
+
+          // 세로 스크롤
+          const elementCenterY = elementRect.top + elementRect.height / 2;
+          const parentCenterY = parentRect.top + parentRect.height / 2;
+          const scrollTopOffset = elementCenterY - parentCenterY;
+
+          // 가로 스크롤
+          const elementCenterX = elementRect.left + elementRect.width / 2;
+          const parentCenterX = parentRect.left + parentRect.width / 2;
+          const scrollLeftOffset = elementCenterX - parentCenterX;
+
+          scrollParent.scrollBy({
+            top: scrollTopOffset,
+            left: scrollLeftOffset,
+            behavior: 'smooth'
+          });
+        } else {
+          // 폴백: scrollIntoView 사용
+          element.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        }
+
         element.classList.add('updated-highlight');
         setTimeout(() => element.classList.remove('updated-highlight'), 2000);
         setPendingFocusId(null);
@@ -1312,6 +1420,20 @@ export default function EventList({
   // Date: From today to future (no limit)
   // Genre Filter Applied
   const futureClasses = useMemo(() => {
+    // 부분 업데이트 시에는 이전 결과 재사용
+    if (isPartialUpdate.current && globalLastFutureClasses.length > 0) {
+      console.log('[📋 futureClasses] 부분 업데이트 - 이전 결과 재사용 (전역)');
+      console.log('[📋 futureClasses] 이전 배열:', globalLastFutureClasses.map((e: Event) => e.id));
+      // 업데이트된 이벤트를 찾아서 교체
+      const updated = globalLastFutureClasses.map((event: Event) => {
+        const newEvent = events.find(e => e.id === event.id);
+        return newEvent || event;
+      });
+      console.log('[📋 futureClasses] 업데이트 후 배열:', updated.map((e: Event) => e.id));
+      globalLastFutureClasses = updated;
+      return updated;
+    }
+
     // const today = new Date().toISOString().split('T')[0];
     const now = new Date();
     const year = now.getFullYear();
@@ -1352,6 +1474,7 @@ export default function EventList({
       });
     }
 
+    globalLastFutureClasses = result;
     return result;
   }, [events, selectedGenre, highlightEvent]);
 
@@ -1503,21 +1626,37 @@ export default function EventList({
 
 
   const sortedCurrentEvents = useMemo(() => {
+    // 부분 업데이트 시에는 이전 정렬 결과에서 해당 이벤트만 교체
+    if (isPartialUpdate.current && globalLastSortedEvents.length > 0) {
+      console.log('[📋 정렬] 부분 업데이트 - 이전 정렬 결과 재사용 (전역)');
+      // 업데이트된 이벤트를 찾아서 교체
+      const updated = globalLastSortedEvents.map((event: Event) => {
+        const newEvent = currentMonthEvents.find(e => e.id === event.id);
+        return newEvent || event;
+      });
+      globalLastSortedEvents = updated;
+      return updated;
+    }
+
     if (!currentMonthKey) {
       // 검색/날짜 선택/년 모드 시: 정렬하되 캐시하지 않음
-      // 년 모드일 때는 년도 전체 기준으로 정렬 (예: 2025-01-01)
       const targetMonth = viewMode === "year" && currentMonth
         ? new Date(currentMonth.getFullYear(), 0, 1)
         : currentMonth;
       const isYearView = viewMode === "year";
-      return sortEvents(currentMonthEvents, sortBy, targetMonth, isYearView);
+      const sorted = sortEvents(currentMonthEvents, sortBy, targetMonth, isYearView);
+      globalLastSortedEvents = sorted;
+      return sorted;
     }
     const cacheKey = `${currentMonthKey}-${sortBy}`;
     if (sortedEventsCache.current[cacheKey]) {
-      return sortedEventsCache.current[cacheKey];
+      const cached = sortedEventsCache.current[cacheKey];
+      globalLastSortedEvents = cached;
+      return cached;
     }
     const sorted = sortEvents(currentMonthEvents, sortBy, currentMonth, false);
     sortedEventsCache.current[cacheKey] = sorted;
+    globalLastSortedEvents = sorted;
     return sorted;
   }, [currentMonthEvents, sortBy, currentMonthKey, currentMonth, viewMode]);
 
