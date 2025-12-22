@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { resizeImage } from '../../../utils/imageResize';
 import { useAuth } from '../../../contexts/AuthContext';
-import VenueSelectModal from '../../v2/components/VenueSelectModal';
+import { useModal } from '../../../hooks/useModal';
 import './SocialEditModal.css';
 
 interface SocialEditModalProps {
@@ -30,7 +30,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
   const [formData, setFormData] = useState<FormDataType>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
+  const venueSelectModal = useModal('venueSelect');
 
   const { isAdmin } = useAuth();
 
@@ -119,7 +119,6 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
       place_name: venue.name,
       address: venue?.address || '',
     }));
-    setShowVenueSelectModal(false);
   };
 
   const handleDelete = async () => {
@@ -185,7 +184,17 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
 
             <button
               type="button"
-              onClick={() => setShowVenueSelectModal(true)}
+              onClick={() => venueSelectModal.open({
+                onSelect: handleVenueSelect,
+                onManualInput: (venueName: string) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    venue_id: null,
+                    place_name: venueName,
+                    address: '',
+                  }));
+                }
+              })}
               className="sed-form-input"
               style={{
                 display: 'flex',
@@ -309,23 +318,6 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
           </div>
         </form>
       </div>
-      {/* Venue Select Modal */}
-      {showVenueSelectModal && (
-        <VenueSelectModal
-          isOpen={showVenueSelectModal}
-          onClose={() => setShowVenueSelectModal(false)}
-          onSelect={handleVenueSelect}
-          onManualInput={(venueName, venueLink) => {
-            setFormData(prev => ({
-              ...prev,
-              venue_id: null,
-              place_name: venueName,
-              address: '',
-            }));
-            setShowVenueSelectModal(false);
-          }}
-        />
-      )}
     </div>
   );
 }

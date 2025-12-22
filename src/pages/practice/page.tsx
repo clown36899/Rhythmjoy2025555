@@ -3,9 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import PracticeRoomList from "./components/PracticeRoomList";
 import VenueTabBar from "./components/VenueTabBar";
-import VenueDetailModal from "./components/VenueDetailModal";
-import VenueRegistrationModal from "./components/VenueRegistrationModal";
-import CalendarSearchModal from "../v2/components/CalendarSearchModal";
+import { useModal } from "../../hooks/useModal";
 import { useAuth } from "../../contexts/AuthContext";
 import './practice.css';
 
@@ -14,13 +12,11 @@ export default function PracticeRoomsPage() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">("random");
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [editingVenueId, setEditingVenueId] = useState<string | null>(null);
+  const venueDetailModal = useModal('venueDetail');
+  const venueRegistrationModal = useModal('venueRegistration');
+  const calendarSearchModal = useModal('calendarSearch');
   const [showContactModal, setShowContactModal] = useState(false);
-  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("연습실");
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const { isAdmin } = useAuth();
@@ -38,22 +34,31 @@ export default function PracticeRoomsPage() {
   // Handle URL param for room detail
   useEffect(() => {
     if (roomId) {
-      setSelectedVenueId(roomId);
-      setShowDetailModal(true);
+      venueDetailModal.open({
+        venueId: roomId,
+        onClose: handleCloseDetail,
+        onEdit: () => handleEditVenue(roomId)
+      });
     }
   }, [roomId]);
 
   // Event search from header
   useEffect(() => {
-    const handleOpenEventSearch = () => setShowGlobalSearch(true);
+    const handleOpenEventSearch = () => calendarSearchModal.open({
+      searchMode: 'all',
+      onSelectEvent: () => { }
+    });
     window.addEventListener('openEventSearch', handleOpenEventSearch);
     return () => window.removeEventListener('openEventSearch', handleOpenEventSearch);
   }, []);
 
   useEffect(() => {
     const handleRegisterEvent = () => {
-      setEditingVenueId(null);
-      setShowRegisterModal(true);
+      venueRegistrationModal.open({
+        editVenueId: null,
+        onVenueCreated: handleVenueCreatedOrUpdated,
+        onVenueDeleted: handleVenueCreatedOrUpdated
+      });
     };
 
     window.addEventListener('practiceRoomRegister', handleRegisterEvent);
@@ -64,8 +69,7 @@ export default function PracticeRoomsPage() {
   }, [isEffectiveAdmin]);
 
   const handleCloseDetail = () => {
-    setShowDetailModal(false);
-    setSelectedVenueId(null);
+    venueDetailModal.close();
     // Clear URL param
     const params = new URLSearchParams(searchParams);
     params.delete('id');
@@ -73,8 +77,11 @@ export default function PracticeRoomsPage() {
   };
 
   const handleVenueClick = (venueId: string) => {
-    setSelectedVenueId(venueId);
-    setShowDetailModal(true);
+    venueDetailModal.open({
+      venueId,
+      onClose: handleCloseDetail,
+      onEdit: () => handleEditVenue(venueId)
+    });
     // Update URL param
     const params = new URLSearchParams(searchParams);
     params.set('id', venueId);
@@ -82,13 +89,15 @@ export default function PracticeRoomsPage() {
   };
 
   const handleEditVenue = (venueId: string) => {
-    setEditingVenueId(venueId);
-    setShowDetailModal(false); // Close detail modal
-    setShowRegisterModal(true); // Open registration modal in edit mode
+    venueDetailModal.close(); // Close detail modal
+    venueRegistrationModal.open({
+      editVenueId: venueId,
+      onVenueCreated: handleVenueCreatedOrUpdated,
+      onVenueDeleted: handleVenueCreatedOrUpdated
+    });
   };
 
   const handleVenueCreatedOrUpdated = () => {
-    setEditingVenueId(null);
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -172,28 +181,7 @@ export default function PracticeRoomsPage() {
         />
       </div>
 
-      {/* Venue Detail Modal */}
-      {showDetailModal && selectedVenueId && (
-        <VenueDetailModal
-          venueId={selectedVenueId}
-          onClose={handleCloseDetail}
-          onEdit={() => handleEditVenue(selectedVenueId)}
-        />
-      )}
-
-      {/* Registration Modal - Replaces old PracticeRoomModal */}
-      <VenueRegistrationModal
-        isOpen={showRegisterModal}
-        onClose={() => {
-          setShowRegisterModal(false);
-          setEditingVenueId(null);
-        }}
-        editVenueId={editingVenueId}
-        onVenueCreated={handleVenueCreatedOrUpdated}
-        onVenueDeleted={handleVenueCreatedOrUpdated}
-      />
-
-      {/* Contact Modal */}
+      {/* Contact Modal - Custom UI, not in ModalRegistry */}
       {showContactModal && (
         <div className="practice-contact-modal-overlay" onClick={() => setShowContactModal(false)}>
           <div className="practice-contact-modal" onClick={(e) => e.stopPropagation()}>
@@ -204,13 +192,6 @@ export default function PracticeRoomsPage() {
         </div>
       )}
 
-      {/* Global Search Modal */}
-      <CalendarSearchModal
-        isOpen={showGlobalSearch}
-        onClose={() => setShowGlobalSearch(false)}
-        onSelectEvent={() => { }}
-        searchMode="all"
-      />
       <button
         className="practice-fab-btn"
         onClick={() => {

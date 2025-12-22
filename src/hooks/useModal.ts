@@ -1,44 +1,45 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useModalContext } from '../contexts/ModalContext';
 
 /**
- * 모달 상태 관리를 위한 재사용 가능한 훅
+ * 특정 모달을 제어하기 위한 커스텀 훅 (글로벌 Context 기반)
+ * 
+ * @param modalId - 모달의 고유 식별자
+ * @returns 모달 제어 인터페이스
  * 
  * @example
- * const { isOpen, open, close, toggle } = useModal();
+ * ```tsx
+ * const detailModal = useModal('eventDetail');
  * 
- * @returns {Object} 모달 상태와 제어 함수들
+ * // 모달 열기
+ * detailModal.open({ event: selectedEvent });
+ * 
+ * // 모달 닫기
+ * detailModal.close();
+ * 
+ * // 모달 상태 확인
+ * if (detailModal.isOpen) {
+ *   // ...
+ * }
+ * ```
  */
-export function useModal(initialState = false) {
-    const [isOpen, setIsOpen] = useState(initialState);
+export function useModal(modalId: string) {
+    const { openModal, closeModal, isModalOpen, getModalProps } = useModalContext();
 
-    const open = useCallback(() => setIsOpen(true), []);
-    const close = useCallback(() => setIsOpen(false), []);
-    const toggle = useCallback(() => setIsOpen(prev => !prev), []);
+    const open = useCallback((props?: any) => {
+        openModal(modalId, props);
+    }, [modalId, openModal]);
+
+    const close = useCallback(() => {
+        closeModal(modalId);
+    }, [modalId, closeModal]);
 
     return {
-        isOpen,
+        isOpen: isModalOpen(modalId),
+        props: getModalProps(modalId),
         open,
         close,
-        toggle,
-        setIsOpen,
     };
 }
 
-/**
- * 여러 모달을 관리하기 위한 훅
- * 
- * @example
- * const modals = useModals(['search', 'sort', 'edit']);
- * modals.search.open();
- * 
- * @param {string[]} modalNames - 관리할 모달 이름 배열
- * @returns {Object} 각 모달의 상태와 제어 함수들
- */
-export function useModals(modalNames: string[]) {
-    const modals = modalNames.reduce((acc, name) => {
-        acc[name] = useModal();
-        return acc;
-    }, {} as Record<string, ReturnType<typeof useModal>>);
-
-    return modals;
-}
+// 기존 로컬 상태 기반 useModal은 useModal.local.ts.backup으로 백업됨

@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import SimpleHeader from '../../components/SimpleHeader';
+import { useModal } from '../../hooks/useModal';
 import ShopCard from './components/ShopCard';
-import ShopRegisterModal from './components/ShopRegisterModal';
-import CalendarSearchModal from '../v2/components/CalendarSearchModal';
 import './shopping.css';
 
 // 데이터 타입 정의
@@ -32,9 +30,8 @@ export default function ShoppingPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [randomizedShops, setRandomizedShops] = useState<Shop[]>([]); // 랜덤 정렬된 목록 저장
   const [loading, setLoading] = useState(true);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const shopRegisterModal = useModal('shopRegister');
+  const calendarSearchModal = useModal('calendarSearch');
   const [favoriteShopIds, setFavoriteShopIds] = useState<Set<number>>(new Set());
 
   const fetchShops = async () => {
@@ -170,7 +167,10 @@ export default function ShoppingPage() {
 
   // Event search from header
   useEffect(() => {
-    const handleOpenEventSearch = () => setShowGlobalSearch(true);
+    const handleOpenEventSearch = () => calendarSearchModal.open({
+      searchMode: 'all',
+      onSelectEvent: () => { }
+    });
     window.addEventListener('openEventSearch', handleOpenEventSearch);
     return () => window.removeEventListener('openEventSearch', handleOpenEventSearch);
   }, []);
@@ -178,7 +178,9 @@ export default function ShoppingPage() {
   // 커스텀 이벤트 리스너: 쇼핑몰 등록 모달 열기
   useEffect(() => {
     const handleOpenRegister = () => {
-      setShowRegisterModal(true);
+      shopRegisterModal.open({
+        onSuccess: fetchShops
+      });
     };
 
     window.addEventListener('openShopRegistration', handleOpenRegister);
@@ -214,23 +216,6 @@ export default function ShoppingPage() {
           </div>
         )}
       </div>
-
-      {/* 쇼핑몰 등록 모달 */}
-      <ShopRegisterModal
-        isOpen={showRegisterModal}
-        onClose={() => setShowRegisterModal(false)}
-        onSuccess={fetchShops}
-      />
-
-      {/* Global Search Modal */}
-      <CalendarSearchModal
-        isOpen={showGlobalSearch}
-        onClose={() => setShowGlobalSearch(false)}
-        onSelectEvent={(event) => {
-          setSelectedEvent(event);
-        }}
-        searchMode="all"
-      />
     </div>
   );
 }

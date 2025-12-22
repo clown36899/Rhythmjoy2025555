@@ -13,7 +13,6 @@ import { useSocialSchedules } from './hooks/useSocialSchedules';
 
 export default function SocialPage() {
   // Modal State
-  const [showEventModal, setShowEventModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
@@ -27,12 +26,7 @@ export default function SocialPage() {
     loading: schedulesLoading
   } = useSocialSchedules();
 
-  // Listeners from MobileShell
-  useEffect(() => {
-    const handleOpenRegistration = () => setShowEventModal(true);
-    window.addEventListener('openSocialRegistration', handleOpenRegistration);
-    return () => window.removeEventListener('openSocialRegistration', handleOpenRegistration);
-  }, []);
+  // Note: Social event registration is now handled by SocialCalendar internally via useModal
 
   // Search from header
   useEffect(() => {
@@ -71,8 +65,6 @@ export default function SocialPage() {
             {/* 1. 주간 스케줄표 */}
             <section className="social-section-schedule">
               <SocialCalendar
-                showModal={showEventModal}
-                setShowModal={setShowEventModal}
                 events={events}
                 loading={schedulesLoading}
                 onEventCreated={handleForceReload}

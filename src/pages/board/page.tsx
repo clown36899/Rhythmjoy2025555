@@ -3,12 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import PostEditorModal from './components/PostEditorModal';
-
-import UserRegistrationModal, { type UserData } from './components/UserRegistrationModal';
-import ProfileEditModal from './components/ProfileEditModal';
-import BoardUserManagementModal from '../../components/BoardUserManagementModal';
-import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
+import { useModal } from '../../hooks/useModal';
+import type { UserData } from './components/UserRegistrationModal';
 import './board.css';
 
 export interface BoardPost {
@@ -43,14 +39,14 @@ export default function BoardPage() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showEditorModal, setShowEditorModal] = useState(false);
+  const postEditorModal = useModal('postEditor');
+  const profileEditModal = useModal('profileEdit');
+  const boardUserManagementModal = useModal('boardUserManagement');
+  const boardPrefixManagementModal = useModal('boardPrefixManagement');
+  const userRegistrationModal = useModal('userRegistration');
 
   const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [showUserManagementModal, setShowUserManagementModal] = useState(false);
-  const [showProfileEditModal, setShowProfileEditModal] = useState(false);
-  const [showRegistrationPreview, setShowRegistrationPreview] = useState(false);
-  const [showPrefixManagementModal, setShowPrefixManagementModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -135,7 +131,7 @@ export default function BoardPage() {
         console.warn('관리자 권한이 필요합니다.');
         return;
       }
-      setShowUserManagementModal(true);
+      boardUserManagementModal.open();
     };
 
     const handleOpenRegistrationPreview = () => {
@@ -143,7 +139,16 @@ export default function BoardPage() {
         console.warn('관리자 권한이 필요합니다.');
         return;
       }
-      setShowRegistrationPreview(true);
+      userRegistrationModal.open({
+        onClose: () => {
+          const returnPath = sessionStorage.getItem('previewReturnPath');
+          if (returnPath && returnPath !== '/board') {
+            navigate(returnPath);
+          }
+          sessionStorage.removeItem('previewReturnPath');
+        },
+        onRegistered: () => { }
+      });
     };
 
     const handleOpenPrefixManagement = () => {
@@ -151,7 +156,7 @@ export default function BoardPage() {
         console.warn('관리자 권한이 필요합니다.');
         return;
       }
-      setShowPrefixManagementModal(true);
+      boardPrefixManagementModal.open();
     };
 
     window.addEventListener('openBoardUserManagement', handleOpenUserManagement);
@@ -297,7 +302,11 @@ export default function BoardPage() {
         detail: {
           action: () => {
             setSelectedPost(null);
-            setShowEditorModal(true);
+            postEditorModal.open({
+              post: null,
+              userNickname: userData?.nickname,
+              onPostCreated: handlePostCreated
+            });
           }
         }
       }));
@@ -444,72 +453,7 @@ export default function BoardPage() {
 
 
 
-      {/* Profile Edit Modal */}
-      {
-        showProfileEditModal && userData && user && (
-          <ProfileEditModal
-            isOpen={showProfileEditModal}
-            onClose={() => setShowProfileEditModal(false)}
-            currentUser={{
-              nickname: userData.nickname,
-              profile_image: userData.profile_image
-            }}
-            onProfileUpdated={() => window.location.reload()}
-            userId={user.id}
-          />
-        )
-      }
-
-      {/* User Management Modal (Admin Only) */}
-      {
-        showUserManagementModal && isAdmin && (
-          <BoardUserManagementModal
-            isOpen={showUserManagementModal}
-            onClose={() => setShowUserManagementModal(false)}
-          />
-        )
-      }
-
-      {/* Registration Form Preview (Admin Only) */}
-      {
-        showRegistrationPreview && isAdmin && (
-          <UserRegistrationModal
-            isOpen={showRegistrationPreview}
-            onClose={() => {
-              const returnPath = sessionStorage.getItem('previewReturnPath');
-              if (returnPath && returnPath !== '/board') {
-                navigate(returnPath);
-              }
-              sessionStorage.removeItem('previewReturnPath');
-              setShowRegistrationPreview(false);
-            }}
-            onRegistered={() => { }}
-          />
-        )
-      }
-
-      {/* Prefix Management Modal (Admin Only) */}
-      {
-        showPrefixManagementModal && isAdmin && (
-          <BoardPrefixManagementModal
-            isOpen={showPrefixManagementModal}
-            onClose={() => setShowPrefixManagementModal(false)}
-          />
-        )
-      }
-
-      {/* Editor Modal */}
-      {
-        showEditorModal && userData && (
-          <PostEditorModal
-            isOpen={showEditorModal}
-            onClose={() => setShowEditorModal(false)}
-            onPostCreated={handlePostCreated}
-            post={selectedPost}
-            userNickname={userData.nickname}
-          />
-        )
-      }
+      {/* Modals are now handled by ModalRegistry */}
 
 
       {/* Search Modal */}

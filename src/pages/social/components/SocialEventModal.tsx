@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { resizeImage } from '../../../utils/imageResize';
 import { useAuth } from '../../../contexts/AuthContext';
-import VenueSelectModal from '../../v2/components/VenueSelectModal';
+import { useModal } from '../../../hooks/useModal';
 import './SocialEventModal.css';
 
 interface SocialEventModalProps {
@@ -23,7 +23,7 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
   const [linkUrl, setLinkUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [venueId, setVenueId] = useState<string | null>(null);
-  const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
+  const venueSelectModal = useModal('venueSelect');
 
   const { user, signInWithKakao } = useAuth();
 
@@ -84,7 +84,6 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
     setVenueId(venue?.id || null);
     setPlaceName(venue.name);
     setAddress(venue?.address || '');
-    setShowVenueSelectModal(false);
   };
 
   return (
@@ -171,7 +170,14 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
               {/* Venue Selection Button */}
               <button
                 type="button"
-                onClick={() => setShowVenueSelectModal(true)}
+                onClick={() => venueSelectModal.open({
+                  onSelect: handleVenueSelect,
+                  onManualInput: (venueName: string) => {
+                    setVenueId(null);
+                    setPlaceName(venueName);
+                    setAddress('');
+                  }
+                })}
                 className="sem-form-input"
                 style={{
                   display: 'flex',
@@ -290,21 +296,6 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
           )}
         </div>
       </div>
-
-      {/* Venue Select Modal */}
-      {showVenueSelectModal && (
-        <VenueSelectModal
-          isOpen={showVenueSelectModal}
-          onClose={() => setShowVenueSelectModal(false)}
-          onSelect={handleVenueSelect}
-          onManualInput={(venueName, _venueLink) => {
-            setVenueId(null);
-            setPlaceName(venueName);
-            setAddress('');
-            setShowVenueSelectModal(false);
-          }}
-        />
-      )}
     </>
   );
 }

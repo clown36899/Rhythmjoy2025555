@@ -1,7 +1,7 @@
 import { useState, useEffect, memo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { Shop } from '../../shopping/page';
-import ShopDetailModal from '../../shopping/components/ShopDetailModal';
+import { useModal } from '../../../hooks/useModal';
 import { useIntersectionObserver } from '../../../hooks/useIntersectionObserver';
 import './ShoppingBanner.css';
 
@@ -10,8 +10,7 @@ function ShoppingBanner() {
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
-    const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
-    const [showModal, setShowModal] = useState(false);
+    const shopDetailModal = useModal('shopDetail');
 
     const [imageBlobs, setImageBlobs] = useState<Record<number, string>>({});
 
@@ -90,12 +89,10 @@ function ShoppingBanner() {
     };
 
     const handleShopClick = (shop: Shop) => {
-        setSelectedShop(shop);
-        setShowModal(true);
-    };
-
-    const handleUpdate = () => {
-        fetchShops();
+        shopDetailModal.open({
+            shop,
+            onUpdate: fetchShops
+        });
     };
 
     // Touch event handlers
@@ -153,97 +150,82 @@ function ShoppingBanner() {
     const currentShop = shops[currentIndex];
 
     return (
-        <>
-            <div
-                ref={ref}
-                className="shopping-banner"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                onClick={() => handleShopClick(currentShop)}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-            >
-                {/* Navigation Arrows */}
-                {shops.length > 1 && (
-                    <>
-                        <button
-                            className="shopping-banner-nav shopping-banner-nav-prev"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handlePrev();
-                            }}
-                        >
-                            <i className="ri-arrow-left-s-line"></i>
-                        </button>
-                        <button
-                            className="shopping-banner-nav shopping-banner-nav-next"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleNext();
-                            }}
-                        >
-                            <i className="ri-arrow-right-s-line"></i>
-                        </button>
-                    </>
-                )}
+        <div
+            ref={ref}
+            className="shopping-banner"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={() => handleShopClick(currentShop)}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
+            {/* Navigation Arrows */}
+            {shops.length > 1 && (
+                <>
+                    <button
+                        className="shopping-banner-nav shopping-banner-nav-prev"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrev();
+                        }}
+                    >
+                        <i className="ri-arrow-left-s-line"></i>
+                    </button>
+                    <button
+                        className="shopping-banner-nav shopping-banner-nav-next"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleNext();
+                        }}
+                    >
+                        <i className="ri-arrow-right-s-line"></i>
+                    </button>
+                </>
+            )}
 
-                {/* Banner Content */}
-                <div className="shopping-banner-content">
-                    {/* Logo */}
-                    <div className="shopping-banner-logo">
-                        {currentShop.logo_url ? (
-                            <img src={imageBlobs[currentShop.id] || currentShop.logo_url} alt={currentShop.name} />
-                        ) : (
-                            <div className="shopping-banner-logo-placeholder">
-                                <i className="ri-store-2-fill"></i>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="shopping-banner-info">
-                        <h3 className="shopping-banner-title">{currentShop.name}</h3>
-                        {currentShop.description && (
-                            <p className="shopping-banner-desc">{currentShop.description}</p>
-                        )}
-                        <div className="shopping-banner-cta">
-                            <span>자세히 보기</span>
-                            <i className="ri-arrow-right-line"></i>
+            {/* Banner Content */}
+            <div className="shopping-banner-content">
+                {/* Logo */}
+                <div className="shopping-banner-logo">
+                    {currentShop.logo_url ? (
+                        <img src={imageBlobs[currentShop.id] || currentShop.logo_url} alt={currentShop.name} />
+                    ) : (
+                        <div className="shopping-banner-logo-placeholder">
+                            <i className="ri-store-2-fill"></i>
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Indicators */}
-                {shops.length > 1 && (
-                    <div className="shopping-banner-indicators">
-                        {shops.map((_, index) => (
-                            <button
-                                key={index}
-                                className={`shopping-banner-dot ${index === currentIndex ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCurrentIndex(index);
-                                }}
-                            />
-                        ))}
+                {/* Info */}
+                <div className="shopping-banner-info">
+                    <h3 className="shopping-banner-title">{currentShop.name}</h3>
+                    {currentShop.description && (
+                        <p className="shopping-banner-desc">{currentShop.description}</p>
+                    )}
+                    <div className="shopping-banner-cta">
+                        <span>자세히 보기</span>
+                        <i className="ri-arrow-right-line"></i>
                     </div>
-                )}
+                </div>
             </div>
 
-            {/* Detail Modal */}
-            {selectedShop && (
-                <ShopDetailModal
-                    shop={selectedShop}
-                    isOpen={showModal}
-                    onClose={() => {
-                        setShowModal(false);
-                        setSelectedShop(null);
-                    }}
-                    onUpdate={handleUpdate}
-                />
+            {/* Indicators */}
+            {shops.length > 1 && (
+                <div className="shopping-banner-indicators">
+                    {shops.map((_, index) => (
+                        <button
+                            key={index}
+                            className={`shopping-banner-dot ${index === currentIndex ? 'active' : ''}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentIndex(index);
+                            }}
+                        />
+                    ))}
+                </div>
             )}
-        </>
+        </div>
     );
 }
 

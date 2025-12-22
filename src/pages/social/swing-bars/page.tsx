@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useModal } from '../../../hooks/useModal';
 import SocialSubMenu from '../components/SocialSubMenu';
-import PlaceModal from '../components/PlaceModal';
 import type { SocialPlace } from '../page';
 import './swingbars.css';
 
@@ -10,7 +10,7 @@ export default function SwingBarsPage() {
   const { isAdmin } = useAuth();
   const [places, setPlaces] = useState<SocialPlace[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPlaceModal, setShowPlaceModal] = useState(false);
+  const placeModal = useModal('place');
   const [selectedPlace, setSelectedPlace] = useState<SocialPlace | null>(null);
   const [map, setMap] = useState<any>(null);
 
@@ -92,7 +92,7 @@ export default function SwingBarsPage() {
     places.forEach((place) => {
       const position = new kakao.maps.LatLng(place.latitude, place.longitude);
       bounds.extend(position);
-      
+
       const marker = new kakao.maps.Marker({
         position,
         map,
@@ -143,11 +143,11 @@ export default function SwingBarsPage() {
       const level = map.getLevel();
       const fontSize = level > 6 ? '9px' : level > 4 ? '11px' : '13px';
       const padding = level > 6 ? '3px 8px' : level > 4 ? '4px 10px' : '5px 12px';
-      
+
       const labelData = overlayData.map((data, index) => {
         data.element.style.fontSize = fontSize;
         data.element.style.padding = padding;
-        
+
         const point = projection.pointFromCoords(data.position);
         const rect = data.element.getBoundingClientRect();
         return {
@@ -166,16 +166,16 @@ export default function SwingBarsPage() {
 
       labelData.forEach((label, i) => {
         if (visited.has(i)) return;
-        
+
         const group = [i];
         visited.add(i);
 
         labelData.forEach((other, j) => {
           if (i === j || visited.has(j)) return;
-          
+
           const dx = Math.abs(label.x - other.x);
           const dy = Math.abs(label.y - other.y);
-          
+
           if (dx < (label.width + other.width) / 2 + 5 && dy < 30) {
             group.push(j);
             visited.add(j);
@@ -208,7 +208,7 @@ export default function SwingBarsPage() {
           const firstIndex = group[0];
           const firstElement = labelData[firstIndex].element;
           const firstData = labelData[firstIndex].data;
-          
+
           firstElement.style.position = 'relative';
           firstElement.style.top = '0px';
           firstElement.style.zIndex = '10000';
@@ -217,9 +217,9 @@ export default function SwingBarsPage() {
           firstElement.style.gap = '2px';
           firstElement.style.padding = '6px 10px';
           firstElement.innerHTML = '';
-          
+
           firstData.marker.setMap(map);
-          
+
           group.forEach(index => {
             const placeData = labelData[index].data;
             const itemDiv = document.createElement('div');
@@ -302,7 +302,7 @@ export default function SwingBarsPage() {
         title: selectedPlace.name,
         text: `${selectedPlace.name}\n${selectedPlace.address}`,
       };
-      
+
       if (navigator.share) {
         try {
           await navigator.share(shareData);
@@ -332,7 +332,7 @@ export default function SwingBarsPage() {
       <div className="swingbars-content">
         <div className="swingbars-map-wrapper">
           <div id="swing-bars-map" className="swingbars-map" />
-          
+
           {loading && (
             <div className="swingbars-loading">
               <div className="swingbars-loading-text">지도 로딩 중...</div>
@@ -341,7 +341,10 @@ export default function SwingBarsPage() {
 
           {isAdmin && (
             <button
-              onClick={() => setShowPlaceModal(true)}
+              onClick={() => placeModal.open({
+                category: 'swing-bars',
+                onSaved: loadPlaces
+              })}
               className="swingbars-add-btn"
             >
               <i className="ri-add-line"></i>
@@ -391,14 +394,6 @@ export default function SwingBarsPage() {
           )}
         </div>
       </div>
-
-      {showPlaceModal && (
-        <PlaceModal
-          category="swing-bars"
-          onClose={() => setShowPlaceModal(false)}
-          onSaved={loadPlaces}
-        />
-      )}
     </div>
   );
 }

@@ -2,10 +2,12 @@ import { StrictMode, useEffect } from 'react'
 import './i18n'
 import { createRoot } from 'react-dom/client'
 import { AuthProvider } from './contexts/AuthContext'
+import { ModalProvider } from './contexts/ModalContext'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { initGA } from './lib/analytics'
+import { ModalRegistry } from './components/ModalRegistry'
 
 function normalizeBasename(base?: string) {
   if (!base) return undefined;
@@ -57,7 +59,10 @@ function RootApp() {
   return (
     <BrowserRouter basename={basename}>
       <AuthProvider>
-        <App />
+        <ModalProvider>
+          <App />
+          <ModalRegistry />
+        </ModalProvider>
       </AuthProvider>
     </BrowserRouter>
   );
@@ -68,3 +73,4 @@ createRoot(document.getElementById('root')!).render(
     <RootApp />
   </StrictMode>,
 )
+

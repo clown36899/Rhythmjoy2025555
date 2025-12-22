@@ -1,16 +1,11 @@
 import { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import SocialEditModal from './SocialEditModal';
-import SocialEventModal from './SocialEventModal';
-import SocialDetailModal from './SocialDetailModal';
-import VenueDetailModal from '../../practice/components/VenueDetailModal';
+import { useModal } from '../../../hooks/useModal';
 import type { UnifiedSocialEvent } from '../types';
 import './SocialCalendar.css';
 
 interface SocialCalendarProps {
-  showModal: boolean;
-  setShowModal: (show: boolean) => void;
   events: UnifiedSocialEvent[];
   loading: boolean;
   onEventCreated: (data: any) => void;
@@ -20,8 +15,6 @@ interface SocialCalendarProps {
 }
 
 export default function SocialCalendar({
-  showModal,
-  setShowModal,
   events,
   loading,
   onEventCreated,
@@ -29,11 +22,11 @@ export default function SocialCalendar({
   onEventDeleted,
   readonly = false
 }: SocialCalendarProps) {
-  // Modals Local State
-  const [editingItem, setEditingItem] = useState<{ item: any; type: 'event' | 'schedule' } | null>(null);
-  const [detailItem, setDetailItem] = useState<UnifiedSocialEvent | null>(null);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  // Global modals
+  const socialEventModal = useModal('socialEvent');
+  const socialEditModal = useModal('socialEdit');
+  const socialDetailModal = useModal('socialDetail');
+  const venueDetailModal = useModal('venueDetail');
 
   const { isAdmin } = useAuth();
 
@@ -48,12 +41,19 @@ export default function SocialCalendar({
   ];
 
   const handleCardClick = (event: UnifiedSocialEvent) => {
-    setDetailItem(event);
+    socialDetailModal.open({
+      item: event,
+      onEdit: () => handleEditClick(event),
+      readonly,
+      onVenueClick: (venueId: string) => {
+        venueDetailModal.open({ venueId });
+      }
+    });
   };
 
   const handleVenueClick = (e: React.MouseEvent, venueId: string) => {
     e.stopPropagation();
-    setSelectedVenueId(venueId);
+    venueDetailModal.open({ venueId });
   };
 
   const handleEditClick = async (unifiedEvent: UnifiedSocialEvent) => {
@@ -81,8 +81,18 @@ export default function SocialCalendar({
       }
 
       // Permission granted - open edit modal
-      setEditingItem({ item: scheduleData, type: 'schedule' });
-      setDetailItem(null);
+      socialEditModal.open({
+        item: scheduleData,
+        itemType: 'schedule',
+        onSuccess: (data: any, isDelete?: boolean) => {
+          if (isDelete) {
+            onEventDeleted(scheduleData.id);
+          } else if (data) {
+            onEventUpdated(data);
+          }
+        }
+      });
+      socialDetailModal.close();
     } catch (error) {
       console.error('Permission check error:', error);
       alert('권한 확인 중 오류가 발생했습니다.');
@@ -90,13 +100,12 @@ export default function SocialCalendar({
   };
 
   const handleAddEvent = (dayId: number) => {
-    setSelectedDay(dayId);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedDay(null);
+    socialEventModal.open({
+      preselectedDay: dayId,
+      onEventCreated: (data: any) => {
+        onEventCreated(data);
+      }
+    });
   };
 
   return (
@@ -157,73 +166,6 @@ export default function SocialCalendar({
           </div>
         )}
       </div>
-
-      {showModal && (
-        <SocialEventModal
-          onClose={handleCloseModal}
-          onEventCreated={(data) => {
-            onEventCreated(data);
-            handleCloseModal();
-          }}
-          preselectedDay={selectedDay ?? undefined}
-        />
-      )}
-
-      {detailItem && (
-        <SocialDetailModal
-          item={detailItem}
-          onClose={() => setDetailItem(null)}
-          onEdit={() => handleEditClick(detailItem)}
-          readonly={readonly}
-          onVenueClick={(venueId) => {
-            setSelectedVenueId(venueId);
-            // Optionally close detail modal if you want to switch context, 
-            // but keeping it open underneath or closing it is a design choice.
-            // Let's keep detail item open? No, venue detail is a modal on top.
-          }}
-        />
-      )}
-
-
-      {editingItem && (
-        <SocialEditModal
-          item={editingItem.item}
-          itemType={'schedule'}
-          onClose={() => setEditingItem(null)}
-          onSuccess={(data, isDelete) => {
-            if (isDelete) {
-              // editingItem.item.id는 number 타입이어야 함
-              onEventDeleted(editingItem.item.id);
-            } else if (data) {
-              onEventUpdated(data);
-            }
-            setEditingItem(null);
-          }}
-        />
-      )}
-      {editingItem && (
-        <SocialEditModal
-          item={editingItem.item}
-          itemType={'schedule'}
-          onClose={() => setEditingItem(null)}
-          onSuccess={(data, isDelete) => {
-            if (isDelete) {
-              // editingItem.item.id는 number 타입이어야 함
-              onEventDeleted(editingItem.item.id);
-            } else if (data) {
-              onEventUpdated(data);
-            }
-            setEditingItem(null);
-          }}
-        />
-      )}
-
-      {selectedVenueId && (
-        <VenueDetailModal
-          venueId={selectedVenueId}
-          onClose={() => setSelectedVenueId(null)}
-        />
-      )}
     </>
   );
 }
