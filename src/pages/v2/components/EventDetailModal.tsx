@@ -247,9 +247,15 @@ export default function EventDetailModal({
 
 
   // Bottom Sheet Edit State
-  const [activeEditField, setActiveEditField] = useState<'title' | 'description' | null>(null);
+  // Bottom Sheet Edit State
+  const [activeEditField, setActiveEditField] = useState<'title' | 'description' | 'links' | null>(null);
   const [showVenueSelect, setShowVenueSelect] = useState(false);
   const [editValue, setEditValue] = useState('');
+  const [linkEditValues, setLinkEditValues] = useState({
+    link1: '', link_name1: '',
+    link2: '', link_name2: '',
+    link3: '', link_name3: ''
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -257,6 +263,16 @@ export default function EventDetailModal({
       if (activeEditField === 'title') setEditValue(draftEvent.title);
       // Location moved to VenueSelectModal
       if (activeEditField === 'description') setEditValue(draftEvent.description || '');
+      if (activeEditField === 'links') {
+        setLinkEditValues({
+          link1: draftEvent.link1 || '',
+          link_name1: draftEvent.link_name1 || '',
+          link2: draftEvent.link2 || '',
+          link_name2: draftEvent.link_name2 || '',
+          link3: draftEvent.link3 || '',
+          link_name3: draftEvent.link_name3 || ''
+        });
+      }
     }
   }, [activeEditField, draftEvent]);
 
@@ -285,8 +301,17 @@ export default function EventDetailModal({
     if (!draftEvent || !activeEditField) return;
 
     const updates: Partial<Event> = {};
+
     if (activeEditField === 'title') updates.title = editValue;
     if (activeEditField === 'description') updates.description = editValue;
+    if (activeEditField === 'links') {
+      updates.link1 = linkEditValues.link1;
+      updates.link_name1 = linkEditValues.link_name1;
+      updates.link2 = linkEditValues.link2;
+      updates.link_name2 = linkEditValues.link_name2;
+      updates.link3 = linkEditValues.link3;
+      updates.link_name3 = linkEditValues.link_name3;
+    }
 
     setDraftEvent({ ...draftEvent, ...updates });
     setActiveEditField(null);
@@ -300,10 +325,15 @@ export default function EventDetailModal({
     if (imageFile) return true;
 
     // 필드 변경 확인
-    const fieldsToCheck = ['title', 'description', 'location', 'location_link', 'venue_id'];
+    const fieldsToCheck = [
+      'title', 'description', 'location', 'location_link', 'venue_id',
+      'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3'
+    ];
     return fieldsToCheck.some(field => {
       const originalValue = event[field as keyof Event];
       const draftValue = draftEvent[field as keyof Event];
+      // null vs undefined vs empty string check could be needed but direct comparison usually works if initialized consistent
+      // Treat null, undefined, empty string as equivalent for comparison if needed, but strict equality is safer for now
       return originalValue !== draftValue;
     });
   };
@@ -322,7 +352,14 @@ export default function EventDetailModal({
         description: draftEvent.description,
         location: draftEvent.location,
         location_link: draftEvent.location_link,
-        venue_id: draftEvent.venue_id
+        venue_id: draftEvent.venue_id,
+        // Add link fields
+        link1: draftEvent.link1,
+        link_name1: draftEvent.link_name1,
+        link2: draftEvent.link2,
+        link_name2: draftEvent.link_name2,
+        link3: draftEvent.link3,
+        link_name3: draftEvent.link_name3
       };
 
       // Upload image if changed
@@ -1066,6 +1103,36 @@ export default function EventDetailModal({
                     </span>
                   </a>
                 )}
+                {isSelectionMode && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveEditField('links');
+                    }}
+                    className="edm-edit-trigger-btn"
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      color: '#3b82f6',
+                      border: '1px solid #3b82f6',
+                      borderRadius: !selectedEvent.link1 ? '4px' : '50%',
+                      width: !selectedEvent.link1 ? 'auto' : '24px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      marginLeft: '8px',
+                      padding: !selectedEvent.link1 ? '0 8px' : '0'
+                    }}
+                    title="링크 수정"
+                  >
+                    {!selectedEvent.link1 && (
+                      <span style={{ fontSize: '12px', marginRight: '4px', fontWeight: 600 }}>링크 추가</span>
+                    )}
+                    <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                  </button>
+                )}
               </div>
 
               <div className="footer-actions-container">
@@ -1233,18 +1300,43 @@ export default function EventDetailModal({
             <h3 className="bottom-sheet-header">
               {activeEditField === 'title' && <><i className="ri-text"></i>제목 수정</>}
               {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
+              {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
             </h3>
 
             <div className="bottom-sheet-body">
               <div className="bottom-sheet-input-group">
-                <textarea
-                  className="bottom-sheet-input"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
-                  rows={activeEditField === 'title' ? 3 : 8}
-                  style={{ resize: 'none', minHeight: activeEditField === 'title' ? '100px' : '200px' }}
-                />
+                {activeEditField === 'links' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0' }}>링크</label>
+                      <input
+                        type="text"
+                        className="bottom-sheet-input"
+                        value={linkEditValues.link_name1}
+                        onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })}
+                        placeholder="링크 이름 (예: 신청하기)"
+                        style={{ minHeight: '40px', marginBottom: '0.25rem' }}
+                      />
+                      <input
+                        type="text"
+                        className="bottom-sheet-input"
+                        value={linkEditValues.link1}
+                        onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })}
+                        placeholder="URL (https://...)"
+                        style={{ minHeight: '40px' }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <textarea
+                    className="bottom-sheet-input"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
+                    rows={activeEditField === 'title' ? 3 : 8}
+                    style={{ resize: 'none', minHeight: activeEditField === 'title' ? '100px' : '200px' }}
+                  />
+                )}
               </div>
               <div className="bottom-sheet-actions">
                 <button

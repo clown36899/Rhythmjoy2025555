@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { resizeImage } from '../../../utils/imageResize';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 import './SocialEventModal.css';
 
 interface SocialEventModalProps {
@@ -12,6 +13,10 @@ interface SocialEventModalProps {
 }
 
 export default function SocialEventModal({ onClose, onEventCreated, preselectedDay }: SocialEventModalProps) {
+  // Check if Mobile Back Gesture support is needed. Usually these modals are full screen or significant overlays.
+  // Adding history support for consistency.
+  useModalHistory(true, onClose);
+
   const [title, setTitle] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState<number | ''>(preselectedDay ?? ''); // 0-6
   const [placeName, setPlaceName] = useState('');

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../../lib/supabase";
+import { useModalHistory } from "../../../hooks/useModalHistory";
 import "./VenueDetailModal.css";
 
 interface Venue {
@@ -23,6 +24,9 @@ interface VenueDetailModalProps {
 }
 
 export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }: VenueDetailModalProps) {
+    // Enable mobile back gesture to close modal
+    useModalHistory(true, onClose);
+
     const [venue, setVenue] = useState<Venue | null>(null);
     const [loading, setLoading] = useState(true);
 

@@ -3,6 +3,8 @@ import './SocialPlaceDetailModal.css'; // 통일된 모달 스타일 사용
 import type { UnifiedSocialEvent } from '../types';
 import { useAuth } from '../../../contexts/AuthContext';
 
+import { useModalHistory } from '../../../hooks/useModalHistory';
+
 interface SocialDetailModalProps {
     item: UnifiedSocialEvent;
     onClose: () => void;
@@ -14,6 +16,10 @@ interface SocialDetailModalProps {
 export default function SocialDetailModal({ item, onClose, onEdit, readonly: _readonly = false, onVenueClick }: SocialDetailModalProps) {
     const { user, signInWithKakao } = useAuth();
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+    // Enable mobile back gesture to close modal
+    // ModalRegistry always renders with isOpen={true}
+    useModalHistory(true, onClose);
 
     const handleLogin = () => {
         signInWithKakao();

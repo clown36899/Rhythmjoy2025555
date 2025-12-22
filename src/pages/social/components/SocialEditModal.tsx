@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { resizeImage } from '../../../utils/imageResize';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 import './SocialEditModal.css';
 
 interface SocialEditModalProps {
@@ -27,6 +28,9 @@ interface FormDataType {
 }
 
 export default function SocialEditModal({ item, itemType, onClose, onSuccess }: SocialEditModalProps) {
+  // Add mobile back gesture support
+  useModalHistory(true, onClose);
+
   const [formData, setFormData] = useState<FormDataType>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -103,6 +107,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
       if (updateError) throw updateError;
 
       onSuccess(updatedData, false); // false = not deleted
+      onClose(); // Close modal after successful update
       alert('수정되었습니다.');
     } catch (err: any) {
       setError(err.message || '수정 중 오류가 발생했습니다.');
@@ -143,6 +148,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
       if (deleteError) throw deleteError;
 
       onSuccess(null, true); // true = deleted
+      onClose(); // Close modal after successful delete
       alert('삭제되었습니다.');
     } catch (err: any) {
       setError(err.message || '삭제 중 오류가 발생했습니다.');

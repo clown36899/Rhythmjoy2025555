@@ -883,7 +883,13 @@ export default function EventList({
   }, [isAdminMode]);
 
   // Social Schedules Data
-  const { events: socialEvents, loading: socialLoading } = useSocialSchedules();
+  const {
+    events: socialEvents,
+    loading: socialLoading,
+    addLocalEvent: addSocialEvent,
+    updateLocalEvent: updateSocialEvent,
+    deleteLocalEvent: deleteSocialEvent
+  } = useSocialSchedules();
 
   // 이벤트 데이터 로드
   useEffect(() => {
@@ -3032,10 +3038,10 @@ export default function EventList({
                   <SocialCalendar
                     events={socialEvents}
                     loading={socialLoading}
-                    onEventCreated={() => { }}
-                    onEventUpdated={() => { }}
-                    onEventDeleted={() => { }}
-                    readonly={true}
+                    onEventCreated={addSocialEvent}
+                    onEventUpdated={updateSocialEvent}
+                    onEventDeleted={deleteSocialEvent}
+                    readonly={false}
                   />
                 </Suspense>
               </div>

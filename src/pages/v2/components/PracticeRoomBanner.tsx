@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
+import { useModal } from '../../../hooks/useModal';
 import './PracticeRoomBanner.css';
 
 interface PracticeRoom {
@@ -15,7 +15,7 @@ interface PracticeRoom {
 
 export default function PracticeRoomBanner() {
     const [rooms, setRooms] = useState<PracticeRoom[]>([]);
-    const navigate = useNavigate();
+    const venueDetailModal = useModal('venueDetail');
 
     useEffect(() => {
         fetchPracticeRooms();
@@ -50,8 +50,9 @@ export default function PracticeRoomBanner() {
     };
 
     const handleRoomClick = (roomId: number) => {
-        // Navigate directly with query parameter to create proper history entry
-        navigate(`/practice?id=${roomId}`);
+        // Open modal directly on the current page (Event Preview)
+        // instead of navigating to /practice route
+        venueDetailModal.open({ venueId: String(roomId) });
     };
 
     if (rooms.length === 0) return null;

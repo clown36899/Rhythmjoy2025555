@@ -1,5 +1,6 @@
 import './SocialPlaceDetailModal.css'; // 전용 스타일 사용
 import type { SocialPlace } from '../types';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 
 interface SocialPlaceDetailModalProps {
     place: SocialPlace;
@@ -7,6 +8,9 @@ interface SocialPlaceDetailModalProps {
 }
 
 export default function SocialPlaceDetailModal({ place, onClose }: SocialPlaceDetailModalProps) {
+    // Enable mobile back gesture to close modal
+    useModalHistory(true, onClose);
+
     return (
         <div className="spdm-overlay" onClick={onClose}>
             <div className="spdm-container" onClick={(e) => e.stopPropagation()}>
