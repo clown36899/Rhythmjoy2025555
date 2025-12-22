@@ -8,6 +8,14 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: "2.10.1",
+        date: "2025-12-23",
+        changes: [
+            "버그 수정: 장소 선택 모달 오류 해결 (이벤트/소셜 수정)",
+            "안정성 개선: 레거시 코드 정리 및 최적화"
+        ]
+    },
+    {
         version: "2.10.0",
         date: "2025-12-23",
         changes: [

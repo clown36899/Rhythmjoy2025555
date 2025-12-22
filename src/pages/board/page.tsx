@@ -40,12 +40,12 @@ export default function BoardPage() {
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const postEditorModal = useModal('postEditor');
-  const profileEditModal = useModal('profileEdit');
+
   const boardUserManagementModal = useModal('boardUserManagement');
   const boardPrefixManagementModal = useModal('boardPrefixManagement');
   const userRegistrationModal = useModal('userRegistration');
 
-  const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
+
   const [userData, setUserData] = useState<UserData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;

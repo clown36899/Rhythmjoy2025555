@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import SocialSubMenu from '../components/SocialSubMenu';
-import type { SocialPlace } from '../page';
+import type { SocialPlace } from '../types';
 import './clubs.css';
 
 export default function ClubsPage() {

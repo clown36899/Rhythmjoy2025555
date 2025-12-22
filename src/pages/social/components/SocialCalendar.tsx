@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
@@ -51,10 +51,7 @@ export default function SocialCalendar({
     });
   };
 
-  const handleVenueClick = (e: React.MouseEvent, venueId: string) => {
-    e.stopPropagation();
-    venueDetailModal.open({ venueId });
-  };
+
 
   const handleEditClick = async (unifiedEvent: UnifiedSocialEvent) => {
     try {

@@ -3,7 +3,7 @@ import {
   SocialCalendar,
 } from './components';
 import SocialEditModal from './components/SocialEditModal';
-import SimpleHeader from '../../components/SimpleHeader';
+
 import CalendarSearchModal from '../v2/components/CalendarSearchModal';
 import EventDetailModal from '../v2/components/EventDetailModal';
 import './social.css';
@@ -18,7 +18,7 @@ export default function SocialPage() {
 
   // Layout State
 
-  const headerRef = useRef<HTMLDivElement>(null);
+
 
   // Data Fetching Hook
   const {

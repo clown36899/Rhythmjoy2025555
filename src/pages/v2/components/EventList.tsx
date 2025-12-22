@@ -161,11 +161,11 @@ export default function EventList({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Global modals
-  const eventPasswordModal = useModal('eventPassword');
+
   const editableEventDetailModal = useModal('editableEventDetail');
 
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
-  const [eventPassword, setEventPassword] = useState("");
+
 
   // Local state for expanded view filtering
   const [viewCategory, setViewCategory] = useState<'all' | 'event' | 'class'>('all');
@@ -2027,110 +2027,7 @@ export default function EventList({
   };
 
 
-  const handlePasswordSubmit = async () => {
-    // 개발 모드에서는 비밀번호 체크 건너뛰기
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    if (eventToEdit && (isDev || eventPassword === eventToEdit.password)) {
-      // 비밀번호 확인 후 등록자 정보를 포함한 전체 데이터 다시 가져오기
-      try {
-        const { data: fullEvent, error } = await supabase
-          .from("events")
-          .select("*")
-          .eq("id", eventToEdit.id)
-          .single();
-
-        if (error) {
-          console.error("Error fetching full event data:", error);
-          alert("이벤트 정보를 불러오는 중 오류가 발생했습니다.");
-          return;
-        }
-
-        if (fullEvent) {
-          // event_dates가 있으면 특정 날짜 모드, 없으면 연속 기간 모드
-          const hasEventDates =
-            fullEvent.event_dates && fullEvent.event_dates.length > 0;
-
-          setEditFormData({
-            title: fullEvent.title,
-            genre: fullEvent.genre || "",
-
-            description: fullEvent.description || "",
-            time: fullEvent.time,
-            location: fullEvent.location,
-            locationLink: fullEvent.location_link || "",
-            category: fullEvent.category,
-            organizer: fullEvent.organizer,
-            organizerName: fullEvent.organizer_name || "",
-            organizerPhone: fullEvent.organizer_phone || "",
-            contact: fullEvent.contact || "",
-            link1: fullEvent.link1 || "",
-            link2: fullEvent.link2 || "",
-            link3: fullEvent.link3 || "",
-            linkName1: fullEvent.link_name1 || "",
-            linkName2: fullEvent.link_name2 || "",
-            linkName3: fullEvent.link_name3 || "",
-            image: fullEvent.image || "",
-            start_date: fullEvent.start_date || fullEvent.date || "",
-            end_date: fullEvent.end_date || fullEvent.date || "",
-            event_dates: fullEvent.event_dates || [],
-            dateMode: hasEventDates ? "specific" : "range",
-            videoUrl: fullEvent.video_url || "",
-            showTitleOnBillboard: fullEvent.show_title_on_billboard ?? true,
-            venueId: (fullEvent as any).venue_id || null,
-            venueName: (fullEvent as any).venue_name || "",
-            venueCustomLink: (fullEvent as any).venue_custom_link || "",
-          });
-          setEditImagePreview(fullEvent.image || "");
-          setEditImageFile(null);
-          if (fullEvent.video_url) {
-            const videoInfo = parseVideoUrl(fullEvent.video_url);
-            setEditVideoPreview({
-              provider: videoInfo.provider,
-              embedUrl: videoInfo.embedUrl,
-            });
-          } else {
-            setEditVideoPreview({ provider: null, embedUrl: null });
-          }
-          // 전체 이벤트 데이터로 업데이트
-          setEventToEdit(fullEvent);
-
-          // Convert dates for EditableEventDetail
-          if (hasEventDates) {
-            setEditEventDates(fullEvent.event_dates || []);
-            setEditDate(null);
-            setEditEndDate(null);
-          } else {
-            const startDate = fullEvent.start_date || fullEvent.date;
-            const endDate = fullEvent.end_date || fullEvent.date;
-            setEditDate(startDate ? new Date(startDate) : null);
-            setEditEndDate(endDate ? new Date(endDate) : null);
-            setEditEventDates([]);
-          }
-
-          setEditPassword(fullEvent.password || "");
-          setEditLink(fullEvent.link1 || "");
-          setEditLinkName(fullEvent.link_name1 || "");
-          setEditImagePosition({
-            x: (fullEvent as any).image_position_x || 0,
-            y: (fullEvent as any).image_position_y || 0
-          });
-          setEditOriginalImageUrl(fullEvent.image || null);
-          setEditOriginalImageForCrop(null);
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        alert("이벤트 정보를 불러오는 중 오류가 발생했습니다.");
-        return;
-      }
-
-      // Password check logic removed as per request
-      setIsEditingWithDetail(true);
-      setEventPassword("");
-    } else {
-      alert("비밀번호가 올바르지 않습니다.");
-    }
-  };
 
   const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3415,7 +3312,26 @@ export default function EventList({
               videoUrl={editFormData.videoUrl}
               onVideoChange={(url) => setEditFormData(prev => ({ ...prev, videoUrl: url }))}
               onExtractThumbnail={handleEditExtractThumbnail}
-              onVenueSelectClick={() => venueSelectModal.open({})}
+              onVenueSelectClick={() => venueSelectModal.open({
+                onSelect: (venue: any) => {
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    venueId: venue.id,
+                    venueName: venue.name,
+                    location: venue.name,
+                    locationLink: venue.map_url || "",
+                  }));
+                },
+                onManualInput: (venueName: string, venueLink: string) => {
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    venueId: null,
+                    venueName: "",
+                    location: venueName,
+                    locationLink: venueLink,
+                  }));
+                }
+              })}
             />
           ) : editPreviewMode === 'billboard' ? (
             /* Billboard Mode: Directly Render Card */
@@ -3676,7 +3592,26 @@ export default function EventList({
                           <span>장소 이름</span>
                           <button
                             type="button"
-                            onClick={() => venueSelectModal.open({})}
+                            onClick={() => venueSelectModal.open({
+                              onSelect: (venue: any) => {
+                                setEditFormData((prev) => ({
+                                  ...prev,
+                                  venueId: venue.id,
+                                  venueName: venue.name,
+                                  location: venue.name,
+                                  locationLink: venue.map_url || "",
+                                }));
+                              },
+                              onManualInput: (venueName: string, venueLink: string) => {
+                                setEditFormData((prev) => ({
+                                  ...prev,
+                                  venueId: null,
+                                  venueName: "",
+                                  location: venueName,
+                                  locationLink: venueLink,
+                                }));
+                              }
+                            })}
                             className="evt-text-xs evt-text-blue-400 evt-underline"
                           >
                             <i className="ri-search-line evt-mr-0.5"></i>
