@@ -83,6 +83,24 @@ export default function EventDetailModal({
 
   const { user, signInWithKakao } = useAuth();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [favoriteCount, setFavoriteCount] = useState<number | null>(null);
+
+  // Fetch Entire Favorite Count for this event
+  useEffect(() => {
+    if (isOpen && event?.id) {
+      const fetchCount = async () => {
+        const { count, error } = await supabase
+          .from('event_favorites')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', event.id);
+
+        if (!error && count !== null) {
+          setFavoriteCount(count);
+        }
+      };
+      fetchCount();
+    }
+  }, [isOpen, event?.id]);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -831,6 +849,23 @@ export default function EventDetailModal({
                   <h2 className="modal-title">
                     {selectedEvent.title}
                   </h2>
+                  {favoriteCount !== null && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 8px',
+                      backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                      borderRadius: '12px',
+                      color: '#f87171',
+                      fontSize: '0.85rem',
+                      fontWeight: '700',
+                      flexShrink: 0
+                    }}>
+                      <i className="ri-heart-fill"></i>
+                      <span>{favoriteCount}</span>
+                    </div>
+                  )}
                   {isSelectionMode && (
                     <button
                       onClick={(e) => {

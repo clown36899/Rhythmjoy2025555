@@ -14,11 +14,14 @@ interface AdminFavoritesModalProps {
 type Tab = 'events' | 'practice' | 'shops';
 
 interface FavoriteItem {
-    id: number;
-    user_id: string;
+    item_id: number;
     item_name: string;
-    user_nickname: string;
-    created_at: string;
+    count: number;
+    users: {
+        nickname: string;
+        created_at: string;
+    }[];
+    last_added_at: string;
 }
 
 export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesModalProps) {
@@ -36,7 +39,6 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
     const fetchData = async () => {
         setLoading(true);
         try {
-            let resultData: FavoriteItem[] = [];
 
             let tableName = '';
             let itemIdField = '';
@@ -92,16 +94,37 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
             const itemMap: Record<string, string> = {};
             itemsData?.forEach((i: any) => itemMap[String(i.id)] = i[itemNameField]);
 
-            // D. Combine
-            resultData = favorites.map(f => ({
-                id: f.id,
-                user_id: f.user_id,
-                item_name: itemMap[String(f[itemIdField])] || `ID: ${f[itemIdField]} (삭제됨)`,
-                user_nickname: userMap[f.user_id] || '알 수 없음',
-                created_at: f.created_at
-            }));
+            // D. Grouping & Combine
+            const groupedMap = new Map<string, FavoriteItem>();
 
-            setData(resultData);
+            favorites.forEach(f => {
+                const itemId = String(f[itemIdField]);
+                const nickname = userMap[f.user_id] || '알 수 없음';
+
+                if (!groupedMap.has(itemId)) {
+                    groupedMap.set(itemId, {
+                        item_id: Number(itemId),
+                        item_name: itemMap[itemId] || `ID: ${itemId} (삭제됨)`,
+                        count: 0,
+                        users: [],
+                        last_added_at: f.created_at
+                    });
+                }
+
+                const group = groupedMap.get(itemId)!;
+                group.count += 1;
+                group.users.push({
+                    nickname,
+                    created_at: f.created_at
+                });
+
+                // 최신 날짜 유지
+                if (new Date(f.created_at) > new Date(group.last_added_at)) {
+                    group.last_added_at = f.created_at;
+                }
+            });
+
+            setData(Array.from(groupedMap.values()).sort((a, b) => b.count - a.count));
 
         } catch (error) {
             console.error('Error fetching favorites stats:', error);
@@ -165,22 +188,45 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
                             <table className="boum-table">
                                 <thead>
                                     <tr className="boum-table-head">
-                                        <th className="boum-table-header">사용자</th>
-                                        <th className="boum-table-header">관심 항목</th>
-                                        <th className="boum-table-header">일시</th>
+                                        <th className="boum-table-header" style={{ width: '40%' }}>관심 항목</th>
+                                        <th className="boum-table-header" style={{ textAlign: 'center' }}>횟수</th>
+                                        <th className="boum-table-header">즐겨찾기한 사용자 (최신순)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {data.map((item) => (
-                                        <tr key={item.id} className="boum-table-row">
+                                        <tr key={item.item_id} className="boum-table-row">
                                             <td className="boum-table-cell">
-                                                <span style={{ fontWeight: 600 }}>{item.user_nickname}</span>
+                                                <span style={{ fontWeight: 600 }}>{item.item_name}</span>
+                                            </td>
+                                            <td className="boum-table-cell" style={{ textAlign: 'center' }}>
+                                                <span className="boum-status-badge" style={{
+                                                    backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                                                    color: '#f87171',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 'bold'
+                                                }}>
+                                                    ❤️ {item.count}
+                                                </span>
                                             </td>
                                             <td className="boum-table-cell">
-                                                {item.item_name}
-                                            </td>
-                                            <td className="boum-table-cell boum-date-text">
-                                                {new Date(item.created_at).toLocaleString('ko-KR')}
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                    {item.users.map((u, idx) => (
+                                                        <span key={idx} style={{
+                                                            fontSize: '0.75rem',
+                                                            backgroundColor: 'rgba(255,255,255,0.05)',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px'
+                                                        }}>
+                                                            {u.nickname}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <div className="boum-date-text" style={{ marginTop: '4px', fontSize: '0.7rem', opacity: 0.6 }}>
+                                                    최근: {new Date(item.last_added_at).toLocaleString('ko-KR')}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

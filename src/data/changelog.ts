@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.13.0',
+        date: '2025-12-24',
+        changes: [
+            '즐겨찾기 보호 데이터 관리자 통계 시스템 도입',
+            '관리자 모달(AdminFavoritesModal) 항목별 그룹화 및 통계 UI 개편',
+            '이벤트 상세 모달에 실시간 전체 즐겨찾기 카운트(❤️ X) 표시',
+            '즐겨찾기 존재 시 이벤트 삭제 방지 로직 및 보안 정책 강화'
+        ]
+    },
+    {
         version: '2.12.3',
         date: '2025-12-24',
         changes: [
