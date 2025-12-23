@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.12.1',
+        date: '2025-12-23',
+        changes: [
+            'UI 개선: 이미지 크롭 모달 버튼 최소 크기 설정',
+            'UI 개선: 헤더 로고/타이틀 무한 축소 방지',
+            'UI 개선: 헤더 타이틀 줄바꿈 방지',
+            '기능 간소화: 이미지 크롭 "원본 복구" 버튼 제거'
+        ]
+    },
+    {
         version: '2.12.0',
         date: '2025-12-23',
         changes: [

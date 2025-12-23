@@ -370,6 +370,8 @@
 
 .header-logo {
   height: 39px;
+  min-height: 30px;
+  /* 최소 높이 */
   width: auto;
   object-fit: contain;
 }
@@ -378,7 +380,35 @@
   font-size: 1.2rem;
   font-weight: bold;
   color: white;
+  white-space: nowrap;
+  /* 줄바꿈 방지 */
   /* margin-right: auto; removed as wrapper handles it */
+}
+
+/* 작은 화면에서 헤더 크기 조정 */
+@media (max-width: 640px) {
+  .header-logo {
+    height: max(35px, 8vw);
+    /* 최소 35px */
+    min-height: 28px;
+  }
+
+  .header-title {
+    font-size: max(1rem, 4vw);
+    /* 최소 1rem (16px) */
+  }
+}
+
+@media (max-width: 360px) {
+  .header-logo {
+    height: 30px !important;
+    min-height: 26px;
+  }
+
+  .header-title {
+    font-size: 0.95rem !important;
+    /* 강제 최소 크기 */
+  }
 }
 
 .header-search-btn {

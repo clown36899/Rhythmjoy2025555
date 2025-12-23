@@ -13,10 +13,8 @@ interface ImageCropModalProps {
   onClose: () => void;
   onCropComplete: (croppedFile: File, croppedPreviewUrl: string, isModified: boolean) => void;
   onDiscard?: () => void;  // 취소 시 호출 (메모리 정리용)
-  onRestoreOriginal?: () => void;  // 원본으로 되돌리기
   onChangeImage?: () => void; // 이미지 변경 (파일 선택창 열기)
   onImageUpdate?: (file: File) => void; // 썸네일 등으로 이미지 교체 시 부모에게 알림
-  hasOriginal?: boolean;  // 원본이 있는지 여부
   fileName?: string;
   originalImageUrl?: string | null; // 부모로부터 전달받는 원본 이미지 URL
 }
@@ -99,10 +97,8 @@ export default memo(function ImageCropModal({
   onClose,
   onCropComplete,
   onDiscard,
-  onRestoreOriginal,
   onChangeImage,
   onImageUpdate,
-  hasOriginal = false,
   fileName = 'cropped.jpg',
   originalImageUrl = null,
 }: ImageCropModalProps) {
@@ -552,18 +548,6 @@ export default memo(function ImageCropModal({
 
               {/* Apply Action */}
               <div className="crop-button-row">
-                {/* Restore Original (Reset Image to original props) */}
-                {hasOriginal && onRestoreOriginal && (
-                  <button
-                    onClick={onRestoreOriginal}
-                    className="crop-action-btn crop-restore-btn"
-                    disabled={isProcessing}
-                    style={{ flex: '0 0 auto' }}
-                  >
-                    원본 복구
-                  </button>
-                )}
-
                 {/* 되돌리기 버튼 - 원본 이미지 URL이 있을 때 표시 */}
                 {originalImageUrlForRestore && (
                   <button

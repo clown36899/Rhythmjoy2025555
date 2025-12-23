@@ -517,8 +517,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             }}
                         >
                             {/* Category Badge part */}
-                            <div className={`category-selector category-badge ${!event.category ? "default" : (event.category === "class" ? "class" : "event")}`}>
-                                {!event.category ? "분류" : (event.category === "class" ? "강습" : "행사")}
+                            <div className={`category-selector category-badge ${!event.category ? "default" : event.category}`}>
+                                {!event.category ? "분류" : (event.category === "class" ? "강습" : event.category === "club" ? "동호회" : "행사")}
                             </div>
 
                             {/* Genre Text part */}

@@ -4625,13 +4625,8 @@ export default function EventList({
         imageUrl={editTempImageSrc || ''}
         videoUrl={editFormData.videoUrl}
         onCropComplete={handleEditCropComplete}
-        onRestoreOriginal={handleEditRestoreCropOriginal}
         onImageUpdate={handleEditImageUpdate}
         onChangeImage={() => editFileInputRef.current?.click()}
-        hasOriginal={
-          (!!editOriginalImageForCrop && editImageFile !== editOriginalImageForCrop) ||
-          (!!editOriginalImageUrl && editImagePreview !== editOriginalImageUrl)
-        }
       />
       <VenueSelectModal
         isOpen={venueSelectModal.isOpen}

@@ -402,6 +402,10 @@
   transition: var(--transition-colors);
   border: none;
   cursor: pointer;
+  min-width: 50px;
+  /* 최소 너비 */
+  white-space: nowrap;
+  /* 텍스트 줄바꿈 방지 */
 }
 
 .crop-ratio-btn-active {
@@ -438,6 +442,10 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-2);
+  min-width: 60px;
+  /* 최소 너비 */
+  min-height: 36px;
+  /* 최소 높이 */
 }
 
 .crop-action-btn:disabled {
@@ -515,4 +523,44 @@
 
 .crop-icon-2xl {
   font-size: 1.5rem;
+}
+
+/* 작은 화면에서 버튼 크기 조정 */
+@media (max-width: 640px) {
+  .crop-ratio-btn {
+    font-size: max(0.75rem, 12px);
+    /* 최소 12px */
+    padding: 0.25rem 0.5rem;
+  }
+
+  .crop-action-btn {
+    font-size: max(0.75rem, 11px);
+    /* 최소 11px */
+    padding: 0.4rem 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .crop-icon-lg {
+    font-size: max(1rem, 14px);
+    /* 아이콘 최소 크기 */
+  }
+
+  .crop-button-row {
+    gap: 0.25rem;
+    /* 버튼 간격 줄이기 */
+  }
+}
+
+/* 매우 작은 화면 (320px 이하) */
+@media (max-width: 360px) {
+  .crop-action-btn {
+    font-size: 10px !important;
+    /* 강제 최소 크기 */
+    padding: 0.3rem 0.4rem;
+  }
+
+  .crop-ratio-btn {
+    font-size: 11px !important;
+    padding: 0.2rem 0.4rem;
+  }
 }

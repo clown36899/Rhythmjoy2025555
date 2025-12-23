@@ -1627,7 +1627,6 @@ export default function EventDetailModal({
         imageUrl={tempImageSrc}
         onClose={() => setIsCropModalOpen(false)}
         onCropComplete={handleCropComplete}
-        hasOriginal={!!(imageFile)}
         onChangeImage={() => fileInputRef.current?.click()}
         originalImageUrl={originalImageUrl}
         onImageUpdate={handleImageUpdate}
