@@ -305,13 +305,14 @@ export function MobileShell() {
                   <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>
                     댄스빌보드
                   </h1>
-                  {isAdmin && onlineUsersData.totalCount > 0 && (
-                    <span style={{ fontSize: '10px', color: '#00ff88', fontWeight: 'bold', display: 'flex', gap: '3px' }}>
+                  {isAdmin && (
+                    <span style={{ fontSize: '10px', color: '#00ff88', fontWeight: 'bold', display: 'flex', gap: '3px', marginLeft: '4px', minWidth: '30px' }}>
                       <span style={{ color: '#00ddff' }}>{onlineUsersData.loggedInUsers?.length || 0}</span>
                       <span style={{ color: '#888' }}>/</span>
                       <span style={{ color: '#ffaa00' }}>{onlineUsersData.anonymousCount || 0}</span>
                     </span>
                   )}
+
                 </div>
                 <span style={{ fontSize: '9px', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc' }}>
                   {'swingenjoy.com'.split('').map((char, i) => (

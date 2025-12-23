@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { globalPresenceChannel } from './useOnlinePresence';
+import { subscribeToPresence } from './useOnlinePresence';
 
 interface OnlineUser {
     session_id: string;
@@ -16,10 +16,7 @@ interface OnlineUsersData {
     totalCount: number;
 }
 
-/**
- * Hook for subscribing to online users (admin only)
- * Returns real-time list of online users
- */
+// 이 훅은 무조건 최상위 레벨에서 호출되어야 하며, 내부에서 조건부로 훅을 호출하면 안됨.
 export function useOnlineUsers(): OnlineUsersData {
     const [onlineUsers, setOnlineUsers] = useState<OnlineUsersData>({
         loggedInUsers: [],
@@ -28,44 +25,28 @@ export function useOnlineUsers(): OnlineUsersData {
     });
 
     useEffect(() => {
-        console.log('[OnlineUsers] Starting presence polling...');
+        // 전역 상태 구독
+        const unsubscribe = subscribeToPresence((state) => {
+            if (!state) return;
 
-        const updatePresenceState = () => {
-            if (!globalPresenceChannel) return;
-
-            const state = globalPresenceChannel.presenceState<OnlineUser>();
-
-            // Extract all users from presence state
             const allUsers: OnlineUser[] = [];
-            Object.values(state).forEach((presences) => {
-                presences.forEach((presence) => {
-                    allUsers.push(presence);
-                });
-            });
-            // console.log('[OnlineUsers] All users:', allUsers); // Debug only
 
-            // Separate logged-in users and anonymous users
-            const loggedIn = allUsers.filter((u) => u.type === 'logged_in');
-            const anonymous = allUsers.filter((u) => u.type === 'anonymous');
+            Object.values(state).forEach((presences: any) => {
+                presences.forEach((p: any) => allUsers.push(p));
+            });
+
+            const loggedIn = allUsers.filter(u => u.type === 'logged_in');
+            const anonymous = allUsers.filter(u => u.type === 'anonymous');
 
             setOnlineUsers({
                 loggedInUsers: loggedIn,
                 anonymousCount: anonymous.length,
-                totalCount: allUsers.length,
+                totalCount: allUsers.length
             });
-        };
+        });
 
-        // Initial update
-        updatePresenceState();
-
-        // Poll every 2 seconds for updates
-        const interval = setInterval(updatePresenceState, 2000);
-
-        return () => {
-            console.log('[OnlineUsers] Stopping presence polling');
-            clearInterval(interval);
-        };
-    }, []);
+        return () => unsubscribe();
+    }, []); // 빈 배열: 마운트 시 한 번만 실행 (안전)
 
     return onlineUsers;
 }
