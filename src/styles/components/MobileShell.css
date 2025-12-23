@@ -47,6 +47,10 @@
   /* Prevent scrolling on touch */
   overscroll-behavior: contain;
   /* Prevent scroll chaining */
+  transform: translateZ(0);
+  /* GPU 가속으로 고정 */
+  will-change: transform;
+  /* 렌더링 최적화 */
 }
 
 /* ===== 상단 바 클래스 ===== */
