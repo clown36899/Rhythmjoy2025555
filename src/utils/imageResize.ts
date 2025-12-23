@@ -173,10 +173,10 @@ export async function createResizedImages(
 
   try {
     const [micro, thumbnail, medium, full] = await Promise.all([
-      resizeImage(fileOrDataUrl, 100, 0.85, fileName),   // Micro for calendar
-      resizeImage(fileOrDataUrl, 400, 0.85, fileName),   // Thumbnail for list
-      resizeImage(fileOrDataUrl, 1080, 0.9, fileName),   // Medium for modal
-      resizeImage(fileOrDataUrl, 1280, 0.92, fileName),  // Full for billboard
+      resizeImage(fileOrDataUrl, 100, 0.7, fileName),   // Micro for calendar
+      resizeImage(fileOrDataUrl, 300, 0.75, fileName),   // Thumbnail for list
+      resizeImage(fileOrDataUrl, 1080, 0.8, fileName),   // Medium for modal
+      resizeImage(fileOrDataUrl, 1280, 0.85, fileName),  // Full for billboard
     ]);
 
     const elapsed = performance.now() - startTime;

@@ -849,7 +849,7 @@ export default function BillboardPage() {
   }, [channelStates]);
 
   const filterEvents = useCallback((
-    allEvents: Event[],
+    allEvents: Partial<Event>[],
     settings: BillboardUserSettings,
   ): Event[] => {
     // 한국 시간 기준 오늘 날짜 (KST = UTC+9)
@@ -859,6 +859,7 @@ export default function BillboardPage() {
     koreaTime.setHours(0, 0, 0, 0);
 
     return allEvents.filter((event) => {
+      if (!event.id) return false; // id가 없으면 제외 (필수)
       if (!event?.image_full && !event?.image && !event?.video_url) return false;
       if (settings.excluded_event_ids.includes(event.id)) return false;
       const eventDate = new Date(event.start_date || event.date || "");
@@ -886,7 +887,7 @@ export default function BillboardPage() {
         if (eventStartDate < koreaTime) return false;
       }
       return true;
-    });
+    }) as Event[];
   }, []);
 
   const loadBillboardData = useCallback(async () => {
@@ -931,7 +932,7 @@ export default function BillboardPage() {
 
       const { data: allEvents, error: eventsError } = await supabase
         .from("events")
-        .select("*")
+        .select("id,title,date,start_date,end_date,time,location,image_full,image,video_url,show_title_on_billboard,category,genre")
         .order("start_date", { ascending: true });
       if (eventsError) throw eventsError;
 

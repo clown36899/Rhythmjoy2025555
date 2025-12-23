@@ -35,12 +35,42 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch 이벤트 (네트워크 우선 전략)
+// Fetch 이벤트
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // 1. Supabase Storage 이미지: Cache First (캐시 우선, 없으면 네트워크)
+  // 패턴: */storage/v1/object/public/images/*
+  if (url.pathname.includes('/storage/v1/object/public/images/')) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        // 캐시에 있으면 반환
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        // 없으면 네트워크 요청 후 캐시
+        return fetch(event.request).then((response) => {
+          // 유효한 응답만 캐시
+          if (!response || response.status !== 200 || response.type !== 'basic' && response.type !== 'cors') {
+            return response;
+          }
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // 2. 그 외 요청: Network First (네트워크 우선, 실패 시 캐시)
+  // HTML, API 등 최신 데이터가 중요한 경우
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // GET 요청이면서 http/https 프로토콜인 경우만 캐시 (chrome-extension 등 제외)
+        // GET 요청이면서 http/https 프로토콜인 경우만 캐시
         if (event.request.method === 'GET' &&
           (event.request.url.startsWith('http://') || event.request.url.startsWith('https://'))) {
           const responseToCache = response.clone();

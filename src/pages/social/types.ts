@@ -30,6 +30,8 @@ export interface UnifiedSocialEvent {
   startTime?: string;
   date?: string;
   imageUrl?: string;
+  imageUrlThumbnail?: string;
+  imageUrlMedium?: string;
   inquiryContact?: string;
   linkName?: string;
   linkUrl?: string;

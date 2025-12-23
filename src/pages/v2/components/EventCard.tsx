@@ -50,8 +50,32 @@ export const EventCard = memo(({
   // 신규 이미지는 WebP 형식으로 업로드되므로, 이 함수는 자동으로 최적화된 이미지 URL을 반환합니다.
   // 이벤트 List Card용 썸네일 (Prioritize Thumbnail/Medium for better resolution than Micro)
   // getEventThumbnail prioritizes Micro (100px) which is too small for cards.
+  // 이벤트 List Card용 썸네일 (Prioritize Thumbnail/Medium for better resolution than Micro)
+  // getEventThumbnail prioritizes Micro (100px) which is too small for cards.
+
+  // 1. Try explicit thumbnail
+  // 2. Try deriving thumbnail from standard path structure
+  // 3. Fallbacks
+  const explicitThumbnail = event.image_thumbnail;
+
+  const derivedThumbnail = useMemo(() => {
+    if (explicitThumbnail) return explicitThumbnail;
+
+    const sourceImage = event.image_full || event.image || event.image_medium;
+    if (sourceImage && typeof sourceImage === 'string') {
+      // Standardize checks for our known paths
+      if (sourceImage.includes('/event-posters/full/')) {
+        return sourceImage.replace('/event-posters/full/', '/event-posters/thumbnail/');
+      }
+      if (sourceImage.includes('/event-posters/medium/')) {
+        return sourceImage.replace('/event-posters/medium/', '/event-posters/thumbnail/');
+      }
+    }
+    return null;
+  }, [explicitThumbnail, event.image_full, event.image, event.image_medium]);
+
   const thumbnailUrl =
-    event.image_thumbnail ||
+    derivedThumbnail ||
     event.image_medium ||
     event.image_full ||
     event.image ||

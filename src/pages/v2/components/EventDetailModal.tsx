@@ -109,10 +109,25 @@ export default function EventDetailModal({
   const thumbnailSrc = displayEvent ? (displayEvent.image_thumbnail ||
     getEventThumbnail(displayEvent, defaultThumbnailClass, defaultThumbnailEvent)) : null;
 
-  // Prioritize Full/Original > Medium for High Res Display to prevent "small image" issue after save
-  const highResSrc = displayEvent ? (displayEvent.image_full ||
-    displayEvent.image ||
-    displayEvent.image_medium) : null;
+  // Prioritize Medium for faster loading, Fallback to others. This prevents loading 5MB images in a 400px modal.
+  const highResSrc = useMemo(() => {
+    if (!displayEvent) return null;
+
+    // 1. Explicit Medium (Most Optimized)
+    if (displayEvent.image_medium) return displayEvent.image_medium;
+
+    // 2. Smart Derivation (If explicit medium is missing but path implies it exists)
+    const sourceImage = displayEvent.image_full || displayEvent.image;
+    if (sourceImage && typeof sourceImage === 'string') {
+      if (sourceImage.includes('/event-posters/full/')) {
+        return sourceImage.replace('/event-posters/full/', '/event-posters/medium/');
+      }
+    }
+
+    // 3. Fallbacks
+    return displayEvent.image_full || displayEvent.image;
+  }, [displayEvent]);
+
 
   // Effect to preload high-res image
   useEffect(() => {
@@ -129,7 +144,6 @@ export default function EventDetailModal({
       setIsHighResLoaded(true);
     }
   }, [highResSrc, thumbnailSrc]);
-
   // Enable mobile back gesture to close modal
   useModalHistory(isOpen, onClose);
 
@@ -675,6 +689,7 @@ export default function EventDetailModal({
                             loading="eager"
                             style={{
                               ...imageStyle,
+                              width: '100%', // Force full width to dictate container height
                               opacity: 1, // Always visible underneath
                               position: 'relative', // Dictates the container size
                               zIndex: 1

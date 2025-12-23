@@ -12,6 +12,17 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
 
     if (dow === null || dow === undefined) return null;
 
+    const imageUrl = schedule.image;
+    let imageUrlThumbnail = imageUrl;
+    let imageUrlMedium = imageUrl;
+
+    if (imageUrl && typeof imageUrl === 'string') {
+        if (imageUrl.includes('/social/full/')) {
+            imageUrlThumbnail = imageUrl.replace('/social/full/', '/social/thumbnail/');
+            imageUrlMedium = imageUrl.replace('/social/full/', '/social/medium/');
+        }
+    }
+
     return {
         id: `schedule-${schedule.id}`,
         type: 'schedule',
@@ -24,7 +35,9 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
         linkName: schedule.link_name,
         linkUrl: schedule.link_url,
         description: schedule.description,
-        imageUrl: schedule.image,
+        imageUrl: imageUrl,
+        imageUrlThumbnail: imageUrlThumbnail,
+        imageUrlMedium: imageUrlMedium,
         venueId: schedule.venue_id,
     };
 };
@@ -60,7 +73,7 @@ export function useSocialSchedules() {
 
             const unifiedEvents: UnifiedSocialEvent[] = (placeSchedules || [])
                 .map(mapScheduleToEvent)
-                .filter((e): e is UnifiedSocialEvent => e !== null);
+                .filter((e: UnifiedSocialEvent | null): e is UnifiedSocialEvent => e !== null);
 
             setEvents(unifiedEvents);
         } catch (err: any) {

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { resizeImage } from '../../../utils/imageResize';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
+import { createResizedImages } from '../../../utils/imageResize';
 import './SocialEditModal.css';
 
 interface SocialEditModalProps {
@@ -41,7 +41,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
   useEffect(() => {
     if (item) {
       let dow = item.day_of_week;
-      if (dow === null || dow === undefined && item.date) {
+      if ((dow === null || dow === undefined) && item.date) {
         dow = new Date(item.date).getDay();
       }
 
@@ -131,7 +131,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
     const { data: { user } } = await supabase.auth.getUser();
 
     // Verify permission
-    if (item.user_id !== user?.id) {
+    if (item.user_id !== user?.id && !isAdmin) {
       alert('삭제 권한이 없습니다.');
       return;
     }
@@ -177,8 +177,6 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
               <option value="6">토요일</option>
               <option value="0">일요일</option>
             </select>
-
-
 
             <input type="text" name="address" placeholder="주소" value={formData.address || ''} onChange={handleInputChange} className="sed-form-input" />
 
@@ -252,22 +250,50 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
                   if (!file) return;
 
                   try {
-                    // WebP & Resize (Max width 1280px for efficiency)
-                    const resizedFile = await resizeImage(file, 1280, 0.85);
+                    // Use createResizedImages to generate all sizes
+                    const resizedImages = await createResizedImages(file, undefined, 'image.webp');
 
-                    // Use consistent naming
-                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.webp`;
-                    const filePath = `social/${fileName}`;
+                    const timestamp = Date.now();
+                    const randomStr = Math.random().toString(36).substring(2, 9);
+                    const fileName = `${timestamp}-${randomStr}.webp`;
 
+                    // Upload structure: social/{size}/{fileName}
+                    const basePath = `social`;
+
+                    // Upload Full
                     const { error: uploadError } = await supabase.storage
                       .from('images') // Changed to 'images' bucket
-                      .upload(filePath, resizedFile);
+                      .upload(`${basePath}/full/${fileName}`, resizedImages.full, {
+                        contentType: 'image/webp',
+                        upsert: true
+                      });
 
                     if (uploadError) throw uploadError;
 
+                    // Upload Medium
+                    if (resizedImages.medium) {
+                      await supabase.storage
+                        .from('images')
+                        .upload(`${basePath}/medium/${fileName}`, resizedImages.medium, {
+                          contentType: 'image/webp',
+                          upsert: true
+                        });
+                    }
+
+                    // Upload Thumbnail
+                    if (resizedImages.thumbnail) {
+                      await supabase.storage
+                        .from('images')
+                        .upload(`${basePath}/thumbnail/${fileName}`, resizedImages.thumbnail, {
+                          contentType: 'image/webp',
+                          upsert: true
+                        });
+                    }
+
+                    // Get Public URL for Full image (to save in DB)
                     const { data: { publicUrl } } = supabase.storage
                       .from('images')
-                      .getPublicUrl(filePath);
+                      .getPublicUrl(`${basePath}/full/${fileName}`);
 
                     setFormData(prev => ({ ...prev, image: publicUrl }));
                   } catch (error) {

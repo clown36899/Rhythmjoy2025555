@@ -135,7 +135,7 @@ export default function SocialCalendar({
                         >
                           {event.imageUrl && (
                             <div className="compact-image-wrapper">
-                              <img src={event.imageUrl} alt={event.title} className="compact-image" loading="lazy" />
+                              <img src={event.imageUrlThumbnail || event.imageUrl} alt={event.title} className="compact-image" loading="lazy" />
                             </div>
                           )}
                           <div className="compact-place">{event.placeName || '미정'}</div>
