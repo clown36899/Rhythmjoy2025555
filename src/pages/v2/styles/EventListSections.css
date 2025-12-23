@@ -128,7 +128,7 @@
 /* Filter Bar */
 .evt-sticky-header {
     position: sticky;
-    top: calc(60px + env(safe-area-inset-top, 0px));
+    top: 0;
     z-index: 11;
     background-color: #1f1f1f;
     padding: 7px 16px;
