@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.11.0',
+        date: '2025-12-23',
+        changes: [
+            '신기능: 실시간 접속자 추적 (관리자 전용)',
+            '- Supabase Presence 기반 (30초 자동 heartbeat)',
+            '- 로그인/비로그인 사용자 구분 표시',
+            '- 햄버거 메뉴 → ADMIN ONLY → "현재 접속자"'
+        ]
+    },
+    {
         version: '2.10.7',
         date: '2025-12-23',
         changes: [

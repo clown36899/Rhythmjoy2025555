@@ -17,6 +17,7 @@ function normalizeBasename(base?: string) {
 
 function RootApp() {
   const basename = normalizeBasename(__BASE_PATH__ as string);
+
   useEffect(() => {
     // React 렌더링 완료 후 body 표시
     document.body.classList.add('loaded');

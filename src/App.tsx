@@ -2,10 +2,14 @@ import { useRoutes, useLocation } from "react-router-dom";
 import { routes } from "./router/routes";
 import { Suspense, useEffect } from "react";
 import { logPageView } from "./lib/analytics";
+import { useOnlinePresence } from "./hooks/useOnlinePresence";
 
 function App() {
   const element = useRoutes(routes);
   const location = useLocation();
+
+  // Track online presence for all users
+  useOnlinePresence();
 
   // 페이지 변경 시 자동으로 페이지뷰 추적
   useEffect(() => {

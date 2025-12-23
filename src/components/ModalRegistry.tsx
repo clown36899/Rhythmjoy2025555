@@ -47,6 +47,7 @@ import ColorSettingsModal from '../components/ColorSettingsModal';
 import DefaultThumbnailSettingsModal from '../components/DefaultThumbnailSettingsModal';
 import InvitationManagementModal from '../components/InvitationManagementModal';
 import PracticeRoomModal from '../components/PracticeRoomModal';
+import { OnlineUsersModal } from '../components/OnlineUsersModal';
 
 // Admin Modals
 import AdminUserInfoModal from '../components/AdminUserInfoModal';
@@ -107,6 +108,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'defaultThumbnailSettings': DefaultThumbnailSettingsModal,
     'invitationManagement': InvitationManagementModal,
     'practiceRoom': PracticeRoomModal,
+    'onlineUsers': OnlineUsersModal,
 
     // Admin Modals
     'adminUserInfo': AdminUserInfoModal,
