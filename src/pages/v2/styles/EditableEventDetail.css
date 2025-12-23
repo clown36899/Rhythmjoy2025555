@@ -6,6 +6,34 @@
     /* Footer height (80px) + extra spacing (20px) */
 }
 
+/* Genre Selection Button (New) */
+.editable-genre-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #374151;
+    /* gray-700 */
+    background-color: #1f2937;
+    /* gray-800 */
+    color: #d1d5db;
+    /* gray-300 */
+    cursor: pointer;
+}
+
+.editable-genre-btn:hover {
+    background-color: #374151;
+    /* gray-700 */
+}
+
+.editable-genre-btn.active {
+    background-color: #2563eb;
+    /* blue-600 */
+    border-color: #2563eb;
+    color: white;
+}
+
 /* Footer & Actions */
 .editable-footer {
     display: flex;

@@ -28,6 +28,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  color: #e5e7eb;
 }
 
 /* ===== 모달 헤더 ===== */
@@ -318,6 +319,13 @@
   align-items: center;
   gap: 0.25rem;
   transition: all 0.2s;
+  color: #9ca3af;
+  background-color: rgba(55, 65, 81, 0.5);
+}
+
+.boum-action-btn:hover {
+  background-color: rgba(55, 65, 81, 0.8);
+  color: white;
 }
 
 .boum-btn-yellow {

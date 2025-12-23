@@ -155,6 +155,7 @@ export default function EventList({
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') ?? 'all';
   const selectedGenre = searchParams.get('genre');
+  const selectedEventGenre = searchParams.get('event_genre'); // Separate filter for Active Events
 
 
 
@@ -1382,9 +1383,20 @@ export default function EventList({
 
       if (!startDate) return false;
 
-      // Show events where start_date is today or in the future
-      // Hide events where start_date is in the past (already started before today)
       if (startDate < today) return false;
+
+      // Genre Filter (Event Category) using separate param
+      if (selectedEventGenre) {
+        if (!event.genre) return false;
+        // Support multi-value genres for both event and filter (OR logic)
+        const filterGenres = selectedEventGenre.split(',').map(s => s.trim()).filter(Boolean);
+        const eventGenres = event.genre.split(',').map(s => s.trim()).filter(Boolean);
+
+        // Show event if it matches ANY of the selected genres
+        const hasMatch = eventGenres.some(g => filterGenres.includes(g));
+        console.log(`[Filter] ID: ${event.id}, Event: ${event.title}, Genres: [${eventGenres}], Filter: [${filterGenres}], Match: ${hasMatch}`);
+        if (!hasMatch) return false;
+      }
 
       return true;
     });
@@ -1406,7 +1418,7 @@ export default function EventList({
     }
 
     return result;
-  }, [events, highlightEvent]);
+  }, [events, highlightEvent, selectedEventGenre]);
 
   // 진행중인 강습 (Future Classes - Horizontal Scroll)
   // Category: 'class'
@@ -1417,14 +1429,49 @@ export default function EventList({
     if (isPartialUpdate.current && globalLastFutureClasses.length > 0) {
       console.log('[📋 futureClasses] 부분 업데이트 - 이전 결과 재사용 (전역)');
       console.log('[📋 futureClasses] 이전 배열:', globalLastFutureClasses.map((e: Event) => e.id));
-      // 업데이트된 이벤트를 찾아서 교체
-      const updated = globalLastFutureClasses.map((event: Event) => {
-        const newEvent = events.find(e => e.id === event.id);
-        return newEvent || event;
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const today = `${year}-${month}-${day}`;
+
+      // 업데이트된 이벤트를 찾아서 교체하고, 필터 조건 재적용
+      const updated = globalLastFutureClasses
+        .map((event: Event) => {
+          const newEvent = events.find(e => e.id === event.id);
+          return newEvent || event;
+        })
+        .filter(event => {
+          // Re-apply category filter - remove events that changed category
+          if (event.category !== 'class' && event.category !== 'club') return false;
+
+          const startDate = event.start_date || event.date;
+          if (!startDate || startDate < today) return false;
+
+          // Genre filter
+          if (selectedGenre && event.genre !== selectedGenre) return false;
+
+          return true;
+        });
+
+      // Also check for newly added events that match the filter
+      const existingIds = new Set(globalLastFutureClasses.map((e: Event) => e.id));
+      const newMatchingEvents = events.filter(event => {
+        if (existingIds.has(event.id)) return false;
+        if (event.category !== 'class' && event.category !== 'club') return false;
+
+        const startDate = event.start_date || event.date;
+        if (!startDate || startDate < today) return false;
+        if (selectedGenre && event.genre !== selectedGenre) return false;
+
+        return true;
       });
-      console.log('[📋 futureClasses] 업데이트 후 배열:', updated.map((e: Event) => e.id));
-      globalLastFutureClasses = updated;
-      return updated;
+
+      const result = [...updated, ...newMatchingEvents];
+      console.log('[📋 futureClasses] 업데이트 후 배열:', result.map((e: Event) => e.id));
+      globalLastFutureClasses = result;
+      return result;
     }
 
     // const today = new Date().toISOString().split('T')[0];
@@ -1435,7 +1482,8 @@ export default function EventList({
     const today = `${year}-${month}-${day}`;
 
     const result = events.filter(event => {
-      if (event.category !== 'class') return false;
+      // Include both 'class' and 'club' categories
+      if (event.category !== 'class' && event.category !== 'club') return false;
 
       const startDate = event.start_date || event.date;
 
@@ -1477,8 +1525,8 @@ export default function EventList({
     const club: Event[] = [];
 
     futureClasses.forEach(evt => {
-      // '동호회강습'
-      if (evt.genre === '동호회강습') {
+      // Check category instead of genre for club lessons
+      if (evt.category === 'club') {
         club.push(evt);
       } else {
         regular.push(evt);
@@ -2906,6 +2954,48 @@ export default function EventList({
                   )}
                 </div>
 
+                <div className="evt-genre-tab-container">
+                  <button
+                    onClick={() => {
+                      const params = new URLSearchParams(searchParams);
+                      params.delete('event_genre');
+                      setSearchParams(params);
+                    }}
+                    className={`evt-genre-tab ${!selectedEventGenre ? 'active' : ''}`}
+                  >
+                    전체
+                  </button>
+                  {['파티', '대회', '워크샵'].map(genre => {
+                    // Safe split and filter with trim
+                    const currentFilters = selectedEventGenre ? selectedEventGenre.split(',').map(s => s.trim()).filter(Boolean) : [];
+                    const isActive = currentFilters.includes(genre);
+
+                    return (
+                      <button
+                        key={genre}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+
+                          const params = new URLSearchParams(searchParams);
+                          if (currentFilters.includes(genre)) {
+                            // If already selected, do we unselect? Or just keep it? 
+                            // "Single select" usually means clicking active one might deselect or do nothing.
+                            // Let's assume toggle behavior for single item: if active, remove. If inactive, replace.
+                            params.delete('event_genre');
+                          } else {
+                            params.set('event_genre', genre);
+                          }
+                          setSearchParams(params);
+                        }}
+                        className={`evt-genre-tab ${isActive ? 'active' : ''}`}
+                      >
+                        {genre}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {futureEvents.length > 0 ? (
                   <div className="evt-v2-horizontal-scroll">
                     <div className="evt-spacer-5"></div>
@@ -3010,7 +3100,7 @@ export default function EventList({
 
               </div>
 
-              {/* Section 2-2: 동호회 강습 (Horizontal Scroll) */}
+              {/* Section 3: 동호회 강습 (Horizontal Scroll) */}
               {clubLessons.length > 0 && (
                 <div className="evt-v2-section evt-v2-section-club-lessons">
                   <div className="evt-v2-section-title">

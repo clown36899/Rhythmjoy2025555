@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase'; // Import value for update
 import type { Event as BaseEvent } from '../../../lib/supabase';
@@ -109,9 +109,10 @@ export default function EventDetailModal({
   const thumbnailSrc = displayEvent ? (displayEvent.image_thumbnail ||
     getEventThumbnail(displayEvent, defaultThumbnailClass, defaultThumbnailEvent)) : null;
 
-  const highResSrc = displayEvent ? (displayEvent.image_medium ||
-    displayEvent.image_full ||
-    displayEvent.image) : null;
+  // Prioritize Full/Original > Medium for High Res Display to prevent "small image" issue after save
+  const highResSrc = displayEvent ? (displayEvent.image_full ||
+    displayEvent.image ||
+    displayEvent.image_medium) : null;
 
   // Effect to preload high-res image
   useEffect(() => {
@@ -166,6 +167,8 @@ export default function EventDetailModal({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+
+
 
   // 원본 이미지 정보 보관 (DB 저장 전까지 유지)
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
@@ -250,16 +253,13 @@ export default function EventDetailModal({
   };
 
   // Bottom Sheet Edit State
-  // Draft state moved up
-
-
   // Bottom Sheet Edit State
-  // Bottom Sheet Edit State
-  const [activeEditField, setActiveEditField] = useState<'title' | 'description' | 'links' | 'genre' | null>(null);
+  const [activeEditField, setActiveEditField] = useState<string | null>(null);
   const [showVenueSelect, setShowVenueSelect] = useState(false);
   const [editValue, setEditValue] = useState('');
-  const [editCategory, setEditCategory] = useState<'event' | 'class'>('event');
-  const [useDirectInput, setUseDirectInput] = useState(false);
+  const [editCategory, setEditCategory] = useState<'event' | 'class' | 'club'>('event'); // Added 'club' type
+  // const [useDirectInput, setUseDirectInput] = useState(false); // Removed
+
   const [linkEditValues, setLinkEditValues] = useState({
     link1: '', link_name1: '',
     link2: '', link_name2: '',
@@ -267,13 +267,78 @@ export default function EventDetailModal({
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Genre Management State (Moved down to access editCategory/editValue)
+  const [allHistoricalGenres, setAllHistoricalGenres] = useState<string[]>([]);
+  // const [localCustomGenres, setLocalCustomGenres] = useState<string[]>([]); // Removed
+  // const [customGenreInput, setCustomGenreInput] = useState(''); // Removed
+
+  // Fetch ALL historical genres on mount
+  useEffect(() => {
+    const fetchGenres = async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('genre');
+
+      if (!error && data) {
+        // 1. Extract all non-null genres
+        const rawGenres = data.map(d => d.genre).filter(Boolean) as string[];
+        // 2. Split by comma to ensure atomicity (Fixing the duplication bug)
+        const atomicGenres = rawGenres.flatMap(g => g.split(',').map(s => s.trim()));
+        // 3. Unique set
+        const unique = Array.from(new Set(atomicGenres)).sort();
+        setAllHistoricalGenres(unique);
+      }
+    };
+    fetchGenres();
+  }, []);
+
+  // Compute final unique genres for display
+  const uniqueGenres = useMemo(() => {
+    // Start with prop-provided genres (if any)
+    // For 'club' category, use 'class' genres as they share the same genre list
+    const propGenres = editCategory === 'club'
+      ? (structuredGenres['class'] || [])
+      : (structuredGenres[editCategory] || []);
+
+    // Combine all sources: Prop + Historical + Local Custom
+    const combined = [
+      ...propGenres,
+      ...allHistoricalGenres,
+      // ...localCustomGenres // Removed
+    ];
+
+    console.log('[EventDetailModal] uniqueGenres recalc. Category:', editCategory);
+    console.log('[EventDetailModal] structuredGenres:', structuredGenres);
+
+
+    // Filter, Flatten, Unique, Sort
+    // Enforce strict genres based on category
+    if (editCategory === 'event') {
+      return ['파티', '대회', '워크샵'];
+    }
+    if (editCategory === 'class') {
+      return ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
+    }
+    if (editCategory === 'club') {
+      return ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
+    }
+
+    // Fallback for other potential categories (though currently only event/class exist)
+    return Array.from(new Set(
+      combined
+        .flatMap(g => g.split(',')) // Crucial: Flatten any accidental comma-strings
+        .map(s => s.trim())
+        .filter(s => s && s.length > 0) // Remove empty
+    )).sort();
+  }, [editCategory, structuredGenres, allHistoricalGenres]);
+
   useEffect(() => {
     if (activeEditField && draftEvent) {
       if (activeEditField === 'title') setEditValue(draftEvent.title);
       if (activeEditField === 'genre') {
         setEditValue(draftEvent.genre || '');
         setEditCategory(draftEvent.category === 'class' ? 'class' : 'event');
-        setUseDirectInput(false);
+        // setUseDirectInput(false); // Removed
       }
       // Location moved to VenueSelectModal
       if (activeEditField === 'description') setEditValue(draftEvent.description || '');
@@ -767,11 +832,15 @@ export default function EventDetailModal({
                 </div>
 
                 {/* 장르 표시 */}
-                {selectedEvent.genre && (
+                {(selectedEvent.genre || isSelectionMode) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
-                    <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
-                      {selectedEvent.genre}
-                    </p>
+                    {selectedEvent.genre ? (
+                      <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
+                        {selectedEvent.genre}
+                      </p>
+                    ) : (
+                      <span style={{ color: '#9ca3af', fontSize: '14px' }}>장르 미지정</span>
+                    )}
                     {isSelectionMode && (
                       <button
                         onClick={(e) => {
@@ -921,7 +990,7 @@ export default function EventDetailModal({
                   </div>
                 )}
 
-                {selectedEvent.description && (
+                {(selectedEvent.description || isSelectionMode) && (
                   <div className="info-divider">
                     <div className="info-item">
                       <i className="ri-file-text-line info-icon"></i>
@@ -939,25 +1008,29 @@ export default function EventDetailModal({
                           </button>
                           }
                           <p>
-                            {selectedEvent.description
-                              .split(/(\bhttps?:\/\/[^\s]+)/g)
-                              .map((part, idx) => {
-                                if (part.match(/^https?:\/\//)) {
-                                  return (
-                                    <a
-                                      key={idx}
-                                      href={part}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="info-link"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {part}
-                                    </a>
-                                  );
-                                }
-                                return <span key={idx}>{part}</span>;
-                              })}
+                            {selectedEvent.description ? (
+                              selectedEvent.description
+                                .split(/(\bhttps?:\/\/[^\s]+)/g)
+                                .map((part, idx) => {
+                                  if (part.match(/^https?:\/\//)) {
+                                    return (
+                                      <a
+                                        key={idx}
+                                        href={part}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="info-link"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {part}
+                                      </a>
+                                    );
+                                  }
+                                  return <span key={idx}>{part}</span>;
+                                })
+                            ) : (
+                              <span style={{ color: '#9ca3af' }}>내용 없음</span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -1390,7 +1463,10 @@ export default function EventDetailModal({
                         {/* 1. Category Selection */}
                         <div className="genre-category-toggle" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                           <button
-                            onClick={() => setEditCategory('event')}
+                            onClick={() => {
+                              setEditCategory('event');
+                              setEditValue(''); // Reset genre when switching category
+                            }}
                             className={`category-toggle-btn ${editCategory === 'event' ? 'active' : ''}`}
                             style={{
                               flex: 1,
@@ -1406,7 +1482,10 @@ export default function EventDetailModal({
                             행사
                           </button>
                           <button
-                            onClick={() => setEditCategory('class')}
+                            onClick={() => {
+                              setEditCategory('class');
+                              setEditValue(''); // Reset genre when switching category
+                            }}
                             className={`category-toggle-btn ${editCategory === 'class' ? 'active' : ''}`}
                             style={{
                               flex: 1,
@@ -1421,48 +1500,85 @@ export default function EventDetailModal({
                           >
                             강습
                           </button>
+                          <button
+                            onClick={() => {
+                              setEditCategory('club');
+                              setEditValue(''); // Reset genre when switching category
+                            }}
+                            className={`category-toggle-btn ${editCategory === 'club' ? 'active' : ''}`}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              background: editCategory === 'club' ? '#10b981' : 'rgba(255,255,255,0.05)',
+                              border: editCategory === 'club' ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
+                              color: 'white',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            동호회
+                          </button>
                         </div>
 
                         {/* 2. Genre Chips */}
                         <div className="genre-chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-                          {/* Fixed Club Lesson Option for Class */}
-                          {editCategory === 'class' && (
-                            <button
-                              onClick={() => {
-                                setEditValue('동호회강습');
-                                setUseDirectInput(false);
-                              }}
-                              className={`genre-chip ${!useDirectInput && editValue === '동호회강습' ? 'active' : ''}`}
-                              style={{
-                                padding: '8px 16px',
-                                borderRadius: '9999px',
-                                background: !useDirectInput && editValue === '동호회강습' ? '#ff9f43' : 'rgba(255,159,67,0.1)', // Distinct color
-                                border: !useDirectInput && editValue === '동호회강습' ? '1px solid #ff9f43' : '1px solid rgba(255,159,67,0.3)',
-                                color: !useDirectInput && editValue === '동호회강습' ? 'white' : '#ff9f43',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: 600
-                              }}
-                            >
-                              동호회강습
-                            </button>
-                          )}
+                          {/* Fixed Club Lesson Option removed from separate button and added to list below */}
 
-                          {structuredGenres[editCategory]
-                            ?.filter(g => g !== '동호회강습') // Avoid duplicate if already in list
-                            ?.map(genre => (
+                          {uniqueGenres
+                            .map(genre => (
                               <button
                                 key={genre}
-                                onClick={() => {
-                                  setEditValue(genre);
-                                  setUseDirectInput(false);
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log(`[EventDetailModal] Genre Click: ${genre}`);
+
+                                  const current = editValue ? editValue.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+                                  // LOGIC:
+                                  // 1. Class/Club: Single Selection Only
+                                  // 2. Event: Mutual Exclusivity (Party vs Competition)
+
+                                  let newGenres: string[];
+
+                                  if (editCategory === 'class' || editCategory === 'club') {
+                                    // FORCE SINGLE SELECT for Class/Club
+                                    // If clicking the already selected one, allow toggle off (or keep? usually toggle off is fine)
+                                    // User said "Class is not multi-selectable".
+                                    if (current.includes(genre)) {
+                                      newGenres = []; // Toggle off
+                                    } else {
+                                      newGenres = [genre]; // Replace
+                                    }
+                                  } else {
+                                    // EVENT logic (Multi-select with constraints)
+                                    if (current.includes(genre)) {
+                                      newGenres = current.filter(g => g !== genre);
+                                    } else {
+                                      let temp = [...current];
+                                      // Mutual Exclusivity: '파티' vs '대회'
+                                      if (genre === '파티') {
+                                        temp = temp.filter(g => g !== '대회');
+                                      } else if (genre === '대회') {
+                                        temp = temp.filter(g => g !== '파티');
+                                      }
+                                      newGenres = [...temp, genre];
+                                    }
+                                  }
+
+                                  const newValue = newGenres.join(',');
+                                  console.log(`[EventDetailModal] New Value: ${newValue}`);
+
+                                  setEditValue(newValue);
+                                  // setUseDirectInput(false); // Removed
                                 }}
-                                className={`genre-chip ${!useDirectInput && editValue === genre ? 'active' : ''}`}
+                                className={`genre-chip ${editValue.split(',').map(s => s.trim()).includes(genre) ? 'active' : ''}`}
                                 style={{
                                   padding: '8px 16px',
                                   borderRadius: '9999px',
-                                  background: !useDirectInput && editValue === genre ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                  border: !useDirectInput && editValue === genre ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                  background: editValue.split(',').map(s => s.trim()).includes(genre) ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                  border: editValue.split(',').map(s => s.trim()).includes(genre) ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
                                   color: 'white',
                                   cursor: 'pointer',
                                   fontSize: '14px'
@@ -1471,46 +1587,10 @@ export default function EventDetailModal({
                                 {genre}
                               </button>
                             ))}
-
-                          {/* Direct Input Toggle Chip */}
-                          <button
-                            onClick={() => {
-                              setUseDirectInput(true);
-                              setEditValue(''); // Clear or keep? Usually clear for new input.
-                            }}
-                            className={`genre-chip ${useDirectInput ? 'active' : ''}`}
-                            style={{
-                              padding: '8px 16px',
-                              borderRadius: '9999px',
-                              background: useDirectInput ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                              border: useDirectInput ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontSize: '14px'
-                            }}
-                          >
-                            직접 입력
-                          </button>
+                          {/* Direct Input Removed */}
                         </div>
 
-                        {/* 3. Direct Input Field (Conditional) */}
-                        {useDirectInput && (
-                          <textarea
-                            className="bottom-sheet-input"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            placeholder="장르를 직접 입력하세요"
-                            rows={1}
-                            style={{ resize: 'none', minHeight: '50px', marginBottom: '0' }}
-                            autoFocus
-                          />
-                        )}
-
-                        {!useDirectInput && !editValue && (
-                          <div style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>
-                            * 장르를 선택하거나 직접 입력해주세요.
-                          </div>
-                        )}
+                        {/* 3. Direct Input Field (Conditional) - REMOVED to avoid confusion */}
                       </div>
                     ) : (
                       // Normal text input for other fields
@@ -1521,6 +1601,7 @@ export default function EventDetailModal({
                         placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
                         rows={activeEditField === 'title' ? 3 : 8}
                         style={{ resize: 'none', minHeight: activeEditField === 'title' ? '80px' : '200px' }}
+                        autoFocus
                       />
                     )}
                   </>
@@ -1537,9 +1618,10 @@ export default function EventDetailModal({
               </div>
             </div>
           </div>
-        </div>,
+        </div >,
         document.body
-      )}
+      )
+      }
       <ImageCropModal
         isOpen={isCropModalOpen}
         imageUrl={tempImageSrc}

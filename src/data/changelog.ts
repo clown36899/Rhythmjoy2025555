@@ -8,6 +8,17 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.12.0',
+        date: '2025-12-23',
+        changes: [
+            '카테고리 체계 개편: 행사/강습/동호회 3단계로 확장',
+            '동호회 카테고리 신설 및 독립 섹션 구성',
+            '강습 장르 개선: 솔로 → 솔로재즈 변경',
+            'UI 개선: 카테고리 미선택 시 장르 리스트 숨김',
+            '실시간 업데이트: 카테고리 변경 시 즉시 반영'
+        ]
+    },
+    {
         version: '2.11.1',
         date: '2025-12-23',
         changes: [

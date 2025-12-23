@@ -48,11 +48,18 @@ export const EventCard = memo(({
 
   // 이벤트에 가장 적합한 썸네일 URL을 가져옵니다.
   // 신규 이미지는 WebP 형식으로 업로드되므로, 이 함수는 자동으로 최적화된 이미지 URL을 반환합니다.
-  const thumbnailUrl = getEventThumbnail(
-    event,
-    defaultThumbnailClass,
-    defaultThumbnailEvent,
-  );
+  // 이벤트 List Card용 썸네일 (Prioritize Thumbnail/Medium for better resolution than Micro)
+  // getEventThumbnail prioritizes Micro (100px) which is too small for cards.
+  const thumbnailUrl =
+    event.image_thumbnail ||
+    event.image_medium ||
+    event.image_full ||
+    event.image ||
+    getEventThumbnail(
+      event,
+      defaultThumbnailClass,
+      defaultThumbnailEvent,
+    );
 
   const isOnSelectedDate = useMemo(() => {
     if (!selectedDate) return false;

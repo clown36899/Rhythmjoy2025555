@@ -22,6 +22,24 @@ html {
 
 
 
+/* Sticky Weekday Header */
+.calendar-page-weekday-header {
+    position: fixed;
+    top: 60px;
+    /* 글로벌 헤더 높이 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 650px;
+    z-index: 40;
+    /* BoardTabBar와 동일한 레벨 */
+    background-color: #000000;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+}
+
+/* 요일 헤더가 fixed로 변경됨에 따라 본문이 가려지지 않도록 여백 추가 */
 .calendar-page-main {
     flex: 1;
     display: flex;
@@ -31,14 +49,6 @@ html {
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-}
-
-/* Sticky Weekday Header */
-.calendar-page-weekday-header {
-    /* position: relative; */
-    /* top: 0; */
-    z-index: 10;
-    /* 글로벌 헤더(z-index: 1000)보다 낮게 설정 */
-    background-color: #000000;
-    margin-top: 60px;
+    padding-top: 120px;
+    /* 60px(헤더) + 60px(요일헤더 영역) */
 }

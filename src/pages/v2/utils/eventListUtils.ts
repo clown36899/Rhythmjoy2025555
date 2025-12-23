@@ -148,7 +148,10 @@ export const isEventMatchingFilter = (event: Event, context: FilterContext): boo
     // 장르 필터
     if (selectedGenre) {
         if (!event.genre) return false;
-        if (event.genre.trim().toLowerCase() !== selectedGenre.trim().toLowerCase()) return false;
+        // Support multi-value genres (comma separated)
+        const eventGenres = event.genre.split(',').map(s => s.trim().toLowerCase());
+        const searchGenre = selectedGenre.trim().toLowerCase();
+        if (!eventGenres.includes(searchGenre)) return false;
     }
 
     // 검색어 필터

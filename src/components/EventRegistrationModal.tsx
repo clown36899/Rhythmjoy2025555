@@ -725,7 +725,10 @@ export default memo(function EventRegistrationModal({
       case 'location_link': setLocationLink(value); break;
       case 'description': setDescription(value); break;
       case 'category': setCategory(value); break;
-      case 'genre': setGenre(value); break;
+      case 'genre':
+        console.log(`[EventRegistrationModal] handleDetailUpdate 'genre' called with value:`, value);
+        setGenre(value);
+        break;
       // password case removed
       case 'link1': setLink1(value); break;
       case 'link_name1': setLinkName1(value); break;

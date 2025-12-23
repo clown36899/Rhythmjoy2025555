@@ -89,7 +89,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     event,
     onUpdate,
     onImageUpload,
-    genreSuggestions,
+    // genreSuggestions, // Unused
     className = "",
     // password props removed
 
@@ -150,8 +150,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     const [tempLocationLink, setTempLocationLink] = useState("");
     const [tempTitle, setTempTitle] = useState("");
     const [tempVideoUrl, setTempVideoUrl] = useState("");
-    const [customGenreInput, setCustomGenreInput] = useState("");
-    const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
+    // const [customGenreInput, setCustomGenreInput] = useState(""); // Removed
+    // const [showCustomGenreInput, setShowCustomGenreInput] = useState(false); // Removed
 
     // Repositioning State
     const [isRepositioning, setIsRepositioning] = useState(false);
@@ -227,10 +227,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     const detailImageUrl = event.image || getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
     const hasImage = !!event.image;
 
-    const handleSave = (field: string, value: any) => {
-        onUpdate(field, value);
-        setActiveModal(null);
-    };
+    // handleSave removed // Unused
 
     // Helper to format date string YYYY-MM-DD
     const formatDateStr = (d: Date) => {
@@ -513,8 +510,9 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             className="classification-selector group flex items-center gap-2 cursor-pointer"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setShowCustomGenreInput(false);
-                                setCustomGenreInput("");
+                                e.stopPropagation();
+                                // setShowCustomGenreInput(false); // Removed
+                                // setCustomGenreInput(""); // Removed
                                 setActiveModal('classification');
                             }}
                         >
@@ -558,61 +556,128 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                 <label className="bottom-sheet-label">분류</label>
                                                 <div className="flex gap-3 w-full">
                                                     <button
-                                                        onClick={() => onUpdate('category', 'event')}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            console.log('[EditableEventDetail] Clicked Category: Event');
+                                                            if (event.category !== 'event') {
+                                                                onUpdate('category', 'event');
+                                                                onUpdate('genre', '');
+                                                            }
+                                                        }}
                                                         className={`editable-category-btn ${event.category === 'event' ? 'event-active' : ''}`}
                                                     >
                                                         <span className="editable-category-btn-text">행사</span>
                                                         {event.category === 'event' && <i className="ri-check-line"></i>}
                                                     </button>
                                                     <button
-                                                        onClick={() => onUpdate('category', 'class')}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            console.log('[EditableEventDetail] Clicked Category: Class');
+                                                            if (event.category !== 'class') {
+                                                                onUpdate('category', 'class');
+                                                                onUpdate('genre', '');
+                                                            }
+                                                        }}
                                                         className={`editable-category-btn ${event.category === 'class' ? 'class-active' : ''}`}
                                                     >
                                                         <span className="editable-category-btn-text">강습</span>
                                                         {event.category === 'class' && <i className="ri-check-line"></i>}
                                                     </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            console.log('[EditableEventDetail] Clicked Category: Club');
+                                                            if (event.category !== 'club') {
+                                                                onUpdate('category', 'club');
+                                                                onUpdate('genre', '');
+                                                            }
+                                                        }}
+                                                        className={`editable-category-btn ${event.category === 'club' ? 'club-active' : ''}`}
+                                                        style={{
+                                                            background: event.category === 'club' ? '#10b981' : 'rgba(255, 255, 255, 0.05)',
+                                                            border: event.category === 'club' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
+                                                            color: event.category === 'club' ? 'white' : 'rgba(255, 255, 255, 0.6)'
+                                                        }}
+                                                    >
+                                                        <span className="editable-category-btn-text">동호회</span>
+                                                        {event.category === 'club' && <i className="ri-check-line"></i>}
+                                                    </button>
                                                 </div>
                                             </div>
 
-                                            {/* Genre Section */}
-                                            <label className="bottom-sheet-label">장르</label>
-                                            {showCustomGenreInput ? (
-                                                <div className="genre-input-row">
-                                                    <input
-                                                        value={customGenreInput}
-                                                        onChange={(e) => setCustomGenreInput(e.target.value)}
-                                                        className="bottom-sheet-input"
-                                                        placeholder="직접 입력"
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        onClick={() => handleSave('genre', customGenreInput)}
-                                                        className="bottom-sheet-button"
-                                                        style={{ width: 'auto', whiteSpace: 'nowrap' }}
-                                                    >
-                                                        확인
-                                                    </button>
-                                                </div>
-                                            ) : (
+                                            {/* Genre Section - Only visible if category is selected */}
+                                            {event.category && (
                                                 <>
-                                                    <button
-                                                        onClick={() => setShowCustomGenreInput(true)}
-                                                        className="genre-direct-btn"
-                                                    >
-                                                        <i className="ri-add-circle-line text-xl"></i>
-                                                        직접 입력
-                                                    </button>
-                                                    <div className="genre-grid">
-                                                        {genreSuggestions.map(g => (
-                                                            <button
-                                                                key={g}
-                                                                onClick={() => handleSave('genre', g)}
-                                                                className="genre-grid-btn"
-                                                            >
-                                                                {g}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                    <label className="bottom-sheet-label">장르</label>
+
+                                                    {event.category === 'event' ? (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {['워크샵', '파티', '대회'].map((option) => {
+                                                                const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                                                const isActive = currentGenres.includes(option);
+
+                                                                return (
+                                                                    <button
+                                                                        key={option}
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+
+                                                                            let newGenres = [];
+                                                                            if (isActive) {
+                                                                                newGenres = currentGenres.filter(g => g !== option);
+                                                                            } else {
+                                                                                let temp = [...currentGenres];
+                                                                                // Mutual Exclusivity: '파티' vs '대회'
+                                                                                if (option === '파티') {
+                                                                                    temp = temp.filter(g => g !== '대회');
+                                                                                } else if (option === '대회') {
+                                                                                    temp = temp.filter(g => g !== '파티');
+                                                                                }
+                                                                                newGenres = [...temp, option];
+                                                                            }
+                                                                            onUpdate('genre', newGenres.join(','));
+                                                                        }}
+                                                                        className={`editable-genre-btn ${isActive ? 'active' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="genre-grid">
+                                                            {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집'].map(g => {
+                                                                const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                                                const isActive = currentGenres.includes(g);
+                                                                return (
+                                                                    <button
+                                                                        key={g}
+                                                                        onClick={() => {
+                                                                            // Class: Single Select Logic
+                                                                            if (isActive) {
+                                                                                onUpdate('genre', '');
+                                                                            } else {
+                                                                                onUpdate('genre', g);
+                                                                            }
+                                                                        }}
+                                                                        className={`genre-grid-btn ${isActive ? 'active' : ''}`}
+                                                                        style={{
+                                                                            backgroundColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                                                            borderColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                                                                            color: isActive ? 'white' : 'rgba(255,255,255,0.7)'
+                                                                        }}
+                                                                    >
+                                                                        {g}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
                                         </div>
