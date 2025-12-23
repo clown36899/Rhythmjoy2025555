@@ -76,12 +76,34 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
                 }
 
                 // If RLS failed/returned 0 rows, log and proceed to Edge Function
-                if (rlsError) console.warn("Direct delete failed, falling back to Edge Function", rlsError);
+                if (rlsError) {
+                    // Foreign Key Constraint Check (즐겨찾기 삭제 방지)
+                    if (rlsError.code === '23503') {
+                        console.warn("Delete blocked by foreign key constraint (favorites)", rlsError);
+                        alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.\n\n(참고: 데이터 보호를 위해 삭제가 제한됩니다)");
+                        return; // 🛑 Stop execution prevents fallback force-delete
+                    }
+                    console.warn("Direct delete failed, falling back to Edge Function", rlsError);
+                }
             }
 
-            // 2. Edge Function Fallback (for guests or complex cases)
-            const { error } = await supabase.functions.invoke('delete-event', { body: { eventId, password } });
-            if (error) throw error;
+            // 2. Netlify Function Fallback (handles cascading deletes & storage)
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            const response = await fetch('/.netlify/functions/delete-event', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ eventId, password })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server returned ${response.status}`);
+            }
             alert("이벤트가 삭제되었습니다.");
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
             closeModal();
