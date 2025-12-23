@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.10.7',
+        date: '2025-12-23',
+        changes: [
+            '분석: 이벤트 등록 및 수정 시 상세 트래킹 적용 (제목, ID)',
+            '안정성: 빌보드 네트워크 재접속 대기 시간 최적화 (60초)',
+            '정책: 연습실 등록 가이드 문구 수정 (누구나 등록 가능)'
+        ]
+    },
+    {
         version: '2.10.6',
         date: '2025-12-23',
         changes: [

@@ -238,9 +238,8 @@ export default function GuidePage() {
             </div>
             <h3 className="guide-card-title">연습실 등록</h3>
             <p className="guide-card-description">
-              연습실 등록을 원하시면<br />
-              관리자에게 별도로 문의해 주세요.<br />
-              (현재 운영 중인 연습실만 등록 가능)
+              누구나 자유롭게<br />
+              연습실 정보를 등록하고 홍보할 수 있습니다.
             </p>
           </div>
         </div>

@@ -827,13 +827,13 @@ export default function BillboardPage() {
 
     if (hasError) {
       if (!networkWatchdogTimerRef.current) {
-        log('[워치독] 🚨 네트워크 연결 끊김 감지! 5초 후 재접속(새로고침) 시도 예정...', channelStates);
-        setRealtimeStatus(`⚠️ 연결 끊김! 5초 후 자동복구...`);
+        log('[워치독] 🚨 네트워크 연결 끊김 감지! 60초 후 재접속(새로고침) 시도 예정...', channelStates);
+        setRealtimeStatus(`⚠️ 연결 끊김! 60초 후 자동복구...`);
 
         networkWatchdogTimerRef.current = setTimeout(() => {
-          log('[워치독] 💥 5초 경과: 연결 복구 실패 → 강제 새로고침 실행');
+          log('[워치독] 💥 60초 경과: 연결 복구 실패 → 강제 새로고침 실행');
           window.location.reload();
-        }, 5000); // 5초 대기
+        }, 60000); // 60초 대기
       }
     } else if (allConnected) {
       // 완전 복구: 타이머 있으면 제거

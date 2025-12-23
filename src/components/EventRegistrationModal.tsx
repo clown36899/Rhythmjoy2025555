@@ -8,6 +8,7 @@ import {
 } from "../utils/videoEmbed";
 import { downloadThumbnailAsBlob, getVideoThumbnail } from "../utils/videoThumbnail";
 import { useAuth } from "../contexts/AuthContext";
+import { logEvent } from "../lib/analytics";
 import ImageCropModal from "./ImageCropModal";
 import VenueSelectModal from "../pages/v2/components/VenueSelectModal";
 import "../styles/components/InteractivePreview.css";
@@ -650,12 +651,16 @@ export default memo(function EventRegistrationModal({
           if (resultData && resultData[0]) {
             if (editEventData && onEventUpdated) {
               onEventUpdated(resultData[0] as AppEvent);
+              // Analytics: Log Update
+              logEvent('Event', 'Update', `${title} (ID: ${editEventData.id})`);
             } else {
               const createdEvent = resultData[0] as AppEvent;
               onEventCreated(date || new Date(), createdEvent.id);
               window.dispatchEvent(new CustomEvent("eventCreated", {
                 detail: { event: createdEvent }
               }));
+              // Analytics: Log Create
+              logEvent('Event', 'Create', `${title} (ID: ${createdEvent.id})`);
             }
             onClose();
           }
