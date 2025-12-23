@@ -13,6 +13,7 @@ import ColorSettingsModal from "../components/ColorSettingsModal";
 import DefaultThumbnailSettingsModal from "../components/DefaultThumbnailSettingsModal";
 import BillboardUserManagementModal from "../components/BillboardUserManagementModal";
 import InvitationManagementModal from "../components/InvitationManagementModal";
+import { useOnlineUsers } from "../hooks/useOnlineUsers";
 
 export function MobileShell() {
   const location = useLocation();
@@ -21,6 +22,11 @@ export function MobileShell() {
   const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth, billboardUserId, userProfile, refreshUserProfile } = useAuth();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
+
+  // Online users count (always call hook - React rules)
+  const onlineUsersData = useOnlineUsers();
+
+
   const [calendarView, setCalendarView] = useState<{ year: number; month: number; viewMode: 'month' | 'year' }>({
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
@@ -295,9 +301,18 @@ export function MobileShell() {
             >
               <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1' }}>
-                <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>
-                  댄스빌보드
-                </h1>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                  <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>
+                    댄스빌보드
+                  </h1>
+                  {isAdmin && onlineUsersData.totalCount > 0 && (
+                    <span style={{ fontSize: '10px', color: '#00ff88', fontWeight: 'bold', display: 'flex', gap: '3px' }}>
+                      <span style={{ color: '#00ddff' }}>{onlineUsersData.loggedInUsers?.length || 0}</span>
+                      <span style={{ color: '#888' }}>/</span>
+                      <span style={{ color: '#ffaa00' }}>{onlineUsersData.anonymousCount || 0}</span>
+                    </span>
+                  )}
+                </div>
                 <span style={{ fontSize: '9px', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc' }}>
                   {'swingenjoy.com'.split('').map((char, i) => (
                     <span key={i}>{char}</span>
