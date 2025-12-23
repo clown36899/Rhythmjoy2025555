@@ -6,6 +6,7 @@ import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
 import { getLocalDateString, sortEvents, isEventMatchingFilter, CLUB_LESSON_GENRE } from "../utils/eventListUtils";
 import { useModal } from "../../../hooks/useModal";
+import { logEvent } from "../../../lib/analytics";
 
 // 컴포넌트 리마운트 시에도 순서 유지를 위한 전역 변수
 let globalLastSortedEvents: Event[] = [];

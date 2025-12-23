@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { supabase, validateAndRecoverSession } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
@@ -44,6 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // User Profile State
   const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(null);
+
+  // Deduplication refs
+  const lastProcessedUserId = useRef<string | null>(null);
+  const lastProcessedEvent = useRef<string | null>(null);
+  const profileLoadInProgress = useRef(false);
 
   const cancelAuth = () => {
     console.warn('[AuthContext] 인증 프로세스 수동 취소됨');
@@ -104,6 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 프로필 데이터 가져오기
   const refreshUserProfile = async () => {
     if (!user) return;
+
+    // Prevent duplicate profile loads
+    if (profileLoadInProgress.current) {
+      console.log('[AuthContext] Profile load already in progress, skipping');
+      return;
+    }
+
+    profileLoadInProgress.current = true;
     try {
       const { data } = await supabase
         .from('board_users')
@@ -126,14 +139,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       console.error('[AuthContext] Failed to load user profile:', e);
+    } finally {
+      profileLoadInProgress.current = false;
     }
   };
 
-  // Load profile when user changes
+  // Load profile when user changes (with deduplication)
   useEffect(() => {
     if (user) {
-      refreshUserProfile();
+      // Only refresh if user actually changed
+      if (lastProcessedUserId.current !== user.id) {
+        lastProcessedUserId.current = user.id;
+        refreshUserProfile();
+      }
     } else {
+      lastProcessedUserId.current = null;
       setUserProfile(null);
     }
   }, [user]);
@@ -259,6 +279,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await cleanupStaleSession();
       }
       else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        // Deduplicate: Check if we already processed this user+event
+        const eventKey = `${event}-${currentUser?.id || 'none'}`;
+        if (lastProcessedEvent.current === eventKey) {
+          console.log('[AuthContext] ⏭️ Skipping duplicate event:', eventKey);
+          return; // Skip duplicate processing
+        }
+        lastProcessedEvent.current = eventKey;
+
         console.log('[AuthContext] 👤 세션 설정:', currentUser?.email);
         setSession(session);
         setUser(currentUser);
