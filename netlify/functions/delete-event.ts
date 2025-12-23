@@ -61,14 +61,17 @@ export const handler: Handler = async (event) => {
             });
             const { data: { user } } = await userSupabase.auth.getUser();
 
-            // 관리자 권한 확인
-            if (user?.app_metadata?.claims?.is_admin === true || (adminEmailEnv && user.email === adminEmailEnv)) {
-                isAuthorized = true;
-            }
+            if (user) {
+                // 관리자 권한 확인 (app_metadata.is_admin 또는 이메일 일치)
+                const isAdmin = user.app_metadata?.is_admin === true ||
+                    (adminEmailEnv && user.email === adminEmailEnv);
 
-            // 본인 글 확인
-            if (user && eventData.user_id && user.id === eventData.user_id) {
-                isAuthorized = true;
+                if (isAdmin) isAuthorized = true;
+
+                // 본인 글 확인
+                if (eventData.user_id && user.id === eventData.user_id) {
+                    isAuthorized = true;
+                }
             }
         }
 
