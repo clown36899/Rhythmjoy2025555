@@ -117,7 +117,9 @@ export const parseDateSafe = (dateStr: string) => {
 
 export interface FilterContext {
     selectedCategory?: string;
-    selectedGenre?: string | null;
+    selectedGenre?: string | null; // 행사용
+    selectedClassGenre?: string | null; // 강습용
+    selectedClubGenre?: string | null; // 동호회용
     searchTerm?: string;
     selectedDate?: Date | null;
     targetMonth?: Date; // For month filtering
@@ -132,6 +134,8 @@ export const isEventMatchingFilter = (event: Event, context: FilterContext): boo
     const {
         selectedCategory,
         selectedGenre,
+        selectedClassGenre,
+        selectedClubGenre,
         searchTerm,
         selectedDate,
         targetMonth,
@@ -145,10 +149,19 @@ export const isEventMatchingFilter = (event: Event, context: FilterContext): boo
     }
     if (selectedCategory === "none") return false;
 
-    // 장르 필터
-    if (selectedGenre) {
+    // 장르 필터 (카테고리별 분리)
+    if (event.category === 'class' && selectedClassGenre) {
         if (!event.genre) return false;
-        // Support multi-value genres (comma separated)
+        const eventGenres = event.genre.split(',').map(s => s.trim().toLowerCase());
+        const searchGenre = selectedClassGenre.trim().toLowerCase();
+        if (!eventGenres.includes(searchGenre)) return false;
+    } else if (event.category === 'club' && selectedClubGenre) {
+        if (!event.genre) return false;
+        const eventGenres = event.genre.split(',').map(s => s.trim().toLowerCase());
+        const searchGenre = selectedClubGenre.trim().toLowerCase();
+        if (!eventGenres.includes(searchGenre)) return false;
+    } else if (event.category === 'event' && selectedGenre) {
+        if (!event.genre) return false;
         const eventGenres = event.genre.split(',').map(s => s.trim().toLowerCase());
         const searchGenre = selectedGenre.trim().toLowerCase();
         if (!eventGenres.includes(searchGenre)) return false;

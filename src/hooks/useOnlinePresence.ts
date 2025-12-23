@@ -85,6 +85,21 @@ export function useOnlinePresence() {
             trackUser();
         }
     }, [isSubscribed, user, userProfile]);
+
+    // 3. 탭 활성화 감지 (Page Visibility API)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && isSubscribed) {
+                console.log('[Presence] 👁️ 탭 활성화 - Presence 재등록');
+                // 탭이 다시 활성화되면 강제로 재등록
+                lastTrackedRef.current = null; // 중복 방지 리셋
+                trackUser();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isSubscribed, user, userProfile]);
 }
 
 export function subscribeToPresence(callback: (state: any) => void) {

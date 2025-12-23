@@ -154,7 +154,9 @@ export default function EventList({
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category') ?? 'all';
-  const selectedGenre = searchParams.get('genre');
+  const selectedGenre = searchParams.get('genre'); // 행사용 (기존 유지)
+  const selectedClassGenre = searchParams.get('class_genre'); // 강습용
+  const selectedClubGenre = searchParams.get('club_genre'); // 동호회용
   const selectedEventGenre = searchParams.get('event_genre'); // Separate filter for Active Events
 
 
@@ -1449,8 +1451,7 @@ export default function EventList({
           const startDate = event.start_date || event.date;
           if (!startDate || startDate < today) return false;
 
-          // Genre filter
-          if (selectedGenre && event.genre !== selectedGenre) return false;
+          // Genre filter는 분리 단계에서 적용 (여기서는 제거)
 
           return true;
         });
@@ -1463,7 +1464,7 @@ export default function EventList({
 
         const startDate = event.start_date || event.date;
         if (!startDate || startDate < today) return false;
-        if (selectedGenre && event.genre !== selectedGenre) return false;
+        // Genre filter는 분리 단계에서 적용 (여기서는 제거)
 
         return true;
       });
@@ -1493,8 +1494,7 @@ export default function EventList({
       // Hide classes where start_date is in the past
       if (startDate < today) return false;
 
-      // Genre Filter
-      if (selectedGenre && event.genre !== selectedGenre) return false;
+      // Genre Filter는 분리 단계에서 적용 (여기서는 제거)
 
       return true;
     });
@@ -1519,22 +1519,27 @@ export default function EventList({
     return result;
   }, [events, selectedGenre, highlightEvent]);
 
-  // 분리: 동호회 강습 vs 일반 강습
+  // 분리: 동호회 강습 vs 일반 강습 (각각 장르 필터 적용)
   const { regularClasses, clubLessons } = useMemo(() => {
     const regular: Event[] = [];
     const club: Event[] = [];
 
     futureClasses.forEach(evt => {
-      // Check category instead of genre for club lessons
       if (evt.category === 'club') {
-        club.push(evt);
-      } else {
-        regular.push(evt);
+        // 동호회 장르 필터 적용
+        if (!selectedClubGenre || evt.genre === selectedClubGenre) {
+          club.push(evt);
+        }
+      } else if (evt.category === 'class') {
+        // 강습 장르 필터 적용
+        if (!selectedClassGenre || evt.genre === selectedClassGenre) {
+          regular.push(evt);
+        }
       }
     });
 
     return { regularClasses: regular, clubLessons: club };
-  }, [futureClasses]);
+  }, [futureClasses, selectedClassGenre, selectedClubGenre]);
 
   // 장르 목록 추출 (진행중인 강습만)
   // 장르 목록 추출 (카테고리별 분리)
@@ -1546,6 +1551,7 @@ export default function EventList({
     const today = `${year}-${month}-${day}`;
 
     const classGenres = new Set<string>();
+    const clubGenres = new Set<string>();
     const eventGenres = new Set<string>();
 
     events.forEach(event => {
@@ -1558,6 +1564,8 @@ export default function EventList({
         if (isValid) {
           if (event.category === 'class') {
             classGenres.add(event.genre);
+          } else if (event.category === 'club') {
+            clubGenres.add(event.genre);
           } else if (event.category === 'event') {
             eventGenres.add(event.genre);
           }
@@ -1567,6 +1575,7 @@ export default function EventList({
 
     return {
       class: Array.from(classGenres).sort((a, b) => a.localeCompare(b, "ko")),
+      club: Array.from(clubGenres).sort((a, b) => a.localeCompare(b, "ko")),
       event: Array.from(eventGenres).sort((a, b) => a.localeCompare(b, "ko"))
     };
   }, [events]);
@@ -1623,10 +1632,11 @@ export default function EventList({
     const nextMonth = new Date(currentMonth);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-    // 캐시 키 생성
-    const prevKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}-${selectedWeekday ?? 'all'}`;
-    const currKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}-${selectedWeekday ?? 'all'}`;
-    const nextKey = `${nextMonth.getFullYear()}-${nextMonth.getMonth() + 1}-${selectedCategory}-${selectedGenre || 'all'}-${selectedWeekday ?? 'all'}`;
+    // 캐시 키 생성 (강습/동호회 장르 필터 포함)
+    const genreKey = `${selectedGenre || 'all'}-${selectedClassGenre || 'all'}-${selectedClubGenre || 'all'}`;
+    const prevKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth() + 1}-${selectedCategory}-${genreKey}-${selectedWeekday ?? 'all'}`;
+    const currKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth() + 1}-${selectedCategory}-${genreKey}-${selectedWeekday ?? 'all'}`;
+    const nextKey = `${nextMonth.getFullYear()}-${nextMonth.getMonth() + 1}-${selectedCategory}-${genreKey}-${selectedWeekday ?? 'all'}`;
 
     // 각 달의 이벤트 필터링 함수
     const filterByMonth = (targetMonth: Date) => {
@@ -1634,6 +1644,8 @@ export default function EventList({
         return isEventMatchingFilter(event, {
           selectedCategory,
           selectedGenre,
+          selectedClassGenre,
+          selectedClubGenre,
           searchTerm,
           selectedDate,
           targetMonth,
@@ -1656,6 +1668,8 @@ export default function EventList({
     currentMonth,
     selectedCategory,
     selectedGenre,
+    selectedClassGenre,
+    selectedClubGenre,
     searchTerm,
     selectedDate,
     filteredEvents,
@@ -3043,27 +3057,27 @@ export default function EventList({
                   )}
                 </div>
 
-                {allGenres.length > 0 && (
+                {allGenresStructured.class.length > 0 && (
                   <div className="evt-genre-tab-container">
                     <button
                       onClick={() => {
                         const params = new URLSearchParams(searchParams);
-                        params.delete('genre');
+                        params.delete('class_genre');
                         setSearchParams(params);
                       }}
-                      className={`evt-genre-tab ${!selectedGenre ? 'active' : ''}`}
+                      className={`evt-genre-tab ${!selectedClassGenre ? 'active' : ''}`}
                     >
                       전체
                     </button>
-                    {allGenres.filter(genre => genre !== '동호회강습').map(genre => (
+                    {allGenresStructured.class.map(genre => (
                       <button
                         key={genre}
                         onClick={() => {
                           const params = new URLSearchParams(searchParams);
-                          params.set('genre', genre);
+                          params.set('class_genre', genre);
                           setSearchParams(params);
                         }}
-                        className={`evt-genre-tab ${selectedGenre === genre ? 'active' : ''}`}
+                        className={`evt-genre-tab ${selectedClassGenre === genre ? 'active' : ''}`}
                       >
                         {genre}
                       </button>
@@ -3107,6 +3121,34 @@ export default function EventList({
                     <span>동호회 강습</span>
                     <span className="evt-v2-count">{clubLessons.length}</span>
                   </div>
+
+                  {allGenresStructured.club.length > 0 && (
+                    <div className="evt-genre-tab-container">
+                      <button
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams);
+                          params.delete('club_genre');
+                          setSearchParams(params);
+                        }}
+                        className={`evt-genre-tab ${!selectedClubGenre ? 'active' : ''}`}
+                      >
+                        전체
+                      </button>
+                      {allGenresStructured.club.map(genre => (
+                        <button
+                          key={genre}
+                          onClick={() => {
+                            const params = new URLSearchParams(searchParams);
+                            params.set('club_genre', genre);
+                            setSearchParams(params);
+                          }}
+                          className={`evt-genre-tab ${selectedClubGenre === genre ? 'active' : ''}`}
+                        >
+                          {genre}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="evt-v2-horizontal-scroll">
                     <div className="evt-spacer-5"></div>

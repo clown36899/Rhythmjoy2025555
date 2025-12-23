@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.12.3',
+        date: '2025-12-24',
+        changes: [
+            '강습/동호회 장르 필터 완전 분리: 각 섹션에 독립 탭 메뉴 추가',
+            'URL 파라미터 분리: class_genre, club_genre',
+            '사용자 경험 개선: 강습과 동호회를 독립적으로 필터링 가능',
+            '탭 활성화 시 실시간 접속자 자동 재등록 (Page Visibility API)'
+        ]
+    },
+    {
         version: '2.12.2',
         date: '2025-12-24',
         changes: [
