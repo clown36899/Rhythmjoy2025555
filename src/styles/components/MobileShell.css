@@ -322,11 +322,8 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  /* height: 60px; - safe area 적용을 위해 제거 */
-  height: calc(60px + env(safe-area-inset-top));
-  /* safe area 만큼 높이 확장 */
-  padding-top: env(safe-area-inset-top);
-  /* safe area 만큼 상단 여백 추가 */
+  height: calc(60px + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   background-color: #000000;
   z-index: 49;
   display: flex;
