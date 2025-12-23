@@ -14,6 +14,7 @@ import DefaultThumbnailSettingsModal from "../components/DefaultThumbnailSetting
 import BillboardUserManagementModal from "../components/BillboardUserManagementModal";
 import InvitationManagementModal from "../components/InvitationManagementModal";
 import { useOnlineUsers } from "../hooks/useOnlineUsers";
+import { useTotalUserCount } from "../hooks/useTotalUserCount";
 
 export function MobileShell() {
   const location = useLocation();
@@ -25,6 +26,8 @@ export function MobileShell() {
 
   // Online users count (always call hook - React rules)
   const onlineUsersData = useOnlineUsers();
+  // Total user count
+  const totalUserCount = useTotalUserCount();
 
 
   const [calendarView, setCalendarView] = useState<{ year: number; month: number; viewMode: 'month' | 'year' }>({
@@ -310,6 +313,12 @@ export function MobileShell() {
                       <span style={{ color: '#00ddff' }}>{onlineUsersData.loggedInUsers?.length || 0}</span>
                       <span style={{ color: '#888' }}>/</span>
                       <span style={{ color: '#ffaa00' }}>{onlineUsersData.anonymousCount || 0}</span>
+
+                      {totalUserCount !== null && (
+                        <span style={{ fontSize: '10px', color: '#aaa', fontWeight: 'normal', marginLeft: '4px' }}>
+                          ({totalUserCount})
+                        </span>
+                      )}
                     </span>
                   )}
 

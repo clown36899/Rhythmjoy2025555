@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.11.1',
+        date: '2025-12-23',
+        changes: [
+            'UX 개선: 모바일 쉘 헤더 아이콘 및 레이아웃 최적화',
+            '기능 개선: 관리자용 실시간 접속자 및 총 가입자 수 통합 표시',
+            '버그 수정: 검색, 햄버거 메뉴, 바텀 네비게이션 동작 안정화'
+        ]
+    },
+    {
         version: '2.11.0',
         date: '2025-12-23',
         changes: [
