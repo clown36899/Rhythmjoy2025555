@@ -615,7 +615,7 @@ export default function EventList({
   const [editOriginalImageUrl, setEditOriginalImageUrl] = useState<string | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const [editPreviewMode, setEditPreviewMode] = useState<'detail' | 'card' | 'billboard'>('detail');
-  const [editTargetField, setEditTargetField] = useState<string | null>(null);
+
 
   const { defaultThumbnailClass, defaultThumbnailEvent } =
     useDefaultThumbnail();
@@ -1754,7 +1754,7 @@ export default function EventList({
 
   const handleEditClick = (event: Event, arg?: React.MouseEvent | string) => {
     const e = typeof arg === 'object' ? arg : undefined;
-    const field = typeof arg === 'string' ? arg : null;
+
     e?.stopPropagation();
 
     // 1. 로그인 체크
@@ -1807,7 +1807,6 @@ export default function EventList({
       x: (event as any).image_position_x || 0,
       y: (event as any).image_position_y || 0
     });
-    setEditTargetField(field);
     setEditOriginalImageUrl(event.image || null);
     setEditOriginalImageForCrop(null);
 

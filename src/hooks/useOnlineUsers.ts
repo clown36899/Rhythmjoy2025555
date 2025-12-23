@@ -45,7 +45,7 @@ export function useOnlineUsers(): OnlineUsersData {
             });
         });
 
-        return () => unsubscribe();
+        return () => { unsubscribe(); };
     }, []); // 빈 배열: 마운트 시 한 번만 실행 (안전)
 
     return onlineUsers;

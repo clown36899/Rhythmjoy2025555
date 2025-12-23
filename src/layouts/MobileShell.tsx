@@ -20,8 +20,8 @@ export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth, billboardUserId, userProfile, refreshUserProfile } = useAuth();
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth, userProfile, refreshUserProfile } = useAuth();
+
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
 
   // Online users count (always call hook - React rules)
@@ -47,7 +47,7 @@ export function MobileShell() {
   const [showDefaultThumbnailSettings, setShowDefaultThumbnailSettings] = useState(false);
   const [showBillboardUserManagement, setShowBillboardUserManagement] = useState(false);
   const [showInvitationManagement, setShowInvitationManagement] = useState(false);
-  const [showCopySuccessModal, setShowCopySuccessModal] = useState(false);
+
 
   // Helper for login guard
   const handleProtectedAction = async (action: () => void) => {
@@ -110,12 +110,7 @@ export function MobileShell() {
     return () => window.removeEventListener('requestProtectedAction' as any, handleRequest);
   }, [user]);
 
-  // Reopen Admin Settings Listener
-  useEffect(() => {
-    const handleReopenAdminSettings = () => setTimeout(() => setShowAdminPanel(true), 100);
-    window.addEventListener('reopenAdminSettings', handleReopenAdminSettings);
-    return () => window.removeEventListener('reopenAdminSettings', handleReopenAdminSettings);
-  }, []);
+
 
   // Side Drawer Listener
   useEffect(() => {
@@ -751,23 +746,7 @@ export function MobileShell() {
         onClose={() => setShowInvitationManagement(false)}
       />
 
-      {/* Copy Success Modal */}
-      {showCopySuccessModal && (
-        <div className="header-modal-overlay-super" style={{ zIndex: 9999 }}>
-          <div className="header-modal header-modal-shadow">
-            <div className="header-success-container">
-              <div className="header-success-icon-wrapper">
-                <div className="header-success-icon-circle header-success-icon-green">
-                  <i className="ri-check-line header-icon-3xl" style={{ color: 'white' }}></i>
-                </div>
-              </div>
-              <p className="header-success-text-lg">
-                빌보드 주소가 복사되었습니다!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Global Auth Loading Overlay (Blocks entire UI) */}
       <GlobalLoadingOverlay
