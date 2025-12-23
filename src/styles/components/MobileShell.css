@@ -322,8 +322,7 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  height: calc(60px + env(safe-area-inset-top, 0px));
-  padding-top: env(safe-area-inset-top, 0px);
+  height: 60px;
   background-color: #000000;
   z-index: 49;
   display: flex;

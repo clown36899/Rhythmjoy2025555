@@ -14,8 +14,7 @@
 
   /* height: 100vh; */
   /* overflow-y: auto; */
-  /* Fixed 헤더 아래 컨텐츠가 보이도록 padding 추가 */
-  padding-top: calc(60px + env(safe-area-inset-top, 0px));
+  padding-top: 60px;
   padding-bottom: 142px;
 
 }
