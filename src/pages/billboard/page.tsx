@@ -9,6 +9,7 @@ import type {
 } from "../../lib/supabase";
 import { parseVideoUrl } from "../../utils/videoEmbed";
 import { log, warn } from "./utils/logger";
+import { logEvent } from "../../lib/analytics";
 import { shuffleArray } from "./utils/helpers";
 import type { YouTubePlayerHandle } from "./types";
 import YouTubePlayer from "./components/YouTubePlayer";
@@ -832,6 +833,7 @@ export default function BillboardPage() {
 
         networkWatchdogTimerRef.current = setTimeout(() => {
           log('[워치독] 💥 60초 경과: 연결 복구 실패 → 강제 새로고침 실행');
+          logEvent('Billboard', 'Auto Reload', `Watcher Timeout - ${billboardUser?.name || userId}`);
           window.location.reload();
         }, 60000); // 60초 대기
       }
@@ -906,6 +908,9 @@ export default function BillboardPage() {
         .single();
       if (userError) throw new Error("빌보드 사용자를 찾을 수 없습니다.");
       setBillboardUser(user);
+
+      // Analytics: 빌보드 로드 기록 (범인 색출용)
+      logEvent('Billboard', 'Start', `${user.name} (${userId})`);
 
       const { data: userSettings, error: settingsError } = await supabase
         .from("billboard_user_settings")

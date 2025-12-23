@@ -38,10 +38,11 @@ const isBillboardPage = () => {
  * 앱 시작 시 한 번만 호출
  * 실제 서비스 도메인(swingenjoy.com, swingandjoy.com)에서만 초기화
  */
+// Google Analytics 초기화
 export const initGA = () => {
-    // 1. 개발 환경/빌보드 페이지 차단 (기존 로직 유지)
-    if (isDevelopment() || isBillboardPage()) {
-        console.log('[Analytics] Analytics disabled (Dev/Billboard)');
+    // 1. 개발 환경 차단 (빌보드는 모니터링을 위해 허용하되, PageView는 아래 logPageView에서 차단)
+    if (isDevelopment()) {
+        console.log('[Analytics] Analytics disabled (Dev)');
         return;
     }
 
@@ -73,6 +74,12 @@ export const initGA = () => {
  * @param title - 페이지 제목 (선택사항, 가상 페이지뷰 시 사용)
  */
 export const logPageView = (path: string, title?: string) => {
+    // 빌보드 페이지는 PageView 수집 제외 (별도 모니터링 이벤트만 수집)
+    if (isBillboardPage()) {
+        console.log('[Analytics] PageView skipped (Billboard)');
+        return;
+    }
+
     if (MEASUREMENT_ID) {
         ReactGA.send({ hitType: 'pageview', page: path, title: title });
         console.log('[Analytics] Page view:', { path, title });
