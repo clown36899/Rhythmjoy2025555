@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { useEffect, useState } from 'react';
+import { globalPresenceChannel } from './useOnlinePresence';
 
 interface OnlineUser {
     session_id: string;
@@ -26,40 +26,44 @@ export function useOnlineUsers(): OnlineUsersData {
         anonymousCount: 0,
         totalCount: 0,
     });
-    const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
     useEffect(() => {
-        const channel = supabase.channel('online-users');
-        channelRef.current = channel;
+        console.log('[OnlineUsers] Starting presence polling...');
 
-        channel
-            .on('presence', { event: 'sync' }, () => {
-                const state = channel.presenceState<OnlineUser>();
+        const updatePresenceState = () => {
+            if (!globalPresenceChannel) return;
 
-                // Extract all users from presence state
-                const allUsers: OnlineUser[] = [];
-                Object.values(state).forEach((presences) => {
-                    presences.forEach((presence) => {
-                        allUsers.push(presence);
-                    });
+            const state = globalPresenceChannel.presenceState<OnlineUser>();
+
+            // Extract all users from presence state
+            const allUsers: OnlineUser[] = [];
+            Object.values(state).forEach((presences) => {
+                presences.forEach((presence) => {
+                    allUsers.push(presence);
                 });
+            });
+            // console.log('[OnlineUsers] All users:', allUsers); // Debug only
 
-                // Separate logged-in users and anonymous users
-                const loggedIn = allUsers.filter((u) => u.type === 'logged_in');
-                const anonymous = allUsers.filter((u) => u.type === 'anonymous');
+            // Separate logged-in users and anonymous users
+            const loggedIn = allUsers.filter((u) => u.type === 'logged_in');
+            const anonymous = allUsers.filter((u) => u.type === 'anonymous');
 
-                setOnlineUsers({
-                    loggedInUsers: loggedIn,
-                    anonymousCount: anonymous.length,
-                    totalCount: allUsers.length,
-                });
-            })
-            .subscribe();
+            setOnlineUsers({
+                loggedInUsers: loggedIn,
+                anonymousCount: anonymous.length,
+                totalCount: allUsers.length,
+            });
+        };
+
+        // Initial update
+        updatePresenceState();
+
+        // Poll every 2 seconds for updates
+        const interval = setInterval(updatePresenceState, 2000);
 
         return () => {
-            if (channelRef.current) {
-                channelRef.current.unsubscribe();
-            }
+            console.log('[OnlineUsers] Stopping presence polling');
+            clearInterval(interval);
         };
     }, []);
 
