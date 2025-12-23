@@ -6,7 +6,7 @@ import './BoardManagementModal.css'; // Use dedicated CSS
 interface BoardManagementModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onUpdate: () => void;
+    onUpdate?: () => void;
 }
 
 interface ManageableCategory {
@@ -118,7 +118,7 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
             <div className="bmm-container" onClick={e => e.stopPropagation()}>
                 <div className="bmm-header">
                     <h2 className="bmm-title">게시판 관리</h2>
-                    <button onClick={() => { onUpdate(); onClose(); }} className="bmm-close-btn">
+                    <button onClick={() => { if (onUpdate) onUpdate(); onClose(); }} className="bmm-close-btn">
                         <i className="ri-close-line" style={{ fontSize: '20px' }}></i>
                     </button>
                 </div>

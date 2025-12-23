@@ -12,7 +12,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  z-index: 4000;
+  z-index: 12000;
   padding: 1rem;
   padding-top: 2.5rem;
   overflow-y: auto;
@@ -183,7 +183,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 4000;
+  z-index: 12000;
   padding: 1rem;
 }
 
@@ -323,7 +323,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  z-index: 4000;
+  z-index: 12000;
   padding: 1rem;
   padding-top: 2.5rem;
   overflow-y: auto;

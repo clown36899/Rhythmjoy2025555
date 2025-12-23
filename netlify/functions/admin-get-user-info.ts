@@ -13,7 +13,7 @@ export const handler: Handler = async (event) => {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
     const adminEmail = process.env.VITE_ADMIN_EMAIL;
     // 카카오 Client ID (REST API Key) - 환경변수 설정 필수!
-    const kakaoClientId = process.env.KAKAO_CLIENT_ID;
+    const kakaoClientId = process.env.KAKAO_CLIENT_ID || '4f36c4e35ab80c9bff7850e63341daa6';
 
     if (!supabaseUrl || !supabaseServiceKey) return { statusCode: 500, body: 'Config Error' };
 

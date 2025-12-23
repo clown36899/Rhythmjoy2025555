@@ -38,6 +38,7 @@ export const prefetchCalendarPage = () => import('../pages/calendar/page');
 const CalendarPage = lazy(prefetchCalendarPage);
 
 const SecureMembersPage = lazy(() => import("../pages/admin/secure-members/page"));
+const AdminFavoritesPage = lazy(() => import("../pages/admin/favorites/page"));
 const KakaoCallbackPage = lazy(() => import("../pages/auth/kakao-callback/page"));
 const EventPhotoFinderPage = lazy(() => import("../pages/event-photo-finder/page"));
 
@@ -46,6 +47,7 @@ export const routes: RouteObject[] = [
         element: <MobileShell />,
         children: [
             { path: "admin/secure-members", element: <SecureMembersPage />, },
+            { path: "admin/favorites", element: <AdminFavoritesPage />, },
             { path: '/', element: <Navigate to="/v2" replace /> },
             { path: '/v2', element: <HomePageV2 /> },
             { path: '/social', element: <SocialPage /> },

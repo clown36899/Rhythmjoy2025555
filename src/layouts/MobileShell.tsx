@@ -441,16 +441,7 @@ export function MobileShell() {
             <div className="shell-top-bar-content">
               {/* Left Side: Admin Button + Calendar Controls */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                {/* Admin Button - 이벤트 페이지에서만 표시 */}
-                {isAdmin && (
-                  <button
-                    onClick={() => setShowAdminPanel(!showAdminPanel)}
-                    className="shell-admin-btn-topbar"
-                  >
-                    <i className={`${showAdminPanel ? 'ri-close-line' : 'ri-settings-3-line'}`}></i>
-                    <span>{showAdminPanel ? '닫기' : '관리'}</span>
-                  </button>
-                )}
+
 
                 {/* Calendar Search Button - 전체 달력 모드에서만 표시 */}
                 {calendarMode === "fullscreen" && (
@@ -633,112 +624,7 @@ export function MobileShell() {
 
         <BottomNavigation />
 
-        {/* 관리자 패널 - 빠른 접근 */}
-        {isAdmin && showAdminPanel && (
-          <div className="shell-admin-panel">
-            <div className="shell-admin-panel-title">관리자 패널</div>
 
-
-
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('openBillboardSettings'));
-              }}
-              className="shell-admin-panel-btn"
-            >
-              <i className="ri-image-2-line"></i>
-              댄스빌보드 설정
-            </button>
-
-            <button
-              onClick={() => {
-                setShowDefaultThumbnailSettings(true);
-              }}
-              className="shell-admin-panel-btn"
-            >
-              <i className="ri-image-line"></i>
-              기본 썸네일 설정
-            </button>
-
-            <button
-              onClick={() => {
-                setShowColorSettings(true);
-              }}
-              className="shell-admin-panel-btn"
-            >
-              <i className="ri-palette-line"></i>
-              색상 설정
-            </button>
-
-            {isAdmin && !billboardUserId && (
-              <>
-                <button
-                  onClick={() => {
-                    setShowBillboardUserManagement(true);
-                  }}
-                  className="shell-admin-panel-btn"
-                >
-                  <i className="ri-user-settings-line"></i>
-                  빌보드 회원 관리
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowInvitationManagement(true);
-                  }}
-                  className="shell-admin-panel-btn"
-                >
-                  <i className="ri-mail-send-line"></i>
-                  초대 관리
-                </button>
-              </>
-            )}
-
-            <button
-              onClick={() => {
-                navigate('/board');
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('openBoardUserManagement'));
-                }, 100);
-              }}
-              className="shell-admin-panel-btn"
-            >
-              <i className="ri-group-line"></i>
-              게시판 회원 관리
-            </button>
-
-            <button
-              onClick={() => {
-                navigate('/board');
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('openPrefixManagement'));
-                }, 100);
-              }}
-              className="shell-admin-panel-btn"
-            >
-              <i className="ri-price-tag-3-line"></i>
-              머릿말 관리
-            </button>
-
-            {/* Sub Admin specific actions like Copy/Share can be added here if needed */}
-            {billboardUserId && (
-              <button
-                onClick={() => {
-                  const billboardUrl = `https://swingenjoy.com/billboard/${billboardUserId}`;
-                  navigator.clipboard.writeText(billboardUrl);
-                  setShowCopySuccessModal(true);
-                  setTimeout(() => setShowCopySuccessModal(false), 1500);
-                  setShowAdminPanel(false);
-                }}
-                className="shell-admin-panel-btn"
-              >
-                <i className="ri-link"></i>
-                내 빌보드 주소 복사
-              </button>
-            )}
-
-          </div>
-        )}
       </div>
       {/* Global Profile Edit Modal */}
       {showProfileEditModal && user && userProfile && (

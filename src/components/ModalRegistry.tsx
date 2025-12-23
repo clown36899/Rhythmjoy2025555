@@ -53,6 +53,8 @@ import AdminUserInfoModal from '../components/AdminUserInfoModal';
 import BillboardUserManagementModal from '../components/BillboardUserManagementModal';
 import BoardPrefixManagementModal from '../components/BoardPrefixManagementModal';
 import BoardUserManagementModal from '../components/BoardUserManagementModal';
+import AdminFavoritesModal from '../components/AdminFavoritesModal';
+import AdminSecureMembersModal from '../components/AdminSecureMembersModal';
 
 /**
  * 모든 모달 컴포넌트를 ID로 매핑
@@ -111,6 +113,8 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'billboardUserManagement': BillboardUserManagementModal,
     'boardPrefixManagement': BoardPrefixManagementModal,
     'boardUserManagement': BoardUserManagementModal,
+    'adminFavorites': AdminFavoritesModal,
+    'adminSecureMembers': AdminSecureMembersModal,
 };
 
 /**

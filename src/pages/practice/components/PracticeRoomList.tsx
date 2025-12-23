@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
+import { logEvent } from "../../../lib/analytics";
 import "./PracticeRoomList.css";
 
 interface PracticeRoom {
@@ -101,6 +102,14 @@ export default function PracticeRoomList({
     }
 
     const isFav = favoritePracticeRoomIds.has(roomId);
+
+    // Analytics: 찜 추적 (관리자용)
+    const targetRoom = rooms.find(r => r.id === roomId);
+    if (targetRoom) {
+      const action = isFav ? 'Remove' : 'Add';
+      const userLabel = user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown';
+      logEvent('Favorite', `Practice ${action}`, `${targetRoom.name} (by ${userLabel})`);
+    }
 
     // Optimistic Update
     setFavoritePracticeRoomIds(prev => {

@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { useModal } from '../hooks/useModal';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
@@ -22,7 +23,20 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const navigate = useNavigate();
     const { user, billboardUserName, signOut, userProfile, isAdmin } = useAuth();
     const [isBoardExpanded, setIsBoardExpanded] = useState(true); // 기본 펼침 상태
+    const [isAdminExpanded, setIsAdminExpanded] = useState(false); // 관리자 메뉴 기본 접힘 상태
     const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
+    const [memberCount, setMemberCount] = useState<number | null>(null);
+
+    // Modals
+    const boardManagementModal = useModal('boardManagement');
+    const boardPrefixModal = useModal('boardPrefixManagement');
+    const billboardUserModal = useModal('billboardUserManagement');
+    const adminBillboardModal = useModal('adminBillboard');
+    const adminFavoritesModal = useModal('adminFavorites');
+    const adminSecureMembersModal = useModal('adminSecureMembers');
+    const thumbnailModal = useModal('defaultThumbnailSettings');
+    const colorSettingsModal = useModal('colorSettings');
+    const invitationModal = useModal('invitationManagement');
 
     // Derive display values from userProfile or fallback to user metadata
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
@@ -47,6 +61,27 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
             }
         } catch (error) {
             console.error('Failed to load board categories:', error);
+        }
+    };
+
+    // Fetch member count for admins
+    useEffect(() => {
+        if (isAdmin && isOpen) {
+            fetchMemberCount();
+        }
+    }, [isAdmin, isOpen]);
+
+    const fetchMemberCount = async () => {
+        try {
+            const { count, error } = await supabase
+                .from('board_users')
+                .select('*', { count: 'exact', head: true });
+
+            if (!error && count !== null) {
+                setMemberCount(count);
+            }
+        } catch (e) {
+            console.error('Failed to fetch member count', e);
         }
     };
 
@@ -155,6 +190,63 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 <span>내가 등록한 행사</span>
                             </div> 
                             */}
+                            <div className="drawer-divider"></div>
+                        </>
+                    )}
+
+                    {/* 1.5 관리자 메뉴 (관리자 전용) - 접힘/펼침 가능 */}
+                    {isAdmin && (
+                        <>
+                            <div
+                                className="drawer-menu-item expandable"
+                                onClick={() => setIsAdminExpanded(!isAdminExpanded)}
+                                style={{ color: '#ef4444' }}
+                            >
+                                <i className="ri-admin-line"></i>
+                                <span>ADMIN ONLY</span>
+                                <i className={`ri-arrow-${isAdminExpanded ? 'down' : 'right'}-s-line drawer-expand-icon`}></i>
+                            </div>
+
+                            {isAdminExpanded && (
+                                <div className="drawer-submenu">
+                                    <div className="drawer-submenu-item" onClick={() => { adminFavoritesModal.open(); }}>
+                                        <i className="ri-heart-pulse-line"></i>
+                                        <span>즐겨찾기 현황</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { adminSecureMembersModal.open(); }}>
+                                        <i className="ri-shield-user-line"></i>
+                                        <span>회원관리 {memberCount !== null ? `(${memberCount}명)` : ''}</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { boardManagementModal.open(); }}>
+                                        <i className="ri-layout-masonry-line"></i>
+                                        <span>게시판 관리</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { boardPrefixModal.open(); }}>
+                                        <i className="ri-text-spacing"></i>
+                                        <span>머릿말 관리</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { billboardUserModal.open(); }}>
+                                        <i className="ri-user-settings-line"></i>
+                                        <span>빌보드 회원 관리</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { adminBillboardModal.open(); }}>
+                                        <i className="ri-image-2-line"></i>
+                                        <span>댄스빌보드 설정</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { thumbnailModal.open(); }}>
+                                        <i className="ri-image-line"></i>
+                                        <span>기본 썸네일 설정</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { colorSettingsModal.open(); }}>
+                                        <i className="ri-palette-line"></i>
+                                        <span>색상 설정</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { invitationModal.open(); }}>
+                                        <i className="ri-mail-send-line"></i>
+                                        <span>초대 관리</span>
+                                    </div>
+                                </div>
+                            )}
                             <div className="drawer-divider"></div>
                         </>
                     )}

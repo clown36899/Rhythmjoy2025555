@@ -300,7 +300,23 @@ export default function EventList({
       return;
     }
 
+    // 1. 이벤트 정보 찾기
+    const targetEvent = events.find(e => e.id === eventId);
+    if (!targetEvent) return;
+
+    // 2. 현재 상태 확인 및 Optimistic Update
     const isFav = favoriteEventIds.has(eventId);
+    const action = isFav ? 'Remove' : 'Add';
+
+    // 3. Analytics Tracking (나만 볼 수 있음)
+    // "누가" 찜했는지 기록: "이벤트명 (by 닉네임/ID)"
+    const userLabel = user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown';
+    logEvent('Favorite', `Event ${action}`, `${targetEvent.title} (by ${userLabel})`);
+
+    // 4. DB Update Logic (기존 유지)
+
+
+
 
     // Optimistic Update
     setFavoriteEventIds(prev => {

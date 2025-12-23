@@ -2,16 +2,17 @@ import { createPortal } from "react-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
+import { useBillboardSettings } from "../../../hooks/useBillboardSettings";
 import "../styles/AdminBillboardModal.css";
 
 interface AdminBillboardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  settings: BillboardSettings;
-  onUpdateSettings: (updates: Partial<BillboardSettings>) => void;
-  onResetSettings: () => void;
-  adminType: "super" | "sub" | null;
-  billboardUserId: string | null;
+  settings?: BillboardSettings;
+  onUpdateSettings?: (updates: Partial<BillboardSettings>) => void;
+  onResetSettings?: () => void;
+  adminType?: "super" | "sub" | null;
+  billboardUserId?: string | null;
   billboardUserName?: string;
 }
 
@@ -40,13 +41,21 @@ interface SimpleEvent {
 export default function AdminBillboardModal({
   isOpen,
   onClose,
-  settings,
-  onUpdateSettings,
-  onResetSettings,
-  adminType,
-  billboardUserId,
+  settings: propSettings,
+  onUpdateSettings: propOnUpdateSettings,
+  onResetSettings: propOnResetSettings,
+  adminType = "super",
+  billboardUserId = null,
   billboardUserName = "",
 }: AdminBillboardModalProps) {
+  // Hook을 사용하여 설정 로드 (props가 없을 때)
+  const hookResult = useBillboardSettings();
+
+  // Props가 제공되면 사용, 아니면 hook 사용
+  const settings = propSettings || hookResult.settings;
+  const onUpdateSettings = propOnUpdateSettings || hookResult.updateSettings;
+  const onResetSettings = propOnResetSettings || hookResult.resetSettings;
+
   const [userSettings, setUserSettings] = useState<BillboardUserSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<SimpleEvent[]>([]);

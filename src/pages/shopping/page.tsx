@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { logEvent } from '../../lib/analytics';
 import { useModal } from '../../hooks/useModal';
 import ShopCard from './components/ShopCard';
 import './shopping.css';
@@ -121,6 +122,14 @@ export default function ShoppingPage() {
     }
 
     const isFav = favoriteShopIds.has(shopId);
+
+    // Analytics: 찜 추적 (관리자용)
+    const targetShop = shops.find(s => s.id === shopId);
+    if (targetShop) {
+      const action = isFav ? 'Remove' : 'Add';
+      const userLabel = user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown';
+      logEvent('Favorite', `Shop ${action}`, `${targetShop.name} (by ${userLabel})`);
+    }
 
     // Optimistic Update
     setFavoriteShopIds(prev => {
