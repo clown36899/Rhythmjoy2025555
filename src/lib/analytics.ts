@@ -168,3 +168,31 @@ export const setUserProperties = (properties: Record<string, string | number | b
         console.log('[Analytics] User properties set:', properties);
     }
 };
+
+/**
+ * User ID 설정 (로그인한 사용자 추적)
+ * 여러 기기/브라우저에서도 동일한 사용자로 인식
+ * @param userId - 사용자 ID (Supabase User ID), null이면 제거
+ */
+export const setUserId = (userId: string | null) => {
+    // 개발 환경에서는 콘솔 로그만 출력
+    if (isDevelopment()) {
+        if (userId) {
+            console.log('[Analytics] User ID set (Dev only):', userId);
+        } else {
+            console.log('[Analytics] User ID cleared (Dev only)');
+        }
+        return;
+    }
+
+    if (MEASUREMENT_ID) {
+        if (userId) {
+            ReactGA.set({ userId: userId });
+            console.log('[Analytics] User ID set:', userId);
+        } else {
+            // 로그아웃 시 User ID 제거
+            ReactGA.set({ userId: undefined });
+            console.log('[Analytics] User ID cleared');
+        }
+    }
+};

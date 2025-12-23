@@ -4,7 +4,7 @@ import { supabase, validateAndRecoverSession } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 
-import { setUserProperties, logEvent } from '../lib/analytics';
+import { setUserProperties, logEvent, setUserId } from '../lib/analytics';
 
 
 
@@ -87,6 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setIsAdmin(false);
     setUserProfile(null);
+    // User ID 제거 (세션 정리 시)
+    setUserId(null);
 
     console.log('[AuthContext] ✅ Stale session cleaned up');
 
@@ -212,12 +214,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(recoveredSession);
           setUser(currentUser);
           setIsAdmin(adminStatus);
+
+          // User ID 설정 (초기 세션 복구 시)
+          if (currentUser) {
+            setUserId(currentUser.id);
+          }
         } else {
           // 세션이 없거나 복구 실패 시
           console.log('[AuthContext] ℹ️ No valid session found or recovery failed');
           setSession(null);
           setUser(null);
           setIsAdmin(false);
+          // User ID 제거 (세션 복구 실패 시)
+          setUserId(null);
         }
 
         setLoading(false);
@@ -265,6 +274,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setIsAdmin(false);
         setUserProfile(null); // Clear profile
+        // User ID 제거
+        setUserId(null);
       }
       // TOKEN_REFRESHED 처리
       else if (event === 'TOKEN_REFRESHED') {
@@ -272,6 +283,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(currentUser);
         setIsAdmin(adminStatus);
+
+        // User ID 재설정 (토큰 갱신 시에도 유지)
+        if (currentUser) {
+          setUserId(currentUser.id);
+        }
       }
       // 토큰 갱신 실패 처리 (User updated but no session)
       else if (event === 'USER_UPDATED' && !session) {
@@ -292,22 +308,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         setIsAdmin(adminStatus);
 
-        // Analytics: Set user properties
+        // Analytics: Set user properties and User ID
         if (currentUser) {
           setUserProperties({
             user_type: adminStatus ? 'admin' : 'user',
             login_status: 'logged_in'
           });
+          // User ID 설정 (여러 기기에서 동일 사용자 추적)
+          setUserId(currentUser.id);
+
           if (event === 'SIGNED_IN') {
             logEvent('Auth', 'Login', 'Success');
           }
         }
       } else {
-        // 기타 이벤트
+        // 기타 이벤트 (안전장치)
         console.log('[AuthContext] 📝 기타 이벤트 처리');
         setSession(session);
         setUser(currentUser);
         setIsAdmin(adminStatus);
+
+        // User ID 설정 (기타 이벤트에서도 안전하게 처리)
+        if (currentUser) {
+          setUserId(currentUser.id);
+        } else {
+          setUserId(null);
+        }
       }
     });
 
@@ -432,6 +458,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       logToStorage('[AuthContext.signOut] 7단계: Analytics 로깅');
+      // User ID 제거
+      setUserId(null);
       logEvent('Auth', 'Logout', 'Success');
 
       logToStorage('[AuthContext.signOut] 8단계: 페이지 리다이렉트 실행 - window.location.replace("/")');

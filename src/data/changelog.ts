@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.12.2',
+        date: '2025-12-24',
+        changes: [
+            'Google Analytics User ID 추적: 로그인 사용자를 여러 기기에서도 동일하게 인식',
+            '데이터 정확도 개선: 루트 경로("/") 불필요한 페이지뷰 제거',
+            '실제 사용자 수 측정 정확도 향상'
+        ]
+    },
+    {
         version: '2.12.1',
         date: '2025-12-23',
         changes: [

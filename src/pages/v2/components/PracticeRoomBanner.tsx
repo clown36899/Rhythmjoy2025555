@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useModal } from '../../../hooks/useModal';
+import { logUserInteraction } from '../../../lib/analytics';
 import './PracticeRoomBanner.css';
 
 interface PracticeRoom {
@@ -49,10 +50,13 @@ export default function PracticeRoomBanner() {
         }
     };
 
-    const handleRoomClick = (roomId: number) => {
+    const handleRoomClick = (room: PracticeRoom) => {
+        // Google Analytics: 연습실 배너 클릭 추적
+        logUserInteraction('PracticeRoomBanner', 'Click', `${room.name} (ID: ${room.id})`);
+
         // Open modal directly on the current page (Event Preview)
         // instead of navigating to /practice route
-        venueDetailModal.open({ venueId: String(roomId) });
+        venueDetailModal.open({ venueId: String(room.id) });
     };
 
     if (rooms.length === 0) return null;
@@ -72,7 +76,7 @@ export default function PracticeRoomBanner() {
                     <div
                         key={room.id}
                         className="practice-banner-item"
-                        onClick={() => handleRoomClick(room.id)}
+                        onClick={() => handleRoomClick(room)}
                     >
                         <div className="practice-banner-image-wrapper">
                             <img

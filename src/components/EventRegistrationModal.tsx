@@ -422,15 +422,7 @@ export default memo(function EventRegistrationModal({
     }
   };
 
-  const handleCropComplete = async (croppedBlob: Blob, _previewUrl: string, _isModified: boolean) => {
-    // Clone blob to ensure stability
-    const arrayBuffer = await croppedBlob.arrayBuffer();
-    const blobClone = new Blob([arrayBuffer], { type: 'image/jpeg' });
-
-    const croppedFile = new File([blobClone], originalImageFile?.name || "cropped.jpg", {
-      type: "image/jpeg",
-      lastModified: Date.now(),
-    });
+  const handleCropComplete = async (croppedFile: File, _previewUrl: string, _isModified: boolean) => {
     setImageFile(croppedFile);
 
     // Update stable preview
@@ -438,19 +430,6 @@ export default memo(function EventRegistrationModal({
 
     setTempImageSrc(null);
     setIsCropModalOpen(false);
-  };
-
-  const handleRestoreOriginal = async () => {
-    if (originalImageFile) {
-      setImageFile(originalImageFile);
-      try {
-        const dataUrl = await fileToDataURL(originalImageFile);
-        setTempImageSrc(dataUrl);
-      } catch (error) {
-        console.error("Failed to restore original image:", error);
-      }
-      // Don't close modal, just update the image being cropped
-    }
   };
 
   const handleReEditImage = async (e?: React.MouseEvent) => {
@@ -1006,10 +985,9 @@ export default memo(function EventRegistrationModal({
         imageUrl={tempImageSrc}
         videoUrl={isValidVideo ? videoUrl : undefined}
         onCropComplete={handleCropComplete}
-        onRestoreOriginal={handleRestoreOriginal}
         onChangeImage={() => fileInputRef.current?.click()}
         onImageUpdate={handleImageUpdate}
-        hasOriginal={!!originalImageFile}
+        originalImageUrl={tempImageSrc}
       />
 
       {/* Blocking Loading Overlay */}

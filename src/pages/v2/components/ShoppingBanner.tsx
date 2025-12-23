@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import type { Shop } from '../../shopping/page';
 import { useModal } from '../../../hooks/useModal';
 import { useIntersectionObserver } from '../../../hooks/useIntersectionObserver';
+import { logUserInteraction } from '../../../lib/analytics';
 import './ShoppingBanner.css';
 
 function ShoppingBanner() {
@@ -89,6 +90,9 @@ function ShoppingBanner() {
     };
 
     const handleShopClick = (shop: Shop) => {
+        // Google Analytics: 쇼핑몰 배너 클릭 추적
+        logUserInteraction('ShoppingBanner', 'Click', `${shop.name} (ID: ${shop.id})`);
+
         shopDetailModal.open({
             shop,
             onUpdate: fetchShops
