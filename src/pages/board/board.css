@@ -26,7 +26,7 @@
   padding-right: 0;
   padding-top: 60px;
   /* 탭 메뉴 공간 확보 (연습실과 동일) */
-  padding-bottom: 0.25rem;
+  padding-bottom: 10rem;
   /* height: calc(100vh - 110px); REMOVED */
   flex: 1;
   /* NEW: Fill remaining vertical space automatically */

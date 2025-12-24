@@ -8,7 +8,10 @@ export let globalPresenceState: any = {};
 const listeners = new Set<(state: any) => void>();
 
 // 세션 ID는 모듈 레벨에서 고정 (새로고침 전까지 유지)
-const sessionId = crypto.randomUUID();
+// 보안 컨텍스트(HTTPS)가 아닌 환경에서도 동작하도록 fallback 추가
+const sessionId = typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 export function useOnlinePresence() {
     const { user, userProfile } = useAuth();
