@@ -57,7 +57,7 @@
     background: transparent;
     border: none;
     /* padding: 16px 24px; */
-    color: var(--memo-card-accent);
+    color: #d3d3d3;
     font-size: 15px;
     font-weight: 700;
     display: flex;

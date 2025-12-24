@@ -64,14 +64,14 @@
   font-size: 18px;
 }
 
-/* ===== 로딩 상태 ===== */
-.board-loading-container {
+/* ===== 로딩 상태 (Standard Mode) ===== */
+.standard-mode .board-loading-container {
   text-align: center;
   padding-top: 3rem;
   padding-bottom: 3rem;
 }
 
-.board-loading-spinner {
+.standard-mode .board-loading-spinner {
   font-size: 1.875rem;
   color: var(--color-blue-500);
   animation: spin 1s linear infinite;
@@ -87,30 +87,30 @@
   }
 }
 
-.board-loading-text {
+.standard-mode .board-loading-text {
   color: var(--color-gray-400);
   margin-top: var(--spacing-2);
 }
 
-/* ===== 빈 상태 ===== */
-.board-empty-container {
+/* ===== 빈 상태 (Standard Mode) ===== */
+.standard-mode .board-empty-container {
   text-align: center;
   padding-top: 3rem;
   padding-bottom: 3rem;
 }
 
-.board-empty-icon {
+.standard-mode .board-empty-icon {
   font-size: 3rem;
   color: var(--color-gray-600);
   margin-bottom: var(--spacing-4);
 }
 
-.board-empty-text {
+.standard-mode .board-empty-text {
   color: var(--color-gray-400);
 }
 
-/* ===== 게시글 목록 ===== */
-.board-posts-list {
+/* ===== 게시글 목록 (Standard Mode) ===== */
+.standard-mode .board-posts-list {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -118,7 +118,8 @@
 
 /* ===== 게시글 카드 ===== */
 /* ===== 게시글 카드 ===== */
-.board-post-card {
+/* ===== 게시글 카드 ===== */
+.standard-view .board-post-card {
   padding: 12px 16px;
   /* Restored standard padding */
   transition: var(--transition-colors);
@@ -132,21 +133,21 @@
   /* Standard background */
 }
 
-.board-post-card:hover {
+.standard-view .board-post-card:hover {
   background-color: var(--color-gray-600);
 }
 
-.board-post-card-normal {
+.standard-view .board-post-card-normal {
   background-color: #1a1a1a;
 }
 
-.board-post-card-notice {
+.standard-view .board-post-card-notice {
   background-color: rgba(0, 0, 0, 0.15);
   /* Slightly Adjusted opacity */
 }
 
 /* New Top Row container for Image + Content */
-.board-post-top-row {
+.standard-view .board-post-top-row {
   display: flex;
   flex-direction: row;
   align-items: stretch;
@@ -155,7 +156,7 @@
 }
 
 /* Thumbnail on the LEFT */
-.board-post-thumbnail {
+.standard-view .board-post-thumbnail {
   width: 80px;
   /* Increased slightly for better visibility */
   height: 80px;
@@ -170,14 +171,14 @@
   justify-content: center;
 }
 
-.board-post-thumbnail img {
+.standard-view .board-post-thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 /* Main Content on the RIGHT (inside top row) */
-.board-post-main-content {
+.standard-view .board-post-main-content {
   flex: 1;
   /* Take remaining space */
   display: flex;
@@ -189,15 +190,14 @@
   gap: 4px;
 }
 
-
-.board-post-header {
+.standard-view .board-post-header {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 2px;
 }
 
-.board-post-prefix {
+.standard-view .board-post-prefix {
   color: white;
   font-size: 10px;
   padding: 2px 5px;
@@ -206,7 +206,7 @@
   flex-shrink: 0;
 }
 
-.board-notice-badge {
+.standard-view .board-notice-badge {
   background-color: #ef4444;
   /* Red badge for notice */
   color: white;
@@ -217,7 +217,7 @@
   flex-shrink: 0;
 }
 
-.board-post-title {
+.standard-view .board-post-title {
   font-size: 15px;
   font-weight: 600;
   overflow: hidden;
@@ -230,13 +230,13 @@
 }
 
 /* Hide separate title colors, just use white for consistency */
-.board-post-title-normal,
-.board-post-title-notice {
+.standard-view .board-post-title-normal,
+.standard-view .board-post-title-notice {
   color: #ffffff !important;
   /* Force white for visibility */
 }
 
-.board-post-content {
+.standard-view .board-post-content {
   color: #d1d5db;
   /* Light gray (Gray 300 equivalent) */
   font-size: 13px;
@@ -250,7 +250,7 @@
 }
 
 /* Meta Data Row (Bottom Layer) */
-.board-post-meta {
+.standard-view .board-post-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -262,7 +262,7 @@
   /* Optional subtle separator */
 }
 
-.board-post-meta-left {
+.standard-view .board-post-meta-left {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -272,7 +272,7 @@
   flex: 1;
 }
 
-.board-post-meta-right {
+.standard-view .board-post-meta-right {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -280,7 +280,7 @@
   /* Push to right */
 }
 
-.board-post-meta-item {
+.standard-view .board-post-meta-item {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -289,7 +289,7 @@
 }
 
 /* Specific truncation for nickname container */
-.board-post-meta-nickname {
+.standard-view .board-post-meta-nickname {
   max-width: 80px;
   /* Limit nickname width */
   overflow: hidden;
@@ -298,35 +298,27 @@
   vertical-align: middle;
 }
 
-.board-post-meta-separator {
+.standard-view .board-post-meta-separator {
   color: #4b5563;
   /* Gray-600 */
   margin: 0 2px;
 }
 
-.board-post-meta-icon {
+.standard-view .board-post-meta-icon {
   font-size: 12px;
 }
 
 /* Profile Avatar Styles */
-.board-post-author-avatar {
+.standard-mode .board-post-author-avatar {
   width: 18px;
   height: 18px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.board-search-author-avatar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-right: 2px;
-}
 
-
-/* ===== 페이지네이션 ===== */
-.board-pagination {
+/* ===== 페이지네이션 (Standard Mode) ===== */
+.standard-mode .board-pagination {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -335,11 +327,8 @@
   padding-bottom: var(--spacing-2);
 }
 
-.board-page-btn {
-  padding-left: var(--spacing-2);
-  padding-right: var(--spacing-2);
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
+.standard-mode .board-page-btn {
+  padding: 0.125rem 0.625rem;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
   color: var(--color-gray-300);
@@ -349,48 +338,20 @@
   background: none;
 }
 
-.board-page-btn:hover {
+.standard-mode .board-page-btn:hover {
   background-color: var(--color-gray-600);
   color: white;
 }
 
-.board-page-btn:disabled {
+.standard-mode .board-page-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.board-page-btn-active {
+.standard-mode .board-page-btn.active {
   background-color: var(--color-blue-600);
   color: white;
   font-weight: 500;
-  padding-left: 0.625rem;
-  padding-right: 0.625rem;
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  transition: var(--transition-colors);
-  cursor: pointer;
-  border: none;
-}
-
-.board-page-btn-inactive {
-  color: var(--color-gray-300);
-  padding-left: 0.625rem;
-  padding-right: 0.625rem;
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  transition: var(--transition-colors);
-  cursor: pointer;
-  border: none;
-  background: none;
-}
-
-.board-page-btn-inactive:hover {
-  background-color: var(--color-gray-600);
-  color: white;
 }
 
 /* ===== Search Modal Styles ===== */
@@ -532,15 +493,15 @@
 }
 
 
-/* Interaction Buttons Container */
-.board-post-interaction-btns {
+/* Interaction Buttons Container (Standard Mode) */
+.standard-mode .board-post-interaction-btns {
   display: flex;
   align-items: center;
   gap: 16px;
   /* Increased gap for better separation */
 }
 
-.board-post-interaction-item {
+.standard-mode .board-post-interaction-item {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -550,29 +511,29 @@
   cursor: pointer;
 }
 
-.board-post-interaction-item:hover {
+.standard-mode .board-post-interaction-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Like Button */
-.board-post-like-btn {
+/* Like Button (Standard Mode) */
+.standard-mode .board-post-like-btn {
   cursor: pointer;
   transition: transform 0.2s, color 0.2s;
   padding: 2px 4px;
   border-radius: 4px;
 }
 
-.board-post-like-btn:hover {
+.standard-mode .board-post-like-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
   transform: scale(1.1);
 }
 
-.board-post-like-btn.liked {
+.standard-mode .board-post-like-btn.liked {
   color: #f87171;
   /* Red-400 */
 }
 
-.board-post-like-btn:not(.liked) {
+.standard-mode .board-post-like-btn:not(.liked) {
   color: #9ca3af;
   /* Gray-400 */
 }

@@ -94,15 +94,6 @@ export default function BoardPostList({
         }
     };
 
-    if (loading) {
-        return (
-            <div className="board-loading-container">
-                <i className="ri-loader-4-line board-loading-spinner"></i>
-                <p className="board-loading-text">게시글을 불러오는 중...</p>
-            </div>
-        );
-    }
-
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -146,274 +137,308 @@ export default function BoardPostList({
         return { backgroundColor: color, color: '#fff' };
     };
 
-    if (posts.length === 0) {
-        return (
-            <div className="board-empty-container">
-                <i className="ri-chat-3-line board-empty-icon"></i>
-                <p className="board-empty-text">게시글이 없습니다.</p>
-            </div>
-        );
-    }
-
     return (
-        <>
-            <div className={`board-posts-list ${category === 'market' ? 'market-view' : ''} ${isAnonymousView ? 'anonymous-view' : ''}`}>
-                {posts.map((post) => {
-                    const postDislikes = (post as any).dislikes || 0;
-                    const isDislikeLocked = isAnonymousView && postDislikes >= 2;
-                    const isManualHidden = post.is_hidden === true;
-                    const isLocked = isManualHidden || isDislikeLocked;
+        <div className={`board-view-context ${isAnonymousView ? 'anonymous-mode' : 'standard-mode'}`}>
+            {loading ? (
+                <div className="board-loading-container">
+                    <i className="ri-loader-4-line board-loading-spinner"></i>
+                    <p className="board-loading-text">게시글을 불러오는 중...</p>
+                </div>
+            ) : posts.length === 0 ? (
+                <div className="board-empty-container">
+                    <i className="ri-chat-3-line board-empty-icon"></i>
+                    <p className="board-empty-text">게시글이 없습니다.</p>
+                </div>
+            ) : (
+                <>
+                    <div className={`board-posts-list ${category === 'market' ? 'market-view' : ''} ${isAnonymousView ? 'anonymous-view' : 'standard-view'}`}>
+                        {posts.map((post) => {
+                            const postDislikes = (post as any).dislikes || 0;
+                            const isDislikeLocked = isAnonymousView && postDislikes >= 2;
+                            const isManualHidden = post.is_hidden === true;
+                            const isLocked = isManualHidden || isDislikeLocked;
 
-                    // 관리자가 아니고 익명게시판에서 싫어요 누적 시에만 텍스트 치환
-                    const shouldSubstitute = isAnonymousView && isDislikeLocked && !isAdmin;
+                            // 관리자가 아니고 익명게시판에서 싫어요 누적 시에만 텍스트 치환
+                            const shouldSubstitute = isAnonymousView && isDislikeLocked && !isAdmin;
 
-                    if (editingPostId === post.id) {
-                        return (
-                            <QuickMemoEditor
-                                key={post.id}
-                                category={category}
-                                editData={{
-                                    id: post.id,
-                                    title: post.title,
-                                    content: post.content,
-                                    nickname: post.author_nickname || post.author_name,
-                                    password: editPassword
-                                }}
-                                providedPassword={editPassword}
-                                onCancelEdit={() => {
-                                    setEditingPostId(null);
-                                    setEditPassword('');
-                                }}
-                                onPostCreated={() => {
-                                    setEditingPostId(null);
-                                    setEditPassword('');
-                                    onPostUpdate?.();
-                                }}
-                                className="inline-edit"
-                            />
-                        );
-                    }
+                            if (editingPostId === post.id) {
+                                return (
+                                    <QuickMemoEditor
+                                        key={post.id}
+                                        category={category}
+                                        editData={{
+                                            id: post.id,
+                                            title: post.title,
+                                            content: post.content,
+                                            nickname: post.author_nickname || post.author_name,
+                                            password: editPassword
+                                        }}
+                                        providedPassword={editPassword}
+                                        onCancelEdit={() => {
+                                            setEditingPostId(null);
+                                            setEditPassword('');
+                                        }}
+                                        onPostCreated={() => {
+                                            setEditingPostId(null);
+                                            setEditPassword('');
+                                            onPostUpdate?.();
+                                        }}
+                                        className="inline-edit"
+                                    />
+                                );
+                            }
 
-                    {/* Simplified flat structure for Anonymous Board (Memo) */ }
-                    if (isAnonymousView) {
-                        return (
-                            <div
-                                key={post.id}
-                                className={`board-post-card is-memo ${isLocked ? 'is-locked-status' : ''} ${isAdmin ? 'is-admin-view' : ''}`}
-                                style={{ cursor: 'default' }}
-                            >
-                                {/* Header: Icons, Admin Badges, Title Row */}
-                                <div className={`board-post-title-row ${isLocked ? 'deactivated-header' : ''}`}>
-                                    {isLocked && (
-                                        <i className={`ri-lock-2-fill locked-icon ${isDislikeLocked ? 'blind-warning' : ''}`}></i>
-                                    )}
-                                    {isAdmin && isLocked && (
-                                        <span className="admin-status-badge">
-                                            {isManualHidden ? "숨김" : "블라인드"}
-                                        </span>
-                                    )}
-                                    <h3 className="board-post-title">
-                                        {shouldSubstitute ? "블라인드 처리된 게시물입니다." : post.title}
-                                    </h3>
-                                </div>
+                            {/* Simplified flat structure for Anonymous Board (Memo) */ }
+                            if (isAnonymousView) {
+                                return (
+                                    <div
+                                        key={post.id}
+                                        className={`board-post-card is-memo ${isLocked ? 'is-locked-status' : ''} ${isAdmin ? 'is-admin-view' : ''}`}
+                                        style={{ cursor: 'default' }}
+                                    >
+                                        {/* Header: Icons, Admin Badges, Title Row */}
+                                        <div className={`board-post-title-row ${isLocked ? 'deactivated-header' : ''}`}>
+                                            {isLocked && (
+                                                <i className={`ri-lock-2-fill locked-icon ${isDislikeLocked ? 'blind-warning' : ''}`}></i>
+                                            )}
+                                            {isAdmin && isLocked && (
+                                                <span className="admin-status-badge">
+                                                    {isManualHidden ? "숨김" : "블라인드"}
+                                                </span>
+                                            )}
+                                            <h3 className="board-post-title">
+                                                {shouldSubstitute ? "블라인드 처리된 게시물입니다." : post.title}
+                                            </h3>
+                                        </div>
 
-                                {/* Content & Media Area */}
-                                {!shouldSubstitute && (
-                                    <div className={`board-post-body ${isLocked && !isAdmin ? 'content-obscured' : ''}`}>
-                                        {post.content && <p className="board-post-content">{post.content}</p>}
+                                        {/* Content & Media Area */}
+                                        {!shouldSubstitute && (
+                                            <div className={`board-post-body ${isLocked && !isAdmin ? 'content-obscured' : ''}`}>
+                                                {post.content && <p className="board-post-content">{post.content}</p>}
 
-                                        {((post as any).image_thumbnail || (post as any).image) && (
-                                            <div
-                                                className="memo-thumbnail-wrapper"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedImage((post as any).image || (post as any).image_thumbnail);
-                                                }}
-                                            >
-                                                <img src={(post as any).image_thumbnail || (post as any).image} alt="Thumbnail" />
-                                                <div className="thumbnail-zoom-overlay">
-                                                    <i className="ri-zoom-in-line"></i>
+                                                {((post as any).image_thumbnail || (post as any).image) && (
+                                                    <div
+                                                        className="memo-thumbnail-wrapper"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedImage((post as any).image || (post as any).image_thumbnail);
+                                                        }}
+                                                    >
+                                                        <img src={(post as any).image_thumbnail || (post as any).image} alt="Thumbnail" />
+                                                        <div className="thumbnail-zoom-overlay">
+                                                            <i className="ri-zoom-in-line"></i>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Meta Information (Nickname, Avatar, Date) */}
+                                        <div className="board-post-meta">
+                                            <div className={`board-post-meta-left ${isLocked ? 'deactivated-header' : ''}`}>
+                                                <div
+                                                    className="board-post-author-avatar anonymous-avatar"
+                                                    style={getAvatarStyle(post.author_nickname || post.author_name)}
+                                                >
+                                                    {shouldSubstitute ? "?" : (post.author_nickname || post.author_name).substring(0, 1)}
                                                 </div>
+                                                <span className="board-post-meta-nickname">
+                                                    {shouldSubstitute ? "블라인드" : (post.author_nickname || post.author_name)}
+                                                </span>
+                                                <span className="board-post-meta-separator">·</span>
+                                                <span className="board-post-meta-item">
+                                                    {formatDate(post.created_at)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Interaction Bar (Likes, Dislikes, Edit, Delete, Comments) */}
+                                        <div className="memo-interaction-bar">
+                                            <div className="memo-comment-toggle-wrapper">
+                                                <button
+                                                    className={`memo-comment-toggle ${expandedComments.has(post.id) ? 'active' : ''}`}
+                                                    onClick={(e) => toggleComments(post.id, e)}
+                                                >
+                                                    <span className="comment-label">댓글</span>
+                                                    <span className="comment-count">{post.comment_count || 0}</span>
+                                                </button>
+                                            </div>
+                                            <div className="memo-btns">
+                                                <button
+                                                    className={`memo-btn like-btn ${likedPostIds.has(post.id) ? 'active' : ''}`}
+                                                    onClick={(e) => { e.stopPropagation(); onToggleLike(post.id); }}
+                                                >
+                                                    <i className={likedPostIds.has(post.id) ? "ri-thumb-up-fill" : "ri-thumb-up-line"}></i>
+                                                    <span>{post.likes || 0}</span>
+                                                </button>
+                                                <button
+                                                    className={`memo-btn dislike-btn ${dislikedPostIds?.has(post.id) ? 'active' : ''}`}
+                                                    onClick={(e) => { e.stopPropagation(); onToggleDislike?.(post.id); }}
+                                                >
+                                                    <i className={dislikedPostIds?.has(post.id) ? "ri-thumb-down-fill" : "ri-thumb-down-line"}></i>
+                                                    <span>{(post as any).dislikes || 0}</span>
+                                                </button>
+                                                <button
+                                                    className="memo-btn edit-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setPasswordPromptId(post.id);
+                                                        setPromptType('edit');
+                                                        setTempPassword('');
+                                                    }}
+                                                >
+                                                    <i className="ri-edit-line"></i>
+                                                    <span>수정</span>
+                                                </button>
+                                                <button
+                                                    className="memo-btn delete-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (isAdmin) {
+                                                            if (window.confirm("관리자 권한으로 삭제하시겠습니까?")) {
+                                                                onDeletePost?.(post.id);
+                                                            }
+                                                        } else {
+                                                            setPasswordPromptId(post.id);
+                                                            setPromptType('delete');
+                                                            setTempPassword('');
+                                                        }
+                                                    }}
+                                                >
+                                                    <i className="ri-delete-bin-line"></i>
+                                                    <span>삭제</span>
+                                                </button>
+                                            </div>
+
+                                        </div>
+
+                                        {/* Inline Comments Section */}
+                                        {expandedComments.has(post.id) && (
+                                            <div className="inline-comment-section" onClick={(e) => e.stopPropagation()}>
+                                                <div className="inline-comment-section-dot"></div>
+                                                <CommentSection
+                                                    postId={post.id}
+                                                    category={category}
+                                                />
                                             </div>
                                         )}
                                     </div>
-                                )}
+                                );
+                            }
 
-                                {/* Meta Information (Nickname, Avatar, Date) */}
-                                <div className="board-post-meta">
-                                    <div className={`board-post-meta-left ${isLocked ? 'deactivated-header' : ''}`}>
-                                        <div
-                                            className="board-post-author-avatar anonymous-avatar"
-                                            style={getAvatarStyle(post.author_nickname || post.author_name)}
-                                        >
-                                            {shouldSubstitute ? "?" : (post.author_nickname || post.author_name).substring(0, 1)}
+                            // Original complex structure for standard view
+                            return (
+                                <div
+                                    key={post.id}
+                                    onClick={() => onPostClick(post)}
+                                    className={`board-post-card ${post.is_notice ? 'board-post-card-notice' : 'board-post-card-normal'} ${isLocked ? 'is-locked-status' : ''} ${isAdmin ? 'is-admin-view' : ''}`}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <div className="board-post-top-row">
+                                        {((post as any).image_thumbnail || (post as any).image) && (
+                                            <div className="board-post-thumbnail">
+                                                <img src={(post as any).image_thumbnail || (post as any).image} alt="Thumbnail" />
+                                            </div>
+                                        )}
+                                        <div className="board-post-main-content">
+                                            <div className={`board-post-header ${isLocked ? 'deactivated-header' : ''}`}>
+                                                {post.is_notice && <span className="board-post-prefix">[공지]</span>}
+                                                {isLocked && (
+                                                    <i className={`ri-lock-2-fill locked-icon ${isDislikeLocked ? 'blind-warning' : ''}`}></i>
+                                                )}
+                                                {isAdmin && isLocked && (
+                                                    <span className="admin-status-badge">
+                                                        {isManualHidden ? "숨김" : "블라인드"}
+                                                    </span>
+                                                )}
+                                                <h3 className="board-post-title">
+                                                    {shouldSubstitute ? "블라인드 처리된 게시물입니다." : post.title}
+                                                </h3>
+                                            </div>
+                                            {!shouldSubstitute && (
+                                                <p className={`board-post-content ${isLocked && !isAdmin ? 'content-obscured' : ''}`}>
+                                                    {post.content}
+                                                </p>
+                                            )}
                                         </div>
-                                        <span className="board-post-meta-nickname">
-                                            {shouldSubstitute ? "블라인드" : (post.author_nickname || post.author_name)}
-                                        </span>
-                                        <span className="board-post-meta-separator">·</span>
-                                        <span className="board-post-meta-item">
-                                            {formatDate(post.created_at)}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Interaction Bar (Likes, Dislikes, Edit, Delete, Comments) */}
-                                <div className="memo-interaction-bar">
-                                    <div className="memo-comment-toggle-wrapper">
-                                        <button
-                                            className={`memo-comment-toggle ${expandedComments.has(post.id) ? 'active' : ''}`}
-                                            onClick={(e) => toggleComments(post.id, e)}
-                                        >
-                                            <span className="comment-label">댓글</span>
-                                            <span className="comment-count">{post.comment_count || 0}</span>
-                                        </button>
-                                    </div>
-                                    <div className="memo-btns">
-                                        <button
-                                            className={`memo-btn like-btn ${likedPostIds.has(post.id) ? 'active' : ''}`}
-                                            onClick={(e) => { e.stopPropagation(); onToggleLike(post.id); }}
-                                        >
-                                            <i className={likedPostIds.has(post.id) ? "ri-thumb-up-fill" : "ri-thumb-up-line"}></i>
-                                            <span>{post.likes || 0}</span>
-                                        </button>
-                                        <button
-                                            className={`memo-btn dislike-btn ${dislikedPostIds?.has(post.id) ? 'active' : ''}`}
-                                            onClick={(e) => { e.stopPropagation(); onToggleDislike?.(post.id); }}
-                                        >
-                                            <i className={dislikedPostIds?.has(post.id) ? "ri-thumb-down-fill" : "ri-thumb-down-line"}></i>
-                                            <span>{(post as any).dislikes || 0}</span>
-                                        </button>
-                                        <button
-                                            className="memo-btn edit-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPasswordPromptId(post.id);
-                                                setPromptType('edit');
-                                                setTempPassword('');
-                                            }}
-                                        >
-                                            <i className="ri-edit-line"></i>
-                                            <span>수정</span>
-                                        </button>
-                                        <button
-                                            className="memo-btn delete-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (isAdmin) {
-                                                    if (window.confirm("관리자 권한으로 삭제하시겠습니까?")) {
-                                                        onDeletePost?.(post.id);
-                                                    }
-                                                } else {
-                                                    setPasswordPromptId(post.id);
-                                                    setPromptType('delete');
-                                                    setTempPassword('');
-                                                }
-                                            }}
-                                        >
-                                            <i className="ri-delete-bin-line"></i>
-                                            <span>삭제</span>
-                                        </button>
                                     </div>
 
-                                </div>
-
-                                {/* Inline Comments Section */}
-                                {expandedComments.has(post.id) && (
-                                    <div className="inline-comment-section" onClick={(e) => e.stopPropagation()}>
-                                        <div className="inline-comment-section-dot"></div>
-                                        <CommentSection
-                                            postId={post.id}
-                                            category={category}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    }
-
-                    // Original complex structure for standard view
-                    return (
-                        <div
-                            key={post.id}
-                            onClick={() => onPostClick(post)}
-                            className={`board-post-card ${post.is_notice ? 'board-post-card-notice' : 'board-post-card-normal'} ${isLocked ? 'is-locked-status' : ''} ${isAdmin ? 'is-admin-view' : ''}`}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <div className="board-post-top-row">
-                                {((post as any).image_thumbnail || (post as any).image) && (
-                                    <div className="board-post-thumbnail">
-                                        <img src={(post as any).image_thumbnail || (post as any).image} alt="Thumbnail" />
-                                    </div>
-                                )}
-                                <div className="board-post-main-content">
-                                    <div className={`board-post-header ${isLocked ? 'deactivated-header' : ''}`}>
-                                        {post.is_notice && <span className="board-post-prefix">[공지]</span>}
-                                        {isLocked && (
-                                            <i className={`ri-lock-2-fill locked-icon ${isDislikeLocked ? 'blind-warning' : ''}`}></i>
-                                        )}
-                                        {isAdmin && isLocked && (
-                                            <span className="admin-status-badge">
-                                                {isManualHidden ? "숨김" : "블라인드"}
+                                    <div className="board-post-meta">
+                                        <div className={`board-post-meta-left ${isLocked ? 'deactivated-header' : ''}`}>
+                                            <span className="board-post-meta-item">
+                                                {post.author_profile_image ? (
+                                                    <img src={post.author_profile_image} alt="Profile" className="board-post-author-avatar" />
+                                                ) : (
+                                                    <i className="ri-user-line board-post-meta-icon"></i>
+                                                )}
+                                                <span className="board-post-meta-nickname">
+                                                    {shouldSubstitute ? "블라인드" : (post.author_nickname || post.author_name)}
+                                                </span>
                                             </span>
-                                        )}
-                                        <h3 className="board-post-title">
-                                            {shouldSubstitute ? "블라인드 처리된 게시물입니다." : post.title}
-                                        </h3>
-                                    </div>
-                                    {!shouldSubstitute && (
-                                        <p className={`board-post-content ${isLocked && !isAdmin ? 'content-obscured' : ''}`}>
-                                            {post.content}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
+                                            <span className="board-post-meta-separator">·</span>
+                                            <span className="board-post-meta-item">
+                                                {formatDate(post.created_at)}
+                                            </span>
+                                        </div>
 
-                            <div className="board-post-meta">
-                                <div className={`board-post-meta-left ${isLocked ? 'deactivated-header' : ''}`}>
-                                    <span className="board-post-meta-item">
-                                        {post.author_profile_image ? (
-                                            <img src={post.author_profile_image} alt="Profile" className="board-post-author-avatar" />
-                                        ) : (
-                                            <i className="ri-user-line board-post-meta-icon"></i>
-                                        )}
-                                        <span className="board-post-meta-nickname">
-                                            {shouldSubstitute ? "블라인드" : (post.author_nickname || post.author_name)}
-                                        </span>
-                                    </span>
-                                    <span className="board-post-meta-separator">·</span>
-                                    <span className="board-post-meta-item">
-                                        {formatDate(post.created_at)}
-                                    </span>
-                                </div>
-
-                                <div className="board-post-meta-right">
-                                    <div className="board-post-interaction-btns">
-                                        <span className="board-post-interaction-item">
-                                            <i className="ri-eye-line board-post-meta-icon"></i>
-                                            {post.views || 0}
-                                        </span>
-                                        <span
-                                            className={`board-post-interaction-item board-post-like-btn ${likedPostIds.has(post.id) ? 'liked' : ''}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onToggleLike(post.id);
-                                            }}
-                                        >
-                                            <i className={`${likedPostIds.has(post.id) ? 'ri-heart-3-fill' : 'ri-heart-3-line'} board-post-meta-icon`}></i>
-                                            {post.likes}
-                                        </span>
-                                        <span className="board-post-interaction-item">
-                                            <i className="ri-chat-3-line board-post-meta-icon"></i>
-                                            {post.comment_count}
-                                        </span>
+                                        <div className="board-post-meta-right">
+                                            <div className="board-post-interaction-btns">
+                                                <span className="board-post-interaction-item">
+                                                    <i className="ri-eye-line board-post-meta-icon"></i>
+                                                    {post.views || 0}
+                                                </span>
+                                                <span
+                                                    className={`board-post-interaction-item board-post-like-btn ${likedPostIds.has(post.id) ? 'liked' : ''}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onToggleLike(post.id);
+                                                    }}
+                                                >
+                                                    <i className={`${likedPostIds.has(post.id) ? 'ri-heart-3-fill' : 'ri-heart-3-line'} board-post-meta-icon`}></i>
+                                                    {post.likes}
+                                                </span>
+                                                <span className="board-post-interaction-item">
+                                                    <i className="ri-chat-3-line board-post-meta-icon"></i>
+                                                    {post.comment_count}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="board-pagination">
+                            <button
+                                onClick={() => onPageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="page-btn"
+                            >
+                                <i className="ri-arrow-left-s-line"></i>
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    onClick={() => onPageChange(page)}
+                                    className={`page-btn ${currentPage === page ? 'active' : ''}`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => onPageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="page-btn"
+                            >
+                                <i className="ri-arrow-right-s-line"></i>
+                            </button>
                         </div>
-                    );
-                })}
-            </div>
+                    )}
+                </>
+            )}
 
             {selectedImage && (
                 <div className="memo-lightbox-overlay" onClick={() => setSelectedImage(null)}>
@@ -423,35 +448,6 @@ export default function BoardPostList({
                             <i className="ri-close-line"></i>
                         </button>
                     </div>
-                </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="board-pagination">
-                    <button
-                        onClick={() => onPageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="page-btn"
-                    >
-                        <i className="ri-arrow-left-s-line"></i>
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                            key={page}
-                            onClick={() => onPageChange(page)}
-                            className={`page-btn ${currentPage === page ? 'active' : ''}`}
-                        >
-                            {page}
-                        </button>
-                    ))}
-                    <button
-                        onClick={() => onPageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="page-btn"
-                    >
-                        <i className="ri-arrow-right-s-line"></i>
-                    </button>
                 </div>
             )}
 
@@ -490,6 +486,6 @@ export default function BoardPostList({
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }
