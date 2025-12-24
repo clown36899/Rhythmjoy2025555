@@ -8,6 +8,17 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.17.0',
+        date: '2025-12-25',
+        changes: [
+            '익명 게시판 보안 강화: 좋아요/싫어요 로그인 전용 변경 & 중복 방지',
+            '관리자 공지 모드 추가: 닉네임 고정 및 비밀번호 자동화',
+            '공지글 보호: 싫어요 버튼 비노출 및 공지 아이콘 표시',
+            'UX 개선: 비로그인 상호작용 시 로그인 안내 모달',
+            '버그 수정: 익명 게시글 수정 시 제목 누락 해결'
+        ]
+    },
+    {
         version: '2.16.0',
         date: '2025-12-25',
         changes: [

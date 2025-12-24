@@ -137,6 +137,9 @@ export default function AnonymousPostList({
                                     <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
                                         <span className="board-post-meta-nickname">
                                             {post.author_nickname || '익명'}
+                                            {post.is_notice && (
+                                                <i className="ri-megaphone-fill" style={{ marginLeft: '4px', color: '#fbbf24', verticalAlign: 'middle' }} title="공지사항"></i>
+                                            )}
                                         </span>
                                         <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>
                                             {new Date(post.created_at).toLocaleDateString()}
@@ -169,7 +172,7 @@ export default function AnonymousPostList({
                                             <span>{post.likes || 0}</span>
                                         </button>
                                     )}
-                                    {onToggleDislike && (
+                                    {!post.is_notice && onToggleDislike && (
                                         <button
                                             className={`memo-btn dislike-btn ${dislikedPostIds?.has(post.id) ? 'active' : ''}`}
                                             onClick={(e) => {

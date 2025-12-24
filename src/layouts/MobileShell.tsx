@@ -39,6 +39,7 @@ export function MobileShell() {
   const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [showPreLoginRegistrationModal, setShowPreLoginRegistrationModal] = useState(false);
+  const [loginPromptMessage, setLoginPromptMessage] = useState<string | undefined>(undefined);
 
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -100,8 +101,10 @@ export function MobileShell() {
   // Global Protected Action Listener
   useEffect(() => {
     const handleRequest = (e: any) => {
-      const { action } = e.detail || {};
+      const { action, message } = e.detail || {};
       if (action) {
+        if (message) setLoginPromptMessage(message);
+        else setLoginPromptMessage(undefined);
         console.log('[MobileShell] Protected action requested');
         handleProtectedAction(action);
       }
@@ -409,6 +412,7 @@ export function MobileShell() {
               if (user) {
                 setIsDrawerOpen(true);
               } else {
+                setLoginPromptMessage(undefined);
                 setShowPreLoginRegistrationModal(true);
               }
             }}
@@ -667,7 +671,11 @@ export function MobileShell() {
       {showPreLoginRegistrationModal && (
         <UserRegistrationModal
           isOpen={showPreLoginRegistrationModal}
-          onClose={() => setShowPreLoginRegistrationModal(false)}
+          onClose={() => {
+            setShowPreLoginRegistrationModal(false);
+            setLoginPromptMessage(undefined);
+          }}
+          message={loginPromptMessage}
           onRegistered={async () => {
             setIsProcessing(true);
             try {
@@ -721,6 +729,7 @@ export function MobileShell() {
         onLoginClick={async () => {
           if (user) return;
           console.log('[SideDrawer] Login clicked, showing welcome modal');
+          setLoginPromptMessage(undefined); // Clear any specific message
           setShowPreLoginRegistrationModal(true);
         }}
       />

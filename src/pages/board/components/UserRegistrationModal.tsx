@@ -1,29 +1,29 @@
 import { createPortal } from 'react-dom';
 import './userreg.css';
 
-interface UserRegistrationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onRegistered: (userData: UserData) => void;
-}
-
 export interface UserData {
   nickname: string;
   profile_image?: string; // Profile image URL
 }
 
+interface UserRegistrationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onRegistered: (userData: UserData) => void;
+  message?: string;
+}
+
 export default function UserRegistrationModal({
   isOpen,
   onClose,
-  onRegistered
+  onRegistered,
+  message
 }: UserRegistrationModalProps) {
 
   const handleSubmit = async () => {
     onRegistered({ nickname: '(automatic)' });
     onClose();
   };
-
-
 
   if (!isOpen) return null;
 
@@ -43,6 +43,18 @@ export default function UserRegistrationModal({
           <h2 className="userreg-title" style={{ fontSize: '1.25rem', marginTop: '20px' }}>
             환영합니다!
           </h2>
+          {message && (
+            <p style={{
+              textAlign: 'center',
+              marginTop: '12px',
+              color: '#dbeafe', // Soft blue-ish white for readability on dark
+              fontSize: '0.95rem',
+              lineHeight: '1.5',
+              padding: '0 10px'
+            }}>
+              {message}
+            </p>
+          )}
         </div>
 
         {/* Content */}

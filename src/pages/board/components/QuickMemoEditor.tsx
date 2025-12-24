@@ -10,7 +10,8 @@ interface QuickMemoEditorProps {
     editData?: any;
     providedPassword?: string;
     onCancelEdit?: () => void;
-    className?: string; // Add className prop
+    className?: string;
+    isAdmin?: boolean;
 }
 
 export default function QuickMemoEditor({
@@ -19,7 +20,8 @@ export default function QuickMemoEditor({
     editData,
     providedPassword,
     onCancelEdit,
-    className = ""
+    className = "",
+    isAdmin = false
 }: QuickMemoEditorProps) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -30,7 +32,21 @@ export default function QuickMemoEditor({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [bannedWords, setBannedWords] = useState<string[]>([]);
+    const [isNotice, setIsNotice] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleNoticeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const checked = e.target.checked;
+        setIsNotice(checked);
+        if (checked) {
+            setNickname('관리자');
+            // Generate random password as admin doesn't need to remember it for this post
+            setPassword(Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8));
+        } else {
+            setNickname('');
+            setPassword('');
+        }
+    };
 
     useEffect(() => {
         loadBannedWords();
@@ -41,16 +57,19 @@ export default function QuickMemoEditor({
         if (editData) {
             setTitle(editData.title || '');
             setContent(editData.content || '');
-            setNickname(editData.nickname || '');
+            // Support both app-state 'nickname' and DB field 'author_nickname' or 'author_name'
+            setNickname(editData.nickname || editData.author_nickname || editData.author_name || '');
             setPassword(providedPassword || editData.password || '');
+            setIsNotice(editData.is_notice || false);
             setIsExpanded(true); // Auto-expand when editing
         } else {
             setTitle('');
             setContent('');
             setNickname('');
             setPassword('');
+            setIsNotice(false);
         }
-    }, [editData?.id, providedPassword]);
+    }, [editData, providedPassword]);
 
     const loadBannedWords = async () => {
         try {
@@ -72,14 +91,8 @@ export default function QuickMemoEditor({
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setImageFile(file);
-            // Optimization: Use Object URL instead of FileReader to prevent memory spikes
             const objectUrl = URL.createObjectURL(file);
             setImagePreview(objectUrl);
-
-            // Cleanup previous object URL if needed (in a real scenario we might track it, 
-            // but for simple replacement we rely on component unmount cleanup or next update)
-            // Ideally we should revoke old one if exists, but for now we focus on creation safety.
-            // A useEffect cleanup is recommended for robustness.
         }
     };
 
@@ -128,10 +141,8 @@ export default function QuickMemoEditor({
                 const timestamp = Date.now();
                 const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
 
-                // Use Object URL for memory efficiency
                 const fileUrl = URL.createObjectURL(imageFile);
                 try {
-                    // Optimized for Memo: Skip 'full' (billboard) and 'micro' sizes
                     const [thumbnail, medium] = await Promise.all([
                         resizeImage(fileUrl, 300, 0.7, fileName),
                         resizeImage(fileUrl, 1080, 0.75, fileName)
@@ -150,16 +161,16 @@ export default function QuickMemoEditor({
                     imageUrls.image = mainUrl;
                     imageUrls.image_thumbnail = thumbUrl;
                 } finally {
-                    URL.revokeObjectURL(fileUrl); // Always release memory
+                    URL.revokeObjectURL(fileUrl);
                 }
             }
 
             if (editData?.id) {
-                // Update post via new secure RPC
+                // Update post
                 console.log('Updating anonymous post via RPC');
                 const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
                     p_post_id: editData.id,
-                    p_password: (providedPassword || password).trim(), // Ensure we use the best available password
+                    p_password: (providedPassword || password).trim(),
                     p_title: title.trim(),
                     p_content: content.trim(),
                     p_author_name: nickname,
@@ -173,12 +184,12 @@ export default function QuickMemoEditor({
                 }
                 if (!success) {
                     alert('비밀번호가 틀렸거나 수정에 실패했습니다.');
-                    setIsSubmitting(false); // Changed from setLoading to setIsSubmitting
+                    setIsSubmitting(false);
                     return;
                 }
                 alert('메모가 수정되었습니다!');
             } else {
-                // Create new anonymous post in separate table
+                // Create new post
                 const { error } = await supabase.from('board_anonymous_posts').insert({
                     title: title.trim(),
                     content: content.trim(),
@@ -190,7 +201,7 @@ export default function QuickMemoEditor({
                     views: 0,
                     likes: 0,
                     dislikes: 0,
-                    is_notice: false,
+                    is_notice: isNotice,
                     is_hidden: false
                 });
 
@@ -206,6 +217,7 @@ export default function QuickMemoEditor({
             setContent('');
             setNickname('');
             setPassword('');
+            setIsNotice(false);
             setImageFile(null);
             setImagePreview(null);
             onPostCreated?.();
@@ -214,7 +226,7 @@ export default function QuickMemoEditor({
             alert('등록 중 오류가 발생했습니다.');
         } finally {
             setIsSubmitting(false);
-            if (!editData) setIsExpanded(false); // Collapse after new post creation
+            if (!editData) setIsExpanded(false);
         }
     };
 
@@ -276,12 +288,25 @@ export default function QuickMemoEditor({
                 <div className="memo-header">
                     <div className="memo-header-top">
                         <div className="memo-left-actions">
+                            {isAdmin && !editData && (
+                                <label className="memo-notice-check" style={{ marginRight: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#fbbf24' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isNotice}
+                                        onChange={handleNoticeChange}
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                    <span>공지</span>
+                                </label>
+                            )}
                             <input
                                 type="text"
                                 placeholder="작성자 닉네임"
                                 value={nickname}
                                 onChange={(e) => setNickname(e.target.value)}
                                 className="memo-nickname-input"
+                                readOnly={isNotice}
+                                style={isNotice ? { backgroundColor: '#333', color: '#fbbf24', fontWeight: 'bold' } : {}}
                             />
                             {/* {editData && (
                                 <span className="memo-edit-badge">Editing Mode</span>
@@ -339,7 +364,8 @@ export default function QuickMemoEditor({
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="memo-password-input"
-                                required
+                                required={!isNotice}
+                                style={isNotice ? { display: 'none' } : {}}
                             />
                         )}
                     </div>
