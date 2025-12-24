@@ -12,10 +12,7 @@ import { logEvent } from "../../../lib/analytics";
 let globalLastSortedEvents: Event[] = [];
 let globalLastFutureClasses: Event[] = [];
 
-interface Event extends BaseEvent {
-  storage_path?: string | null;
-  genre?: string | null;
-}
+import type { Event } from "../utils/eventListUtils";
 import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
 import {
   getVideoThumbnail,
@@ -200,6 +197,7 @@ export default function EventList({
   const eventSortModal = useModal('eventSort');
 
   const [isDeleting, setIsDeleting] = useState(false); // 삭제 로딩 상태
+  const [isFetchingDetail, setIsFetchingDetail] = useState(false); // 상세조회 로딩 상태
   const [internalSortBy, setInternalSortBy] = useState<
     "random" | "time" | "title"
   >("random");
@@ -775,7 +773,7 @@ export default function EventList({
 
       const fetchPromise = (async () => {
         // 필요한 컬럼만 선택 (성능 최적화)
-        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,user_id,venue_id,venue_name,venue_custom_link";
+        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
 
         if (isAdminMode) {
           // 관리자 모드: 모든 이벤트 조회 (종료된 이벤트 포함)
@@ -837,7 +835,7 @@ export default function EventList({
       console.log('[📋 이벤트 목록] 백그라운드 새로고침...');
       // Don't set loading state - update silently
 
-      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,user_id,venue_id,venue_name,venue_custom_link";
+      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
 
       let data: Event[] | null = null;
 
@@ -1814,7 +1812,7 @@ export default function EventList({
 
 
 
-  const handleEditClick = (event: Event, arg?: React.MouseEvent | string) => {
+  const handleEditClick = async (event: Event, arg?: React.MouseEvent | string) => {
     const e = typeof arg === 'object' ? arg : undefined;
 
     e?.stopPropagation();
@@ -1839,8 +1837,35 @@ export default function EventList({
       return;
     }
 
-    // 비밀번호 확인 로직 제거, 바로 수정 모달 열기 (RLS가 저장 시 권한 체크)
-    setEventToEdit(event);
+    // 3. 상세 데이터 확인 및 조회 (On-Demand Fetching)
+    if (event.description === undefined) {
+      // description 속성이 없으면(undefined) 상세 데이터를 가져오지 않은 상태임
+      try {
+        setIsFetchingDetail(true);
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', event.id)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          // 조회된 전체 데이터로 업데이트 (타입 호환됨: BaseEvent -> Event)
+          setEventToEdit({ ...event, ...data } as Event);
+        } else {
+          setEventToEdit(event); // 실패시 원본 사용 (부분 데이터)
+        }
+      } catch (err) {
+        console.error('Failed to fetch event details:', err);
+        alert('상세 정보를 불러오는데 실패했습니다.');
+        setEventToEdit(event);
+      } finally {
+        setIsFetchingDetail(false);
+      }
+    } else {
+      // 이미 상세 데이터가 있으면 바로 사용
+      setEventToEdit(event);
+    }
 
     // Convert event dates to Date objects
     const hasEventDates = event.event_dates && event.event_dates.length > 0;
@@ -2623,7 +2648,7 @@ export default function EventList({
   return (
     <div className="no-select evt-flex-col-full">
       {/* 삭제 로딩 오버레이 */}
-      {isDeleting && createPortal(
+      {(isDeleting || isFetchingDetail) && createPortal(
         <div
           className="evt-delete-overlay"
           // 이벤트 전파를 막아 하단 컨텐츠 클릭 방지
@@ -2633,7 +2658,7 @@ export default function EventList({
             <div className="evt-loading-spinner-base evt-loading-spinner-gray"></div>
             <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
           </div>
-          <p className="event-list-deleting-text">삭제 중...</p>
+          <p className="event-list-deleting-text">{isDeleting ? "삭제 중..." : "상세 정보 불러오는 중..."}</p>
         </div>, document.body
       )}
       {/* 검색 키워드 배너 (Compact Style) */}
@@ -3670,7 +3695,7 @@ export default function EventList({
           {editPreviewMode === 'detail' ? (
             <EditableEventDetail
               event={{
-                ...eventToEdit,
+                ...(eventToEdit as any),
                 ...editFormData,
                 id: eventToEdit.id,
                 created_at: eventToEdit.created_at,

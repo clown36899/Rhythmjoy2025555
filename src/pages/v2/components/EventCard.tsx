@@ -5,9 +5,7 @@ import { getLocalDateString, formatEventDate } from "../../../utils/dateUtils";
 import { getGenreColorClass } from "../../../constants/genreColors";
 import "../styles/EventCard.css";
 
-interface Event extends BaseEvent {
-  genre?: string | null;
-}
+import type { Event } from "../../../pages/v2/utils/eventListUtils";
 
 
 interface EventCardProps {

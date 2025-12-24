@@ -1,7 +1,7 @@
 export interface BaseBoardPost {
     id: number;
     title: string;
-    content: string;
+    content?: string;
     views: number;
     created_at: string;
     image?: string | null;

@@ -1,7 +1,20 @@
 
 import type { Event as BaseEvent } from "../../../lib/supabase";
 
-export interface Event extends BaseEvent {
+export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'organizer_phone' | 'capacity' | 'registered' | 'link1' | 'link2' | 'link3' | 'link_name1' | 'link_name2' | 'link_name3' | 'password' | 'show_title_on_billboard' | 'storage_path'> {
+    description?: string | null;
+    video_url?: string | null;
+    organizer_phone?: string | null;
+    capacity?: number | null;
+    registered?: number | null;
+    link1?: string | null;
+    link2?: string | null;
+    link3?: string | null;
+    link_name1?: string | null;
+    link_name2?: string | null;
+    link_name3?: string | null;
+    password?: string | null;
+    show_title_on_billboard?: boolean | null;
     storage_path?: string | null;
     genre?: string | null;
     event_dates?: string[];

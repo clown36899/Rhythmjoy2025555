@@ -120,7 +120,7 @@ export default function StandardPostList({
 
                                 {/* Preview Content */}
                                 <p className="board-post-content">
-                                    {truncateText(post.content.replace(/<[^>]*>?/gm, ''), 100)}
+                                    {truncateText((post.content || '').replace(/<[^>]*>?/gm, ''), 100)}
                                 </p>
                             </div>
                         </div>

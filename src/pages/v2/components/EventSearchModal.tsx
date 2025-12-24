@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
-import type { Event } from "../../../lib/supabase";
+import type { Event } from "../utils/eventListUtils";
 import "../../../styles/components/EventSearchModal.css";
 
 interface EventSearchModalProps {
@@ -64,7 +64,7 @@ function EventSearchModal({
             }
 
             // 설명에서 의미있는 단어 추출 (3글자 이상)
-            const descWords = event.description.split(/\s+/);
+            const descWords = (event.description || "").split(/\s+/);
             descWords.forEach((word) => {
                 const cleanWord = word.replace(/[^\w가-힣]/g, ""); // 특수문자 제거
                 if (
@@ -77,7 +77,7 @@ function EventSearchModal({
                             e.title.toLowerCase().includes(cleanWord.toLowerCase()) ||
                             e.location.toLowerCase().includes(cleanWord.toLowerCase()) ||
                             e.organizer.toLowerCase().includes(cleanWord.toLowerCase()) ||
-                            e.description.toLowerCase().includes(cleanWord.toLowerCase())
+                            e.description?.toLowerCase().includes(cleanWord.toLowerCase())
                     );
                     if (hasResults) {
                         suggestions.add(cleanWord);
@@ -94,7 +94,7 @@ function EventSearchModal({
                     event.title.toLowerCase().includes(suggestionLower) ||
                     event.location.toLowerCase().includes(suggestionLower) ||
                     event.organizer.toLowerCase().includes(suggestionLower) ||
-                    event.description.toLowerCase().includes(suggestionLower)
+                    event.description?.toLowerCase().includes(suggestionLower)
             );
         });
 

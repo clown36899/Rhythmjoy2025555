@@ -29,7 +29,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             // Construct query based on category
             const anonFields = "id, title, content, author_name, author_nickname, views, is_notice, created_at, updated_at, image_thumbnail, image, is_hidden, comment_count, likes, dislikes, display_order";
             const standardFields = `
-                id, title, content, author_name, author_nickname,
+                id, title, author_name, author_nickname,
                 user_id, views, is_notice, prefix_id,
                 prefix:board_prefixes(id, name, color, admin_only),
                 created_at, updated_at, category,

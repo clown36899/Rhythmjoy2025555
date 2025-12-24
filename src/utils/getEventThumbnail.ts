@@ -4,7 +4,7 @@ export interface EventThumbnailData {
   image_thumbnail?: string;
   image_medium?: string;
   image_full?: string;
-  video_url?: string;
+  video_url?: string | null;
 }
 
 // 기본 썸네일 URL (Supabase Storage)

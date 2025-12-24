@@ -112,8 +112,34 @@ export default function EventDetailModal({
 
   // Draft State for Local Edits
   const [draftEvent, setDraftEvent] = useState<Event | null>(event);
+  const [isFetchingDetail, setIsFetchingDetail] = useState(false);
+
   useEffect(() => {
     setDraftEvent(event);
+
+    // On-Demand Fetching: description이 없으면 상세 데이터 조회
+    if (event?.id && event.description === undefined) {
+      const fetchDetail = async () => {
+        try {
+          setIsFetchingDetail(true);
+          const { data, error } = await supabase
+            .from('events')
+            .select('*') // 필요한 컬럼만 선택 가능하지만 상세 조회는 전체 로딩이 일반적
+            .eq('id', event.id)
+            .single();
+
+          if (!error && data) {
+            // 상세 데이터로 draftEvent 업데이트 (기존 event와 props 병합)
+            setDraftEvent(prev => ({ ...(prev || event), ...data } as Event));
+          }
+        } catch (err) {
+          console.error('Failed to fetch event detail:', err);
+        } finally {
+          setIsFetchingDetail(false);
+        }
+      };
+      fetchDetail();
+    }
   }, [event]);
 
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
@@ -598,6 +624,20 @@ export default function EventDetailModal({
             style={{ borderColor: "rgb(89, 89, 89)", position: 'relative' }} // relative for login overlay
             onClick={(e) => e.stopPropagation()}
           >
+            {/* 데이터 로딩 인디케이터 (상세 데이터 없을 때) */}
+            {isFetchingDetail && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '4px',
+                background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent)',
+                zIndex: 50,
+                animation: 'pulse 1.5s infinite'
+              }} />
+            )}
+
             {/* 로그인 유도 오버레이 */}
             {showLoginPrompt && (
               <div style={{
