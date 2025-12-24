@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../layouts/MobileShell';
 
 // Lazy loading pages
@@ -13,8 +13,10 @@ const SocialPage = lazy(prefetchSocialPage);
 export const prefetchPracticePage = () => import('../pages/practice/page');
 const PracticePage = lazy(prefetchPracticePage);
 
-export const prefetchPracticeDetailPage = () => import('../pages/practice/detail/page');
-const PracticeDetailPage = lazy(prefetchPracticeDetailPage);
+const PracticeRedirect = () => {
+    const { id } = useParams();
+    return <Navigate to={`/practice?id=${id}`} replace />;
+};
 
 export const prefetchBoardPage = () => import('../pages/board/BoardMainContainer');
 const BoardPage = lazy(prefetchBoardPage);
@@ -53,7 +55,7 @@ export const routes: RouteObject[] = [
             { path: '/social', element: <SocialPage /> },
             { path: '/social/:placeId', element: <SocialPage /> },
             { path: '/practice', element: <PracticePage /> },
-            { path: '/practice/:id', element: <PracticeDetailPage /> },
+            { path: '/practice/:id', element: <PracticeRedirect /> },
             { path: '/board', element: <BoardPage /> },
             { path: '/board/:id', element: <BoardDetailPage /> },
             { path: '/guide', element: <GuidePage /> },
