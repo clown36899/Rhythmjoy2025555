@@ -114,27 +114,33 @@ export default function QuickMemoEditor({
                 const timestamp = Date.now();
                 const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
 
-                // Optimized for Memo: Skip 'full' (billboard) and 'micro' sizes
-                const [thumbnail, medium] = await Promise.all([
-                    resizeImage(imageFile, 300, 0.7, fileName),
-                    resizeImage(imageFile, 1080, 0.75, fileName)
-                ]);
+                // Use Object URL for memory efficiency
+                const fileUrl = URL.createObjectURL(imageFile);
+                try {
+                    // Optimized for Memo: Skip 'full' (billboard) and 'micro' sizes
+                    const [thumbnail, medium] = await Promise.all([
+                        resizeImage(fileUrl, 300, 0.7, fileName),
+                        resizeImage(fileUrl, 1080, 0.75, fileName)
+                    ]);
 
-                const uploadImage = async (path: string, file: Blob) => {
-                    const { error } = await supabase.storage.from("images").upload(path, file);
-                    if (error) throw error;
-                    return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
-                };
+                    const uploadImage = async (path: string, file: Blob) => {
+                        const { error } = await supabase.storage.from("images").upload(path, file);
+                        if (error) throw error;
+                        return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
+                    };
 
-                const [thumbUrl, mainUrl] = await Promise.all([
-                    retryOperation(() => uploadImage(`board-images/thumbnails/${fileName}`, thumbnail)),
-                    retryOperation(() => uploadImage(`board-images/medium/${fileName}`, medium))
-                ]);
-                imageUrls.image = mainUrl;
-                imageUrls.image_thumbnail = thumbUrl;
+                    const [thumbUrl, mainUrl] = await Promise.all([
+                        retryOperation(() => uploadImage(`board-images/thumbnails/${fileName}`, thumbnail)),
+                        retryOperation(() => uploadImage(`board-images/medium/${fileName}`, medium))
+                    ]);
+                    imageUrls.image = mainUrl;
+                    imageUrls.image_thumbnail = thumbUrl;
+                } finally {
+                    URL.revokeObjectURL(fileUrl); // Always release memory
+                }
             }
 
-            if (editData?.id) { // Changed from editData to editData?.id
+            if (editData?.id) {
                 // Update post via new secure RPC
                 console.log('Updating anonymous post via RPC');
                 const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
@@ -198,6 +204,37 @@ export default function QuickMemoEditor({
         }
     };
 
+    const handleDelete = async () => {
+        if (!editData?.id) return;
+
+        if (!window.confirm('정말로 이 메모를 삭제하시겠습니까?')) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const { data: success, error } = await supabase.rpc('delete_anonymous_post_with_password', {
+                p_post_id: editData.id,
+                p_password: (providedPassword || password).trim()
+            });
+
+            if (error) throw error;
+
+            if (!success) {
+                alert('비밀번호가 틀렸거나 삭제에 실패했습니다.');
+                return;
+            }
+
+            alert('메모가 삭제되었습니다.');
+            onPostCreated?.();
+        } catch (error) {
+            console.error('삭제 실패:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handleCancel = () => {
         if (editData) {
             onCancelEdit?.();
@@ -213,12 +250,12 @@ export default function QuickMemoEditor({
     return (
         <div className={`quick-memo-editor ${isExpanded ? 'expanded' : 'collapsed'} ${className}`}>
             {!isExpanded && !editData && (
-                <button
-                    className="memo-trigger-btn"
+                <div
+                    className="memo-trigger-bar"
                     onClick={() => setIsExpanded(true)}
                 >
                     <span>글쓰기 +</span>
-                </button>
+                </div>
             )}
 
             <form onSubmit={handleSubmit} className="memo-form">
@@ -294,6 +331,16 @@ export default function QuickMemoEditor({
                     </div>
 
                     <div className="memo-submit-actions">
+                        {editData && (
+                            <button
+                                type="button"
+                                className="memo-delete-btn"
+                                onClick={handleDelete}
+                                disabled={isSubmitting}
+                            >
+                                삭제
+                            </button>
+                        )}
                         {(isExpanded || editData) && (
                             <button
                                 type="button"

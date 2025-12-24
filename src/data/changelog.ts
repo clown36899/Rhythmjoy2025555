@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.14.0',
+        date: '2025-12-24',
+        changes: [
+            'QuickMemoEditor UX 대대적 개편 (상단 고정 트리거 바, 프리미엄 애니메이션)',
+            '모바일 이미지 처리 최적화 (URL.createObjectURL 도입으로 FileReader 오류 해결)',
+            '게시판 CSS 격리 강화 (컨텍스트 클래스 기반 스코핑으로 디자인 간섭 방지)',
+            '인터랙션 정밀화: 모바일 터치 파란색 하이라이트 제거 및 버튼 텍스트 스케일링'
+        ]
+    },
+    {
         version: '2.13.0',
         date: '2025-12-24',
         changes: [

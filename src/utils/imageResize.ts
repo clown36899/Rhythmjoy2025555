@@ -119,40 +119,29 @@ export async function resizeImage(
       );
     }
 
-    // base64인 경우 직접 Image 로드 (FileReader 우회)
-    if (isDataUrl) {
-      console.log(`[🖼️ 리사이즈 ${maxWidth}px] base64 데이터 직접 사용 (FileReader 우회)`);
-      const img = new Image();
-      img.onload = () => processImage.call(img);
-      img.onerror = (error) => {
-        const elapsed = performance.now() - startTime;
-        console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ 이미지 로드 실패 (${elapsed.toFixed(0)}ms)`, error);
-        reject(new Error('이미지를 처리할 수 없습니다. 지원하는 형식: JPG, PNG, GIF, WebP'));
-      };
-      img.src = fileOrDataUrl as string;
-    } else {
-      // File 객체인 경우 FileReader 사용
-      console.log(`[🖼️ 리사이즈 ${maxWidth}px] FileReader로 File 객체 읽기 시작`);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        console.log(`[🖼️ 리사이즈 ${maxWidth}px] 파일 읽기 완료`);
-        const img = new Image();
-        img.onload = () => processImage.call(img);
-        img.onerror = (error) => {
-          const elapsed = performance.now() - startTime;
-          console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ 이미지 로드 실패 (${elapsed.toFixed(0)}ms)`, error);
-          reject(new Error('이미지를 처리할 수 없습니다. 지원하는 형식: JPG, PNG, GIF, WebP'));
-        };
-        img.src = e.target?.result as string;
-      };
+    // URL.createObjectURL을 사용하여 메모리 효율적으로 이미지 로드
+    let objectUrl: string | null = null;
+    let sourceUrl: string;
 
-      reader.onerror = (error) => {
-        const elapsed = performance.now() - startTime;
-        console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ 파일 읽기 실패 (${elapsed.toFixed(0)}ms)`, error);
-        reject(new Error('파일을 읽을 수 없습니다. 다른 이미지를 선택해주세요.'));
-      };
-      reader.readAsDataURL(fileOrDataUrl as File);
+    if (isDataUrl) {
+      sourceUrl = fileOrDataUrl as string;
+    } else {
+      objectUrl = URL.createObjectURL(fileOrDataUrl as File);
+      sourceUrl = objectUrl;
     }
+
+    const img = new Image();
+    img.onload = () => {
+      processImage.call(img);
+      if (objectUrl) URL.revokeObjectURL(objectUrl); // 메모리 해제
+    };
+    img.onerror = (error) => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl); // 메모리 해제
+      const elapsed = performance.now() - startTime;
+      console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ 이미지 로드 실패 (${elapsed.toFixed(0)}ms)`, error);
+      reject(new Error('이미지를 처리할 수 없습니다. 지원하는 형식: JPG, PNG, GIF, WebP'));
+    };
+    img.src = sourceUrl;
   });
 }
 
@@ -172,12 +161,22 @@ export async function createResizedImages(
   });
 
   try {
+    let sourceUrl = fileOrDataUrl;
+    let objectUrl: string | null = null;
+
+    if (!isDataUrl && fileOrDataUrl instanceof File) {
+      objectUrl = URL.createObjectURL(fileOrDataUrl);
+      sourceUrl = objectUrl;
+    }
+
     const [micro, thumbnail, medium, full] = await Promise.all([
-      resizeImage(fileOrDataUrl, 100, 0.7, fileName),   // Micro for calendar
-      resizeImage(fileOrDataUrl, 300, 0.75, fileName),   // Thumbnail for list
-      resizeImage(fileOrDataUrl, 1080, 0.8, fileName),   // Medium for modal
-      resizeImage(fileOrDataUrl, 1280, 0.85, fileName),  // Full for billboard
+      resizeImage(sourceUrl, 100, 0.7, fileName),
+      resizeImage(sourceUrl, 300, 0.75, fileName),
+      resizeImage(sourceUrl, 1080, 0.8, fileName),
+      resizeImage(sourceUrl, 1280, 0.85, fileName),
     ]);
+
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
 
     const elapsed = performance.now() - startTime;
     console.log(`[🎨 이미지 리사이즈] ✅ 완료 (총 ${elapsed.toFixed(0)}ms)`, {

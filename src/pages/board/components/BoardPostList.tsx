@@ -290,24 +290,6 @@ export default function BoardPostList({
                                                     <i className="ri-edit-line"></i>
                                                     <span>수정</span>
                                                 </button>
-                                                <button
-                                                    className="memo-btn delete-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (isAdmin) {
-                                                            if (window.confirm("관리자 권한으로 삭제하시겠습니까?")) {
-                                                                onDeletePost?.(post.id);
-                                                            }
-                                                        } else {
-                                                            setPasswordPromptId(post.id);
-                                                            setPromptType('delete');
-                                                            setTempPassword('');
-                                                        }
-                                                    }}
-                                                >
-                                                    <i className="ri-delete-bin-line"></i>
-                                                    <span>삭제</span>
-                                                </button>
                                             </div>
 
                                         </div>
