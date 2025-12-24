@@ -2,8 +2,6 @@
 
 /* Comment Section */
 .comment-section {
-    margin-top: 3rem;
-    padding-top: 2rem;
     border-top: 1px solid var(--border-color);
 }
 
@@ -29,6 +27,26 @@
 /* Comment Form */
 .comment-form {
     margin-bottom: 2rem;
+}
+
+.comment-author-input {
+    width: 100px;
+    padding: 6px 10px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    background: white;
+}
+
+.comment-password-input {
+    width: 80px;
+    padding: 6px 10px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    background: white;
 }
 
 .comment-form-textarea {

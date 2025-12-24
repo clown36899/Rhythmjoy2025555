@@ -73,7 +73,10 @@ export default function BoardDetailPage() {
                     updated_at,
                     category,
                     image,
-                    image_thumbnail
+                    image_thumbnail,
+                    likes,
+                    dislikes,
+                    display_order
                 `)
                 .eq('id', postId)
                 .maybeSingle();
@@ -83,28 +86,6 @@ export default function BoardDetailPage() {
                 setPost(null);
                 setLoading(false);
                 return;
-            }
-
-            // Check if post is hidden and user is not admin
-            if (data.is_hidden && !isAdmin) {
-                // If we want to strictly block:
-                // setPost(null); 
-                // OR show a restricted message. 
-                // For now, let's treat it as not found or restricted.
-                // However, the component will render "Not Found" if post is null.
-                // Or we can load it but render a "Hidden" overlay. 
-                // Let's assume we want to show it but with a "Hidden by Admin" badge if user happens to access it? 
-                // Usually "Hidden" means invisible to public.
-                /* 
-                // Strict hiding logic:
-                if (!isAdmin) {
-                     setPost(null);
-                     setLoading(false);
-                     return;
-                }
-                */
-                // Actually, let's let the UI handle the "Hidden" styling or redirection?
-                // If data.is_hidden is true, and !isAdmin, we generally should NOT show it.
             }
 
             // Fetch profile image if user_id exists
@@ -121,7 +102,9 @@ export default function BoardDetailPage() {
             const transformedPost = {
                 ...data,
                 prefix: Array.isArray(data.prefix) ? data.prefix[0] : data.prefix,
-                author_profile_image: profileImage
+                author_profile_image: profileImage,
+                likes: data.likes || 0,
+                dislikes: data.dislikes || 0
             };
 
             setPost(transformedPost as BoardPost);
@@ -310,6 +293,20 @@ export default function BoardDetailPage() {
                             <i className="ri-eye-line"></i>
                             {post.views}
                         </div>
+                        <div className="board-detail-meta-divider"></div>
+                        <div className="board-detail-meta-item">
+                            <i className="ri-thumb-up-line"></i>
+                            {(post as any).likes || 0}
+                        </div>
+                        {post.category === 'anonymous' && (
+                            <>
+                                <div className="board-detail-meta-divider"></div>
+                                <div className="board-detail-meta-item">
+                                    <i className="ri-thumb-down-line"></i>
+                                    {(post as any).dislikes || 0}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -329,7 +326,7 @@ export default function BoardDetailPage() {
                 </div>
 
                 {/* Comment Section */}
-                <CommentSection postId={post.id} />
+                <CommentSection postId={post.id} category={post.category || 'free'} />
 
                 {/* Actions Section */}
                 <div className="board-detail-actions">

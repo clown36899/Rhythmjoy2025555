@@ -7,9 +7,10 @@ import './comment.css';
 
 interface CommentSectionProps {
     postId: number;
+    category: string;
 }
 
-export default function CommentSection({ postId }: CommentSectionProps) {
+export default function CommentSection({ postId, category }: CommentSectionProps) {
     const [comments, setComments] = useState<BoardComment[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingComment, setEditingComment] = useState<BoardComment | null>(null);
@@ -41,7 +42,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
     const loadComments = async () => {
         try {
-            setLoading(true);
+            // setLoading(true); // Disable loading state for seamless updates
             const { data, error } = await supabase
                 .from('board_comments')
                 .select('*')
@@ -54,7 +55,8 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             const commentsWithProfiles = await Promise.all(
                 (data || []).map(async (comment) => {
                     let profileImage = null;
-                    if (comment.user_id) {
+                    // Only fetch profile image for non-anonymous categories
+                    if (comment.user_id && category !== 'anonymous') {
                         const { data: userData } = await supabase
                             .from('board_users')
                             .select('profile_image')
@@ -77,31 +79,54 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         }
     };
 
-    const handleDelete = async (commentId: string) => {
+    const handleDelete = async (commentId: string, password?: string) => {
         try {
-            const { error } = await supabase
-                .from('board_comments')
-                .delete()
-                .eq('id', commentId);
+            const { data: userData } = await supabase.auth.getUser();
+            const isAdmin = userData.user?.app_metadata?.role === 'admin' || (userData.user?.email && userData.user.email.includes('admin'));
 
-            if (error) throw error;
-            loadComments();
+            let query = supabase.from('board_comments').delete().eq('id', commentId);
+
+            if (isAdmin) {
+                const { error } = await query;
+                if (error) throw error;
+                loadComments();
+                return true;
+            } else {
+                // Check password for anonymous or non-admin
+                const { data: comment } = await supabase
+                    .from('board_comments')
+                    .select('password')
+                    .eq('id', commentId)
+                    .single();
+
+                if (comment && comment.password && comment.password === password) {
+                    const { error } = await query;
+                    if (error) throw error;
+                    loadComments();
+                    return true;
+                } else {
+                    return false;
+                }
+            }
         } catch (error) {
             console.error('댓글 삭제 실패:', error);
-            alert('댓글 삭제 중 오류가 발생했습니다.');
+            return false;
         }
     };
 
     return (
         <div className="comment-section">
-            <div className="comment-section-header">
-                <h3 className="comment-section-title">
-                    댓글 <span className="comment-count">{comments.length}</span>
-                </h3>
-            </div>
+            {category !== 'anonymous' && (
+                <div className="comment-section-header">
+                    <h3 className="comment-section-title">
+                        댓글 <span className="comment-count">{comments.length}</span>
+                    </h3>
+                </div>
+            )}
 
             <CommentForm
                 postId={postId}
+                category={category}
                 onCommentAdded={() => {
                     loadComments();
                     setEditingComment(null);
@@ -126,6 +151,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                         <CommentItem
                             key={comment.id}
                             comment={comment}
+                            isAnonymous={category === 'anonymous'}
                             onEdit={setEditingComment}
                             onDelete={handleDelete}
                         />
@@ -135,3 +161,4 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         </div>
     );
 }
+

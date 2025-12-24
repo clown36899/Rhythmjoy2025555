@@ -1,5 +1,5 @@
 .board-tab-bar {
-    background-color: var(--header-bg-color, #1f2937);
+    background-color: #000000;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     position: fixed;
     top: 60px;

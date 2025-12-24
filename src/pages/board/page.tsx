@@ -18,7 +18,8 @@ export interface BoardPost {
   user_id?: string;
   views: number;
   is_notice?: boolean;
-  is_hidden?: boolean; // Added for admin control
+  is_hidden?: boolean;
+  category?: string; // Added for category management
   prefix_id?: number;
   prefix?: {
     id: number;
@@ -31,7 +32,9 @@ export interface BoardPost {
   image?: string;
   image_thumbnail?: string;
   comment_count?: number;
-  likes: number; // Added likes property
+  likes: number;
+  dislikes?: number; // Added for anonymous board
+  display_order?: number; // Added for pinning/sorting
 }
 
 export default function BoardPage() {
@@ -190,7 +193,10 @@ export default function BoardPage() {
           prefix:board_prefixes(id, name, color, admin_only),
           comment_count,
           created_at, 
-          updated_at
+          updated_at,
+          category,
+          likes,
+          dislikes
         `)
         .order('is_notice', { ascending: false })
         .order('created_at', { ascending: false });
@@ -301,7 +307,6 @@ export default function BoardPage() {
       window.dispatchEvent(new CustomEvent('requestProtectedAction', {
         detail: {
           action: () => {
-            setSelectedPost(null);
             postEditorModal.open({
               post: null,
               userNickname: userData?.nickname,

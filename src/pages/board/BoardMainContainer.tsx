@@ -8,6 +8,7 @@ import UniversalPostEditor from './components/UniversalPostEditor';
 import BoardManagementModal from './components/BoardManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
 import DevLog from './components/DevLog';
+import QuickMemoEditor from './components/QuickMemoEditor';
 import './board.css'; // Inherit basic layout styles
 import type { BoardPost } from './page'; // Import types
 
@@ -34,7 +35,7 @@ export default function BoardMainContainer() {
 
     const [key, setKey] = useState(0); // For forcing re-render of TabBar
     const [currentPage, setCurrentPage] = useState(1);
-    const postsPerPage = 10;
+    const [postsPerPage, setPostsPerPage] = useState(10); // Default 10, but now variable
 
     // Sync state with URL
     const handleCategoryChange = (newCategory: BoardCategory) => {
@@ -51,7 +52,7 @@ export default function BoardMainContainer() {
         if (isAdminChecked) {
             loadPosts();
         }
-    }, [category, currentPage, isAdminChecked, isRealAdmin]); // Re-run if admin status changes
+    }, [category, currentPage, postsPerPage, isAdminChecked, isRealAdmin]); // Added postsPerPage to deps
 
     const checkAdminStatus = async () => {
         if (!user) {
@@ -82,68 +83,176 @@ export default function BoardMainContainer() {
         }
     };
 
-    // Likes State
+    // Likes & Dislikes State
     const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set());
+    const [dislikedPostIds, setDislikedPostIds] = useState<Set<number>>(new Set());
 
-    // Load Likes
+    // Load Interactions
     useEffect(() => {
-        if (user) {
-            fetchLikes();
-        } else {
-            setLikedPostIds(new Set());
-        }
+        fetchInteractions();
     }, [user]);
 
-    const fetchLikes = async () => {
-        if (!user) return;
-        const { data } = await supabase
-            .from('board_post_likes')
-            .select('post_id')
-            .eq('user_id', user.id);
+    const fetchInteractions = async () => {
+        if (user) {
+            try {
+                // Fetch Likes
+                const { data: likes } = await supabase
+                    .from('board_post_likes')
+                    .select('post_id')
+                    .eq('user_id', user.id);
+                if (likes) setLikedPostIds(new Set(likes.map(l => l.post_id)));
 
-        if (data) {
-            setLikedPostIds(new Set(data.map(l => l.post_id)));
+                // Fetch Dislikes (Handle non-existent table gracefully)
+                const { data: dislikes, error } = await supabase
+                    .from('board_post_dislikes')
+                    .select('post_id')
+                    .eq('user_id', user.id);
+
+                if (dislikes && !error) {
+                    setDislikedPostIds(new Set(dislikes.map(d => d.post_id)));
+                }
+            } catch (err) {
+                console.warn('Post interactions loading skipped (tables might not exist yet)');
+            }
+        } else {
+            // For anonymous, use localStorage for simple persistence
+            const localLikes = localStorage.getItem('board_likes');
+            const localDislikes = localStorage.getItem('board_dislikes');
+            if (localLikes) setLikedPostIds(new Set(JSON.parse(localLikes)));
+            if (localDislikes) setDislikedPostIds(new Set(JSON.parse(localDislikes)));
         }
     };
 
     const handleToggleLike = async (postId: number) => {
+        const isLiked = likedPostIds.has(postId);
+        const originalLikesSet = new Set(likedPostIds);
+
+        // 1. Optimistic UI Update (Set)
+        const next = new Set(likedPostIds);
+        if (isLiked) next.delete(postId);
+        else next.add(postId);
+        setLikedPostIds(next);
+
         if (!user) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            localStorage.setItem('board_likes', JSON.stringify(Array.from(next)));
         }
 
-        const isLiked = likedPostIds.has(postId);
-
-        // Optimistic Update
-        setLikedPostIds(prev => {
-            const next = new Set(prev);
-            if (isLiked) next.delete(postId);
-            else next.add(postId);
-            return next;
-        });
+        // 2. Optimistic UI Update (Count)
+        setPosts(prev => prev.map(p => {
+            if (p.id === postId) {
+                return { ...p, likes: isLiked ? Math.max(0, p.likes - 1) : p.likes + 1 };
+            }
+            return p;
+        }));
 
         try {
-            if (isLiked) {
-                await supabase
-                    .from('board_post_likes')
-                    .delete()
-                    .eq('user_id', user.id)
-                    .eq('post_id', postId);
-            } else {
-                await supabase
-                    .from('board_post_likes')
-                    .insert({ user_id: user.id, post_id: postId });
+            if (user) {
+                if (isLiked) {
+                    await supabase.from('board_post_likes').delete().eq('user_id', user.id).eq('post_id', postId);
+                } else {
+                    const { error } = await supabase.from('board_post_likes').insert({ user_id: user.id, post_id: postId }).select();
+                    if (error && error.code !== '23505') throw error;
+                }
+            } else if (category === 'anonymous') {
+                // Future: Add fingerprint support if needed
             }
         } catch (error) {
             console.error('Error toggling like:', error);
-            // Rollback on error
-            setLikedPostIds(prev => {
-                const next = new Set(prev);
-                if (isLiked) next.add(postId);
-                else next.delete(postId);
-                return next;
-            });
-            alert('좋아요 처리 중 오류가 발생했습니다.');
+            setLikedPostIds(originalLikesSet);
+            loadPosts();
+        }
+    };
+
+    const handleDeletePost = async (postId: number, password?: string) => {
+        try {
+            if (isRealAdmin) {
+                // Admin can delete directly
+                const { error } = await supabase.from('board_posts').delete().eq('id', postId);
+                if (error) throw error;
+                loadPosts(); // Refresh the list
+                return true;
+            } else {
+                // Non-admin requires password
+                if (!password) {
+                    console.warn('Password is required for non-admin deletion.');
+                    return false;
+                }
+
+                const { data: post, error: fetchError } = await supabase
+                    .from('board_posts')
+                    .select('password')
+                    .eq('id', postId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                if (post && post.password && post.password === password) {
+                    const { error: deleteError } = await supabase.from('board_posts').delete().eq('id', postId);
+                    if (deleteError) throw deleteError;
+                    loadPosts(); // Refresh the list
+                    return true;
+                } else {
+                    console.warn('Incorrect password for post deletion.');
+                    return false;
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            return false;
+        }
+    };
+
+    const handleToggleDislike = async (postId: number) => {
+        const isDisliked = dislikedPostIds.has(postId);
+        const originalDislikesSet = new Set(dislikedPostIds);
+
+        // 1. Optimistic UI Update (Set)
+        const next = new Set(dislikedPostIds);
+        if (isDisliked) next.delete(postId);
+        else next.add(postId);
+        setDislikedPostIds(next);
+
+        if (!user) {
+            localStorage.setItem('board_dislikes', JSON.stringify(Array.from(next)));
+        }
+
+        // 2. Optimistic UI Update (Count)
+        setPosts(prev => prev.map(p => {
+            if (p.id === postId) {
+                const currentDislikes = (p as any).dislikes || 0;
+                return {
+                    ...p,
+                    dislikes: isDisliked ? Math.max(0, currentDislikes - 1) : currentDislikes + 1
+                };
+            }
+            return p;
+        }));
+
+        try {
+            if (user) {
+                if (isDisliked) {
+                    await supabase.from('board_post_dislikes').delete().eq('user_id', user.id).eq('post_id', postId);
+                } else {
+                    const { error } = await supabase.from('board_post_dislikes').insert({ user_id: user.id, post_id: postId }).select();
+                    if (error && error.code !== '23505') throw error;
+                }
+            } else if (category === 'anonymous') {
+                const fingerprint = localStorage.getItem('client_fingerprint') || Math.random().toString(36).substring(2);
+                if (!localStorage.getItem('client_fingerprint')) {
+                    localStorage.setItem('client_fingerprint', fingerprint);
+                }
+
+                if (isDisliked) {
+                    await supabase.from('board_post_dislikes').delete().eq('post_id', postId).eq('fingerprint', fingerprint);
+                } else {
+                    const { error } = await supabase.from('board_post_dislikes').insert({ post_id: postId, fingerprint }).select();
+                    if (error && error.code !== '23505') throw error;
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling dislike:', error);
+            setDislikedPostIds(originalDislikesSet);
+            loadPosts();
         }
     };
 
@@ -170,11 +279,21 @@ export default function BoardMainContainer() {
           image_thumbnail,
           image,
           is_hidden,
-          comment_count
+          comment_count,
+          likes,
+          dislikes,
+          display_order
         `)
-                .eq('category', category)  // Filter by category
-                .order('is_notice', { ascending: false })
-                .order('created_at', { ascending: false });
+                .eq('category', category);
+
+            // Sorting: Notices first, then custom order (pinning), then latest
+            query = query.order('is_notice', { ascending: false });
+
+            if (category === 'anonymous') {
+                query = query.order('display_order', { ascending: false }); // Admin manual pin/sort
+            }
+
+            query = query.order('created_at', { ascending: false });
 
             // Filter hidden posts for non-admins
             if (!isRealAdmin) {
@@ -185,11 +304,12 @@ export default function BoardMainContainer() {
 
             if (error) throw error;
 
-            // Fetch profile images (logic from original page.tsx)
+            // Fetch profile images
             const postsWithProfiles = await Promise.all(
                 (data || []).map(async (post: any) => {
                     let profileImage = null;
-                    if (post.user_id) {
+                    // Only fetch profile image for non-anonymous categories
+                    if (post.user_id && category !== 'anonymous') {
                         const { data: userData } = await supabase
                             .from('board_users')
                             .select('profile_image')
@@ -201,7 +321,9 @@ export default function BoardMainContainer() {
                         ...post,
                         prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
                         author_profile_image: profileImage,
-                        comment_count: post.comment_count || 0
+                        comment_count: post.comment_count || 0,
+                        likes: (post as any).likes || 0,
+                        dislikes: (post as any).dislikes || 0
                     };
                 })
             );
@@ -218,7 +340,7 @@ export default function BoardMainContainer() {
     const totalPages = Math.ceil(posts.length / postsPerPage);
     const currentPosts = posts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
 
-    // Global Write Event Listener (from MobileShell)
+    // Global Write Event Listener
     useEffect(() => {
         const handleWriteClick = () => {
             setIsEditorOpen(true);
@@ -250,11 +372,9 @@ export default function BoardMainContainer() {
         const currentIndex = categories.findIndex((cat: any) => cat.id === category);
 
         if (isLeftSwipe && currentIndex < categories.length - 1) {
-            // Swipe left -> next tab
             handleCategoryChange(categories[currentIndex + 1].id);
         }
         if (isRightSwipe && currentIndex > 0) {
-            // Swipe right -> previous tab
             handleCategoryChange(categories[currentIndex - 1].id);
         }
     };
@@ -295,84 +415,6 @@ export default function BoardMainContainer() {
                 onCategoryChange={handleCategoryChange}
             />
 
-            {/* Admin Floating Action Button (FAB) Menu */}
-            {isRealAdmin && (
-                <div style={{
-                    position: 'fixed',
-                    bottom: '80px', // Above bottom tab bar if exists
-                    right: '20px',
-                    zIndex: 9999,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    gap: '10px'
-                }}>
-                    {showAdminMenu && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                            <button
-                                onClick={() => { setIsManagementOpen(true); setShowAdminMenu(false); }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
-                                    backgroundColor: '#4B5563', color: 'white', border: 'none', borderRadius: '20px',
-                                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
-                                    fontSize: '14px', fontWeight: '500'
-                                }}
-                            >
-                                <span>게시판 관리</span>
-                                <i className="ri-layout-masonry-line"></i>
-                            </button>
-                            <button
-                                onClick={() => { setIsPrefixManagementOpen(true); setShowAdminMenu(false); }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
-                                    backgroundColor: '#4B5563', color: 'white', border: 'none', borderRadius: '20px',
-                                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
-                                    fontSize: '14px', fontWeight: '500'
-                                }}
-                            >
-                                <span>머릿말 관리</span>
-                                <i className="ri-text-spacing"></i>
-                            </button>
-                            <button
-                                onClick={() => { navigate('/admin/secure-members'); setShowAdminMenu(false); }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
-                                    backgroundColor: '#4B5563', color: 'white', border: 'none', borderRadius: '20px',
-                                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
-                                    fontSize: '14px', fontWeight: '500'
-                                }}
-                            >
-                                <span>회원 관리</span>
-                                <i className="ri-user-settings-line"></i>
-                            </button>
-                        </div>
-                    )}
-                    <button
-                        onClick={() => setShowAdminMenu(!showAdminMenu)}
-                        className="board-admin-fab"
-                        style={{
-                            width: '56px',
-                            height: '56px',
-                            borderRadius: '50%',
-                            backgroundColor: showAdminMenu ? '#666' : '#1f2937',
-                            color: 'white',
-                            border: 'none',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '24px',
-                            zIndex: 9999,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        title="관리자 메뉴 도구"
-                    >
-                        {showAdminMenu ? <i className="ri-close-line"></i> : <i className="ri-settings-3-fill"></i>}
-                    </button>
-                </div>
-            )}
-
             {/* 2. Post List or Dev Log */}
             <div
                 className="board-posts-container"
@@ -380,6 +422,20 @@ export default function BoardMainContainer() {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
             >
+                {/* Inline Quick Editor for Anonymous Board */}
+                {category === 'anonymous' && (
+                    <>
+                        <div className="anonymous-board-notice">
+                            <i className="ri-error-warning-line"></i>
+                            <span>싫어요가 10개 넘으면 숨김처리됩니다.</span>
+                        </div>
+                        <QuickMemoEditor
+                            onPostCreated={loadPosts}
+                            category={category}
+                        />
+                    </>
+                )}
+
                 {category === 'dev-log' ? (
                     <DevLog />
                 ) : (
@@ -392,10 +448,56 @@ export default function BoardMainContainer() {
                         totalPages={totalPages}
                         onPageChange={setCurrentPage}
                         likedPostIds={likedPostIds}
+                        dislikedPostIds={dislikedPostIds}
                         onToggleLike={handleToggleLike}
+                        onToggleDislike={handleToggleDislike}
+                        onDeletePost={handleDeletePost}
                     />
                 )}
             </div>
+
+            {/* Pagination Limit Selector (Moved to Bottom) */}
+            <div className="board-list-controls bottom">
+                <div className="board-limit-selector">
+                    {[10, 20, 30].map(val => (
+                        <button
+                            key={val}
+                            className={`board-limit-btn ${postsPerPage === val ? 'active' : ''}`}
+                            onClick={() => { setPostsPerPage(val); setCurrentPage(1); }}
+                        >
+                            {val}개씩
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Admin Floating Action Button (FAB) Menu */}
+            {isRealAdmin && (
+                <div className="board-admin-fab-container">
+                    {showAdminMenu && (
+                        <div className="board-admin-submenu">
+                            <button onClick={() => { setIsManagementOpen(true); setShowAdminMenu(false); }}>
+                                <span>게시판 관리</span>
+                                <i className="ri-layout-masonry-line"></i>
+                            </button>
+                            <button onClick={() => { setIsPrefixManagementOpen(true); setShowAdminMenu(false); }}>
+                                <span>머릿말 관리</span>
+                                <i className="ri-text-spacing"></i>
+                            </button>
+                            <button onClick={() => { navigate('/admin/secure-members'); setShowAdminMenu(false); }}>
+                                <span>회원 관리</span>
+                                <i className="ri-user-settings-line"></i>
+                            </button>
+                        </div>
+                    )}
+                    <button
+                        onClick={() => setShowAdminMenu(!showAdminMenu)}
+                        className="board-admin-fab"
+                    >
+                        {showAdminMenu ? <i className="ri-close-line"></i> : <i className="ri-settings-3-fill"></i>}
+                    </button>
+                </div>
+            )}
 
             {/* 3. Editor Modal */}
             {isEditorOpen && (

@@ -99,11 +99,14 @@ export default function UniversalPostEditor({
         title: '',
         content: '',
         author_name: '',
+        author_nickname: '', // Added for anonymous
         is_notice: false,
         prefix_id: null as number | null,
         // Add category field, default to current category context but can be changed if needed (though usually fixed per tab)
         category: category
     });
+
+    const isAnonymousLabel = formData.category === 'anonymous';
 
     // Image State (For Market)
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -114,11 +117,13 @@ export default function UniversalPostEditor({
     const [prefixes, setPrefixes] = useState<BoardPrefix[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("");
+    const [bannedWords, setBannedWords] = useState<string[]>([]);
 
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             loadPrefixes();
+            loadBannedWords();
 
             if (post) {
                 // Edit Mode
@@ -126,6 +131,7 @@ export default function UniversalPostEditor({
                     title: post.title,
                     content: post.content,
                     author_name: post.author_name,
+                    author_nickname: post.author_nickname || '',
                     is_notice: post.is_notice || false,
                     prefix_id: post.prefix_id || null,
                     category: (post as any).category || 'free'
@@ -143,7 +149,8 @@ export default function UniversalPostEditor({
                 setFormData({
                     title: '',
                     content: '',
-                    author_name: user?.user_metadata?.name || user?.email?.split('@')[0] || '',
+                    author_name: isAnonymousLabel ? '' : (user?.user_metadata?.name || user?.email?.split('@')[0] || ''),
+                    author_nickname: isAnonymousLabel ? '' : (userNickname || ''),
                     is_notice: false,
                     prefix_id: null,
                     category: category
@@ -183,6 +190,15 @@ export default function UniversalPostEditor({
         }
     };
 
+    const loadBannedWords = async () => {
+        try {
+            const { data } = await supabase.from('board_banned_words').select('word');
+            if (data) setBannedWords(data.map(w => w.word));
+        } catch (error) {
+            console.error('금지어 로드 실패:', error);
+        }
+    };
+
     // Reload prefixes when category changes
     useEffect(() => {
         if (formData.category) {
@@ -216,18 +232,42 @@ export default function UniversalPostEditor({
         }
     };
 
+    const checkBannedWords = (text: string) => {
+        for (const word of bannedWords) {
+            if (text.includes(word)) return word;
+        }
+        return null;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!formData.title.trim()) { alert('제목을 입력해주세요.'); return; }
         if (!formData.content.trim()) { alert('내용을 입력해주세요.'); return; }
-        if (!formData.author_name.trim()) { alert('작성자 이름을 입력해주세요.'); return; }
-        if (!user) { alert('로그인이 필요합니다.'); return; }
+
+        // Banned words check
+        const bannedTitle = checkBannedWords(formData.title);
+        const bannedContent = checkBannedWords(formData.content);
+        if (bannedTitle || bannedContent) {
+            alert(`금지어("${bannedTitle || bannedContent}")가 포함되어 있습니다.`);
+            return;
+        }
+
+        const isAnonymous = formData.category === 'anonymous';
+        if (!isAnonymous && !user) { alert('로그인이 필요합니다.'); return; }
+
+        if (isAnonymous && !formData.author_nickname.trim()) {
+            alert('익명 닉네임을 입력해주세요.');
+            return;
+        }
 
         // Edit permission check
         if (post && !isAdmin && post.user_id !== user?.id) {
-            alert('본인이 작성한 글만 수정할 수 있습니다.');
-            return;
+            // Anonymous posts might not have user_id, handle accordingly if needed
+            if (!post.user_id && !isAnonymous) {
+                alert('본인이 작성한 글만 수정할 수 있습니다.');
+                return;
+            }
         }
 
         setIsSubmitting(true);
@@ -304,16 +344,18 @@ export default function UniversalPostEditor({
 
             } else {
                 // Create
-                // We need a way to insert.
-                // Direct insert is safer for new columns than old RPC
-                const { data: userData } = await supabase.from('board_users').select('nickname').eq('user_id', user.id).single();
+                let currentNickname = userNickname;
+                if (!currentNickname && user?.id) {
+                    const { data: ud } = await supabase.from('board_users').select('nickname').eq('user_id', user.id).maybeSingle();
+                    currentNickname = ud?.nickname;
+                }
 
                 const newPost = {
                     title: formData.title,
                     content: formData.content,
-                    author_name: formData.author_name,
-                    author_nickname: userNickname || userData?.nickname,
-                    user_id: user.id,
+                    author_name: isAnonymous ? (formData.author_nickname || "익명") : (formData.author_name || user?.user_metadata?.name || "사용자"),
+                    author_nickname: isAnonymous ? (formData.author_nickname || "익명") : (currentNickname || formData.author_name || "사용자"),
+                    user_id: user?.id || null, // Allow null for truly anonymous if RLS allows
                     is_notice: formData.is_notice,
                     prefix_id: formData.prefix_id,
                     category: formData.category,
@@ -346,13 +388,14 @@ export default function UniversalPostEditor({
     const modalContent = (
         <div className="pem-modal-overlay">
             <div className="pem-modal-container universal-editor-container" style={{ position: 'relative' }}>
-                {/* Login Requirement Overlay */}
-                {!user && <LoginOverlay />}
+                {/* Login Requirement Overlay - ONLY if not anonymous category */}
+                {!user && formData.category !== 'anonymous' && <LoginOverlay />}
 
                 {/* Header */}
                 <div className="pem-modal-header">
                     <h2 className="pem-modal-title">
-                        {formData.category === 'market' ? '벼룩시장 글쓰기' : '글쓰기'}
+                        {formData.category === 'market' ? '벼룩시장 글쓰기' :
+                            formData.category === 'anonymous' ? '익명 글쓰기' : '글쓰기'}
                     </h2>
                     <button onClick={onClose} className="pem-close-btn">
                         <i className="ri-close-line pem-close-icon"></i>
@@ -362,8 +405,6 @@ export default function UniversalPostEditor({
                 {/* Content */}
                 <form onSubmit={handleSubmit} className="pem-form">
                     <div className="pem-form-content">
-
-                        {/* Category Selector (Optional, maybe fixed) */}
 
                         {/* Image Upload for All Categories */}
                         <div className="pem-form-group">
@@ -401,8 +442,7 @@ export default function UniversalPostEditor({
                             </div>
                         </div>
 
-                        {/* Title & Content (Existing fields) */}
-                        {/* ... Copied from PostEditorModal logic but simplified ... */}
+                        {/* Title & Content */}
                         <div className="pem-form-group">
                             <input
                                 type="text"
@@ -417,7 +457,17 @@ export default function UniversalPostEditor({
 
                         {/* Prefix & Author Row */}
                         <div className="form-row">
-                            {!post && (
+                            {isAnonymousLabel ? (
+                                <input
+                                    type="text"
+                                    name="author_nickname"
+                                    value={formData.author_nickname}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="pem-input half-width"
+                                    placeholder="익명 닉네임"
+                                />
+                            ) : !post && (
                                 <input
                                     type="text"
                                     name="author_name"
@@ -486,3 +536,4 @@ export default function UniversalPostEditor({
 
     return createPortal(modalContent, document.body);
 }
+

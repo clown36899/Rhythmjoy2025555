@@ -12,6 +12,7 @@ interface BoardTabBarProps {
 // Fallback categories in case DB fetch fails
 const DEFAULT_CATEGORIES = [
     { id: 'free', label: '자유게시판', icon: 'ri-chat-1-line' },
+    { id: 'anonymous', label: '익명게시판', icon: 'ri-user-secret-line' },
     { id: 'trade', label: '양도/양수', icon: 'ri-exchange-line' },
     { id: 'notice', label: '건의/공지', icon: 'ri-megaphone-line' },
     { id: 'market', label: '벼룩시장', icon: 'ri-store-2-line' },
@@ -79,6 +80,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
             case 'trade': return 'ri-exchange-line';
             case 'free': return 'ri-chat-1-line';
             case 'dev-log': return 'ri-code-box-line';
+            case 'anonymous': return 'ri-user-secret-line';
             default: return 'ri-chat-3-line';
         }
     };
@@ -88,7 +90,6 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
         const activeIndex = categories.findIndex(cat => cat.id === activeCategory);
         if (activeIndex !== -1 && tabRefs.current[activeIndex] && scrollerRef.current) {
             const activeTab = tabRefs.current[activeIndex];
-            const scroller = scrollerRef.current;
             const left = activeTab.offsetLeft;
             const width = activeTab.offsetWidth;
             setIndicatorStyle({ left, width });
@@ -108,7 +109,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                 {categories.map((cat, index) => (
                     <button
                         key={cat.id}
-                        ref={el => tabRefs.current[index] = el}
+                        ref={el => { tabRefs.current[index] = el; }}
                         className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
                         onClick={() => onCategoryChange(cat.id as BoardCategory)}
                     >

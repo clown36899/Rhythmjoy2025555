@@ -39,6 +39,30 @@
   /* Smooth scroll for iOS */
 }
 
+/* Anonymous Board Notice */
+.anonymous-board-notice {
+  margin: 0 16px 20px;
+  padding: 14px 20px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Match memo card border */
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #9ca3af;
+  /* Gray-400 */
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+}
+
+.anonymous-board-notice i {
+  color: #3b82f6;
+  /* Modern Blue accent */
+  font-size: 18px;
+}
+
 /* ===== 로딩 상태 ===== */
 .board-loading-container {
   text-align: center;
@@ -88,7 +112,7 @@
 .board-posts-list {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  /* gap: 0.25rem; */
 }
 
 /* ===== 게시글 카드 ===== */
@@ -97,17 +121,14 @@
   padding: 12px;
   transition: var(--transition-colors);
   cursor: pointer;
-  margin: 0.4rem;
-  border-radius: 12px;
+  /* margin: 0.4rem; */
+  /* border-radius: 12px; */
   display: flex;
+  border-bottom: 1px solid #242424;
   flex-direction: column;
-  /* Changed to Column for 2-tier layout */
-  gap: 8px;
-  /* Gap between top row and meta row */
+  /* gap: 8px; */
   overflow: hidden;
-  /* Prevent overflow */
   background-color: #242424;
-  /* Default background */
 }
 
 .board-post-card:hover {
@@ -115,11 +136,11 @@
 }
 
 .board-post-card-normal {
-  background-color: #242424;
+  background-color: #000000;
 }
 
 .board-post-card-notice {
-  background-color: rgba(59, 130, 246, 0.15);
+  background-color: rgba(0, 0, 0, 0.15);
   /* Slightly Adjusted opacity */
 }
 
@@ -509,6 +530,28 @@
   gap: 0.25rem;
 }
 
+
+/* Interaction Buttons Container */
+.board-post-interaction-btns {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  /* Increased gap for better separation */
+}
+
+.board-post-interaction-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.board-post-interaction-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
 
 /* Like Button */
 .board-post-like-btn {

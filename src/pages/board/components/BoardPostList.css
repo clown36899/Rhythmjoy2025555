@@ -1,39 +1,266 @@
-/* Inherit most styles from board.css but adding market specific ones */
+/* BoardPostList.css - Modern Sleek Style for Anonymous Board */
 
-.market-view .board-post-card {
+/* CSS Variables for Memo Theme (Modern Dark Style) */
+:root {
+    --memo-card-bg: #1a1a1a;
+    --memo-card-hover: #222222;
+    --memo-card-border: rgba(255, 255, 255, 0.08);
+    --memo-card-accent: #3b82f6;
+    /* Blue accent instead of red for a cleaner feel, though red can work for notices */
+
+    --memo-text-title: #f3f4f6;
+    --memo-text-content: #d1d5db;
+    --memo-text-meta: #9ca3af;
+
+    --memo-shadow-idle: 0 4px 20px rgba(0, 0, 0, 0.2);
+    --memo-shadow-hover: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Anonymous Board GRID */
+.anonymous-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    padding: 24px 16px;
+    overflow: visible;
+}
+
+/* Modern Anonymous Card */
+.anonymous-view .board-post-card.is-memo {
+    position: relative;
+    background: var(--memo-card-bg);
+    border: 1px solid var(--memo-card-border);
+    border-radius: 16px;
+    /* Slightly more rounded for modern look */
+    padding: 24px;
+    min-height: 200px;
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 12px;
-}
-
-.board-post-thumbnail {
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
-    border-radius: 8px;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--memo-shadow-idle);
+    margin: 0;
     overflow: hidden;
-    background-color: #374151;
+    transform: none !important;
+    /* Force remove rotation */
 }
 
-.board-post-thumbnail img {
+.anonymous-view .board-post-card.is-memo:hover {
+    background: var(--memo-card-hover);
+    transform: translateY(-4px) !important;
+    box-shadow: var(--memo-shadow-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Hide legacy elements if they remain in DOM */
+.memo-tape,
+.memo-pin,
+.memo-texture-overlay {
+    display: none !important;
+}
+
+/* Profile / Avatar */
+.anonymous-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    /* Squircle for modern look */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.anonymous-view .board-post-top-row {
+    flex-direction: column !important;
+    gap: 16px;
+    align-items: flex-start !important;
+}
+
+/* Title & Content */
+.anonymous-view .board-post-title {
+    color: var(--memo-text-title) !important;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+    font-family: inherit !important;
+    /* Back to system font */
+}
+
+.anonymous-view .board-post-content {
+    color: var(--memo-text-content) !important;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+    max-height: none;
+    font-family: inherit !important;
+}
+
+/* Thumbnail - Controlled size */
+.memo-thumbnail-wrapper {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 12px;
+    cursor: pointer;
+    border: 1px solid var(--memo-card-border);
+    transition: all 0.2s ease;
+}
+
+.memo-thumbnail-wrapper:hover {
+    transform: scale(1.04);
+    border-color: var(--memo-card-accent);
+}
+
+.memo-thumbnail-wrapper img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
 }
 
-.board-post-main-content {
-    flex: 1;
-    min-width: 0;
-    /* Text truncation fix */
-}
-
-.board-notice-badge {
-    background-color: #ef4444;
+/* Re-adding Zoom Overlay for Modern Style */
+.thumbnail-zoom-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: white;
-    font-size: 0.7rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-right: 6px;
-    font-weight: bold;
+    font-size: 24px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    backdrop-filter: blur(2px);
+}
+
+.memo-thumbnail-wrapper:hover .thumbnail-zoom-overlay {
+    opacity: 1;
+}
+
+/* Footer / Meta */
+.anonymous-view .board-post-meta {
+    border-top: 1px solid var(--memo-card-border);
+    margin-top: 20px;
+    padding-top: 16px;
+    color: var(--memo-text-meta);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.anonymous-view .board-post-meta-nickname {
+    font-weight: 600;
+    color: var(--memo-text-title);
+}
+
+/* Interaction Bar */
+.memo-interaction-bar {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.memo-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.memo-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--memo-card-border);
+    padding: 8px 14px;
+    border-radius: 10px;
+    color: var(--memo-text-meta);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.memo-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--memo-text-title);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.memo-btn.like-btn.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.memo-btn.dislike-btn.active {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.memo-comment-toggle {
+    background: transparent;
+    border: none;
+    color: var(--memo-text-meta);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 8px;
+}
+
+.memo-comment-toggle:hover {
+    color: var(--memo-card-accent);
+}
+
+/* Inline Comments */
+.inline-comment-section {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    margin-top: 16px;
+    padding: 12px;
+    border: 1px solid var(--memo-card-border);
+}
+
+/* Lightbox */
+.memo-lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.memo-lightbox-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+    .anonymous-view {
+        grid-template-columns: 1fr;
+        padding: 16px;
+        gap: 16px;
+    }
 }
