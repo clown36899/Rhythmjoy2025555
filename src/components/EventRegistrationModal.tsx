@@ -517,23 +517,28 @@ export default memo(function EventRegistrationModal({
           let imageMediumUrl = editEventData?.image_medium || null;
           let imageFullUrl = editEventData?.image_full || null;
 
-          if (imageFile) {
+          let fileToUpload = imageFile;
+
+          // 1. 이미지가 수정되지 않았지만(fileToUpload 없음), 기존 이미지는 있고 micro 버전이 없는 경우 (레거시 데이터 복구)
+          // 원본 이미지를 다운로드하여 fileToUpload로 설정 -> 아래 로직에서 4가지 버전 생성 및 업로드 수행
+          if (fileToUpload) {
             setLoadingMessage("이미지 업로드 중... (자동 재시도)");
             const timestamp = Date.now();
             const randomString = Math.random().toString(36).substring(2, 15);
             const basePath = `event-posters`;
+            const fileName = `${timestamp}_${randomString}.webp`;
 
             // 먼저 모든 이미지 리사이즈 (WebP 변환 포함)
             try {
-              const resizedImages = await createResizedImages(imageFile);
-
-              // 파일명은 WebP 확장자 사용
-              const fileName = `${timestamp}_${randomString}.webp`;
+              const resizedImages = await createResizedImages(fileToUpload);
 
               // 이미지 업로드 함수 (재시도 용)
               const uploadImage = async (path: string, file: Blob) => {
-                const { error } = await supabase.storage.from("images").upload(path, file);
-                if (error) throw error;
+                const { error, data } = await supabase.storage.from("images").upload(path, file);
+                if (error) {
+                  console.error("Upload failed for path:", path, error);
+                  throw error;
+                }
                 return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
               };
 
@@ -547,6 +552,7 @@ export default memo(function EventRegistrationModal({
 
               const [microUrl, thumbUrl, mediumUrl, fullUrl] = await Promise.all(uploadPromises);
 
+
               imageMicroUrl = microUrl;
               imageThumbnailUrl = thumbUrl;
               imageMediumUrl = mediumUrl;
@@ -555,7 +561,8 @@ export default memo(function EventRegistrationModal({
 
             } catch (resizeError) {
               console.error("Image processing failed:", resizeError);
-              throw new Error("이미지 처리 또는 업로드에 실패했습니다. (네크워크 상태를 확인해주세요)");
+              alert(`이미지 처리 실패: ${resizeError}`);
+              throw resizeError;
             }
           }
 
@@ -596,28 +603,40 @@ export default memo(function EventRegistrationModal({
             venue_custom_link: venueId ? null : venueCustomLink,
           };
 
+          console.log("📝 [EventRegistrationModal] Final eventData to save:", eventData);
+          console.log("   - image_micro present?", !!eventData.image_micro);
+
           let resultData: any[] | null = null;
 
           if (editEventData) {
             // Update existing event
             await retryOperation(async () => {
+              console.log("🔄 Updating event ID:", editEventData.id, "IsAdmin:", isAdmin, "User:", user?.id);
               let query = supabase
                 .from("events")
                 .update(eventData)
                 .eq('id', editEventData.id);
 
               if (!isAdmin) {
+                console.log("   - Applying user_id filter (Not Admin)");
                 query = query.eq('user_id', user?.id);
+              } else {
+                console.log("   - Skipping user_id filter (Admin)");
               }
 
               const { data, error } = await query.select();
-              if (error) throw error;
+              if (error) {
+                console.error("❌ Update query error:", error);
+                throw error;
+              }
+              console.log("✅ Update result data:", data);
               if (!data || data.length === 0) throw new Error("수정 권한이 없거나 이미 삭제된 이벤트입니다.");
               resultData = data;
             });
           } else {
             // Insert new event
             await retryOperation(async () => {
+              console.log("🆕 Inserting new event");
               const { data, error } = await supabase
                 .from("events")
                 .insert([eventData])

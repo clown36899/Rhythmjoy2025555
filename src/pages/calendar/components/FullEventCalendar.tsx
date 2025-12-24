@@ -4,8 +4,8 @@ import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import "../styles/FullEventCalendar.css";
-import { getEventThumbnail } from "../../../utils/getEventThumbnail";
-import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
+// import { getEventThumbnail } from "../../../utils/getEventThumbnail"; // Removed unused import
+// import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
 interface FullEventCalendarProps {
   currentMonth: Date;
@@ -44,7 +44,7 @@ export default memo(function FullEventCalendar({
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
-  const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
+  // const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail(); // Removed unused hook
 
   // Internal state for swipe gestures
   const [internalDragOffset, _setInternalDragOffset] = useState(0);
@@ -182,7 +182,7 @@ export default memo(function FullEventCalendar({
       const endOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
       const startDateStr = startOfRange.toISOString().split('T')[0];
       const endDateStr = endOfRange.toISOString().split('T')[0];
-      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,venue_id,venue_name,venue_custom_link";
+      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_micro,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,venue_id,venue_name,venue_custom_link";
 
       const { data, error } = await supabase
         .from("events")
@@ -194,6 +194,13 @@ export default memo(function FullEventCalendar({
       if (error) {
         console.error("Error fetching events:", error);
       } else {
+        console.log("📅 [FullEventCalendar] Fetched events:", data?.length);
+        if (data && data.length > 0) {
+          // 디버깅: 처음 5개 이벤트의 image_micro 확인
+          data.slice(0, 5).forEach((evt: any) => {
+            console.log(`- Event: ${evt.title}, Micro: ${evt.image_micro ? '✅ Exist' : '❌ NULL'}, URL: ${evt.image_micro}`);
+          });
+        }
         setEvents((data || []) as AppEvent[]);
       }
     } catch (error) {
@@ -358,7 +365,9 @@ export default memo(function FullEventCalendar({
           <div className="calendar-cell-fullscreen-body">
             {dayEvents.map((event) => {
               const categoryColor = getEventColor(event.id);
-              const thumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+              // 사용자 요청: 전체 달력은 무조건 마이크로 이미지만 사용 (큰 이미지 로딩 방지)
+              // image_micro가 없으면 아예 이미지를 표시하지 않음 (placeholder 사용)
+              const thumbnailUrl = event.image_micro;
 
               let dateIndex = -1;
               if (event.event_dates && event.event_dates.length > 1) {

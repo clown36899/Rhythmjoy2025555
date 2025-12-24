@@ -293,40 +293,54 @@ export function MobileShell() {
         {/* Left/Center Content based on Route */}
         <div className="header-left-content">
 
-          {/* 1. Events Page (Home) */}
-          {isEventsPage && (
+          {/* 1. Events Page (Home), Board, Social, Practice, Shopping, Guide - 통합 렌더링 */}
+          {!isCalendarPage && (
             <div
               className="header-events-content"
-              onClick={() => window.location.reload()}
-              style={{ cursor: 'pointer' }}
+              onClick={isEventsPage ? () => window.location.reload() : undefined}
+              style={{ cursor: isEventsPage ? 'pointer' : 'default' }}
             >
               <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                  <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>
-                    댄스빌보드
-                  </h1>
-                  {isAdmin && (
-                    <span style={{ fontSize: '10px', color: '#00ff88', fontWeight: 'bold', display: 'flex', gap: '3px', marginLeft: '4px', minWidth: '30px' }}>
-                      <span style={{ color: '#00ddff' }}>{onlineUsersData.loggedInUsers?.length || 0}</span>
-                      <span style={{ color: '#888' }}>/</span>
-                      <span style={{ color: '#ffaa00' }}>{onlineUsersData.anonymousCount || 0}</span>
 
-                      {totalUserCount !== null && (
-                        <span style={{ fontSize: '10px', color: '#aaa', fontWeight: 'normal', marginLeft: '4px' }}>
-                          ({totalUserCount})
-                        </span>
-                      )}
-                    </span>
-                  )}
+              {/* 콘텐츠 분기 처리 */}
+              {isEventsPage ? (
+                /* 홈(이벤트) 페이지 콘텐츠 */
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                    <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>
+                      댄스빌보드
+                    </h1>
+                    {isAdmin && (
+                      <span style={{ fontSize: '10px', color: '#00ff88', fontWeight: 'bold', display: 'flex', gap: '3px', marginLeft: '4px', minWidth: '30px' }}>
+                        <span style={{ color: '#00ddff' }}>{onlineUsersData.loggedInUsers?.length || 0}</span>
+                        <span style={{ color: '#888' }}>/</span>
+                        <span style={{ color: '#ffaa00' }}>{onlineUsersData.anonymousCount || 0}</span>
 
+                        {totalUserCount !== null && (
+                          <span style={{ fontSize: '10px', color: '#aaa', fontWeight: 'normal', marginLeft: '4px' }}>
+                            ({totalUserCount})
+                          </span>
+                        )}
+                      </span>
+                    )}
+
+                  </div>
+                  <span style={{ fontSize: '9px', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc' }}>
+                    {'swingenjoy.com'.split('').map((char, i) => (
+                      <span key={i}>{char}</span>
+                    ))}
+                  </span>
                 </div>
-                <span style={{ fontSize: '9px', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc' }}>
-                  {'swingenjoy.com'.split('').map((char, i) => (
-                    <span key={i}>{char}</span>
-                  ))}
-                </span>
-              </div>
+              ) : (
+                /* 그 외 페이지 타이틀 */
+                <h1 className="header-title">
+                  {isBoardPage && '자유게시판'}
+                  {isSocialPage && '소셜 이벤트'}
+                  {isPracticePage && '연습실'}
+                  {isShoppingPage && '쇼핑'}
+                  {isGuidePage && '이용가이드'}
+                </h1>
+              )}
             </div>
           )}
 
@@ -360,28 +374,6 @@ export function MobileShell() {
                   <i className="ri-arrow-right-s-line"></i>
                 </button>
               </div>
-            </div>
-          )}
-
-          {/* 3. Board Page */}
-          {isBoardPage && (
-            <div className="header-events-content">
-              <img src="/logo.png" alt="Logo" className="header-logo" />
-              <h1 className="header-title">
-                자유게시판
-              </h1>
-            </div>)}
-
-          {/* 4. Other Pages (Social, Practice, Shopping, Guide) */}
-          {(!isEventsPage && !isCalendarPage && !isBoardPage) && (
-            <div className="header-events-content">
-              <img src="/logo.png" alt="Logo" className="header-logo" />
-              <h1 className="header-title">
-                {isSocialPage && '소셜 이벤트'}
-                {isPracticePage && '연습실'}
-                {isShoppingPage && '쇼핑'}
-                {isGuidePage && '이용가이드'}
-              </h1>
             </div>
           )}
         </div>

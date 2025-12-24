@@ -544,6 +544,16 @@ export default function EventDetailModal({
             });
         }
 
+        // Upload Micro (100px) - ADDED
+        if (resizedImages.micro) {
+          await supabase.storage
+            .from('images')
+            .upload(`${basePath}/micro/${fileName}`, resizedImages.micro, {
+              contentType: 'image/webp',
+              upsert: true
+            });
+        }
+
         const publicUrl = supabase.storage
           .from('images')
           .getPublicUrl(`${basePath}/full/${fileName}`).data.publicUrl;
@@ -556,11 +566,16 @@ export default function EventDetailModal({
           .from('images')
           .getPublicUrl(`${basePath}/thumbnail/${fileName}`).data.publicUrl;
 
+        const microUrl = supabase.storage
+          .from('images')
+          .getPublicUrl(`${basePath}/micro/${fileName}`).data.publicUrl;
+
         // Update draft fields
         updates.image = publicUrl;
         updates.image_full = publicUrl;
         updates.image_medium = mediumUrl;
         updates.image_thumbnail = thumbnailUrl;
+        updates.image_micro = microUrl;
       }
 
       // DB Update
