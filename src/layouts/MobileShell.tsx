@@ -562,7 +562,7 @@ export function MobileShell() {
         )}
 
         {/* Board Page Top Bar - 글쓰기 버튼 */}
-        {isBoardPage && (
+        {isBoardPage && category !== 'anonymous' && (
           <div className="shell-top-bar" style={{ minHeight: '32px' }}>
             <div className="shell-top-bar-content">
               <div style={{ flex: 1 }}></div>

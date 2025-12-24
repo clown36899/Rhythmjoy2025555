@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { getStableFingerprint } from '../../utils/fingerprint';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPostList from './components/BoardPostList';
 import UniversalPostEditor from './components/UniversalPostEditor';
@@ -86,6 +87,13 @@ export default function BoardMainContainer() {
     // Likes & Dislikes State
     const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set());
     const [dislikedPostIds, setDislikedPostIds] = useState<Set<number>>(new Set());
+    const [editingPost, setEditingPost] = useState<{
+        id: number;
+        title: string;
+        content: string;
+        nickname: string;
+        password?: string;
+    } | null>(null);
 
     // Load Interactions
     useEffect(() => {
@@ -93,16 +101,16 @@ export default function BoardMainContainer() {
     }, [user]);
 
     const fetchInteractions = async () => {
-        if (user) {
-            try {
-                // Fetch Likes
+        try {
+            if (user && category !== 'anonymous') {
+                // Fetch Likes for authenticated users
                 const { data: likes } = await supabase
                     .from('board_post_likes')
                     .select('post_id')
                     .eq('user_id', user.id);
                 if (likes) setLikedPostIds(new Set(likes.map(l => l.post_id)));
 
-                // Fetch Dislikes (Handle non-existent table gracefully)
+                // Fetch Dislikes for authenticated users
                 const { data: dislikes, error } = await supabase
                     .from('board_post_dislikes')
                     .select('post_id')
@@ -111,42 +119,87 @@ export default function BoardMainContainer() {
                 if (dislikes && !error) {
                     setDislikedPostIds(new Set(dislikes.map(d => d.post_id)));
                 }
-            } catch (err) {
-                console.warn('Post interactions loading skipped (tables might not exist yet)');
+            } else if (category === 'anonymous') {
+                // Fetch Interactions for anonymous users using stable fingerprint
+                const fingerprint = getStableFingerprint();
+                if (fingerprint) {
+                    console.log('Syncing anonymous interactions with DB...', { fingerprint });
+
+                    const [{ data: anonLikes }, { data: anonDislikes }] = await Promise.all([
+                        supabase.from('board_anonymous_likes').select('post_id').eq('fingerprint', fingerprint),
+                        supabase.from('board_anonymous_dislikes').select('post_id').eq('fingerprint', fingerprint)
+                    ]);
+
+                    if (anonLikes) {
+                        const likesSet = new Set(anonLikes.map(l => l.post_id));
+                        setLikedPostIds(likesSet);
+                        localStorage.setItem('board_likes', JSON.stringify(Array.from(likesSet)));
+                    }
+
+                    if (anonDislikes) {
+                        const dislikesSet = new Set(anonDislikes.map(d => d.post_id));
+                        setDislikedPostIds(dislikesSet);
+                        localStorage.setItem('board_dislikes', JSON.stringify(Array.from(dislikesSet)));
+                    }
+                }
             }
-        } else {
-            // For anonymous, use localStorage for simple persistence
-            const localLikes = localStorage.getItem('board_likes');
-            const localDislikes = localStorage.getItem('board_dislikes');
-            if (localLikes) setLikedPostIds(new Set(JSON.parse(localLikes)));
-            if (localDislikes) setDislikedPostIds(new Set(JSON.parse(localDislikes)));
+            else {
+                // Fallback for non-anonymous guest users if any
+                const localLikes = localStorage.getItem('board_likes');
+                const localDislikes = localStorage.getItem('board_dislikes');
+                if (localLikes) setLikedPostIds(new Set(JSON.parse(localLikes || '[]')));
+                if (localDislikes) setDislikedPostIds(new Set(JSON.parse(localDislikes || '[]')));
+            }
+        } catch (err) {
+            console.warn('Post interactions loading failed or skipped:', err);
         }
     };
 
     const handleToggleLike = async (postId: number) => {
         const isLiked = likedPostIds.has(postId);
+        const isDisliked = dislikedPostIds.has(postId);
         const originalLikesSet = new Set(likedPostIds);
+        const originalDislikesSet = new Set(dislikedPostIds);
 
-        // 1. Optimistic UI Update (Set)
-        const next = new Set(likedPostIds);
-        if (isLiked) next.delete(postId);
-        else next.add(postId);
-        setLikedPostIds(next);
+        // 1. Optimistic UI Update
+        const nextLikes = new Set(likedPostIds);
+        const nextDislikes = new Set(dislikedPostIds);
+
+        if (isLiked) {
+            nextLikes.delete(postId);
+        } else {
+            nextLikes.add(postId);
+            // Mutual Exclusivity for anonymous board
+            if (category === 'anonymous' && isDisliked) {
+                nextDislikes.delete(postId);
+            }
+        }
+
+        setLikedPostIds(nextLikes);
+        setDislikedPostIds(nextDislikes);
 
         if (!user) {
-            localStorage.setItem('board_likes', JSON.stringify(Array.from(next)));
+            localStorage.setItem('board_likes', JSON.stringify(Array.from(nextLikes)));
+            localStorage.setItem('board_dislikes', JSON.stringify(Array.from(nextDislikes)));
         }
 
         // 2. Optimistic UI Update (Count)
         setPosts(prev => prev.map(p => {
             if (p.id === postId) {
-                return { ...p, likes: isLiked ? Math.max(0, p.likes - 1) : p.likes + 1 };
+                let newLikes = isLiked ? Math.max(0, p.likes - 1) : p.likes + 1;
+                let newDislikes = p.dislikes || 0;
+
+                if (!isLiked && category === 'anonymous' && isDisliked) {
+                    newDislikes = Math.max(0, newDislikes - 1);
+                }
+
+                return { ...p, likes: newLikes, dislikes: newDislikes };
             }
             return p;
         }));
 
         try {
-            if (user) {
+            if (user && category !== 'anonymous') {
                 if (isLiked) {
                     await supabase.from('board_post_likes').delete().eq('user_id', user.id).eq('post_id', postId);
                 } else {
@@ -154,82 +207,128 @@ export default function BoardMainContainer() {
                     if (error && error.code !== '23505') throw error;
                 }
             } else if (category === 'anonymous') {
-                // Future: Add fingerprint support if needed
+                // Get or generate a stable device fingerprint
+                const fingerprint = getStableFingerprint();
+                if (!localStorage.getItem('client_fingerprint')) {
+                    localStorage.setItem('client_fingerprint', fingerprint);
+                }
+
+                // Call atomic RPC for better stability and avoiding 409 conflicts
+                console.log('Calling toggle_anonymous_interaction (like)', { p_post_id: postId, p_fingerprint: fingerprint });
+                const { data, error } = await supabase.rpc('toggle_anonymous_interaction', {
+                    p_post_id: postId,
+                    p_fingerprint: fingerprint,
+                    p_type: 'like'
+                });
+
+                if (error) {
+                    console.error('RPC Error (toggle_like):', error);
+                    throw error;
+                }
+                console.log('RPC Result (toggle_like):', data);
             }
         } catch (error) {
             console.error('Error toggling like:', error);
             setLikedPostIds(originalLikesSet);
+            setDislikedPostIds(originalDislikesSet);
             loadPosts();
         }
     };
 
     const handleDeletePost = async (postId: number, password?: string) => {
         try {
-            if (isRealAdmin) {
-                // Admin can delete directly
-                const { error } = await supabase.from('board_posts').delete().eq('id', postId);
-                if (error) throw error;
-                loadPosts(); // Refresh the list
+            // Unified deletion flow via RPC for both users and admins
+            // RPC handles both password verification (for users) and is_admin check (for admins)
+            const rpcName = category === 'anonymous' ? 'delete_anonymous_post_with_password' : 'delete_post_with_password';
+
+            // For admin, we don't need a password, but the RPC expects a text parameter
+            const finalPassword = isRealAdmin ? 'ADMIN_BYPASS' : password;
+
+            console.log(`Executing deletion via RPC: ${rpcName}`, { p_post_id: postId, is_admin: isRealAdmin });
+
+            const { data: success, error } = await supabase.rpc(rpcName, {
+                p_post_id: postId,
+                p_password: finalPassword
+            });
+
+            if (error) {
+                console.error(`Deletion RPC Failed [${rpcName}]:`, error);
+                // Fallback for regular posts if RPC fails and user is admin
+                if (isRealAdmin && category !== 'anonymous') {
+                    const { error: deleteError } = await supabase.from('board_posts').delete().eq('id', postId);
+                    if (!deleteError) {
+                        loadPosts();
+                        return true;
+                    }
+                }
+                throw error;
+            }
+
+            if (success) {
+                console.log('Post deleted successfully');
+                loadPosts();
                 return true;
             } else {
-                // Non-admin requires password
-                if (!password) {
-                    console.warn('Password is required for non-admin deletion.');
-                    return false;
-                }
-
-                const { data: post, error: fetchError } = await supabase
-                    .from('board_posts')
-                    .select('password')
-                    .eq('id', postId)
-                    .single();
-
-                if (fetchError) throw fetchError;
-
-                if (post && post.password && post.password === password) {
-                    const { error: deleteError } = await supabase.from('board_posts').delete().eq('id', postId);
-                    if (deleteError) throw deleteError;
-                    loadPosts(); // Refresh the list
-                    return true;
-                } else {
-                    console.warn('Incorrect password for post deletion.');
-                    return false;
-                }
+                console.warn('Post deletion failed: Incorrect password or unauthorized');
+                return false;
             }
         } catch (error) {
-            console.error('Error deleting post:', error);
+            console.error('CRITICAL: Error in handleDeletePost:', error);
             return false;
         }
     };
 
     const handleToggleDislike = async (postId: number) => {
         const isDisliked = dislikedPostIds.has(postId);
+        const isLiked = likedPostIds.has(postId);
         const originalDislikesSet = new Set(dislikedPostIds);
+        const originalLikesSet = new Set(likedPostIds);
 
-        // 1. Optimistic UI Update (Set)
-        const next = new Set(dislikedPostIds);
-        if (isDisliked) next.delete(postId);
-        else next.add(postId);
-        setDislikedPostIds(next);
+        // 1. Optimistic UI Update
+        const nextDislikes = new Set(dislikedPostIds);
+        const nextLikes = new Set(likedPostIds);
+
+        if (isDisliked) {
+            nextDislikes.delete(postId);
+        } else {
+            nextDislikes.add(postId);
+            // Mutual Exclusivity for anonymous board
+            if (category === 'anonymous' && isLiked) {
+                nextLikes.delete(postId);
+            }
+        }
+
+        setDislikedPostIds(nextDislikes);
+        setLikedPostIds(nextLikes);
 
         if (!user) {
-            localStorage.setItem('board_dislikes', JSON.stringify(Array.from(next)));
+            localStorage.setItem('board_dislikes', JSON.stringify(Array.from(nextDislikes)));
+            localStorage.setItem('board_likes', JSON.stringify(Array.from(nextLikes)));
         }
 
         // 2. Optimistic UI Update (Count)
         setPosts(prev => prev.map(p => {
             if (p.id === postId) {
                 const currentDislikes = (p as any).dislikes || 0;
+                let newDislikes = isDisliked ? Math.max(0, currentDislikes - 1) : currentDislikes + 1;
+                let newLikes = p.likes || 0;
+
+                if (!isDisliked && category === 'anonymous' && isLiked) {
+                    newLikes = Math.max(0, newLikes - 1);
+                }
+
                 return {
                     ...p,
-                    dislikes: isDisliked ? Math.max(0, currentDislikes - 1) : currentDislikes + 1
+                    dislikes: newDislikes,
+                    likes: newLikes,
+                    is_hidden: category === 'anonymous' ? (newDislikes >= 2) : p.is_hidden
                 };
             }
             return p;
         }));
 
         try {
-            if (user) {
+            if (user && category !== 'anonymous') {
                 if (isDisliked) {
                     await supabase.from('board_post_dislikes').delete().eq('user_id', user.id).eq('post_id', postId);
                 } else {
@@ -237,66 +336,71 @@ export default function BoardMainContainer() {
                     if (error && error.code !== '23505') throw error;
                 }
             } else if (category === 'anonymous') {
-                const fingerprint = localStorage.getItem('client_fingerprint') || Math.random().toString(36).substring(2);
+                // Get or generate a stable device fingerprint
+                const fingerprint = getStableFingerprint();
                 if (!localStorage.getItem('client_fingerprint')) {
                     localStorage.setItem('client_fingerprint', fingerprint);
                 }
 
-                if (isDisliked) {
-                    await supabase.from('board_post_dislikes').delete().eq('post_id', postId).eq('fingerprint', fingerprint);
-                } else {
-                    const { error } = await supabase.from('board_post_dislikes').insert({ post_id: postId, fingerprint }).select();
-                    if (error && error.code !== '23505') throw error;
+                // Call atomic RPC for better stability and avoiding 409 conflicts
+                console.log('Calling toggle_anonymous_interaction (dislike)', { p_post_id: postId, p_fingerprint: fingerprint });
+                const { data, error } = await supabase.rpc('toggle_anonymous_interaction', {
+                    p_post_id: postId,
+                    p_fingerprint: fingerprint,
+                    p_type: 'dislike'
+                });
+
+                if (error) {
+                    console.error('RPC Error (toggle_dislike):', error);
+                    throw error;
                 }
+                console.log('RPC Result (toggle_dislike):', data);
             }
         } catch (error) {
             console.error('Error toggling dislike:', error);
             setDislikedPostIds(originalDislikesSet);
+            setLikedPostIds(originalLikesSet);
             loadPosts();
         }
     };
 
+
     const loadPosts = async () => {
         try {
             setLoading(true);
+            setPosts([]); // Clear previous data to avoid leakage/stale state
+            const isAnon = category === 'anonymous';
+            const table = isAnon ? 'board_anonymous_posts' : 'board_posts';
+
             // Construct query based on category
-            let query = supabase
-                .from('board_posts')
-                .select(`
-          id, 
-          title, 
-          content, 
-          author_name, 
-          author_nickname,
-          user_id, 
-          views, 
-          is_notice, 
-          prefix_id,
-          prefix:board_prefixes(id, name, color, admin_only),
-          created_at, 
-          updated_at,
-          category,
-          image_thumbnail,
-          image,
-          is_hidden,
-          comment_count,
-          likes,
-          dislikes,
-          display_order
-        `)
-                .eq('category', category);
+            const anonFields = "id, title, content, author_name, author_nickname, views, is_notice, created_at, updated_at, image_thumbnail, image, is_hidden, comment_count, likes, dislikes, display_order";
+            const standardFields = `
+                id, title, content, author_name, author_nickname,
+                user_id, views, is_notice, prefix_id,
+                prefix:board_prefixes(id, name, color, admin_only),
+                created_at, updated_at, category,
+                image_thumbnail, image, is_hidden, comment_count,
+                likes, dislikes, display_order
+            `;
+
+            let query: any = (supabase.from(table) as any)
+                .select(isAnon ? anonFields : standardFields);
+
+            if (!isAnon) {
+                query = query.eq('category', category);
+            }
 
             // Sorting: Notices first, then custom order (pinning), then latest
             query = query.order('is_notice', { ascending: false });
 
-            if (category === 'anonymous') {
+            if (isAnon) {
                 query = query.order('display_order', { ascending: false }); // Admin manual pin/sort
             }
 
             query = query.order('created_at', { ascending: false });
 
-            // Filter hidden posts for non-admins
-            if (!isRealAdmin) {
+            // Filter hidden posts for non-admins (Except anonymous board for community feedback)
+            if (!isRealAdmin && category !== 'anonymous') {
                 query = query.eq('is_hidden', false);
             }
 
@@ -430,8 +534,13 @@ export default function BoardMainContainer() {
                             <span>싫어요가 10개 넘으면 숨김처리됩니다.</span>
                         </div>
                         <QuickMemoEditor
-                            onPostCreated={loadPosts}
+                            onPostCreated={() => {
+                                loadPosts();
+                                setEditingPost(null);
+                            }}
                             category={category}
+                            editData={editingPost}
+                            onCancelEdit={() => setEditingPost(null)}
                         />
                     </>
                 )}
@@ -443,6 +552,7 @@ export default function BoardMainContainer() {
                         posts={currentPosts}
                         loading={loading}
                         category={category}
+                        isAdmin={isRealAdmin}
                         onPostClick={(post) => navigate(`/board/${post.id}`)}
                         currentPage={currentPage}
                         totalPages={totalPages}
@@ -452,6 +562,7 @@ export default function BoardMainContainer() {
                         onToggleLike={handleToggleLike}
                         onToggleDislike={handleToggleDislike}
                         onDeletePost={handleDeletePost}
+                        onPostUpdate={loadPosts}
                     />
                 )}
             </div>

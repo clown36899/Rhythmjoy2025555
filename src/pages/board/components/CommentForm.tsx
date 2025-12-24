@@ -10,12 +10,14 @@ interface CommentFormProps {
     onCommentAdded: () => void;
     editingComment?: BoardComment | null;
     onCancelEdit?: () => void;
+    providedPassword?: string;
+    disabled?: boolean;
 }
 
-export default function CommentForm({ postId, category, onCommentAdded, editingComment, onCancelEdit }: CommentFormProps) {
+export default function CommentForm({ postId, category, onCommentAdded, editingComment, onCancelEdit, providedPassword, disabled }: CommentFormProps) {
     const { user } = useAuth();
     const [content, setContent] = useState(editingComment?.content || '');
-    const [authorName, setAuthorName] = useState('');
+    const [authorName, setAuthorName] = useState(editingComment?.author_name || '');
     const [password, setPassword] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [bannedWords, setBannedWords] = useState<string[]>([]);
@@ -35,8 +37,10 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
     useEffect(() => {
         if (editingComment) {
             setContent(editingComment.content);
+            setAuthorName(editingComment.author_name || '');
         } else {
             setContent('');
+            setAuthorName('');
         }
     }, [editingComment]);
 
@@ -63,7 +67,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
             return;
         }
 
-        if (isAnonymousRoom && !password.trim()) {
+        if (isAnonymousRoom && !password.trim() && !providedPassword) {
             alert('비밀번호를 입력해주세요.');
             return;
         }
@@ -75,30 +79,56 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
 
         try {
             setIsSubmitting(true);
-
+            const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
 
             if (editingComment) {
                 // Update existing comment
-                const { error } = await supabase
-                    .from('board_comments')
-                    .update({
-                        content: content.trim(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', editingComment.id);
+                if (category === 'anonymous') {
+                    // Update via standard query with password filter
+                    const { data, error } = await supabase
+                        .from(table)
+                        .update({
+                            content: content.trim(),
+                            author_name: authorName
+                        })
+                        .eq('id', editingComment.id)
+                        .eq('password', providedPassword || password.trim())
+                        .select();
 
-                if (error) throw error;
+                    if (error) throw error;
+                    if (!data || data.length === 0) {
+                        alert('비밀번호가 일치하지 않거나 수정 권한이 없습니다.');
+                        return;
+                    }
+                } else {
+                    const { error } = await supabase
+                        .from(table)
+                        .update({
+                            content: content.trim()
+                            // Skip updated_at if not sure it exists
+                        })
+                        .eq('id', editingComment.id);
+                    if (error) throw error;
+                }
             } else {
                 // Create new comment
+                const commentData: any = {
+                    post_id: postId,
+                    content: content.trim(),
+                    author_name: category === 'anonymous' ? authorName : user?.user_metadata?.nickname || user?.email,
+                };
+
+                // Add optional fields conditionally
+                if (category === 'anonymous') {
+                    commentData.password = password.trim() || null;
+                } else {
+                    commentData.user_id = user?.id;
+                    commentData.password = null;
+                }
+
                 const { error } = await supabase
-                    .from('board_comments')
-                    .insert({
-                        post_id: postId,
-                        content: content.trim(),
-                        author_name: category === 'anonymous' ? authorName : user?.user_metadata?.nickname || user?.email,
-                        user_id: category === 'anonymous' ? null : user?.id,
-                        password: category === 'anonymous' ? password.trim() || null : null,
-                    })
+                    .from(table)
+                    .insert(commentData)
                     .select();
 
                 if (error) throw error;
@@ -155,23 +185,27 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                         onChange={(e) => setAuthorName(e.target.value)}
                         className="comment-author-input"
                         required
+                        disabled={disabled}
                     />
-                    <input
-                        type="password"
-                        placeholder="비밀번호"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="comment-password-input"
-                        required
-                    />
+                    {!providedPassword && (
+                        <input
+                            type="password"
+                            placeholder="비밀번호"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="comment-password-input"
+                            required
+                            disabled={disabled}
+                        />
+                    )}
                 </div>
             )}
             <textarea
                 className="comment-form-textarea"
-                placeholder="댓글을 입력하세요..."
+                placeholder={disabled ? "수정 중입니다..." : "댓글을 입력하세요..."}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || disabled}
                 rows={3}
             />
             <div className="comment-form-actions">
@@ -180,7 +214,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                         type="button"
                         onClick={onCancelEdit}
                         className="comment-form-btn comment-form-btn-cancel"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || disabled}
                     >
                         취소
                     </button>
@@ -188,7 +222,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                 <button
                     type="submit"
                     className="comment-form-btn comment-form-btn-submit"
-                    disabled={isSubmitting || !content.trim()}
+                    disabled={isSubmitting || !content.trim() || disabled}
                 >
                     {isSubmitting ? '작성 중...' : editingComment ? '수정' : '댓글 작성'}
                 </button>

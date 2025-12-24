@@ -118,11 +118,11 @@
 /* ===== 게시글 카드 ===== */
 /* ===== 게시글 카드 ===== */
 .board-post-card {
-  padding: 12px;
+  padding: 8px;
   transition: var(--transition-colors);
   cursor: pointer;
-  /* margin: 0.4rem; */
-  /* border-radius: 12px; */
+  margin: 0.4rem;
+  border-radius: 9px;
   display: flex;
   border-bottom: 1px solid #242424;
   flex-direction: column;
@@ -136,7 +136,7 @@
 }
 
 .board-post-card-normal {
-  background-color: #000000;
+  background-color: #1a1a1a;
 }
 
 .board-post-card-notice {

@@ -462,31 +462,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserId(null);
       logEvent('Auth', 'Logout', 'Success');
 
-      logToStorage('[AuthContext.signOut] 8단계: 페이지 리다이렉트 실행 - window.location.replace("/")');
-      logToStorage('[AuthContext.signOut] ========== 리다이렉트 직전 ==========');
+      logToStorage('[AuthContext.signOut] 8단계: 페이지 새로고침 실행 - window.location.reload()');
+      logToStorage('[AuthContext.signOut] ========== 리로드 직전 ==========');
 
-      // 리다이렉트 직전에 false로 돌리면 리로드 전에 잠깐 UI가 풀릴 수 있음
-      // 하지만 리로드가 실패하거나 늦어지면 영원히 도는 문제 발생
-      // 타임아웃을 걸어서 강제로 끄는 방법 또는 그냥 두는 방법.
-      // "안 없어지는데?" 라는 피드백을 받았으므로, 안전장치로 리로드 호출 후에도 혹시 모를 상황 대비는 어려움(페이지 넘어가니까)
-      // 에러 발생 시 catch 블록에서 리로드함.
+      // ⚠️ [변경] 무조건 메인('/')으로 가던 로직을 현재 페이지 새로고침으로 변경
+      // 이를 통해 게시판이나 특정 상세 페이지에서 로그아웃해도 튕기지 않고 해당 위치 유지
+      window.location.reload();
 
-      // ⚠️ [중요] 빌보드 페이지(/billboard/)에서는 리다이렉트 하지 않음
-      // 빌보드는 로그인이 필요 없는 공개 페이지이지만, 이전에 로그인했던(관리자 등) 세션 찌꺼기로 인해 
-      // 403 에러 -> signOut()이 트리거될 수 있음. 이때 메인으로 튕기면 안됨.
-      if (!window.location.pathname.includes('/billboard/')) {
-        window.location.replace('/');
-      } else {
-        logToStorage('[AuthContext.signOut] 빌보드 페이지 감지 - 리다이렉트 건너뜀 (현재 페이지 유지)');
-      }
     } catch (error) {
       logToStorage('[AuthContext.signOut] ❌ 에러 발생: ' + (error as Error).message);
-      // 실패해도 페이지 리로드로 강제 초기화 (단, 빌보드는 제외)
-      if (!window.location.pathname.includes('/billboard/')) {
-        window.location.replace('/');
-      } else {
-        logToStorage('[AuthContext.signOut] 빌보드 페이지 에러 발생 - 리다이렉트 건너뜀');
-      }
+      // 실패해도 페이지 리로드로 강제 초기화
+      window.location.reload();
     } finally {
       // 성공하든 실패하든 리로드가 호출됨.
       // 브라우저가 리로드를 처리하는 동안 JS 실행이 멈추거나 페이지가 전환됨.

@@ -1,15 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { createResizedImages } from '../../../utils/imageResize';
+import { resizeImage } from '../../../utils/imageResize';
 import { retryOperation } from '../../../utils/asyncUtils';
 import './QuickMemoEditor.css';
 
 interface QuickMemoEditorProps {
     onPostCreated: () => void;
     category: string;
+    editData?: {
+        id: number;
+        title: string;
+        content: string;
+        nickname: string;
+        password?: string;
+    } | null;
+    onCancelEdit?: () => void;
+    providedPassword?: string;
 }
 
-export default function QuickMemoEditor({ onPostCreated, category }: QuickMemoEditorProps) {
+export default function QuickMemoEditor({ onPostCreated, category, editData, onCancelEdit, providedPassword }: QuickMemoEditorProps) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [nickname, setNickname] = useState('');
@@ -23,6 +32,21 @@ export default function QuickMemoEditor({ onPostCreated, category }: QuickMemoEd
     useEffect(() => {
         loadBannedWords();
     }, []);
+
+    // Sync form with editData
+    useEffect(() => {
+        if (editData) {
+            setTitle(editData.title || '');
+            setContent(editData.content || '');
+            setNickname(editData.nickname || '');
+            setPassword(providedPassword || editData.password || '');
+        } else {
+            setTitle('');
+            setContent('');
+            setNickname('');
+            setPassword('');
+        }
+    }, [editData]);
 
     const loadBannedWords = async () => {
         try {
@@ -85,7 +109,12 @@ export default function QuickMemoEditor({ onPostCreated, category }: QuickMemoEd
             if (imageFile) {
                 const timestamp = Date.now();
                 const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
-                const resized = await createResizedImages(imageFile);
+
+                // Optimized for Memo: Skip 'full' (billboard) and 'micro' sizes
+                const [thumbnail, medium] = await Promise.all([
+                    resizeImage(imageFile, 300, 0.7, fileName),
+                    resizeImage(imageFile, 1080, 0.75, fileName)
+                ]);
 
                 const uploadImage = async (path: string, file: Blob) => {
                     const { error } = await supabase.storage.from("images").upload(path, file);
@@ -94,27 +123,59 @@ export default function QuickMemoEditor({ onPostCreated, category }: QuickMemoEd
                 };
 
                 const [thumbUrl, mainUrl] = await Promise.all([
-                    retryOperation(() => uploadImage(`board-images/thumbnails/${fileName}`, resized.thumbnail)),
-                    retryOperation(() => uploadImage(`board-images/medium/${fileName}`, resized.medium))
+                    retryOperation(() => uploadImage(`board-images/thumbnails/${fileName}`, thumbnail)),
+                    retryOperation(() => uploadImage(`board-images/medium/${fileName}`, medium))
                 ]);
                 imageUrls.image = mainUrl;
                 imageUrls.image_thumbnail = thumbUrl;
             }
 
-            const { error } = await supabase.from('board_posts').insert([{
-                title: title.trim() || content.substring(0, 20),
-                content: content,
-                author_name: nickname,
-                author_nickname: nickname,
-                user_id: null, // Always null for anonymity as requested
-                category: category,
-                image: imageUrls.image,
-                image_thumbnail: imageUrls.image_thumbnail,
-                password: password.trim() || null,
-                views: 0
-            }]);
+            if (editData?.id) { // Changed from editData to editData?.id
+                // Update post via new secure RPC
+                console.log('Updating anonymous post via RPC');
+                const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
+                    p_post_id: editData.id,
+                    p_password: password.trim(), // Use current password input for update
+                    p_title: title.trim(),
+                    p_content: content.trim(),
+                    p_author_name: nickname,
+                    p_image: imageUrls.image,
+                    p_image_thumbnail: imageUrls.image_thumbnail
+                });
 
-            if (error) throw error;
+                if (error) {
+                    console.error('RPC Error:', error);
+                    throw error;
+                }
+                if (!success) {
+                    alert('비밀번호가 틀렸거나 수정에 실패했습니다.');
+                    setIsSubmitting(false); // Changed from setLoading to setIsSubmitting
+                    return;
+                }
+                alert('메모가 수정되었습니다!');
+            } else {
+                // Create new anonymous post in separate table
+                const { error } = await supabase.from('board_anonymous_posts').insert({
+                    title: title.trim(),
+                    content: content.trim(),
+                    author_name: nickname,
+                    author_nickname: nickname,
+                    password: password.trim(),
+                    image: imageUrls.image,
+                    image_thumbnail: imageUrls.image_thumbnail,
+                    views: 0,
+                    likes: 0,
+                    dislikes: 0,
+                    is_notice: false,
+                    is_hidden: false
+                });
+
+                if (error) {
+                    console.error('Insert Error:', error);
+                    throw error;
+                }
+                alert('메모가 등록되었습니다!');
+            }
 
             // Reset
             setTitle('');
@@ -124,8 +185,6 @@ export default function QuickMemoEditor({ onPostCreated, category }: QuickMemoEd
             setImageFile(null);
             setImagePreview(null);
             onPostCreated();
-            alert('메모가 등록되었습니다!');
-
         } catch (error) {
             console.error('메모 등록 실패:', error);
             alert('등록 중 오류가 발생했습니다.');
@@ -138,65 +197,105 @@ export default function QuickMemoEditor({ onPostCreated, category }: QuickMemoEd
         <div className="quick-memo-editor">
             <form onSubmit={handleSubmit} className="memo-form">
                 <div className="memo-header">
+                    <div className="memo-header-top">
+                        <div className="memo-left-actions">
+                            <input
+                                type="text"
+                                placeholder="작성자 닉네임"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                                className="memo-nickname-input"
+                            />
+                            {editData && (
+                                <span className="memo-edit-badge">Editing Mode</span>
+                            )}
+                        </div>
+                        <div className="memo-right-actions">
+                            <button
+                                type="button"
+                                className="memo-image-btn"
+                                title="이미지 첨부"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <i className="ri-image-add-fill"></i>
+                            </button>
+                        </div>
+                    </div>
+
                     <input
                         type="text"
-                        placeholder="닉네임"
-                        value={nickname}
-                        onChange={(e) => setNickname(e.target.value)}
-                        className="memo-nickname-input"
+                        placeholder="메모 제목 (생략 가능)"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="memo-title-input"
                     />
-                    <div className="memo-actions">
-                        <button
-                            type="button"
-                            className="memo-image-btn"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <i className="ri-image-add-line"></i>
-                        </button>
+
+                    <textarea
+                        placeholder={"무슨 생각을 하고 계신가요? 자유롭게 익명으로 남겨보세요...\n(자정작용을 위해 싫어요 2개가 넘으면 자동숨김됩니다)"}
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        className="memo-textarea"
+                        autoFocus={!!editData}
+                    />
+
+                    {imagePreview && (
+                        <div className="memo-preview-area">
+                            <img src={imagePreview} alt="Preview" />
+                            <button
+                                type="button"
+                                onClick={() => { setImageFile(null); setImagePreview(null); }}
+                                className="remove-preview"
+                                title="이미지 제거"
+                            >
+                                <i className="ri-close-line"></i>
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="memo-bottom-row">
+                    <div className="memo-password-section">
+                        {!providedPassword && (
+                            <input
+                                type="password"
+                                placeholder="비밀번호"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="memo-password-input"
+                                required
+                            />
+                        )}
+                    </div>
+
+                    <div className="memo-submit-actions">
+                        {editData && (
+                            <button
+                                type="button"
+                                className="memo-cancel-btn"
+                                onClick={onCancelEdit}
+                            >
+                                취소
+                            </button>
+                        )}
                         <button
                             type="submit"
                             className="memo-submit-btn"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? <i className="ri-loader-4-line spin"></i> : '등록'}
+                            {isSubmitting ? (
+                                <>
+                                    <i className="ri-loader-4-line spin"></i>
+                                    <span>처리 중...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <i className={editData ? "ri-check-double-line" : "ri-quill-pen-line"}></i>
+                                    <span>{editData ? '수정 완료' : '메모 남기기'}</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
-
-                <div className="memo-sub-header">
-                    <input
-                        type="password"
-                        placeholder="비밀번호 (등록/삭제용)"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="memo-password-input full-width"
-                        required
-                    />
-                </div>
-
-                <input
-                    type="text"
-                    placeholder="제목 (선택사항)"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="memo-title-input"
-                />
-
-                <textarea
-                    placeholder="여기에 메모를 남겨보세요..."
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="memo-textarea"
-                />
-
-                {imagePreview && (
-                    <div className="memo-preview-area">
-                        <img src={imagePreview} alt="Preview" />
-                        <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="remove-preview">
-                            <i className="ri-close-line"></i>
-                        </button>
-                    </div>
-                )}
 
                 <input
                     type="file"

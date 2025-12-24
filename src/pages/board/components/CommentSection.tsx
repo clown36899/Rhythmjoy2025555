@@ -14,9 +14,12 @@ export default function CommentSection({ postId, category }: CommentSectionProps
     const [comments, setComments] = useState<BoardComment[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingComment, setEditingComment] = useState<BoardComment | null>(null);
+    const [editPassword, setEditPassword] = useState<string>('');
 
     useEffect(() => {
         loadComments();
+
+        const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
 
         // Subscribe to real-time updates
         const channel = supabase
@@ -26,7 +29,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                 {
                     event: '*',
                     schema: 'public',
-                    table: 'board_comments',
+                    table: table,
                     filter: `post_id=eq.${postId}`
                 },
                 () => {
@@ -38,13 +41,14 @@ export default function CommentSection({ postId, category }: CommentSectionProps
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [postId]);
+    }, [postId, category]);
 
     const loadComments = async () => {
         try {
+            const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
             // setLoading(true); // Disable loading state for seamless updates
             const { data, error } = await supabase
-                .from('board_comments')
+                .from(table)
                 .select('*')
                 .eq('post_id', postId)
                 .order('created_at', { ascending: true });
@@ -79,12 +83,23 @@ export default function CommentSection({ postId, category }: CommentSectionProps
         }
     };
 
+    const handleEditStart = (comment: BoardComment, password?: string) => {
+        setEditPassword(password || '');
+        setEditingComment(comment);
+    };
+
+    const handleEditCancel = () => {
+        setEditingComment(null);
+        setEditPassword('');
+    };
+
     const handleDelete = async (commentId: string, password?: string) => {
         try {
             const { data: userData } = await supabase.auth.getUser();
             const isAdmin = userData.user?.app_metadata?.role === 'admin' || (userData.user?.email && userData.user.email.includes('admin'));
 
-            let query = supabase.from('board_comments').delete().eq('id', commentId);
+            const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
+            let query = supabase.from(table).delete().eq('id', commentId);
 
             if (isAdmin) {
                 const { error } = await query;
@@ -94,7 +109,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             } else {
                 // Check password for anonymous or non-admin
                 const { data: comment } = await supabase
-                    .from('board_comments')
+                    .from(table)
                     .select('password')
                     .eq('id', commentId)
                     .single();
@@ -124,15 +139,14 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                 </div>
             )}
 
+            {/* Always show form for NEW comments at the top (disabled when editing) */}
             <CommentForm
                 postId={postId}
                 category={category}
                 onCommentAdded={() => {
                     loadComments();
-                    setEditingComment(null);
                 }}
-                editingComment={editingComment}
-                onCancelEdit={() => setEditingComment(null)}
+                disabled={!!editingComment}
             />
 
             <div className="comment-list">
@@ -148,17 +162,33 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                     </div>
                 ) : (
                     comments.map((comment) => (
-                        <CommentItem
-                            key={comment.id}
-                            comment={comment}
-                            isAnonymous={category === 'anonymous'}
-                            onEdit={setEditingComment}
-                            onDelete={handleDelete}
-                        />
+                        <div key={comment.id} className="comment-item-container">
+                            {editingComment?.id === comment.id ? (
+                                <div className="inline-edit-form">
+                                    <CommentForm
+                                        postId={postId}
+                                        category={category}
+                                        onCommentAdded={() => {
+                                            loadComments();
+                                            handleEditCancel();
+                                        }}
+                                        editingComment={editingComment}
+                                        onCancelEdit={handleEditCancel}
+                                        providedPassword={editPassword}
+                                    />
+                                </div>
+                            ) : (
+                                <CommentItem
+                                    comment={comment}
+                                    isAnonymous={category === 'anonymous'}
+                                    onEdit={handleEditStart}
+                                    onDelete={handleDelete}
+                                />
+                            )}
+                        </div>
                     ))
                 )}
             </div>
         </div>
     );
 }
-

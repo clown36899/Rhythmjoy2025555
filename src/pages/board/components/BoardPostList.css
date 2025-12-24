@@ -19,36 +19,33 @@
 /* Anonymous Board GRID */
 .anonymous-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
-    padding: 24px 16px;
-    overflow: visible;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 20px;
+    padding: 20px 16px;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: start;
 }
 
 /* Modern Anonymous Card */
 .anonymous-view .board-post-card.is-memo {
-    position: relative;
     background: var(--memo-card-bg);
     border: 1px solid var(--memo-card-border);
     border-radius: 16px;
-    /* Slightly more rounded for modern look */
-    padding: 24px;
-    min-height: 200px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
     box-shadow: var(--memo-shadow-idle);
-    margin: 0;
-    overflow: hidden;
-    transform: none !important;
-    /* Force remove rotation */
+    transition: all 0.2s ease;
 }
 
 .anonymous-view .board-post-card.is-memo:hover {
     background: var(--memo-card-hover);
-    transform: translateY(-4px) !important;
+    transform: translateY(-4px);
     box-shadow: var(--memo-shadow-hover);
-    border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Hide legacy elements if they remain in DOM */
@@ -71,10 +68,12 @@
     font-weight: 700;
 }
 
-.anonymous-view .board-post-top-row {
-    flex-direction: column !important;
-    gap: 16px;
-    align-items: flex-start !important;
+/* Flattened Row Styles */
+.board-post-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
 }
 
 /* Title & Content */
@@ -83,19 +82,22 @@
     font-size: 1.15rem;
     font-weight: 700;
     line-height: 1.4;
-    font-family: inherit !important;
-    /* Back to system font */
+    margin: 0 !important;
+}
+
+.board-post-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
 }
 
 .anonymous-view .board-post-content {
     color: var(--memo-text-content) !important;
     font-size: 0.95rem;
     line-height: 1.6;
+    margin: 0 !important;
     white-space: pre-wrap;
-    -webkit-line-clamp: unset !important;
-    line-clamp: unset !important;
-    max-height: none;
-    font-family: inherit !important;
 }
 
 /* Thumbnail - Controlled size */
@@ -147,9 +149,9 @@
 
 /* Footer / Meta */
 .anonymous-view .board-post-meta {
+    margin-top: 8px;
+    padding-top: 12px;
     border-top: 1px solid var(--memo-card-border);
-    margin-top: 20px;
-    padding-top: 16px;
     color: var(--memo-text-meta);
     display: flex;
     justify-content: space-between;
@@ -163,7 +165,8 @@
 
 /* Interaction Bar */
 .memo-interaction-bar {
-    margin-top: 16px;
+    margin-top: 12px;
+    /* Reduced from 16px */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -263,4 +266,130 @@
         padding: 16px;
         gap: 16px;
     }
+}
+
+/* Content Wrapper */
+.board-post-content-wrapper {
+    position: relative;
+    min-height: unset;
+    /* Removed 80px limit */
+}
+
+/* New Overlay Style - Covering the content */
+.post-hidden-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 26, 26, 0.85);
+    /* Matches card bg with opacity */
+    backdrop-filter: blur(4px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 10;
+    border-radius: 8px;
+}
+
+.post-hidden-overlay i {
+    font-size: 2rem;
+    color: #ef4444;
+    opacity: 0.9;
+}
+
+.hidden-message-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e5e7eb;
+    text-align: center;
+}
+
+/* Obscured Content - Blurred for hidden posts */
+.content-obscured {
+    filter: blur(12px) !important;
+    opacity: 0.25 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    transition: all 0.3s ease;
+}
+
+/* Deactivated Header Style */
+.deactivated-header {
+    opacity: 0.4;
+    filter: grayscale(100%);
+    pointer-events: none;
+    /* Optional: prevent clicking user profile if hidden */
+    text-decoration: line-through;
+    /* Strikethrough for title/author as requested visually */
+    text-decoration-color: rgba(255, 255, 255, 0.2);
+}
+
+.deactivated-header .board-post-title {
+    color: #6b7280 !important;
+    /* Dimmed title color */
+}
+
+/* Post Header Icons */
+.locked-icon {
+    font-size: 0.95rem;
+    margin-right: 8px;
+    vertical-align: middle;
+    color: #9ca3af;
+}
+
+.blind-warning {
+    color: #ef4444 !important;
+}
+
+.admin-status-badge {
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+/* Ensure admin sees content clearly despite dimmed/locked state */
+.is-admin-view.is-locked-status .board-post-content {
+    opacity: 0.9 !important;
+    filter: none !important;
+}
+
+.is-admin-view.is-locked-status .post-lockable-content {
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+/* Specific Compact Style for Blinded/Locked Posts */
+.anonymous-view .board-post-card.is-memo.is-locked-status {
+    padding: 8px 12px !important;
+}
+
+.is-locked-status .board-post-top-row {
+    gap: 0 !important;
+    /* Eliminate gap when content is gone */
+}
+
+.is-locked-status .board-post-meta {
+    margin-top: 4px !important;
+    padding-top: 4px !important;
+}
+
+.is-locked-status .memo-interaction-bar {
+    margin-top: 4px !important;
+}
+
+/* Ensure interaction bar remains visible and active */
+.board-post-card.is-locked-status .memo-interaction-bar,
+.board-post-card.is-locked-status .inline-comment-section {
+    opacity: 1 !important;
+    pointer-events: auto !important;
 }

@@ -210,7 +210,8 @@
 
 /* Comment Item */
 .comment-item {
-    padding: 1rem;
+    padding: 0.75rem;
+    /* Reduced from 1rem */
     background-color: var(--bg-secondary);
     border-radius: 0.5rem;
     border: 1px solid var(--border-color);
@@ -273,7 +274,8 @@
     white-space: pre-wrap;
     word-break: break-word;
     font-size: 0.9375rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.4rem;
+    /* Reduced from 0.75rem */
 }
 
 .comment-item-actions {
