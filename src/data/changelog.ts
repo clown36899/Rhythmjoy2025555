@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.16.0',
+        date: '2025-12-25',
+        changes: [
+            '게시판 에디터 구조 개선 (일반/익명 분리)',
+            '익명 게시판 글쓰기 편의성 향상',
+            '전반적인 게시판 안정성 강화'
+        ]
+    },
+    {
         version: '2.15.0',
         date: '2025-12-25',
         changes: [

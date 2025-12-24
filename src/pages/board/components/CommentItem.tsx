@@ -207,7 +207,14 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
                     <span className="comment-item-date">{formatDate(comment.created_at)}</span>
                 </div>
             </div>
-            <div className="comment-item-content">{comment.content}</div>
+            {(comment.dislikes || 0) >= 20 ? (
+                <div style={{ padding: '12px', textAlign: 'center', color: '#ef4444', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <i className="ri-alarm-warning-fill"></i>
+                    <span>신고 20회 누적으로 가려진 댓글입니다.</span>
+                </div>
+            ) : (
+                <div className="comment-item-content">{comment.content}</div>
+            )}
             <div className="comment-item-footer">
                 <div className="comment-item-interactions">
                     <button

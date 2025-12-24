@@ -59,7 +59,7 @@ export default function AnonymousPostList({
             <div className="anonymous-view">
                 {posts.map((post) => {
                     const isEditing = editingPostId === post.id;
-                    const isBlind = (post.dislikes || 0) >= 2;
+                    const isBlind = (post.dislikes || 0) >= 20;
                     const isCommentsOpen = expandedCommentPostId === post.id;
 
                     if (isEditing) {
@@ -94,7 +94,7 @@ export default function AnonymousPostList({
                                 {isBlind && (
                                     <div className="blind-warning" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 0', fontSize: '0.9rem' }}>
                                         <i className="ri-alarm-warning-fill"></i>
-                                        <span>신고 누적으로 가려진 글입니다.</span>
+                                        <span>신고 20회 누적으로 가려진 글입니다.</span>
                                     </div>
                                 )}
 

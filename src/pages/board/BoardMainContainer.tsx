@@ -459,11 +459,16 @@ export default function BoardMainContainer() {
     // Global Write Event Listener
     useEffect(() => {
         const handleWriteClick = () => {
+            if (category === 'anonymous') {
+                // Anonymous board uses inline QuickMemoEditor at the top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
             setIsEditorOpen(true);
         };
         window.addEventListener('boardWriteClick', handleWriteClick);
         return () => window.removeEventListener('boardWriteClick', handleWriteClick);
-    }, []);
+    }, [category]);
 
     // Swipe Navigation
     const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -543,7 +548,7 @@ export default function BoardMainContainer() {
                     <>
                         <div className="anonymous-board-notice">
                             <i className="ri-error-warning-line"></i>
-                            <span>싫어요가 10개 넘으면 숨김처리됩니다.</span>
+                            <span>싫어요가 20개 넘으면 숨김처리됩니다.</span>
                         </div>
                         <QuickMemoEditor
                             onPostCreated={() => {

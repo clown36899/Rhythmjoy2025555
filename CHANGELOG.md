@@ -7,6 +7,12 @@
 
 # 변경 이력 (버전별)
 
+## [2.16.0] - 2025-12-25
+### Changed
+- **Editor Isolation**: Completely separated editing logic for Standard and Anonymous boards.
+- **UniversalPostEditor**: Removed unused anonymous logic, now dedicated to standard posts.
+- **Board UI**: Improved write button behavior to respect board category context.
+
 ## [2.15.0] - 2025-12-25
 - **Refactor**: 게시판 컴포넌트 완전 분리 (Phase 2 완료)
   - `StandardPostList.tsx`와 `AnonymousPostList.tsx` 물리적 분리 완료

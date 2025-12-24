@@ -1,24 +1,28 @@
 -- Function to verify password and delete anonymous comment securely
-create or replace function delete_anonymous_comment_with_password(
-  p_comment_id uuid,
+-- Updated: 2025-12-25 - Fixed parameter type and table name
+CREATE OR REPLACE FUNCTION public.delete_anonymous_comment_with_password(
+  p_comment_id bigint,
   p_password text
 )
-returns boolean
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
   v_rows_deleted int;
-begin
+BEGIN
   -- Delete the comment only if the ID and password match
-  delete from board_anonymous_comments
-  where id = p_comment_id
-  and password = p_password;
+  DELETE FROM board_anonymous_comments
+  WHERE id = p_comment_id
+  AND password = p_password;
   
-  get diagnostics v_rows_deleted = row_count;
+  GET DIAGNOSTICS v_rows_deleted = ROW_COUNT;
   
   -- Return true if a row was deleted, false otherwise
-  return v_rows_deleted > 0;
-end;
+  RETURN v_rows_deleted > 0;
+END;
 $$;
+
+-- Grant execute permission
+GRANT EXECUTE ON FUNCTION public.delete_anonymous_comment_with_password(bigint, text) TO anon, authenticated;

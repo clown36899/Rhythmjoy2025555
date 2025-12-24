@@ -44,7 +44,7 @@ const SocialCalendar = lazy(() => import("../../social/components/SocialCalendar
 import { useSocialSchedules } from "../../social/hooks/useSocialSchedules";
 import { useAuth } from "../../../contexts/AuthContext";
 import PracticeRoomBanner from "./PracticeRoomBanner";
-import BoardPostList from "../../board/components/BoardPostList";
+import StandardPostList from "../../board/components/StandardPostList";
 import { useNavigate } from "react-router-dom";
 import "../../practice/components/PracticeRoomList.css";
 import "../../shopping/components/shopcard.css";
@@ -2708,16 +2708,12 @@ export default function EventList({
                 찜한 게시글 <span className="evt-favorites-count">{likedBoardPosts.length}</span>
               </h3>
               <div className="board-posts-list" style={{ padding: '0 12px' }}>
-                <BoardPostList
+                <StandardPostList
                   posts={likedBoardPosts}
-                  loading={false}
-                  category="all" // Dummy category
+                  category="free" // Dummy category, required
                   onPostClick={(post) => {
                     navigate(`/board/${post.id}`);
                   }}
-                  currentPage={1}
-                  totalPages={1}
-                  onPageChange={() => { }}
                   likedPostIds={new Set(likedBoardPosts.map(p => p.id))}
                   onToggleLike={handleToggleLikeBoardPost}
                 />
