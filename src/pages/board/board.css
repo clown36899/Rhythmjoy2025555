@@ -121,7 +121,7 @@
   padding: 8px;
   transition: var(--transition-colors);
   cursor: pointer;
-  margin: 0.4rem;
+  /* margin: 0.4rem; */
   border-radius: 9px;
   display: flex;
   border-bottom: 1px solid #242424;

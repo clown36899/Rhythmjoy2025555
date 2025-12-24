@@ -217,19 +217,28 @@ export default function BoardPostList({
 
                                 {/* Interaction Bar (Likes, Dislikes, Edit, Delete, Comments) */}
                                 <div className="memo-interaction-bar">
+                                    <div className="memo-comment-toggle-wrapper">
+                                        <button
+                                            className={`memo-comment-toggle ${expandedComments.has(post.id) ? 'active' : ''}`}
+                                            onClick={(e) => toggleComments(post.id, e)}
+                                        >
+                                            <span className="comment-label">댓글</span>
+                                            <span className="comment-count">{post.comment_count || 0}</span>
+                                        </button>
+                                    </div>
                                     <div className="memo-btns">
                                         <button
                                             className={`memo-btn like-btn ${likedPostIds.has(post.id) ? 'active' : ''}`}
                                             onClick={(e) => { e.stopPropagation(); onToggleLike(post.id); }}
                                         >
                                             <i className={likedPostIds.has(post.id) ? "ri-thumb-up-fill" : "ri-thumb-up-line"}></i>
-                                            <span>{post.likes}</span>
+                                            <span>{post.likes || 0}</span>
                                         </button>
                                         <button
-                                            className={`memo-btn dislike-btn ${dislikedPostIds.has(post.id) ? 'active' : ''}`}
+                                            className={`memo-btn dislike-btn ${dislikedPostIds?.has(post.id) ? 'active' : ''}`}
                                             onClick={(e) => { e.stopPropagation(); onToggleDislike?.(post.id); }}
                                         >
-                                            <i className={dislikedPostIds.has(post.id) ? "ri-thumb-down-fill" : "ri-thumb-down-line"}></i>
+                                            <i className={dislikedPostIds?.has(post.id) ? "ri-thumb-down-fill" : "ri-thumb-down-line"}></i>
                                             <span>{(post as any).dislikes || 0}</span>
                                         </button>
                                         <button
@@ -284,20 +293,12 @@ export default function BoardPostList({
                                             <i className="ri-delete-bin-line"></i>
                                         </button>
                                     </div>
-
-                                    <button
-                                        className={`memo-comment-toggle ${expandedComments.has(post.id) ? 'active' : ''}`}
-                                        onClick={(e) => toggleComments(post.id, e)}
-                                    >
-                                        <i className={expandedComments.has(post.id) ? "ri-message-3-fill" : "ri-message-3-line"}></i>
-                                        <span>{post.comment_count || 0}</span>
-                                    </button>
                                 </div>
 
                                 {/* Inline Comments Section */}
                                 {expandedComments.has(post.id) && (
                                     <div className="inline-comment-section" onClick={(e) => e.stopPropagation()}>
-                                        <div className="comment-divider"></div>
+                                        <div className="inline-comment-section-dot"></div>
                                         <CommentSection
                                             postId={post.id}
                                             category={category}

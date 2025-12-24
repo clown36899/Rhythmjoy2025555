@@ -136,6 +136,8 @@ export interface BoardComment {
   created_at: string;
   updated_at: string;
   password?: string;
+  likes?: number;
+  dislikes?: number;
 }
 
 export interface EventFavorite {

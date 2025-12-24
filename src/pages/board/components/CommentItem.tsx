@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { getStableFingerprint } from '../../../utils/fingerprint';
 import type { BoardComment } from '../../../lib/supabase';
 import './comment.css';
 
@@ -10,9 +12,82 @@ interface CommentItemProps {
     onDelete: (commentId: string, password?: string) => Promise<boolean>;
 }
 
-export default function CommentItem({ comment, isAnonymous, onEdit, onDelete }: CommentItemProps) {
+export default function CommentItem({ comment: initialComment, isAnonymous, onEdit, onDelete }: CommentItemProps) {
     const { user, isAdmin } = useAuth();
+    const [comment, setComment] = useState(initialComment);
+    const [userInteraction, setUserInteraction] = useState<'like' | 'dislike' | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
     const canModify = isAdmin || isAnonymous || user?.id === comment.user_id;
+
+    useEffect(() => {
+        checkUserInteraction();
+    }, [user, comment.id]);
+
+    const checkUserInteraction = async () => {
+        const fingerprint = getStableFingerprint();
+
+        if (isAnonymous) {
+            const [{ data: like }, { data: dislike }] = await Promise.all([
+                supabase.from('board_anonymous_comment_likes').select('id').eq('comment_id', comment.id).eq('fingerprint', fingerprint).maybeSingle(),
+                supabase.from('board_anonymous_comment_dislikes').select('id').eq('comment_id', comment.id).eq('fingerprint', fingerprint).maybeSingle(),
+            ]);
+            if (like) setUserInteraction('like');
+            else if (dislike) setUserInteraction('dislike');
+            else setUserInteraction(null);
+        } else if (user) {
+            const [{ data: like }, { data: dislike }] = await Promise.all([
+                supabase.from('board_comment_likes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
+                supabase.from('board_comment_dislikes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
+            ]);
+            if (like) setUserInteraction('like');
+            else if (dislike) setUserInteraction('dislike');
+            else setUserInteraction(null);
+        }
+    };
+
+    const handleInteraction = async (type: 'like' | 'dislike') => {
+        if (!isAnonymous && !user) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+
+        if (isLoading) return;
+        setIsLoading(true);
+
+        try {
+            const fingerprint = getStableFingerprint();
+            const { data, error } = await supabase.rpc('toggle_comment_interaction', {
+                p_comment_id: comment.id,
+                p_type: type,
+                p_is_anonymous: isAnonymous,
+                p_fingerprint: isAnonymous ? fingerprint : null
+            });
+
+            if (error) throw error;
+
+            // Update local state for immediate feedback
+            const table = isAnonymous ? 'board_anonymous_comments' : 'board_comments';
+            const { data: updatedComment } = await supabase
+                .from(table)
+                .select('*')
+                .eq('id', comment.id)
+                .single();
+
+            if (updatedComment) {
+                setComment(updatedComment);
+                if (data.status === 'added') {
+                    setUserInteraction(type);
+                } else {
+                    setUserInteraction(null);
+                }
+            }
+        } catch (err) {
+            console.error('Interaction toggle failed:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const getAvatarStyle = (name: string) => {
         const colors = [
@@ -133,24 +208,44 @@ export default function CommentItem({ comment, isAnonymous, onEdit, onDelete }: 
                 </div>
             </div>
             <div className="comment-item-content">{comment.content}</div>
-            {canModify && (
-                <div className="comment-item-actions">
+            <div className="comment-item-footer">
+                <div className="comment-item-interactions">
                     <button
-                        onClick={handleEdit}
-                        className="comment-item-btn comment-item-btn-edit"
+                        className={`comment-btn like-btn ${userInteraction === 'like' ? 'active' : ''}`}
+                        onClick={() => handleInteraction('like')}
+                        disabled={isLoading}
                     >
-                        <i className="ri-edit-line"></i>
-                        수정
+                        <i className={userInteraction === 'like' ? "ri-thumb-up-fill" : "ri-thumb-up-line"}></i>
+                        <span>{comment.likes || 0}</span>
                     </button>
                     <button
-                        onClick={handleDelete}
-                        className="comment-item-btn comment-item-btn-delete"
+                        className={`comment-btn dislike-btn ${userInteraction === 'dislike' ? 'active' : ''}`}
+                        onClick={() => handleInteraction('dislike')}
+                        disabled={isLoading}
                     >
-                        <i className="ri-delete-bin-line"></i>
-                        삭제
+                        <i className={userInteraction === 'dislike' ? "ri-thumb-down-fill" : "ri-thumb-down-line"}></i>
+                        <span>{comment.dislikes || 0}</span>
                     </button>
                 </div>
-            )}
+                {canModify && (
+                    <div className="comment-item-actions">
+                        <button
+                            onClick={handleEdit}
+                            className="comment-item-btn comment-item-btn-edit"
+                        >
+                            <i className="ri-edit-line"></i>
+                            수정
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            className="comment-item-btn comment-item-btn-delete"
+                        >
+                            <i className="ri-delete-bin-line"></i>
+                            삭제
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

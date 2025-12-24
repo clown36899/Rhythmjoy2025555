@@ -178,25 +178,31 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
         <form className="comment-form" onSubmit={handleSubmit}>
             {isAnonymousRoom && (
                 <div className="comment-anonymous-author">
-                    <input
-                        type="text"
-                        placeholder="닉네임"
-                        value={authorName}
-                        onChange={(e) => setAuthorName(e.target.value)}
-                        className="comment-author-input"
-                        required
-                        disabled={disabled}
-                    />
-                    {!providedPassword && (
+                    <div className="comment-input-wrapper">
+                        <i className="ri-user-line input-icon"></i>
                         <input
-                            type="password"
-                            placeholder="비밀번호"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="comment-password-input"
+                            type="text"
+                            placeholder="닉네임"
+                            value={authorName}
+                            onChange={(e) => setAuthorName(e.target.value)}
+                            className="comment-author-input"
                             required
                             disabled={disabled}
                         />
+                    </div>
+                    {!providedPassword && (
+                        <div className="comment-input-wrapper">
+                            <i className="ri-lock-line input-icon"></i>
+                            <input
+                                type="password"
+                                placeholder="비밀번호"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="comment-password-input"
+                                required
+                                disabled={disabled}
+                            />
+                        </div>
                     )}
                 </div>
             )}

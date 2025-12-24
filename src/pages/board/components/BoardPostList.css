@@ -20,7 +20,7 @@
 .anonymous-view {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-    gap: 20px;
+    /* gap: 20px; */
     padding: 20px 16px;
     width: 100%;
     box-sizing: border-box;
@@ -35,7 +35,7 @@
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    /* gap: 12px; */
     width: 100%;
     box-sizing: border-box;
     box-shadow: var(--memo-shadow-idle);
@@ -175,22 +175,32 @@
 
 .memo-btns {
     display: flex;
-    gap: 8px;
+    gap: clamp(4px, 1.5vw, 8px);
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .memo-btn {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--memo-card-border);
-    padding: 8px 14px;
+    padding: clamp(6px, 1.2vw, 8px) clamp(8px, 1.8vw, 14px);
     border-radius: 10px;
     color: var(--memo-text-meta);
-    font-size: 13px;
+    font-size: clamp(11px, 1.3vw, 13px);
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: clamp(3px, 0.8vw, 6px);
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.memo-btn i {
+    font-size: 1.2rem;
+    /* Increased icon size */
 }
 
 .memo-btn:hover {
@@ -212,28 +222,103 @@
 }
 
 .memo-comment-toggle {
-    background: transparent;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--memo-card-border);
     color: var(--memo-text-meta);
-    font-weight: 600;
+    font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: clamp(3px, 0.8vw, 6px);
     cursor: pointer;
-    padding: 8px;
+    padding: clamp(6px, 1.2vw, 8px) clamp(8px, 1.8vw, 14px);
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    flex-shrink: 0;
+    /* Keep the trigger size stable */
+}
+
+.memo-comment-toggle .comment-label {
+    font-size: 13px;
+    color: var(--memo-text-meta);
+    opacity: 0.8;
+}
+
+.memo-comment-toggle .comment-count {
+    font-size: 14px;
+    color: var(--memo-card-accent);
+    /* Focus count with accent color */
 }
 
 .memo-comment-toggle:hover {
-    color: var(--memo-card-accent);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--memo-card-accent);
+    transform: translateY(-1px);
 }
 
-/* Inline Comments */
+.memo-comment-toggle.active {
+    background: var(--memo-card-accent);
+    border-color: var(--memo-card-accent);
+    color: #000;
+    /* Contrast against accent BG */
+}
+
+.memo-comment-toggle.active .comment-label,
+.memo-comment-toggle.active .comment-count {
+    color: #000;
+    opacity: 1;
+}
+
+/* Inline Comments - Final Refined Threaded Design */
 .inline-comment-section {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
+    position: relative;
+    background: transparent;
     margin-top: 16px;
-    padding: 12px;
-    border: 1px solid var(--memo-card-border);
+    padding-left: 20px;
+    /* Precise indent for thread line */
+    border: none;
+}
+
+/* Horizontal Separator - Clean inside the card */
+.inline-comment-section::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -8px;
+    /* height: 1px; */
+    background: rgba(255, 255, 255, 0.05);
+    /* Very subtle flat line */
+}
+
+/* Vertical Thread Line - Precisely positioned */
+.inline-comment-section::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: -8px;
+    bottom: 28px;
+    width: 1px;
+    /* Thinner for cleaner look */
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Thread Start Dot - Sitting on the line */
+.inline-comment-section-dot {
+    position: absolute;
+    left: 4px;
+    top: -11px;
+    width: 5px;
+    height: 5px;
+    background: var(--memo-card-accent);
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow: 0 0 8px var(--memo-card-accent);
+}
+
+.comment-divider {
+    display: none;
+    /* Hide old divider */
 }
 
 /* Lightbox */
