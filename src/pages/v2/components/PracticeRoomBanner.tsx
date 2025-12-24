@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useModal } from '../../../hooks/useModal';
 import { logUserInteraction } from '../../../lib/analytics';
+import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
 import './PracticeRoomBanner.css';
 
 interface PracticeRoom {
-    id: number;
+    id: string; // Changed to string for UUID
     name: string;
     address: string;
-    address_link: string;
-    additional_link: string;
-    images: string[];
+    image?: string; // Specialized thumbnail field
+    images: (string | any)[];
     description: string;
 }
 
@@ -25,9 +25,10 @@ export default function PracticeRoomBanner() {
     const fetchPracticeRooms = async () => {
         try {
             const { data, error } = await supabase
-                .from('practice_rooms')
+                .from('venues')
                 .select('*')
-                .order('created_at', { ascending: true });
+                .eq('category', '연습실')
+                .eq('is_active', true);
 
             if (error) {
                 console.error('Error fetching practice rooms:', error);
@@ -56,7 +57,7 @@ export default function PracticeRoomBanner() {
 
         // Open modal directly on the current page (Event Preview)
         // instead of navigating to /practice route
-        venueDetailModal.open({ venueId: String(room.id) });
+        venueDetailModal.open({ venueId: room.id });
     };
 
     if (rooms.length === 0) return null;
@@ -80,7 +81,7 @@ export default function PracticeRoomBanner() {
                     >
                         <div className="practice-banner-image-wrapper">
                             <img
-                                src={room.images[0] || '/placeholder-room.jpg'}
+                                src={getOptimizedImageUrl(room.images[0], 200) || '/placeholder-room.jpg'}
                                 alt={room.name}
                                 className="practice-banner-image"
                             />

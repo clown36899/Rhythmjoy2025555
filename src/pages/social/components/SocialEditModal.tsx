@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
-import { createResizedImages } from '../../../utils/imageResize';
+import { resizeImage } from '../../../utils/imageResize';
 import './SocialEditModal.css';
 
 interface SocialEditModalProps {
@@ -250,47 +250,36 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
                   if (!file) return;
 
                   try {
-                    // Use createResizedImages to generate all sizes
-                    const resizedImages = await createResizedImages(file, undefined, 'image.webp');
+                    // Generate 2 sizes: Full (500px, Q:0.75) and Thumbnail (100px, Q:0.75)
+                    const fullImage = await resizeImage(file, 500, 0.75, 'image.webp', 'width');
+                    const thumbImage = await resizeImage(file, 100, 0.75, 'thumb.webp', 'min');
 
                     const timestamp = Date.now();
                     const randomStr = Math.random().toString(36).substring(2, 9);
                     const fileName = `${timestamp}-${randomStr}.webp`;
-
-                    // Upload structure: social/{size}/{fileName}
                     const basePath = `social`;
 
                     // Upload Full
-                    const { error: uploadError } = await supabase.storage
-                      .from('images') // Changed to 'images' bucket
-                      .upload(`${basePath}/full/${fileName}`, resizedImages.full, {
+                    const { error: fullError } = await supabase.storage
+                      .from('images')
+                      .upload(`${basePath}/full/${fileName}`, fullImage, {
                         contentType: 'image/webp',
                         upsert: true
                       });
 
-                    if (uploadError) throw uploadError;
+                    if (fullError) throw fullError;
 
-                    // Upload Medium
-                    if (resizedImages.medium) {
-                      await supabase.storage
-                        .from('images')
-                        .upload(`${basePath}/medium/${fileName}`, resizedImages.medium, {
-                          contentType: 'image/webp',
-                          upsert: true
-                        });
-                    }
+                    // Upload Thumbnail (32px)
+                    const { error: thumbError } = await supabase.storage
+                      .from('images')
+                      .upload(`${basePath}/thumbnail/${fileName}`, thumbImage, {
+                        contentType: 'image/webp',
+                        upsert: true
+                      });
 
-                    // Upload Thumbnail
-                    if (resizedImages.thumbnail) {
-                      await supabase.storage
-                        .from('images')
-                        .upload(`${basePath}/thumbnail/${fileName}`, resizedImages.thumbnail, {
-                          contentType: 'image/webp',
-                          upsert: true
-                        });
-                    }
+                    if (thumbError) throw thumbError;
 
-                    // Get Public URL for Full image (to save in DB)
+                    // Get Public URL for Full image
                     const { data: { publicUrl } } = supabase.storage
                       .from('images')
                       .getPublicUrl(`${basePath}/full/${fileName}`);

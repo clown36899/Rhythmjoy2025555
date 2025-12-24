@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react";
 import type { Event as BaseEvent } from "../../../lib/supabase";
-import { getEventThumbnail } from "../../../utils/getEventThumbnail";
+import { getEventThumbnail, getCardThumbnail } from "../../../utils/getEventThumbnail";
 import { getLocalDateString, formatEventDate } from "../../../utils/dateUtils";
 import { getGenreColorClass } from "../../../constants/genreColors";
 import "../styles/EventCard.css";
@@ -52,31 +52,15 @@ export const EventCard = memo(({
   // getEventThumbnail prioritizes Micro (100px) which is too small for cards.
 
   // 1. Try explicit thumbnail
-  // 2. Try deriving thumbnail from standard path structure
-  // 3. Fallbacks
+  // 2. Use optimized card thumbnail helper
   const explicitThumbnail = event.image_thumbnail;
 
-  const derivedThumbnail = useMemo(() => {
-    if (explicitThumbnail) return explicitThumbnail;
-
-    const sourceImage = event.image_full || event.image || event.image_medium;
-    if (sourceImage && typeof sourceImage === 'string') {
-      // Standardize checks for our known paths
-      if (sourceImage.includes('/event-posters/full/')) {
-        return sourceImage.replace('/event-posters/full/', '/event-posters/thumbnail/');
-      }
-      if (sourceImage.includes('/event-posters/medium/')) {
-        return sourceImage.replace('/event-posters/medium/', '/event-posters/thumbnail/');
-      }
-    }
-    return null;
-  }, [explicitThumbnail, event.image_full, event.image, event.image_medium]);
+  // Use the new getCardThumbnail helper which handles resizing params
+  const optimizedUrl = getCardThumbnail(event);
 
   const thumbnailUrl =
-    derivedThumbnail ||
-    event.image_medium ||
-    event.image_full ||
-    event.image ||
+    explicitThumbnail ||
+    optimizedUrl ||
     getEventThumbnail(
       event,
       defaultThumbnailClass,

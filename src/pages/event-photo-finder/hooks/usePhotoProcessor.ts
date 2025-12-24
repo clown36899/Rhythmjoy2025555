@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import * as faceapi from 'face-api.js';
+import type * as FaceApiTypes from 'face-api.js';
 import { localDB } from '../utils/localDB';
 import { FaceModel } from '../utils/faceModel';
 
@@ -28,6 +28,7 @@ export const usePhotoProcessor = () => {
         // Ensure models are loaded
         const model = FaceModel.getInstance();
         if (!model.isReady()) await model.loadModels();
+        const faceapi = model.getApi();
 
         const BATCH_SIZE = 50; // Process 50 photos, then cleanup/pause
         let matchCount = 0;
@@ -49,6 +50,7 @@ export const usePhotoProcessor = () => {
                 // 2. Detect Face
                 const detection = await faceapi
                     .detectSingleFace(img)
+                    .withFaceLandmarks()
                     .withFaceDescriptor();
 
                 // 3. Compare with User Faces

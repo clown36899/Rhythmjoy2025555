@@ -16,15 +16,16 @@ function supportsWebP(): boolean {
 
 export async function resizeImage(
   fileOrDataUrl: File | string,
-  maxWidth: number,
+  targetSize: number,
   quality: number = 0.9,
-  fileName: string = 'image.jpg'
+  fileName: string = 'image.jpg',
+  mode: 'width' | 'min' | 'height' = 'width'
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     const startTime = performance.now();
     const isDataUrl = typeof fileOrDataUrl === 'string';
 
-    console.log(`[🖼️ 리사이즈 ${maxWidth}px] 시작`, {
+    console.log(`[🖼️ 리사이즈 ${targetSize}px, mode: ${mode}] 시작`, {
       source: isDataUrl ? 'base64' : 'File',
       fileName: isDataUrl ? fileName : (fileOrDataUrl as File).name,
       dataSize: isDataUrl ? `${(fileOrDataUrl.length / 1024).toFixed(0)}KB` : `${((fileOrDataUrl as File).size / 1024).toFixed(0)}KB`,
@@ -33,7 +34,7 @@ export async function resizeImage(
 
     function processImage(this: HTMLImageElement) {
       const elapsed = performance.now() - startTime;
-      console.log(`[🖼️ 리사이즈 ${maxWidth}px] 이미지 로드 완료 (${elapsed.toFixed(0)}ms)`, {
+      console.log(`[🖼️ 리사이즈 ${targetSize}px] 이미지 로드 완료 (${elapsed.toFixed(0)}ms)`, {
         originalWidth: this.width,
         originalHeight: this.height
       });
@@ -42,7 +43,7 @@ export async function resizeImage(
       const ctx = canvas.getContext('2d');
 
       if (!ctx) {
-        console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ Canvas context 생성 실패`);
+        console.error(`[🖼️ 리사이즈 ${targetSize}px] ❌ Canvas context 생성 실패`);
         reject(new Error('Canvas context not available'));
         return;
       }
@@ -50,12 +51,26 @@ export async function resizeImage(
       let width = this.width;
       let height = this.height;
 
-      if (width > maxWidth) {
-        height = (height * maxWidth) / width;
-        width = maxWidth;
+      if (mode === 'width') {
+        // 기존 가로 맥시멈 기준
+        if (width > targetSize) {
+          height = (height * targetSize) / width;
+          width = targetSize;
+        }
+      } else if (mode === 'min') {
+        // 작은 쪽 길이를 targetSize에 맞춤 (Aspect Ratio 유지하며 가득 채우기 용)
+        const ratio = Math.max(targetSize / width, targetSize / height);
+        width = width * ratio;
+        height = height * ratio;
+      } else if (mode === 'height') {
+        // 세로 길이 기준
+        if (height > targetSize) {
+          width = (width * targetSize) / height;
+          height = targetSize;
+        }
       }
 
-      console.log(`[🖼️ 리사이즈 ${maxWidth}px] Canvas 설정`, {
+      console.log(`[🖼️ 리사이즈 ${targetSize}px] Canvas 설정`, {
         targetWidth: Math.round(width),
         targetHeight: Math.round(height)
       });
@@ -68,14 +83,14 @@ export async function resizeImage(
       ctx.fillRect(0, 0, width, height);
 
       ctx.drawImage(this, 0, 0, width, height);
-      console.log(`[🖼️ 리사이즈 ${maxWidth}px] Canvas에 이미지 그리기 완료`);
+      console.log(`[🖼️ 리사이즈 ${targetSize}px] Canvas에 이미지 그리기 완료`);
 
       // WebP 지원 여부에 따라 형식 결정
       const useWebP = supportsWebP();
       const mimeType = useWebP ? 'image/webp' : 'image/jpeg';
       const extension = useWebP ? 'webp' : 'jpg';
 
-      console.log(`[🖼️ 리사이즈 ${maxWidth}px] 출력 형식`, {
+      console.log(`[🖼️ 리사이즈 ${targetSize}px] 출력 형식`, {
         useWebP,
         mimeType,
         quality
@@ -90,13 +105,13 @@ export async function resizeImage(
       canvas.toBlob(
         (blob) => {
           if (!blob) {
-            console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ Blob 생성 실패`);
+            console.error(`[🖼️ 리사이즈 ${targetSize}px] ❌ Blob 생성 실패`);
             reject(new Error('Failed to create blob'));
             return;
           }
 
           const elapsed = performance.now() - startTime;
-          console.log(`[🖼️ 리사이즈 ${maxWidth}px] Blob 생성 완료 (${elapsed.toFixed(0)}ms)`, {
+          console.log(`[🖼️ 리사이즈 ${targetSize}px] Blob 생성 완료 (${elapsed.toFixed(0)}ms)`, {
             blobSize: `${(blob.size / 1024).toFixed(0)}KB`,
             blobType: blob.type
           });
@@ -106,7 +121,7 @@ export async function resizeImage(
             lastModified: Date.now(),
           });
 
-          console.log(`[🖼️ 리사이즈 ${maxWidth}px] ✅ 완료 (총 ${elapsed.toFixed(0)}ms)`, {
+          console.log(`[🖼️ 리사이즈 ${targetSize}px] ✅ 완료 (총 ${elapsed.toFixed(0)}ms)`, {
             fileName: resizedFile.name,
             fileSize: `${(resizedFile.size / 1024).toFixed(0)}KB`,
             fileType: resizedFile.type
@@ -138,7 +153,7 @@ export async function resizeImage(
     img.onerror = (error) => {
       if (objectUrl) URL.revokeObjectURL(objectUrl); // 메모리 해제
       const elapsed = performance.now() - startTime;
-      console.error(`[🖼️ 리사이즈 ${maxWidth}px] ❌ 이미지 로드 실패 (${elapsed.toFixed(0)}ms)`, error);
+      console.error(`[🖼️ 리사이즈 ${targetSize}px] ❌ 이미지 로드 실패 (${elapsed.toFixed(0)}ms)`, error);
       reject(new Error('이미지를 처리할 수 없습니다. 지원하는 형식: JPG, PNG, GIF, WebP'));
     };
     img.src = sourceUrl;

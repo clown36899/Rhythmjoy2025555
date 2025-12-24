@@ -46,7 +46,7 @@ import QRCodeModal from '../components/QRCodeModal';
 import ColorSettingsModal from '../components/ColorSettingsModal';
 import DefaultThumbnailSettingsModal from '../components/DefaultThumbnailSettingsModal';
 import InvitationManagementModal from '../components/InvitationManagementModal';
-import PracticeRoomModal from '../components/PracticeRoomModal';
+
 import { OnlineUsersModal } from '../components/OnlineUsersModal';
 
 // Admin Modals
@@ -107,7 +107,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'colorSettings': ColorSettingsModal,
     'defaultThumbnailSettings': DefaultThumbnailSettingsModal,
     'invitationManagement': InvitationManagementModal,
-    'practiceRoom': PracticeRoomModal,
+
     'onlineUsers': OnlineUsersModal,
 
     // Admin Modals

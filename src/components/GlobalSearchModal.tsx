@@ -2,11 +2,12 @@ import { useState, useEffect, memo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
-import PracticeRoomDetail from '../pages/practice/components/PracticeRoomDetail';
+
 import ShopDetailModal from '../pages/shopping/components/ShopDetailModal';
 import type { Event } from '../lib/supabase';
 import type { Shop } from '../pages/shopping/page';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { getOptimizedImageUrl } from '../utils/getEventThumbnail';
 import './GlobalSearchModal.css';
 
 interface SearchResult {
@@ -41,10 +42,8 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
 
     // 상세 모달 상태 관리
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-    const [selectedPracticeRoomId, setSelectedPracticeRoomId] = useState<string | null>(null);
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
     const [showEventDetail, setShowEventDetail] = useState(false);
-    const [showPracticeDetail, setShowPracticeDetail] = useState(false);
     const [showShopDetail, setShowShopDetail] = useState(false);
 
     useEffect(() => {
@@ -73,10 +72,11 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                 console.error('Events search error:', eventsError);
             }
 
-            // Search practice rooms
+            // Search practice rooms (from venues table)
             const { data: practiceData, error: practiceError } = await supabase
-                .from('practice_rooms')
+                .from('venues')
                 .select('id, name, description, images, address')
+                .eq('category', '연습실')
                 .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
                 .limit(10);
 
@@ -109,7 +109,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                     title: p.name,
                     description: p.description,
                     type: 'practice_room' as const,
-                    thumbnail: Array.isArray(p.images) ? p.images[0] : typeof p.images === 'string' ? JSON.parse(p.images)[0] : undefined
+                    thumbnail: getOptimizedImageUrl(Array.isArray(p.images) ? p.images[0] : typeof p.images === 'string' ? JSON.parse(p.images)[0] : undefined, 100)
                 })),
                 shopping: [], // Shopping table doesn't exist
                 social_places: (socialData || []).map(sp => ({
@@ -182,10 +182,8 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
 
     const handleCloseDetailModals = () => {
         setShowEventDetail(false);
-        setShowPracticeDetail(false);
         setShowShopDetail(false);
         setSelectedEvent(null);
-        setSelectedPracticeRoomId(null);
         setSelectedShop(null);
     };
 
@@ -351,13 +349,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                 />
             )}
 
-            {/* 연습실 상세 모달 */}
-            {showPracticeDetail && selectedPracticeRoomId && (
-                <PracticeRoomDetail
-                    roomId={selectedPracticeRoomId}
-                    onClose={handleCloseDetailModals}
-                />
-            )}
+
 
             {/* 쇼핑 상세 모달 */}
             {showShopDetail && selectedShop && (

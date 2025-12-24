@@ -38,10 +38,7 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
 
     const fetchVenue = async () => {
         try {
-            // Check if venueId is a UUID or integer
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(venueId);
-            const tableName = isUUID ? "venues" : "practice_rooms";
-
+            const tableName = "venues";
             const { data, error } = await supabase
                 .from(tableName)
                 .select("*")
@@ -210,20 +207,22 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                         <div className="venue-gallery-section">
                             <h3 className="venue-gallery-title">
                                 <i className="ri-image-line"></i>
-                                사진 ({venue.images.length})
+                                사진 ({venue.images.filter((img: any) => typeof img === 'string' || !img.isThumbnail).length})
                             </h3>
-                            {venue.images.map((image, index) => {
-                                const imageUrl = typeof image === 'string' ? image : (image.medium || image.full || image.thumbnail);
-                                return (
-                                    <img
-                                        key={index}
-                                        src={imageUrl}
-                                        alt={`${venue.name} ${index + 1}`}
-                                        className="venue-vertical-image"
-                                        loading="lazy"
-                                    />
-                                );
-                            })}
+                            {venue.images
+                                .filter((image: any) => typeof image === 'string' || !image.isThumbnail)
+                                .map((image, index) => {
+                                    const imageUrl = typeof image === 'string' ? image : (image.url || image.medium || image.full || image.thumbnail);
+                                    return (
+                                        <img
+                                            key={index}
+                                            src={imageUrl}
+                                            alt={`${venue.name} ${index + 1}`}
+                                            className="venue-vertical-image"
+                                            loading="lazy"
+                                        />
+                                    );
+                                })}
                         </div>
                     )}
 

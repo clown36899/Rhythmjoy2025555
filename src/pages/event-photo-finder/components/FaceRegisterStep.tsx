@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import * as faceapi from 'face-api.js';
+import type * as FaceApiTypes from 'face-api.js';
 import { FaceModel } from '../utils/faceModel';
 
 interface FaceRegisterStepProps {
@@ -41,6 +41,8 @@ export const FaceRegisterStep: React.FC<FaceRegisterStepProps> = ({ onComplete }
             if (!model.isReady()) {
                 await model.loadModels();
             }
+
+            const faceapi = model.getApi();
 
             // Convert file to image element
             const img = await faceapi.bufferToImage(file);

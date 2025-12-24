@@ -14,12 +14,9 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
 
     const imageUrl = schedule.image;
     let imageUrlThumbnail = imageUrl;
-    let imageUrlMedium = imageUrl;
-
     if (imageUrl && typeof imageUrl === 'string') {
         if (imageUrl.includes('/social/full/')) {
             imageUrlThumbnail = imageUrl.replace('/social/full/', '/social/thumbnail/');
-            imageUrlMedium = imageUrl.replace('/social/full/', '/social/medium/');
         }
     }
 
@@ -37,7 +34,6 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
         description: schedule.description,
         imageUrl: imageUrl,
         imageUrlThumbnail: imageUrlThumbnail,
-        imageUrlMedium: imageUrlMedium,
         venueId: schedule.venue_id,
     };
 };

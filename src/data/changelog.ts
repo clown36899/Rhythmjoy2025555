@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.18.0',
+        date: '2025-12-25',
+        changes: [
+            '연습실 데이터 구조 혁신: venues 테이블 통합 완료',
+            '이미지 규격화: 썸네일 전용 데이터 구조 및 세로 170px 최적화',
+            'UI/UX 개선: 연습실/바 카드 높이 120px로 최 최적화',
+            '안정성 강화: 썸네일 노출 안정성 확보 및 레거시 파일 정리'
+        ]
+    },
+    {
         version: '2.17.0',
         date: '2025-12-25',
         changes: [

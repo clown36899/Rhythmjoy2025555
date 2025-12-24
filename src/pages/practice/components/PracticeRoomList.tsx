@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 import { logEvent } from "../../../lib/analytics";
+import { getOptimizedImageUrl } from "../../../utils/getEventThumbnail";
 import "./PracticeRoomList.css";
 
 interface PracticeRoom {
@@ -410,10 +411,7 @@ export default function PracticeRoomList({
                 {room.images && room.images.length > 0 && (
                   <div className="prl-card-image-wrapper">
                     <img
-                      src={(() => {
-                        const img = room.images[0];
-                        return typeof img === 'string' ? img : (img.thumbnail || img.medium || img.full);
-                      })()}
+                      src={getOptimizedImageUrl(room.images[0], 200)}
                       alt={room.name}
                       className="prl-card-image"
                     />

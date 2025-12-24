@@ -92,7 +92,7 @@ export default function SocialDetailModal({ item, onClose, onEdit, readonly: _re
                         {/* 이미지 영역 */}
                         <div className="spdm-image-wrapper">
                             {item.imageUrl ? (
-                                <img src={item.imageUrlMedium || item.imageUrl} alt={item.title} className="spdm-image" />
+                                <img src={item.imageUrl} alt={item.title} className="spdm-image" />
                             ) : (
                                 <div className="spdm-image-placeholder">
                                     <i className="ri-calendar-event-line"></i>

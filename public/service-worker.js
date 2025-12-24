@@ -41,6 +41,11 @@ self.addEventListener('fetch', (event) => {
 
   // 1. Supabase Storage 이미지: Cache First (캐시 우선, 없으면 네트워크)
   // 패턴: */storage/v1/object/public/images/*
+  // models 폴더 제외 (AI 모델은 용량이 크므로 캐싱하지 않음 via SW, 브라우저 캐만 사용)
+  if (url.pathname.includes('/models/')) {
+    return;
+  }
+
   if (url.pathname.includes('/storage/v1/object/public/images/')) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { resizeImage } from '../../../utils/imageResize';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -249,22 +249,39 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
 
                     setImageUploading(true);
                     try {
-                      // WebP & Resize (Max width 1280px for efficiency)
-                      const resizedFile = await resizeImage(file, 1280, 0.85);
+                      // Generate 2 sizes: Full (500px, Q:0.75) and Thumbnail (100px, Q:0.75)
+                      const fullImage = await resizeImage(file, 500, 0.75, 'image.webp', 'width');
+                      const thumbImage = await resizeImage(file, 100, 0.75, 'thumb.webp', 'min');
 
-                      // Use consistent naming
-                      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.webp`;
-                      const filePath = `social/${fileName}`;
+                      const timestamp = Date.now();
+                      const randomStr = Math.random().toString(36).substring(2, 9);
+                      const fileName = `${timestamp}-${randomStr}.webp`;
+                      const basePath = `social`;
 
-                      const { error: uploadError } = await supabase.storage
-                        .from('images') // Changed to 'images' bucket
-                        .upload(filePath, resizedFile);
+                      // Upload Full
+                      const { error: fullError } = await supabase.storage
+                        .from('images')
+                        .upload(`${basePath}/full/${fileName}`, fullImage, {
+                          contentType: 'image/webp',
+                          upsert: true
+                        });
 
-                      if (uploadError) throw uploadError;
+                      if (fullError) throw fullError;
 
+                      // Upload Thumbnail (32px)
+                      const { error: thumbError } = await supabase.storage
+                        .from('images')
+                        .upload(`${basePath}/thumbnail/${fileName}`, thumbImage, {
+                          contentType: 'image/webp',
+                          upsert: true
+                        });
+
+                      if (thumbError) throw thumbError;
+
+                      // Get Public URL for Full image
                       const { data: { publicUrl } } = supabase.storage
                         .from('images')
-                        .getPublicUrl(filePath);
+                        .getPublicUrl(`${basePath}/full/${fileName}`);
 
                       setImageUrl(publicUrl);
                     } catch (error) {

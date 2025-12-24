@@ -9,6 +9,7 @@ import EventDetailModal from '../v2/components/EventDetailModal';
 import './social.css';
 
 import { useSocialSchedules } from './hooks/useSocialSchedules';
+import { useModal } from '../../hooks/useModal';
 
 
 export default function SocialPage() {
@@ -26,14 +27,27 @@ export default function SocialPage() {
     loading: schedulesLoading
   } = useSocialSchedules();
 
+  const socialEventModal = useModal('socialEvent');
+
   // Note: Social event registration is now handled by SocialCalendar internally via useModal
 
   // Search from header
   useEffect(() => {
     const handleOpenSearch = () => setShowSearchModal(true);
+    const handleOpenRegistration = () => {
+      socialEventModal.open({
+        onEventCreated: handleForceReload
+      });
+    };
+
     window.addEventListener('openEventSearch', handleOpenSearch);
-    return () => window.removeEventListener('openEventSearch', handleOpenSearch);
-  }, []);
+    window.addEventListener('openSocialRegistration', handleOpenRegistration);
+
+    return () => {
+      window.removeEventListener('openEventSearch', handleOpenSearch);
+      window.removeEventListener('openSocialRegistration', handleOpenRegistration);
+    };
+  }, [socialEventModal]);
 
   // Edit State
   const [selectedEventForEdit, setSelectedEventForEdit] = useState<any | null>(null);

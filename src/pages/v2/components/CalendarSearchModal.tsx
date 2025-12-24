@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import type { Event } from '../../../lib/supabase';
+import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
 import './CalendarSearchModal.css';
 
 interface CalendarSearchModalProps {
@@ -99,8 +100,9 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
             // Fetch practice rooms and shopping only if searchMode is 'all'
             if (searchMode === 'all') {
                 const { data: practiceData, error: practiceError } = await supabase
-                    .from('practice_rooms')
+                    .from('venues')
                     .select('*')
+                    .eq('category', '연습실')
                     .order('name', { ascending: true });
 
                 if (practiceError) {
@@ -238,12 +240,12 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                                         <div
                                             key={room.id}
                                             className="cal-search-item"
-                                            onClick={() => window.location.href = `/practice/${room.id}`}
+                                            onClick={() => window.location.href = `/practice?id=${room.id}`}
                                         >
                                             {room.images && room.images[0] && (
                                                 <div className="cal-search-item-image">
                                                     <img
-                                                        src={room.images[0]}
+                                                        src={getOptimizedImageUrl(room.images[0], 200)}
                                                         alt={room.name}
                                                         onError={(e) => {
                                                             e.currentTarget.style.display = 'none';

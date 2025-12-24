@@ -89,7 +89,7 @@ export default function VenueSelectList({ activeCategory, onVenueClick }: VenueS
                 let imageUrl = null;
                 if (venue.images && venue.images.length > 0) {
                     const img = venue.images[0];
-                    imageUrl = typeof img === 'string' ? img : (img.micro || img.thumbnail || img.medium || img.full);
+                    imageUrl = typeof img === 'string' ? img : (img.url || img.micro || img.thumbnail || img.medium || img.full);
                 }
 
                 return (

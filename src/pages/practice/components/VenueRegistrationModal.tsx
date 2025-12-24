@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalHistory } from "../../../hooks/useModalHistory";
-import { createResizedImages } from "../../../utils/imageResize";
+import { resizeImage } from "../../../utils/imageResize";
 import "./VenueRegistrationModal.css";
 
 interface VenueRegistrationModalProps {
@@ -114,6 +114,9 @@ export default function VenueRegistrationModal({
         images: []
     });
 
+    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+    const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
+
     const [loading, setLoading] = useState(false);
 
     // Unified Image State
@@ -142,6 +145,8 @@ export default function VenueRegistrationModal({
                 images: []
             });
             setImages([]);
+            setThumbnailFile(null);
+            setThumbnailPreview("");
         }
     }, [isOpen, editVenueId, user]); // Add user dependency to re-check if login state changes
 
@@ -173,15 +178,22 @@ export default function VenueRegistrationModal({
             });
 
             // Set existing images
-            const rawImages = typeof data.images === 'string' ? JSON.parse(data.images) : (data.images || []);
-            const loadedImages: ImageItem[] = rawImages.map((img: any) => {
+            const rawImages: any[] = typeof data.images === 'string' ? JSON.parse(data.images) : (data.images || []);
+
+            // Identify dedicated thumbnail (it's at index 0 and has isThumbnail: true)
+            const hasDedicatedThumbnail = rawImages.length > 0 && rawImages[0].isThumbnail;
+            const dbThumbnail = hasDedicatedThumbnail ? rawImages[0].url : (data.image || "");
+            const galleryPhotos = hasDedicatedThumbnail ? rawImages.slice(1) : rawImages;
+
+            const loadedImages: ImageItem[] = galleryPhotos.map((img: any) => {
                 let preview = "";
                 if (typeof img === 'string') preview = img;
-                else preview = img.medium || img.full || img.thumbnail || "";
+                else preview = img.url || img.medium || img.full || img.thumbnail || "";
 
                 return { type: 'existing', url: img, preview };
             });
             setImages(loadedImages);
+            setThumbnailPreview(dbThumbnail);
         }
         setLoading(false);
     };
@@ -207,6 +219,40 @@ export default function VenueRegistrationModal({
         setImages(prev => prev.filter((_, i) => i !== index));
     };
 
+    const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setThumbnailFile(file);
+            setThumbnailPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const uploadThumbnail = async (file: File): Promise<string> => {
+        try {
+            // 썸네일 리사이징 (세로 기준 170px)
+            const thumbImage = await resizeImage(file, 170, 0.75, 'thumb.webp', 'height');
+
+            const timestamp = Date.now();
+            const fileName = `${timestamp}_thumb.webp`;
+            const filePath = `venue-images/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('images')
+                .upload(filePath, thumbImage, {
+                    contentType: 'image/webp',
+                    upsert: true
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+            return data.publicUrl;
+        } catch (err) {
+            console.error("Thumbnail upload failed:", err);
+            return "";
+        }
+    };
+
     const handleSubmit = async () => {
         if (!formData.name.trim()) return alert("이름을 입력해주세요.");
 
@@ -215,7 +261,13 @@ export default function VenueRegistrationModal({
 
         setLoading(true);
         try {
-            // Process images sequentially or parallel
+            // 1. Thumbnail Upload
+            let thumbnailUrl = thumbnailPreview;
+            if (thumbnailFile) {
+                thumbnailUrl = await uploadThumbnail(thumbnailFile);
+            }
+
+            // 2. Gallery Images Upload (Resized to 700px width)
             const finalImages = await Promise.all(images.map(async (item) => {
                 if (item.type === 'existing') {
                     return item.url;
@@ -224,44 +276,35 @@ export default function VenueRegistrationModal({
                     const file = item.file;
                     const baseName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
 
-                    // 1. Generate 4 sizes (WebP)
-                    const resized = await createResizedImages(file);
+                    // 리사이징 (연습실 이미지 최적화: 가로 700px)
+                    const targetImage = await resizeImage(file, 700, 0.85, 'image.webp', 'width');
 
-                    // 2. Upload function helper
-                    const uploadVariant = async (variantFile: File, suffix: string) => {
-                        const fileName = `${baseName}_${suffix}.webp`;
-                        const filePath = `venue-images/${fileName}`;
+                    const filePath = `venue-images/${baseName}.webp`;
 
-                        const { error: uploadError } = await supabase.storage
-                            .from('images')
-                            .upload(filePath, variantFile);
+                    const { error: uploadError } = await supabase.storage
+                        .from('images')
+                        .upload(filePath, targetImage, {
+                            contentType: 'image/webp',
+                            cacheControl: '31536000',
+                            upsert: true
+                        });
 
-                        if (uploadError) throw uploadError;
+                    if (uploadError) throw uploadError;
 
-                        const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-                        return data.publicUrl;
-                    };
-
-                    // 3. Upload all variants in parallel
-                    const [micro, thumbnail, medium, full] = await Promise.all([
-                        uploadVariant(resized.micro, 'micro'),
-                        uploadVariant(resized.thumbnail, 'thumb'),
-                        uploadVariant(resized.medium, 'medium'),
-                        uploadVariant(resized.full, 'full')
-                    ]);
-
-                    return {
-                        micro,
-                        thumbnail,
-                        medium,
-                        full
-                    };
+                    const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
+                    return publicData.publicUrl;
                 }
             }));
 
+            // Combine thumbnail and gallery images
+            // Tag explicitly provided thumbnail to hide it from the photo gallery in detail view
+            const allImages = thumbnailUrl
+                ? [{ url: thumbnailUrl, isThumbnail: true }, ...finalImages.filter(img => img !== thumbnailUrl)]
+                : finalImages;
+
             const payload = {
                 ...formData,
-                images: finalImages, // JSONB
+                images: allImages, // JSONB array of gallery images (thumbnail at index 0)
                 updated_at: new Date().toISOString()
             };
 
@@ -392,6 +435,24 @@ export default function VenueRegistrationModal({
                                 onChange={e => handleChange('map_url', e.target.value)}
                                 placeholder="네이버/카카오맵 URL"
                             />
+                        </div>
+                    </div>
+
+                    {/* Section: Thumbnail */}
+                    <div className="vrm-section">
+                        <label className="vrm-label">대표 썸네일 (최소 150px)</label>
+                        <div className="vrm-thumbnail-upload">
+                            <label className="vrm-thumb-btn">
+                                {thumbnailPreview ? (
+                                    <img src={thumbnailPreview} alt="Thumbnail" className="vrm-thumb-preview" />
+                                ) : (
+                                    <div className="vrm-thumb-placeholder">
+                                        <i className="ri-image-add-line"></i>
+                                        <span>썸네일 추가</span>
+                                    </div>
+                                )}
+                                <input type="file" accept="image/*" onChange={handleThumbnailChange} hidden />
+                            </label>
                         </div>
                     </div>
 

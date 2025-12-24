@@ -16,13 +16,62 @@ const DEFAULT_THUMBNAILS = {
 };
 
 /**
+ * Supabase Storage URL에 이미지 변환 파라미터를 추가합니다.
+ */
+export function getOptimizedImageUrl(url: string | any | undefined | null, width: number, quality = 80): string | undefined {
+  if (!url) return undefined;
+
+  // Handle object structure if passed (e.g. { url: '...', isThumbnail: true }) or structured image objects
+  const actualUrl = typeof url === 'string' ? url : (url.url || url.thumbnail || url.medium || url.full || url.micro);
+
+  if (!actualUrl || typeof actualUrl !== 'string') return undefined;
+
+  // 이미 변환 파라미터가 있거나 data URL인 경우 패스
+  if (actualUrl.includes('?') || actualUrl.startsWith('data:')) return actualUrl;
+
+  // Supabase Storage URL인지 확인
+  if (actualUrl.includes('/storage/v1/object/public/')) {
+    // '/object/public/' -> '/render/image/public/' 로 변경하여 변환 엔진 강제 사용 (Potentially failing, reverting to direct URL)
+    // const renderUrl = actualUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+    // return `${renderUrl}?width=${width}&format=webp&quality=${quality}&resize=contain`;
+    return actualUrl;
+  }
+
+  return actualUrl;
+}
+
+/**
+ * 이벤트 카드용 썸네일 (약 400px)
+ * 우선순위: image_thumbnail > image_medium (resized) > image (resized) > image_micro
+ */
+export function getCardThumbnail(
+  event: EventThumbnailData | null | undefined,
+): string | undefined {
+  if (!event) return undefined;
+
+  // 1. Thumbnail (Ideal)
+  if (event.image_thumbnail) return event.image_thumbnail;
+
+  // 2. Medium (Resize to 400)
+  if (event.image_medium) return getOptimizedImageUrl(event.image_medium, 400);
+
+  // 3. Full Image (Resize to 400)
+  if (event.image) return getOptimizedImageUrl(event.image, 400);
+
+  // 4. Fallback to Micro if nothing else (might be blurry but better than empty)
+  if (event.image_micro) return event.image_micro;
+
+  return undefined;
+}
+
+/**
  * 이벤트의 썸네일 URL을 반환합니다.
  * 우선순위: image_micro > image_thumbnail > image_medium > image > 기본 썸네일
  */
 export function getEventThumbnail(
   event: EventThumbnailData | null | undefined,
-  defaultThumbnailClass?: string,
-  defaultThumbnailEvent?: string
+  _defaultThumbnailClass?: string,
+  _defaultThumbnailEvent?: string
 ): string {
   if (!event) {
     // 이벤트가 없으면 thumbnail 크기 반환

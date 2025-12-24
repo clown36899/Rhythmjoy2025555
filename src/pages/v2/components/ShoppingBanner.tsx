@@ -4,6 +4,7 @@ import type { Shop } from '../../shopping/page';
 import { useModal } from '../../../hooks/useModal';
 import { useIntersectionObserver } from '../../../hooks/useIntersectionObserver';
 import { logUserInteraction } from '../../../lib/analytics';
+import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
 import './ShoppingBanner.css';
 
 function ShoppingBanner() {
@@ -13,8 +14,6 @@ function ShoppingBanner() {
     const [isHovered, setIsHovered] = useState(false);
     const shopDetailModal = useModal('shopDetail');
 
-    const [imageBlobs, setImageBlobs] = useState<Record<number, string>>({});
-
     // Touch swipe state
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -22,16 +21,6 @@ function ShoppingBanner() {
 
     // Minimum swipe distance (in px) to trigger navigation
     const minSwipeDistance = 50;
-
-    // Helper to convert blob to data URL
-    const blobToDataURL = (blob: Blob): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    };
 
     // Fetch shops from Supabase
     const fetchShops = async () => {
@@ -43,21 +32,6 @@ function ShoppingBanner() {
 
         if (data && !error) {
             setShops(data);
-
-            // Prefetch images as Data URLs (safer than Blobs) to prevent network requests during rotation
-            const blobs: Record<number, string> = {};
-            await Promise.all(data.map(async (shop) => {
-                if (shop.logo_url) {
-                    try {
-                        const response = await fetch(shop.logo_url);
-                        const blob = await response.blob();
-                        blobs[shop.id] = await blobToDataURL(blob);
-                    } catch (e) {
-                        console.error('Failed to prefetch image:', shop.logo_url);
-                    }
-                }
-            }));
-            setImageBlobs(blobs);
         }
         setLoading(false);
     };
@@ -193,7 +167,10 @@ function ShoppingBanner() {
                 {/* Logo */}
                 <div className="shopping-banner-logo">
                     {currentShop.logo_url ? (
-                        <img src={imageBlobs[currentShop.id] || currentShop.logo_url} alt={currentShop.name} />
+                        <img
+                            src={getOptimizedImageUrl(currentShop.logo_url, 200)}
+                            alt={currentShop.name}
+                        />
                     ) : (
                         <div className="shopping-banner-logo-placeholder">
                             <i className="ri-store-2-fill"></i>
