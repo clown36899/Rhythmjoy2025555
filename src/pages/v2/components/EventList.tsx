@@ -469,7 +469,7 @@ export default function EventList({
       // 2. Fetch practice room details (from venues)
       const { data: roomsData } = await supabase
         .from('venues')
-        .select('*')
+        .select('id, name, address, description, images')
         .in('id', roomIds);
 
       if (roomsData) {
