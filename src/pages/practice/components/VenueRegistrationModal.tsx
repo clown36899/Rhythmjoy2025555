@@ -25,6 +25,8 @@ interface VenueFormData {
     images: (string | any)[]; // Supports legacy strings and new objects
 }
 
+const MAX_GALLERY_IMAGES = 5;
+
 export default function VenueRegistrationModal({
     isOpen,
     onClose,
@@ -205,6 +207,23 @@ export default function VenueRegistrationModal({
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
+
+            if (images.length + files.length > MAX_GALLERY_IMAGES) {
+                alert(`이미지는 최대 ${MAX_GALLERY_IMAGES}개까지만 등록 가능합니다.`);
+                // Only take the first few files that fit
+                const remainingSlots = MAX_GALLERY_IMAGES - images.length;
+                if (remainingSlots <= 0) return;
+
+                const allowedFiles = files.slice(0, remainingSlots);
+                const newItems: ImageItem[] = allowedFiles.map(file => ({
+                    type: 'new',
+                    file,
+                    preview: URL.createObjectURL(file)
+                }));
+                setImages(prev => [...prev, ...newItems]);
+                return;
+            }
+
             const newItems: ImageItem[] = files.map(file => ({
                 type: 'new',
                 file,
@@ -458,13 +477,15 @@ export default function VenueRegistrationModal({
 
                     {/* Section 4: Images */}
                     <div className="vrm-section">
-                        <label className="vrm-label">이미지</label>
+                        <label className="vrm-label">이미지 ({images.length}/{MAX_GALLERY_IMAGES})</label>
                         <div className="vrm-image-upload">
-                            <label className="vrm-upload-btn">
-                                <i className="ri-add-line"></i>
-                                <span>사진 추가</span>
-                                <input type="file" multiple accept="image/*" onChange={handleImageChange} hidden />
-                            </label>
+                            {images.length < MAX_GALLERY_IMAGES && (
+                                <label className="vrm-upload-btn">
+                                    <i className="ri-add-line"></i>
+                                    <span>사진 추가</span>
+                                    <input type="file" multiple accept="image/*" onChange={handleImageChange} hidden />
+                                </label>
+                            )}
 
                             <div className="vrm-image-list">
                                 {images.map((item, idx) => (
