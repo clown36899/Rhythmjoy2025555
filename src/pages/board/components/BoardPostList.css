@@ -68,8 +68,8 @@
     font-weight: 700;
 }
 
-/* Flattened Row Styles */
-.board-post-title-row {
+/* Flattened Row Styles - SCOPED */
+.anonymous-view .board-post-title-row {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -85,7 +85,7 @@
     margin: 0 !important;
 }
 
-.board-post-body {
+.anonymous-view .board-post-body {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -101,7 +101,7 @@
 }
 
 /* Thumbnail - Controlled size */
-.memo-thumbnail-wrapper {
+.anonymous-view .memo-thumbnail-wrapper {
     position: relative;
     width: 120px;
     height: 120px;
@@ -113,12 +113,12 @@
     transition: all 0.2s ease;
 }
 
-.memo-thumbnail-wrapper:hover {
+.anonymous-view .memo-thumbnail-wrapper:hover {
     transform: scale(1.04);
     border-color: var(--memo-card-accent);
 }
 
-.memo-thumbnail-wrapper img {
+.anonymous-view .memo-thumbnail-wrapper img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -164,7 +164,7 @@
 }
 
 /* Interaction Bar */
-.memo-interaction-bar {
+.anonymous-view .memo-interaction-bar {
     margin-top: 12px;
     /* Reduced from 16px */
     display: flex;
@@ -173,16 +173,16 @@
     gap: 12px;
 }
 
-.memo-btns {
+.anonymous-view .memo-btns {
     display: flex;
     gap: clamp(4px, 1.5vw, 8px);
     flex-shrink: 1;
     min-width: 0;
 }
 
-.memo-btn {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--memo-card-border);
+.anonymous-view .memo-btn {
+    background: rgba(255, 255, 255, 0);
+    border: 0;
     padding: clamp(6px, 1.2vw, 8px) clamp(8px, 1.8vw, 14px);
     border-radius: 10px;
     color: var(--memo-text-meta);
@@ -198,30 +198,30 @@
     min-width: 0;
 }
 
-.memo-btn i {
+.anonymous-view .memo-btn i {
     font-size: 1.2rem;
     /* Increased icon size */
 }
 
-.memo-btn:hover {
+.anonymous-view .memo-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--memo-text-title);
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-.memo-btn.like-btn.active {
+.anonymous-view .memo-btn.like-btn.active {
     background: rgba(59, 130, 246, 0.1);
     color: #3b82f6;
     border-color: rgba(59, 130, 246, 0.3);
 }
 
-.memo-btn.dislike-btn.active {
+.anonymous-view .memo-btn.dislike-btn.active {
     background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
     border-color: rgba(239, 68, 68, 0.3);
 }
 
-.memo-comment-toggle {
+.anonymous-view .memo-comment-toggle {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--memo-card-border);
     color: var(--memo-text-meta);
@@ -238,39 +238,39 @@
     /* Keep the trigger size stable */
 }
 
-.memo-comment-toggle .comment-label {
+.anonymous-view .memo-comment-toggle .comment-label {
     font-size: 13px;
     color: var(--memo-text-meta);
     opacity: 0.8;
 }
 
-.memo-comment-toggle .comment-count {
+.anonymous-view .memo-comment-toggle .comment-count {
     font-size: 14px;
     color: var(--memo-card-accent);
     /* Focus count with accent color */
 }
 
-.memo-comment-toggle:hover {
+.anonymous-view .memo-comment-toggle:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--memo-card-accent);
     transform: translateY(-1px);
 }
 
-.memo-comment-toggle.active {
+.anonymous-view .memo-comment-toggle.active {
     background: var(--memo-card-accent);
     border-color: var(--memo-card-accent);
     color: #000;
     /* Contrast against accent BG */
 }
 
-.memo-comment-toggle.active .comment-label,
-.memo-comment-toggle.active .comment-count {
+.anonymous-view .memo-comment-toggle.active .comment-label,
+.anonymous-view .memo-comment-toggle.active .comment-count {
     color: #000;
     opacity: 1;
 }
 
 /* Inline Comments - Final Refined Threaded Design */
-.inline-comment-section {
+.anonymous-view .inline-comment-section {
     position: relative;
     background: transparent;
     margin-top: 16px;
@@ -280,7 +280,7 @@
 }
 
 /* Horizontal Separator - Clean inside the card */
-.inline-comment-section::before {
+.anonymous-view .inline-comment-section::before {
     content: '';
     position: absolute;
     left: 0;
@@ -292,7 +292,7 @@
 }
 
 /* Vertical Thread Line - Precisely positioned */
-.inline-comment-section::after {
+.anonymous-view .inline-comment-section::after {
     content: '';
     position: absolute;
     left: 6px;
@@ -304,7 +304,7 @@
 }
 
 /* Thread Start Dot - Sitting on the line */
-.inline-comment-section-dot {
+.anonymous-view .inline-comment-section-dot {
     position: absolute;
     left: 4px;
     top: -11px;
@@ -393,7 +393,7 @@
 }
 
 /* Obscured Content - Blurred for hidden posts */
-.content-obscured {
+.anonymous-view .content-obscured {
     filter: blur(12px) !important;
     opacity: 0.25 !important;
     pointer-events: none !important;
@@ -402,7 +402,7 @@
 }
 
 /* Deactivated Header Style */
-.deactivated-header {
+.anonymous-view .deactivated-header {
     opacity: 0.4;
     filter: grayscale(100%);
     pointer-events: none;
@@ -412,7 +412,7 @@
     text-decoration-color: rgba(255, 255, 255, 0.2);
 }
 
-.deactivated-header .board-post-title {
+.anonymous-view .deactivated-header .board-post-title {
     color: #6b7280 !important;
     /* Dimmed title color */
 }
@@ -458,23 +458,91 @@
     padding: 8px 12px !important;
 }
 
-.is-locked-status .board-post-top-row {
+.anonymous-view .is-locked-status .board-post-top-row {
     gap: 0 !important;
     /* Eliminate gap when content is gone */
 }
 
-.is-locked-status .board-post-meta {
+.anonymous-view .is-locked-status .board-post-meta {
     margin-top: 4px !important;
     padding-top: 4px !important;
 }
 
-.is-locked-status .memo-interaction-bar {
+.anonymous-view .is-locked-status .memo-interaction-bar {
     margin-top: 4px !important;
 }
 
 /* Ensure interaction bar remains visible and active */
-.board-post-card.is-locked-status .memo-interaction-bar,
-.board-post-card.is-locked-status .inline-comment-section {
+.anonymous-view .board-post-card.is-locked-status .memo-interaction-bar,
+.anonymous-view .board-post-card.is-locked-status .inline-comment-section {
     opacity: 1 !important;
     pointer-events: auto !important;
+}
+
+/* Global Password Prompt Modal */
+.memo-pwd-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.memo-pwd-prompt {
+    background: #1a1a1a;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 85%;
+    max-width: 320px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.memo-pwd-prompt input {
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    color: white;
+    font-size: 15px;
+    outline: none;
+    text-align: center;
+}
+
+.memo-pwd-prompt input:focus {
+    border-color: var(--memo-card-accent);
+}
+
+.memo-pwd-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.memo-pwd-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.memo-pwd-actions .confirm-btn {
+    background: var(--memo-card-accent);
+    color: white;
+}
+
+.memo-pwd-actions .cancel-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
 }

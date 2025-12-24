@@ -51,6 +51,48 @@ export default function BoardPostList({
     // Inline Edit State
     const [editingPostId, setEditingPostId] = useState<number | null>(null);
     const [editPassword, setEditPassword] = useState<string>('');
+    const [passwordPromptId, setPasswordPromptId] = useState<number | null>(null);
+    const [promptType, setPromptType] = useState<'edit' | 'delete' | null>(null);
+    const [tempPassword, setTempPassword] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    // Unified password verification handler
+    const handlePromptConfirm = async () => {
+        const pwd = tempPassword.trim();
+        if (!pwd || !passwordPromptId) return;
+
+        setIsVerifying(true);
+        try {
+            if (promptType === 'edit') {
+                const { data: isValid } = await supabase.rpc('verify_anonymous_post_password', {
+                    p_post_id: passwordPromptId,
+                    p_password: pwd
+                });
+                if (isValid) {
+                    setEditPassword(pwd);
+                    setEditingPostId(passwordPromptId);
+                    setPasswordPromptId(null);
+                    setTempPassword('');
+                } else {
+                    alert("비밀번호가 일치하지 않습니다.");
+                }
+            } else if (promptType === 'delete') {
+                const success = await onDeletePost?.(passwordPromptId, pwd);
+                if (success) {
+                    alert("게시물이 삭제되었습니다.");
+                    onPostUpdate?.();
+                } else {
+                    alert("비밀번호가 틀렸거나 삭제에 실패했습니다.");
+                }
+                setPasswordPromptId(null);
+                setTempPassword('');
+            }
+        } catch (err) {
+            console.error('Verify error:', err);
+        } finally {
+            setIsVerifying(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -137,6 +179,7 @@ export default function BoardPostList({
                                         nickname: post.author_nickname || post.author_name,
                                         password: editPassword
                                     }}
+                                    providedPassword={editPassword}
                                     onCancelEdit={() => {
                                         setEditingPostId(null);
                                         setEditPassword('');
@@ -243,56 +286,36 @@ export default function BoardPostList({
                                         </button>
                                         <button
                                             className="memo-btn edit-btn"
-                                            onClick={async (e) => {
+                                            onClick={(e) => {
                                                 e.stopPropagation();
-                                                const pwd = window.prompt("게시물 수정을 위한 비밀번호를 입력해주세요.");
-                                                if (pwd) {
-                                                    const trimmedPwd = pwd.trim();
-                                                    try {
-                                                        const { data: isValid } = await supabase.rpc('verify_anonymous_post_password', {
-                                                            p_post_id: post.id,
-                                                            p_password: trimmedPwd
-                                                        });
-                                                        if (isValid) {
-                                                            setEditPassword(trimmedPwd);
-                                                            setEditingPostId(post.id);
-                                                        } else {
-                                                            alert("비밀번호가 일치하지 않습니다.");
-                                                        }
-                                                    } catch (err) {
-                                                        console.error("Password verification failed:", err);
-                                                    }
-                                                }
+                                                setPasswordPromptId(post.id);
+                                                setPromptType('edit');
+                                                setTempPassword('');
                                             }}
                                         >
                                             <i className="ri-edit-line"></i>
+                                            <span>수정</span>
                                         </button>
                                         <button
                                             className="memo-btn delete-btn"
-                                            onClick={async (e) => {
+                                            onClick={(e) => {
                                                 e.stopPropagation();
-                                                let isConfirmed = false;
-                                                let inputPassword = "";
                                                 if (isAdmin) {
-                                                    isConfirmed = window.confirm("관리자 권한으로 이 게시물을 삭제하시겠습니까?");
+                                                    if (window.confirm("관리자 권한으로 삭제하시겠습니까?")) {
+                                                        onDeletePost?.(post.id);
+                                                    }
                                                 } else {
-                                                    const pwd = window.prompt("게시물 삭제를 위한 비밀번호를 입력해주세요.");
-                                                    if (pwd !== null) {
-                                                        inputPassword = pwd.trim();
-                                                        isConfirmed = true;
-                                                    }
-                                                }
-                                                if (isConfirmed) {
-                                                    const success = await onDeletePost(post.id, isAdmin ? undefined : inputPassword);
-                                                    if (success) {
-                                                        alert("게시물이 삭제되었습니다.");
-                                                    }
+                                                    setPasswordPromptId(post.id);
+                                                    setPromptType('delete');
+                                                    setTempPassword('');
                                                 }
                                             }}
                                         >
                                             <i className="ri-delete-bin-line"></i>
+                                            <span>삭제</span>
                                         </button>
                                     </div>
+
                                 </div>
 
                                 {/* Inline Comments Section */}
@@ -317,6 +340,34 @@ export default function BoardPostList({
                             className={`board-post-card ${post.is_notice ? 'board-post-card-notice' : 'board-post-card-normal'} ${isLocked ? 'is-locked-status' : ''} ${isAdmin ? 'is-admin-view' : ''}`}
                             style={{ cursor: 'pointer' }}
                         >
+                            <div className="board-post-top-row">
+                                {((post as any).image_thumbnail || (post as any).image) && (
+                                    <div className="board-post-thumbnail">
+                                        <img src={(post as any).image_thumbnail || (post as any).image} alt="Thumbnail" />
+                                    </div>
+                                )}
+                                <div className="board-post-main-content">
+                                    <div className={`board-post-header ${isLocked ? 'deactivated-header' : ''}`}>
+                                        {post.is_notice && <span className="board-post-prefix">[공지]</span>}
+                                        {isLocked && (
+                                            <i className={`ri-lock-2-fill locked-icon ${isDislikeLocked ? 'blind-warning' : ''}`}></i>
+                                        )}
+                                        {isAdmin && isLocked && (
+                                            <span className="admin-status-badge">
+                                                {isManualHidden ? "숨김" : "블라인드"}
+                                            </span>
+                                        )}
+                                        <h3 className="board-post-title">
+                                            {shouldSubstitute ? "블라인드 처리된 게시물입니다." : post.title}
+                                        </h3>
+                                    </div>
+                                    {!shouldSubstitute && (
+                                        <p className={`board-post-content ${isLocked && !isAdmin ? 'content-obscured' : ''}`}>
+                                            {post.content}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
 
                             <div className="board-post-meta">
                                 <div className={`board-post-meta-left ${isLocked ? 'deactivated-header' : ''}`}>
@@ -375,37 +426,68 @@ export default function BoardPostList({
                 </div>
             )}
 
+            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="board-pagination">
                     <button
-                        onClick={(e) => { e.stopPropagation(); onPageChange(currentPage - 1); }}
+                        onClick={() => onPageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="board-page-btn"
+                        className="page-btn"
                     >
                         <i className="ri-arrow-left-s-line"></i>
                     </button>
-
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <button
                             key={page}
-                            onClick={(e) => { e.stopPropagation(); onPageChange(page); }}
-                            className={
-                                currentPage === page
-                                    ? 'board-page-btn-active'
-                                    : 'board-page-btn-inactive'
-                            }
+                            onClick={() => onPageChange(page)}
+                            className={`page-btn ${currentPage === page ? 'active' : ''}`}
                         >
                             {page}
                         </button>
                     ))}
-
                     <button
-                        onClick={(e) => { e.stopPropagation(); onPageChange(currentPage + 1); }}
+                        onClick={() => onPageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="board-page-btn"
+                        className="page-btn"
                     >
                         <i className="ri-arrow-right-s-line"></i>
                     </button>
+                </div>
+            )}
+
+            {/* Global Password Prompt Modal (Moved out of card loop for true centering) */}
+            {passwordPromptId !== null && (
+                <div className="memo-pwd-overlay" onClick={() => {
+                    setPasswordPromptId(null);
+                    setTempPassword('');
+                }}>
+                    <div className="memo-pwd-prompt" onClick={(e) => e.stopPropagation()}>
+                        <input
+                            type="password"
+                            placeholder={`${promptType === 'edit' ? '수정' : '삭제'} 비밀번호`}
+                            value={tempPassword}
+                            onChange={(e) => setTempPassword(e.target.value)}
+                            autoFocus
+                            onKeyDown={async (e) => {
+                                if (e.key === 'Enter') {
+                                    handlePromptConfirm();
+                                }
+                            }}
+                        />
+                        <div className="memo-pwd-actions">
+                            <button
+                                className="confirm-btn"
+                                onClick={handlePromptConfirm}
+                                disabled={isVerifying}
+                            >
+                                {isVerifying ? '...' : '확인'}
+                            </button>
+                            <button className="cancel-btn" onClick={() => {
+                                setPasswordPromptId(null);
+                                setTempPassword('');
+                            }}>취소</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </>

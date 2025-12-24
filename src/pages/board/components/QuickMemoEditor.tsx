@@ -26,6 +26,7 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
     const [bannedWords, setBannedWords] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,13 +41,14 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
             setContent(editData.content || '');
             setNickname(editData.nickname || '');
             setPassword(providedPassword || editData.password || '');
+            setIsExpanded(true); // Auto-expand when editing
         } else {
             setTitle('');
             setContent('');
             setNickname('');
             setPassword('');
         }
-    }, [editData]);
+    }, [editData?.id, providedPassword]);
 
     const loadBannedWords = async () => {
         try {
@@ -135,7 +137,7 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
                 console.log('Updating anonymous post via RPC');
                 const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
                     p_post_id: editData.id,
-                    p_password: password.trim(), // Use current password input for update
+                    p_password: (providedPassword || password).trim(), // Ensure we use the best available password
                     p_title: title.trim(),
                     p_content: content.trim(),
                     p_author_name: nickname,
@@ -190,11 +192,33 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
             alert('등록 중 오류가 발생했습니다.');
         } finally {
             setIsSubmitting(false);
+            if (!editData) setIsExpanded(false); // Collapse after new post creation
+        }
+    };
+
+    const handleCancel = () => {
+        if (editData) {
+            onCancelEdit?.();
+        } else {
+            setIsExpanded(false);
+            setTitle('');
+            setContent('');
+            setImageFile(null);
+            setImagePreview(null);
         }
     };
 
     return (
-        <div className="quick-memo-editor">
+        <div className={`quick-memo-editor ${isExpanded ? 'expanded' : 'collapsed'}`}>
+            {!isExpanded && !editData && (
+                <button
+                    className="memo-trigger-btn"
+                    onClick={() => setIsExpanded(true)}
+                >
+                    <span>글쓰기 +</span>
+                </button>
+            )}
+
             <form onSubmit={handleSubmit} className="memo-form">
                 <div className="memo-header">
                     <div className="memo-header-top">
@@ -235,7 +259,7 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         className="memo-textarea"
-                        autoFocus={!!editData}
+                        autoFocus={!!editData || isExpanded}
                     />
 
                     {imagePreview && (
@@ -268,11 +292,11 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
                     </div>
 
                     <div className="memo-submit-actions">
-                        {editData && (
+                        {(isExpanded || editData) && (
                             <button
                                 type="button"
                                 className="memo-cancel-btn"
-                                onClick={onCancelEdit}
+                                onClick={handleCancel}
                             >
                                 취소
                             </button>
