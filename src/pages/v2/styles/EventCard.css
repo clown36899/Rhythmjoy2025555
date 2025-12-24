@@ -93,21 +93,17 @@
 
 /* ===== Category별 독립 스타일 ===== */
 /* 이벤트 카드 전용 스타일 */
-
-
-
-
-
+.card-category-event {
+  flex: 0 0 auto !important;
+  width: 28% !important;
+  max-width: 150px !important;
+}
 
 /* 강습 카드 전용 스타일 */
 .card-category-class {
   flex: 0 0 auto !important;
   width: 28% !important;
-  /* border: 1px solid #555;
-  border-radius: 1rem; */
-  /* padding: 0.4rem; */
-  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); */
-  /* background-color: #ffffff; */
+  max-width: 130px !important;
 }
 
 

@@ -306,7 +306,7 @@
 
 @media (min-width: 768px) {
   .shopcard-banner {
-    height: 180px;
+    height: 160px;
   }
 
   .shopcard-image-section {
@@ -324,7 +324,7 @@
 
 @media (min-width: 1024px) {
   .shopcard-banner {
-    height: 200px;
+    height: 160px;
   }
 
   .shopcard-image-section {

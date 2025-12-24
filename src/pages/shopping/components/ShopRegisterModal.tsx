@@ -5,7 +5,6 @@ import ImageCropModal from '../../../components/ImageCropModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 
 import { useAuth } from '../../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import './ShopRegisterModal.css';
 
 interface ShopRegisterModalProps {
@@ -28,7 +27,7 @@ interface FeaturedItem {
 export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRegisterModalProps) {
 
     const { user, signInWithKakao } = useAuth();
-    const navigate = useNavigate();
+    // const navigate = useNavigate(); // Unused
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -239,14 +238,28 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
     };
 
     const uploadImage = async (file: File, folder: string): Promise<string> => {
-        const { createResizedImages } = await import('../../../utils/imageResize');
-        const resizedImages = await createResizedImages(file);
+        const { resizeImage } = await import('../../../utils/imageResize');
+
+        // 폴더에 따라 리사이징 옵션 다르게 적용
+        let resizedImageBlob;
+        if (folder === 'shop-logos') {
+            // 로고: 높이 170px 기준 (연습실 썸네일과 통일)
+            resizedImageBlob = await resizeImage(file, 170, 0.75, 'logo.webp', 'height');
+        } else {
+            // 상품 이미지: 가로 500px 기준 (사용자 요청)
+            resizedImageBlob = await resizeImage(file, 500, 0.8, 'item.webp', 'width');
+        }
+
         const fileName = `${Date.now()}.webp`;
         const filePath = `${folder}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
             .from('images')
-            .upload(filePath, resizedImages.medium);
+            .upload(filePath, resizedImageBlob, {
+                contentType: 'image/webp',
+                cacheControl: '31536000',
+                upsert: true
+            });
 
         if (uploadError) {
             throw uploadError;

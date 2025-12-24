@@ -16,7 +16,7 @@ interface ShopDetailModalProps {
 }
 
 export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate, isFavorite = false, onToggleFavorite }: ShopDetailModalProps) {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [showEditModal, setShowEditModal] = useState(false);
 
     // Enable mobile back gesture to close modal
@@ -42,8 +42,8 @@ export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate, isFav
             <div className="shop-modal-overlay" onClick={onClose}>
                 <div className="shop-modal-content" onClick={(e) => e.stopPropagation()}>
                     {/* Edit Button */}
-                    {/* Edit Button - Only show if owner */}
-                    {shop.user_id && user && user.id === shop.user_id && (
+                    {/* Edit Button - Show if owner OR admin */}
+                    {((shop.user_id && user && user.id === shop.user_id) || isAdmin) && (
                         <button onClick={handleEdit} className="shop-modal-edit" title="수정하기">
                             <i className="ri-pencil-line"></i>
                         </button>

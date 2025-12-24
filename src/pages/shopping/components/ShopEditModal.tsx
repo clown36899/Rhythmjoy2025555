@@ -224,14 +224,28 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
 
 
     const uploadImage = async (file: File, folder: string): Promise<string> => {
-        const { createResizedImages } = await import('../../../utils/imageResize');
-        const resizedImages = await createResizedImages(file);
+        const { resizeImage } = await import('../../../utils/imageResize');
+
+        // 폴더에 따라 리사이징 옵션 다르게 적용
+        let resizedImageBlob;
+        if (folder === 'shop-logos') {
+            // 로고: 높이 170px 기준 (연습실 썸네일과 통일)
+            resizedImageBlob = await resizeImage(file, 170, 0.75, 'logo.webp', 'height');
+        } else {
+            // 상품 이미지: 가로 500px 기준 (사용자 요청)
+            resizedImageBlob = await resizeImage(file, 500, 0.8, 'item.webp', 'width');
+        }
+
         const fileName = `${Date.now()}.webp`;
         const filePath = `${folder}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
             .from('images')
-            .upload(filePath, resizedImages.medium);
+            .upload(filePath, resizedImageBlob, {
+                contentType: 'image/webp',
+                cacheControl: '31536000',
+                upsert: true
+            });
 
         if (uploadError) {
             throw uploadError;

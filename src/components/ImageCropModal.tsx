@@ -17,6 +17,9 @@ interface ImageCropModalProps {
   onImageUpdate?: (file: File) => void; // 썸네일 등으로 이미지 교체 시 부모에게 알림
   fileName?: string;
   originalImageUrl?: string | null; // 부모로부터 전달받는 원본 이미지 URL
+  // 되돌리기 기능을 위한 Props 추가
+  hasOriginal?: boolean;
+  onRestoreOriginal?: () => void;
 }
 
 async function createCroppedImage(
@@ -101,6 +104,8 @@ export default memo(function ImageCropModal({
   onImageUpdate,
   fileName = 'cropped.jpg',
   originalImageUrl = null,
+  hasOriginal = false,
+  onRestoreOriginal,
 }: ImageCropModalProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -548,10 +553,16 @@ export default memo(function ImageCropModal({
 
               {/* Apply Action */}
               <div className="crop-button-row">
-                {/* 되돌리기 버튼 - 원본 이미지 URL이 있을 때 표시 */}
-                {originalImageUrlForRestore && (
+                {/* 되돌리기 버튼 - 원본 이미지 복원 가능할 때 표시 */}
+                {(hasOriginal || originalImageUrlForRestore) && (
                   <button
-                    onClick={handleRestoreCrop}
+                    onClick={() => {
+                      if (onRestoreOriginal) {
+                        onRestoreOriginal();
+                      } else {
+                        handleRestoreCrop();
+                      }
+                    }}
                     className="crop-action-btn crop-cancel-btn"
                     disabled={isProcessing}
                   >
