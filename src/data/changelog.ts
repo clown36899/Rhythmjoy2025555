@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.15.0',
+        date: '2025-12-25',
+        changes: [
+            '게시판 컴포넌트 완전 분리: StandardPostList와 AnonymousPostList 물리적 격리',
+            '익명 게시판 기능 완전 복원: 댓글 블라인드, 이미지 Lightbox, UI 최적화',
+            '일반 게시판 UX 개선: 비로그인 좋아요 시 로그인 프롬프트, 관리자 숨김 표시',
+            '타입 안정성 강화 및 CASCADE 설정 검증'
+        ]
+    },
+    {
         version: '2.14.1',
         date: '2025-12-25',
         changes: [

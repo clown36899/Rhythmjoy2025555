@@ -426,13 +426,14 @@
 }
 
 /* Inline Edit Mode Adjustments */
-.quick-memo-editor.inline-edit {
+.quick-memo-editor.inline-editor {
     margin: 0;
     width: 100%;
+    border-radius: 16px;
     animation: none;
     /* Disable entrance animation for inline replacement */
 }
 
-.quick-memo-editor.inline-edit .memo-form {
-    /* padding: 20px; */
+.quick-memo-editor.inline-editor .memo-form {
+    padding: 20px;
 }

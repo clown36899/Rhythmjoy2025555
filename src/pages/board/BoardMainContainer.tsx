@@ -4,7 +4,9 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { getStableFingerprint } from '../../utils/fingerprint';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
-import BoardPostList from './components/BoardPostList';
+import AnonymousPostList from './components/AnonymousPostList';
+import StandardPostList from './components/StandardPostList';
+import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board'; // Clean types
 import UniversalPostEditor from './components/UniversalPostEditor';
 import BoardManagementModal from './components/BoardManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
@@ -25,7 +27,7 @@ export default function BoardMainContainer() {
 
     // State
     const category = (searchParams.get('category') as BoardCategory) || 'free';
-    const [posts, setPosts] = useState<BoardPost[]>([]);
+    const [posts, setPosts] = useState<any[]>([]); // Use any temporarily or union type, cleaned by casting in children
     const [loading, setLoading] = useState(true);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
 
@@ -156,6 +158,16 @@ export default function BoardMainContainer() {
     };
 
     const handleToggleLike = async (postId: number) => {
+        // Check if user is logged in for standard board
+        if (!user && category !== 'anonymous') {
+            window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+                detail: {
+                    action: () => handleToggleLike(postId)
+                }
+            }));
+            return;
+        }
+
         const isLiked = likedPostIds.has(postId);
         const isDisliked = dislikedPostIds.has(postId);
         const originalLikesSet = new Set(likedPostIds);
@@ -547,22 +559,27 @@ export default function BoardMainContainer() {
 
                 {category === 'dev-log' ? (
                     <DevLog />
-                ) : (
-                    <BoardPostList
-                        posts={currentPosts}
-                        loading={loading}
-                        category={category}
+                ) : category === 'anonymous' ? (
+                    <AnonymousPostList
+                        posts={currentPosts as AnonymousBoardPost[]}
+                        onPostClick={(post) => {/* Handle preview or specialized click */ }}
+                        onPostCreated={loadPosts}
                         isAdmin={isRealAdmin}
-                        onPostClick={(post) => navigate(`/board/${post.id}`)}
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
                         likedPostIds={likedPostIds}
-                        dislikedPostIds={dislikedPostIds}
                         onToggleLike={handleToggleLike}
+                        dislikedPostIds={dislikedPostIds}
                         onToggleDislike={handleToggleDislike}
-                        onDeletePost={handleDeletePost}
-                        onPostUpdate={loadPosts}
+                    />
+                ) : (
+                    <StandardPostList
+                        posts={currentPosts as StandardBoardPost[]}
+                        category={category}
+                        onPostClick={(post) => navigate(`/board/${post.id}`)}
+                        likedPostIds={likedPostIds}
+                        onToggleLike={handleToggleLike}
+                        dislikedPostIds={dislikedPostIds}
+                        onToggleDislike={handleToggleDislike}
+                        isAdmin={isRealAdmin}
                     />
                 )}
             </div>

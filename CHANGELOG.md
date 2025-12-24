@@ -7,6 +7,24 @@
 
 # 변경 이력 (버전별)
 
+## [2.15.0] - 2025-12-25
+- **Refactor**: 게시판 컴포넌트 완전 분리 (Phase 2 완료)
+  - `StandardPostList.tsx`와 `AnonymousPostList.tsx` 물리적 분리 완료
+  - 각 게시판 전용 CSS 격리 (`board.css` vs `BoardPostList.css`)
+  - 타입 안정성 강화: `StandardBoardPost`, `AnonymousBoardPost` 인터페이스 명확화
+- **Feature**: 익명 게시판 기능 완전 복원
+  - 댓글 블라인드 기능 (신고 2개 이상 시 자동 숨김)
+  - 이미지 Lightbox (클릭 시 확대보기)
+  - 수정 버튼 인터랙션 바로 이동 및 스타일 개선
+  - 중복 컨테이너 제거로 UI 최적화
+- **Feature**: 일반 게시판 UX 개선
+  - 비로그인 사용자 좋아요 클릭 시 로그인 프롬프트 표시
+  - 관리자에게 숨김 게시글 시각적 표시 (배지 + 투명 효과)
+  - 좋아요 → 즐겨찾기 연동 정상화
+- **Database**: CASCADE 설정 확인
+  - `board_post_likes`, `board_post_dislikes` 외래 키 CASCADE 설정 검증
+  - 게시글 삭제 시 관련 데이터 자동 정리
+
 ## [2.14.1] - 2025-12-25
 - **Security**: 긴급 보안 패치
   - 익명 게시판 댓글 삭제 로직을 클라이언트 검증에서 서버 RPC(`delete_anonymous_comment_with_password`) 호출로 변경

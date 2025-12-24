@@ -14,10 +14,18 @@ export interface StandardBoardPost extends BaseBoardPost {
     user_id: string; // Standard posts must be linked to a user
     author_name: string; // Display name
     author_nickname?: string;
+    author_profile_image?: string | null; // Profile image URL
     prefix_id?: number | null;
+    prefix?: {
+        id: number;
+        name: string;
+        color: string;
+        admin_only: boolean;
+    };
     category: string; // 'free', 'market', etc.
     comment_count?: number; // Often joined or counted
     likes_count?: number;
+    is_hidden?: boolean; // For admin visibility control
     // Standard specific fields
 }
 
@@ -29,6 +37,7 @@ export interface AnonymousBoardPost extends BaseBoardPost {
     likes: number;
     dislikes: number;
     is_hidden: boolean;
+    comment_count?: number; // Added for display
     // Anonymous specific fields
 }
 
