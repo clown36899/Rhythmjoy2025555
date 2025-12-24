@@ -222,15 +222,21 @@ export default function UniversalPostEditor({
             const file = e.target.files[0];
             setImageFile(file);
 
-            // Create local preview
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setImagePreview(e.target?.result as string);
-            };
-            reader.readAsDataURL(file);
-            setIsImageDeleted(false); // New image selected, so not deleted
+            // Create local preview using Object URL for better performance/memory
+            const objectUrl = URL.createObjectURL(file);
+            setImagePreview(objectUrl);
+            setIsImageDeleted(false);
         }
     };
+
+    // Cleanup object URL
+    useEffect(() => {
+        return () => {
+            if (imagePreview && imagePreview.startsWith('blob:')) {
+                URL.revokeObjectURL(imagePreview);
+            }
+        };
+    }, [imagePreview]);
 
     const checkBannedWords = (text: string) => {
         for (const word of bannedWords) {

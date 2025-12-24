@@ -8,6 +8,14 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.14.1',
+        date: '2025-12-25',
+        changes: [
+            '긴급 보안 패치: 익명 게시판 댓글 삭제 로직 서버(RPC) 이관',
+            '안정성 개선: 모바일 이미지 업로드 메모리 최적화 (앱 튕김 방지)'
+        ]
+    },
+    {
         version: '2.14.0',
         date: '2025-12-24',
         changes: [

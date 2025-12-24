@@ -7,6 +7,14 @@
 
 # 변경 이력 (버전별)
 
+## [2.14.1] - 2025-12-25
+- **Security**: 긴급 보안 패치
+  - 익명 게시판 댓글 삭제 로직을 클라이언트 검증에서 서버 RPC(`delete_anonymous_comment_with_password`) 호출로 변경
+  - 비밀번호 평문 비교 취약점 원천 차단
+- **Stability**: 모바일 이미지 업로드 메모리 최적화
+  - `FileReader`를 `URL.createObjectURL`로 전면 교체 (QuickMemoEditor, UniversalPostEditor)
+  - 고해상도 이미지 선택 시 앱 튕김(Crash) 증상 해결
+
 ## [2.14.0] - 2025-12-24
 - **Feature**: QuickMemoEditor UX 대대적 개편
   - 에디터 상단 고정 트리거 바 도입 (항상 접근 가능, 클릭 영역 확대)

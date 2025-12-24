@@ -72,11 +72,25 @@ export default function QuickMemoEditor({
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setImageFile(file);
-            const reader = new FileReader();
-            reader.onload = (e) => setImagePreview(e.target?.result as string);
-            reader.readAsDataURL(file);
+            // Optimization: Use Object URL instead of FileReader to prevent memory spikes
+            const objectUrl = URL.createObjectURL(file);
+            setImagePreview(objectUrl);
+
+            // Cleanup previous object URL if needed (in a real scenario we might track it, 
+            // but for simple replacement we rely on component unmount cleanup or next update)
+            // Ideally we should revoke old one if exists, but for now we focus on creation safety.
+            // A useEffect cleanup is recommended for robustness.
         }
     };
+
+    // Cleanup object URL on unmount or change
+    useEffect(() => {
+        return () => {
+            if (imagePreview && imagePreview.startsWith('blob:')) {
+                URL.revokeObjectURL(imagePreview);
+            }
+        };
+    }, [imagePreview]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
