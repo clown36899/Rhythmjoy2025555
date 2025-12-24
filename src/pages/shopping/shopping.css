@@ -90,13 +90,19 @@
 }
 
 /* 설명: 폰트 크기 및 높이 제한 (1줄로 제한하여 깔끔하게) */
+/* 설명: 폰트 크기 및 높이 제한 (항상 표시 강제) */
 .shop-page-container .shopcard-banner-desc {
+  display: -webkit-box !important;
+  /* 강제 표시 */
+  -webkit-box-orient: vertical !important;
   font-size: 0.8125rem !important;
   line-height: 1.4 !important;
-  -webkit-line-clamp: 1 !important;
-  line-clamp: 1 !important;
-  color: #6b7280 !important;
-  /* 연습실 카드 설명 색상 참조 */
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  color: #eeeeee !important;
+  /* 색상 밝게 변경 */
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* 버튼: 콤팩트하게 변경 */
@@ -138,9 +144,27 @@
     line-height: 1.2 !important;
   }
 
-  /* 모바일에서는 설명 숨김 (연습실 카드와 동일) */
+  /* 모바일 내부 간격 축소 */
+  .shop-page-container .shopcard-banner-content {
+    gap: 0.1rem !important;
+  }
+
+  /* 모바일에서도 설명 표시 (1줄 제한) 및 가독성 확보 */
+  /* 모바일에서도 설명 표시 (1줄 제한) 및 가독성 확보 */
   .shop-page-container .shopcard-banner-desc {
-    display: none !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    font-size: 0.75rem !important;
+    -webkit-line-clamp: 1 !important;
+    line-clamp: 1 !important;
+    margin-top: 0.1rem !important;
+    color: #ffffff !important;
+    /* 완전 흰색으로 변경 */
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    /* 높이 제한 해제 */
+    max-height: none !important;
   }
 
   /* 모바일 버튼 숨김 또는 최소화 */

@@ -229,8 +229,8 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
         // 폴더에 따라 리사이징 옵션 다르게 적용
         let resizedImageBlob;
         if (folder === 'shop-logos') {
-            // 로고: 높이 170px 기준 (연습실 썸네일과 통일)
-            resizedImageBlob = await resizeImage(file, 170, 0.75, 'logo.webp', 'height');
+            // 로고: 높이 140px 기준 (120px 카드 높이 + 여유분 / 용량 최적화)
+            resizedImageBlob = await resizeImage(file, 140, 0.75, 'logo.webp', 'height');
         } else {
             // 상품 이미지: 가로 500px 기준 (사용자 요청)
             resizedImageBlob = await resizeImage(file, 500, 0.8, 'item.webp', 'width');

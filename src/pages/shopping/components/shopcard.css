@@ -290,8 +290,14 @@
 
   .shopcard-banner-desc {
     font-size: 0.8125rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
     line-clamp: 1;
+    margin-top: 0.25rem;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: normal;
+    /* text-overflow: ellipsis와 충돌 방지 */
   }
 
   .shopcard-banner-btn {

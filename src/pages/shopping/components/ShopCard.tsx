@@ -30,7 +30,12 @@ export default function ShopCard({ shop, onUpdate, isFavorite = false, onToggleF
         {/* Left: Image Section */}
         <div className="shopcard-image-section">
           {shop.logo_url ? (
-            <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-banner-image" />
+            <img
+              src={shop.logo_url}
+              alt={`${shop.name} 로고`}
+              className="shopcard-banner-image"
+              loading="lazy"
+            />
           ) : (
             <div className="shopcard-banner-placeholder">
               <i className="ri-store-2-fill"></i>
