@@ -18,6 +18,7 @@ import {
   getVideoThumbnail,
   downloadThumbnailAsBlob,
 } from "../../../utils/videoThumbnail";
+import { getOptimizedImageUrl } from "../../../utils/getEventThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 import ImageCropModal from "../../../components/ImageCropModal";
 import CustomDatePickerHeader from "../../../components/CustomDatePickerHeader";
@@ -2694,7 +2695,7 @@ export default function EventList({
         VIEW: Favorites Only
       */}
       {searchParams.get('view') === 'favorites' ? (
-        <div className="evt-ongoing-section evt-preview-section">
+        <div className="evt-ongoing-section evt-preview-section evt-favorites-view-container">
           <div className="evt-v2-section-title" style={{ padding: '0 16px', marginTop: '16px' }}>
             <i className="ri-heart-3-fill" style={{ color: '#ff6b6b', marginRight: '6px' }}></i>
             <span>내 즐겨찾기</span>
@@ -2789,7 +2790,7 @@ export default function EventList({
                     {/* 오른쪽: 정사각형 이미지 */}
                     {room.images && room.images.length > 0 && (
                       <div className="prl-card-image-wrapper">
-                        <img src={room.images[0]} alt={room.name} className="prl-card-image" />
+                        <img src={getOptimizedImageUrl(room.images[0], 200) || '/placeholder-room.jpg'} alt={room.name} className="prl-card-image" />
                       </div>
                     )}
                   </div>

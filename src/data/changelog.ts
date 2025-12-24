@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.18.1',
+        date: '2025-12-25',
+        changes: [
+            '[최적화] 네트워크 전송량 최적화 (EventList 쿼리 개선, 정적 자산 압축)',
+            '[스타일] 즐겨찾기 모아보기(view=favorites) 전용 스타일 분리',
+            '[스타일] 즐겨찾기 강습 카드 이미지 크기 독립 제어 기능 추가',
+            '[버그] 연습실 즐겨찾기 썸네일 표시 오류 수정'
+        ]
+    },
+    {
         version: '2.18.0',
         date: '2025-12-25',
         changes: [

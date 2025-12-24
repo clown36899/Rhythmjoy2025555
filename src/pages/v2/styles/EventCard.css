@@ -95,8 +95,8 @@
 /* 이벤트 카드 전용 스타일 */
 .card-category-event {
   flex: 0 0 auto !important;
-  width: 28% !important;
-  max-width: 150px !important;
+  width: 36% !important;
+  max-width: 137px !important;
 }
 
 /* 강습 카드 전용 스타일 */
@@ -455,4 +455,28 @@
   100% {
     transform: scale(1);
   }
+}
+
+/* ==========================================================================
+   Favorites View Specific Overrides (즐겨찾기 모아보기 전용 스타일)
+   ========================================================================== */
+.evt-favorites-view-container .card-category-event {
+  /* 즐겨찾기 뷰: 이벤트 카드 사이즈 독립 설정 */
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.evt-favorites-view-container .card-category-class {
+  /* 즐겨찾기 뷰: 강습 카드 사이즈 독립 설정 */
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.evt-favorites-view-container .card-category-class .card-image-wrapper {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  /* 예: height: 200px; 또는 aspect-ratio: 1/1; */
 }
