@@ -5,20 +5,22 @@ import { retryOperation } from '../../../utils/asyncUtils';
 import './QuickMemoEditor.css';
 
 interface QuickMemoEditorProps {
-    onPostCreated: () => void;
     category: string;
-    editData?: {
-        id: number;
-        title: string;
-        content: string;
-        nickname: string;
-        password?: string;
-    } | null;
-    onCancelEdit?: () => void;
+    onPostCreated?: () => void;
+    editData?: any;
     providedPassword?: string;
+    onCancelEdit?: () => void;
+    className?: string; // Add className prop
 }
 
-export default function QuickMemoEditor({ onPostCreated, category, editData, onCancelEdit, providedPassword }: QuickMemoEditorProps) {
+export default function QuickMemoEditor({
+    category,
+    onPostCreated,
+    editData,
+    providedPassword,
+    onCancelEdit,
+    className = ""
+}: QuickMemoEditorProps) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [nickname, setNickname] = useState('');
@@ -186,7 +188,7 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
             setPassword('');
             setImageFile(null);
             setImagePreview(null);
-            onPostCreated();
+            onPostCreated?.();
         } catch (error) {
             console.error('메모 등록 실패:', error);
             alert('등록 중 오류가 발생했습니다.');
@@ -209,7 +211,7 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
     };
 
     return (
-        <div className={`quick-memo-editor ${isExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className={`quick-memo-editor ${isExpanded ? 'expanded' : 'collapsed'} ${className}`}>
             {!isExpanded && !editData && (
                 <button
                     className="memo-trigger-btn"
@@ -230,9 +232,9 @@ export default function QuickMemoEditor({ onPostCreated, category, editData, onC
                                 onChange={(e) => setNickname(e.target.value)}
                                 className="memo-nickname-input"
                             />
-                            {editData && (
+                            {/* {editData && (
                                 <span className="memo-edit-badge">Editing Mode</span>
-                            )}
+                            )} */}
                         </div>
                         <div className="memo-right-actions">
                             <button

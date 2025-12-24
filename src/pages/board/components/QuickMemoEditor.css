@@ -185,7 +185,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 16px;
-    padding-top: 20px;
+    /* padding-top: 20px; */
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -353,4 +353,16 @@
     .memo-submit-btn {
         justify-content: center;
     }
+}
+
+/* Inline Edit Mode Adjustments */
+.quick-memo-editor.inline-edit {
+    margin: 0;
+    width: 100%;
+    animation: none;
+    /* Disable entrance animation for inline replacement */
+}
+
+.quick-memo-editor.inline-edit .memo-form {
+    /* padding: 20px; */
 }

@@ -169,28 +169,28 @@ export default function BoardPostList({
 
                     if (editingPostId === post.id) {
                         return (
-                            <div key={post.id} className="board-post-card is-memo editing-mode" style={{ cursor: 'default' }}>
-                                <QuickMemoEditor
-                                    category="anonymous"
-                                    editData={{
-                                        id: post.id,
-                                        title: post.title,
-                                        content: post.content,
-                                        nickname: post.author_nickname || post.author_name,
-                                        password: editPassword
-                                    }}
-                                    providedPassword={editPassword}
-                                    onCancelEdit={() => {
-                                        setEditingPostId(null);
-                                        setEditPassword('');
-                                    }}
-                                    onPostCreated={() => {
-                                        setEditingPostId(null);
-                                        setEditPassword('');
-                                        onPostUpdate?.();
-                                    }}
-                                />
-                            </div>
+                            <QuickMemoEditor
+                                key={post.id}
+                                category={category}
+                                editData={{
+                                    id: post.id,
+                                    title: post.title,
+                                    content: post.content,
+                                    nickname: post.author_nickname || post.author_name,
+                                    password: editPassword
+                                }}
+                                providedPassword={editPassword}
+                                onCancelEdit={() => {
+                                    setEditingPostId(null);
+                                    setEditPassword('');
+                                }}
+                                onPostCreated={() => {
+                                    setEditingPostId(null);
+                                    setEditPassword('');
+                                    onPostUpdate?.();
+                                }}
+                                className="inline-edit"
+                            />
                         );
                     }
 
