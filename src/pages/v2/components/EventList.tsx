@@ -36,9 +36,11 @@ import ShoppingBanner from "./ShoppingBanner";
 import "../../../styles/components/EventList.css";
 import "../../../components/EventRegistrationModal.css";
 import "../styles/EventListSections.css";
-// Lazy loading으로 성능 최적화
-const SocialCalendar = lazy(() => import("../../social/components/SocialCalendar"));
-import { useSocialSchedules } from "../../social/hooks/useSocialSchedules";
+// Lazy loading으로 성능 최적화 (사용하지 않는 SocialCalendar 제거)
+import { useSocialSchedulesNew } from "../../social/hooks/useSocialSchedulesNew";
+import TodaySocial from "../../social/components/TodaySocial";
+import SocialDetailModal from "../../social/components/SocialDetailModal";
+import type { SocialSchedule } from "../../social/types";
 import { useAuth } from "../../../contexts/AuthContext";
 import PracticeRoomBanner from "./PracticeRoomBanner";
 import StandardPostList from "../../board/components/StandardPostList";
@@ -631,6 +633,23 @@ export default function EventList({
     useDefaultThumbnail();
 
 
+  // --- Today's Social Logic ---
+  const { schedules: socialSchedules, loading: isSocialSchedulesLoading } = useSocialSchedulesNew();
+  const [selectedSocialSchedule, setSelectedSocialSchedule] = useState<SocialSchedule | null>(null);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayDayOfWeek = new Date().getDay();
+
+  const todaySocialSchedules = useMemo(() => {
+    return socialSchedules.filter(s => {
+      if (s.date === todayStr) return true;
+      if (!s.date && s.day_of_week === todayDayOfWeek) return true;
+      return false;
+    });
+  }, [socialSchedules, todayStr, todayDayOfWeek]);
+  // ----------------------------
+
+
   // 현재 날짜 추적 (자정 지날 때 캐시 무효화를 위해)
   const [currentDay, setCurrentDay] = useState(() => new Date().toDateString());
 
@@ -880,13 +899,7 @@ export default function EventList({
   }, [isAdminMode]);
 
   // Social Schedules Data
-  const {
-    events: socialEvents,
-    loading: socialLoading,
-    addLocalEvent: addSocialEvent,
-    updateLocalEvent: updateSocialEvent,
-    deleteLocalEvent: deleteSocialEvent
-  } = useSocialSchedules();
+  // Social Schedules Data Removed (Legacy Hook)
 
   // 이벤트 데이터 로드
   useEffect(() => {
@@ -2968,6 +2981,15 @@ export default function EventList({
               {/* Shopping Mall Banner */}
               <ShoppingBanner />
 
+              {/* Today's Social Section */}
+              {!isSocialSchedulesLoading && todaySocialSchedules.length > 0 && (
+                <TodaySocial
+                  schedules={todaySocialSchedules}
+                  onScheduleClick={(schedule) => setSelectedSocialSchedule(schedule)}
+                  onViewAll={() => navigate('/social')}
+                />
+              )}
+
               {/* BillboardSection 제거 - 사용하지 않음 (display: none) */}
 
 
@@ -3234,22 +3256,7 @@ export default function EventList({
                 </div>
               )}
 
-              {/* Social Schedule Section (Readonly) */}
-              <div className="evt-v2-section social-section-schedule-preview evt-mb-4">
-                <div className="evt-v2-section-title">
-                  <span>정기 소셜 일정</span>
-                </div>
-                <Suspense fallback={<div className="evt-loading-fallback">로딩 중...</div>}>
-                  <SocialCalendar
-                    events={socialEvents}
-                    loading={socialLoading}
-                    onEventCreated={addSocialEvent}
-                    onEventUpdated={updateSocialEvent}
-                    onEventDeleted={deleteSocialEvent}
-                    readonly={false}
-                  />
-                </Suspense>
-              </div>
+              {/* Social Schedule Section Removed */}
 
               {/* Practice Room Banner Section */}
               <PracticeRoomBanner />
@@ -4713,6 +4720,16 @@ export default function EventList({
             venueCustomLink: venueLink,
           }));
         }}
+      />
+
+      {/* Social Detail Modal */}
+      <SocialDetailModal
+        isOpen={!!selectedSocialSchedule}
+        onClose={() => setSelectedSocialSchedule(null)}
+        schedule={selectedSocialSchedule}
+        onCopy={() => { }}
+        onEdit={() => { }}
+        isAdmin={false} // 메인 V2 페이지에서는 단순 조회만 제공
       />
     </div >
   );

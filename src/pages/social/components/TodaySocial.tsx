@@ -6,10 +6,11 @@ import './TodaySocial.css';
 interface TodaySocialProps {
     schedules: SocialSchedule[];
     onScheduleClick: (schedule: SocialSchedule) => void;
+    onViewAll?: () => void;
 }
 
 // 2. 컴포넌트 정의 수정
-const TodaySocial: React.FC<TodaySocialProps> = ({ schedules, onScheduleClick }) => {
+const TodaySocial: React.FC<TodaySocialProps> = ({ schedules, onScheduleClick, onViewAll }) => {
     if (schedules.length === 0) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
@@ -32,8 +33,15 @@ const TodaySocial: React.FC<TodaySocialProps> = ({ schedules, onScheduleClick })
     return (
         <section className="today-social-container">
             <div className="section-title-area">
-                <h2 className="section-title">오늘의 소셜</h2>
-                <span className="live-badge">LIVE</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h2 className="section-title">오늘의 소셜</h2>
+                    <span className="live-badge">LIVE</span>
+                </div>
+                {onViewAll && (
+                    <button onClick={onViewAll} className="evt-view-all-btn">
+                        모아보기 ❯
+                    </button>
+                )}
             </div>
 
             <div className="today-scroller">
