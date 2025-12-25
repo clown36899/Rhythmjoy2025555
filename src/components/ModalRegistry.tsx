@@ -4,7 +4,7 @@ import { useModalContext } from '../contexts/ModalContext';
 
 // Event Modals (v2)
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
-import EventEditModal from '../pages/v2/components/EventEditModal';
+
 import EventPasswordModal from '../pages/v2/components/EventPasswordModal';
 import EventSearchModal from '../pages/v2/components/EventSearchModal';
 import EventSortModal from '../pages/v2/components/EventSortModal';
@@ -64,7 +64,7 @@ import AdminSecureMembersModal from '../components/AdminSecureMembersModal';
 const MODAL_COMPONENTS: Record<string, any> = {
     // Event Modals (v2)
     'eventDetail': EventDetailModal,
-    'eventEdit': EventEditModal,
+
     'eventPassword': EventPasswordModal,
     'eventSearch': EventSearchModal,
     'eventSort': EventSortModal,
