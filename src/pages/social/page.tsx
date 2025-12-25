@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
 import { useSocialSchedulesNew } from './hooks/useSocialSchedulesNew';
@@ -18,7 +19,7 @@ import './social.css';
 import type { SocialGroup, SocialSchedule } from './types';
 
 const SocialPage: React.FC = () => {
-  const { isAdmin } = useAuth();
+  const { user } = useAuth();
 
   // Data Hooks
   const { groups, refresh: refreshGroups } = useSocialGroups();
@@ -53,6 +54,17 @@ const SocialPage: React.FC = () => {
     };
   }, []);
 
+  // Helpers
+  const verifyGroupPassword = async (groupId: number, inputPw: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from('social_groups')
+      .select('id')
+      .eq('id', groupId)
+      .eq('password', inputPw)
+      .single();
+    return !!data;
+  };
+
   // Derived Data
   const today = new Date().toISOString().split('T')[0];
   const todayDayOfWeek = new Date().getDay();
@@ -72,25 +84,89 @@ const SocialPage: React.FC = () => {
     setIsDetailOpen(true);
   };
 
-  const handleEditGroup = (group: SocialGroup) => {
-    setEditGroup(group);
-    setIsGroupModalOpen(true);
+  const handleEditGroup = async (group: SocialGroup) => {
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    const isCreator = group.user_id === user.id;
+
+    if (isCreator) {
+      setEditGroup(group);
+      setIsGroupModalOpen(true);
+    } else {
+      const inputPw = prompt("관리 비밀번호를 입력해주세요.");
+      if (!inputPw) return;
+
+      const isValid = await verifyGroupPassword(group.id, inputPw);
+      if (!isValid) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+      }
+
+      // 인증 성공: 모달로 비밀번호 전달하여 재입력 방지
+      setEditGroup({ ...group, password: inputPw });
+      setIsGroupModalOpen(true);
+    }
   };
 
-  const handleAddSchedule = (groupId: number) => {
+  const handleAddSchedule = async (groupId: number) => {
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    // 그룹 정보 찾기 (권한 체크용)
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const isCreator = group.user_id === user.id;
+
+    if (!isCreator) {
+      const inputPw = prompt("일정을 추가하려면 단체 관리 비밀번호가 필요합니다.");
+      if (!inputPw) return;
+
+      const isValid = await verifyGroupPassword(groupId, inputPw);
+      if (!isValid) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+      }
+      // 인증 성공 시 진행
+    }
+
     setTargetGroupId(groupId);
     setEditSchedule(null);
     setCopySchedule(null);
     setIsScheduleModalOpen(true);
   };
 
-  const handleEditSchedule = (schedule: SocialSchedule) => {
+  const handleEditSchedule = async (schedule: SocialSchedule) => {
     console.log('📝 [Edit Schedule Clicked]', schedule);
+
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    const isCreator = schedule.user_id === user.id;
+
+    if (!isCreator) {
+      const inputPw = prompt("일정을 수정하려면 단체 관리 비밀번호가 필요합니다.");
+      if (!inputPw) return;
+
+      // 일정이 속한 그룹의 비밀번호 확인
+      const isValid = await verifyGroupPassword(schedule.group_id, inputPw);
+      if (!isValid) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+      }
+    }
+
     // 상세 모달을 먼저 닫습니다.
     setIsDetailOpen(false);
 
-    // 약간의 딜레이를 주어 상태 업데이트가 원활하게 되도록 유도할 수도 있으나, 
-    // 기본적으로는 상태를 순차적으로 설정합니다.
+    // 상태 설정
     setEditSchedule(schedule);
     setCopySchedule(null);
     setTargetGroupId(schedule.group_id || null);
@@ -132,7 +208,7 @@ const SocialPage: React.FC = () => {
         onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
         onEditGroup={handleEditGroup}
         onAddSchedule={handleAddSchedule}
-        isAdmin={isAdmin}
+        isAdmin={!!user}
       />
 
       {/* 3단: 등록된 단체 (standalone) */}
@@ -143,7 +219,7 @@ const SocialPage: React.FC = () => {
         onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
         onEditGroup={handleEditGroup}
         onAddSchedule={handleAddSchedule}
-        isAdmin={isAdmin}
+        isAdmin={!!user}
       />
 
       {/* Modals */}
@@ -162,7 +238,7 @@ const SocialPage: React.FC = () => {
         schedule={selectedSchedule}
         onCopy={handleCopySchedule}
         onEdit={handleEditSchedule}
-        isAdmin={isAdmin}
+        isAdmin={!!user}
       />
 
       <SocialGroupModal

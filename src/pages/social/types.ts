@@ -9,6 +9,7 @@ export interface SocialGroup {
   created_at: string;
   updated_at: string;
   is_favorite?: boolean; // UI 용
+  password?: string; // 공동 관리 확인용 비밀번호
 }
 
 // 2. 소셜 일정 (Schedule) 타입

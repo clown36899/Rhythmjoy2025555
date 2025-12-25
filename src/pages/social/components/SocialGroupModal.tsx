@@ -11,7 +11,7 @@ interface SocialGroupModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (group: any) => void;
-    editGroup?: any;
+    editGroup?: any; // any로 두어 유연하게 처리
 }
 
 const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
@@ -26,6 +26,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [password, setPassword] = useState(''); // 관리 비밀번호
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
 
@@ -41,12 +42,14 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 setType(editGroup.type || 'club');
                 setDescription(editGroup.description || '');
                 setImagePreview(editGroup.image_url || null);
+                setPassword(editGroup.password || ''); // 이미 인증된 비밀번호가 있으면 채움
             } else {
                 setName('');
                 setType('club');
                 setDescription('');
                 setImagePreview(null);
                 setImageFile(null);
+                setPassword('');
             }
         }
     }, [isOpen, editGroup]);
@@ -75,34 +78,45 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
         setIsCropModalOpen(false);
     };
 
+
     const handleDelete = async () => {
         if (!editGroup || !user) return;
 
-        // 1단계 경고
+        // 권한 체크: 생성자나 관리자가 아니면 비밀번호 확인
+        const isCreator = editGroup.user_id === user.id;
+
+        if (!isCreator) {
+            alert('단체 삭제는 생성자(Owner)만 가능합니다.');
+            return;
+        }
+
         if (!window.confirm(`'${editGroup.name}' 단체를 삭제하시겠습니까?`)) {
             return;
         }
 
-        // 2단계 경고 (최종 확인)
-        const finalWarningMsg = `[⚠️ 최종 경고]\n\n단체를 삭제하면 이 단체에 등록된 '모든 일정'이 함께 삭제됩니다.\n삭제된 데이터는 복구할 수 없습니다.\n\n진짜로 삭제하시겠습니까?`;
-        if (!window.confirm(finalWarningMsg)) {
-            return;
-        }
-
         setIsSubmitting(true);
-        setLoadingMessage('연동된 일정 및 단체 삭제 중...');
+        setLoadingMessage('권한 확인 및 삭제 처리 중...');
 
         try {
-            // 1. 연동된 일정 먼저 삭제 (Explicit Cascade)
+            // 생성자가 아니라면 이미 Auth Flow에서 검증되었으나, 
+            // 안전을 위해 여기서 password state가 비어있지 않다면 한 번 더 검증하거나
+            // 모달 진입 시 전달된 password를 신뢰할 수 있음.
+            // 여기서는 중복 검증 생략하고 바로 삭제 시도.
+
+            // 2단계 경고 (최종 확인)
+            const finalWarningMsg = `[⚠️ 최종 경고]\n\n단체를 삭제하면 이 단체에 등록된 '모든 일정'이 함께 삭제됩니다.\n삭제된 데이터는 복구할 수 없습니다.\n\n진짜로 삭제하시겠습니까?`;
+            if (!window.confirm(finalWarningMsg)) {
+                setIsSubmitting(false);
+                return;
+            }
+
+            // 1. 연동된 일정 삭제
             const { error: scheduleError } = await supabase
                 .from('social_schedules')
                 .delete()
                 .eq('group_id', editGroup.id);
 
-            if (scheduleError) {
-                console.error('Error deleting schedules:', scheduleError);
-                throw scheduleError;
-            }
+            if (scheduleError) console.error("일정 삭제 중 권한/에러:", scheduleError);
 
             // 2. 단체 삭제
             const { error: groupError } = await supabase
@@ -112,12 +126,12 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
             if (groupError) throw groupError;
 
-            alert('단체와 관련된 모든 일정이 삭제되었습니다.');
-            onSuccess(null); // 삭제되었음을 알림
+            alert('삭제되었습니다.');
+            onSuccess(null);
             onClose();
         } catch (error: any) {
             console.error('Error deleting group:', error);
-            alert(`삭제 중 오류가 발생했습니다: ${error.message}`);
+            alert(`삭제 실패 (관리자 권한이 없거나 오류 발생): ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -131,37 +145,61 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             return;
         }
 
+        const isCreator = editGroup ? editGroup.user_id === user.id : true;
+
+        // Validation
+        if (!editGroup && !password.trim()) {
+            alert('관리 비밀번호를 설정해주세요.\n(다른 사용자도 이 비밀번호로 그룹을 수정/관리할 수 있습니다)');
+            return;
+        }
+        if (editGroup && !isCreator && !password.trim()) {
+            alert('수정을 위해 관리 비밀번호를 입력해주세요.');
+            return;
+        }
+
         setIsSubmitting(true);
-        setLoadingMessage('단체 정보 저장 중...');
+        setLoadingMessage('저장 중...');
 
         try {
-            let finalImageUrl = imagePreview;
+            // 상위 컴포넌트(SocialPage)에서 이미 verifyPassword를 거쳐서 진입했으므로
+            // 여기서는 중복 검증을 생략하거나, password 필드가 비어있지 않은지만 체크.
+            // 단, 모달 내에서 비밀번호를 바꾼 경우 등을 고려해 로직 단순화.
 
-            // 이미지 업로드 로직 (수정되었을 경우)
+            let finalImageUrl = imagePreview;
             if (imageFile) {
-                setLoadingMessage('이미지 리사이징 및 업로드 중...');
+                setLoadingMessage('이미지 업로드 중...');
                 const resized = await createResizedImages(imageFile);
                 const timestamp = Date.now();
                 const fileName = `${timestamp}_${Math.random().toString(36).substring(2, 7)}.webp`;
                 const basePath = `social-groups/${user.id}`;
 
-                // 리사이즈된 이미지들 중 대표(medium 또는 full) 업로드
                 const { error: uploadError } = await supabase.storage
                     .from('images')
                     .upload(`${basePath}/${fileName}`, resized.medium);
 
                 if (uploadError) throw uploadError;
-
                 finalImageUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/${fileName}`).data.publicUrl;
             }
 
-            const groupData = {
+            const groupData: any = {
                 name,
                 type,
                 description,
                 image_url: finalImageUrl,
-                user_id: user.id,
+                // user_id는 유지 (소유권 이전 아님)
             };
+
+            // 신규 등록이면 비번/소유자 설정
+            if (!editGroup) {
+                groupData.user_id = user.id;
+                groupData.password = password;
+            } else {
+                // 수정 시: 생성자만 비밀번호 변경 가능
+                if (isCreator && password.trim()) {
+                    groupData.password = password;
+                }
+                // 공동 관리자는 비밀번호 수정 권한 없음 (기존 비밀번호 유지)
+            }
 
             let result;
             if (editGroup) {
@@ -171,6 +209,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     .eq('id', editGroup.id)
                     .select()
                     .single();
+
                 if (error) throw error;
                 result = data;
             } else {
@@ -186,14 +225,16 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             onSuccess(result);
             onClose();
         } catch (error: any) {
-            console.error('Error saving group:', error);
-            alert(`저장 중 오류가 발생했습니다: ${error.message}`);
+            console.error('Error saving:', error);
+            alert(`저장 실패: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
     };
 
     if (!isOpen) return null;
+
+    const isCreator = editGroup ? editGroup.user_id === user?.id : true; // 신규는 본인이 생성자
 
     return createPortal(
         <div className="social-group-modal-overlay" onClick={onClose}>
@@ -206,21 +247,21 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 </div>
 
                 <form onSubmit={handleSubmit} className="social-group-modal-form">
-                    <div style={{
+                    <div className="info-box" style={{
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         border: '1px solid rgba(59, 130, 246, 0.3)',
                         borderRadius: '12px',
                         padding: '12px',
-                        marginBottom: '24px',
-                        fontSize: '0.9rem',
+                        marginBottom: '20px',
+                        fontSize: '0.85rem',
                         color: '#93c5fd',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
                         lineHeight: '1.4'
                     }}>
-                        <i className="ri-information-fill" style={{ fontSize: '1.2rem' }}></i>
-                        <span>사용방법: 단체 등록 후 단체에서 일정을 등록하세요</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', fontWeight: 'bold' }}>
+                            <i className="ri-lock-password-line"></i>
+                            <span>공동 관리 기능</span>
+                        </div>
+                        설정한 비밀번호를 공유하면, 다른 사용자도 이 단체의 정보를 수정하거나 일정을 등록할 수 있습니다.
                     </div>
 
                     <div className="form-section image-section">
@@ -233,7 +274,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                             ) : (
                                 <div className="image-placeholder">
                                     <i className="ri-image-add-line"></i>
-                                    <span>대표 이미지 추가</span>
+                                    <span>대표 이미지</span>
                                 </div>
                             )}
                         </div>
@@ -255,6 +296,31 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                             placeholder="예: 강남 스윙동호회"
                             required
                         />
+                    </div>
+
+                    <div className="form-section">
+                        <label>
+                            관리 비밀번호 {editGroup ? (isCreator ? '(변경 시 입력)' : '(수정 권한 인증)') : '*'}
+                        </label>
+                        <input
+                            type="text"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder={editGroup ? (isCreator ? "기존 비밀번호 유지" : "인증된 비밀번호") : "비밀번호 설정 (필수)"}
+                            className={`password-input ${editGroup && !isCreator ? 'readonly' : ''}`}
+                            style={{
+                                letterSpacing: '2px',
+                                backgroundColor: editGroup && !isCreator ? '#2d2d2d' : '', // 배경색 약간 어둡게
+                                color: editGroup && !isCreator ? '#9ca3af' : '', // 글자색 회색으로 (너무 흰색은 수정 가능해 보임)
+                                cursor: editGroup && !isCreator ? 'not-allowed' : 'text'
+                            }}
+                            readOnly={!!editGroup && !isCreator}
+                        />
+                        <p className="field-hint" style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
+                            {editGroup && !isCreator
+                                ? "🔒 공동 관리자는 비밀번호 및 단체 삭제 권한이 없습니다."
+                                : "이 비밀번호를 아는 회원은 누구나 단체를 관리할 수 있습니다."}
+                        </p>
                     </div>
 
                     <div className="form-section">
@@ -283,14 +349,21 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            placeholder="단체에 대한 간단한 설명을 입력해주세요."
-                            rows={4}
+                            placeholder="단체 소개글"
+                            rows={3}
                         />
                     </div>
 
                     <div className="form-actions">
                         {editGroup && (
-                            <button type="button" className="delete-btn" onClick={handleDelete} disabled={isSubmitting}>
+                            <button
+                                type="button"
+                                className="delete-btn"
+                                onClick={handleDelete}
+                                disabled={isSubmitting || !isCreator}
+                                title={!isCreator ? "삭제는 생성자만 가능합니다" : ""}
+                                style={!isCreator ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            >
                                 <i className="ri-delete-bin-line"></i> 삭제
                             </button>
                         )}

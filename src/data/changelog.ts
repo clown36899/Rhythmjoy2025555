@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.19.0',
+        date: '2025-12-25',
+        changes: [
+            '[기능] 소셜 단체 공동 관리 시스템 도입 (비밀번호 기반 인증)',
+            '[기능] 단체 생성자(Owner) 전용 권한 강화 (삭제/비번변경)',
+            '[보안] 기존 일정 수정 시에도 관리 비밀번호 인증 적용',
+            '[UX] 공동 관리자용 읽기 전용 UI 및 직관적인 안내 문구 적용'
+        ]
+    },
+    {
         version: '2.18.3',
         date: '2025-12-25',
         changes: [
