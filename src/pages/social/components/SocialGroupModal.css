@@ -1,0 +1,230 @@
+/* SocialGroupModal.css */
+.social-group-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(8px);
+    padding: 20px;
+}
+
+.social-group-modal-container {
+    background-color: #1a1a1a;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: modal-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-pop {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.social-group-modal-header {
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.social-group-modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: white;
+}
+
+.social-group-modal-form {
+    padding: 24px;
+}
+
+.form-section {
+    margin-bottom: 24px;
+}
+
+.form-section label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+.image-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.image-preview-box {
+    width: 140px;
+    height: 140px;
+    border-radius: 20px;
+    background-color: #262626;
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.image-preview-box:hover {
+    border-color: var(--primary-color, #fbbf24);
+    background-color: #2d2d2d;
+}
+
+.image-preview-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+}
+
+.image-placeholder i {
+    font-size: 2rem;
+}
+
+.image-placeholder span {
+    font-size: 0.8rem;
+}
+
+.social-group-modal-form input[type="text"],
+.social-group-modal-form textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: #262626;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.social-group-modal-form input:focus,
+.social-group-modal-form textarea:focus {
+    outline: none;
+    border-color: var(--primary-color, #fbbf24);
+}
+
+.type-selector {
+    display: flex;
+    gap: 10px;
+}
+
+.type-selector button {
+    flex: 1;
+    padding: 10px;
+    background-color: #262626;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.type-selector button.active {
+    background-color: var(--primary-color, #fbbf24);
+    color: #1a1a1a;
+    border-color: var(--primary-color, #fbbf24);
+    font-weight: 600;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 40px;
+}
+
+.cancel-btn {
+    flex: 1;
+    padding: 14px;
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #9ca3af;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+
+.submit-btn {
+    flex: 2;
+    padding: 14px;
+    background-color: var(--primary-color, #fbbf24);
+    border: none;
+    border-radius: 12px;
+    color: #1a1a1a;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}
+
+.submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+    .social-group-modal-container {
+        height: 100%;
+        max-height: 100%;
+        max-width: 100%;
+        border-radius: 0;
+    }
+}

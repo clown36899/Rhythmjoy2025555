@@ -1,0 +1,149 @@
+/* WeeklySocial.css */
+.weekly-social-container {
+    margin-bottom: 40px;
+    padding: 0 20px;
+}
+
+.weekly-social-container .section-title {
+    margin-bottom: 20px;
+}
+
+.day-selector {
+    display: flex;
+    justify-content: space-between;
+    background: #1a1a1a;
+    padding: 8px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.day-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 12px 0;
+    color: #6b7280;
+    font-weight: 700;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.day-btn.active {
+    color: #fbbf24;
+}
+
+.day-name {
+    font-size: 0.95rem;
+    z-index: 2;
+}
+
+.active-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(251, 191, 36, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    z-index: 1;
+    animation: scale-up 0.2s ease-out;
+}
+
+@keyframes scale-up {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.weekly-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.weekly-item {
+    display: flex;
+    align-items: center;
+    background: #1e1e1e;
+    padding: 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.weekly-item:hover {
+    background: #262626;
+    border-color: rgba(251, 191, 36, 0.2);
+    transform: translateX(4px);
+}
+
+.weekly-time-box {
+    min-width: 65px;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    margin-right: 16px;
+}
+
+.weekly-time {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #fbbf24;
+}
+
+.weekly-details {
+    flex: 1;
+}
+
+.weekly-item-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 4px 0;
+}
+
+.weekly-meta {
+    display: flex;
+    gap: 12px;
+}
+
+.weekly-place {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.weekly-arrow {
+    color: #4b5563;
+    font-size: 1.2rem;
+}
+
+.empty-weekly {
+    padding: 40px 0;
+    text-align: center;
+    color: #4b5563;
+}
+
+.empty-weekly i {
+    font-size: 3rem;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.empty-weekly p {
+    font-size: 0.9rem;
+    margin: 0;
+}

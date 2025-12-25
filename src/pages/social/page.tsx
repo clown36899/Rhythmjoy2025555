@@ -1,127 +1,163 @@
-import { useState, useEffect, useRef } from 'react';
-import {
-  SocialCalendar,
-} from './components';
-import SocialEditModal from './components/SocialEditModal';
+import React, { useState, useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useSocialGroups } from './hooks/useSocialGroups';
+import { useSocialSchedulesNew } from './hooks/useSocialSchedulesNew';
+import { useSocialGroupFavorites } from './hooks/useSocialGroupFavorites';
 
-import CalendarSearchModal from '../v2/components/CalendarSearchModal';
-import EventDetailModal from '../v2/components/EventDetailModal';
+// Components
+import TodaySocial from './components/TodaySocial';
+import WeeklySocial from './components/WeeklySocial';
+import GroupDirectory from './components/GroupDirectory';
+import SocialDetailModal from './components/SocialDetailModal';
+import GroupCalendarModal from './components/GroupCalendarModal';
+import SocialGroupModal from './components/SocialGroupModal';
+import SocialScheduleModal from './components/SocialScheduleModal';
+
+// Styles
 import './social.css';
+import type { SocialGroup, SocialSchedule } from './types';
 
-import { useSocialSchedules } from './hooks/useSocialSchedules';
-import { useModal } from '../../hooks/useModal';
+const SocialPage: React.FC = () => {
+  const { isAdmin } = useAuth();
 
+  // Data Hooks
+  const { groups, refresh: refreshGroups } = useSocialGroups();
+  const { schedules, loading: schedulesLoading, refresh: refreshSchedules } = useSocialSchedulesNew();
+  const { favorites, toggleFavorite } = useSocialGroupFavorites();
 
-export default function SocialPage() {
-  // Modal State
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  // Modal States
+  const [selectedSchedule, setSelectedSchedule] = useState<SocialSchedule | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // Layout State
+  const [selectedGroup, setSelectedGroup] = useState<SocialGroup | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [editGroup, setEditGroup] = useState<SocialGroup | null>(null);
 
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [editSchedule, setEditSchedule] = useState<SocialSchedule | null>(null);
+  const [copySchedule, setCopySchedule] = useState<SocialSchedule | null>(null);
+  const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
 
-  // Data Fetching Hook
-  const {
-    events,
-    loading: schedulesLoading
-  } = useSocialSchedules();
+  // Derived Data
+  const today = new Date().toISOString().split('T')[0];
+  const todayDayOfWeek = new Date().getDay();
 
-  const socialEventModal = useModal('socialEvent');
+  const todaySchedules = useMemo(() => {
+    return schedules.filter(s => {
+      if (s.date === today) return true;
+      if (!s.date && s.day_of_week === todayDayOfWeek) return true;
+      return false;
+    });
+  }, [schedules, today, todayDayOfWeek]);
 
-  // Note: Social event registration is now handled by SocialCalendar internally via useModal
-
-  // Search from header
-  useEffect(() => {
-    const handleOpenSearch = () => setShowSearchModal(true);
-    const handleOpenRegistration = () => {
-      socialEventModal.open({
-        onEventCreated: handleForceReload
-      });
-    };
-
-    window.addEventListener('openEventSearch', handleOpenSearch);
-    window.addEventListener('openSocialRegistration', handleOpenRegistration);
-
-    return () => {
-      window.removeEventListener('openEventSearch', handleOpenSearch);
-      window.removeEventListener('openSocialRegistration', handleOpenRegistration);
-    };
-  }, [socialEventModal]);
-
-  // Edit State
-  const [selectedEventForEdit, setSelectedEventForEdit] = useState<any | null>(null);
-
-
-  // 강제 새로고침 핸들러 (사용자 요청: 확실한 반영을 위해)
-  const handleForceReload = () => {
-    window.location.reload();
+  // Handlers
+  const handleScheduleClick = (schedule: SocialSchedule) => {
+    setSelectedSchedule(schedule);
+    setIsDetailOpen(true);
   };
 
-  const closeModal = () => {
-    setSelectedEvent(null);
+  const handleEditGroup = (group: SocialGroup) => {
+    setEditGroup(group);
+    setIsGroupModalOpen(true);
   };
 
-  // 메인 화면: 주간 스케줄표 (상단)
+  const handleEditSchedule = (schedule: SocialSchedule) => {
+    setEditSchedule(schedule);
+    setCopySchedule(null);
+    setTargetGroupId(schedule.group_id);
+    setIsScheduleModalOpen(true);
+    setIsDetailOpen(false);
+  };
+
+  const handleCopySchedule = (schedule: SocialSchedule) => {
+    setCopySchedule(schedule);
+    setEditSchedule(null);
+    setTargetGroupId(schedule.group_id);
+    setIsScheduleModalOpen(true);
+    setIsDetailOpen(false);
+  };
+
   return (
-    <div className="social-page-container" style={{}}>
-      {/* 상단 고정 헤더 - SimpleHeader 사용으로 통일성 확보 */}
-
-
-      {/* 메인 콘텐츠 */}
-      <div style={{ paddingBottom: '80px' }}>
-        {schedulesLoading ? (
-          <div className="social-loader">
-            <div className="loader-text">로딩 중...</div>
-          </div>
-        ) : (
-          <div className="social-merged-view">
-            {/* 1. 주간 스케줄표 */}
-            <section className="social-section-schedule">
-              <SocialCalendar
-                events={events}
-                loading={schedulesLoading}
-                onEventCreated={handleForceReload}
-                onEventUpdated={handleForceReload}
-                onEventDeleted={handleForceReload}
-              />
-            </section>
-          </div>
+    <div className="social-page-new-v5" style={{ paddingTop: '80px', paddingBottom: '120px' }}>
+      {/* Header Area */}
+      <header className="social-main-header">
+        <div className="header-titles">
+          <h1 className="main-title">소셜 라우트</h1>
+          <p className="sub-title">함께 춤추고 즐기는 우리들의 공간</p>
+        </div>
+        {isAdmin && (
+          <button
+            className="admin-add-group-btn"
+            onClick={() => { setEditGroup(null); setIsGroupModalOpen(true); }}
+          >
+            <i className="ri-add-circle-fill"></i> 집단 등록
+          </button>
         )}
-      </div>
+      </header>
 
-      {/* 수정 모달 */}
-      {selectedEventForEdit && (
-        <SocialEditModal
-          item={selectedEventForEdit}
-          itemType="schedule"
-          onClose={() => setSelectedEventForEdit(null)}
-          onSuccess={() => {
-            handleForceReload();
-            setSelectedEventForEdit(null);
-          }}
+      {/* 1단: 오늘의 소셜 */}
+      {!schedulesLoading && (
+        <TodaySocial
+          schedules={todaySchedules}
+          onScheduleClick={handleScheduleClick}
         />
       )}
 
-      {/* Global Search Modal */}
-      <CalendarSearchModal
-        isOpen={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
-        onSelectEvent={(event) => {
-          setSelectedEvent(event);
-        }}
-        searchMode="all"
+      {/* 2단: 금주의 일정 */}
+      <WeeklySocial
+        schedules={schedules}
+        onScheduleClick={handleScheduleClick}
       />
 
-      {/* Event Detail Modal */}
-      <EventDetailModal
-        isOpen={!!selectedEvent}
-        event={selectedEvent!}
-        onClose={closeModal}
-        onEdit={() => { }}
-        onDelete={() => { }}
-        isAdminMode={false}
+      {/* 3단: 집단 디렉토리 */}
+      <GroupDirectory
+        groups={groups}
+        favorites={favorites}
+        onToggleFavorite={toggleFavorite}
+        onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
+        onEditGroup={handleEditGroup}
+        isAdmin={isAdmin}
       />
+
+      {/* Modals */}
+      {selectedGroup && (
+        <GroupCalendarModal
+          isOpen={isCalendarOpen}
+          onClose={() => setIsCalendarOpen(false)}
+          group={selectedGroup}
+          onScheduleClick={handleScheduleClick}
+        />
+      )}
+      <SocialDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        schedule={selectedSchedule}
+        onCopy={handleCopySchedule}
+        onEdit={handleEditSchedule}
+        isAdmin={isAdmin}
+      />
+
+      <SocialGroupModal
+        isOpen={isGroupModalOpen}
+        onClose={() => setIsGroupModalOpen(false)}
+        onSuccess={() => { refreshGroups(); setIsGroupModalOpen(false); }}
+        editGroup={editGroup}
+      />
+
+      {isScheduleModalOpen && targetGroupId && (
+        <SocialScheduleModal
+          isOpen={isScheduleModalOpen}
+          onClose={() => setIsScheduleModalOpen(false)}
+          onSuccess={() => { refreshSchedules(); setIsScheduleModalOpen(false); }}
+          groupId={targetGroupId}
+          editSchedule={editSchedule}
+          copyFrom={copySchedule}
+        />
+      )}
     </div>
   );
-}
+};
+
+export default SocialPage;

@@ -1,0 +1,176 @@
+/* GroupDirectory.css (V5) */
+.group-directory-container {
+    padding: 0 20px 40px 20px;
+}
+
+.section-header-area {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.count-badge {
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: #1e1e1e;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.group-wide-card {
+    display: flex;
+    background: #1a1a1a;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.group-wide-card:hover {
+    transform: translateY(-4px);
+    background: #222;
+    border-color: rgba(251, 191, 36, 0.2);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.group-wide-image {
+    position: relative;
+    width: 120px;
+    min-width: 120px;
+    height: 140px;
+    background-color: #333;
+}
+
+.group-wide-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.group-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    font-size: 2rem;
+}
+
+.group-type-tag {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.group-wide-info {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.group-wide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.group-wide-name {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+}
+
+.fav-btn {
+    background: none;
+    border: none;
+    color: #4b5563;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s;
+}
+
+.fav-btn.active {
+    color: #fbbf24;
+    transform: scale(1.1);
+}
+
+.group-wide-desc {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    margin: 0;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 2.5em;
+}
+
+.group-wide-footer {
+    margin-top: auto;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.view-calendar-btn {
+    background: #fbbf24;
+    color: #1a1a1a;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.admin-edit-btn {
+    background: #2d2d2d;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.admin-edit-btn:hover {
+    background: #3d3d3d;
+    color: white;
+}
+
+@media (max-width: 480px) {
+    .group-wide-image {
+        width: 100px;
+        min-width: 100px;
+    }
+}

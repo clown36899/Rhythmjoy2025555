@@ -186,7 +186,7 @@ export default memo(function ImageCropModal({
       // 부모로부터 받은 원본 URL을 사용
       setOriginalImageUrlForRestore(originalImageUrl || null);
     }
-  }, [isOpen, originalImageUrl]);
+  }, [isOpen]); // originalImageUrl 변경 시 초기화 로직 제거하여 자르기 과정 방해 방지
 
   // Enable mobile back gesture to close modal
   useModalHistory(isOpen, onClose);
@@ -264,8 +264,8 @@ export default memo(function ImageCropModal({
       );
 
       // Detect modification
-      const isFullWidth = Math.abs(pixelCrop.width - imgRef.current.naturalWidth) < 2;
-      const isFullHeight = Math.abs(pixelCrop.height - imgRef.current.naturalHeight) < 2;
+      const isFullWidth = imgRef.current ? Math.abs(pixelCrop.width - imgRef.current.naturalWidth) < 2 : false;
+      const isFullHeight = imgRef.current ? Math.abs(pixelCrop.height - imgRef.current.naturalHeight) < 2 : false;
       const modified = !(isFullWidth && isFullHeight);
 
       setCroppedFile(file);
@@ -393,8 +393,8 @@ export default memo(function ImageCropModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="crop-modal-overlay">
-      <div className="crop-modal-container" style={{ position: 'relative' }}>
+    <div className="crop-modal-overlay" onClick={(e) => e.stopPropagation()}>
+      <div className="crop-modal-container" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
         {/* 헤더 */}
         <div className="crop-modal-header">
           <h2 className="crop-modal-title">

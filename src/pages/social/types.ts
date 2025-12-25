@@ -1,23 +1,36 @@
-export interface SocialPlace {
+// 1. 소셜 집단 (Group) 타입
+export interface SocialGroup {
   id: number;
-  dbId: number; // 실제 DB의 primary key (수정 시 사용)
   name: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  contact?: string;
+  type: 'club' | 'bar' | 'etc';
+  image_url?: string;
   description?: string;
-  imageUrl?: string;
-  created_at?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  is_favorite?: boolean; // UI 용
 }
 
-// 소셜 일정 데이터 타입
-export interface SocialEvent {
+// 2. 소셜 일정 (Schedule) 타입
+export interface SocialSchedule {
   id: number;
+  group_id: number;
   title: string;
-  event_date: string;
-  image_url: string;
-  social_place_id: number;
+  date?: string; // 특정 날짜 (YYYY-MM-DD)
+  day_of_week?: number; // 0:일 ~ 6:토
+  start_time?: string;
+  description?: string;
+  image_url?: string;
+  image_micro?: string;
+  image_thumbnail?: string;
+  image_medium?: string;
+  image_full?: string;
+  venue_id?: string;
+  place_name?: string;
+  address?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UnifiedSocialEvent {
