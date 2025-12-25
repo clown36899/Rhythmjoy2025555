@@ -50,7 +50,7 @@
     display: flex;
     gap: 16px;
     overflow-x: auto;
-    padding: 4px 20px 20px 20px;
+    padding: 15px 20px 10px 20px;
     scrollbar-width: none;
     /* Firefox */
     -ms-overflow-style: none;
@@ -146,6 +146,31 @@
 
 .scroller-spacer {
     flex: 0 0 1px;
+}
+
+.admin-add-group-btn-small {
+    margin-left: auto;
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #9ca3af;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.admin-add-group-btn-small:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.admin-add-group-btn-small i {
+    color: #fbbf24;
 }
 
 @media (max-width: 480px) {

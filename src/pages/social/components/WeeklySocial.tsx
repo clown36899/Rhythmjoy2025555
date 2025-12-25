@@ -1,77 +1,269 @@
 import React, { useState, useMemo } from 'react';
-import type { SocialSchedule } from '../types';
+import type { SocialSchedule, SocialGroup } from '../types';
+import GroupDirectory from './GroupDirectory';
 import './WeeklySocial.css';
 
 interface WeeklySocialProps {
     schedules: SocialSchedule[];
     onScheduleClick: (schedule: SocialSchedule) => void;
+    // 등록(집단 디렉토리) 탭용 추가 프롭
+    groups: SocialGroup[];
+    favorites: number[];
+    onToggleFavorite: (groupId: number) => void;
+    onGroupClick: (group: SocialGroup) => void;
+    onEditGroup: (group: SocialGroup) => void;
+    onAddSchedule: (groupId: number) => void;
+    isAdmin: boolean;
 }
 
-const WeeklySocial: React.FC<WeeklySocialProps> = ({ schedules, onScheduleClick }) => {
+type ViewTab = 'weekly' | 'all' | 'regular' | 'register';
+
+const WeeklySocial: React.FC<WeeklySocialProps> = ({
+    schedules,
+    onScheduleClick,
+    groups,
+    favorites,
+    onToggleFavorite,
+    onGroupClick,
+    onEditGroup,
+    onAddSchedule,
+    isAdmin
+}) => {
+    const [activeTab, setActiveTab] = useState<ViewTab>('weekly');
     const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
 
-    const weekdays = [
-        { id: 0, name: '일' }, { id: 1, name: '월' }, { id: 2, name: '화' },
-        { id: 3, name: '수' }, { id: 4, name: '목' }, { id: 5, name: '금' }, { id: 6, name: '토' }
-    ];
+    const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-    const filteredSchedules = useMemo(() => {
-        return schedules.filter(s => {
-            if (s.date) {
-                return new Date(s.date).getDay() === selectedDay;
-            }
-            return s.day_of_week === selectedDay;
+    // 이번 주(일~토) 날짜 계산
+    const weekDates = useMemo(() => {
+        const now = new Date();
+        const currentDay = now.getDay();
+        const sunday = new Date(now);
+        sunday.setDate(now.getDate() - currentDay);
+        sunday.setHours(0, 0, 0, 0);
+
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(now);
+            d.setDate(now.getDate() - currentDay + i);
+            d.setHours(0, 0, 0, 0);
+
+            // 로컬 날짜 문자열 생성 (UTC 편차 해결)
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const dateNum = String(d.getDate()).padStart(2, '0');
+            const localIsoDate = `${year}-${month}-${dateNum}`;
+
+            return {
+                day: i,
+                dateNum: d.getDate(),
+                isoDate: localIsoDate,
+                name: weekNames[i]
+            };
         });
-    }, [schedules, selectedDay]);
+    }, []);
+
+    // [1] 금주의 일정 (날짜 지정 일정만 표시)
+    const filteredWeeklySchedules = useMemo(() => {
+        const target = weekDates[selectedDay];
+        return schedules.filter(s => {
+            // 정규 일정(date가 없는 것)은 제외하고, 날짜가 선택된 요일과 일치하는 것만 반환
+            return s.date && s.date === target.isoDate;
+        });
+    }, [schedules, selectedDay, weekDates]);
+
+    // [2] 정규 일정 전용 (요일별 그룹화)
+    const regularSchedulesByDay = useMemo(() => {
+        const grouped: { [key: number]: SocialSchedule[] } = {};
+        for (let i = 0; i < 7; i++) grouped[i] = [];
+
+        schedules.forEach(s => {
+            if (!s.date && s.day_of_week !== null && s.day_of_week !== undefined) {
+                grouped[s.day_of_week].push(s);
+            }
+        });
+
+        Object.values(grouped).forEach(list => {
+            list.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+        });
+
+        return grouped;
+    }, [schedules]);
+
+    // [3] 날짜 일정 (전체일정)
+    const datedSchedulesSorted = useMemo(() => {
+        return schedules.filter(s => s.date)
+            .sort((a, b) => {
+                const dateA = a.date || '';
+                const dateB = b.date || '';
+                if (dateA !== dateB) return dateA.localeCompare(dateB);
+                return (a.start_time || '').localeCompare(b.start_time || '');
+            });
+    }, [schedules]);
+
+    const getSmallImage = (item: SocialSchedule) => {
+        if (item.image_micro) return item.image_micro;
+        if (item.image_thumbnail) return item.image_thumbnail;
+        const fallback = item.image_url || '';
+        if (fallback.includes('/social/full/')) {
+            return fallback.replace('/social/full/', '/social/micro/');
+        }
+        if (fallback.includes('/social-schedules/full/')) {
+            return fallback.replace('/social-schedules/full/', '/social-schedules/micro/');
+        }
+        if (fallback.includes('/event-posters/full/')) {
+            return fallback.replace('/event-posters/full/', '/event-posters/micro/');
+        }
+        return fallback;
+    };
+
+    const renderScheduleItem = (item: SocialSchedule) => (
+        <div
+            key={item.id}
+            className="weekly-item"
+            onClick={() => onScheduleClick(item)}
+        >
+            <div className="weekly-image-box">
+                {getSmallImage(item) ? (
+                    <img src={getSmallImage(item)} alt={item.title} loading="lazy" />
+                ) : (
+                    <div className="weekly-image-placeholder">
+                        <i className="ri-calendar-event-line"></i>
+                    </div>
+                )}
+                <div className="item-time-overlay">{item.start_time?.substring(0, 5)}</div>
+            </div>
+            <div className="weekly-details">
+                <h3 className="weekly-item-title">{item.title}</h3>
+                <div className="weekly-meta">
+                    <span className="weekly-place">
+                        <i className="ri-map-pin-line"></i> {item.place_name}
+                    </span>
+                    {item.date && <span className="weekly-date-tag">{item.date.substring(5)}</span>}
+                </div>
+            </div>
+            <div className="weekly-arrow">
+                <i className="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+    );
+
+    // 정규 일정용 컴팩트 카드 (이미지 위주)
+    const renderRegularCompactCard = (item: SocialSchedule) => (
+        <div
+            key={item.id}
+            className="regular-compact-card"
+            onClick={() => onScheduleClick(item)}
+        >
+            <div className="compact-image-area">
+                {getSmallImage(item) ? (
+                    <img src={getSmallImage(item)} alt={item.title} loading="lazy" />
+                ) : (
+                    <div className="compact-placeholder">
+                        <i className="ri-image-line"></i>
+                    </div>
+                )}
+                <div className="compact-time-badge">{item.start_time?.substring(0, 5)}</div>
+            </div>
+            <div className="compact-title">{item.title}</div>
+            <div className="compact-place">{item.place_name}</div>
+        </div>
+    );
 
     return (
         <section className="weekly-social-container">
-            <h2 className="section-title">금주의 일정</h2>
-
-            <div className="day-selector">
-                {weekdays.map((day) => (
-                    <button
-                        key={day.id}
-                        className={`day-btn ${selectedDay === day.id ? 'active' : ''}`}
-                        onClick={() => setSelectedDay(day.id)}
-                    >
-                        <span className="day-name">{day.name}</span>
-                        {selectedDay === day.id && <div className="active-indicator" />}
-                    </button>
-                ))}
+            <div className="view-tab-menu-v3">
+                <button className={`tab-btn ${activeTab === 'weekly' ? 'active' : ''}`} onClick={() => setActiveTab('weekly')}>
+                    금주의 일정
+                </button>
+                <button className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
+                    전체일정
+                </button>
+                <button className={`tab-btn ${activeTab === 'regular' ? 'active' : ''}`} onClick={() => setActiveTab('regular')}>
+                    정기소셜
+                </button>
+                <button className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`} onClick={() => setActiveTab('register')}>
+                    등록단체
+                </button>
+                <div className={`tab-indicator-v4 ${activeTab}`} />
             </div>
 
-            <div className="weekly-list">
-                {filteredSchedules.length > 0 ? (
-                    filteredSchedules.map((item) => (
-                        <div
-                            key={item.id}
-                            className="weekly-item"
-                            onClick={() => onScheduleClick(item)}
-                        >
-                            <div className="weekly-time-box">
-                                <span className="weekly-time">{item.start_time?.substring(0, 5) || '--:--'}</span>
-                            </div>
-                            <div className="weekly-details">
-                                <h3 className="weekly-item-title">{item.title}</h3>
-                                <div className="weekly-meta">
-                                    <span className="weekly-place">
-                                        <i className="ri-map-pin-line"></i> {item.place_name}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="weekly-arrow">
-                                <i className="ri-arrow-right-s-line"></i>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <div className="empty-weekly">
-                        <i className="ri-calendar-todo-line"></i>
-                        <p>선택한 요일에 예정된 소셜이 없습니다.</p>
+            {activeTab === 'weekly' && (
+                <div className="tab-content-fade">
+                    <div className="day-selector-v5">
+                        {weekDates.map((item) => (
+                            <button
+                                key={item.day}
+                                className={`day-btn-v5 ${selectedDay === item.day ? 'active' : ''}`}
+                                onClick={() => setSelectedDay(item.day)}
+                            >
+                                <span className="day-name">{item.name}</span>
+                                <span className="day-date">{item.dateNum}</span>
+                                {selectedDay === item.day && <div className="active-dot" />}
+                            </button>
+                        ))}
                     </div>
-                )}
-            </div>
+                    <div className="weekly-list">
+                        {filteredWeeklySchedules.length > 0 ? filteredWeeklySchedules.map(renderScheduleItem) : (
+                            <div className="empty-weekly">
+                                <i className="ri-calendar-todo-line"></i>
+                                <p>이번 주 해당 요일에 예정된 소셜이 없습니다.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'regular' && (
+                <div className="tab-content-fade">
+                    <div className="regular-kanban-container">
+                        {([1, 2, 3, 4, 5, 6, 0] as const).map(dayIdx => {
+                            const dayItems = regularSchedulesByDay[dayIdx];
+                            return (
+                                <div key={dayIdx} className="kanban-column">
+                                    <div className={`kanban-header day-${dayIdx}`}>
+                                        {weekNames[dayIdx]}
+                                    </div>
+                                    <div className="kanban-items">
+                                        {dayItems.length > 0 ? (
+                                            dayItems.map(renderRegularCompactCard)
+                                        ) : (
+                                            <div className="kanban-empty">없음</div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'all' && (
+                <div className="tab-content-fade">
+                    <div className="all-schedules-list">
+                        {datedSchedulesSorted.length > 0 ? datedSchedulesSorted.map(renderScheduleItem) : (
+                            <div className="empty-weekly">
+                                <i className="ri-calendar-line"></i>
+                                <p>등록된 날짜별 일정이 없습니다.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'register' && (
+                <div className="tab-content-fade">
+                    <GroupDirectory
+                        groups={groups}
+                        favorites={favorites}
+                        onToggleFavorite={onToggleFavorite}
+                        onGroupClick={onGroupClick}
+                        onEditGroup={onEditGroup}
+                        onAddSchedule={onAddSchedule}
+                        isAdmin={isAdmin}
+                        hideTitle={true}
+                    />
+                </div>
+            )}
         </section>
     );
 };

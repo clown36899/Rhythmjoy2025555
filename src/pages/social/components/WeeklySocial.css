@@ -1,73 +1,276 @@
-/* WeeklySocial.css */
+/* WeeklySocial.css (Kanban-Style Regular Tab) */
 .weekly-social-container {
     margin-bottom: 40px;
     padding: 0 20px;
 }
 
-.weekly-social-container .section-title {
-    margin-bottom: 20px;
-}
-
-.day-selector {
+/* 탭 메뉴 */
+.view-tab-menu-v3 {
     display: flex;
-    justify-content: space-between;
+    position: relative;
     background: #1a1a1a;
-    padding: 8px;
-    border-radius: 16px;
+    padding: 4px;
+    border-radius: 14px;
     margin-bottom: 24px;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.day-btn {
+.tab-btn {
     flex: 1;
     background: none;
     border: none;
-    padding: 12px 0;
+    padding: 10px 0;
     color: #6b7280;
     font-weight: 700;
-    position: relative;
+    font-size: 0.75rem;
     cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.day-btn.active {
-    color: #fbbf24;
-}
-
-.day-name {
-    font-size: 0.95rem;
     z-index: 2;
+    text-align: center;
 }
 
-.active-indicator {
+.tab-btn.active {
+    color: #1a1a1a;
+}
+
+.tab-indicator-v4 {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(251, 191, 36, 0.1);
-    border-radius: 12px;
-    border: 1px solid rgba(251, 191, 36, 0.2);
+    width: 25%;
+    height: 100%;
     z-index: 1;
-    animation: scale-up 0.2s ease-out;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
 }
 
-@keyframes scale-up {
+.tab-indicator-v4::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    background: #fbbf24;
+    border-radius: 10px;
+}
+
+.tab-indicator-v4.weekly {
+    transform: translateX(0);
+}
+
+.tab-indicator-v4.all {
+    transform: translateX(100%);
+}
+
+.tab-indicator-v4.regular {
+    transform: translateX(200%);
+}
+
+.tab-indicator-v4.register {
+    transform: translateX(300%);
+}
+
+.tab-content-fade {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
     from {
-        transform: scale(0.9);
         opacity: 0;
+        transform: translateY(5px);
     }
 
     to {
-        transform: scale(1);
         opacity: 1;
+        transform: translateY(0);
     }
 }
 
-.weekly-list {
+/* 칸반보드 (정규 일정용 - 화면에 맞게 줄어드는 7컬럼 그리드) */
+.regular-kanban-container {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.kanban-column {
+    min-width: 0;
+    /* 강제 축소 허용 */
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    display: flex;
+    flex-direction: column;
+}
+
+.kanban-header {
+    padding: 6px 2px;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+    background: #262626;
+    color: #9ca3af;
+}
+
+.kanban-header.day-0 {
+    color: #f87171;
+}
+
+.kanban-header.day-6 {
+    color: #60a5fa;
+}
+
+.kanban-items {
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.compact-image-area {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: #262626;
+    margin-bottom: 6px;
+}
+
+.compact-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.compact-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    font-size: 1.2rem;
+}
+
+.compact-time-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(2px);
+    color: #fbbf24;
+    font-size: 0.55rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.regular-compact-card {
+    background: #1e1e1e;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    text-align: center;
+    overflow: hidden;
+    padding-bottom: 6px;
+}
+
+.compact-time {
+    display: none;
+    /* 제거됨 */
+}
+
+.compact-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 2px;
+    line-height: 1.1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+.compact-place {
+    font-size: 0.6rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kanban-empty {
+    font-size: 0.7rem;
+    color: #4b5563;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.kanban-hint {
+    font-size: 0.7rem;
+    color: #4b5563;
+    text-align: center;
+    margin-top: -8px;
+    margin-bottom: 20px;
+}
+
+/* 금주의 일정 요일 버튼 */
+.day-selector-v5 {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 8px;
+}
+
+.day-btn-v5 {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 10px 0;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.day-btn-v5.active {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.4);
+}
+
+.day-name {
+    font-size: 0.65rem;
+    color: #6b7280;
+}
+
+.day-btn-v5.active .day-name {
+    color: #fbbf24;
+}
+
+.day-date {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #e5e7eb;
+}
+
+.active-dot {
+    width: 4px;
+    height: 4px;
+    background: #fbbf24;
+    border-radius: 50%;
+}
+
+/* 리스트 아이템 (기존 스타일 유지) */
+.weekly-list,
+.all-schedules-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -78,32 +281,59 @@
     align-items: center;
     background: #1e1e1e;
     padding: 16px;
-    border-radius: 16px;
+    border-radius: 20px;
     cursor: pointer;
-    transition: all 0.2s;
     border: 1px solid transparent;
 }
 
 .weekly-item:hover {
     background: #262626;
     border-color: rgba(251, 191, 36, 0.2);
-    transform: translateX(4px);
 }
 
-.weekly-time-box {
+.weekly-image-box {
+    position: relative;
+    width: 65px;
+    height: 65px;
     min-width: 65px;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
     margin-right: 16px;
+    background: #262626;
 }
 
-.weekly-time {
-    font-size: 0.95rem;
-    font-weight: 800;
+.weekly-image-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.weekly-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    font-size: 1.5rem;
+}
+
+.item-time-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
     color: #fbbf24;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-align: center;
+    padding: 2px 0;
 }
 
 .weekly-details {
     flex: 1;
+    overflow: hidden;
 }
 
 .weekly-item-title {
@@ -111,11 +341,23 @@
     font-weight: 700;
     color: white;
     margin: 0 0 4px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .weekly-meta {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 8px;
+}
+
+.weekly-date-tag {
+    font-size: 0.7rem;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+    padding: 1px 5px;
+    border-radius: 4px;
 }
 
 .weekly-place {
@@ -126,24 +368,15 @@
     gap: 4px;
 }
 
-.weekly-arrow {
-    color: #4b5563;
-    font-size: 1.2rem;
-}
-
 .empty-weekly {
-    padding: 40px 0;
+    padding: 60px 0;
     text-align: center;
     color: #4b5563;
 }
 
 .empty-weekly i {
-    font-size: 3rem;
+    font-size: 2.5rem;
     margin-bottom: 12px;
     display: block;
-}
-
-.empty-weekly p {
-    font-size: 0.9rem;
-    margin: 0;
+    opacity: 0.5;
 }

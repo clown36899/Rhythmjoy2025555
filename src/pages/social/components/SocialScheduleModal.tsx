@@ -6,16 +6,46 @@ import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import ImageCropModal from '../../../components/ImageCropModal';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import VenueSelectModal from '../../v2/components/VenueSelectModal';
+import type { SocialSchedule } from '../types';
 import './SocialScheduleModal.css';
 
 interface SocialScheduleModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (schedule: any) => void;
-    groupId: number;
-    editSchedule?: any;
-    copyFrom?: any; // 복사 기능을 위한 기존 일정 데이터
+    groupId: number | null;
+    editSchedule?: SocialSchedule | null;
+    copyFrom?: any;
 }
+
+/* Schedule Type Selector */
+/*
+.schedule-type-selector {
+  display: flex;
+  background: #2d2d2d;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.schedule-type-selector button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  padding: 8px 0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.schedule-type-selector button.active {
+  background: #fbbf24;
+  color: #1a1a1a;
+}
+*/
 
 const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     isOpen,
@@ -27,6 +57,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 }) => {
     const { user } = useAuth();
     const [title, setTitle] = useState('');
+    const [scheduleType, setScheduleType] = useState<'once' | 'regular'>('once');
     const [date, setDate] = useState('');
     const [dayOfWeek, setDayOfWeek] = useState<number | null>(null);
     const [startTime, setStartTime] = useState('');
@@ -40,24 +71,26 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
 
-    // Modals
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
     const [showVenueModal, setShowVenueModal] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const weekdays = [
-        { id: 0, name: '일' }, { id: 1, name: '월' }, { id: 2, name: '화' },
-        { id: 3, name: '수' }, { id: 4, name: '목' }, { id: 5, name: '금' }, { id: 6, name: '토' }
-    ];
-
     useEffect(() => {
         if (isOpen) {
+            console.log('📦 [Modal Open Props]', { groupId, editScheduleId: editSchedule?.id, editScheduleGroupId: editSchedule?.group_id });
             const source = editSchedule || copyFrom;
             if (source) {
                 setTitle(source.title || '');
-                setDate(source.date || '');
-                setDayOfWeek(source.day_of_week !== undefined ? source.day_of_week : null);
+                if (source.date) {
+                    setScheduleType('once');
+                    setDate(source.date);
+                    setDayOfWeek(null);
+                } else if (source.day_of_week !== undefined && source.day_of_week !== null) {
+                    setScheduleType('regular');
+                    setDayOfWeek(source.day_of_week);
+                    setDate('');
+                }
                 setStartTime(source.start_time || '');
                 setDescription(source.description || '');
                 setPlaceName(source.place_name || '');
@@ -66,6 +99,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 setImagePreview(source.image_url || null);
             } else {
                 setTitle('');
+                setScheduleType('once');
                 setDate('');
                 setDayOfWeek(null);
                 setStartTime('');
@@ -109,6 +143,35 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         setShowVenueModal(false);
     };
 
+    const handleDelete = async () => {
+        if (!editSchedule || !user) return;
+
+        if (!window.confirm('정말로 이 일정을 삭제하시겠습니까?')) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        setLoadingMessage('일정 삭제 중...');
+
+        try {
+            const { error } = await supabase
+                .from('social_schedules')
+                .delete()
+                .eq('id', editSchedule.id);
+
+            if (error) throw error;
+
+            alert('일정이 삭제되었습니다.');
+            onSuccess(null); // 삭제되었음을 알림
+            onClose();
+        } catch (error: any) {
+            console.error('Error deleting schedule:', error);
+            alert(`삭제 중 오류가 발생했습니다: ${error.message}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -126,12 +189,13 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         setLoadingMessage('일정 저장 중...');
 
         try {
+            const source = editSchedule || copyFrom;
             let imageObj: any = {
                 image_url: imagePreview,
-                image_micro: editSchedule?.image_micro || null,
-                image_thumbnail: editSchedule?.image_thumbnail || null,
-                image_medium: editSchedule?.image_medium || null,
-                image_full: editSchedule?.image_full || null,
+                image_micro: source?.image_micro || null,
+                image_thumbnail: source?.image_thumbnail || null,
+                image_medium: source?.image_medium || null,
+                image_full: source?.image_full || null,
             };
 
             if (imageFile) {
@@ -165,40 +229,33 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             }
 
             const scheduleData = {
-                group_id: groupId,
+                group_id: (groupId && groupId !== 0) ? groupId : (editSchedule?.group_id || null),
                 title,
-                date: date || null,
-                day_of_week: dayOfWeek,
+                date: scheduleType === 'once' ? (date || null) : null,
+                day_of_week: scheduleType === 'regular' ? dayOfWeek : null,
                 start_time: startTime || null,
                 description,
                 ...imageObj,
-                venue_id: venueId, // 검색된 장소가 있으면 ID, 수동 입력 시 null
+                venue_id: venueId,
                 place_name: placeName,
                 address: address,
                 user_id: user.id,
             };
 
-            let result;
             if (editSchedule) {
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from('social_schedules')
                     .update(scheduleData)
-                    .eq('id', editSchedule.id)
-                    .select()
-                    .single();
+                    .eq('id', editSchedule.id);
                 if (error) throw error;
-                result = data;
             } else {
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from('social_schedules')
-                    .insert([scheduleData])
-                    .select()
-                    .single();
+                    .insert([scheduleData]);
                 if (error) throw error;
-                result = data;
             }
 
-            onSuccess(result);
+            onSuccess(scheduleData);
             onClose();
         } catch (error: any) {
             console.error('Error saving schedule:', error);
@@ -221,6 +278,22 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 </div>
 
                 <form onSubmit={handleSubmit} className="social-schedule-modal-form">
+                    <div className="form-section">
+                        <label>일정 유형</label>
+                        <div className="schedule-type-selector">
+                            <button
+                                type="button"
+                                className={scheduleType === 'once' ? 'active' : ''}
+                                onClick={() => { setScheduleType('once'); setDayOfWeek(null); }}
+                            >단발성 (날짜)</button>
+                            <button
+                                type="button"
+                                className={scheduleType === 'regular' ? 'active' : ''}
+                                onClick={() => { setScheduleType('regular'); setDate(''); }}
+                            >정규 (요일)</button>
+                        </div>
+                    </div>
+
                     <div className="form-section multi-row">
                         <div className="form-item">
                             <label>일정 제목 *</label>
@@ -232,6 +305,33 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 required
                             />
                         </div>
+
+                        {scheduleType === 'once' ? (
+                            <div className="form-item">
+                                <label>날짜 *</label>
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    required={scheduleType === 'once'}
+                                />
+                            </div>
+                        ) : (
+                            <div className="form-item">
+                                <label>반복 요일 *</label>
+                                <div className="weekday-selector">
+                                    {['일', '월', '화', '수', '목', '금', '토'].map((name, i) => (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            className={dayOfWeek === i ? 'active' : ''}
+                                            onClick={() => setDayOfWeek(i)}
+                                        >{name}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="form-item">
                             <label>시작 시간</label>
                             <input
@@ -239,39 +339,6 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 value={startTime}
                                 onChange={(e) => setStartTime(e.target.value)}
                             />
-                        </div>
-                    </div>
-
-                    <div className="form-section">
-                        <label>날짜 또는 반복 요일 (택 1 필수)</label>
-                        <div className="date-selection-box">
-                            <div className="date-input-row">
-                                <span className="label-sm">특정 날짜:</span>
-                                <input
-                                    type="date"
-                                    value={date}
-                                    onChange={(e) => {
-                                        setDate(e.target.value);
-                                        if (e.target.value) setDayOfWeek(null);
-                                    }}
-                                />
-                            </div>
-                            <div className="divider-or">OR</div>
-                            <div className="weekday-row">
-                                {weekdays.map(day => (
-                                    <button
-                                        key={day.id}
-                                        type="button"
-                                        className={`day-bubble ${dayOfWeek === day.id ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setDayOfWeek(day.id);
-                                            setDate('');
-                                        }}
-                                    >
-                                        {day.name}
-                                    </button>
-                                ))}
-                            </div>
                         </div>
                     </div>
 
@@ -341,7 +408,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     </div>
 
                     <div className="form-actions">
-                        <button type="button" className="cancel-btn" onClick={onClose}>취소</button>
+                        {editSchedule && (
+                            <button type="button" className="delete-btn" onClick={handleDelete} disabled={isSubmitting}>
+                                <i className="ri-delete-bin-line"></i> 삭제
+                            </button>
+                        )}
+                        <button type="button" className="cancel-btn" onClick={onClose} disabled={isSubmitting}>취소</button>
                         <button type="submit" className="submit-btn" disabled={isSubmitting}>
                             저장하기
                         </button>

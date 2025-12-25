@@ -75,16 +75,64 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
         setIsCropModalOpen(false);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!user) return;
-        if (!name.trim()) {
-            alert('집단 이름을 입력해주세요.');
+    const handleDelete = async () => {
+        if (!editGroup || !user) return;
+
+        // 1단계 경고
+        if (!window.confirm(`'${editGroup.name}' 단체를 삭제하시겠습니까?`)) {
+            return;
+        }
+
+        // 2단계 경고 (최종 확인)
+        const finalWarningMsg = `[⚠️ 최종 경고]\n\n단체를 삭제하면 이 단체에 등록된 '모든 일정'이 함께 삭제됩니다.\n삭제된 데이터는 복구할 수 없습니다.\n\n진짜로 삭제하시겠습니까?`;
+        if (!window.confirm(finalWarningMsg)) {
             return;
         }
 
         setIsSubmitting(true);
-        setLoadingMessage('집단 정보 저장 중...');
+        setLoadingMessage('연동된 일정 및 단체 삭제 중...');
+
+        try {
+            // 1. 연동된 일정 먼저 삭제 (Explicit Cascade)
+            const { error: scheduleError } = await supabase
+                .from('social_schedules')
+                .delete()
+                .eq('group_id', editGroup.id);
+
+            if (scheduleError) {
+                console.error('Error deleting schedules:', scheduleError);
+                throw scheduleError;
+            }
+
+            // 2. 단체 삭제
+            const { error: groupError } = await supabase
+                .from('social_groups')
+                .delete()
+                .eq('id', editGroup.id);
+
+            if (groupError) throw groupError;
+
+            alert('단체와 관련된 모든 일정이 삭제되었습니다.');
+            onSuccess(null); // 삭제되었음을 알림
+            onClose();
+        } catch (error: any) {
+            console.error('Error deleting group:', error);
+            alert(`삭제 중 오류가 발생했습니다: ${error.message}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user) return;
+        if (!name.trim()) {
+            alert('단체 이름을 입력해주세요.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        setLoadingMessage('단체 정보 저장 중...');
 
         try {
             let finalImageUrl = imagePreview;
@@ -151,13 +199,30 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
         <div className="social-group-modal-overlay" onClick={onClose}>
             <div className="social-group-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="social-group-modal-header">
-                    <h2>{editGroup ? '집단 정보 수정' : '새 집단 등록'}</h2>
+                    <h2>{editGroup ? '단체 정보 수정' : '새 단체 등록'}</h2>
                     <button className="close-btn" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="social-group-modal-form">
+                    <div style={{
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '12px',
+                        padding: '12px',
+                        marginBottom: '24px',
+                        fontSize: '0.9rem',
+                        color: '#93c5fd',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        lineHeight: '1.4'
+                    }}>
+                        <i className="ri-information-fill" style={{ fontSize: '1.2rem' }}></i>
+                        <span>사용방법: 단체 등록 후 단체에서 일정을 등록하세요</span>
+                    </div>
+
                     <div className="form-section image-section">
                         <div
                             className="image-preview-box"
@@ -182,7 +247,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     </div>
 
                     <div className="form-section">
-                        <label>집단 이름 *</label>
+                        <label>단체 이름 *</label>
                         <input
                             type="text"
                             value={name}
@@ -218,13 +283,18 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            placeholder="집단에 대한 간단한 설명을 입력해주세요."
+                            placeholder="단체에 대한 간단한 설명을 입력해주세요."
                             rows={4}
                         />
                     </div>
 
                     <div className="form-actions">
-                        <button type="button" className="cancel-btn" onClick={onClose}>취소</button>
+                        {editGroup && (
+                            <button type="button" className="delete-btn" onClick={handleDelete} disabled={isSubmitting}>
+                                <i className="ri-delete-bin-line"></i> 삭제
+                            </button>
+                        )}
+                        <button type="button" className="cancel-btn" onClick={onClose} disabled={isSubmitting}>취소</button>
                         <button type="submit" className="submit-btn" disabled={isSubmitting}>
                             {editGroup ? '수정 완료' : '등록하기'}
                         </button>

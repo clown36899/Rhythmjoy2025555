@@ -9,10 +9,11 @@ export function useSocialSchedulesNew(groupId?: number) {
     const fetchSchedules = useCallback(async () => {
         setLoading(true);
         try {
-            // 복사 및 수정 기능을 위해 필수적인 데이터들은 포함해서 가져옵니다.
+            // 모든 이미지 사이즈(micro, thumbnail, medium, full)를 포함하여 조회합니다.
             let query = supabase.from('social_schedules').select(`
         id, group_id, title, date, day_of_week, start_time, 
-        place_name, address, venue_id, description, image_url, image_micro, 
+        place_name, address, venue_id, description, 
+        image_url, image_micro, image_thumbnail, image_medium, image_full,
         user_id, created_at, updated_at
       `);
 

@@ -8,7 +8,9 @@ interface GroupDirectoryProps {
     onToggleFavorite: (groupId: number) => void;
     onGroupClick: (group: SocialGroup) => void;
     onEditGroup: (group: SocialGroup) => void;
+    onAddSchedule: (groupId: number) => void;
     isAdmin: boolean;
+    hideTitle?: boolean;
 }
 
 const GroupDirectory: React.FC<GroupDirectoryProps> = ({
@@ -17,14 +19,18 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
     onToggleFavorite,
     onGroupClick,
     onEditGroup,
-    isAdmin
+    onAddSchedule,
+    isAdmin,
+    hideTitle = false
 }) => {
     return (
-        <section className="group-directory-container">
-            <div className="section-header-area">
-                <h2 className="section-title">집단 디렉토리</h2>
-                <span className="count-badge">{groups.length}개 단체</span>
-            </div>
+        <section className={`group-directory-container ${hideTitle ? 'no-title' : ''}`}>
+            {!hideTitle && (
+                <div className="section-header-area">
+                    <h2 className="section-title">등록된 단체</h2>
+                    <span className="count-badge">{groups.length}개 단체</span>
+                </div>
+            )}
 
             <div className="group-list">
                 {groups.map((group) => {
@@ -73,15 +79,26 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                                         <i className="ri-calendar-line"></i> 일정 달력
                                     </button>
                                     {isAdmin && (
-                                        <button
-                                            className="admin-edit-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onEditGroup(group);
-                                            }}
-                                        >
-                                            <i className="ri-edit-circle-line"></i> 정보 수정
-                                        </button>
+                                        <>
+                                            <button
+                                                className="admin-add-item-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onAddSchedule(group.id);
+                                                }}
+                                            >
+                                                <i className="ri-add-line"></i> 일정 추가
+                                            </button>
+                                            <button
+                                                className="admin-edit-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onEditGroup(group);
+                                                }}
+                                            >
+                                                <i className="ri-edit-circle-line"></i> 정보 수정
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </div>

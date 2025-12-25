@@ -23,6 +23,8 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
     animation: modal-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
 }
 
 @keyframes modal-pop {
@@ -122,10 +124,28 @@
     border-radius: 12px;
     position: relative;
     cursor: default;
+    transition: all 0.2s;
 }
 
 .calendar-cell.has-events {
     background: rgba(251, 191, 36, 0.05);
+    cursor: pointer;
+}
+
+.calendar-cell.has-events:hover {
+    background: rgba(251, 191, 36, 0.15);
+}
+
+.calendar-cell.selected {
+    background: var(--primary-color, #fbbf24) !important;
+}
+
+.calendar-cell.selected .date-num {
+    color: #1a1a1a;
+}
+
+.calendar-cell.selected .event-dot {
+    background-color: #1a1a1a;
 }
 
 .date-num {
@@ -146,22 +166,187 @@
 }
 
 .event-dot {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
     background-color: #fbbf24;
+}
+
+/* 일일 일정 리스트 */
+.daily-schedule-list {
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    max-height: 250px;
+    display: flex;
+    flex-direction: column;
+}
+
+.selected-date-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.info-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #9ca3af;
+}
+
+.event-count-badge {
+    font-size: 0.75rem;
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 800;
+}
+
+.daily-items-scroll {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.daily-schedule-item {
+    display: flex;
+    align-items: center;
+    background: #262626;
+    padding: 12px 16px;
+    border-radius: 16px;
+    gap: 12px;
     cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.daily-schedule-item:hover {
+    background: #2d2d2d;
+    border-color: rgba(251, 191, 36, 0.3);
+    transform: translateX(4px);
+}
+
+.daily-item-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #333;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.daily-item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.daily-item-image i {
+    font-size: 1.2rem;
+    color: #6b7280;
+}
+
+.daily-item-time {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #fbbf24;
+    min-width: 45px;
+}
+
+.daily-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.daily-item-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 뷰 모드 전환 스타일 */
+.calendar-month-selector.hidden,
+.calendar-grid.hidden {
+    display: none;
+}
+
+.back-to-month-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.back-to-month-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Day Mode에서 리스트 확장 */
+.daily-schedule-list.expanded {
+    flex: 1;
+    max-height: 60vh;
+    border-top: none;
+    background: transparent;
+}
+
+.daily-schedule-list.expanded .daily-items-scroll {
+    max-height: none;
+    overflow-y: auto;
+}
+
+.calendar-footer-legend p i {
+    font-size: 1rem;
+    color: #fbbf24;
+}
+
+.daily-item-place {
+    font-size: 0.75rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.daily-schedule-item i {
+    color: #4b5563;
+    font-size: 1.2rem;
+}
+
+.daily-empty {
+    padding: 30px 0;
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.85rem;
 }
 
 .calendar-footer-legend {
-    padding: 16px 24px;
-    background: rgba(0, 0, 0, 0.2);
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.3);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .calendar-footer-legend p {
-    font-size: 0.75rem;
-    color: #6b7280;
+    font-size: 0.7rem;
+    color: #4b5563;
     margin: 0;
     display: flex;
     align-items: center;
@@ -174,5 +359,6 @@
         border-radius: 24px 24px 0 0;
         position: fixed;
         bottom: 0;
+        max-height: 85vh;
     }
 }

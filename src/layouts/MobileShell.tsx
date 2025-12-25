@@ -613,7 +613,9 @@ export function MobileShell() {
                 <button
                   onClick={() => {
                     logUserInteraction('Button', 'Click', 'SocialRegistration');
-                    window.dispatchEvent(new CustomEvent('openSocialRegistration'));
+                    handleProtectedAction(() => {
+                      window.dispatchEvent(new CustomEvent('openSocialRegistration'));
+                    });
                   }}
                   className="shell-btn-register-topbar"
                 >

@@ -2,13 +2,32 @@ import React from 'react';
 import type { SocialSchedule } from '../types';
 import './TodaySocial.css';
 
+// 1. Props 인터페이스 수정
 interface TodaySocialProps {
     schedules: SocialSchedule[];
     onScheduleClick: (schedule: SocialSchedule) => void;
 }
 
+// 2. 컴포넌트 정의 수정
 const TodaySocial: React.FC<TodaySocialProps> = ({ schedules, onScheduleClick }) => {
     if (schedules.length === 0) return null;
+
+    const getMediumImage = (item: SocialSchedule) => {
+        // ... (이미지 처리 로직 그대로 유지)
+        if (item.image_thumbnail) return item.image_thumbnail;
+        if (item.image_micro) return item.image_micro;
+        const fallback = item.image_url || '';
+        if (fallback.includes('/social/full/')) {
+            return fallback.replace('/social/full/', '/social/thumbnail/');
+        }
+        if (fallback.includes('/social-schedules/full/')) {
+            return fallback.replace('/social-schedules/full/', '/social-schedules/thumbnail/');
+        }
+        if (fallback.includes('/event-posters/full/')) {
+            return fallback.replace('/event-posters/full/', '/event-posters/thumbnail/');
+        }
+        return fallback;
+    };
 
     return (
         <section className="today-social-container">
@@ -25,16 +44,18 @@ const TodaySocial: React.FC<TodaySocialProps> = ({ schedules, onScheduleClick })
                         onClick={() => onScheduleClick(item)}
                     >
                         <div className="today-card-image">
-                            {item.image_medium ? (
-                                <img src={item.image_medium} alt={item.title} loading="lazy" />
+                            {getMediumImage(item) ? (
+                                <img src={getMediumImage(item)} alt={item.title} loading="lazy" />
                             ) : (
                                 <div className="today-placeholder">
                                     <i className="ri-calendar-event-line"></i>
                                 </div>
                             )}
-                            <div className="today-card-overlay">
-                                <span className="today-time">{item.start_time?.substring(0, 5)}</span>
-                            </div>
+                            {item.start_time && (
+                                <div className="today-card-overlay">
+                                    <span className="today-time">{item.start_time.substring(0, 5)}</span>
+                                </div>
+                            )}
                         </div>
                         <div className="today-card-info">
                             <h3 className="today-card-title">{item.title}</h3>

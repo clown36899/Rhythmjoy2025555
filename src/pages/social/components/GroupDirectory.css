@@ -3,6 +3,10 @@
     padding: 0 20px 40px 20px;
 }
 
+.group-directory-container.no-title {
+    padding: 0;
+}
+
 .section-header-area {
     display: flex;
     align-items: center;
@@ -133,34 +137,46 @@
     display: flex;
     gap: 8px;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    /* 버튼이 많을 경우 다음 줄로 */
+}
+
+/* 모든 푸터 버튼 공통: 글자가 화면에 맞춰 유어하게 줄어듦 */
+.group-wide-footer button {
+    white-space: nowrap;
+    font-size: clamp(0.6rem, 2.5vw, 0.8rem);
+    padding: 6px clamp(6px, 1.5vw, 12px);
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+    min-width: 0;
+    /* flex 환경에서 텍스트 수축 허용 */
 }
 
 .view-calendar-btn {
     background: #fbbf24;
     color: #1a1a1a;
     border: none;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+}
+
+.admin-add-item-btn {
+    background: #334155;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-add-item-btn:hover {
+    background: #475569;
 }
 
 .admin-edit-btn {
     background: #2d2d2d;
     border: 1px solid rgba(255, 255, 255, 0.05);
     color: #9ca3af;
-    font-size: 0.75rem;
-    padding: 6px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.2s;
 }
 
 .admin-edit-btn:hover {
@@ -172,5 +188,18 @@
     .group-wide-image {
         width: 100px;
         min-width: 100px;
+    }
+
+    .group-wide-info {
+        padding: 12px;
+    }
+
+    .group-wide-footer {
+        gap: 6px;
+    }
+
+    .group-wide-footer button {
+        padding: 6px 8px;
+        font-size: clamp(0.55rem, 3vw, 0.75rem);
     }
 }

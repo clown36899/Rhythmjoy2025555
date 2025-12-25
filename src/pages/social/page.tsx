@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
 import { useSocialSchedulesNew } from './hooks/useSocialSchedulesNew';
@@ -40,6 +40,19 @@ const SocialPage: React.FC = () => {
   const [copySchedule, setCopySchedule] = useState<SocialSchedule | null>(null);
   const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
 
+  // Event Listeners
+  useEffect(() => {
+    const handleOpenSocialRegistration = () => {
+      setEditGroup(null);
+      setIsGroupModalOpen(true);
+    };
+
+    window.addEventListener('openSocialRegistration', handleOpenSocialRegistration);
+    return () => {
+      window.removeEventListener('openSocialRegistration', handleOpenSocialRegistration);
+    };
+  }, []);
+
   // Derived Data
   const today = new Date().toISOString().split('T')[0];
   const todayDayOfWeek = new Date().getDay();
@@ -54,6 +67,7 @@ const SocialPage: React.FC = () => {
 
   // Handlers
   const handleScheduleClick = (schedule: SocialSchedule) => {
+    console.log('🔍 [Schedule Clicked]', schedule);
     setSelectedSchedule(schedule);
     setIsDetailOpen(true);
   };
@@ -63,12 +77,24 @@ const SocialPage: React.FC = () => {
     setIsGroupModalOpen(true);
   };
 
+  const handleAddSchedule = (groupId: number) => {
+    setTargetGroupId(groupId);
+    setEditSchedule(null);
+    setCopySchedule(null);
+    setIsScheduleModalOpen(true);
+  };
+
   const handleEditSchedule = (schedule: SocialSchedule) => {
+    console.log('📝 [Edit Schedule Clicked]', schedule);
+    // 상세 모달을 먼저 닫습니다.
+    setIsDetailOpen(false);
+
+    // 약간의 딜레이를 주어 상태 업데이트가 원활하게 되도록 유도할 수도 있으나, 
+    // 기본적으로는 상태를 순차적으로 설정합니다.
     setEditSchedule(schedule);
     setCopySchedule(null);
-    setTargetGroupId(schedule.group_id);
+    setTargetGroupId(schedule.group_id || null);
     setIsScheduleModalOpen(true);
-    setIsDetailOpen(false);
   };
 
   const handleCopySchedule = (schedule: SocialSchedule) => {
@@ -84,17 +110,8 @@ const SocialPage: React.FC = () => {
       {/* Header Area */}
       <header className="social-main-header">
         <div className="header-titles">
-          <h1 className="main-title">소셜 라우트</h1>
-          <p className="sub-title">함께 춤추고 즐기는 우리들의 공간</p>
+          {/* 타이틀 및 안내 문구 제거됨 (모달로 이동) */}
         </div>
-        {isAdmin && (
-          <button
-            className="admin-add-group-btn"
-            onClick={() => { setEditGroup(null); setIsGroupModalOpen(true); }}
-          >
-            <i className="ri-add-circle-fill"></i> 집단 등록
-          </button>
-        )}
       </header>
 
       {/* 1단: 오늘의 소셜 */}
@@ -105,19 +122,27 @@ const SocialPage: React.FC = () => {
         />
       )}
 
-      {/* 2단: 금주의 일정 */}
+      {/* 2단: 금주의 일정 (등록 탭 포함) */}
       <WeeklySocial
         schedules={schedules}
         onScheduleClick={handleScheduleClick}
+        groups={groups}
+        favorites={favorites}
+        onToggleFavorite={toggleFavorite}
+        onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
+        onEditGroup={handleEditGroup}
+        onAddSchedule={handleAddSchedule}
+        isAdmin={isAdmin}
       />
 
-      {/* 3단: 집단 디렉토리 */}
+      {/* 3단: 등록된 단체 (standalone) */}
       <GroupDirectory
         groups={groups}
         favorites={favorites}
         onToggleFavorite={toggleFavorite}
         onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
         onEditGroup={handleEditGroup}
+        onAddSchedule={handleAddSchedule}
         isAdmin={isAdmin}
       />
 
@@ -128,6 +153,7 @@ const SocialPage: React.FC = () => {
           onClose={() => setIsCalendarOpen(false)}
           group={selectedGroup}
           onScheduleClick={handleScheduleClick}
+          allSchedules={schedules} // 전체 스케줄 전달
         />
       )}
       <SocialDetailModal
@@ -142,16 +168,36 @@ const SocialPage: React.FC = () => {
       <SocialGroupModal
         isOpen={isGroupModalOpen}
         onClose={() => setIsGroupModalOpen(false)}
-        onSuccess={() => { refreshGroups(); setIsGroupModalOpen(false); }}
+        onSuccess={() => {
+          refreshGroups();
+          refreshSchedules(); // 단체 변경/삭제 시 일정도 갱신 필요
+          setIsGroupModalOpen(false);
+        }}
         editGroup={editGroup}
       />
 
-      {isScheduleModalOpen && targetGroupId && (
+      {isScheduleModalOpen && (
         <SocialScheduleModal
           isOpen={isScheduleModalOpen}
-          onClose={() => setIsScheduleModalOpen(false)}
-          onSuccess={() => { refreshSchedules(); setIsScheduleModalOpen(false); }}
-          groupId={targetGroupId}
+          onClose={() => {
+            console.log('🔒 Modal Closing...');
+            setIsScheduleModalOpen(false);
+            setEditSchedule(null);
+            setCopySchedule(null);
+            setTargetGroupId(null);
+          }}
+          onSuccess={() => {
+            console.log('✅ Modal Success!');
+            refreshSchedules();
+            setIsScheduleModalOpen(false);
+            setEditSchedule(null);
+            setCopySchedule(null);
+            setTargetGroupId(null);
+          }}
+          // targetGroupId가 null이면 데이터 본체의 group_id를 최우선으로 사용합니다.
+          // 중요: editSchedule.group_id 가 0인 경우(유실)를 대비해 targetGroupId를 먼저 체크
+          // editSchedule.group_id가 null인 레거시 데이터도 허용합니다.
+          groupId={targetGroupId || editSchedule?.group_id || copySchedule?.group_id || null}
           editSchedule={editSchedule}
           copyFrom={copySchedule}
         />

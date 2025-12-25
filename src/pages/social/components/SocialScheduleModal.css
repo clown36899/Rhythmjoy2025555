@@ -9,7 +9,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2000;
+    z-index: 4000;
     backdrop-filter: blur(10px);
     padding: 16px;
 }
@@ -61,104 +61,118 @@
     padding: 24px;
 }
 
+.form-section {
+    margin-bottom: 24px;
+}
+
+.form-section label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+/* 다듬어진 입력창 스타일 */
+.social-schedule-modal-form input[type="text"],
+.social-schedule-modal-form input[type="date"],
+.social-schedule-modal-form input[type="time"],
+.social-schedule-modal-form textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background-color: #262626;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.social-schedule-modal-form input:focus,
+.social-schedule-modal-form textarea:focus {
+    outline: none;
+    border-color: #fbbf24;
+    background-color: #2d2d2d;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
+}
+
 .multi-row {
     display: flex;
     gap: 16px;
+    flex-wrap: wrap;
+    /* 줄바꿈 허용 */
 }
 
 .form-item {
     flex: 1;
+    min-width: 130px;
+    /* 너무 좁아지지 않도록 최소 너비 설정 */
 }
 
-.date-selection-box {
-    background-color: #262626;
-    padding: 16px;
-    border-radius: 16px;
+/* Schedule Type Selector */
+.schedule-type-selector {
+    display: flex;
+    background: #262626;
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+    margin-top: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.date-input-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.label-sm {
-    font-size: 0.85rem;
-    color: #9ca3af;
-    white-space: nowrap;
-}
-
-.date-input-row input {
+.schedule-type-selector button {
     flex: 1;
-}
-
-.divider-or {
-    text-align: center;
-    margin: 12px 0;
-    font-size: 0.75rem;
+    background: none;
+    border: none;
+    color: #9ca3af;
+    padding: 10px 0;
+    border-radius: 10px;
+    font-size: 0.85rem;
     font-weight: 700;
-    color: #4b5563;
-    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.divider-or::before,
-.divider-or::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 40%;
-    height: 1px;
-    background-color: rgba(255, 255, 255, 0.05);
+.schedule-type-selector button.active {
+    background: #fbbf24;
+    color: #1a1a1a;
 }
 
-.divider-or::before {
-    left: 0;
-}
-
-.divider-or::after {
-    right: 0;
-}
-
-.weekday-row {
+/* Weekday Selector */
+.weekday-selector {
     display: flex;
-    justify-content: space-between;
     gap: 6px;
+    margin-top: 4px;
 }
 
-.day-bubble {
+.weekday-selector button {
     flex: 1;
     aspect-ratio: 1;
     border-radius: 50%;
-    background-color: #333;
+    background: #262626;
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #9ca3af;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
     padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    cursor: pointer;
 }
 
-.day-bubble.active {
-    background-color: var(--primary-color, #fbbf24);
+.weekday-selector button.active {
+    background: #fbbf24;
     color: #1a1a1a;
-    border-color: var(--primary-color, #fbbf24);
-    transform: scale(1.1);
+    border-color: #fbbf24;
 }
 
 .location-box {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .location-input-group {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
 }
 
@@ -169,7 +183,6 @@
 .venue-search-btn {
     padding: 0 16px;
     background-color: #3b82f6;
-    /* 명확한 파란색으로 변경 */
     border: none;
     border-radius: 10px;
     color: white;
@@ -180,8 +193,8 @@
     align-items: center;
     gap: 6px;
     white-space: nowrap;
-    height: 42px;
-    /* 입력창 높이와 일치 */
+    height: 44px;
+    /* 입력창 높이와 비슷하게 조정 */
     transition: background-color 0.2s;
 }
 
@@ -190,7 +203,7 @@
 }
 
 .address-input {
-    font-size: 0.85rem !important;
+    font-size: 0.9rem !important;
     color: #9ca3af !important;
 }
 
@@ -205,6 +218,12 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: all 0.2s;
+}
+
+.schedule-image-uploader:hover {
+    border-color: #fbbf24;
+    background-color: #2d2d2d;
 }
 
 .schedule-image-uploader img {
@@ -225,12 +244,48 @@
     font-size: 2.5rem;
 }
 
+.delete-btn {
+    padding: 6px 12px;
+    background-color: transparent;
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.85rem;
+}
+
+.delete-btn:hover:not(:disabled) {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+}
+
 @media (max-width: 480px) {
     .social-schedule-modal-container {
         height: 100%;
         max-height: 100%;
         max-width: 100%;
         border-radius: 0;
+    }
+
+    .multi-row {
+        gap: 12px;
+        /* 모바일에서 갭 축소 */
+    }
+
+    .form-item {
+        /* 모바일에서는 제목 등은 한 줄에 꽉 차게 */
+        min-width: 100%;
+    }
+
+    /* 날짜와 시간은 한 줄에 두 개 배치 가능유도 */
+    .form-item:not(:first-child) {
+        min-width: 45%;
     }
 
     .weekday-row {

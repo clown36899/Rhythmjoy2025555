@@ -8,11 +8,12 @@
 }
 
 .social-main-header {
-  padding: 20px;
+  /* padding: 20px; */
   display: flex;
+  height: 0;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
+  /* margin-bottom: 20px; */
 }
 
 .main-title {
@@ -27,6 +28,25 @@
   font-size: 0.9rem;
   color: #6b7280;
   margin: 4px 0 0 0;
+}
+
+/* 새로 추가된 사용 가이드 스타일 */
+.header-usage-guide {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-usage-guide i {
+  color: #fbbf24;
+  font-size: 1.1rem;
 }
 
 .admin-add-group-btn {
