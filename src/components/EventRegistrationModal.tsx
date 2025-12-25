@@ -794,7 +794,7 @@ export default memo(function EventRegistrationModal({
       <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>로그인 필요</h2>
       <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
         이벤트 등록을 위해 로그인이 필요합니다.<br />
-        간편하게 로그인하고 계속하세요!
+        간편하게 로그인하고 사용하세요!
       </p>
       <button
         onClick={handleLogin}

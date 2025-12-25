@@ -182,7 +182,7 @@ export default memo(function FullEventCalendar({
       const endOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
       const startDateStr = startOfRange.toISOString().split('T')[0];
       const endDateStr = endOfRange.toISOString().split('T')[0];
-      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_micro,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path,venue_id,venue_name,venue_custom_link";
+      const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro";
 
       const { data, error } = await supabase
         .from("events")
