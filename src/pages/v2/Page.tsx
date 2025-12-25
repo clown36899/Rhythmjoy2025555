@@ -201,7 +201,6 @@ export default function HomePageV2() {
     const {
         calendarMode,
         setCalendarMode,
-        dragOffset,
         isAnimating,
     } = useCalendarGesture({
         headerHeight: 50,

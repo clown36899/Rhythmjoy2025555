@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.18.3',
+        date: '2025-12-25',
+        changes: [
+            '[Fix] TypeScript 타입 오류 수정 (Event 타입 정의 통일)',
+            '[Fix] 소셜 일정 수정 오류 해결 (잘못된 DB 컬럼명 수정)',
+            '[Fix] 코드 정리 (사용하지 않는 import 및 변수 제거)',
+            '[Fix] CSS 정리 (빈 ruleset 제거)'
+        ]
+    },
+    {
         version: '2.18.2',
         date: '2025-12-25',
         changes: [

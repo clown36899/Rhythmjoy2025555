@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { MouseEvent } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useEventFavorites(user: any, signInWithKakao: () => void) {

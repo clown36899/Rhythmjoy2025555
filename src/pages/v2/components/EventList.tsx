@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, lazy, Su
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
-import type { Event as BaseEvent } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
 import { getLocalDateString, sortEvents, isEventMatchingFilter, CLUB_LESSON_GENRE } from "../utils/eventListUtils";
 import { useModal } from "../../../hooks/useModal";
@@ -2044,17 +2043,6 @@ export default function EventList({
     imageCropModal.close();
   };
 
-  const handleEditRestoreCropOriginal = () => {
-    if (editOriginalImageForCrop) {
-      setEditImageFile(editOriginalImageForCrop);
-      fileToDataURL(editOriginalImageForCrop).then(setEditTempImageSrc).catch(console.error);
-    } else if (editOriginalImageUrl) {
-      // URL로 복원하는 경우, 이미지는 그대로 두고 미리보기만 변경
-      setEditImageFile(null); // 편집된 파일 제거
-      setEditImagePreview(editOriginalImageUrl);
-      setEditTempImageSrc(editOriginalImageUrl);
-    }
-  };
 
   const handleEditReEditImage = () => {
     if (editImageFile) {
