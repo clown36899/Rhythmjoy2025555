@@ -293,7 +293,7 @@ export default function EventList({
   const handleToggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!user) {
-      if (confirm('로그인이 필요한 기능입니다. 카카오로 로그인하시겠습니까?')) {
+      if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
         try {
           await signInWithKakao();
         } catch (err) {
