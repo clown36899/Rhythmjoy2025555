@@ -75,6 +75,7 @@ export default function AnonymousPostList({
                                 onCancelEdit={handleCancelEdit}
                                 providedPassword={editPassword}
                                 className="inline-editor"
+                                isAdmin={isAdmin}
                             />
                         );
                     }

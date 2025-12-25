@@ -118,7 +118,7 @@ export default function QuickMemoEditor({
             return;
         }
 
-        if (category === 'anonymous' && !password.trim()) {
+        if (category === 'anonymous' && !password.trim() && !isAdmin) {
             alert('비밀번호를 입력해주세요.');
             return;
         }
@@ -167,27 +167,54 @@ export default function QuickMemoEditor({
 
             if (editData?.id) {
                 // Update post
-                console.log('Updating anonymous post via RPC');
-                const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
-                    p_post_id: editData.id,
-                    p_password: (providedPassword || password).trim(),
-                    p_title: title.trim(),
-                    p_content: content.trim(),
-                    p_author_name: nickname,
-                    p_image: imageUrls.image,
-                    p_image_thumbnail: imageUrls.image_thumbnail
-                });
+                if (isAdmin) {
+                    // Admin update (Direct DB update, bypass RPC password check)
+                    console.log('Updating anonymous post as Admin (Direct)');
+                    const updates: any = {
+                        title: title.trim(),
+                        content: content.trim(),
+                        author_name: nickname,
+                        is_notice: isNotice
+                    };
+                    if (imageUrls.image) {
+                        updates.image = imageUrls.image;
+                        updates.image_thumbnail = imageUrls.image_thumbnail;
+                    }
 
-                if (error) {
-                    console.error('RPC Error:', error);
-                    throw error;
+                    const { error } = await supabase
+                        .from('board_anonymous_posts')
+                        .update(updates)
+                        .eq('id', editData.id);
+
+                    if (error) {
+                        console.error('Admin Update Error:', error);
+                        throw error;
+                    }
+                    alert('관리자 권한으로 메모가 수정되었습니다!');
+                } else {
+                    // User update (RPC with password)
+                    console.log('Updating anonymous post via RPC');
+                    const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
+                        p_post_id: editData.id,
+                        p_password: (providedPassword || password).trim(),
+                        p_title: title.trim(),
+                        p_content: content.trim(),
+                        p_author_name: nickname,
+                        p_image: imageUrls.image,
+                        p_image_thumbnail: imageUrls.image_thumbnail
+                    });
+
+                    if (error) {
+                        console.error('RPC Error:', error);
+                        throw error;
+                    }
+                    if (!success) {
+                        alert('비밀번호가 틀렸거나 수정에 실패했습니다.');
+                        setIsSubmitting(false);
+                        return;
+                    }
+                    alert('메모가 수정되었습니다!');
                 }
-                if (!success) {
-                    alert('비밀번호가 틀렸거나 수정에 실패했습니다.');
-                    setIsSubmitting(false);
-                    return;
-                }
-                alert('메모가 수정되었습니다!');
             } else {
                 // Create new post
                 const { error } = await supabase.from('board_anonymous_posts').insert({
@@ -239,19 +266,31 @@ export default function QuickMemoEditor({
 
         setIsSubmitting(true);
         try {
-            const { data: success, error } = await supabase.rpc('delete_anonymous_post_with_password', {
-                p_post_id: editData.id,
-                p_password: (providedPassword || password).trim()
-            });
+            if (isAdmin) {
+                // Admin delete (Direct DB delete)
+                console.log('Deleting anonymous post as Admin');
+                const { error } = await supabase
+                    .from('board_anonymous_posts')
+                    .delete()
+                    .eq('id', editData.id);
 
-            if (error) throw error;
+                if (error) throw error;
+                alert('관리자 권한으로 메모가 삭제되었습니다.');
+            } else {
+                // User delete (RPC)
+                const { data: success, error } = await supabase.rpc('delete_anonymous_post_with_password', {
+                    p_post_id: editData.id,
+                    p_password: (providedPassword || password).trim()
+                });
 
-            if (!success) {
-                alert('비밀번호가 틀렸거나 삭제에 실패했습니다.');
-                return;
+                if (error) throw error;
+
+                if (!success) {
+                    alert('비밀번호가 틀렸거나 삭제에 실패했습니다.');
+                    return;
+                }
+                alert('메모가 삭제되었습니다.');
             }
-
-            alert('메모가 삭제되었습니다.');
             onPostCreated?.();
         } catch (error) {
             console.error('삭제 실패:', error);
@@ -333,7 +372,7 @@ export default function QuickMemoEditor({
                     />
 
                     <textarea
-                        placeholder={"무슨 생각을 하고 계신가요? 자유롭게 익명으로 남겨보세요...\n(자정작용을 위해 싫어요 2개가 넘으면 자동숨김됩니다)"}
+                        placeholder={"무슨 생각을 하고 계신가요? 자유롭게 익명으로 남겨보세요...\n자정작용을 위해 싫어요 20개가 넘으면 자동숨김됩니다"}
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         className="memo-textarea"
