@@ -82,6 +82,28 @@ export default function AnonymousPostList({
 
                     return (
                         <div key={post.id} className={`board-post-card is-memo ${isBlind ? 'blinded' : ''}`}>
+                            {/* Meta Info (Bottom) */}
+                            <div className="board-post-meta">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    {/* Anonymous Avatar */}
+                                    <div className="anonymous-avatar" style={{ background: '#333', color: '#ccc' }}>
+                                        <i className="ri-user-3-fill"></i>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+                                        <span className="board-post-meta-nickname">
+                                            {post.author_nickname || '익명'}
+                                            {post.is_notice && (
+                                                <i className="ri-megaphone-fill" style={{ marginLeft: '4px', color: '#fbbf24', verticalAlign: 'middle' }} title="공지사항"></i>
+                                            )}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>
+                                            {new Date(post.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+
                             {/* Main Content Body */}
                             <div className="board-post-body">
                                 {/* Title (Optional) */}
@@ -128,26 +150,7 @@ export default function AnonymousPostList({
                                 )}
                             </div>
 
-                            {/* Meta Info (Bottom) */}
-                            <div className="board-post-meta">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    {/* Anonymous Avatar */}
-                                    <div className="anonymous-avatar" style={{ background: '#333', color: '#ccc' }}>
-                                        <i className="ri-user-3-fill"></i>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
-                                        <span className="board-post-meta-nickname">
-                                            {post.author_nickname || '익명'}
-                                            {post.is_notice && (
-                                                <i className="ri-megaphone-fill" style={{ marginLeft: '4px', color: '#fbbf24', verticalAlign: 'middle' }} title="공지사항"></i>
-                                            )}
-                                        </span>
-                                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>
-                                            {new Date(post.created_at).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+
 
                             {/* Interaction Bar */}
                             <div className="memo-interaction-bar">

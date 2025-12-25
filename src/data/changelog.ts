@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.20.0',
+        date: '2025-12-26',
+        changes: [
+            '[기능] 익명 게시판 글쓰기 UX 개편 (하단 모달 방식 도입)',
+            '[디자인] 에디터 및 게시글 카드 디자인 리뉴얼 (다크 테마, 공간 최적화)',
+            '[UI] "익명으로 글쓰기..." 트리거 바 추가'
+        ]
+    },
+    {
         version: '2.19.0',
         date: '2025-12-25',
         changes: [

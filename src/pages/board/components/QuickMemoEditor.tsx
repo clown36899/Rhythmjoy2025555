@@ -30,7 +30,7 @@ export default function QuickMemoEditor({
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
     const [bannedWords, setBannedWords] = useState<string[]>([]);
     const [isNotice, setIsNotice] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -323,60 +323,54 @@ export default function QuickMemoEditor({
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="memo-form">
-                <div className="memo-header">
-                    <div className="memo-header-top">
-                        <div className="memo-left-actions">
-                            {isAdmin && !editData && (
-                                <label className="memo-notice-check" style={{ marginRight: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#fbbf24' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isNotice}
-                                        onChange={handleNoticeChange}
-                                        style={{ cursor: 'pointer' }}
-                                    />
-                                    <span>공지</span>
-                                </label>
-                            )}
-                            <input
-                                type="text"
-                                placeholder="작성자 닉네임"
-                                value={nickname}
-                                onChange={(e) => setNickname(e.target.value)}
-                                className="memo-nickname-input"
-                                readOnly={isNotice}
-                                style={isNotice ? { backgroundColor: '#333', color: '#fbbf24', fontWeight: 'bold' } : {}}
-                            />
-                            {/* {editData && (
-                                <span className="memo-edit-badge">Editing Mode</span>
-                            )} */}
-                        </div>
-                        <div className="memo-right-actions">
-                            <button
-                                type="button"
-                                className="memo-image-btn"
-                                title="이미지 첨부"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <i className="ri-image-add-fill"></i>
-                            </button>
-                        </div>
-                    </div>
 
+            <form onSubmit={handleSubmit} className="memo-form">
+                <div className="memo-top-bar">
+                    <div className="memo-author-info">
+                        {isAdmin && !editData && (
+                            <label className="memo-notice-check">
+                                <input
+                                    type="checkbox"
+                                    checked={isNotice}
+                                    onChange={handleNoticeChange}
+                                />
+                                <span>공지</span>
+                            </label>
+                        )}
+                        <input
+                            type="text"
+                            placeholder="닉네임"
+                            value={nickname}
+                            onChange={(e) => setNickname(e.target.value)}
+                            className="memo-input-compact"
+                            readOnly={isNotice}
+                        />
+                        {!providedPassword && !isNotice && (
+                            <input
+                                type="password"
+                                placeholder="비밀번호"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="memo-input-compact"
+                            />
+                        )}
+                    </div>
+                </div>
+
+                <div className="memo-main-input-area">
                     <input
                         type="text"
-                        placeholder="메모 제목 (생략 가능)"
+                        placeholder="제목 (선택사항)"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         className="memo-title-input"
                     />
-
                     <textarea
-                        placeholder={"무슨 생각을 하고 계신가요? 자유롭게 익명으로 남겨보세요...\n자정작용을 위해 싫어요 20개가 넘으면 자동숨김됩니다"}
+                        placeholder={"익명으로 자유롭게 이야기해보세요...\n(신고 누적시 자동 숨김처리)"}
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         className="memo-textarea"
-                        autoFocus={!!editData || isExpanded}
+                        autoFocus={!!editData}
                     />
 
                     {imagePreview && (
@@ -386,7 +380,6 @@ export default function QuickMemoEditor({
                                 type="button"
                                 onClick={() => { setImageFile(null); setImagePreview(null); }}
                                 className="remove-preview"
-                                title="이미지 제거"
                             >
                                 <i className="ri-close-line"></i>
                             </button>
@@ -394,26 +387,21 @@ export default function QuickMemoEditor({
                     )}
                 </div>
 
-                <div className="memo-bottom-row">
-                    <div className="memo-password-section">
-                        {!providedPassword && (
-                            <input
-                                type="password"
-                                placeholder="비밀번호"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="memo-password-input"
-                                required={!isNotice}
-                                style={isNotice ? { display: 'none' } : {}}
-                            />
-                        )}
-                    </div>
+                <div className="memo-action-bar">
+                    <button
+                        type="button"
+                        className="memo-icon-btn"
+                        onClick={() => fileInputRef.current?.click()}
+                        title="이미지 첨부"
+                    >
+                        <i className="ri-image-add-line"></i>
+                    </button>
 
-                    <div className="memo-submit-actions">
+                    <div className="memo-submit-group">
                         {editData && (
                             <button
                                 type="button"
-                                className="memo-delete-btn"
+                                className="memo-text-btn delete"
                                 onClick={handleDelete}
                                 disabled={isSubmitting}
                             >
@@ -423,7 +411,7 @@ export default function QuickMemoEditor({
                         {(isExpanded || editData) && (
                             <button
                                 type="button"
-                                className="memo-cancel-btn"
+                                className="memo-text-btn"
                                 onClick={handleCancel}
                             >
                                 취소
@@ -431,20 +419,11 @@ export default function QuickMemoEditor({
                         )}
                         <button
                             type="submit"
-                            className="memo-submit-btn"
+                            className="memo-submit-btn-compact"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? (
-                                <>
-                                    <i className="ri-loader-4-line spin"></i>
-                                    <span>처리 중...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <i className={editData ? "ri-check-double-line" : "ri-quill-pen-line"}></i>
-                                    <span>{editData ? '수정 완료' : '메모 남기기'}</span>
-                                </>
-                            )}
+                            {isSubmitting ? <i className="ri-loader-4-line spin"></i> : <i className="ri-send-plane-fill"></i>}
+                            <span>{editData ? '수정' : '등록'}</span>
                         </button>
                     </div>
                 </div>

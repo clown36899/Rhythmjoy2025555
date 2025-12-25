@@ -102,20 +102,15 @@ export default function BoardMainContainer() {
         setSearchParams({ category: newCategory });
     };
 
-    // Edit State for QuickMemo
-    const [editingPost, setEditingPost] = useState<{
-        id: number;
-        title: string;
-        content: string;
-        nickname: string;
-        password?: string;
-    } | null>(null);
+
+
+    const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
 
     // Global Write Event Listener
     useEffect(() => {
         const handleWriteClick = () => {
             if (category === 'anonymous') {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setIsWriteModalOpen(true);
                 return;
             }
             setIsEditorOpen(true);
@@ -180,20 +175,31 @@ export default function BoardMainContainer() {
             >
                 {category === 'anonymous' && (
                     <>
-                        <div className="anonymous-board-notice">
-                            <i className="ri-error-warning-line"></i>
-                            <span>싫어요가 20개 넘으면 숨김처리됩니다.</span>
+                        <div className="anonymous-write-trigger" onClick={() => setIsWriteModalOpen(true)}>
+                            <div className="trigger-placeholder">
+                                <i className="ri-edit-2-fill"></i>
+                                <span>익명으로 글쓰기...</span>
+                            </div>
                         </div>
-                        <QuickMemoEditor
-                            onPostCreated={() => {
-                                loadPosts();
-                                setEditingPost(null);
-                            }}
-                            category={category}
-                            editData={editingPost}
-                            onCancelEdit={() => setEditingPost(null)}
-                            isAdmin={isRealAdmin}
-                        />
+
+                        {isWriteModalOpen && (
+                            <div className="anonymous-write-modal-overlay" onClick={() => setIsWriteModalOpen(false)}>
+                                <div className="anonymous-write-modal-content" onClick={e => e.stopPropagation()}>
+                                    <div className="modal-drag-handle"></div>
+                                    <QuickMemoEditor
+                                        onPostCreated={() => {
+                                            loadPosts();
+                                            setIsWriteModalOpen(false);
+                                        }}
+                                        category={category}
+                                        editData={null}
+                                        onCancelEdit={() => setIsWriteModalOpen(false)}
+                                        isAdmin={isRealAdmin}
+                                        className="modal-mode"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
 

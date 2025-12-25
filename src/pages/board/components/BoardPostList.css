@@ -28,9 +28,9 @@
 /* Modern Anonymous Card */
 .anonymous-mode .board-post-card.is-memo {
     background: var(--memo-card-bg);
-    border: 1px solid var(--memo-card-border);
-    border-radius: 16px;
-    padding: 20px;
+    border: 0px solid var(--memo-card-border);
+    border-radius: 0px;
+    padding: 5px;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -39,11 +39,7 @@
     transition: all 0.2s ease;
 }
 
-.anonymous-mode .board-post-card.is-memo:hover {
-    background: var(--memo-card-hover);
-    transform: translateY(-4px);
-    box-shadow: var(--memo-shadow-hover);
-}
+
 
 /* Hide legacy elements */
 .anonymous-mode .memo-tape,
@@ -70,6 +66,7 @@
     align-items: center;
     gap: 8px;
     width: 100%;
+    padding: 9px 10px 0px 10px;
 }
 
 /* Title & Content */
@@ -90,10 +87,11 @@
 
 .anonymous-mode .board-post-content {
     color: var(--memo-text-content) !important;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     line-height: 1.6;
     margin: 0 !important;
     white-space: pre-wrap;
+    padding: 10px;
 }
 
 /* Thumbnail */
@@ -145,9 +143,9 @@
 
 /* Footer / Meta */
 .anonymous-mode .board-post-meta {
-    margin-top: 8px;
-    padding-top: 12px;
-    border-top: 1px solid var(--memo-card-border);
+    /* margin-top: 8px; */
+    padding: 12px 10px 20px 10px;
+    /* border-top: 1px solid var(--memo-card-border); */
     color: var(--memo-text-meta);
     display: flex;
     justify-content: space-between;
@@ -162,6 +160,7 @@
 /* Interaction Bar */
 .anonymous-mode .memo-interaction-bar {
     margin-top: 12px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -326,8 +325,8 @@
 @media (max-width: 600px) {
     .anonymous-mode .anonymous-view {
         grid-template-columns: 1fr;
-        padding: 16px;
-        gap: 16px;
+        padding: 0px;
+        gap: 4px;
     }
 }
 
