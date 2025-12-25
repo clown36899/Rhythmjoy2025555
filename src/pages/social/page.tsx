@@ -4,12 +4,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
 import { useSocialSchedulesNew } from './hooks/useSocialSchedulesNew';
 import { useSocialGroupFavorites } from './hooks/useSocialGroupFavorites';
+import { useModal } from '../../hooks/useModal';
 
 // Components
 import TodaySocial from './components/TodaySocial';
 import WeeklySocial from './components/WeeklySocial';
 import GroupDirectory from './components/GroupDirectory';
-import SocialDetailModal from './components/SocialDetailModal';
 import GroupCalendarModal from './components/GroupCalendarModal';
 import SocialGroupModal from './components/SocialGroupModal';
 import SocialScheduleModal from './components/SocialScheduleModal';
@@ -27,8 +27,7 @@ const SocialPage: React.FC = () => {
   const { favorites, toggleFavorite } = useSocialGroupFavorites();
 
   // Modal States
-  const [selectedSchedule, setSelectedSchedule] = useState<SocialSchedule | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const socialDetailModal = useModal('socialDetail');
 
   const [selectedGroup, setSelectedGroup] = useState<SocialGroup | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -80,8 +79,12 @@ const SocialPage: React.FC = () => {
   // Handlers
   const handleScheduleClick = (schedule: SocialSchedule) => {
     console.log('🔍 [Schedule Clicked]', schedule);
-    setSelectedSchedule(schedule);
-    setIsDetailOpen(true);
+    socialDetailModal.open({
+      schedule,
+      onCopy: handleCopySchedule,
+      onEdit: handleEditSchedule,
+      isAdmin: !!user
+    });
   };
 
   const handleEditGroup = async (group: SocialGroup) => {
@@ -164,7 +167,7 @@ const SocialPage: React.FC = () => {
     }
 
     // 상세 모달을 먼저 닫습니다.
-    setIsDetailOpen(false);
+    socialDetailModal.close();
 
     // 상태 설정
     setEditSchedule(schedule);
@@ -178,7 +181,7 @@ const SocialPage: React.FC = () => {
     setEditSchedule(null);
     setTargetGroupId(schedule.group_id);
     setIsScheduleModalOpen(true);
-    setIsDetailOpen(false);
+    socialDetailModal.close();
   };
 
   return (
@@ -194,7 +197,6 @@ const SocialPage: React.FC = () => {
       {!schedulesLoading && (
         <TodaySocial
           schedules={todaySchedules}
-          onScheduleClick={handleScheduleClick}
         />
       )}
 
@@ -232,14 +234,7 @@ const SocialPage: React.FC = () => {
           allSchedules={schedules} // 전체 스케줄 전달
         />
       )}
-      <SocialDetailModal
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        schedule={selectedSchedule}
-        onCopy={handleCopySchedule}
-        onEdit={handleEditSchedule}
-        isAdmin={!!user}
-      />
+
 
       <SocialGroupModal
         isOpen={isGroupModalOpen}
