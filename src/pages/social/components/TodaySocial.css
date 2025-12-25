@@ -8,7 +8,7 @@
     align-items: center;
     gap: 8px;
     padding: 0 20px;
-    margin-bottom: 16px;
+    /* margin-bottom: 16px; */
 }
 
 .section-title {
@@ -64,6 +64,7 @@
 
 .today-card {
     flex: 0 0 280px;
+    max-width: 201px;
     background: #1a1a1a;
     border-radius: 20px;
     overflow: hidden;
@@ -73,9 +74,11 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.today-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(251, 191, 36, 0.3);
+@media (hover: hover) {
+    .today-card:hover {
+        transform: translateY(-8px);
+        border-color: rgba(251, 191, 36, 0.3);
+    }
 }
 
 .today-card-image {
@@ -118,7 +121,7 @@
 }
 
 .today-card-info {
-    padding: 16px;
+    padding: 5px 16px;
 }
 
 .today-card-title {

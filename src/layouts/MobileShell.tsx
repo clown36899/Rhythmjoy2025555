@@ -557,24 +557,7 @@ export function MobileShell() {
           </div>
         )}
 
-        {/* Board Page Top Bar - 글쓰기 버튼 */}
-        {isBoardPage && category !== 'anonymous' && (
-          <div className="shell-top-bar" style={{ minHeight: '32px' }}>
-            <div className="shell-top-bar-content">
-              <div style={{ flex: 1 }}></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {/* Write Button */}
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('boardWriteClick'))}
-                  className="shell-btn-register-topbar"
-                >
-                  <i className="ri-pencil-line"></i>
-                  <span>글쓰기</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* 관리자 상태 표시 - 모든 페이지 공통 (이벤트, 캘린더, 보드 제외) */}
         {!isEventsPage && !isCalendarPage && !isBoardPage && (

@@ -1,45 +1,34 @@
 import { useCallback } from 'react';
-import { useModalContext } from '../contexts/ModalContext';
+import { useModalActions, useModalState } from '../contexts/ModalContext';
 
 /**
  * 특정 모달을 제어하기 위한 커스텀 훅 (글로벌 Context 기반)
  * 
  * @param modalId - 모달의 고유 식별자
- * @returns 모달 제어 인터페이스
+ * @returns 모달 제어 인터페이스 (isOpen, props, open, close)
  * 
- * @example
- * ```tsx
- * const detailModal = useModal('eventDetail');
- * 
- * // 모달 열기
- * detailModal.open({ event: selectedEvent });
- * 
- * // 모달 닫기
- * detailModal.close();
- * 
- * // 모달 상태 확인
- * if (detailModal.isOpen) {
- *   // ...
- * }
- * ```
+ * 주의: 이 훅을 사용하면 modal state가 변경될 때마다 컴포넌트가 리렌더링됩니다.
+ * 단순히 모달을 열기만 하는 경우에는 useModalActions()를 직접 사용하세요.
  */
 export function useModal(modalId: string) {
-    const { openModal, closeModal, isModalOpen, getModalProps } = useModalContext();
+    const { isModalOpen, getModalProps } = useModalState();
+    const { openModal, closeModal } = useModalActions();
 
     const open = useCallback((props?: any) => {
         openModal(modalId, props);
-    }, [modalId, openModal]);
+    }, [openModal, modalId]);
 
     const close = useCallback(() => {
         closeModal(modalId);
-    }, [modalId, closeModal]);
+    }, [closeModal, modalId]);
+
+    const isOpen = isModalOpen(modalId);
+    const props = getModalProps(modalId);
 
     return {
-        isOpen: isModalOpen(modalId),
-        props: getModalProps(modalId),
+        isOpen,
+        props,
         open,
-        close,
+        close
     };
 }
-
-// 기존 로컬 상태 기반 useModal은 useModal.local.ts.backup으로 백업됨

@@ -231,6 +231,7 @@ export default function BoardMainContainer() {
                         dislikedPostIds={dislikedPostIds}
                         onToggleDislike={handleToggleDislike}
                         isAdmin={isRealAdmin}
+                        onWriteClick={() => setIsEditorOpen(true)}
                     />
                 )}
 

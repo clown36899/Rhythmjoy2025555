@@ -30,6 +30,7 @@ import { useEventActions } from "./hooks/useEventActions";
 import { useCalendarState } from "./hooks/useCalendarState";
 import { useDeepLinkLogic } from "./hooks/useDeepLinkLogic";
 import { useBillboardLogic } from "./hooks/useBillboardLogic";
+
 import "./styles/Page.css";
 
 export default function HomePageV2() {
@@ -40,6 +41,9 @@ export default function HomePageV2() {
     const navigate = useNavigate();
     const { isAdmin, user, signInWithKakao } = useAuth();
     const { settings, updateSettings, resetSettings } = useBillboardSettings();
+
+    // Import Social Types and Components
+
 
     registerLocale("ko", ko); // Move side effect here or keep outside? Keep here is fine.
 
@@ -113,6 +117,8 @@ export default function HomePageV2() {
 
     // Favorites Logic
     const { favoriteEventIds, toggleFavorite, refreshFavorites } = useEventFavorites(user, signInWithKakao);
+
+
 
     // --------------------------------------------------------------------------------
     // 4. UI Components (Memoized)
@@ -390,7 +396,6 @@ export default function HomePageV2() {
                             isAdminMode={effectiveIsAdmin}
                             adminType={adminType}
                             viewMode="month"
-                            // onEventHover={setHoveredEventId}
                             searchTerm={searchTerm}
                             setSearchTerm={setSearchTerm}
                             onSearchStart={handleSearchStart}
@@ -399,23 +404,21 @@ export default function HomePageV2() {
                             sortBy={sortBy}
                             setSortBy={setSortBy}
                             highlightEvent={highlightEvent}
-                            onHighlightComplete={() => setHighlightEvent(null)}
+                            onHighlightComplete={useCallback(() => setHighlightEvent(null), [])}
                             sharedEventId={sharedEventId}
-                            onSharedEventOpened={() => setSharedEventId(null)}
+                            onSharedEventOpened={useCallback(() => setSharedEventId(null), [])}
                             isAnimating={isAnimating}
-                            onEventClickInFullscreen={(event) => setSelectedEvent(event)}
-                            onEventClick={(event) => {
-                                setSelectedEvent(event);
-                            }}
+                            onEventClickInFullscreen={useCallback((event: any) => setSelectedEvent(event), [])}
+                            onEventClick={useCallback((event: any) => setSelectedEvent(event), [])}
                             slideContainerRef={eventListSlideContainerRef}
                             onMonthChange={setCurrentMonth}
                             calendarMode={calendarMode}
 
-                            onModalStateChange={(isModalOpen) => {
+                            onModalStateChange={useCallback((isModalOpen: boolean) => {
                                 // This prop might need review as internal modal is gone, but it can still signal other modals
                                 const container = containerRef.current;
                                 if (container) container.inert = isModalOpen;
-                            }} selectedWeekday={selectedWeekday}
+                            }, [])} selectedWeekday={selectedWeekday}
                             sectionViewMode={sectionViewMode}
                             onSectionViewModeChange={handleSectionViewModeChange}
                             onGenresLoaded={(genres) => setAllGenres(genres as { class: string[]; event: string[] })}

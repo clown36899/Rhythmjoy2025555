@@ -1,59 +1,62 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode, useMemo } from 'react';
 
-interface ModalState {
+// 1. 상태(State) 인터페이스
+interface ModalStateData {
     isOpen: boolean;
     props?: any;
 }
 
-interface ModalContextType {
-    // 모달 열기/닫기
+// 2. State Context (Reads state, triggers re-renders)
+interface ModalStateContextType {
+    modals: Record<string, ModalStateData>;
+    modalStack: string[];
+    isModalOpen: (modalId: string) => boolean;
+    getModalProps: (modalId: string) => any;
+}
+
+// 3. Dispatch Context (Writes state, NO re-renders on state change)
+interface ModalDispatchContextType {
     openModal: (modalId: string, props?: any) => void;
     closeModal: (modalId: string) => void;
     closeAllModals: () => void;
-
-    // 모달 상태 확인
-    isModalOpen: (modalId: string) => boolean;
-    getModalProps: (modalId: string) => any;
-
-    // 모달 스택 관리 (중첩 모달용)
-    modalStack: string[];
 }
 
-const ModalContext = createContext<ModalContextType | undefined>(undefined);
+const ModalStateContext = createContext<ModalStateContextType | undefined>(undefined);
+const ModalDispatchContext = createContext<ModalDispatchContextType | undefined>(undefined);
 
 export function ModalProvider({ children }: { children: ReactNode }) {
-    const [modals, setModals] = useState<Record<string, ModalState>>({});
+    const [modals, setModals] = useState<Record<string, ModalStateData>>({});
     const [modalStack, setModalStack] = useState<string[]>([]);
 
     const openModal = useCallback((modalId: string, props?: any) => {
-        console.log('[ModalContext] Opening modal:', modalId, props);
-
         setModals(prev => ({
             ...prev,
             [modalId]: { isOpen: true, props }
         }));
 
         setModalStack(prev => {
-            // 이미 스택에 있으면 맨 위로 이동
             const filtered = prev.filter(id => id !== modalId);
             return [...filtered, modalId];
         });
     }, []);
 
     const closeModal = useCallback((modalId: string) => {
-        console.log('[ModalContext] Closing modal:', modalId);
-
         setModals(prev => ({
             ...prev,
-            [modalId]: { isOpen: false, props: undefined }
+            [modalId]: { ...prev[modalId], isOpen: false }
         }));
 
         setModalStack(prev => prev.filter(id => id !== modalId));
     }, []);
 
     const closeAllModals = useCallback(() => {
-        console.log('[ModalContext] Closing all modals');
-        setModals({});
+        setModals(prev => {
+            const newModals = { ...prev };
+            Object.keys(newModals).forEach(key => {
+                newModals[key] = { ...newModals[key], isOpen: false };
+            });
+            return newModals;
+        });
         setModalStack([]);
     }, []);
 
@@ -65,26 +68,48 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         return modals[modalId]?.props;
     }, [modals]);
 
-    const contextValue: ModalContextType = {
+    // Optimize Context Values
+    const dispatchValue = useMemo(() => ({
         openModal,
         closeModal,
-        closeAllModals,
-        isModalOpen,
-        getModalProps,
+        closeAllModals
+    }), [openModal, closeModal, closeAllModals]);
+
+    const stateValue = useMemo(() => ({
+        modals,
         modalStack,
-    };
+        isModalOpen,
+        getModalProps
+    }), [modals, modalStack, isModalOpen, getModalProps]);
 
     return (
-        <ModalContext.Provider value={contextValue}>
-            {children}
-        </ModalContext.Provider>
+        <ModalDispatchContext.Provider value={dispatchValue}>
+            <ModalStateContext.Provider value={stateValue}>
+                {children}
+            </ModalStateContext.Provider>
+        </ModalDispatchContext.Provider>
     );
 }
 
-export function useModalContext() {
-    const context = useContext(ModalContext);
+// Hook for Actions only (Use this to avoid re-renders!)
+export function useModalActions() {
+    const context = useContext(ModalDispatchContext);
     if (context === undefined) {
-        throw new Error('useModalContext must be used within a ModalProvider');
+        throw new Error('useModalActions must be used within a ModalProvider');
     }
     return context;
+}
+
+// Hook for State (Use this if you need to react to open/close)
+export function useModalState() {
+    const context = useContext(ModalStateContext);
+    if (context === undefined) {
+        throw new Error('useModalState must be used within a ModalProvider');
+    }
+    return context;
+}
+
+// Legacy Support
+export function useModalContext() {
+    return { ...useModalState(), ...useModalActions() };
 }

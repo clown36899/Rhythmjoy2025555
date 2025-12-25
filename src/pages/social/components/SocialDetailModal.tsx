@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import type { SocialSchedule } from '../types';
 import './SocialDetailModal.css';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 
 interface SocialDetailModalProps {
     isOpen: boolean;
@@ -20,13 +21,37 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
     onEdit,
     isAdmin
 }) => {
+    // Enable mobile back gesture to close modal
+    useModalHistory(isOpen, onClose);
+
+    // Progressive Loading State
+    const [isHighResLoaded, setIsHighResLoaded] = React.useState(false);
+
+    // Reset loading state when schedule changes
+    React.useEffect(() => {
+        setIsHighResLoaded(false);
+    }, [schedule]);
+
     if (!isOpen || !schedule) return null;
 
-    const handleShare = async () => {
-        // any 타입 단언을 통해 속성 접근 (타입 불일치 해결)
-        const s = schedule as any;
+    // Image Source Logic
+    const thumbnailSrc = schedule.image_thumbnail || schedule.image_medium || schedule.image_micro || schedule.image_url;
+    const highResSrc = schedule.image_full || schedule.image_url;
 
-        // ID 추출 로직
+    // Preload HighRes
+    React.useEffect(() => {
+        if (highResSrc && highResSrc !== thumbnailSrc) {
+            const img = new Image();
+            img.src = highResSrc;
+            img.onload = () => setIsHighResLoaded(true);
+        } else {
+            // If only one source, consider loaded immediately
+            setIsHighResLoaded(true);
+        }
+    }, [highResSrc, thumbnailSrc]);
+
+    const handleShare = async () => {
+        const s = schedule as any;
         let realId = s.originalId;
         if (!realId && typeof s.id === 'string' && s.id.startsWith('schedule-')) {
             realId = Number(s.id.replace('schedule-', ''));
@@ -41,20 +66,15 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
         };
 
         try {
-            // 1. Web Share API 시도 (모바일 네이티브 공유)
             if (navigator.share) {
                 await navigator.share(shareData);
             } else {
-                // 2. 지원하지 않으면 클립보드 복사 (데스크탑 등)
                 await navigator.clipboard.writeText(url);
                 alert('일정 링크가 복사되었습니다!');
             }
         } catch (err) {
-            // 사용자가 공유 취소하거나 오류 발생 시
             console.error('공유 실패:', err);
-            // AbortError(사용자 취소)가 아닌 경우에만 알림
             if ((err as Error).name !== 'AbortError') {
-                // 최후의 수단: 클립보드 복사 시도
                 try {
                     await navigator.clipboard.writeText(url);
                     alert('일정 링크가 복사되었습니다!');
@@ -89,8 +109,42 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                 {/* 스크롤되는 영역 (이미지 + 내용) */}
                 <div className="social-detail-scroller">
                     <div className="social-detail-image-box">
-                        {schedule.image_full || schedule.image_url ? (
-                            <img src={schedule.image_full || schedule.image_url} alt={schedule.title} />
+                        {highResSrc ? (
+                            <>
+                                {/* 1. Thumbnail (Base Layer) */}
+                                <img
+                                    src={thumbnailSrc || highResSrc}
+                                    alt={schedule.title}
+                                    style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        opacity: 1,
+                                        position: 'relative',
+                                        zIndex: 1
+                                    }}
+                                />
+
+                                {/* 2. HighRes (Overlay Layer) */}
+                                {highResSrc !== thumbnailSrc && (
+                                    <img
+                                        src={highResSrc}
+                                        alt={schedule.title}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover',
+                                            opacity: isHighResLoaded ? 1 : 0,
+                                            transition: 'opacity 0.3s ease-in-out',
+                                            zIndex: 2
+                                        }}
+                                    />
+                                )}
+                            </>
                         ) : (
                             <div className="detail-placeholder">
                                 <i className="ri-calendar-event-fill"></i>

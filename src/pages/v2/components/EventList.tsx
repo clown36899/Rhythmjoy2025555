@@ -39,7 +39,6 @@ import "../styles/EventListSections.css";
 // Lazy loading으로 성능 최적화 (사용하지 않는 SocialCalendar 제거)
 import { useSocialSchedulesNew } from "../../social/hooks/useSocialSchedulesNew";
 import TodaySocial from "../../social/components/TodaySocial";
-import SocialDetailModal from "../../social/components/SocialDetailModal";
 import type { SocialSchedule } from "../../social/types";
 import { useAuth } from "../../../contexts/AuthContext";
 import PracticeRoomBanner from "./PracticeRoomBanner";
@@ -117,6 +116,7 @@ interface EventListProps {
   isFavoriteMap?: Set<number>;
   onToggleFavorite?: (eventId: number, e?: React.MouseEvent) => void;
   refreshFavorites?: () => void;
+
 }
 
 export default function EventList({
@@ -635,7 +635,6 @@ export default function EventList({
 
   // --- Today's Social Logic ---
   const { schedules: socialSchedules, loading: isSocialSchedulesLoading } = useSocialSchedulesNew();
-  const [selectedSocialSchedule, setSelectedSocialSchedule] = useState<SocialSchedule | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayDayOfWeek = new Date().getDay();
@@ -2985,7 +2984,6 @@ export default function EventList({
               {!isSocialSchedulesLoading && todaySocialSchedules.length > 0 && (
                 <TodaySocial
                   schedules={todaySocialSchedules}
-                  onScheduleClick={(schedule) => setSelectedSocialSchedule(schedule)}
                   onViewAll={() => navigate('/social')}
                 />
               )}
@@ -4721,16 +4719,6 @@ export default function EventList({
           }));
         }}
       />
-
-      {/* Social Detail Modal */}
-      <SocialDetailModal
-        isOpen={!!selectedSocialSchedule}
-        onClose={() => setSelectedSocialSchedule(null)}
-        schedule={selectedSocialSchedule}
-        onCopy={() => { }} // 메인에선 사용안함
-        onEdit={() => { }} // 메인에선 사용안함
-        isAdmin={false} // 메인 V2 페이지에서는 단순 조회만 제공
-      />
-    </div >
+    </div>
   );
 }

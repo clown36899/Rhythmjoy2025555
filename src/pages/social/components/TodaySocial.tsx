@@ -1,45 +1,41 @@
-import React from 'react';
+import React, { memo } from 'react';
 import type { SocialSchedule } from '../types';
 import './TodaySocial.css';
+import { useModalActions } from '../../../contexts/ModalContext';
 
 // 1. Props 인터페이스 수정
 interface TodaySocialProps {
     schedules: SocialSchedule[];
-    onScheduleClick: (schedule: SocialSchedule) => void;
     onViewAll?: () => void;
 }
 
-// 2. 컴포넌트 정의 수정
-const TodaySocial: React.FC<TodaySocialProps> = ({ schedules, onScheduleClick, onViewAll }) => {
+const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll }) => {
+    const { openModal } = useModalActions();
+
     if (schedules.length === 0) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
-        // ... (이미지 처리 로직 그대로 유지)
+        if (item.image_medium) return item.image_medium;
         if (item.image_thumbnail) return item.image_thumbnail;
         if (item.image_micro) return item.image_micro;
         const fallback = item.image_url || '';
-        if (fallback.includes('/social/full/')) {
-            return fallback.replace('/social/full/', '/social/thumbnail/');
-        }
-        if (fallback.includes('/social-schedules/full/')) {
-            return fallback.replace('/social-schedules/full/', '/social-schedules/thumbnail/');
-        }
-        if (fallback.includes('/event-posters/full/')) {
-            return fallback.replace('/event-posters/full/', '/event-posters/thumbnail/');
-        }
         return fallback;
+    };
+
+    const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
+        e.stopPropagation();
+        openModal('socialDetail', { schedule: item, isAdmin: false });
     };
 
     return (
         <section className="today-social-container">
             <div className="section-title-area">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h2 className="section-title">오늘의 소셜</h2>
-                    <span className="live-badge">LIVE</span>
-                </div>
+                <i className="ri-fire-fill" style={{ color: '#ff4b2b', fontSize: '1.2rem' }}></i>
+                <h2 className="section-title">오늘의 소셜</h2>
+                <span className="live-badge">LIVE</span>
                 {onViewAll && (
-                    <button onClick={onViewAll} className="evt-view-all-btn">
-                        모아보기 ❯
+                    <button className="admin-add-group-btn-small" onClick={onViewAll}>
+                        전체보기 <i className="ri-arrow-right-s-line"></i>
                     </button>
                 )}
             </div>
@@ -49,7 +45,7 @@ const TodaySocial: React.FC<TodaySocialProps> = ({ schedules, onScheduleClick, o
                     <div
                         key={item.id}
                         className="today-card"
-                        onClick={() => onScheduleClick(item)}
+                        onClick={(e) => handleScheduleClick(e, item)}
                     >
                         <div className="today-card-image">
                             {getMediumImage(item) ? (
@@ -59,25 +55,24 @@ const TodaySocial: React.FC<TodaySocialProps> = ({ schedules, onScheduleClick, o
                                     <i className="ri-calendar-event-line"></i>
                                 </div>
                             )}
-                            {item.start_time && (
-                                <div className="today-card-overlay">
-                                    <span className="today-time">{item.start_time.substring(0, 5)}</span>
-                                </div>
-                            )}
+                            <div className="today-card-overlay">
+                                <span className="today-time">{item.start_time?.substring(0, 5)}</span>
+                            </div>
                         </div>
                         <div className="today-card-info">
                             <h3 className="today-card-title">{item.title}</h3>
                             <p className="today-card-place">
-                                <i className="ri-map-pin-2-fill"></i> {item.place_name}
+                                <i className="ri-map-pin-line"></i>
+                                {item.place_name || '장소 미정'}
                             </p>
                         </div>
                     </div>
                 ))}
-                {/* 여유 공간을 위한 더미 */}
-                <div className="scroller-spacer" />
+                {/* Spacer for last item padding */}
+                <div className="scroller-spacer"></div>
             </div>
         </section>
     );
-};
+});
 
 export default TodaySocial;
