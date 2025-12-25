@@ -17,7 +17,7 @@ interface AuthContextType {
   billboardUserId: string | null;
   billboardUserName: string | null;
   setBillboardUser: (userId: string | null, userName: string | null) => void;
-  signIn: (email: string, password: string) => Promise<void>;
+  // signIn: (email: string, password: string) => Promise<void>; // Removed
   signInWithKakao: () => Promise<void>;
   signOut: () => Promise<void>;
   cancelAuth: () => void;
@@ -345,14 +345,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
 
-    if (error) throw error;
-  };
 
   const signInWithKakao = async () => {
     setIsAuthProcessing(true); // 즉시 스피너 표시
@@ -517,7 +510,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userProfile,
     setBillboardUser,
     refreshUserProfile,
-    signIn,
+    // signIn, // Removed unused function
     signInWithKakao,
     signOut,
     cancelAuth,

@@ -949,8 +949,15 @@
 
     .room-modal-container {
         max-width: 100%;
-        max-height: 100vh;
+        max-height: 100dvh;
+        height: 100dvh;
         border-radius: 0;
+    }
+
+    .room-modal-header-bar {
+        padding-top: calc(1rem + env(safe-area-inset-top));
+        height: auto;
+        min-height: calc(60px + env(safe-area-inset-top));
     }
 
     .room-gallery-main {
