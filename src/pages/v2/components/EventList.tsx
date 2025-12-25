@@ -774,7 +774,7 @@ export default function EventList({
 
       const fetchPromise = (async () => {
         // 필요한 컬럼만 선택 (성능 최적화)
-        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
+        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_micro,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
 
         if (isAdminMode) {
           // 관리자 모드: 모든 이벤트 조회 (종료된 이벤트 포함)

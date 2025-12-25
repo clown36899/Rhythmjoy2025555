@@ -27,7 +27,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             const table = isAnon ? 'board_anonymous_posts' : 'board_posts';
 
             // Construct query based on category
-            const anonFields = "id, title, content, author_name, author_nickname, views, is_notice, created_at, updated_at, image_thumbnail, image, is_hidden, comment_count, likes, dislikes, display_order";
+            const anonFields = "id, title, author_name, author_nickname, views, is_notice, created_at, updated_at, image_thumbnail, image, is_hidden, comment_count, likes, dislikes, display_order";
             const standardFields = `
                 id, title, author_name, author_nickname,
                 user_id, views, is_notice, prefix_id,

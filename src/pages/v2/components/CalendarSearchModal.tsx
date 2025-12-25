@@ -88,20 +88,20 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
             // Always fetch events
             const { data: eventsData, error: eventsError } = await supabase
                 .from('events')
-                .select('*')
+                .select('id, title, date, start_date, end_date, location, organizer, category, image, image_thumbnail, image_micro, description')
                 .order('date', { ascending: true });
 
             if (eventsError) {
                 console.error('Error fetching events:', eventsError);
             } else {
-                setEvents(eventsData || []);
+                setEvents((eventsData || []) as unknown as Event[]);
             }
 
             // Fetch practice rooms and shopping only if searchMode is 'all'
             if (searchMode === 'all') {
                 const { data: practiceData, error: practiceError } = await supabase
                     .from('venues')
-                    .select('*')
+                    .select('id, name, address, description, images')
                     .eq('category', '연습실')
                     .order('name', { ascending: true });
 
@@ -118,7 +118,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
 
                 const { data: shoppingData, error: shoppingError } = await supabase
                     .from('shops')
-                    .select('*')
+                    .select('id, name, description, logo_url')
                     .order('name', { ascending: true });
 
                 if (shoppingError) {
@@ -198,10 +198,10 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                                             className="cal-search-item"
                                             onClick={() => handleSelectEvent(event)}
                                         >
-                                            {(event.image_thumbnail || event.image) && (
+                                            {(event.image_micro || event.image_thumbnail || event.image) && (
                                                 <div className="cal-search-item-image">
                                                     <img
-                                                        src={event.image_thumbnail || event.image}
+                                                        src={event.image_micro || event.image_thumbnail || event.image}
                                                         alt={event.title}
                                                         onError={(e) => {
                                                             e.currentTarget.style.display = 'none';

@@ -61,7 +61,7 @@ export default function SocialCalendar({
       // Fetch the schedule data
       const { data: scheduleData, error } = await supabase
         .from('social_schedules')
-        .select('*')
+        .select('id, user_id, created_at, day_of_week, place_name, title, image_url, image_url_thumbnail, start_time, genres, description, link_name, link_url')
         .eq('id', unifiedEvent.originalId)
         .single();
 
