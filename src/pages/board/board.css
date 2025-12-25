@@ -318,41 +318,46 @@
 }
 
 
-/* ===== 페이지네이션 (Standard Mode) ===== */
-.standard-mode .board-pagination {
+/* ===== 페이지네이션 (Global) ===== */
+.board-pagination {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 0.25rem;
   margin-top: 0.75rem;
-  padding-bottom: var(--spacing-2);
+  padding-bottom: 7rem;
+  /* Added generous padding for bottom tab bar clearance */
 }
 
-.standard-mode .board-page-btn {
-  padding: 0.125rem 0.625rem;
+.board-page-btn {
+  padding: 0.25rem 0.75rem;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
-  color: var(--color-gray-300);
+  color: #9ca3af;
+  /* Gray-400 */
   transition: var(--transition-colors);
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   background: none;
 }
 
-.standard-mode .board-page-btn:hover {
-  background-color: var(--color-gray-600);
+.board-page-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
-.standard-mode .board-page-btn:disabled {
+.board-page-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
-.standard-mode .board-page-btn.active {
-  background-color: var(--color-blue-600);
+.board-page-btn.active {
+  background-color: #3b82f6;
+  /* Blue-500 */
   color: white;
-  font-weight: 500;
+  font-weight: 600;
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 /* ===== Search Modal Styles ===== */

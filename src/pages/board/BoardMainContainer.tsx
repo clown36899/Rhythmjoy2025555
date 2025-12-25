@@ -27,7 +27,7 @@ export default function BoardMainContainer() {
     // State
     const category = (searchParams.get('category') as BoardCategory) || 'free';
     const [isEditorOpen, setIsEditorOpen] = useState(false);
-    const [postsPerPage, setPostsPerPage] = useState(10);
+    const [postsPerPage] = useState(10);
 
     // Admin UI States
     const [showAdminMenu, setShowAdminMenu] = useState(false);
@@ -227,42 +227,59 @@ export default function BoardMainContainer() {
                         isAdmin={isRealAdmin}
                     />
                 )}
-            </div>
 
-            <div className="board-list-controls bottom">
-                <div className="board-limit-selector">
-                    {[10, 20, 30].map(val => (
+                {/* Selector removed as per user request */}
+
+                {/* Pagination */}
+                {totalPages > 0 && (
+                    <div className="board-pagination">
                         <button
-                            key={val}
-                            className={`board-limit-btn ${postsPerPage === val ? 'active' : ''}`}
-                            onClick={() => { setPostsPerPage(val); setCurrentPage(1); }}
+                            onClick={() => goToPage(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="board-page-btn"
                         >
-                            {val}개씩
+                            이전
                         </button>
-                    ))}
-                </div>
-            </div>
 
-            {/* Pagination (Adding back if missing in original view but good to have) */}
-            {totalPages > 1 && (
-                <div className="board-pagination">
-                    <button
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="board-page-btn"
-                    >
-                        <i className="ri-arrow-left-s-line"></i>
-                    </button>
-                    <span className="board-page-info">{currentPage} / {totalPages}</span>
-                    <button
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="board-page-btn"
-                    >
-                        <i className="ri-arrow-right-s-line"></i>
-                    </button>
-                </div>
-            )}
+                        {(() => {
+                            const pageNumbers = [];
+                            const maxVisiblePages = 5;
+                            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+                            if (endPage - startPage + 1 < maxVisiblePages) {
+                                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                            }
+
+                            // Adjust logic nicely for edge cases
+                            if (endPage > totalPages) endPage = totalPages;
+                            if (startPage < 1) startPage = 1;
+
+                            for (let i = startPage; i <= endPage; i++) {
+                                pageNumbers.push(i);
+                            }
+
+                            return pageNumbers.map(pageNum => (
+                                <button
+                                    key={pageNum}
+                                    className={`board-page-btn ${currentPage === pageNum ? 'active' : ''}`}
+                                    onClick={() => goToPage(pageNum)}
+                                >
+                                    {pageNum}
+                                </button>
+                            ));
+                        })()}
+
+                        <button
+                            onClick={() => goToPage(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="board-page-btn"
+                        >
+                            다음
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {isRealAdmin && (
                 <div className="board-admin-fab-container">
