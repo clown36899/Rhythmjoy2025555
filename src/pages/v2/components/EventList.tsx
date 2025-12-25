@@ -115,6 +115,7 @@ interface EventListProps {
   onGenresLoaded?: (genres: { class: string[]; event: string[] } | string[]) => void;
   isFavoriteMap?: Set<number>;
   onToggleFavorite?: (eventId: number, e?: React.MouseEvent) => void;
+  refreshFavorites?: () => void;
 }
 
 export default function EventList({
@@ -150,6 +151,7 @@ export default function EventList({
   onGenresLoaded,
   isFavoriteMap,
   onToggleFavorite: externalOnToggleFavorite,
+  refreshFavorites,
 }: EventListProps) {
   const { user, signInWithKakao, validateSession } = useAuth();
   const navigate = useNavigate();
@@ -287,17 +289,21 @@ export default function EventList({
 
   const favoriteEventsList = [...futureFavorites, ...pastFavorites];
 
-  // Scroll to favorites if view=favorites
+  // Scroll to favorites if view=favorites and refresh data
   useEffect(() => {
     const view = searchParams.get('view');
     if (view === 'favorites') {
+      // Refresh favorites when entering favorites view
+      if (refreshFavorites) {
+        refreshFavorites();
+      }
       // "모아보기" 모드에서는 페이지 최상단으로 이동 (전용 페이지처럼 동작)
       // body가 스크롤 컨테이너인 경우(overflow: auto)와 window 스크롤인 경우 모두 대응
       window.scrollTo(0, 0);
       document.body.scrollTop = 0;
       if (document.documentElement) document.documentElement.scrollTop = 0;
     }
-  }, [searchParams]);
+  }, [searchParams, refreshFavorites]);
 
   const handleToggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();

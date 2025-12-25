@@ -112,7 +112,7 @@ export default function HomePageV2() {
     const handleSearchStart = () => navigateWithCategory("all");
 
     // Favorites Logic
-    const { favoriteEventIds, toggleFavorite } = useEventFavorites(user, signInWithKakao);
+    const { favoriteEventIds, toggleFavorite, refreshFavorites } = useEventFavorites(user, signInWithKakao);
 
     // --------------------------------------------------------------------------------
     // 4. UI Components (Memoized)
@@ -422,6 +422,7 @@ export default function HomePageV2() {
                             onGenresLoaded={(genres) => setAllGenres(genres as { class: string[]; event: string[] })}
                             isFavoriteMap={favoriteEventIds}
                             onToggleFavorite={toggleFavorite}
+                            refreshFavorites={refreshFavorites}
                         />
                     </div>
                 )}

@@ -6,11 +6,11 @@ import FullEventCalendar from "./components/FullEventCalendar";
 import "./styles/CalendarPage.css";
 import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";
 import { useEventModal } from "../../hooks/useEventModal";
-import { supabase } from "../../lib/supabase";
 
 import EventDetailModal from "../v2/components/EventDetailModal";
 import CalendarSearchModal from "../v2/components/CalendarSearchModal";
 import { useAuth } from "../../contexts/AuthContext";
+import { useEventFavorites } from "../../hooks/useEventFavorites";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
@@ -37,8 +37,8 @@ export default function CalendarPage() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
 
-    // Favorites
-    const [favoriteEventIds, setFavoriteEventIds] = useState<Set<number>>(new Set());
+    // Favorites - using centralized hook
+    const { favoriteEventIds, toggleFavorite } = useEventFavorites(user, signInWithKakao);
 
     const containerRef = useRef<HTMLDivElement>(null!);
     const eventListElementRef = useRef<HTMLDivElement>(null!); // Dummy ref for useCalendarGesture
@@ -89,31 +89,7 @@ export default function CalendarPage() {
         // For now, syncing from useAuth is safest.
     }, [authIsAdmin]);
 
-    // Fetch Favorites
-    useEffect(() => {
-        if (!user) {
-            setFavoriteEventIds(new Set());
-            return;
-        }
 
-        const fetchFavorites = async () => {
-            const { data, error } = await supabase
-                .from('event_favorites')
-                .select('event_id')
-                .eq('user_id', user.id);
-
-            if (error) {
-                console.error('Error fetching favorites:', error);
-                return;
-            }
-
-            if (data) {
-                setFavoriteEventIds(new Set(data.map(item => item.event_id)));
-            }
-        };
-
-        fetchFavorites();
-    }, [user]);
 
     // Handlers
     const handleMonthChange = useCallback((newMonth: Date) => {
@@ -138,67 +114,7 @@ export default function CalendarPage() {
         if (date) setSelectedWeekday(null);
     }, []);
 
-    const handleToggleFavorite = async (e: React.MouseEvent) => {
-        e.stopPropagation();
 
-        const eventId = eventModal.selectedEvent?.id;
-        if (!eventId) return;
-
-        if (!user) {
-            if (confirm('로그인이 필요한 기능입니다. 카카오로 로그인하시겠습니까?')) {
-                try {
-                    signInWithKakao();
-                } catch (err) {
-                    console.error(err);
-                }
-            }
-            return;
-        }
-
-        const isFav = favoriteEventIds.has(eventId);
-
-        // Optimistic Update
-        setFavoriteEventIds(prev => {
-            const next = new Set(prev);
-            if (isFav) next.delete(eventId);
-            else next.add(eventId);
-            return next;
-        });
-
-        if (isFav) {
-            // Remove
-            const { error } = await supabase
-                .from('event_favorites')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('event_id', eventId);
-
-            if (error) {
-                console.error('Error removing favorite:', error);
-                // Rollback
-                setFavoriteEventIds(prev => {
-                    const next = new Set(prev);
-                    next.add(eventId);
-                    return next;
-                });
-            }
-        } else {
-            // Add
-            const { error } = await supabase
-                .from('event_favorites')
-                .insert({ user_id: user.id, event_id: eventId });
-
-            if (error) {
-                console.error('Error adding favorite:', error);
-                // Rollback
-                setFavoriteEventIds(prev => {
-                    const next = new Set(prev);
-                    next.delete(eventId);
-                    return next;
-                });
-            }
-        }
-    };
 
 
 
@@ -346,7 +262,7 @@ export default function CalendarPage() {
                     onDelete={(id) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
                     onEdit={(event) => eventModal.handleEditClick(event)}
                     isFavorite={favoriteEventIds.has(eventModal.selectedEvent.id)}
-                    onToggleFavorite={handleToggleFavorite}
+                    onToggleFavorite={(e) => eventModal.selectedEvent && toggleFavorite(eventModal.selectedEvent.id, e)}
                 />
             )}
 
