@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.20.1',
+        date: '2025-12-26',
+        changes: [
+            '[최적화] 소셜 모달 GPU 가속 및 하드웨어 최적화 (깜빡임 해결)',
+            '[Fix] 전역 모달 시스템 통합으로 중복 렌더링 및 먹통 오류 해결',
+            '[UX] 모바일 100dvh 및 터치 호버 최적화',
+            '[성능] 점진적 이미지 로딩(Progressive Loading) 복구'
+        ]
+    },
+    {
         version: '2.20.0',
         date: '2025-12-26',
         changes: [
