@@ -510,7 +510,11 @@ export default memo(function EventRegistrationModal({
     }
 
     setIsSubmitting(true);
+    console.log("🌀 스피너 실행됨 (isSubmitting: true)");
     setLoadingMessage("저장 준비 중...");
+
+    // UI 렌더링을 위해 잠시 대기 (스피너가 확실히 뜨도록)
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     try {
       // 타임아웃 20초 설정
@@ -539,7 +543,7 @@ export default memo(function EventRegistrationModal({
 
               // 이미지 업로드 함수 (재시도 용)
               const uploadImage = async (path: string, file: Blob) => {
-                const { error, data } = await supabase.storage.from("images").upload(path, file);
+                const { error } = await supabase.storage.from("images").upload(path, file);
                 if (error) {
                   console.error("Upload failed for path:", path, error);
                   throw error;

@@ -13,6 +13,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import VenueSelectModal from './VenueSelectModal';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { createResizedImages } from '../../../utils/imageResize';
+import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 
 interface Event extends BaseEvent {
   storage_path?: string | null;
@@ -245,6 +246,16 @@ export default function EventDetailModal({
   const handleImageClick = async () => {
     if (!isSelectionMode) return;
 
+    // 1. Open Modal Immediately
+    setIsCropModalOpen(true);
+    // 2. Start Loading State (Passed to modal)
+    setIsImageLoading(true);
+
+    // Yield to UI to ensure modal opens
+
+    // Yield to UI to ensure modal opens
+    await new Promise(resolve => setTimeout(resolve, 0));
+
     try {
       if (imageFile) {
         setTempImageSrc(await fileToDataURL(imageFile));
@@ -257,24 +268,33 @@ export default function EventDetailModal({
       } else {
         setTempImageSrc(null);
       }
-      setIsCropModalOpen(true);
     } catch (e) {
       console.error('Failed to prepare image for edit:', e);
       setTempImageSrc(null);
-      setIsCropModalOpen(true);
+    } finally {
+      setIsImageLoading(false);
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Ensure modal is open immediately
+      setIsCropModalOpen(true);
+      setIsImageLoading(true);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       try {
         const dataUrl = await fileToDataURL(file);
         setTempImageSrc(dataUrl);
-        setIsCropModalOpen(true);
+        // setIsCropModalOpen(true); // Already opened above
       } catch (error) {
         console.error("Failed to load image:", error);
         alert("이미지를 불러오는데 실패했습니다.");
+      } finally {
+        setIsImageLoading(false);
       }
       e.target.value = ''; // Reset input
     }
@@ -324,6 +344,7 @@ export default function EventDetailModal({
     link3: '', link_name3: ''
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
 
   // Genre Management State (Moved down to access editCategory/editValue)
   const [allHistoricalGenres, setAllHistoricalGenres] = useState<string[]>([]);
@@ -486,6 +507,10 @@ export default function EventDetailModal({
 
     try {
       setIsSaving(true);
+      console.log("🌀 EventDetailModal 스피너 실행됨 (isSaving: true)");
+
+      // UI 렌더링을 위해 양보 (0ms)
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       // Initialize updates with current draft state
       const updates: any = {
@@ -1465,11 +1490,16 @@ export default function EventDetailModal({
               </div>
             </div>
           </div>
+          <GlobalLoadingOverlay
+            isLoading={isSaving || (isImageLoading && !isCropModalOpen)}
+            message={isSaving ? "저장 중입니다..." : "이미지 불러오는 중..."}
+          />
         </div>
         , document.body
       )}
 
-      {showFullscreenImage &&
+      {
+        showFullscreenImage &&
         (selectedEvent.image_full ||
           selectedEvent.image ||
           getEventThumbnail(
@@ -1512,7 +1542,8 @@ export default function EventDetailModal({
                 onClick={(e) => e.stopPropagation()}
               />
             </div>, document.body
-          ))}
+          ))
+      }
       {/* Venue Select Modal */}
       <VenueSelectModal
         isOpen={showVenueSelect}
@@ -1522,210 +1553,211 @@ export default function EventDetailModal({
       />
 
       {/* Bottom Sheets Portal */}
-      {activeEditField && createPortal(
-        <div className="bottom-sheet-portal">
-          <div
-            className="bottom-sheet-backdrop"
-            onClick={() => setActiveEditField(null)}
-          />
-          <div className="bottom-sheet-content">
-            <div className="bottom-sheet-handle"></div>
-            <h3 className="bottom-sheet-header">
-              {activeEditField === 'title' && <><i className="ri-text"></i>제목 수정</>}
-              {activeEditField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
-              {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
-              {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
-            </h3>
+      {
+        activeEditField && createPortal(
+          <div className="bottom-sheet-portal">
+            <div
+              className="bottom-sheet-backdrop"
+              onClick={() => setActiveEditField(null)}
+            />
+            <div className="bottom-sheet-content">
+              <div className="bottom-sheet-handle"></div>
+              <h3 className="bottom-sheet-header">
+                {activeEditField === 'title' && <><i className="ri-text"></i>제목 수정</>}
+                {activeEditField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
+                {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
+                {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
+              </h3>
 
-            <div className="bottom-sheet-body">
-              <div className="bottom-sheet-input-group">
-                {activeEditField === 'links' ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0' }}>링크</label>
-                      <input
-                        type="text"
-                        className="bottom-sheet-input"
-                        value={linkEditValues.link_name1}
-                        onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })}
-                        placeholder="링크 이름 (예: 신청하기)"
-                        style={{ minHeight: '40px', marginBottom: '0.25rem' }}
-                      />
-                      <input
-                        type="text"
-                        className="bottom-sheet-input"
-                        value={linkEditValues.link1}
-                        onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })}
-                        placeholder="URL (https://...)"
-                        style={{ minHeight: '40px' }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {activeEditField === 'genre' ? (
-                      <div className="genre-edit-container">
-                        {/* 1. Category Selection */}
-                        <div className="genre-category-toggle" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                          <button
-                            onClick={() => {
-                              setEditCategory('event');
-                              setEditValue(''); // Reset genre when switching category
-                            }}
-                            className={`category-toggle-btn ${editCategory === 'event' ? 'active' : ''}`}
-                            style={{
-                              flex: 1,
-                              padding: '12px',
-                              background: editCategory === 'event' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                              border: editCategory === 'event' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                              color: 'white',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              fontWeight: 600
-                            }}
-                          >
-                            행사
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditCategory('class');
-                              setEditValue(''); // Reset genre when switching category
-                            }}
-                            className={`category-toggle-btn ${editCategory === 'class' ? 'active' : ''}`}
-                            style={{
-                              flex: 1,
-                              padding: '12px',
-                              background: editCategory === 'class' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                              border: editCategory === 'class' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                              color: 'white',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              fontWeight: 600
-                            }}
-                          >
-                            강습
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditCategory('club');
-                              setEditValue(''); // Reset genre when switching category
-                            }}
-                            className={`category-toggle-btn ${editCategory === 'club' ? 'active' : ''}`}
-                            style={{
-                              flex: 1,
-                              padding: '12px',
-                              background: editCategory === 'club' ? '#10b981' : 'rgba(255,255,255,0.05)',
-                              border: editCategory === 'club' ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
-                              color: 'white',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              fontWeight: 600
-                            }}
-                          >
-                            동호회
-                          </button>
-                        </div>
-
-                        {/* 2. Genre Chips */}
-                        <div className="genre-chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-                          {/* Fixed Club Lesson Option removed from separate button and added to list below */}
-
-                          {uniqueGenres
-                            .map(genre => (
-                              <button
-                                key={genre}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  console.log(`[EventDetailModal] Genre Click: ${genre}`);
-
-                                  const current = editValue ? editValue.split(',').map(s => s.trim()).filter(Boolean) : [];
-
-                                  // LOGIC:
-                                  // 1. Class/Club: Single Selection Only
-                                  // 2. Event: Mutual Exclusivity (Party vs Competition)
-
-                                  let newGenres: string[];
-
-                                  if (editCategory === 'class' || editCategory === 'club') {
-                                    // FORCE SINGLE SELECT for Class/Club
-                                    // If clicking the already selected one, allow toggle off (or keep? usually toggle off is fine)
-                                    // User said "Class is not multi-selectable".
-                                    if (current.includes(genre)) {
-                                      newGenres = []; // Toggle off
-                                    } else {
-                                      newGenres = [genre]; // Replace
-                                    }
-                                  } else {
-                                    // EVENT logic (Multi-select with constraints)
-                                    if (current.includes(genre)) {
-                                      newGenres = current.filter(g => g !== genre);
-                                    } else {
-                                      let temp = [...current];
-                                      // Mutual Exclusivity: '파티' vs '대회'
-                                      if (genre === '파티') {
-                                        temp = temp.filter(g => g !== '대회');
-                                      } else if (genre === '대회') {
-                                        temp = temp.filter(g => g !== '파티');
-                                      }
-                                      newGenres = [...temp, genre];
-                                    }
-                                  }
-
-                                  const newValue = newGenres.join(',');
-                                  console.log(`[EventDetailModal] New Value: ${newValue}`);
-
-                                  setEditValue(newValue);
-                                  // setUseDirectInput(false); // Removed
-                                }}
-                                className={`genre-chip ${editValue.split(',').map(s => s.trim()).includes(genre) ? 'active' : ''}`}
-                                style={{
-                                  padding: '8px 16px',
-                                  borderRadius: '9999px',
-                                  background: editValue.split(',').map(s => s.trim()).includes(genre) ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                  border: editValue.split(',').map(s => s.trim()).includes(genre) ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                                  color: 'white',
-                                  cursor: 'pointer',
-                                  fontSize: '14px'
-                                }}
-                              >
-                                {genre}
-                              </button>
-                            ))}
-                          {/* Direct Input Removed */}
-                        </div>
-
-                        {/* 3. Direct Input Field (Conditional) - REMOVED to avoid confusion */}
+              <div className="bottom-sheet-body">
+                <div className="bottom-sheet-input-group">
+                  {activeEditField === 'links' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0' }}>링크</label>
+                        <input
+                          type="text"
+                          className="bottom-sheet-input"
+                          value={linkEditValues.link_name1}
+                          onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })}
+                          placeholder="링크 이름 (예: 신청하기)"
+                          style={{ minHeight: '40px', marginBottom: '0.25rem' }}
+                        />
+                        <input
+                          type="text"
+                          className="bottom-sheet-input"
+                          value={linkEditValues.link1}
+                          onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })}
+                          placeholder="URL (https://...)"
+                          style={{ minHeight: '40px' }}
+                        />
                       </div>
-                    ) : (
-                      // Normal text input for other fields
-                      <textarea
-                        className="bottom-sheet-input"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
-                        rows={activeEditField === 'title' ? 3 : 8}
-                        style={{ resize: 'none', minHeight: activeEditField === 'title' ? '80px' : '200px' }}
-                        autoFocus
-                      />
-                    )}
-                  </>
-                )}
-              </div>
-              <div className="bottom-sheet-actions">
-                <button
-                  onClick={handleSaveField}
-                  className="bottom-sheet-button"
-                  disabled={isSaving}
-                >
-                  {isSaving ? '저장 중...' : '저장'}
-                </button>
+                    </div>
+                  ) : (
+                    <>
+                      {activeEditField === 'genre' ? (
+                        <div className="genre-edit-container">
+                          {/* 1. Category Selection */}
+                          <div className="genre-category-toggle" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                            <button
+                              onClick={() => {
+                                setEditCategory('event');
+                                setEditValue(''); // Reset genre when switching category
+                              }}
+                              className={`category-toggle-btn ${editCategory === 'event' ? 'active' : ''}`}
+                              style={{
+                                flex: 1,
+                                padding: '12px',
+                                background: editCategory === 'event' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                border: editCategory === 'event' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                color: 'white',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              행사
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditCategory('class');
+                                setEditValue(''); // Reset genre when switching category
+                              }}
+                              className={`category-toggle-btn ${editCategory === 'class' ? 'active' : ''}`}
+                              style={{
+                                flex: 1,
+                                padding: '12px',
+                                background: editCategory === 'class' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                border: editCategory === 'class' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                color: 'white',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              강습
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditCategory('club');
+                                setEditValue(''); // Reset genre when switching category
+                              }}
+                              className={`category-toggle-btn ${editCategory === 'club' ? 'active' : ''}`}
+                              style={{
+                                flex: 1,
+                                padding: '12px',
+                                background: editCategory === 'club' ? '#10b981' : 'rgba(255,255,255,0.05)',
+                                border: editCategory === 'club' ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
+                                color: 'white',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              동호회
+                            </button>
+                          </div>
+
+                          {/* 2. Genre Chips */}
+                          <div className="genre-chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                            {/* Fixed Club Lesson Option removed from separate button and added to list below */}
+
+                            {uniqueGenres
+                              .map(genre => (
+                                <button
+                                  key={genre}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log(`[EventDetailModal] Genre Click: ${genre}`);
+
+                                    const current = editValue ? editValue.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+                                    // LOGIC:
+                                    // 1. Class/Club: Single Selection Only
+                                    // 2. Event: Mutual Exclusivity (Party vs Competition)
+
+                                    let newGenres: string[];
+
+                                    if (editCategory === 'class' || editCategory === 'club') {
+                                      // FORCE SINGLE SELECT for Class/Club
+                                      // If clicking the already selected one, allow toggle off (or keep? usually toggle off is fine)
+                                      // User said "Class is not multi-selectable".
+                                      if (current.includes(genre)) {
+                                        newGenres = []; // Toggle off
+                                      } else {
+                                        newGenres = [genre]; // Replace
+                                      }
+                                    } else {
+                                      // EVENT logic (Multi-select with constraints)
+                                      if (current.includes(genre)) {
+                                        newGenres = current.filter(g => g !== genre);
+                                      } else {
+                                        let temp = [...current];
+                                        // Mutual Exclusivity: '파티' vs '대회'
+                                        if (genre === '파티') {
+                                          temp = temp.filter(g => g !== '대회');
+                                        } else if (genre === '대회') {
+                                          temp = temp.filter(g => g !== '파티');
+                                        }
+                                        newGenres = [...temp, genre];
+                                      }
+                                    }
+
+                                    const newValue = newGenres.join(',');
+                                    console.log(`[EventDetailModal] New Value: ${newValue}`);
+
+                                    setEditValue(newValue);
+                                    // setUseDirectInput(false); // Removed
+                                  }}
+                                  className={`genre-chip ${editValue.split(',').map(s => s.trim()).includes(genre) ? 'active' : ''}`}
+                                  style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '9999px',
+                                    background: editValue.split(',').map(s => s.trim()).includes(genre) ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                    border: editValue.split(',').map(s => s.trim()).includes(genre) ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                  }}
+                                >
+                                  {genre}
+                                </button>
+                              ))}
+                            {/* Direct Input Removed */}
+                          </div>
+
+                          {/* 3. Direct Input Field (Conditional) - REMOVED to avoid confusion */}
+                        </div>
+                      ) : (
+                        // Normal text input for other fields
+                        <textarea
+                          className="bottom-sheet-input"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
+                          rows={activeEditField === 'title' ? 3 : 8}
+                          style={{ resize: 'none', minHeight: activeEditField === 'title' ? '80px' : '200px' }}
+                          autoFocus
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="bottom-sheet-actions">
+                  <button
+                    onClick={handleSaveField}
+                    className="bottom-sheet-button"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? '저장 중...' : '저장'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div >,
-        document.body
-      )
+          </div >,
+          document.body
+        )
       }
       <ImageCropModal
         isOpen={isCropModalOpen}
@@ -1735,6 +1767,7 @@ export default function EventDetailModal({
         onChangeImage={() => fileInputRef.current?.click()}
         originalImageUrl={originalImageUrl}
         onImageUpdate={handleImageUpdate}
+        isLoading={isImageLoading}
       />
       <input
         ref={fileInputRef}

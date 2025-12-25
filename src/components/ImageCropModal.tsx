@@ -20,6 +20,7 @@ interface ImageCropModalProps {
   // 되돌리기 기능을 위한 Props 추가
   hasOriginal?: boolean;
   onRestoreOriginal?: () => void;
+  isLoading?: boolean;
 }
 
 async function createCroppedImage(
@@ -106,6 +107,7 @@ export default memo(function ImageCropModal({
   originalImageUrl = null,
   hasOriginal = false,
   onRestoreOriginal,
+  isLoading = false,
 }: ImageCropModalProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -131,6 +133,16 @@ export default memo(function ImageCropModal({
 
   // Preview State (Separated from final complete)
   const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string | null>(null);
+
+  // Image Loading State (for visual rendering)
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+
+  useEffect(() => {
+    // URL이 바뀌면 로딩 상태 리셋
+    if (imageUrl) {
+      setIsImageLoaded(false);
+    }
+  }, [imageUrl]); // Removed croppedPreviewUrl to prevent spinner on crop apply
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -382,7 +394,7 @@ export default memo(function ImageCropModal({
 
   return createPortal(
     <div className="crop-modal-overlay">
-      <div className="crop-modal-container">
+      <div className="crop-modal-container" style={{ position: 'relative' }}>
         {/* 헤더 */}
         <div className="crop-modal-header">
           <h2 className="crop-modal-title">
@@ -401,39 +413,42 @@ export default memo(function ImageCropModal({
         </div>
 
         {/* 메인 컨텐츠 영역 */}
-        <div className="crop-content-area">
-          {/* 크롭 UI - 항상 표시 */}
+        <div className="crop-content-area" style={{ position: 'relative', minHeight: '300px' }}>
+          {/* 크롭 UI - 항상 렌더링하되 로딩 중에는 숨김 (onLoad 트리거 위해) */}
           {imageUrl ? (
-            <ReactCrop
-              crop={crop}
-              onChange={(c) => setCrop(c)}
-              onComplete={(displayPixelCrop) => {
-                if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
-                  const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-                  const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+            <div style={{ opacity: (isLoading || !isImageLoaded) ? 0 : 1, width: '100%', height: '100%' }}>
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(displayPixelCrop) => {
+                  if (displayPixelCrop.width && displayPixelCrop.height && imgRef.current) {
+                    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+                    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
 
-                  const naturalPixelCrop: PixelCrop = {
-                    unit: 'px',
-                    x: displayPixelCrop.x * scaleX,
-                    y: displayPixelCrop.y * scaleY,
-                    width: displayPixelCrop.width * scaleX,
-                    height: displayPixelCrop.height * scaleY,
-                  };
+                    const naturalPixelCrop: PixelCrop = {
+                      unit: 'px',
+                      x: displayPixelCrop.x * scaleX,
+                      y: displayPixelCrop.y * scaleY,
+                      width: displayPixelCrop.width * scaleX,
+                      height: displayPixelCrop.height * scaleY,
+                    };
 
-                  setCompletedCrop(naturalPixelCrop);
-                }
-              }}
-              aspect={aspectRatio}
-              className="ReactCrop"
-            >
-              <img
-                ref={imgRef}
-                src={croppedPreviewUrl || imageUrl}
-                alt="크롭할 이미지"
-                className="crop-image"
-                crossOrigin="anonymous"
-              />
-            </ReactCrop>
+                    setCompletedCrop(naturalPixelCrop);
+                  }
+                }}
+                aspect={aspectRatio}
+                className="ReactCrop"
+              >
+                <img
+                  ref={imgRef}
+                  src={croppedPreviewUrl || imageUrl}
+                  alt="크롭할 이미지"
+                  className="crop-image"
+                  crossOrigin="anonymous"
+                  onLoad={() => setIsImageLoaded(true)}
+                />
+              </ReactCrop>
+            </div>
           ) : (
             /* 3. 이미지 없음 (Placeholder) */
             <div
@@ -596,6 +611,36 @@ export default memo(function ImageCropModal({
           </>
 
         </div>
+
+        {/* Loading Overlay Sibling (Covers Entire Modal) */}
+        {(isLoading || (imageUrl && !isImageLoaded)) && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent
+            display: 'flex',
+            flexDirection: 'column', // Stack spinner and text
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 'inherit', // follow modal radius
+            gap: '1rem'
+          }}>
+            <div
+              className="crop-spinner"
+              style={{
+                width: '40px',
+                height: '40px',
+                border: '3px solid rgba(255,255,255,0.3)',
+                borderTopColor: '#3b82f6',
+                borderRadius: '50%'
+              }}
+            ></div>
+            <span style={{ color: 'white', fontSize: '0.875rem', fontWeight: 500 }}>
+              이미지 불러오는 중...
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Hidden File Input */}
