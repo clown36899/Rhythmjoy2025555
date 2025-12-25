@@ -416,7 +416,11 @@ export default memo(function ImageCropModal({
         <div className="crop-content-area" style={{ position: 'relative', minHeight: '300px' }}>
           {/* 크롭 UI - 항상 렌더링하되 로딩 중에는 숨김 (onLoad 트리거 위해) */}
           {imageUrl ? (
-            <div style={{ opacity: (isLoading || !isImageLoaded) ? 0 : 1, width: '100%', height: '100%' }}>
+            <div style={{
+              opacity: (isLoading || (imageUrl && imageUrl.startsWith('http') && !isImageLoaded)) ? 0 : 1,
+              width: '100%',
+              height: '100%'
+            }}>
               <ReactCrop
                 crop={crop}
                 onChange={(c) => setCrop(c)}
@@ -613,7 +617,7 @@ export default memo(function ImageCropModal({
         </div>
 
         {/* Loading Overlay Sibling (Covers Entire Modal) */}
-        {(isLoading || (imageUrl && !isImageLoaded)) && (
+        {(isLoading || (imageUrl && imageUrl.startsWith('http') && !isImageLoaded)) && (
           <div style={{
             position: 'absolute',
             inset: 0,

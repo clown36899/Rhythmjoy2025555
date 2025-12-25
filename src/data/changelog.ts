@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.18.2',
+        date: '2025-12-25',
+        changes: [
+            '[UX] 이미지 편집 로딩 경험 최적화 (반투명 오버레이, 직관적 텍스트)',
+            '[Fix] 로컬 파일 업로드 시 불필요한 스피너 제거 및 즉시 표시',
+            '[Fix] 이미지 자르기 적용 시 스피너 깜빡임 제거'
+        ]
+    },
+    {
         version: '2.18.1',
         date: '2025-12-25',
         changes: [
