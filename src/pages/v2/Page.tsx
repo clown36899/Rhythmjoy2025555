@@ -17,6 +17,7 @@ import EventDetailModal from "./components/EventDetailModal";
 import VenueDetailModal from "../practice/components/VenueDetailModal";
 // EventPasswordModal removed
 import CalendarSearchModal from "./components/CalendarSearchModal";
+import { useEventFavorites } from "../../hooks/useEventFavorites";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
@@ -109,6 +110,9 @@ export default function HomePageV2() {
 
     const handleBillboardSettingsOpen = () => setIsBillboardSettingsOpen(true);
     const handleSearchStart = () => navigateWithCategory("all");
+
+    // Favorites Logic
+    const { favoriteEventIds, toggleFavorite } = useEventFavorites(user, signInWithKakao);
 
     // --------------------------------------------------------------------------------
     // 4. UI Components (Memoized)
@@ -416,6 +420,8 @@ export default function HomePageV2() {
                             sectionViewMode={sectionViewMode}
                             onSectionViewModeChange={handleSectionViewModeChange}
                             onGenresLoaded={(genres) => setAllGenres(genres as { class: string[]; event: string[] })}
+                            isFavoriteMap={favoriteEventIds}
+                            onToggleFavorite={toggleFavorite}
                         />
                     </div>
                 )}
@@ -517,6 +523,8 @@ export default function HomePageV2() {
                     currentUserId={user?.id}
                     onOpenVenueDetail={handleVenueClick}
                     allGenres={allGenres}
+                    isFavorite={selectedEvent ? favoriteEventIds.has(selectedEvent.id) : false}
+                    onToggleFavorite={(e) => selectedEvent && toggleFavorite(selectedEvent.id, e)}
                 />
 
                 {/* Venue Detail Modal - Hoisted to Page Level for persistence */}

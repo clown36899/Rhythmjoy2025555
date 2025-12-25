@@ -113,6 +113,8 @@ interface EventListProps {
   onSectionViewModeChange?: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
   onEventClick?: (event: Event) => void;
   onGenresLoaded?: (genres: { class: string[]; event: string[] } | string[]) => void;
+  isFavoriteMap?: Set<number>;
+  onToggleFavorite?: (eventId: number, e?: React.MouseEvent) => void;
 }
 
 export default function EventList({
@@ -146,6 +148,8 @@ export default function EventList({
   onSectionViewModeChange,
   onEventClick,
   onGenresLoaded,
+  isFavoriteMap,
+  onToggleFavorite: externalOnToggleFavorite,
 }: EventListProps) {
   const { user, signInWithKakao, validateSession } = useAuth();
   const navigate = useNavigate();
@@ -211,9 +215,9 @@ export default function EventList({
   const [favoriteEventIds, setFavoriteEventIds] = useState<Set<number>>(new Set());
   const [pastEventsViewMode, setPastEventsViewMode] = useState<'grid-5' | 'grid-2' | 'genre'>('grid-5');
 
-  // Fetch Favorites
+  // Fetch Favorites (only if not provided externally)
   useEffect(() => {
-    if (user) {
+    if (user && !isFavoriteMap) {
       const fetchFavorites = async () => {
         const { data, error } = await supabase
           .from('event_favorites')
@@ -227,19 +231,24 @@ export default function EventList({
         }
       };
       fetchFavorites();
-    } else {
+    } else if (!user) {
       setFavoriteEventIds(new Set());
     }
-  }, [user]);
+  }, [user, isFavoriteMap]);
+
+  // Use external favorites if provided, otherwise use internal
+  const effectiveFavoriteIds = useMemo(() => {
+    return isFavoriteMap || favoriteEventIds;
+  }, [isFavoriteMap, favoriteEventIds]);
 
   // Favorites List Computation
   const { futureFavorites, pastFavorites } = useMemo(() => {
-    if (favoriteEventIds.size === 0) return { futureFavorites: [], pastFavorites: [] };
+    if (effectiveFavoriteIds.size === 0) return { futureFavorites: [], pastFavorites: [] };
 
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
 
-    const favorites = events.filter(e => favoriteEventIds.has(e.id));
+    const favorites = events.filter(e => effectiveFavoriteIds.has(e.id));
 
     // Sort logic (can be customized if needed, currently reusing general sort or just by date)
     // Sort by start_date ascending for future, descending for past?
@@ -274,7 +283,7 @@ export default function EventList({
     });
 
     return { futureFavorites: future, pastFavorites: past };
-  }, [events, favoriteEventIds]);
+  }, [events, effectiveFavoriteIds]);
 
   const favoriteEventsList = [...futureFavorites, ...pastFavorites];
 
@@ -292,6 +301,14 @@ export default function EventList({
 
   const handleToggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
+
+    // Use external handler if provided
+    if (externalOnToggleFavorite) {
+      await externalOnToggleFavorite(eventId, e);
+      return;
+    }
+
+    // Otherwise use internal logic
     if (!user) {
       if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
         try {
@@ -303,25 +320,15 @@ export default function EventList({
       return;
     }
 
-    // 1. 이벤트 정보 찾기
     const targetEvent = events.find(e => e.id === eventId);
     if (!targetEvent) return;
 
-    // 2. 현재 상태 확인 및 Optimistic Update
-    const isFav = favoriteEventIds.has(eventId);
+    const isFav = effectiveFavoriteIds.has(eventId);
     const action = isFav ? 'Remove' : 'Add';
 
-    // 3. Analytics Tracking (나만 볼 수 있음)
-    // "누가" 찜했는지 기록: "이벤트명 (by 닉네임/ID)"
     const userLabel = user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown';
     logEvent('Favorite', `Event ${action}`, `${targetEvent.title} (by ${userLabel})`);
 
-    // 4. DB Update Logic (기존 유지)
-
-
-
-
-    // Optimistic Update
     setFavoriteEventIds(prev => {
       const next = new Set(prev);
       if (isFav) next.delete(eventId);
@@ -330,7 +337,6 @@ export default function EventList({
     });
 
     if (isFav) {
-      // Remove
       const { error } = await supabase
         .from('event_favorites')
         .delete()
@@ -338,7 +344,6 @@ export default function EventList({
         .eq('event_id', eventId);
       if (error) {
         console.error('Error removing favorite:', error);
-        // Rollback
         setFavoriteEventIds(prev => {
           const next = new Set(prev);
           next.add(eventId);
@@ -346,13 +351,11 @@ export default function EventList({
         });
       }
     } else {
-      // Add
       const { error } = await supabase
         .from('event_favorites')
         .insert({ user_id: user.id, event_id: eventId });
       if (error) {
         console.error('Error adding favorite:', error);
-        // Rollback
         setFavoriteEventIds(prev => {
           const next = new Set(prev);
           next.delete(eventId);
@@ -360,7 +363,7 @@ export default function EventList({
         });
       }
     }
-  }, [user, favoriteEventIds, signInWithKakao]);
+  }, [user, effectiveFavoriteIds, signInWithKakao, externalOnToggleFavorite, events]);
 
   // Board Post Favorites Logic
   const [likedBoardPosts, setLikedBoardPosts] = useState<any[]>([]); // Use any[] initially to avoid type issues, or import BoardPost
@@ -2719,7 +2722,7 @@ export default function EventList({
                     selectedDate={selectedDate}
                     defaultThumbnailClass={defaultThumbnailClass}
                     defaultThumbnailEvent={defaultThumbnailEvent}
-                    isFavorite={true}
+                    isFavorite={effectiveFavoriteIds.has(event.id)}
                     onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                   />
                 ))}
@@ -2909,7 +2912,7 @@ export default function EventList({
                             className="evt-card-compact"
                             hideDate={true}
                             hideGenre={true}
-                            isFavorite={true}
+                            isFavorite={effectiveFavoriteIds.has(event.id)}
                             onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                           />
                         ))}
@@ -2940,7 +2943,7 @@ export default function EventList({
                       className={pastEventsViewMode === 'grid-5' ? 'evt-card-compact' : ''}
                       hideDate={pastEventsViewMode === 'grid-5'}
                       hideGenre={pastEventsViewMode === 'grid-5'}
-                      isFavorite={true}
+                      isFavorite={effectiveFavoriteIds.has(event.id)}
                       onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                     />
                   ))}
@@ -3048,7 +3051,7 @@ export default function EventList({
                         defaultThumbnailEvent={defaultThumbnailEvent}
                         variant="sliding"
                         hideGenre={true}
-                        isFavorite={favoriteEventIds.has(event.id)}
+                        isFavorite={effectiveFavoriteIds.has(event.id)}
                         onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                       />
                     ))}
@@ -3124,7 +3127,7 @@ export default function EventList({
                         defaultThumbnailEvent={defaultThumbnailEvent}
                         variant="sliding"
                         hideGenre={true}
-                        isFavorite={favoriteEventIds.has(event.id)}
+                        isFavorite={effectiveFavoriteIds.has(event.id)}
                         onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                       />
                     ))}
@@ -3187,7 +3190,7 @@ export default function EventList({
                         defaultThumbnailEvent={defaultThumbnailEvent}
                         variant="sliding"
                         hideGenre={true}
-                        isFavorite={favoriteEventIds.has(event.id)}
+                        isFavorite={effectiveFavoriteIds.has(event.id)}
                         onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                       />
                     ))}
@@ -3301,7 +3304,7 @@ export default function EventList({
                             defaultThumbnailClass={defaultThumbnailClass}
                             defaultThumbnailEvent={defaultThumbnailEvent}
                             variant="sliding"
-                            isFavorite={favoriteEventIds.has(event.id)}
+                            isFavorite={effectiveFavoriteIds.has(event.id)}
                             onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                           />
                         ))}
@@ -3347,7 +3350,7 @@ export default function EventList({
                           defaultThumbnailClass={defaultThumbnailClass}
                           defaultThumbnailEvent={defaultThumbnailEvent}
                           variant="sliding"
-                          isFavorite={favoriteEventIds.has(event.id)}
+                          isFavorite={effectiveFavoriteIds.has(event.id)}
                           onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                         />
                       ))}
@@ -3478,7 +3481,7 @@ export default function EventList({
                 selectedDate={selectedDate}
                 defaultThumbnailClass={defaultThumbnailClass}
                 defaultThumbnailEvent={defaultThumbnailEvent}
-                isFavorite={favoriteEventIds.has(event.id)}
+                isFavorite={effectiveFavoriteIds.has(event.id)}
                 onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
               />
             ))}
@@ -3603,7 +3606,7 @@ export default function EventList({
                         selectedDate={null}
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
-                        isFavorite={favoriteEventIds.has(event.id)}
+                        isFavorite={effectiveFavoriteIds.has(event.id)}
                         onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
                       />
                     ))}
