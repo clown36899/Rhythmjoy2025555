@@ -162,7 +162,7 @@ export async function resizeImage(
 
 export async function createResizedImages(
   fileOrDataUrl: File | string,
-  onProgress?: (progress: number, step: string) => void,
+  _onProgress?: (progress: number, step: string) => void,
   fileName: string = 'image.jpg'
 ): Promise<ResizedImages> {
   const startTime = performance.now();
@@ -187,8 +187,8 @@ export async function createResizedImages(
     const [micro, thumbnail, medium, full] = await Promise.all([
       resizeImage(sourceUrl, 100, 0.7, fileName),
       resizeImage(sourceUrl, 300, 0.75, fileName),
-      resizeImage(sourceUrl, 1080, 0.8, fileName),
-      resizeImage(sourceUrl, 1280, 0.85, fileName),
+      resizeImage(sourceUrl, 650, 0.8, fileName),
+      resizeImage(sourceUrl, 1300, 0.85, fileName),
     ]);
 
     if (objectUrl) URL.revokeObjectURL(objectUrl);

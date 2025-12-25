@@ -145,7 +145,7 @@ export default function QuickMemoEditor({
                 try {
                     const [thumbnail, medium] = await Promise.all([
                         resizeImage(fileUrl, 300, 0.7, fileName),
-                        resizeImage(fileUrl, 1080, 0.75, fileName)
+                        resizeImage(fileUrl, 650, 0.75, fileName)
                     ]);
 
                     const uploadImage = async (path: string, file: Blob) => {

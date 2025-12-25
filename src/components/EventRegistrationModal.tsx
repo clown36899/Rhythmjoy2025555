@@ -469,6 +469,11 @@ export default memo(function EventRegistrationModal({
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
+    // 수정 시 저장 확인
+    if (editEventData && !confirm("수정하시겠습니까?")) {
+      return;
+    }
+
     if (!title.trim()) {
       alert("제목을 입력해주세요.");
       detailRef.current?.openModal('title');

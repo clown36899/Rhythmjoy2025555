@@ -106,6 +106,7 @@ export default memo(function EventEditModal({
         VideoThumbnailOption[]
     >([]);
     const [showVenueSelectModal, setShowVenueSelectModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
 
     // Preview Mode State
@@ -223,6 +224,12 @@ export default memo(function EventEditModal({
                     return;
                 }
             }
+
+            if (!confirm("저장하시겠습니까?")) return;
+
+            setIsSubmitting(true);
+            // UI 렌더링을 위해 잠시 대기 (스피너가 보이게 함)
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const updateData: any = {
                 title: editFormData.title,
@@ -388,6 +395,8 @@ export default memo(function EventEditModal({
         } catch (error) {
             console.error("Error:", error);
             alert("이벤트 수정 중 오류가 발생했습니다.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -491,6 +500,7 @@ export default memo(function EventEditModal({
 
                 {/* 스크롤 가능한 폼 영역 */}
                 <div className="edit-modal-body">
+
                     {/* Live Preview Section */}
                     <div className="edit-modal-preview-section">
                         <div className="edit-modal-preview-header">
@@ -1312,7 +1322,7 @@ export default memo(function EventEditModal({
                                                 fontSize: '0.75rem',
                                                 padding: '0.125rem 0.375rem',
                                                 borderRadius: '0.25rem',
-                                            }}>
+                                            }} >
                                                 {option.quality}
                                             </div>
                                         </div>
@@ -1340,6 +1350,25 @@ export default memo(function EventEditModal({
                     }));
                 }}
             />
+            {isSubmitting && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    zIndex: 20000,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white'
+                }}>
+                    <i className="ri-loader-4-line spin" style={{ fontSize: '3rem', marginBottom: '1rem' }}></i>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 500 }}>저장 중입니다...</span>
+                </div>
+            )}
         </div>,
         document.body
     );

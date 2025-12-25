@@ -88,7 +88,7 @@ export function getEventThumbnail(
     return event.image_thumbnail;
   }
 
-  // 3순위: medium (모달용 1080px)
+  // 3순위: medium (모달용 650px)
   if (event?.image_medium) {
     return event.image_medium;
   }

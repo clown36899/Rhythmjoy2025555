@@ -160,7 +160,7 @@ export default function ShoppingRegisterPage() {
     const fileName = `${Date.now()}.webp`;
     const filePath = `${folder}/${fileName}`;
 
-    // Upload the medium-size WebP image (1080px, quality 0.9) for better compression
+    // Upload the medium-size WebP image (650px, quality 0.8) for better compression
     const { error: uploadError } = await supabase.storage
       .from('images')
       .upload(filePath, resizedImages.medium);
