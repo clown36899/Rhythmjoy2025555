@@ -55,9 +55,11 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll }) 
                                     <i className="ri-calendar-event-line"></i>
                                 </div>
                             )}
-                            <div className="today-card-overlay">
-                                <span className="today-time">{item.start_time?.substring(0, 5)}</span>
-                            </div>
+                            {item.start_time && (
+                                <div className="today-card-overlay">
+                                    <span className="today-time">{item.start_time.substring(0, 5)}</span>
+                                </div>
+                            )}
                         </div>
                         <div className="today-card-info">
                             <h3 className="today-card-title">{item.title}</h3>

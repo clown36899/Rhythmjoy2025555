@@ -5,6 +5,7 @@ import { useSocialGroups } from './hooks/useSocialGroups';
 import { useSocialSchedulesNew } from './hooks/useSocialSchedulesNew';
 import { useSocialGroupFavorites } from './hooks/useSocialGroupFavorites';
 import { useModal } from '../../hooks/useModal';
+import { getLocalDateString, getKSTDay } from '../v2/utils/eventListUtils';
 
 // Components
 import TodaySocial from './components/TodaySocial';
@@ -64,14 +65,24 @@ const SocialPage: React.FC = () => {
     return !!data;
   };
 
-  // Derived Data
-  const today = new Date().toISOString().split('T')[0];
-  const todayDayOfWeek = new Date().getDay();
+  // Derived Data (KST 한국 시간 강제 고정 - Intl 방식)
+  const today = getLocalDateString();
+  const todayDayOfWeek = getKSTDay();
 
   const todaySchedules = useMemo(() => {
     return schedules.filter(s => {
-      if (s.date === today) return true;
-      if (!s.date && s.day_of_week === todayDayOfWeek) return true;
+      const hasDate = s.date && s.date.trim() !== '';
+
+      // 1. 날짜가 지정된 일정인 경우: 오늘 날짜와 정확히 일치할 때만 표시 (요일 체크 안 함)
+      if (hasDate) {
+        return s.date === today;
+      }
+
+      // 2. 날짜가 없는 정규 일정인 경우: 오늘 요일과 일치할 때만 표시
+      if (s.day_of_week !== undefined && s.day_of_week !== null) {
+        return s.day_of_week === todayDayOfWeek;
+      }
+
       return false;
     });
   }, [schedules, today, todayDayOfWeek]);

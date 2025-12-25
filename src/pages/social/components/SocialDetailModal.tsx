@@ -4,6 +4,8 @@ import type { SocialSchedule } from '../types';
 import './SocialDetailModal.css';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 
+import { getDayName } from '../../v2/utils/eventListUtils';
+
 interface SocialDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -158,9 +160,11 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                             <div className="detail-time-row">
                                 <i className="ri-time-line"></i>
                                 <span>
-                                    {schedule.date || ''}
-                                    {schedule.day_of_week !== undefined && ` (${['일', '월', '화', '수', '목', '금', '토'][schedule.day_of_week]}) `}
-                                    {schedule.start_time?.substring(0, 5)}
+                                    {schedule.date ? `${schedule.date} (${getDayName(schedule.date)})` :
+                                        schedule.day_of_week !== undefined && schedule.day_of_week !== null ?
+                                            ['일', '월', '화', '수', '목', '금', '토'][schedule.day_of_week] + '요일' : ''}
+                                    {' '}
+                                    {schedule.start_time ? schedule.start_time.substring(0, 5) : ''}
                                 </span>
                             </div>
                         </div>

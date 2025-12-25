@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.20.2',
+        date: '2025-12-26',
+        changes: [
+            '[Fix] KST 기준 날짜 계산 로직 전면 개선 (새벽 시간대 오류 해결)',
+            '[Fix] 날짜 지정/정규 요일 일정 필터링 로직 분리 강화',
+            '[Fix] 모든 날짜 유틸리티 함수 KST 기준 통일',
+            '[UI] 시간 미등록 소셜 카드 오버레이 숨김 처리'
+        ]
+    },
+    {
         version: '2.20.1',
         date: '2025-12-26',
         changes: [

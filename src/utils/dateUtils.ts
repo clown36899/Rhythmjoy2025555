@@ -3,13 +3,15 @@
  */
 
 /**
- * Get current date as YYYY-MM-DD string in local timezone
+ * Get current date as YYYY-MM-DD string in KST (Korea Standard Time)
+ * Uses UTC+9 offset to ensure consistent date across all timezones
  */
 export const getLocalDateString = (): string => {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
+    const kstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    const year = kstDate.getUTCFullYear();
+    const month = String(kstDate.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(kstDate.getUTCDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
 };
 

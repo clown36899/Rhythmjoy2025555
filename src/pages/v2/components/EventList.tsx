@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
-import { getLocalDateString, sortEvents, isEventMatchingFilter, CLUB_LESSON_GENRE } from "../utils/eventListUtils";
+import { getLocalDateString, getKSTDay, sortEvents, isEventMatchingFilter, CLUB_LESSON_GENRE } from "../utils/eventListUtils";
 import { useModal } from "../../../hooks/useModal";
 import { logEvent } from "../../../lib/analytics";
 
@@ -39,7 +39,6 @@ import "../styles/EventListSections.css";
 // Lazy loading으로 성능 최적화 (사용하지 않는 SocialCalendar 제거)
 import { useSocialSchedulesNew } from "../../social/hooks/useSocialSchedulesNew";
 import TodaySocial from "../../social/components/TodaySocial";
-import type { SocialSchedule } from "../../social/types";
 import { useAuth } from "../../../contexts/AuthContext";
 import PracticeRoomBanner from "./PracticeRoomBanner";
 import StandardPostList from "../../board/components/StandardPostList";
@@ -248,8 +247,7 @@ export default function EventList({
   const { futureFavorites, pastFavorites } = useMemo(() => {
     if (effectiveFavoriteIds.size === 0) return { futureFavorites: [], pastFavorites: [] };
 
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
 
     const favorites = events.filter(e => effectiveFavoriteIds.has(e.id));
 
@@ -636,13 +634,23 @@ export default function EventList({
   // --- Today's Social Logic ---
   const { schedules: socialSchedules, loading: isSocialSchedulesLoading } = useSocialSchedulesNew();
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayDayOfWeek = new Date().getDay();
+  const todayStr = getLocalDateString();
+  const todayDayOfWeek = getKSTDay();
 
   const todaySocialSchedules = useMemo(() => {
     return socialSchedules.filter(s => {
-      if (s.date === todayStr) return true;
-      if (!s.date && s.day_of_week === todayDayOfWeek) return true;
+      const hasDate = s.date && s.date.trim() !== '';
+
+      // 1. 날짜가 지정된 일회성 일정인 경우
+      if (hasDate) {
+        return s.date === todayStr;
+      }
+
+      // 2. 날짜가 없는 정기 일정인 경우만 요일로 판단
+      if (s.day_of_week !== undefined && s.day_of_week !== null) {
+        return s.day_of_week === todayDayOfWeek;
+      }
+
       return false;
     });
   }, [socialSchedules, todayStr, todayDayOfWeek]);
@@ -1391,11 +1399,7 @@ export default function EventList({
   const futureEvents = useMemo(() => {
     // Use local date string instead of UTC to fix "passed one day" logic
     // const today = new Date().toISOString().split('T')[0]; // UTC (WRONG for local filtering)
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const today = `${year}-${month}-${day}`;
+    const today = getLocalDateString();
 
     const result = events.filter(event => {
       if (event.category !== 'event') return false;
@@ -1495,11 +1499,7 @@ export default function EventList({
     }
 
     // const today = new Date().toISOString().split('T')[0];
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const today = `${year}-${month}-${day}`;
+    const today = getLocalDateString();
 
     const result = events.filter(event => {
       // Include both 'class' and 'club' categories
@@ -1563,11 +1563,7 @@ export default function EventList({
   // 장르 목록 추출 (진행중인 강습만)
   // 장르 목록 추출 (카테고리별 분리)
   const allGenresStructured = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const today = `${year}-${month}-${day}`;
+    const today = getLocalDateString();
 
     const classGenres = new Set<string>();
     const clubGenres = new Set<string>();

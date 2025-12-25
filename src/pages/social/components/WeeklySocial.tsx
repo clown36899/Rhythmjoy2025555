@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { SocialSchedule, SocialGroup } from '../types';
+import { getLocalDateString, getKSTDay } from '../../v2/utils/eventListUtils';
 import GroupDirectory from './GroupDirectory';
 import './WeeklySocial.css';
 
@@ -30,24 +31,26 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     isAdmin
 }) => {
     const [activeTab, setActiveTab] = useState<ViewTab>('weekly');
-    const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
+    const [selectedDay, setSelectedDay] = useState<number>(getKSTDay());
 
     const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
 
     // 이번 주(일~토) 날짜 계산
     const weekDates = useMemo(() => {
         const now = new Date();
-        const currentDay = now.getDay();
-        const sunday = new Date(now);
-        sunday.setDate(now.getDate() - currentDay);
-        sunday.setHours(0, 0, 0, 0);
+        const kstDay = getKSTDay(now);
+
+        // KST 기준 이번 주 일요일 구하기
+        const kstTodayStr = getLocalDateString(now);
+        const kstToday = new Date(kstTodayStr + 'T12:00:00');
+        const sunday = new Date(kstToday);
+        sunday.setDate(kstToday.getDate() - kstDay);
 
         return Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(now);
-            d.setDate(now.getDate() - currentDay + i);
-            d.setHours(0, 0, 0, 0);
+            const d = new Date(sunday);
+            d.setDate(sunday.getDate() + i);
 
-            // 로컬 날짜 문자열 생성 (UTC 편차 해결)
+            // 로컬 날짜 문자열 생성
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const dateNum = String(d.getDate()).padStart(2, '0');
@@ -63,12 +66,22 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     }, []);
 
     // [1] 금주의 일정 (날짜 지정 일정만 표시)
-    const filteredWeeklySchedules = useMemo(() => {
+    // [1] 선택된 해당 요일/날짜의 일정 필터링
+    const displaySchedules = useMemo(() => {
         const target = weekDates[selectedDay];
+        if (!target) return [];
+
         return schedules.filter(s => {
-            // 정규 일정(date가 없는 것)은 제외하고, 날짜가 선택된 요일과 일치하는 것만 반환
-            return s.date && s.date === target.isoDate;
-        });
+            // 1. 날짜가 지정된 일정인 경우: 선택된 날짜와 정확히 일치해야 함
+            if (s.date && s.date.trim() !== '') {
+                return s.date === target.isoDate;
+            }
+            // 2. 날짜가 없는 정규 일정인 경우: 선택된 요일과 일치해야 함
+            if (s.day_of_week !== undefined && s.day_of_week !== null) {
+                return s.day_of_week === selectedDay;
+            }
+            return false;
+        }).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
     }, [schedules, selectedDay, weekDates]);
 
     // [2] 정규 일정 전용 (요일별 그룹화)
@@ -203,7 +216,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         ))}
                     </div>
                     <div className="weekly-list">
-                        {filteredWeeklySchedules.length > 0 ? filteredWeeklySchedules.map(renderScheduleItem) : (
+                        {displaySchedules.length > 0 ? displaySchedules.map(renderScheduleItem) : (
                             <div className="empty-weekly">
                                 <i className="ri-calendar-todo-line"></i>
                                 <p>이번 주 해당 요일에 예정된 소셜이 없습니다.</p>

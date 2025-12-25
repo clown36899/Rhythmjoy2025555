@@ -22,12 +22,31 @@ export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'or
 
 export const CLUB_LESSON_GENRE = '동호회강습';
 
-// 로컬 날짜를 YYYY-MM-DD 형식으로 반환하는 헬퍼 함수
+// 한국 시간(KST) 기준 날짜 문자열 반환 (YYYY-MM-DD) - 절대적인 수동 방식
 export const getLocalDateString = (date: Date = new Date()) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    // 1. UTC 시간에 9시간을 더해 한국 날짜 객체를 만듦
+    const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    const y = kstDate.getUTCFullYear();
+    const m = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(kstDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+// 한국 시간(KST) 기준 요일 숫자 반환 (0:일 ~ 6:토)
+export const getKSTDay = (date: Date = new Date()) => {
+    // 1. UTC 시간에 9시간을 더해 한국 날짜 객체를 만듦
+    const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    return kstDate.getUTCDay();
+};
+
+// 요일 이름을 가져오는 헬퍼 (예: '일', '월')
+export const getDayName = (dateStr: string) => {
+    if (!dateStr) return '';
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    // 날짜 문자열(YYYY-MM-DD)을 기반으로 해당 일의 요일 인덱스 추출
+    const d = new Date(dateStr + 'T12:00:00');
+    if (isNaN(d.getTime())) return '';
+    return days[d.getDay()];
 };
 
 // Seeded Random 함수
