@@ -135,7 +135,6 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['react-datepicker', 'qrcode.react'],
           'supabase': ['@supabase/supabase-js'],
-          'charts': ['recharts'],
           'date-fns': ['date-fns'],
         },
         // 파일명 최적화
