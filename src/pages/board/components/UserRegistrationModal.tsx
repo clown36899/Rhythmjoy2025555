@@ -21,8 +21,9 @@ export default function UserRegistrationModal({
 }: UserRegistrationModalProps) {
 
   const handleSubmit = async () => {
+    // onRegistered를 호출하면 부모(MobileShell)에서 비동기 작업을 시작하고 스피너를 띄움
+    // 여기서 onClose를 호출하지 않음으로써, 스피너가 뜨기 전까지 모달이 계속 떠 있게 함 (빈틈 제거)
     onRegistered({ nickname: '(automatic)' });
-    onClose();
   };
 
   if (!isOpen) return null;

@@ -675,13 +675,13 @@ export function MobileShell() {
             try {
               // 1. If not logged in, trigger Kakao Login first
               if (!user) {
+                // 로그인 시도 - 성공 시 리다이렉트되므로 스피너/모달 닫지 않음 (빈틈 제거)
                 await signInWithKakao();
                 return;
               }
 
               // 2. Already logged in but needs registration record
               const kakaoNickname = user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown';
-              // Check for kakao_id in metadata (provider_id might be used by Supabase Auth)
               const kakaoId = user.user_metadata?.kakao_id || user.user_metadata?.provider_id || null;
 
               const { data: existingUser } = await supabase
@@ -694,7 +694,7 @@ export function MobileShell() {
                 const { error } = await supabase.from('board_users').upsert({
                   user_id: user.id,
                   nickname: kakaoNickname,
-                  kakao_id: kakaoId, // Include kakao_id in client-side repair
+                  kakao_id: kakaoId,
                   updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id' });
 
@@ -707,11 +707,15 @@ export function MobileShell() {
                 (window as any)._pendingAction();
                 (window as any)._pendingAction = null;
               }
-            } catch (error: any) {
-              console.error('Registration failed:', error);
-            } finally {
+
+              // 모든 작업 성공 시에만 닫기 (로그인 리다이렉트가 아닌 경우)
               setIsProcessing(false);
               setShowPreLoginRegistrationModal(false);
+
+            } catch (error: any) {
+              console.error('Registration failed:', error);
+              // 에러 발생 시에는 복구
+              setIsProcessing(false);
             }
           }}
         />

@@ -18,7 +18,7 @@ interface AuthContextType {
   billboardUserName: string | null;
   setBillboardUser: (userId: string | null, userName: string | null) => void;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithKakao: () => void;
+  signInWithKakao: () => Promise<void>;
   signOut: () => Promise<void>;
   cancelAuth: () => void;
   userProfile: { nickname: string; profile_image: string | null } | null;
@@ -55,18 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthProcessing(false);
   };
 
-  // 만료되거나 손상된 세션 정리 (좀비 토큰 제거)
-  const cleanupStaleSession = async (forceReload = false) => {
-    console.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
-
-    try {
-      // 1. Supabase 세션 제거 (로컬만)
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch (e) {
-      console.warn('[AuthContext] SignOut during cleanup failed (expected):', e);
-    }
-
-    // 2. localStorage의 Supabase 관련 항목 제거 (더 강력하게)
+  // 로컬 데이터 및 상태 완전 초기화 (signOut 호출 없음)
+  const wipeLocalData = () => {
+    // 1. localStorage의 Supabase 관련 항목 제거 (더 강력하게)
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -79,20 +70,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(key);
     });
 
-    // 3. sessionStorage도 정리
+    // 2. sessionStorage도 정리
     sessionStorage.clear();
 
-    // 4. 상태 초기화
+    // 3. 상태 초기화
     setSession(null);
     setUser(null);
     setIsAdmin(false);
     setUserProfile(null);
-    // User ID 제거 (세션 정리 시)
+    // User ID 제거
     setUserId(null);
+  };
+
+  // 만료되거나 손상된 세션 정리 (좀비 토큰 제거)
+  const cleanupStaleSession = async (forceReload = false) => {
+    console.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
+
+    try {
+      // 1. Supabase 세션 제거 (로컬만) -> 이게 SIGNED_OUT 이벤트를 발생시킬 수 있음
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      console.warn('[AuthContext] SignOut during cleanup failed (expected):', e);
+    }
+
+    // 2. 데이터 및 상태 삭제
+    wipeLocalData();
 
     console.log('[AuthContext] ✅ Stale session cleaned up');
 
-    // 5. 강제 리로드가 필요하면 실행 (심각한 오류 상황)
+    // 3. 강제 리로드가 필요하면 실행 (심각한 오류 상황)
     if (forceReload) {
       console.warn('[AuthContext] 🔁 Force reloading page to clear memory state');
       window.location.reload();
@@ -270,12 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_OUT') {
         // 로그아웃 시 명확히 상태 초기화
         console.log('[AuthContext] 👋 로그아웃 처리');
-        setSession(null);
-        setUser(null);
-        setIsAdmin(false);
-        setUserProfile(null); // Clear profile
-        // User ID 제거
-        setUserId(null);
+        wipeLocalData();
       }
       // TOKEN_REFRESHED 처리
       else if (event === 'TOKEN_REFRESHED') {
@@ -353,27 +354,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const signInWithKakao = () => {
+  const signInWithKakao = async () => {
+    setIsAuthProcessing(true); // 즉시 스피너 표시
     try {
       console.log('[signInWithKakao] 카카오 로그인 시작 (리다이렉트 방식)');
 
-      // SDK 초기화 (동기적으로 처리 - 이미 로드되어 있을 것으로 예상)
-      initKakaoSDK().then(() => {
-        // 리다이렉트 방식으로 로그인 (이 함수는 페이지를 이동시키므로 여기서 종료됨)
-        loginWithKakao();
-      }).catch((error) => {
-        console.error('[signInWithKakao] SDK 초기화 실패:', error);
-        alert(error.message || '카카오 SDK 초기화에 실패했습니다.');
-      });
+      // SDK 초기화 및 로그인 실행
+      // loginWithKakao는 리다이렉트를 수행하므로, 여기서 await를 해도 돌아오지 않을 수 있음
+      // 하지만 에러 발생 시를 대비해 try-catch를 유지
+      await initKakaoSDK();
 
-      // 리다이렉트되므로 아래 코드는 실행되지 않음
+      // 리다이렉트 전까지 스피너 유지
+      // loginWithKakao는 void를 반환하지만 내부적으로 location.href를 변경함
+      loginWithKakao();
+
+      // 리다이렉트가 일어나면 이 코드는 실행되지 않거나, 페이지가 언로드됨
+      // 따라서 여기서 finally로 false를 주면 안 됨 (깜빡임 원인)
+
     } catch (error: any) {
       console.error('[signInWithKakao] 에러:', error);
       alert(error.message || '카카오 로그인에 실패했습니다.');
-      // 리로드가 없다면 여기서 false로 해줘야 함!
-      // 확인: signInWithKakao는 값을 반환하고 끝남. MobileShell에서는 별도 처리 없음.
-      // AuthStateChange가 트리거되면서 UI가 업데이트됨. 
-      // 따라서 성공 시에도 스피너를 꺼줘야 함.
+      // 에러가 났을 때만 스피너를 꺼줌
+      setIsAuthProcessing(false);
+      throw error; // MobileShell에서 잡아서 처리하도록 전달
     }
   };
 
