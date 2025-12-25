@@ -22,11 +22,47 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
 }) => {
     if (!isOpen || !schedule) return null;
 
-    const handleShare = () => {
-        const url = `${window.location.origin}/social?scheduleId=${schedule.id}`;
-        navigator.clipboard.writeText(url).then(() => {
-            alert('일정 링크가 복사되었습니다!');
-        });
+    const handleShare = async () => {
+        // any 타입 단언을 통해 속성 접근 (타입 불일치 해결)
+        const s = schedule as any;
+
+        // ID 추출 로직
+        let realId = s.originalId;
+        if (!realId && typeof s.id === 'string' && s.id.startsWith('schedule-')) {
+            realId = Number(s.id.replace('schedule-', ''));
+        }
+        if (!realId) realId = Number(s.id);
+
+        const url = `${window.location.origin}/social?scheduleId=${realId}`;
+        const shareData = {
+            title: s.title,
+            text: `${s.title} @ ${s.place_name || ''}\n`,
+            url: url
+        };
+
+        try {
+            // 1. Web Share API 시도 (모바일 네이티브 공유)
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                // 2. 지원하지 않으면 클립보드 복사 (데스크탑 등)
+                await navigator.clipboard.writeText(url);
+                alert('일정 링크가 복사되었습니다!');
+            }
+        } catch (err) {
+            // 사용자가 공유 취소하거나 오류 발생 시
+            console.error('공유 실패:', err);
+            // AbortError(사용자 취소)가 아닌 경우에만 알림
+            if ((err as Error).name !== 'AbortError') {
+                // 최후의 수단: 클립보드 복사 시도
+                try {
+                    await navigator.clipboard.writeText(url);
+                    alert('일정 링크가 복사되었습니다!');
+                } catch (copyErr) {
+                    alert('공유 기능을 사용할 수 없습니다.');
+                }
+            }
+        }
     };
 
     const openMap = () => {

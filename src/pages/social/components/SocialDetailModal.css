@@ -77,7 +77,7 @@
 
 .detail-close-btn {
     position: absolute;
-    top: 60px;
+    top: 20px;
     /* 위치 조정 */
     right: 20px;
     width: 44px;
@@ -98,7 +98,7 @@
 
 .detail-share-box {
     position: absolute;
-    top: 60px;
+    top: 20px;
     /* 위치 조정 */
     left: 20px;
     z-index: 50;

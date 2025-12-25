@@ -4727,8 +4727,8 @@ export default function EventList({
         isOpen={!!selectedSocialSchedule}
         onClose={() => setSelectedSocialSchedule(null)}
         schedule={selectedSocialSchedule}
-        onCopy={() => { }}
-        onEdit={() => { }}
+        onCopy={() => { }} // 메인에선 사용안함
+        onEdit={() => { }} // 메인에선 사용안함
         isAdmin={false} // 메인 V2 페이지에서는 단순 조회만 제공
       />
     </div >
