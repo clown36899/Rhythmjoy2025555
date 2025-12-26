@@ -200,7 +200,11 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                                         <i className="ri-file-copy-line"></i> 일정 복사
                                     </button>
                                 )}
-                                <button className="admin-btn edit" onClick={() => onEdit(schedule)}>
+                                <button className="admin-btn edit" onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onEdit(schedule);
+                                }}>
                                     <i className="ri-edit-line"></i> 일정 수정
                                 </button>
                             </div>

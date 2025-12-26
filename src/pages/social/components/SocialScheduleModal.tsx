@@ -56,17 +56,23 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     copyFrom
 }) => {
     const { user } = useAuth();
-    const [title, setTitle] = useState('');
-    const [scheduleType, setScheduleType] = useState<'once' | 'regular'>('once');
-    const [date, setDate] = useState('');
-    const [dayOfWeek, setDayOfWeek] = useState<number | null>(null);
-    const [startTime, setStartTime] = useState('');
-    const [description, setDescription] = useState('');
-    const [placeName, setPlaceName] = useState('');
-    const [address, setAddress] = useState('');
-    const [venueId, setVenueId] = useState<string | null>(null);
+    const [title, setTitle] = useState(editSchedule?.title || copyFrom?.title || '');
+    const [scheduleType, setScheduleType] = useState<'once' | 'regular'>(
+        (editSchedule?.date || copyFrom?.date) ? 'once' : 'regular'
+    );
+    const [date, setDate] = useState(editSchedule?.date || copyFrom?.date || '');
+    const [dayOfWeek, setDayOfWeek] = useState<number | null>(
+        editSchedule?.day_of_week ?? copyFrom?.day_of_week ?? null
+    );
+    const [startTime, setStartTime] = useState(editSchedule?.start_time || copyFrom?.start_time || '');
+    const [description, setDescription] = useState(editSchedule?.description || copyFrom?.description || '');
+    const [placeName, setPlaceName] = useState(editSchedule?.place_name || copyFrom?.place_name || '');
+    const [address, setAddress] = useState(editSchedule?.address || copyFrom?.address || '');
+    const [venueId, setVenueId] = useState<string | null>(editSchedule?.venue_id || copyFrom?.venue_id || null);
     const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(
+        editSchedule?.image_url || copyFrom?.image_url || null
+    );
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
@@ -76,42 +82,37 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [showVenueModal, setShowVenueModal] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Sync state if props change while open
     useEffect(() => {
-        if (isOpen) {
-            console.log('📦 [Modal Open Props]', { groupId, editScheduleId: editSchedule?.id, editScheduleGroupId: editSchedule?.group_id });
-            const source = editSchedule || copyFrom;
-            if (source) {
-                setTitle(source.title || '');
-                if (source.date) {
-                    setScheduleType('once');
-                    setDate(source.date);
-                    setDayOfWeek(null);
-                } else if (source.day_of_week !== undefined && source.day_of_week !== null) {
-                    setScheduleType('regular');
-                    setDayOfWeek(source.day_of_week);
-                    setDate('');
-                }
-                setStartTime(source.start_time || '');
-                setDescription(source.description || '');
-                setPlaceName(source.place_name || '');
-                setAddress(source.address || '');
-                setVenueId(source.venue_id || null);
-                setImagePreview(source.image_url || null);
-            } else {
-                setTitle('');
-                setScheduleType('once');
-                setDate('');
-                setDayOfWeek(null);
-                setStartTime('');
-                setDescription('');
-                setPlaceName('');
-                setAddress('');
-                setVenueId(null);
-                setImagePreview(null);
-                setImageFile(null);
-            }
+        if (!isOpen) return;
+        const source = editSchedule || copyFrom;
+        if (source) {
+            setTitle(source.title || '');
+            const type = source.date ? 'once' : 'regular';
+            setScheduleType(type);
+            setDate(source.date || '');
+            setDayOfWeek(source.day_of_week ?? null);
+            setStartTime(source.start_time || '');
+            setDescription(source.description || '');
+            setPlaceName(source.place_name || '');
+            setAddress(source.address || '');
+            setVenueId(source.venue_id || null);
+            setImagePreview(source.image_url || null);
+        } else {
+            // Reset states if no edit/copy source is provided (e.g., for new schedule)
+            setTitle('');
+            setScheduleType('once');
+            setDate('');
+            setDayOfWeek(null);
+            setStartTime('');
+            setDescription('');
+            setPlaceName('');
+            setAddress('');
+            setVenueId(null);
+            setImagePreview(null);
+            setImageFile(null);
         }
-    }, [isOpen, editSchedule, copyFrom]);
+    }, [editSchedule?.id, copyFrom?.id, isOpen]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {

@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.21.0',
+        date: '2025-12-26',
+        changes: [
+            '[최적화] 소셜 모달 Z-Index 아키텍처 수립 (상세 15만, 수정 20만)',
+            '[Fix] 모달 열림 시 데이터 바인딩 렉(Lag) 제거',
+            '[UX] 모바일 "두 번 클릭" 이슈 및 타이머(setTimeout) 제거',
+            '[성능] 내 활동 페이지 useMemo 적용 및 데이터 페칭 병렬화'
+        ]
+    },
+    {
         version: '2.20.2',
         date: '2025-12-26',
         changes: [

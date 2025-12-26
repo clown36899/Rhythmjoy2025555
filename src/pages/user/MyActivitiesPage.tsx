@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -128,6 +128,10 @@ export default function MyActivitiesPage() {
         }
     };
 
+    const filteredEvents = useMemo(() => {
+        return events.filter(e => currentTab === 'events' ? e.category !== 'class' : e.category === 'class');
+    }, [events, currentTab]);
+
     const handleTabChange = (tab: TabType) => {
         setSearchParams({ tab });
     };
@@ -140,9 +144,9 @@ export default function MyActivitiesPage() {
     };
 
     const handleEditEvent = (event: any) => {
-        setSelectedEvent(null); // Close detail modal
         setEventToEdit(event);
         setIsEditModalOpen(true);
+        setSelectedEvent(null);
     };
 
     // Social Handlers
@@ -156,9 +160,9 @@ export default function MyActivitiesPage() {
     };
 
     const handleEditSchedule = (schedule: SocialSchedule) => {
-        setSelectedSchedule(null); // Close detail
         setScheduleToEdit(schedule);
         setIsScheduleEditModalOpen(true);
+        setSelectedSchedule(null);
     };
 
     const handleDeleteEvent = async (event: any) => {
@@ -231,10 +235,6 @@ export default function MyActivitiesPage() {
                                     </div>
 
                                     {(() => {
-                                        const filteredEvents = events.filter(e =>
-                                            currentTab === 'events' ? e.category !== 'class' : e.category === 'class'
-                                        );
-
                                         if (filteredEvents.length === 0) {
                                             return (
                                                 <div className="activity-empty-state">
