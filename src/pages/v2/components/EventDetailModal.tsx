@@ -107,15 +107,21 @@ export default function EventDetailModal({
       const fetchDetail = async () => {
         try {
           setIsFetchingDetail(true);
+
+          // [최적화] DB 외래키 설정을 통해 한 번의 요청(Join)으로 닉네임까지 가져옴
+          const selectFields = isAdminMode ? '*, board_users(nickname)' : '*';
           const { data, error } = await supabase
             .from('events')
-            .select('*') // 필요한 컬럼만 선택 가능하지만 상세 조회는 전체 로딩이 일반적
+            .select(selectFields)
             .eq('id', event.id)
-            .single();
+            .maybeSingle();
 
           if (!error && data) {
-            // 상세 데이터로 draftEvent 업데이트 (기존 event와 props 병합)
-            setDraftEvent(prev => ({ ...(prev || event), ...data } as Event));
+            setDraftEvent(prev => ({ ...(prev || event), ...(data as any) } as Event));
+
+            // 조인된 데이터에서 닉네임 추출
+            const nickname = (data as any).board_users?.nickname;
+            if (nickname) setAuthorNickname(nickname);
           }
         } catch (err) {
           console.error('Failed to fetch event detail:', err);
@@ -205,6 +211,10 @@ export default function EventDetailModal({
   useEffect(() => {
     setDraftEvent(event);
   }, [event]);
+
+
+  // Image Edit State
+
 
   // Image Edit State
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -329,6 +339,7 @@ export default function EventDetailModal({
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [authorNickname, setAuthorNickname] = useState<string | null>(null);
 
   // Genre Management State (Moved down to access editCategory/editValue)
   const [allHistoricalGenres, setAllHistoricalGenres] = useState<string[]>([]);
@@ -620,9 +631,6 @@ export default function EventDetailModal({
       setIsSaving(false);
     }
   };
-
-
-
 
   if (!isOpen || !event) {
     return null;
@@ -1231,6 +1239,7 @@ export default function EventDetailModal({
                             minute: "2-digit",
                           },
                         )}
+                        {authorNickname && ` | 계정: ${authorNickname}`}
                       </span>
                     </div>
                   )}
