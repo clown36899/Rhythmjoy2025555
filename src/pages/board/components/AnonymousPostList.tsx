@@ -28,8 +28,21 @@ export default function AnonymousPostList({
 }: AnonymousPostListProps) {
     const [editingPostId, setEditingPostId] = useState<number | null>(null);
     const [editPassword, setEditPassword] = useState('');
-    const [expandedCommentPostId, setExpandedCommentPostId] = useState<number | null>(null);
+    const [expandedCommentPostId, setExpandedCommentPostId] = useState<number | null>(0);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [unfoldedPostIds, setUnfoldedPostIds] = useState<Set<number>>(new Set());
+
+    const isUnfolded = (postId: number) => unfoldedPostIds.has(postId);
+
+    const toggleFold = (postId: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setUnfoldedPostIds(prev => {
+            const next = new Set(prev);
+            if (next.has(postId)) next.delete(postId);
+            else next.add(postId);
+            return next;
+        });
+    };
 
     const handleEditClick = (post: AnonymousBoardPost) => {
         if (isAdmin) {
@@ -105,11 +118,17 @@ export default function AnonymousPostList({
 
 
                             {/* Main Content Body */}
-                            <div className="board-post-body">
-                                {/* Title (Optional) */}
+                            <div className={`board-post-body ${post.is_notice && !isUnfolded(post.id) ? 'is-folded' : ''}`}>
+                                {/* Title / Header Row */}
                                 {post.title && (
-                                    <div className="board-post-title-row">
+                                    <div className="board-post-title-row" onClick={(e) => post.is_notice && toggleFold(post.id, e)} style={{ cursor: post.is_notice ? 'pointer' : 'default' }}>
                                         <h3 className="board-post-title">{post.title}</h3>
+                                        {post.is_notice && (
+                                            <button className="fold-toggle-btn" onClick={(e) => toggleFold(post.id, e)}>
+                                                <i className={isUnfolded(post.id) ? "ri-arrow-up-s-line" : "ri-arrow-down-s-line"}></i>
+                                                <span>{isUnfolded(post.id) ? '접기' : '펼치기'}</span>
+                                            </button>
+                                        )}
                                     </div>
                                 )}
 
@@ -121,8 +140,8 @@ export default function AnonymousPostList({
                                     </div>
                                 )}
 
-                                {/* Content - Hidden if blinded by reports */}
-                                {!isBlind && (
+                                {/* Content - Hidden if blinded by reports OR if folded notice */}
+                                {!isBlind && (!post.is_notice || isUnfolded(post.id)) && (
                                     <div className="board-post-content">
                                         <div onClick={() => onPostClick(post)} style={{ cursor: 'pointer' }}>
                                             {post.content}

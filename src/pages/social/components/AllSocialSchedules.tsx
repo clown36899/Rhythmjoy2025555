@@ -3,6 +3,7 @@ import type { SocialSchedule } from '../types';
 import './AllSocialSchedules.css';
 import { useModalActions } from '../../../contexts/ModalContext';
 import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface AllSocialSchedulesProps {
     schedules: SocialSchedule[];
@@ -11,6 +12,7 @@ interface AllSocialSchedulesProps {
 
 const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onViewAll }) => {
     const { openModal } = useModalActions();
+    const { isAdmin, user } = useAuth();
 
     // Get today's date in YYYY-MM-DD format (local timezone)
     const today = new Date();
@@ -64,7 +66,20 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
 
     const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
         e.stopPropagation();
-        openModal('socialDetail', { schedule: item, isAdmin: false });
+
+        // 일회성 일정만 수정 가능 (date가 있는 경우)
+        const isOneTimeSchedule = !!item.date;
+
+        // 등록자 본인이거나 관리자인 경우 수정 가능
+        const isOwner = user && item.user_id === user.id;
+        const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
+
+        openModal('socialDetail', {
+            schedule: item,
+            isAdmin: canEdit,
+            showCopyButton: false,
+            onEdit: (s: any) => openModal('socialEdit', { item: s, itemType: 'schedule' })
+        });
     };
 
     // Sort schedules by date and start_time

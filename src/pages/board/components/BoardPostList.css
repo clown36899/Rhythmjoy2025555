@@ -77,6 +77,38 @@
     font-weight: 700;
     line-height: 1.4;
     margin: 0 !important;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.anonymous-mode .fold-toggle-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--memo-text-meta);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.anonymous-mode .fold-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--memo-text-title);
+    border-color: var(--memo-card-accent);
+}
+
+.anonymous-mode .fold-toggle-btn i {
+    font-size: 1rem;
+    color: var(--memo-card-accent);
 }
 
 .anonymous-mode .board-post-body {
