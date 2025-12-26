@@ -3409,8 +3409,8 @@ export default function EventList({
               {!isSocialSchedulesLoading && todaySocialSchedules.length > 0 && (
                 <TodaySocial
                   schedules={todaySocialSchedules}
-                  onViewAll={() => navigateWithCategory('all')}
-                  onEventClick={onEventClick}
+                  onViewAll={() => navigate('/social')}
+                  onEventClick={(e) => onEventClick?.(e as any)}
                   onRefresh={refreshSocialSchedules}
                 />
               )}
@@ -3420,7 +3420,7 @@ export default function EventList({
                 <AllSocialSchedules
                   schedules={thisWeekSocialSchedules}
                   onViewAll={() => navigate('/social')}
-                  onEventClick={onEventClick}
+                  onEventClick={(e) => onEventClick?.(e as any)}
                   onRefresh={refreshSocialSchedules}
                 />
               )}
