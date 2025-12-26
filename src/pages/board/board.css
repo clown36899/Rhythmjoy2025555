@@ -120,7 +120,7 @@
 /* ===== 게시글 카드 ===== */
 /* ===== 게시글 카드 ===== */
 .standard-view .board-post-card {
-  padding: 12px 16px;
+  padding: 12px 12px 12px 6px;
   margin: 0 0 5px 0;
   /* Restored standard padding */
   transition: var(--transition-colors);
@@ -135,7 +135,7 @@
 }
 
 .standard-view .board-post-card:hover {
-  background-color: var(--color-gray-600);
+  /* background-color: var(--color-gray-600); */
 }
 
 .standard-view .board-post-card-normal {
@@ -150,7 +150,7 @@
 /* New Top Row container for Image + Content */
 .standard-view .board-post-top-row {
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   align-items: stretch;
   gap: 12px;
   width: 100%;
@@ -199,6 +199,7 @@
 }
 
 .standard-view .board-post-prefix {
+  background-color: #000000;
   color: white;
   font-size: 10px;
   padding: 2px 5px;
@@ -239,6 +240,7 @@
 
 .standard-view .board-post-content {
   color: #d1d5db;
+  padding: 0 0 0 5px;
   /* Light gray (Gray 300 equivalent) */
   font-size: 13px;
   margin: 0;
@@ -259,6 +261,7 @@
   color: #888;
   width: 100%;
   padding-top: 4px;
+  padding-left: 7px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   /* Optional subtle separator */
 }

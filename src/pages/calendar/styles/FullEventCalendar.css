@@ -996,7 +996,7 @@
 }
 
 .calendar-fullscreen-title {
-  font-size: 10px;
+  font-size: 0.6rem;
   font-weight: 500;
   color: white;
   overflow: hidden;
@@ -1006,7 +1006,7 @@
   line-clamp: 2;
   word-break: break-word;
   line-height: 1.2;
-  text-align: center;
+  text-align: left;
 }
 
 /* Carousel Styles */
@@ -1678,9 +1678,9 @@
 }
 
 .calendar-fullscreen-image-container {
-  width: 100%;
+  width: 78%;
   aspect-ratio: 1 / 1;
-  border-radius: 10rem;
+  border-radius: 0.3rem;
   overflow: hidden;
   background-color: var(--bg-secondary);
   /* gray-700 */
@@ -1690,10 +1690,16 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .calendar-fullscreen-placeholder {
-  width: 100%;
+  width: 50%;
   aspect-ratio: 1 / 1;
   border-radius: 4px;
   display: flex;
