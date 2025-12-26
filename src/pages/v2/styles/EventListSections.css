@@ -529,3 +529,37 @@
     height: 28px;
     font-size: 14px;
 }
+
+/* Tab Buttons (Copied from MyActivitiesPage) */
+.activity-tab-btn {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #9ca3af;
+    /* gray-400 */
+    transition: color 0.2s, border-bottom 0.2s;
+    border-bottom: 2px solid transparent;
+}
+
+.activity-tab-btn.active {
+    color: #3b82f6;
+    /* blue-500 */
+    border-bottom-color: #3b82f6;
+}
+
+/* Override favorite icon color to white for EventCard and Post items in Favorites View */
+.evt-favorites-view-container .card-favorite-icon,
+.evt-favorites-view-container .board-post-meta-icon {
+    color: #ffffff !important;
+}
+
+/* Ensure the star icon specifically is targeted if needed, but the above generic class should catch it */
+.evt-favorites-view-container .ri-star-fill,
+.evt-favorites-view-container .ri-star-line {
+    color: #ffffff !important;
+}

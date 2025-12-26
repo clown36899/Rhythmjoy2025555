@@ -15,6 +15,7 @@ import ImageCropModal from '../../../components/ImageCropModal';
 import { createResizedImages } from '../../../utils/imageResize';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 
+
 interface Event extends BaseEvent {
   storage_path?: string | null;
   genre?: string | null;
@@ -101,8 +102,8 @@ export default function EventDetailModal({
   useEffect(() => {
     setDraftEvent(event);
 
-    // On-Demand Fetching: description이 없으면 상세 데이터 조회
-    if (event?.id && event.description === undefined) {
+    // On-Demand Fetching: description이나 link1이 없으면 상세 데이터 조회
+    if (event?.id && (event.description === undefined || event.link1 === undefined)) {
       const fetchDetail = async () => {
         try {
           setIsFetchingDetail(true);
@@ -1215,37 +1216,23 @@ export default function EventDetailModal({
                     )}
 
                   {/* This section was commented out in the original file, but I've added classes just in case */}
-                  {/* {selectedEvent.link1 && (
-                  <div className="info-divider">
-                    <div className="link-container">
-                      <a
-                        href={selectedEvent.link1}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="main-link-button"
-                      >
-                        <i className="ri-external-link-line edm-text-lg"></i>
-                        <span className="edm-font-medium">
-                          {selectedEvent.link_name1 || "바로가기"}
-                        </span>
-                      </a>
-                      <a
-                        href={selectedEvent.link1}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="qr-link-button"
-                        title="QR 코드로 바로가기"
-                      >
-                        <QRCodeSVG
-                          value={selectedEvent.link1}
-                          size={64}
-                          level="M"
-                          includeMargin={false}
-                        />
-                      </a>
+                  {selectedEvent.link1 && (
+                    <div className="info-divider">
+                      <div className="link-container">
+                        <a
+                          href={selectedEvent.link1}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="main-link-button"
+                        >
+                          <i className="ri-external-link-line edm-text-lg"></i>
+                          <span className="edm-font-medium">
+                            {selectedEvent.link_name1 || "바로가기"}
+                          </span>
+                        </a>
+                      </div>
                     </div>
-                  </div>
-                )} */}
+                  )}
 
                   {isAdminMode && selectedEvent.created_at && (
                     <div className="created-at-text">

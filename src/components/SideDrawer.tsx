@@ -181,7 +181,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 onClose();
                                 navigate('/v2?view=favorites');
                             }}>
-                                <i className="ri-star-line" style={{ color: '#f87171' }}></i>
+                                <i className="ri-star-line" style={{ color: '#ffffff' }}></i>
                                 <span>내 즐겨찾기</span>
                             </div>
                             <div className="drawer-menu-item" onClick={() => {

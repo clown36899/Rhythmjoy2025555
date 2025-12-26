@@ -173,6 +173,9 @@ export default function EventList({
   const searchTerm = externalSearchTerm ?? internalSearchTerm;
   const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
 
+  // Favorites Tab State
+  const [favoritesTab, setFavoritesTab] = useState<'events' | 'posts' | 'practice' | 'shops' | 'groups'>('events');
+
   // selectedEvent removed - delegated to props
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -2904,357 +2907,418 @@ export default function EventList({
             <span>내 즐겨찾기</span>
           </div>
 
-          {/* 1. Future Events Section */}
-          {futureFavorites.length > 0 && (
-            <div className="evt-favorites-section">
-              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
-                진행 예정/중인 행사 <span className="evt-favorites-count">{futureFavorites.length}</span>
-              </h3>
-              <div className="evt-favorites-grid-2" style={{ padding: '0 8px' }}>
-                {futureFavorites.map(event => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onClick={() => onEventClickInFullscreen?.(event)}
-                    onMouseEnter={onEventHover}
-                    onMouseLeave={() => onEventHover?.(null)}
-                    isHighlighted={highlightEvent?.id === event.id}
-                    selectedDate={selectedDate}
-                    defaultThumbnailClass={defaultThumbnailClass}
-                    defaultThumbnailEvent={defaultThumbnailEvent}
-                    isFavorite={effectiveFavoriteIds.has(event.id)}
-                    onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Favorites Tabs */}
+          <div className="activity-tabs-container" style={{ display: 'flex', margin: '16px 8px', gap: '4px', overflowX: 'auto', paddingBottom: '4px' }}>
+            <button
+              className={`activity-tab-btn ${favoritesTab === 'events' ? 'active' : ''}`}
+              onClick={() => setFavoritesTab('events')}
+              style={{ flex: 1, padding: '8px 4px', fontSize: '13px', whiteSpace: 'nowrap', minWidth: '60px' }}
+            >
+              행사
+            </button>
+            <button
+              className={`activity-tab-btn ${favoritesTab === 'posts' ? 'active' : ''}`}
+              onClick={() => setFavoritesTab('posts')}
+              style={{ flex: 1, padding: '8px 4px', fontSize: '13px', whiteSpace: 'nowrap', minWidth: '60px' }}
+            >
+              글
+            </button>
+            <button
+              className={`activity-tab-btn ${favoritesTab === 'groups' ? 'active' : ''}`}
+              onClick={() => setFavoritesTab('groups')}
+              style={{ flex: 1, padding: '8px 4px', fontSize: '13px', whiteSpace: 'nowrap', minWidth: '60px' }}
+            >
+              단체
+            </button>
+            <button
+              className={`activity-tab-btn ${favoritesTab === 'practice' ? 'active' : ''}`}
+              onClick={() => setFavoritesTab('practice')}
+              style={{ flex: 1, padding: '8px 4px', fontSize: '13px', whiteSpace: 'nowrap', minWidth: '60px' }}
+            >
+              연습실
+            </button>
+            <button
+              className={`activity-tab-btn ${favoritesTab === 'shops' ? 'active' : ''}`}
+              onClick={() => setFavoritesTab('shops')}
+              style={{ flex: 1, padding: '8px 4px', fontSize: '13px', whiteSpace: 'nowrap', minWidth: '60px' }}
+            >
+              쇼핑
+            </button>
+          </div>
 
-          {/* 2. Liked Board Posts Section */}
-          {favoritedBoardPosts.length > 0 && (
-            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
-              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
-                찜한 게시글 <span className="evt-favorites-count">{favoritedBoardPosts.length}</span>
-              </h3>
-              <div className="board-posts-list" style={{ padding: '0 12px' }}>
-                <StandardPostList
-                  posts={favoritedBoardPosts}
-                  category="free" // Dummy category, required
-                  onPostClick={(post) => {
-                    navigate(`/board/${post.id}`);
-                  }}
-                  favoritedPostIds={new Set(favoritedBoardPosts.map(p => p.id))}
-                  onToggleFavorite={handleRemoveFavoriteBoardPost}
-                  isAdmin={isAdminMode}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* 3. Practice Room Favorites Section */}
-          {favoritePracticeRooms.length > 0 && (
-            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
-              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
-                연습실 즐겨찾기 <span className="evt-favorites-count">{favoritePracticeRooms.length}</span>
-              </h3>
-              <div style={{ padding: '0 12px', display: 'grid', gap: '1rem' }}>
-                {favoritePracticeRooms.map((room) => (
-                  <div
-                    key={room.id}
-                    onClick={() => navigate(`/practice?id=${room.id}`)}
-                    className="prl-card"
-                    style={{ cursor: 'pointer', position: 'relative' }}
-                  >
-                    {/* 즐겨찾기 제거 버튼 */}
-                    <button
-                      className="prl-favorite-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemovePracticeRoomFavorite(room.id);
-                      }}
-                      title="즐겨찾기 해제"
-                    >
-                      <i className="ri-heart-3-fill"></i>
-                    </button>
-
-                    {/* 왼쪽: 정보 */}
-                    <div className="prl-card-info">
-                      <h3 className="prl-card-name">{room.name}</h3>
-                      {room.address && (
-                        <p className="prl-card-address">
-                          <i className="ri-map-pin-line prl-card-address-icon"></i>
-                          <span className="prl-card-address-text">{room.address}</span>
-                        </p>
-                      )}
-                      {room.description && (
-                        <p className="prl-card-description">{room.description}</p>
-                      )}
-                    </div>
-
-                    {/* 오른쪽: 정사각형 이미지 */}
-                    {room.images && room.images.length > 0 && (
-                      <div className="prl-card-image-wrapper">
-                        <img src={getOptimizedImageUrl(room.images[0], 200) || '/placeholder-room.jpg'} alt={room.name} className="prl-card-image" />
-                      </div>
-                    )}
+          {/* 1. Events Tab (Future & Past) */}
+          {favoritesTab === 'events' && (
+            <div className="evt-favorites-tab-content">
+              {/* Future Events */}
+              {futureFavorites.length > 0 && (
+                <div className="evt-favorites-section">
+                  <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                    진행 예정/중인 행사 <span className="evt-favorites-count">{futureFavorites.length}</span>
+                  </h3>
+                  <div className="evt-favorites-grid-2" style={{ padding: '0 8px' }}>
+                    {futureFavorites.map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onClick={() => onEventClickInFullscreen?.(event)}
+                        onMouseEnter={onEventHover}
+                        onMouseLeave={() => onEventHover?.(null)}
+                        isHighlighted={highlightEvent?.id === event.id}
+                        selectedDate={selectedDate}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        isFavorite={effectiveFavoriteIds.has(event.id)}
+                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          {/* 4. Shop Favorites Section */}
-          {favoriteShops.length > 0 && (
-            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
-              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
-                쇼핑몰 즐겨찾기 <span className="evt-favorites-count">{favoriteShops.length}</span>
-              </h3>
-              <div style={{ padding: '0 12px', display: 'grid', gap: '1rem' }}>
-                {favoriteShops.map((shop) => (
-                  <div
-                    key={shop.id}
-                    onClick={() => navigate('/shopping')}
-                    className="shopcard-banner"
-                    style={{ cursor: 'pointer', position: 'relative' }}
-                  >
-                    {/* 즐겨찾기 제거 버튼 */}
-                    <button
-                      className="shopcard-favorite-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveShopFavorite(shop.id);
-                      }}
-                      title="즐겨찾기 해제"
-                    >
-                      <i className="ri-heart-3-fill"></i>
-                    </button>
+              {/* Past Events */}
+              {pastFavorites.length > 0 && (
+                <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
+                  <div className="evt-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px', marginBottom: '12px' }}>
+                    <h3 className="evt-favorites-title" style={{ fontSize: '14px', color: '#ccc', margin: 0 }}>
+                      지난 행사 <span className="evt-favorites-count">{pastFavorites.length}</span>
+                    </h3>
+                    <div className="evt-view-mode-toggle">
+                      <button
+                        className={`evt-view-mode-btn ${pastEventsViewMode === 'grid-5' ? 'active' : ''}`}
+                        onClick={() => setPastEventsViewMode('grid-5')}
+                      >
+                        5열
+                      </button>
+                      <button
+                        className={`evt-view-mode-btn ${pastEventsViewMode === 'grid-2' ? 'active' : ''}`}
+                        onClick={() => setPastEventsViewMode('grid-2')}
+                      >
+                        2열
+                      </button>
+                      <button
+                        className={`evt-view-mode-btn ${pastEventsViewMode === 'genre' ? 'active' : ''}`}
+                        onClick={() => setPastEventsViewMode('genre')}
+                      >
+                        장르
+                      </button>
+                    </div>
+                  </div>
 
-                    {/* Left: Image Section */}
-                    <div className="shopcard-image-section">
-                      {shop.logo_url ? (
-                        <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-banner-image" />
-                      ) : (
-                        <div className="shopcard-banner-placeholder">
-                          <i className="ri-store-2-fill"></i>
+                  {pastEventsViewMode === 'genre' ? (
+                    <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {Object.entries(pastFavorites.reduce((acc, event) => {
+                        const genre = event.genre || '기타';
+                        if (!acc[genre]) acc[genre] = [];
+                        acc[genre].push(event);
+                        return acc;
+                      }, {} as Record<string, typeof pastFavorites>)).map(([genre, events]) => (
+                        <div key={genre}>
+                          <h4 style={{ fontSize: '12px', color: '#999', marginBottom: '8px', paddingLeft: '4px' }}>{genre}</h4>
+                          <div className="evt-favorites-grid-5">
+                            {events.map(event => (
+                              <EventCard
+                                key={event.id}
+                                event={event}
+                                onClick={() => onEventClickInFullscreen?.(event)}
+                                onMouseEnter={onEventHover}
+                                onMouseLeave={() => onEventHover?.(null)}
+                                isHighlighted={highlightEvent?.id === event.id}
+                                selectedDate={selectedDate}
+                                defaultThumbnailClass={defaultThumbnailClass}
+                                defaultThumbnailEvent={defaultThumbnailEvent}
+                                variant="sliding"
+                                className="evt-card-compact"
+                                hideDate={true}
+                                hideGenre={true}
+                                isFavorite={effectiveFavoriteIds.has(event.id)}
+                                onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
-
-                    {/* Right: Content Section */}
-                    <div className="shopcard-content-section">
-                      <div className="shopcard-banner-content">
-                        <h3 className="shopcard-banner-title">{shop.name}</h3>
-                        {shop.description && (
-                          <p className="shopcard-banner-desc">{shop.description}</p>
-                        )}
-                        <button className="shopcard-banner-btn">
-                          <i className="ri-arrow-right-line"></i>
-                        </button>
-                      </div>
+                  ) : (
+                    <div
+                      className={`evt-grid-container ${pastEventsViewMode === 'grid-5' ? 'evt-favorites-grid-5' : 'evt-favorites-grid-2'}`}
+                      style={{
+                        padding: '0 8px', // Reduced padding to give more width
+                      }}
+                    >
+                      {pastFavorites.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => onEventClickInFullscreen?.(event)}
+                          onMouseEnter={onEventHover}
+                          onMouseLeave={() => onEventHover?.(null)}
+                          isHighlighted={highlightEvent?.id === event.id}
+                          selectedDate={selectedDate}
+                          defaultThumbnailClass={defaultThumbnailClass}
+                          defaultThumbnailEvent={defaultThumbnailEvent}
+                          variant={pastEventsViewMode === 'grid-5' ? 'sliding' : 'single'}
+                          className={pastEventsViewMode === 'grid-5' ? 'evt-card-compact' : ''}
+                          hideDate={pastEventsViewMode === 'grid-5'}
+                          hideGenre={pastEventsViewMode === 'grid-5'}
+                          isFavorite={effectiveFavoriteIds.has(event.id)}
+                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 5. Past Events Section */}
-          {pastFavorites.length > 0 && (
-            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
-              <div className="evt-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px', marginBottom: '12px' }}>
-                <h3 className="evt-favorites-title" style={{ fontSize: '14px', color: '#ccc', margin: 0 }}>
-                  지난 행사 <span className="evt-favorites-count">{pastFavorites.length}</span>
-                </h3>
-                <div className="evt-view-mode-toggle">
-                  <button
-                    className={`evt-view-mode-btn ${pastEventsViewMode === 'grid-5' ? 'active' : ''}`}
-                    onClick={() => setPastEventsViewMode('grid-5')}
-                  >
-                    5열
-                  </button>
-                  <button
-                    className={`evt-view-mode-btn ${pastEventsViewMode === 'grid-2' ? 'active' : ''}`}
-                    onClick={() => setPastEventsViewMode('grid-2')}
-                  >
-                    2열
-                  </button>
-                  <button
-                    className={`evt-view-mode-btn ${pastEventsViewMode === 'genre' ? 'active' : ''}`}
-                    onClick={() => setPastEventsViewMode('genre')}
-                  >
-                    장르
-                  </button>
+                  )}
                 </div>
-              </div>
+              )}
 
-              {pastEventsViewMode === 'genre' ? (
-                <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  {Object.entries(pastFavorites.reduce((acc, event) => {
-                    const genre = event.genre || '기타';
-                    if (!acc[genre]) acc[genre] = [];
-                    acc[genre].push(event);
-                    return acc;
-                  }, {} as Record<string, typeof pastFavorites>)).map(([genre, events]) => (
-                    <div key={genre}>
-                      <h4 style={{ fontSize: '12px', color: '#999', marginBottom: '8px', paddingLeft: '4px' }}>{genre}</h4>
-                      <div className="evt-favorites-grid-5">
-                        {events.map(event => (
-                          <EventCard
-                            key={event.id}
-                            event={event}
-                            onClick={() => onEventClickInFullscreen?.(event)}
-                            onMouseEnter={onEventHover}
-                            onMouseLeave={() => onEventHover?.(null)}
-                            isHighlighted={highlightEvent?.id === event.id}
-                            selectedDate={selectedDate}
-                            defaultThumbnailClass={defaultThumbnailClass}
-                            defaultThumbnailEvent={defaultThumbnailEvent}
-                            variant="sliding"
-                            className="evt-card-compact"
-                            hideDate={true}
-                            hideGenre={true}
-                            isFavorite={effectiveFavoriteIds.has(event.id)}
-                            onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div
-                  className={`evt-grid-container ${pastEventsViewMode === 'grid-5' ? 'evt-favorites-grid-5' : 'evt-favorites-grid-2'}`}
-                  style={{
-                    padding: '0 8px', // Reduced padding to give more width
-                  }}
-                >
-                  {pastFavorites.map(event => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onClick={() => onEventClickInFullscreen?.(event)}
-                      onMouseEnter={onEventHover}
-                      onMouseLeave={() => onEventHover?.(null)}
-                      isHighlighted={highlightEvent?.id === event.id}
-                      selectedDate={selectedDate}
-                      defaultThumbnailClass={defaultThumbnailClass}
-                      defaultThumbnailEvent={defaultThumbnailEvent}
-                      // For 5-col grid, we use 'sliding' variant (compact) but add a class for further customization if needed
-                      variant={pastEventsViewMode === 'grid-5' ? 'sliding' : 'single'}
-                      className={pastEventsViewMode === 'grid-5' ? 'evt-card-compact' : ''}
-                      hideDate={pastEventsViewMode === 'grid-5'}
-                      hideGenre={pastEventsViewMode === 'grid-5'}
-                      isFavorite={effectiveFavoriteIds.has(event.id)}
-                      onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                    />
-                  ))}
+              {futureFavorites.length === 0 && pastFavorites.length === 0 && (
+                <div className="evt-v2-empty" style={{ marginTop: '2rem' }}>
+                  아직 찜한 항목이 없습니다.
                 </div>
               )}
             </div>
           )}
 
-          {/* 5. Social Group Favorites Section */}
-          {favoriteSocialGroups.length > 0 && (
-            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
-              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
-                관심있는 단체 <span className="evt-favorites-count">{favoriteSocialGroups.length}</span>
-              </h3>
-              <div style={{ padding: '0 12px', display: 'grid', gap: '12px' }}>
-                {favoriteSocialGroups.map((group) => (
-                  <div
-                    key={group.id}
-                    onClick={() => navigate(`/social?group_id=${group.id}`)}
-                    style={{
-                      backgroundColor: '#1e1e1e',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: 'pointer',
-                      border: '1px solid #333',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ padding: '16px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                      {/* Image */}
-                      <div style={{
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '20px',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                        backgroundColor: '#2a2a2a'
-                      }}>
-                        {group.image_thumbnail || group.image_url ? (
-                          <img
-                            src={group.image_thumbnail || group.image_url}
-                            alt={group.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-                            <i className="ri-team-line" style={{ fontSize: '24px' }}></i>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                          <h4 style={{
-                            margin: 0,
-                            fontSize: '16px',
-                            fontWeight: 600,
-                            color: '#fff',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {group.name}
-                          </h4>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveSocialGroupFavorite(group.id);
-                            }}
-                            title="즐겨찾기 해제"
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: '#FFD700', // Star color
-                              fontSize: '20px',
-                              padding: '4px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            <i className="ri-star-fill"></i>
-                          </button>
-                        </div>
-                        <p style={{
-                          margin: 0,
-                          fontSize: '13px',
-                          color: '#aaa',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 1,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
-                        }}>
-                          {group.description || '아직 설명이 없습니다.'}
-                        </p>
-                      </div>
-                    </div>
+          {/* 2. Posts Tab */}
+          {favoritesTab === 'posts' && (
+            <div className="evt-favorites-tab-content">
+              {favoritedBoardPosts.length > 0 ? (
+                <div className="evt-favorites-section">
+                  <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                    찜한 게시글 <span className="evt-favorites-count">{favoritedBoardPosts.length}</span>
+                  </h3>
+                  <div className="board-posts-list" style={{ padding: '0 12px' }}>
+                    <StandardPostList
+                      posts={favoritedBoardPosts}
+                      category="free"
+                      onPostClick={(post) => navigate(`/board/${post.id}`)}
+                      favoritedPostIds={new Set(favoritedBoardPosts.map(p => p.id))}
+                      onToggleFavorite={handleRemoveFavoriteBoardPost}
+                      isAdmin={isAdminMode}
+                    />
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="evt-v2-empty" style={{ marginTop: '2rem' }}>
+                  아직 찜한 게시글이 없습니다.
+                </div>
+              )}
             </div>
           )}
 
-          {futureFavorites.length === 0 && favoritedBoardPosts.length === 0 && pastFavorites.length === 0 && favoritePracticeRooms.length === 0 && favoriteShops.length === 0 && favoriteSocialGroups.length === 0 && (
-            <div className="evt-v2-empty evt-mt-8">
-              아직 찜한 항목이 없습니다.
+          {/* 3. Groups Tab */}
+          {favoritesTab === 'groups' && (
+            <div className="evt-favorites-tab-content">
+              {favoriteSocialGroups.length > 0 ? (
+                <div className="evt-favorites-section">
+                  <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                    관심있는 단체 <span className="evt-favorites-count">{favoriteSocialGroups.length}</span>
+                  </h3>
+                  <div style={{ padding: '0 12px', display: 'grid', gap: '12px' }}>
+                    {favoriteSocialGroups.map((group) => (
+                      <div
+                        key={group.id}
+                        onClick={() => navigate(`/social?group_id=${group.id}`)}
+                        style={{
+                          backgroundColor: '#1e1e1e',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          cursor: 'pointer',
+                          border: '1px solid #333',
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{ padding: '16px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                          <div style={{
+                            width: '60px',
+                            height: '60px',
+                            borderRadius: '20px',
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            backgroundColor: '#2a2a2a'
+                          }}>
+                            {group.image_thumbnail || group.image_url ? (
+                              <img
+                                src={group.image_thumbnail || group.image_url}
+                                alt={group.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                                <i className="ri-team-line" style={{ fontSize: '24px' }}></i>
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                              <h4 style={{
+                                margin: 0,
+                                fontSize: '16px',
+                                fontWeight: 600,
+                                color: '#fff',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {group.name}
+                              </h4>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveSocialGroupFavorite(group.id);
+                                }}
+                                title="즐겨찾기 해제"
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#ffffff',
+                                  fontSize: '20px',
+                                  padding: '4px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <i className="ri-star-fill"></i>
+                              </button>
+                            </div>
+                            <p style={{
+                              margin: 0,
+                              fontSize: '13px',
+                              color: '#aaa',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 1,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            }}>
+                              {group.description || '아직 설명이 없습니다.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="evt-v2-empty" style={{ marginTop: '2rem' }}>
+                  아직 찜한 단체가 없습니다.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. Practice Tab */}
+          {favoritesTab === 'practice' && (
+            <div className="evt-favorites-tab-content">
+              {favoritePracticeRooms.length > 0 ? (
+                <div className="evt-favorites-section">
+                  <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                    연습실 즐겨찾기 <span className="evt-favorites-count">{favoritePracticeRooms.length}</span>
+                  </h3>
+                  <div style={{ padding: '0 12px', display: 'grid', gap: '1rem' }}>
+                    {favoritePracticeRooms.map((room) => (
+                      <div
+                        key={room.id}
+                        onClick={() => navigate(`/practice?id=${room.id}`)}
+                        className="prl-card"
+                        style={{ cursor: 'pointer', position: 'relative' }}
+                      >
+                        <button
+                          className="prl-favorite-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemovePracticeRoomFavorite(room.id);
+                          }}
+                          title="즐겨찾기 해제"
+                        >
+                          <i className="ri-star-fill" style={{ color: '#ffffff' }}></i>
+                        </button>
+                        <div className="prl-card-info">
+                          <h3 className="prl-card-name">{room.name}</h3>
+                          {room.address && (
+                            <p className="prl-card-address">
+                              <i className="ri-map-pin-line prl-card-address-icon"></i>
+                              <span className="prl-card-address-text">{room.address}</span>
+                            </p>
+                          )}
+                          {room.description && (
+                            <p className="prl-card-description">{room.description}</p>
+                          )}
+                        </div>
+                        {room.images && room.images.length > 0 && (
+                          <div className="prl-card-image-wrapper">
+                            <img src={getOptimizedImageUrl(room.images[0], 200) || '/placeholder-room.jpg'} alt={room.name} className="prl-card-image" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="evt-v2-empty" style={{ marginTop: '2rem' }}>
+                  아직 찜한 연습실이 없습니다.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 5. Shops Tab */}
+          {favoritesTab === 'shops' && (
+            <div className="evt-favorites-tab-content">
+              {favoriteShops.length > 0 ? (
+                <div className="evt-favorites-section">
+                  <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                    쇼핑몰 즐겨찾기 <span className="evt-favorites-count">{favoriteShops.length}</span>
+                  </h3>
+                  <div style={{ padding: '0 12px', display: 'grid', gap: '1rem' }}>
+                    {favoriteShops.map((shop) => (
+                      <div
+                        key={shop.id}
+                        onClick={() => navigate('/shopping')}
+                        className="shopcard-banner"
+                        style={{ cursor: 'pointer', position: 'relative' }}
+                      >
+                        <button
+                          className="shopcard-favorite-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveShopFavorite(shop.id);
+                          }}
+                          title="즐겨찾기 해제"
+                        >
+                          <i className="ri-star-fill" style={{ color: '#ffffff' }}></i>
+                        </button>
+                        <div className="shopcard-image-section">
+                          {shop.logo_url ? (
+                            <img src={shop.logo_url} alt={`${shop.name} 로고`} className="shopcard-banner-image" />
+                          ) : (
+                            <div className="shopcard-banner-placeholder">
+                              <i className="ri-store-2-fill"></i>
+                            </div>
+                          )}
+                        </div>
+                        <div className="shopcard-content-section">
+                          <div className="shopcard-banner-content">
+                            <h3 className="shopcard-banner-title">{shop.name}</h3>
+                            {shop.description && (
+                              <p className="shopcard-banner-desc">{shop.description}</p>
+                            )}
+                            <button className="shopcard-banner-btn">
+                              <i className="ri-arrow-right-line"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="evt-v2-empty" style={{ marginTop: '2rem' }}>
+                  아직 찜한 쇼핑몰이 없습니다.
+                </div>
+              )}
             </div>
           )}
 
