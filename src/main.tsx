@@ -8,6 +8,7 @@ import './index.css'
 import App from './App.tsx'
 import { initGA } from './lib/analytics'
 import { ModalRegistry } from './components/ModalRegistry'
+import GlobalErrorBoundary from './components/GlobalErrorBoundary'
 
 function normalizeBasename(base?: string) {
   if (!base) return undefined;
@@ -40,6 +41,32 @@ function RootApp() {
         const lastReload = sessionStorage.getItem('chunk_reload');
         if (lastReload && Date.now() - parseInt(lastReload) < 10000) {
           console.error('Reload loop detected, stopping auto-reload.');
+
+          // Emergency Cleanup: Unregister Service Worker & Clear Caches
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              for (const registration of registrations) {
+                registration.unregister();
+              }
+            });
+          }
+          if ('caches' in window) {
+            caches.keys().then(keys => {
+              keys.forEach(key => caches.delete(key));
+            });
+          }
+
+          // Loop detected: Show fallback UI instead of white screen
+          document.body.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              <h2 style="margin-bottom:10px;font-size:18px;font-weight:600;">업데이트 문제 발생</h2>
+              <p style="margin-bottom:20px;color:#666;font-size:14px;">최신 버전을 로딩하는 중 문제가 발생했습니다.</p>
+              <button onclick="sessionStorage.clear(); localStorage.clear(); window.location.reload();" 
+                style="padding:10px 20px;background:#2563EB;color:white;border:none;border-radius:6px;font-weight:500;cursor:pointer;">
+                앱 초기화 및 다시 불러오기
+              </button>
+            </div>
+          `;
           return;
         }
 
@@ -61,8 +88,10 @@ function RootApp() {
     <BrowserRouter basename={basename}>
       <AuthProvider>
         <ModalProvider>
-          <App />
-          <ModalRegistry />
+          <GlobalErrorBoundary>
+            <App />
+            <ModalRegistry />
+          </GlobalErrorBoundary>
         </ModalProvider>
       </AuthProvider>
     </BrowserRouter>

@@ -48,6 +48,7 @@ import StandardPostList from "../../board/components/StandardPostList";
 import { useNavigate } from "react-router-dom";
 import "../../practice/components/PracticeRoomList.css";
 import "../../shopping/components/shopcard.css";
+import GlobalLoadingOverlay from "../../../components/GlobalLoadingOverlay";
 
 registerLocale("ko", ko);
 
@@ -2701,6 +2702,11 @@ export default function EventList({
         </div>
       </div>
     );
+  }
+
+  // 로딩 중이고 데이터가 없는 경우 (초기 로딩)
+  if (loading && events.length === 0) {
+    return <GlobalLoadingOverlay isLoading={true} />;
   }
 
   // 로딩 완료 후 에러가 있으면 표시
