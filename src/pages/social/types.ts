@@ -4,6 +4,10 @@ export interface SocialGroup {
   name: string;
   type: 'club' | 'bar' | 'etc';
   image_url?: string;
+  image_micro?: string;
+  image_thumbnail?: string;
+  image_medium?: string;
+  image_full?: string;
   description?: string;
   user_id: string;
   created_at: string;

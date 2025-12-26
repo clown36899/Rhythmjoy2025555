@@ -29,6 +29,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const [password, setPassword] = useState(''); // 관리 비밀번호
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
+    const { isAdmin } = useAuth();
 
     // Image Crop State
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -146,13 +147,14 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
         }
 
         const isCreator = editGroup ? editGroup.user_id === user.id : true;
+        const canEditWithoutPassword = isAdmin || isCreator;
 
         // Validation
         if (!editGroup && !password.trim()) {
             alert('관리 비밀번호를 설정해주세요.\n(다른 사용자도 이 비밀번호로 그룹을 수정/관리할 수 있습니다)');
             return;
         }
-        if (editGroup && !isCreator && !password.trim()) {
+        if (editGroup && !canEditWithoutPassword && !password.trim()) {
             alert('수정을 위해 관리 비밀번호를 입력해주세요.');
             return;
         }
@@ -166,36 +168,62 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             // 단, 모달 내에서 비밀번호를 바꾼 경우 등을 고려해 로직 단순화.
 
             let finalImageUrl = imagePreview;
+            let imageMicro = editGroup?.image_micro || null;
+            let imageThumbnail = editGroup?.image_thumbnail || null;
+            let imageMedium = editGroup?.image_medium || null;
+            let imageFull = editGroup?.image_full || null;
+
             if (imageFile) {
-                setLoadingMessage('이미지 업로드 중...');
+                setLoadingMessage('이미지 최적화 및 업로드 중...');
                 const resized = await createResizedImages(imageFile);
                 const timestamp = Date.now();
                 const fileName = `${timestamp}_${Math.random().toString(36).substring(2, 7)}.webp`;
                 const basePath = `social-groups/${user.id}`;
 
-                const { error: uploadError } = await supabase.storage
-                    .from('images')
-                    .upload(`${basePath}/${fileName}`, resized.medium);
+                // Upload all 4 sizes
+                const uploadImage = async (size: string, blob: Blob) => {
+                    const path = `${basePath}/${size}/${fileName}`;
+                    const { error } = await supabase.storage.from('images').upload(path, blob);
+                    if (error) throw error;
+                    return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                };
 
-                if (uploadError) throw uploadError;
-                finalImageUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/${fileName}`).data.publicUrl;
+                const [microUrl, thumbUrl, medUrl, fullUrl] = await Promise.all([
+                    uploadImage('micro', resized.micro),
+                    uploadImage('thumbnail', resized.thumbnail),
+                    uploadImage('medium', resized.medium),
+                    uploadImage('full', resized.full)
+                ]);
+
+                finalImageUrl = fullUrl;
+                imageMicro = microUrl;
+                imageThumbnail = thumbUrl;
+                imageMedium = medUrl;
+                imageFull = fullUrl;
             }
 
             const groupData: any = {
                 name,
                 type,
                 description,
-                image_url: finalImageUrl,
-                // user_id는 유지 (소유권 이전 아님)
             };
+
+            // Only update image fields if new image was uploaded
+            if (imageFile) {
+                groupData.image_url = finalImageUrl;
+                groupData.image_micro = imageMicro;
+                groupData.image_thumbnail = imageThumbnail;
+                groupData.image_medium = imageMedium;
+                groupData.image_full = imageFull;
+            }
 
             // 신규 등록이면 비번/소유자 설정
             if (!editGroup) {
                 groupData.user_id = user.id;
                 groupData.password = password;
             } else {
-                // 수정 시: 생성자만 비밀번호 변경 가능
-                if (isCreator && password.trim()) {
+                // 수정 시: 생성자/관리자만 비밀번호 변경 가능
+                if (canEditWithoutPassword && password.trim()) {
                     groupData.password = password;
                 }
                 // 공동 관리자는 비밀번호 수정 권한 없음 (기존 비밀번호 유지)
@@ -203,15 +231,13 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
             let result;
             if (editGroup) {
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from('social_groups')
                     .update(groupData)
-                    .eq('id', editGroup.id)
-                    .select()
-                    .single();
+                    .eq('id', editGroup.id);
 
                 if (error) throw error;
-                result = data;
+                result = { ...editGroup, ...groupData }; // Return merged data
             } else {
                 const { data, error } = await supabase
                     .from('social_groups')
@@ -236,7 +262,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
     const isCreator = editGroup ? editGroup.user_id === user?.id : true; // 신규는 본인이 생성자
 
-    return createPortal(
+    const mainModal = createPortal(
         <div className="social-group-modal-overlay" onClick={onClose}>
             <div className="social-group-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="social-group-modal-header">
@@ -267,10 +293,20 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     <div className="form-section image-section">
                         <div
                             className="image-preview-box"
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => {
+                                // Always open crop modal (with existing image or null)
+                                setTempImageSrc(imagePreview);
+                                setIsCropModalOpen(true);
+                            }}
                         >
                             {imagePreview ? (
-                                <img src={imagePreview} alt="Preview" />
+                                <>
+                                    <img src={imagePreview} alt="Preview" />
+                                    <div className="image-edit-overlay">
+                                        <i className="ri-image-edit-line"></i>
+                                        <span>이미지 편집</span>
+                                    </div>
+                                </>
                             ) : (
                                 <div className="image-placeholder">
                                     <i className="ri-image-add-line"></i>
@@ -375,19 +411,25 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 </form>
             </div>
 
-            <ImageCropModal
-                isOpen={isCropModalOpen}
-                onClose={() => setIsCropModalOpen(false)}
-                imageUrl={tempImageSrc}
-                onCropComplete={handleCropComplete}
-            />
-
             <GlobalLoadingOverlay
                 isLoading={isSubmitting}
                 message={loadingMessage}
             />
         </div>,
         document.body
+    );
+
+    return (
+        <>
+            {mainModal}
+            <ImageCropModal
+                isOpen={isCropModalOpen}
+                onClose={() => setIsCropModalOpen(false)}
+                imageUrl={tempImageSrc}
+                onCropComplete={handleCropComplete}
+                onChangeImage={() => fileInputRef.current?.click()}
+            />
+        </>
     );
 };
 

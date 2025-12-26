@@ -57,8 +57,8 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
     if (nonRegularSchedules.length === 0) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
-        if (item.image_medium) return item.image_medium;
         if (item.image_thumbnail) return item.image_thumbnail;
+        if (item.image_medium) return item.image_medium;
         if (item.image_micro) return item.image_micro;
         const fallback = item.image_url || '';
         return fallback;

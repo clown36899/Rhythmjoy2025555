@@ -718,23 +718,31 @@ export default function EventList({
     const eventsToday = events.filter(e => {
       const eventDate = e.start_date || e.date;
       return eventDate === todayStr;
-    }).map(e => ({
-      id: e.id,
-      group_id: -1, // Placeholder for events
-      title: e.title,
-      date: e.start_date || e.date,
-      start_time: e.time,
-      description: e.description,
-      image_url: e.image,
-      image_micro: e.image,
-      image_thumbnail: e.image,
-      image_medium: e.image,
-      image_full: e.image,
-      place_name: e.location,
-      user_id: e.user_id,
-      created_at: e.created_at,
-      updated_at: e.created_at,
-    } as SocialSchedule));
+    }).map(e => {
+      // Derive medium path from full path if needed
+      const mediumImage = e.image_medium ||
+        (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
+          ? e.image.replace('/event-posters/full/', '/event-posters/medium/')
+          : e.image);
+
+      return {
+        id: e.id,
+        group_id: -1, // Placeholder for events
+        title: e.title,
+        date: e.start_date || e.date,
+        start_time: e.time,
+        description: e.description,
+        image_url: e.image,
+        image_micro: e.image_micro || e.image,
+        image_thumbnail: e.image_thumbnail || e.image,
+        image_medium: mediumImage,
+        image_full: e.image_full || e.image,
+        place_name: e.location,
+        user_id: e.user_id,
+        created_at: e.created_at,
+        updated_at: e.created_at,
+      } as SocialSchedule;
+    });
 
     // Combine and return
     return [...socialSchedsToday, ...eventsToday];
@@ -765,23 +773,31 @@ export default function EventList({
       if (eventDate <= todayStr) return false; // Exclude today and past
       if (eventDate < weekStartStr || eventDate > weekEndStr) return false; // Must be within this week
       return true;
-    }).map(e => ({
-      id: e.id,
-      group_id: -1,
-      title: e.title,
-      date: e.start_date || e.date,
-      start_time: e.time,
-      description: e.description,
-      image_url: e.image,
-      image_micro: e.image,
-      image_thumbnail: e.image,
-      image_medium: e.image,
-      image_full: e.image,
-      place_name: e.location,
-      user_id: e.user_id,
-      created_at: e.created_at,
-      updated_at: e.created_at,
-    } as SocialSchedule));
+    }).map(e => {
+      // Derive medium path from full path if needed
+      const mediumImage = e.image_medium ||
+        (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
+          ? e.image.replace('/event-posters/full/', '/event-posters/medium/')
+          : e.image);
+
+      return {
+        id: e.id,
+        group_id: -1,
+        title: e.title,
+        date: e.start_date || e.date,
+        start_time: e.time,
+        description: e.description,
+        image_url: e.image,
+        image_micro: e.image_micro || e.image,
+        image_thumbnail: e.image_thumbnail || e.image,
+        image_medium: mediumImage,
+        image_full: e.image_full || e.image,
+        place_name: e.location,
+        user_id: e.user_id,
+        created_at: e.created_at,
+        updated_at: e.created_at,
+      } as SocialSchedule;
+    });
 
     // Combine social schedules and events
     return [...socialSchedules, ...eventsThisWeek];
@@ -3173,6 +3189,7 @@ export default function EventList({
                 <TodaySocial
                   schedules={todaySocialSchedules}
                   onViewAll={() => navigate('/social')}
+                  onEventClick={onEventClick}
                 />
               )}
 

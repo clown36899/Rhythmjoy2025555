@@ -9,9 +9,10 @@ import { useAuth } from '../../../contexts/AuthContext';
 interface TodaySocialProps {
     schedules: SocialSchedule[];
     onViewAll?: () => void;
+    onEventClick?: (event: any) => void;
 }
 
-const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll }) => {
+const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, onEventClick }) => {
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
 
@@ -31,16 +32,27 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll }) 
     if (shuffledSchedules.length === 0) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
-        if (item.image_medium) return item.image_medium;
         if (item.image_thumbnail) return item.image_thumbnail;
+        if (item.image_medium) return item.image_medium;
         if (item.image_micro) return item.image_micro;
-        const fallback = item.image_url || '';
-        return fallback;
+        if (item.image_full) return item.image_full;
+        if (item.image_url) return item.image_url;
+        return '';
     };
 
     const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
         e.stopPropagation();
 
+        // Check if this is a regular event (converted from Event type)
+        if (item.group_id === -1) {
+            // This is a regular event, use onEventClick callback
+            if (onEventClick) {
+                onEventClick(item as any);
+            }
+            return;
+        }
+
+        // This is a social schedule
         // 일회성 일정만 수정 가능 (date가 있는 경우)
         const isOneTimeSchedule = !!item.date;
 

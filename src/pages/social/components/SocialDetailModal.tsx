@@ -39,8 +39,8 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
     if (!isOpen || !schedule) return null;
 
     // Image Source Logic
-    const thumbnailSrc = schedule.image_thumbnail || schedule.image_medium || schedule.image_micro || schedule.image_url;
-    const highResSrc = schedule.image_full || schedule.image_url;
+    const thumbnailSrc = schedule.image_micro || schedule.image_thumbnail || schedule.image_medium || schedule.image_url;
+    const highResSrc = schedule.image_medium || schedule.image_url;
 
     // Preload HighRes
     React.useEffect(() => {

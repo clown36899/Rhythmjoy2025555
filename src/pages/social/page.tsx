@@ -20,7 +20,7 @@ import './social.css';
 import type { SocialGroup, SocialSchedule } from './types';
 
 const SocialPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   // Data Hooks
   const { groups, refresh: refreshGroups } = useSocialGroups();
@@ -106,7 +106,8 @@ const SocialPage: React.FC = () => {
 
     const isCreator = group.user_id === user.id;
 
-    if (isCreator) {
+    // Admin or Creator can edit directly without password
+    if (isCreator || isAdmin) {
       setEditGroup(group);
       setIsGroupModalOpen(true);
     } else {

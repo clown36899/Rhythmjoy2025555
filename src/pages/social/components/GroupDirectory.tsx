@@ -43,8 +43,8 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                             onClick={() => onGroupClick(group)}
                         >
                             <div className="group-wide-image">
-                                {group.image_url ? (
-                                    <img src={group.image_url} alt={group.name} loading="lazy" />
+                                {(group.image_thumbnail || group.image_url) ? (
+                                    <img src={group.image_thumbnail || group.image_url} alt={group.name} loading="lazy" />
                                 ) : (
                                     <div className="group-placeholder">
                                         <i className="ri-team-line"></i>

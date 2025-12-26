@@ -134,26 +134,26 @@ export default function EventDetailModal({
   // Derive sources from Draft if available
   const displayEvent = draftEvent || event;
 
-  const thumbnailSrc = displayEvent ? (displayEvent.image_thumbnail ||
+  const thumbnailSrc = displayEvent ? (displayEvent.image_micro || displayEvent.image_thumbnail ||
     getEventThumbnail(displayEvent, defaultThumbnailClass, defaultThumbnailEvent)) : null;
 
   // Prioritize Medium for faster loading, Fallback to others. This prevents loading 5MB images in a 400px modal.
   const highResSrc = useMemo(() => {
     if (!displayEvent) return null;
 
-    // 1. Explicit Medium (Most Optimized)
-    if (displayEvent.image_medium) return displayEvent.image_medium;
-
-    // 2. Smart Derivation (If explicit medium is missing but path implies it exists)
-    const sourceImage = displayEvent.image_full || displayEvent.image;
+    // 1. Smart Derivation (If path implies medium exists, derive it from full/original)
+    const sourceImage = displayEvent.image;
     if (sourceImage && typeof sourceImage === 'string') {
       if (sourceImage.includes('/event-posters/full/')) {
         return sourceImage.replace('/event-posters/full/', '/event-posters/medium/');
       }
     }
 
-    // 3. Fallbacks
-    return displayEvent.image_full || displayEvent.image;
+    // 2. Explicit Medium (Most Optimized)
+    if (displayEvent.image_medium) return displayEvent.image_medium;
+
+    // 3. Fallbacks - use thumbnail or original, but avoid image_full (too large)
+    return displayEvent.image_thumbnail || displayEvent.image;
   }, [displayEvent]);
 
 
@@ -1470,7 +1470,7 @@ export default function EventDetailModal({
 
       {
         showFullscreenImage &&
-        (selectedEvent.image_full ||
+        (selectedEvent.image_medium ||
           selectedEvent.image ||
           getEventThumbnail(
             selectedEvent,
@@ -1498,7 +1498,7 @@ export default function EventDetailModal({
               </button>
               <img
                 src={
-                  selectedEvent.image_full ||
+                  selectedEvent.image_medium ||
                   selectedEvent.image ||
                   getEventThumbnail(
                     selectedEvent,

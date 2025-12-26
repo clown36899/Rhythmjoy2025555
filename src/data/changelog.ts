@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.21.1',
+        date: '2025-12-26',
+        changes: [
+            '[기능] 소셜 단체 이미지 4단계 리사이징 시스템 도입 (micro/thumb/med/full)',
+            '[기능] 관리자 수정 권한 강화 (비밀번호 없이 모든 단체 수정 가능)',
+            '[Fix] 정보 수정 시 이미지 NULL 덮어쓰기 버그 해결',
+            '[UX] 이미지 크롭 모달 내 업로드 버튼 연결 및 Z-Index 조정'
+        ]
+    },
+    {
         version: '2.21.0',
         date: '2025-12-26',
         changes: [
