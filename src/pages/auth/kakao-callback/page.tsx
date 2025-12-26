@@ -73,6 +73,8 @@ export default function KakaoCallbackPage() {
 
                 if (cancelled) return;
 
+                console.log('[Kakao Callback] 서버 응답 전체:', authData);
+
                 // 3. Supabase 세션 설정
                 if (authData.session) {
                     console.log('[Kakao Callback] Session data obtained successfully');

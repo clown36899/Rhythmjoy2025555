@@ -64,7 +64,6 @@ export const seededRandom = (seed: number) => {
 export const sortEvents = (
     eventsToSort: Event[],
     sortType: string,
-    targetMonth?: Date,
     isYearView: boolean = false
 ) => {
     const eventsCopy = [...eventsToSort];
@@ -100,11 +99,9 @@ export const sortEvents = (
     // 각 그룹 내에서 정렬 적용
     const sortGroup = (group: Event[]) => {
         switch (sortType) {
-            case "random":
-                // 랜덤 정렬 - targetMonth 기반 고정 seed 사용
-                // targetMonth가 없으면 현재 시간 기준 (호출처에서 처리 필요)
-                const monthToUse = targetMonth || new Date();
-                const seed = monthToUse.getFullYear() * 12 + monthToUse.getMonth();
+            case "random": {
+                // 랜덤 정렬 - 새로고침할 때마다 변하도록 고정 시드 제거 및 순수 셔플 적용
+                const seed = Date.now() + Math.floor(Math.random() * 1000000);
                 const random = seededRandom(seed);
 
                 const shuffled = [...group];
@@ -113,6 +110,7 @@ export const sortEvents = (
                     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
                 }
                 return shuffled;
+            }
             case "time":
                 // 시간순 정렬 (날짜 + 시간) - 달 단위에서만 사용
                 return group.sort((a, b) => {

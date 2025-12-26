@@ -1558,23 +1558,19 @@ export default function EventList({
       return true;
     });
 
-    // Sort by start_date (earliest first)
-    result.sort((a, b) => {
-      const dateA = a.start_date || a.date || '';
-      const dateB = b.start_date || b.date || '';
-      return dateA.localeCompare(dateB);
-    });
+    // Use the improved random sorting
+    const sortedResult = sortEvents(result, 'random');
 
     // 4. 방금 등록된 이벤트(highlightEvent)가 있으면 맨 앞으로 정렬
     if (highlightEvent?.id) {
-      result.sort((a, b) => {
+      sortedResult.sort((a, b) => {
         if (a.id === highlightEvent.id) return -1;
         if (b.id === highlightEvent.id) return 1;
         return 0;
       });
     }
 
-    return result;
+    return sortedResult;
   }, [events, highlightEvent, selectedEventGenre]);
 
   // 진행중인 강습 (Future Classes - Horizontal Scroll)
@@ -1650,24 +1646,19 @@ export default function EventList({
       return true;
     });
 
-    // 3. Shuffle (Randomize fairness) for Classes
-    // "처음 새로고침했을때 랜덤으로 배치"
-    for (let i = result.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [result[i], result[j]] = [result[j], result[i]];
-    }
+    // 3. Use the improved random sorting
+    let sortedResult = sortEvents(result, 'random');
 
-    // 4. 방금 등록된 이벤트(highlightEvent)가 있으면 맨 앞으로 정렬 (Override random)
     if (highlightEvent?.id) {
-      result.sort((a, b) => {
+      sortedResult.sort((a, b) => {
         if (a.id === highlightEvent.id) return -1;
         if (b.id === highlightEvent.id) return 1;
         return 0;
       });
     }
 
-    globalLastFutureClasses = result;
-    return result;
+    globalLastFutureClasses = sortedResult;
+    return sortedResult;
   }, [events, selectedGenre, highlightEvent]);
 
   // 분리: 동호회 강습 vs 일반 강습 (각각 장르 필터 적용)
@@ -1878,11 +1869,8 @@ export default function EventList({
 
     if (!currentMonthKey) {
       // 검색/날짜 선택/년 모드 시: 정렬하되 캐시하지 않음
-      const targetMonth = viewMode === "year" && currentMonth
-        ? new Date(currentMonth.getFullYear(), 0, 1)
-        : currentMonth;
       const isYearView = viewMode === "year";
-      const sorted = sortEvents(currentMonthEvents, sortBy, targetMonth, isYearView);
+      const sorted = sortEvents(currentMonthEvents, sortBy, isYearView);
       globalLastSortedEvents = sorted;
       return sorted;
     }
@@ -1892,7 +1880,7 @@ export default function EventList({
       globalLastSortedEvents = cached;
       return cached;
     }
-    const sorted = sortEvents(currentMonthEvents, sortBy, currentMonth, false);
+    const sorted = sortEvents(currentMonthEvents, sortBy, false);
     sortedEventsCache.current[cacheKey] = sorted;
     globalLastSortedEvents = sorted;
     return sorted;

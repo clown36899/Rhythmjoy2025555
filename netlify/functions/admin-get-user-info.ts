@@ -74,6 +74,14 @@ export const handler: Handler = async (event) => {
         }
 
         // 4. 타겟 유저의 암호화된 토큰(Refresy/Access) 가져오기
+        console.log(`[admin-get-user-info] Searching for token. targetUserId: "${targetUserId}" (length: ${targetUserId?.length})`);
+
+        // 디버깅: 전체 토큰 개수 확인 (서버 로그용)
+        const { count, error: countError } = await supabaseAdmin
+            .from('user_tokens')
+            .select('*', { count: 'exact', head: true });
+        console.log(`[admin-get-user-info] Current total tokens in DB: ${count}, CountError:`, countError);
+
         const { data: tokenData, error: tokenError } = await supabaseAdmin
             .from('user_tokens')
             .select('encrypted_token')
@@ -81,7 +89,14 @@ export const handler: Handler = async (event) => {
             .single();
 
         if (tokenError || !tokenData) {
-            return { statusCode: 404, body: JSON.stringify({ error: '해당 유저의 보안 토큰이 없습니다. (재로그인 필요)' }) };
+            console.warn(`[admin-get-user-info] Token NOT FOUND for user: ${targetUserId}. Error:`, tokenError);
+            return {
+                statusCode: 404,
+                body: JSON.stringify({
+                    error: `해당 유저(ID: ${targetUserId.substring(0, 8)}...)의 보안 토큰을 찾을 수 없습니다. 사용자가 최근 로그인 과정에서 카카오 인증 정보를 시스템에 등록하지 않았을 수 있습니다. (재로그인 필요)`,
+                    details: tokenError?.message
+                })
+            };
         }
 
         // 5. Private Key로 유저 토큰 복호화

@@ -4,7 +4,6 @@ import crypto from 'crypto';
 
 // 전역 변수 (재사용)
 let supabaseAdmin: any = null;
-let cachedPublicKey: string | null = null;
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -65,6 +64,13 @@ export const handler: Handler = async (event) => {
     const tokenData = await tokenResponse.json();
     const kakaoAccessToken = tokenData.access_token;
     const kakaoRefreshToken = tokenData.refresh_token;
+
+    console.log('[kakao-login] Token exchange result:', {
+      hasAccessToken: !!kakaoAccessToken,
+      hasRefreshToken: !!kakaoRefreshToken,
+      accessTokenLength: kakaoAccessToken?.length,
+      refreshTokenLength: kakaoRefreshToken?.length
+    });
 
     // 2. 카카오 사용자 정보 가져오기
     const kakaoUserResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
@@ -142,44 +148,80 @@ export const handler: Handler = async (event) => {
     const tokenToSave = kakaoRefreshToken || kakaoAccessToken;
 
     if (tokenToSave) {
-      // 4-1. 공개키 가져오기
-      if (!cachedPublicKey) {
-        const { data: keyData, error: keyError } = await supabaseAdmin
-          .from('system_keys') // public schema
-          .select('public_key')
-          .eq('id', 1)
-          .single();
+      console.log(`[kakao-login] Processing security token for user: ${userId}`);
 
-        if (!keyError && keyData) {
-          cachedPublicKey = keyData.public_key;
-        } else {
-          console.error('Failed to fetch system public key:', keyError);
-        }
-      }
+      // 4-1. 공개키 가져오기 (매번 최신 키를 가져오도록 변경)
+      const { data: keyData, error: keyError } = await supabaseAdmin
+        .from('system_keys')
+        .select('public_key')
+        .eq('id', 1)
+        .single();
 
-      // 4-2. 암호화 및 저장
-      if (cachedPublicKey) {
+      if (keyError || !keyData) {
+        console.error('[kakao-login] Failed to fetch system public key:', keyError);
+      } else {
+        const publicKey = keyData.public_key;
+
+        // 4-2. 암호화 및 저장
         try {
+          console.log('[kakao-login] Encrypting token...');
           const encryptedBuffer = crypto.publicEncrypt(
             {
-              key: cachedPublicKey,
+              key: publicKey,
               padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
             },
             Buffer.from(tokenToSave)
           );
           const encryptedToken = encryptedBuffer.toString('base64');
+          console.log('[kakao-login] Encryption success. Upserting to user_tokens...');
 
-          await supabaseAdmin
+          const { data: upsertData, error: tokenUpsertError } = await supabaseAdmin
             .from('user_tokens')
             .upsert({
               user_id: userId,
               encrypted_token: encryptedToken,
               updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id'
+            })
+            .select();
+
+          if (tokenUpsertError) {
+            console.error('[kakao-login] ❌ user_tokens upsert FAILED:', {
+              error: tokenUpsertError,
+              message: tokenUpsertError.message,
+              code: tokenUpsertError.code,
+              details: tokenUpsertError.details,
+              hint: tokenUpsertError.hint
             });
+          } else if (!upsertData || upsertData.length === 0) {
+            console.error('[kakao-login] ❌ Upsert returned no data! Possible RLS issue.');
+          } else {
+            console.log('[kakao-login] ✅ Security token upsert returned data:', upsertData);
+            console.log('[kakao-login] Verifying with separate SELECT...');
+
+            // 검증: 방금 저장한 데이터가 실제로 있는지 확인
+            const { data: verifyData, error: verifyError } = await supabaseAdmin
+              .from('user_tokens')
+              .select('user_id')
+              .eq('user_id', userId)
+              .single();
+
+            if (verifyError || !verifyData) {
+              console.error('[kakao-login] ❌ VERIFICATION FAILED! Record not found.', {
+                error: verifyError,
+                userId: userId
+              });
+            } else {
+              console.log('[kakao-login] ✅ VERIFICATION SUCCESS. Record exists for:', userId);
+            }
+          }
         } catch (encError) {
-          console.error('Token encryption failed:', encError);
+          console.error('[kakao-login] Token encryption/save process failed:', encError);
         }
       }
+    } else {
+      console.warn('[kakao-login] No kakao token found to save.');
     }
 
     // 5. 로그인 세션 생성 (Magic Link 방식)
