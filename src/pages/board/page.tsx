@@ -32,7 +32,8 @@ export interface BoardPost {
   image?: string;
   image_thumbnail?: string;
   comment_count?: number;
-  likes: number;
+  likes: number; // Heart count
+  favorites: number; // Star count (Migrated from old likes)
   dislikes?: number; // Added for anonymous board
   display_order?: number; // Added for pinning/sorting
 }

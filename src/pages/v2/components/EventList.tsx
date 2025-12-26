@@ -430,24 +430,24 @@ export default function EventList({
   }, [user, effectiveFavoriteIds, signInWithKakao, externalOnToggleFavorite, events]);
 
   // Board Post Favorites Logic
-  const [likedBoardPosts, setLikedBoardPosts] = useState<any[]>([]); // Use any[] initially to avoid type issues, or import BoardPost
+  const [favoritedBoardPosts, setFavoritedBoardPosts] = useState<any[]>([]);
 
   useEffect(() => {
     const view = searchParams.get('view');
     if (view === 'favorites' && user) {
-      const fetchLikedPosts = async () => {
-        // 1. Get Liked Post IDs
-        const { data: likesData } = await supabase
-          .from('board_post_likes')
+      const fetchFavoritedPosts = async () => {
+        // 1. Get Favorited Post IDs
+        const { data: favoritesData } = await supabase
+          .from('board_post_favorites')
           .select('post_id')
           .eq('user_id', user.id);
 
-        if (!likesData || likesData.length === 0) {
-          setLikedBoardPosts([]);
+        if (!favoritesData || favoritesData.length === 0) {
+          setFavoritedBoardPosts([]);
           return;
         }
 
-        const postIds = likesData.map(l => l.post_id);
+        const postIds = favoritesData.map(l => l.post_id);
 
         // 2. Fetch Posts Details
         const { data: postsData } = await supabase
@@ -455,7 +455,8 @@ export default function EventList({
           .select(`
                 id, title, content, author_name, author_nickname, user_id, views, is_notice, 
                 prefix_id, prefix:board_prefixes(id, name, color, admin_only), 
-                created_at, updated_at, category, image_thumbnail, image, is_hidden
+                created_at, updated_at, category, image_thumbnail, image, is_hidden,
+                likes, favorites, comment_count
             `)
           .in('id', postIds)
           .order('created_at', { ascending: false });
@@ -476,32 +477,35 @@ export default function EventList({
               return {
                 ...post,
                 prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
-                author_profile_image: profileImage
+                author_profile_image: profileImage,
+                comment_count: post.comment_count || 0,
+                likes: post.likes || 0,
+                favorites: post.favorites || 0
               };
             })
           );
-          setLikedBoardPosts(postsWithProfiles);
+          setFavoritedBoardPosts(postsWithProfiles);
         }
       };
 
-      fetchLikedPosts();
+      fetchFavoritedPosts();
     }
   }, [searchParams, user]);
 
-  const handleToggleLikeBoardPost = async (postId: number) => {
+  const handleRemoveFavoriteBoardPost = async (postId: number) => {
     // For favorites list, toggling like means REMOVING it from the list
     if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
 
     try {
       await supabase
-        .from('board_post_likes')
+        .from('board_post_favorites')
         .delete()
         .eq('user_id', user!.id)
         .eq('post_id', postId);
 
-      setLikedBoardPosts(prev => prev.filter(p => p.id !== postId));
+      setFavoritedBoardPosts(prev => prev.filter(p => p.id !== postId));
     } catch (error) {
-      console.error('Error removing like:', error);
+      console.error('Error removing favorite:', error);
     }
   };
 
@@ -596,6 +600,59 @@ export default function EventList({
       setFavoritePracticeRooms(prev => prev.filter(r => r.id !== roomId));
     } catch (error) {
       console.error('Error removing practice room favorite:', error);
+    }
+  };
+
+
+  // Social Group Favorites Logic
+  const [favoriteSocialGroups, setFavoriteSocialGroups] = useState<any[]>([]);
+
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'favorites' && user) {
+      const fetchSocialGroupFavorites = async () => {
+        // 1. Get Favorite Group IDs
+        const { data: favoritesData } = await supabase
+          .from('social_group_favorites')
+          .select('group_id')
+          .eq('user_id', user.id);
+
+        if (!favoritesData || favoritesData.length === 0) {
+          setFavoriteSocialGroups([]);
+          return;
+        }
+
+        const groupIds = favoritesData.map(f => f.group_id);
+
+        // 2. Fetch Group Details
+        const { data: groupsData } = await supabase
+          .from('social_groups')
+          .select('*')
+          .in('id', groupIds)
+          .order('name');
+
+        if (groupsData) {
+          setFavoriteSocialGroups(groupsData);
+        }
+      };
+
+      fetchSocialGroupFavorites();
+    }
+  }, [searchParams, user]);
+
+  const handleRemoveSocialGroupFavorite = async (groupId: number) => {
+    if (!confirm('즐겨찾기에서 삭제하시겠습니까?')) return;
+
+    try {
+      await supabase
+        .from('social_group_favorites')
+        .delete()
+        .eq('user_id', user!.id)
+        .eq('group_id', groupId);
+
+      setFavoriteSocialGroups(prev => prev.filter(g => g.id !== groupId));
+    } catch (error) {
+      console.error('Error removing social group favorite:', error);
     }
   };
 
@@ -2874,20 +2931,21 @@ export default function EventList({
           )}
 
           {/* 2. Liked Board Posts Section */}
-          {likedBoardPosts.length > 0 && (
+          {favoritedBoardPosts.length > 0 && (
             <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
               <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
-                찜한 게시글 <span className="evt-favorites-count">{likedBoardPosts.length}</span>
+                찜한 게시글 <span className="evt-favorites-count">{favoritedBoardPosts.length}</span>
               </h3>
               <div className="board-posts-list" style={{ padding: '0 12px' }}>
                 <StandardPostList
-                  posts={likedBoardPosts}
+                  posts={favoritedBoardPosts}
                   category="free" // Dummy category, required
                   onPostClick={(post) => {
                     navigate(`/board/${post.id}`);
                   }}
-                  likedPostIds={new Set(likedBoardPosts.map(p => p.id))}
-                  onToggleLike={handleToggleLikeBoardPost}
+                  favoritedPostIds={new Set(favoritedBoardPosts.map(p => p.id))}
+                  onToggleFavorite={handleRemoveFavoriteBoardPost}
+                  isAdmin={isAdminMode}
                 />
               </div>
             </div>
@@ -3095,7 +3153,106 @@ export default function EventList({
             </div>
           )}
 
-          {futureFavorites.length === 0 && likedBoardPosts.length === 0 && pastFavorites.length === 0 && (
+          {/* 5. Social Group Favorites Section */}
+          {favoriteSocialGroups.length > 0 && (
+            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
+              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                관심있는 단체 <span className="evt-favorites-count">{favoriteSocialGroups.length}</span>
+              </h3>
+              <div style={{ padding: '0 12px', display: 'grid', gap: '12px' }}>
+                {favoriteSocialGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    onClick={() => navigate(`/social?group_id=${group.id}`)}
+                    style={{
+                      backgroundColor: '#1e1e1e',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      cursor: 'pointer',
+                      border: '1px solid #333',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ padding: '16px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                      {/* Image */}
+                      <div style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '20px',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        backgroundColor: '#2a2a2a'
+                      }}>
+                        {group.image_thumbnail || group.image_url ? (
+                          <img
+                            src={group.image_thumbnail || group.image_url}
+                            alt={group.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                            <i className="ri-team-line" style={{ fontSize: '24px' }}></i>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                          <h4 style={{
+                            margin: 0,
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            color: '#fff',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {group.name}
+                          </h4>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveSocialGroupFavorite(group.id);
+                            }}
+                            title="즐겨찾기 해제"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#FFD700', // Star color
+                              fontSize: '20px',
+                              padding: '4px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <i className="ri-star-fill"></i>
+                          </button>
+                        </div>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '13px',
+                          color: '#aaa',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {group.description || '아직 설명이 없습니다.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {futureFavorites.length === 0 && favoritedBoardPosts.length === 0 && pastFavorites.length === 0 && favoritePracticeRooms.length === 0 && favoriteShops.length === 0 && favoriteSocialGroups.length === 0 && (
             <div className="evt-v2-empty evt-mt-8">
               아직 찜한 항목이 없습니다.
             </div>

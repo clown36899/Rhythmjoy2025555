@@ -15,6 +15,7 @@ interface UseBoardInteractionsProps {
 export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, setPosts }: UseBoardInteractionsProps) {
     const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set());
     const [dislikedPostIds, setDislikedPostIds] = useState<Set<number>>(new Set());
+    const [favoritedPostIds, setFavoritedPostIds] = useState<Set<number>>(new Set());
 
     // Load Interactions
     useEffect(() => {
@@ -24,6 +25,7 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             // Reset interactions if logged out
             setLikedPostIds(new Set());
             setDislikedPostIds(new Set());
+            setFavoritedPostIds(new Set());
         }
     }, [user, category]);
 
@@ -38,6 +40,13 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
                     .select('post_id')
                     .eq('user_id', user.id);
                 if (likes) setLikedPostIds(new Set(likes.map(l => l.post_id)));
+
+                // Fetch Favorites for authenticated users (Standard)
+                const { data: favorites } = await supabase
+                    .from('board_post_favorites')
+                    .select('post_id')
+                    .eq('user_id', user.id);
+                if (favorites) setFavoritedPostIds(new Set(favorites.map(f => f.post_id)));
 
                 // Fetch Dislikes for authenticated users (Standard)
                 const { data: dislikes, error } = await supabase
@@ -68,6 +77,55 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             console.warn('Post interactions loading failed:', err);
         }
     };
+
+    const handleToggleFavorite = async (postId: number) => {
+        if (!user) {
+            window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+                detail: {
+                    action: () => handleToggleFavorite(postId),
+                    message: "즐겨찾기는 로그인한 사용자만 이용할 수 있습니다."
+                }
+            }));
+            return;
+        }
+
+        const isFavorited = favoritedPostIds.has(postId);
+        const originalFavoritesSet = new Set(favoritedPostIds);
+
+        // 1. Optimistic UI Update (State)
+        const nextFavorites = new Set(favoritedPostIds);
+        if (isFavorited) {
+            nextFavorites.delete(postId);
+        } else {
+            nextFavorites.add(postId);
+        }
+        setFavoritedPostIds(nextFavorites);
+
+        // 2. Optimistic UI Update (Post Count)
+        setPosts(prev => prev.map(p => {
+            if (p.id === postId) {
+                // Use type assertion or optional chaining safely
+                const currentFavorites = (p as any).favorites || 0;
+                const newFavorites = isFavorited ? Math.max(0, currentFavorites - 1) : currentFavorites + 1;
+                return { ...p, favorites: newFavorites };
+            }
+            return p;
+        }));
+
+        try {
+            if (isFavorited) {
+                await supabase.from('board_post_favorites').delete().eq('user_id', user.id).eq('post_id', postId);
+            } else {
+                const { error } = await supabase.from('board_post_favorites').insert({ user_id: user.id, post_id: postId }).select();
+                if (error && error.code !== '23505') throw error;
+            }
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            setFavoritedPostIds(originalFavoritesSet);
+            loadPosts(); // Revert
+        }
+    };
+
 
     const handleToggleLike = async (postId: number) => {
         // Enforce login for ALL boards now
@@ -264,8 +322,10 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
     return {
         likedPostIds,
         dislikedPostIds,
+        favoritedPostIds,
         handleToggleLike,
         handleToggleDislike,
+        handleToggleFavorite,
         handleDeletePost
     };
 }

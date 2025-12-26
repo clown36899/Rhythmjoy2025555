@@ -34,7 +34,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 prefix:board_prefixes(id, name, color, admin_only),
                 created_at, updated_at, category, content,
                 image_thumbnail, image, is_hidden, comment_count,
-                likes, dislikes, display_order
+                likes, favorites, dislikes, display_order
             `;
 
             let query: any = (supabase.from(table) as any)
@@ -81,6 +81,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                         author_profile_image: profileImage,
                         comment_count: post.comment_count || 0,
                         likes: (post as any).likes || 0,
+                        favorites: (post as any).favorites || 0,
                         dislikes: (post as any).dislikes || 0
                     };
                 })

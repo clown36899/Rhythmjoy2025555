@@ -36,7 +36,9 @@ interface StandardPostListProps {
     // BoardMainContainer has handleToggleDislike.
     dislikedPostIds?: Set<number>;
     onToggleDislike?: (postId: number) => void;
-    isAdmin?: boolean;
+    favoritedPostIds?: Set<number>; // Added for favorites
+    onToggleFavorite?: (postId: number) => void; // Added for favorites
+    isAdmin: boolean;
     onWriteClick?: () => void;
 }
 
@@ -44,7 +46,9 @@ export default function StandardPostList({
     posts,
     onPostClick,
     likedPostIds,
+    favoritedPostIds,
     onToggleLike,
+    onToggleFavorite,
     isAdmin,
     onWriteClick
 }: StandardPostListProps) {
@@ -130,13 +134,25 @@ export default function StandardPostList({
                         {post.views || 0}
                     </span>
 
+                    {onToggleFavorite && (
+                        <button
+                            className={`board-post-like-btn ${favoritedPostIds?.has(post.id) ? 'liked' : ''}`}
+                            onClick={(e) => { e.stopPropagation(); onToggleFavorite(post.id); }}
+                            style={{ background: 'transparent', border: 'none', display: 'flex', alignItems: 'center' }}
+                            title="즐겨찾기"
+                        >
+                            <i className={favoritedPostIds?.has(post.id) ? "ri-star-fill board-post-meta-icon" : "ri-star-line board-post-meta-icon"}></i>
+                            <span style={{ marginLeft: '4px' }}>{post.favorites || 0}</span>
+                        </button>
+                    )}
                     {onToggleLike && (
                         <button
-                            className={`board-post-like-btn ${likedPostIds?.has(post.id) ? 'liked' : ''}`}
+                            className={`board-post-heart-btn ${likedPostIds?.has(post.id) ? 'active' : ''}`}
                             onClick={(e) => { e.stopPropagation(); onToggleLike(post.id); }}
                             style={{ background: 'transparent', border: 'none', display: 'flex', alignItems: 'center' }}
+                            title="좋아요"
                         >
-                            <i className={likedPostIds?.has(post.id) ? "ri-star-fill board-post-meta-icon" : "ri-star-line board-post-meta-icon"}></i>
+                            <i className={likedPostIds?.has(post.id) ? "ri-heart-fill board-post-meta-icon" : "ri-heart-line board-post-meta-icon"}></i>
                             <span style={{ marginLeft: '4px' }}>{post.likes || 0}</span>
                         </button>
                     )}
@@ -147,7 +163,7 @@ export default function StandardPostList({
                     </span>
                 </div>
             </div>
-        </div>
+        </div >
     );
 
     return (

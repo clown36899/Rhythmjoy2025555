@@ -87,8 +87,10 @@ export default function BoardMainContainer() {
     const {
         likedPostIds,
         dislikedPostIds,
+        favoritedPostIds,
         handleToggleLike,
-        handleToggleDislike
+        handleToggleDislike,
+        handleToggleFavorite
     } = useBoardInteractions({
         user,
         category,
@@ -228,6 +230,8 @@ export default function BoardMainContainer() {
                         onPostClick={(post) => navigate(`/board/${post.id}`)}
                         likedPostIds={likedPostIds}
                         onToggleLike={handleToggleLike}
+                        favoritedPostIds={favoritedPostIds}
+                        onToggleFavorite={handleToggleFavorite}
                         dislikedPostIds={dislikedPostIds}
                         onToggleDislike={handleToggleDislike}
                         isAdmin={isRealAdmin}

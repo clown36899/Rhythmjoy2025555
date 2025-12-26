@@ -543,3 +543,26 @@
   color: #9ca3af;
   /* Gray-400 */
 }
+
+/* Real Heart Like Button */
+.standard-mode .board-post-heart-btn {
+  cursor: pointer;
+  transition: transform 0.2s, color 0.2s;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.standard-mode .board-post-heart-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.standard-mode .board-post-heart-btn.active {
+  color: #f87171;
+  /* Red-400 */
+}
+
+.standard-mode .board-post-heart-btn:not(.active) {
+  color: #9ca3af;
+  /* Gray-400 */
+}

@@ -8,6 +8,7 @@ export interface BaseBoardPost {
     image_thumbnail?: string | null;
     is_notice?: boolean;
     likes?: number; // Optional as not all boards might use it heavily, but common
+    favorites?: number;
 }
 
 export interface StandardBoardPost extends BaseBoardPost {
@@ -25,6 +26,7 @@ export interface StandardBoardPost extends BaseBoardPost {
     category: string; // 'free', 'market', etc.
     comment_count?: number; // Often joined or counted
     likes_count?: number;
+    favorites_count?: number;
     is_hidden?: boolean; // For admin visibility control
     // Standard specific fields
 }
