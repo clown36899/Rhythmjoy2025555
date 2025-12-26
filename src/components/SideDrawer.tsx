@@ -184,13 +184,13 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 <i className="ri-heart-3-line" style={{ color: '#f87171' }}></i>
                                 <span>내 즐겨찾기</span>
                             </div>
-                            {/* 내가 쓴 이벤트 (추후 구현 예정, 현재는 UI만 배치하거나 숨김 처리) */}
-                            {/* 
-                            <div className="drawer-menu-item" onClick={() => handleNavigation('/my-events')}>
+                            <div className="drawer-menu-item" onClick={() => {
+                                onClose();
+                                navigate('/v2?view=my-events');
+                            }}>
                                 <i className="ri-file-list-3-line"></i>
                                 <span>내가 등록한 행사</span>
-                            </div> 
-                            */}
+                            </div>
                             <div className="drawer-divider"></div>
                         </>
                     )}

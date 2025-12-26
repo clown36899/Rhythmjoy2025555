@@ -3,6 +3,7 @@ import type { SocialSchedule } from '../types';
 import './TodaySocial.css';
 import { useModalActions } from '../../../contexts/ModalContext';
 import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
+import { useAuth } from '../../../contexts/AuthContext';
 
 // 1. Props 인터페이스 수정
 interface TodaySocialProps {
@@ -12,6 +13,7 @@ interface TodaySocialProps {
 
 const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll }) => {
     const { openModal } = useModalActions();
+    const { isAdmin, user } = useAuth();
 
     // Generate a random key on mount to trigger shuffle
     const [mountKey] = React.useState(() => Math.random());
@@ -38,7 +40,15 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll }) 
 
     const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
         e.stopPropagation();
-        openModal('socialDetail', { schedule: item, isAdmin: false });
+
+        // 일회성 일정만 수정 가능 (date가 있는 경우)
+        const isOneTimeSchedule = !!item.date;
+
+        // 등록자 본인이거나 관리자인 경우 수정 가능
+        const isOwner = user && item.user_id === user.id;
+        const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
+
+        openModal('socialDetail', { schedule: item, isAdmin: canEdit, showCopyButton: false });
     };
 
     return (

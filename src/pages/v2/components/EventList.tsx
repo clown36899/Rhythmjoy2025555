@@ -308,6 +308,61 @@ export default function EventList({
     }
   }, [searchParams, refreshFavorites]);
 
+  // My Events Logic (similar to favorites)
+  const myEvents = useMemo(() => {
+    if (!user) return { all: [], future: [], past: [] };
+
+    // 1. Filter events created by user
+    const userEvents = events.filter(e => e.user_id === user.id);
+
+    const todayStr = getLocalDateString();
+    const future: Event[] = [];
+    const past: Event[] = [];
+
+    userEvents.forEach(event => {
+      // Determine end date
+      const endDate = event.end_date ||
+        (event.event_dates && event.event_dates.length > 0
+          ? event.event_dates[event.event_dates.length - 1]
+          : null) || event.date;
+
+      // Separate into future and past
+      if (endDate && endDate < todayStr) {
+        past.push(event);
+      } else {
+        future.push(event);
+      }
+    });
+
+    // Sort Future: Ascending Date
+    future.sort((a, b) => {
+      const dateA = a.start_date || a.date || '';
+      const dateB = b.start_date || b.date || '';
+      return dateA.localeCompare(dateB);
+    });
+
+    // Sort Past: Descending Date
+    past.sort((a, b) => {
+      const dateA = a.start_date || a.date || '';
+      const dateB = b.start_date || b.date || '';
+      return dateB.localeCompare(dateA);
+    });
+
+    // Keep separated lists for display organization if needed, or combined
+    // For now we'll use combined list for simple view, or separated if we follow favorites pattern
+    return { all: [...future, ...past], future, past };
+  }, [events, user]);
+
+  // Scroll to top when entering my-events view
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'my-events') {
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+    }
+  }, [searchParams]);
+
   const handleToggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
 
@@ -885,7 +940,7 @@ export default function EventList({
 
       const fetchPromise = (async () => {
         // 필요한 컬럼만 선택 (성능 최적화)
-        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_micro,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
+        const columns = "id,title,description,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_micro,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
 
         if (isAdminMode) {
           // 관리자 모드: 모든 이벤트 조회 (종료된 이벤트 포함)
@@ -947,7 +1002,7 @@ export default function EventList({
       console.log('[📋 이벤트 목록] 백그라운드 새로고침...');
       // Don't set loading state - update silently
 
-      const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
+      const columns = "id,title,description,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
 
       let data: Event[] | null = null;
 
@@ -3039,6 +3094,73 @@ export default function EventList({
           {futureFavorites.length === 0 && likedBoardPosts.length === 0 && pastFavorites.length === 0 && (
             <div className="evt-v2-empty evt-mt-8">
               아직 찜한 항목이 없습니다.
+            </div>
+          )}
+
+          <div className="evt-spacer-16"></div>
+          <Footer />
+        </div>
+      ) : searchParams.get('view') === 'my-events' ? (
+        <div className="evt-ongoing-section evt-preview-section evt-favorites-view-container">
+          <div className="evt-v2-section-title" style={{ padding: '0 16px', marginTop: '16px' }}>
+            <i className="ri-file-list-3-fill" style={{ color: '#4da6ff', marginRight: '6px' }}></i>
+            <span>내가 등록한 행사</span>
+          </div>
+
+          {/* 1. Future Events Section */}
+          {myEvents.future.length > 0 && (
+            <div className="evt-favorites-section">
+              <h3 className="evt-favorites-title" style={{ padding: '0 16px', marginBottom: '12px', fontSize: '14px', color: '#ccc' }}>
+                진행 예정/중인 행사 <span className="evt-favorites-count">{myEvents.future.length}</span>
+              </h3>
+              <div className="evt-favorites-grid-2" style={{ padding: '0 8px' }}>
+                {myEvents.future.map(event => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    onClick={() => onEventClickInFullscreen?.(event)}
+                    onMouseEnter={onEventHover}
+                    onMouseLeave={() => onEventHover?.(null)}
+                    isHighlighted={highlightEvent?.id === event.id}
+                    selectedDate={selectedDate}
+                    defaultThumbnailClass={defaultThumbnailClass}
+                    defaultThumbnailEvent={defaultThumbnailEvent}
+                    isFavorite={effectiveFavoriteIds.has(event.id)}
+                    onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. Past Events Section */}
+          {myEvents.past.length > 0 && (
+            <div className="evt-favorites-section" style={{ marginTop: '32px' }}>
+              <div className="evt-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px', marginBottom: '12px' }}>
+                <h3 className="evt-favorites-title" style={{ fontSize: '14px', color: '#ccc', margin: 0 }}>
+                  지난 행사 <span className="evt-favorites-count">{myEvents.past.length}</span>
+                </h3>
+              </div>
+
+              <div className="evt-favorites-grid-2" style={{ padding: '0 8px' }}>
+                {myEvents.past.map(event => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    onClick={() => onEventClickInFullscreen?.(event)}
+                    defaultThumbnailClass={defaultThumbnailClass}
+                    defaultThumbnailEvent={defaultThumbnailEvent}
+                    isFavorite={effectiveFavoriteIds.has(event.id)}
+                    onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {myEvents.all.length === 0 && (
+            <div className="evt-v2-empty evt-mt-8">
+              아직 등록한 행사가 없습니다.
             </div>
           )}
 

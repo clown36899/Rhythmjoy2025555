@@ -39,7 +39,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-green-500',
     },
     {
-        label: '연습실',
+        label: '연습실 / 바',
         path: '/practice',
         icon: 'ri-music-2-line',
         iconFilled: 'ri-music-2-fill',

@@ -13,6 +13,7 @@ interface SocialDetailModalProps {
     onCopy: (schedule: SocialSchedule) => void;
     onEdit: (schedule: SocialSchedule) => void;
     isAdmin: boolean;
+    showCopyButton?: boolean;
 }
 
 const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
@@ -21,7 +22,8 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
     schedule,
     onCopy,
     onEdit,
-    isAdmin
+    isAdmin,
+    showCopyButton = false
 }) => {
     // Enable mobile back gesture to close modal
     useModalHistory(isOpen, onClose);
@@ -193,9 +195,11 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                         {/* Admin Actions */}
                         {isAdmin && (
                             <div className="detail-admin-actions">
-                                <button className="admin-btn copy" onClick={() => onCopy(schedule)}>
-                                    <i className="ri-file-copy-line"></i> 일정 복사
-                                </button>
+                                {showCopyButton && (
+                                    <button className="admin-btn copy" onClick={() => onCopy(schedule)}>
+                                        <i className="ri-file-copy-line"></i> 일정 복사
+                                    </button>
+                                )}
                                 <button className="admin-btn edit" onClick={() => onEdit(schedule)}>
                                     <i className="ri-edit-line"></i> 일정 수정
                                 </button>

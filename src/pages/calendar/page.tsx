@@ -89,6 +89,37 @@ export default function CalendarPage() {
         // For now, syncing from useAuth is safest.
     }, [authIsAdmin]);
 
+    // 초기 마운트 시 오늘 날짜로 스크롤 (Retry 로직 추가)
+    useEffect(() => {
+        let attempts = 0;
+        const maxAttempts = 20; // 2초 동안 시도 (100ms * 20)
+
+        const tryScroll = () => {
+            if (containerRef.current) {
+                const todayElement = containerRef.current.querySelector('.calendar-date-number-today') as HTMLElement;
+                if (todayElement) {
+                    // 헤더 높이만큼 여유를 두고 스크롤 (scrollMarginTop 활용)
+                    todayElement.style.scrollMarginTop = '110px';
+
+                    todayElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                        inline: 'nearest'
+                    });
+                    return; // 성공 시 중단
+                }
+            }
+
+            attempts++;
+            if (attempts < maxAttempts) {
+                setTimeout(tryScroll, 100);
+            }
+        };
+
+        // 약간의 지연 후 시작
+        setTimeout(tryScroll, 300);
+    }, []);
+
 
 
     // Handlers
