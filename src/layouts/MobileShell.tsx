@@ -272,6 +272,7 @@ export function MobileShell() {
   const isBoardPage = location.pathname.startsWith('/board'); // Changed to startsWith to include detail pages
   const isShoppingPage = location.pathname.startsWith('/shopping');
   const isGuidePage = location.pathname === '/guide';
+  const isMyActivitiesPage = location.pathname === '/my-activities';
   const category = searchParams.get('category') || 'all';
 
 
@@ -303,8 +304,8 @@ export function MobileShell() {
               <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
 
               {/* 콘텐츠 분기 처리 */}
-              {isEventsPage ? (
-                /* 홈(이벤트) 페이지 콘텐츠 */
+              {isEventsPage || isMyActivitiesPage ? (
+                /* 홈(이벤트) 페이지 및 내 활동 페이지 콘텐츠 */
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                     <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>

@@ -1,0 +1,86 @@
+/* MyActivitiesPage.css */
+
+.my-activities-container {
+    min-height: 100vh;
+    background-color: #000;
+    padding-bottom: 80px;
+}
+
+/* Header is handled by MobileShell.css classes */
+
+.my-activities-content {
+    padding-top: 0;
+    max-width: 650px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Tabs removed for exact replica of Favorites view */
+.activity-tabs-container {
+    display: none;
+}
+
+.activity-tab-btn {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #9ca3af;
+    /* gray-400 */
+    transition: color 0.2s, border-bottom 0.2s;
+    border-bottom: 2px solid transparent;
+}
+
+.activity-tab-btn.active {
+    color: #3b82f6;
+    /* blue-500 */
+    border-bottom-color: #3b82f6;
+}
+
+/* Empty State */
+.activity-empty-state {
+    text-align: center;
+    padding: 80px 0;
+    color: #6b7280;
+    /* gray-500 */
+}
+
+.activity-empty-icon {
+    font-size: 2.25rem;
+    /* text-4xl */
+    margin-bottom: 12px;
+    display: block;
+}
+
+/* Event Grid Layout */
+.activity-event-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* 2 columns on mobile */
+    gap: 8px;
+    /* Match EventList styling */
+}
+
+@media (min-width: 640px) {
+    .activity-event-grid {
+        grid-template-columns: repeat(4, 1fr);
+        /* 4 columns on desktop table like favorites */
+    }
+}
+
+/* Loading */
+.activity-loading-container {
+    display: flex;
+    justify-content: center;
+    padding-top: 80px;
+    padding-bottom: 80px;
+}
+
+/* Ensure EventCard respects grid width */
+.event-card-container {
+    width: 100%;
+}

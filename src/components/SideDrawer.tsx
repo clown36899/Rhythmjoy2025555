@@ -186,10 +186,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                             </div>
                             <div className="drawer-menu-item" onClick={() => {
                                 onClose();
-                                navigate('/v2?view=my-events');
+                                navigate('/my-activities?tab=posts');
                             }}>
                                 <i className="ri-file-list-3-line"></i>
-                                <span>내가 등록한 행사</span>
+                                <span>내가 쓴 글 / 등록한 행사</span>
                             </div>
                             <div className="drawer-divider"></div>
                         </>
