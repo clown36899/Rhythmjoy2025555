@@ -903,317 +903,319 @@ export default function EventDetailModal({
                 );
               })()}
 
-              {/* 제목 - Sticky Header */}
-              <div
-                className="sticky-header"
-              >
-                {/* 장르 표시 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h2 className="modal-title">
-                    {selectedEvent.title}
-                  </h2>
+              {/* Right Column: Header + Info */}
+              <div className="info-column">
+                {/* 제목 - Sticky Header */}
+                <div
+                  className="sticky-header"
+                >
+                  {/* 장르 표시 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h2 className="modal-title">
+                      {selectedEvent.title}
+                    </h2>
 
-                  {isSelectionMode && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveEditField('title');
-                      }}
-                      className="edm-edit-trigger-btn"
-                      style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                      title="제목 수정"
-                    >
-                      <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
-                    </button>
-                  )}
-                </div>
-
-                {/* 장르 표시 */}
-                {(selectedEvent.genre || isSelectionMode) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
-                    {selectedEvent.genre ? (
-                      <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
-                        {selectedEvent.genre}
-                      </p>
-                    ) : (
-                      <span style={{ color: '#9ca3af', fontSize: '14px' }}>장르 미지정</span>
-                    )}
                     {isSelectionMode && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveEditField('genre');
+                          setActiveEditField('title');
                         }}
                         className="edm-edit-trigger-btn"
-                        style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                        title="장르 수정"
+                        style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                        title="제목 수정"
                       >
-                        <i className="ri-pencil-line" style={{ fontSize: '12px' }}></i>
+                        <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
                       </button>
                     )}
                   </div>
-                )}
-              </div>
 
-              {/* 세부 정보 */}
-              <div className="info-section">
-                <div className="info-item">
-                  <i className="ri-calendar-line info-icon"></i>
-                  <span>
-                    {(() => {
-                      // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                      if (
-                        selectedEvent.event_dates &&
-                        selectedEvent.event_dates.length > 0
-                      ) {
-                        const dates = selectedEvent.event_dates.map(
-                          (dateStr) => new Date(dateStr),
-                        );
-                        const firstDate = dates[0];
-                        const year = firstDate.getFullYear();
-                        const month = firstDate.toLocaleDateString("ko-KR", {
-                          month: "long",
-                        });
-
-                        // 같은 년월인지 확인
-                        const sameYearMonth = dates.every(
-                          (d) =>
-                            d.getFullYear() === year &&
-                            d.toLocaleDateString("ko-KR", { month: "long" }) ===
-                            month,
-                        );
-
-                        if (sameYearMonth) {
-                          // 같은 년월: "2025년 10월 11일, 25일, 31일"
-                          const days = dates
-                            .map((d) => d.getDate())
-                            .join("일, ");
-                          return `${year}년 ${month} ${days}일`;
-                        } else {
-                          // 다른 년월: "10/11, 11/25, 12/31"
-                          return dates
-                            .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
-                            .join(", ");
-                        }
-                      }
-
-                      // 연속 기간 모드
-                      const startDate =
-                        selectedEvent.start_date || selectedEvent.date;
-                      const endDate = selectedEvent.end_date;
-
-                      if (!startDate) return "날짜 미정";
-
-                      const start = new Date(startDate);
-                      const startYear = start.getFullYear();
-                      const startMonth = start.toLocaleDateString("ko-KR", {
-                        month: "long",
-                      });
-                      const startDay = start.getDate();
-
-                      if (endDate && endDate !== startDate) {
-                        const end = new Date(endDate);
-                        const endYear = end.getFullYear();
-                        const endMonth = end.toLocaleDateString("ko-KR", {
-                          month: "long",
-                        });
-                        const endDay = end.getDate();
-
-                        if (startYear === endYear && startMonth === endMonth) {
-                          return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
-                        } else if (startYear === endYear) {
-                          return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
-                        } else {
-                          return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
-                        }
-                      }
-
-                      return `${startYear}년 ${startMonth} ${startDay}일`;
-                    })()}
-                  </span>
+                  {/* 장르 표시 */}
+                  {(selectedEvent.genre || isSelectionMode) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+                      {selectedEvent.genre ? (
+                        <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
+                          {selectedEvent.genre}
+                        </p>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '14px' }}>장르 미지정</span>
+                      )}
+                      {isSelectionMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveEditField('genre');
+                          }}
+                          className="edm-edit-trigger-btn"
+                          style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                          title="장르 수정"
+                        >
+                          <i className="ri-pencil-line" style={{ fontSize: '12px' }}></i>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* {selectedEvent.organizer && (
+                {/* 세부 정보 */}
+                <div className="info-section">
+                  <div className="info-item">
+                    <i className="ri-calendar-line info-icon"></i>
+                    <span>
+                      {(() => {
+                        // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                        if (
+                          selectedEvent.event_dates &&
+                          selectedEvent.event_dates.length > 0
+                        ) {
+                          const dates = selectedEvent.event_dates.map(
+                            (dateStr) => new Date(dateStr),
+                          );
+                          const firstDate = dates[0];
+                          const year = firstDate.getFullYear();
+                          const month = firstDate.toLocaleDateString("ko-KR", {
+                            month: "long",
+                          });
+
+                          // 같은 년월인지 확인
+                          const sameYearMonth = dates.every(
+                            (d) =>
+                              d.getFullYear() === year &&
+                              d.toLocaleDateString("ko-KR", { month: "long" }) ===
+                              month,
+                          );
+
+                          if (sameYearMonth) {
+                            // 같은 년월: "2025년 10월 11일, 25일, 31일"
+                            const days = dates
+                              .map((d) => d.getDate())
+                              .join("일, ");
+                            return `${year}년 ${month} ${days}일`;
+                          } else {
+                            // 다른 년월: "10/11, 11/25, 12/31"
+                            return dates
+                              .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
+                              .join(", ");
+                          }
+                        }
+
+                        // 연속 기간 모드
+                        const startDate =
+                          selectedEvent.start_date || selectedEvent.date;
+                        const endDate = selectedEvent.end_date;
+
+                        if (!startDate) return "날짜 미정";
+
+                        const start = new Date(startDate);
+                        const startYear = start.getFullYear();
+                        const startMonth = start.toLocaleDateString("ko-KR", {
+                          month: "long",
+                        });
+                        const startDay = start.getDate();
+
+                        if (endDate && endDate !== startDate) {
+                          const end = new Date(endDate);
+                          const endYear = end.getFullYear();
+                          const endMonth = end.toLocaleDateString("ko-KR", {
+                            month: "long",
+                          });
+                          const endDay = end.getDate();
+
+                          if (startYear === endYear && startMonth === endMonth) {
+                            return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
+                          } else if (startYear === endYear) {
+                            return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                          } else {
+                            return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
+                          }
+                        }
+
+                        return `${startYear}년 ${startMonth} ${startDay}일`;
+                      })()}
+                    </span>
+                  </div>
+
+                  {/* {selectedEvent.organizer && (
                     <div className="info-item">
                       <i className="ri-user-line info-icon"></i>
                       <span>{selectedEvent.organizer}</span>
                     </div>
                   )} */}
 
-                {selectedEvent.location && (
-                  <div className="info-item">
-                    <i className="ri-map-pin-line info-icon"></i>
-                    <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
-                      {(selectedEvent as any).venue_id ? (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const venueId = (selectedEvent as any).venue_id;
-                            onOpenVenueDetail?.(venueId);
-                          }}
-                          className="venue-link-button"
-                        >
-                          <span>{selectedEvent.location}</span>
-                          <i className="ri-arrow-right-s-line" style={{ fontSize: '1.1em' }}></i>
-                        </button>
-                      ) : (
-                        <span>{selectedEvent.location}</span>
-                      )}
-                      {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
-                        <a
-                          href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="location-link"
-                          title="지도 보기"
-                        >
-                          <i className="ri-external-link-line location-link-icon"></i>
-                        </a>
-                      )}
-                      {isSelectionMode && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowVenueSelect(true);
-                          }}
-                          style={{ marginLeft: 'auto', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          title="장소 수정"
-                        >
-                          <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {(selectedEvent.description || isSelectionMode) && (
-                  <div className="info-divider">
+                  {selectedEvent.location && (
                     <div className="info-item">
-                      <i className="ri-file-text-line info-icon"></i>
-                      <div className="info-item-content" style={{ width: '100%' }}>
-                        <div style={{ position: 'relative' }}>
-                          {isSelectionMode && <button
+                      <i className="ri-map-pin-line info-icon"></i>
+                      <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
+                        {(selectedEvent as any).venue_id ? (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const venueId = (selectedEvent as any).venue_id;
+                              onOpenVenueDetail?.(venueId);
+                            }}
+                            className="venue-link-button"
+                          >
+                            <span>{selectedEvent.location}</span>
+                            <i className="ri-arrow-right-s-line" style={{ fontSize: '1.1em' }}></i>
+                          </button>
+                        ) : (
+                          <span>{selectedEvent.location}</span>
+                        )}
+                        {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
+                          <a
+                            href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="location-link"
+                            title="지도 보기"
+                          >
+                            <i className="ri-external-link-line location-link-icon"></i>
+                          </a>
+                        )}
+                        {isSelectionMode && (
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActiveEditField('description');
+                              setShowVenueSelect(true);
                             }}
-                            style={{ position: 'absolute', right: 0, top: 0, background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
-                            title="내용 수정"
+                            style={{ marginLeft: 'auto', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            title="장소 수정"
                           >
                             <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
                           </button>
-                          }
-                          <p>
-                            {selectedEvent.description ? (
-                              selectedEvent.description
-                                .split(/(\bhttps?:\/\/[^\s]+)/g)
-                                .map((part, idx) => {
-                                  if (part.match(/^https?:\/\//)) {
-                                    return (
-                                      <a
-                                        key={idx}
-                                        href={part}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="info-link"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        {part}
-                                      </a>
-                                    );
-                                  }
-                                  return <span key={idx}>{part}</span>;
-                                })
-                            ) : (
-                              <span style={{ color: '#9ca3af' }}>내용 없음</span>
-                            )}
-                          </p>
-                        </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedEvent.contact &&
-                  (() => {
-                    const contactInfos = parseMultipleContacts(
-                      selectedEvent.contact,
-                    );
-
-                    return (
-                      <div className="edm-space-y-2">
-                        <span className="contact-label">
-                          문의
-                        </span>
-                        <div className="contact-buttons-container">
-                          {contactInfos.map((contactInfo, index) => {
-                            const handleContactClick = async () => {
-                              if (contactInfo.link) {
-                                window.open(contactInfo.link, "_blank");
-                              } else {
-                                try {
-                                  await copyToClipboard(contactInfo.value);
-                                  alert(`복사되었습니다: ${contactInfo.value}`);
-                                } catch (err) {
-                                  console.error("복사 실패:", err);
-                                  alert("복사에 실패했습니다.");
-                                }
-                              }
-                            };
-
-                            return (
-                              <button
-                                key={index}
-                                onClick={handleContactClick}
-                                className="contact-button"
-                              >
-                                <i
-                                  className={`${contactInfo.icon} contact-icon`}
-                                ></i>
-                                <div className="edm-text-left">
-                                  <div className="contact-text">
-                                    {contactInfo.displayText}
-                                  </div>
-                                  <div className="contact-subtext">
-                                    {contactInfo.link
-                                      ? "탭하여 열기"
-                                      : "탭하여 복사"}
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                {isAdminMode &&
-                  (selectedEvent.organizer_name ||
-                    selectedEvent.organizer_phone) && (
-                    <div className="admin-info-section">
-                      <div className="admin-info-header">
-                        <i className="ri-admin-line"></i>
-                        <span>등록자 정보 (관리자 전용)</span>
-                      </div>
-                      {selectedEvent.organizer_name && (
-                        <div className="admin-info-item">
-                          <i className="ri-user-star-line"></i>
-                          <span>{selectedEvent.organizer_name}</span>
-                        </div>
-                      )}
-                      {selectedEvent.organizer_phone && (
-                        <div className="admin-info-item">
-                          <i className="ri-phone-line"></i>
-                          <span>{selectedEvent.organizer_phone}</span>
-                        </div>
-                      )}
                     </div>
                   )}
 
-                {/* This section was commented out in the original file, but I've added classes just in case */}
-                {/* {selectedEvent.link1 && (
+                  {(selectedEvent.description || isSelectionMode) && (
+                    <div className="info-divider">
+                      <div className="info-item">
+                        <i className="ri-file-text-line info-icon"></i>
+                        <div className="info-item-content" style={{ width: '100%' }}>
+                          <div style={{ position: 'relative' }}>
+                            {isSelectionMode && <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveEditField('description');
+                              }}
+                              style={{ position: 'absolute', right: 0, top: 0, background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
+                              title="내용 수정"
+                            >
+                              <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                            </button>
+                            }
+                            <p>
+                              {selectedEvent.description ? (
+                                selectedEvent.description
+                                  .split(/(\bhttps?:\/\/[^\s]+)/g)
+                                  .map((part, idx) => {
+                                    if (part.match(/^https?:\/\//)) {
+                                      return (
+                                        <a
+                                          key={idx}
+                                          href={part}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="info-link"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {part}
+                                        </a>
+                                      );
+                                    }
+                                    return <span key={idx}>{part}</span>;
+                                  })
+                              ) : (
+                                <span style={{ color: '#9ca3af' }}>내용 없음</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedEvent.contact &&
+                    (() => {
+                      const contactInfos = parseMultipleContacts(
+                        selectedEvent.contact,
+                      );
+
+                      return (
+                        <div className="edm-space-y-2">
+                          <span className="contact-label">
+                            문의
+                          </span>
+                          <div className="contact-buttons-container">
+                            {contactInfos.map((contactInfo, index) => {
+                              const handleContactClick = async () => {
+                                if (contactInfo.link) {
+                                  window.open(contactInfo.link, "_blank");
+                                } else {
+                                  try {
+                                    await copyToClipboard(contactInfo.value);
+                                    alert(`복사되었습니다: ${contactInfo.value}`);
+                                  } catch (err) {
+                                    console.error("복사 실패:", err);
+                                    alert("복사에 실패했습니다.");
+                                  }
+                                }
+                              };
+
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={handleContactClick}
+                                  className="contact-button"
+                                >
+                                  <i
+                                    className={`${contactInfo.icon} contact-icon`}
+                                  ></i>
+                                  <div className="edm-text-left">
+                                    <div className="contact-text">
+                                      {contactInfo.displayText}
+                                    </div>
+                                    <div className="contact-subtext">
+                                      {contactInfo.link
+                                        ? "탭하여 열기"
+                                        : "탭하여 복사"}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                  {isAdminMode &&
+                    (selectedEvent.organizer_name ||
+                      selectedEvent.organizer_phone) && (
+                      <div className="admin-info-section">
+                        <div className="admin-info-header">
+                          <i className="ri-admin-line"></i>
+                          <span>등록자 정보 (관리자 전용)</span>
+                        </div>
+                        {selectedEvent.organizer_name && (
+                          <div className="admin-info-item">
+                            <i className="ri-user-star-line"></i>
+                            <span>{selectedEvent.organizer_name}</span>
+                          </div>
+                        )}
+                        {selectedEvent.organizer_phone && (
+                          <div className="admin-info-item">
+                            <i className="ri-phone-line"></i>
+                            <span>{selectedEvent.organizer_phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  {/* This section was commented out in the original file, but I've added classes just in case */}
+                  {/* {selectedEvent.link1 && (
                   <div className="info-divider">
                     <div className="link-container">
                       <a
@@ -1245,24 +1247,25 @@ export default function EventDetailModal({
                   </div>
                 )} */}
 
-                {isAdminMode && selectedEvent.created_at && (
-                  <div className="created-at-text">
-                    <span>
-                      등록:{" "}
-                      {new Date(selectedEvent.created_at).toLocaleDateString(
-                        "ko-KR",
-                        {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        },
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
+                  {isAdminMode && selectedEvent.created_at && (
+                    <div className="created-at-text">
+                      <span>
+                        등록:{" "}
+                        {new Date(selectedEvent.created_at).toLocaleDateString(
+                          "ko-KR",
+                          {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div> {/* End of info-column */}
             </div>
 
             <div className="modal-footer">

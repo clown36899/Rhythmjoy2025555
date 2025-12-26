@@ -35,20 +35,22 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
 
     const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-    // 이번 주(일~토) 날짜 계산
+    // 이번 주(월~일) 날짜 계산
     const weekDates = useMemo(() => {
         const now = new Date();
         const kstDay = getKSTDay(now);
 
-        // KST 기준 이번 주 일요일 구하기
+        // KST 기준 이번 주 월요일 구하기
         const kstTodayStr = getLocalDateString(now);
         const kstToday = new Date(kstTodayStr + 'T12:00:00');
-        const sunday = new Date(kstToday);
-        sunday.setDate(kstToday.getDate() - kstDay);
+        const monday = new Date(kstToday);
+        // 월요일 = 1, 일요일 = 0이므로 일요일인 경우 -6, 그 외는 -(kstDay - 1)
+        const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
+        monday.setDate(kstToday.getDate() - daysFromMonday);
 
         return Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(sunday);
-            d.setDate(sunday.getDate() + i);
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
 
             // 로컬 날짜 문자열 생성
             const year = d.getFullYear();
@@ -56,30 +58,29 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             const dateNum = String(d.getDate()).padStart(2, '0');
             const localIsoDate = `${year}-${month}-${dateNum}`;
 
+            // 월요일부터 시작하므로 weekNames 인덱스 조정: (i+1) % 7
+            const weekDayIndex = (i + 1) % 7;
+
             return {
                 day: i,
                 dateNum: d.getDate(),
                 isoDate: localIsoDate,
-                name: weekNames[i]
+                name: weekNames[weekDayIndex]
             };
         });
     }, []);
 
-    // [1] 금주의 일정 (날짜 지정 일정만 표시)
-    // [1] 선택된 해당 요일/날짜의 일정 필터링
+    // [1] 금주의 일정 (날짜 지정 일정만 표시 - 정규 일정 제외)
     const displaySchedules = useMemo(() => {
         const target = weekDates[selectedDay];
         if (!target) return [];
 
         return schedules.filter(s => {
-            // 1. 날짜가 지정된 일정인 경우: 선택된 날짜와 정확히 일치해야 함
+            // 날짜가 지정된 일정만 표시 (정규 일정 제외)
             if (s.date && s.date.trim() !== '') {
                 return s.date === target.isoDate;
             }
-            // 2. 날짜가 없는 정규 일정인 경우: 선택된 요일과 일치해야 함
-            if (s.day_of_week !== undefined && s.day_of_week !== null) {
-                return s.day_of_week === selectedDay;
-            }
+            // 정규 일정(날짜 없이 요일만 있는 일정)은 제외
             return false;
         }).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
     }, [schedules, selectedDay, weekDates]);

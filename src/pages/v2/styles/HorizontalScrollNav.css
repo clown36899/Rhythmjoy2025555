@@ -1,0 +1,77 @@
+/* Horizontal Scroll Navigation Wrapper */
+.horizontal-scroll-nav-wrapper {
+    position: relative;
+}
+
+/* Navigation Buttons */
+.scroll-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+
+    color: #fff;
+    font-size: 24px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.scroll-nav-btn:hover:not(.disabled) {
+    background: rgba(0, 0, 0, 0.85);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.scroll-nav-btn:active:not(.disabled) {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.scroll-nav-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Left Button */
+.scroll-nav-btn-left {
+    left: 8px;
+}
+
+/* Right Button */
+.scroll-nav-btn-right {
+    right: 8px;
+}
+
+/* Hide on Mobile (Touch Devices) */
+@media (max-width: 650px) {
+    .scroll-nav-btn {
+        display: none;
+    }
+}
+
+/* Optional: Hide buttons when hovering over content on desktop */
+@media (min-width: 651px) {
+    .horizontal-scroll-nav-wrapper:not(:hover) .scroll-nav-btn {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .horizontal-scroll-nav-wrapper:hover .scroll-nav-btn:not(.disabled) {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}

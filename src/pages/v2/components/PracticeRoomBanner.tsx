@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useModal } from '../../../hooks/useModal';
 import { logUserInteraction } from '../../../lib/analytics';
 import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
+import { HorizontalScrollNav } from './HorizontalScrollNav';
 import './PracticeRoomBanner.css';
 
 interface PracticeRoom {
@@ -72,24 +73,26 @@ export default function PracticeRoomBanner() {
                 </h3>
             </div>
 
-            <div className="practice-banner-scroll">
-                {rooms.map((room) => (
-                    <div
-                        key={room.id}
-                        className="practice-banner-item"
-                        onClick={() => handleRoomClick(room)}
-                    >
-                        <div className="practice-banner-image-wrapper">
-                            <img
-                                src={getOptimizedImageUrl(room.images[0], 200) || '/placeholder-room.jpg'}
-                                alt={room.name}
-                                className="practice-banner-image"
-                            />
+            <HorizontalScrollNav>
+                <div className="practice-banner-scroll">
+                    {rooms.map((room) => (
+                        <div
+                            key={room.id}
+                            className="practice-banner-item"
+                            onClick={() => handleRoomClick(room)}
+                        >
+                            <div className="practice-banner-image-wrapper">
+                                <img
+                                    src={getOptimizedImageUrl(room.images[0], 200) || '/placeholder-room.jpg'}
+                                    alt={room.name}
+                                    className="practice-banner-image"
+                                />
+                            </div>
+                            <p className="practice-banner-name">{room.name}</p>
                         </div>
-                        <p className="practice-banner-name">{room.name}</p>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            </HorizontalScrollNav>
         </div>
     );
 }

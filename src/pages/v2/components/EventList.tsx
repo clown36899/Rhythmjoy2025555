@@ -6,6 +6,7 @@ import { createResizedImages } from "../../../utils/imageResize";
 import { getLocalDateString, getKSTDay, sortEvents, isEventMatchingFilter, CLUB_LESSON_GENRE } from "../utils/eventListUtils";
 import { useModal } from "../../../hooks/useModal";
 import { logEvent } from "../../../lib/analytics";
+import { HorizontalScrollNav } from "./HorizontalScrollNav";
 
 // 컴포넌트 리마운트 시에도 순서 유지를 위한 전역 변수
 let globalLastSortedEvents: Event[] = [];
@@ -39,6 +40,8 @@ import "../styles/EventListSections.css";
 // Lazy loading으로 성능 최적화 (사용하지 않는 SocialCalendar 제거)
 import { useSocialSchedulesNew } from "../../social/hooks/useSocialSchedulesNew";
 import TodaySocial from "../../social/components/TodaySocial";
+import AllSocialSchedules from "../../social/components/AllSocialSchedules";
+import type { SocialSchedule } from "../../social/types";
 import { useAuth } from "../../../contexts/AuthContext";
 import PracticeRoomBanner from "./PracticeRoomBanner";
 import StandardPostList from "../../board/components/StandardPostList";
@@ -638,7 +641,8 @@ export default function EventList({
   const todayDayOfWeek = getKSTDay();
 
   const todaySocialSchedules = useMemo(() => {
-    return socialSchedules.filter(s => {
+    // Get social schedules for today
+    const socialSchedsToday = socialSchedules.filter(s => {
       const hasDate = s.date && s.date.trim() !== '';
 
       // 1. 날짜가 지정된 일회성 일정인 경우
@@ -653,7 +657,79 @@ export default function EventList({
 
       return false;
     });
-  }, [socialSchedules, todayStr, todayDayOfWeek]);
+
+    // Get today's events and convert to SocialSchedule format
+    const eventsToday = events.filter(e => {
+      const eventDate = e.start_date || e.date;
+      return eventDate === todayStr;
+    }).map(e => ({
+      id: e.id,
+      group_id: -1, // Placeholder for events
+      title: e.title,
+      date: e.start_date || e.date,
+      start_time: e.time,
+      description: e.description,
+      image_url: e.image,
+      image_micro: e.image,
+      image_thumbnail: e.image,
+      image_medium: e.image,
+      image_full: e.image,
+      place_name: e.location,
+      user_id: e.user_id,
+      created_at: e.created_at,
+      updated_at: e.created_at,
+    } as SocialSchedule));
+
+    // Combine and return
+    return [...socialSchedsToday, ...eventsToday];
+  }, [socialSchedules, events, todayStr, todayDayOfWeek]);
+
+  // This week's social schedules (Monday to Sunday, excluding today) + events
+  const thisWeekSocialSchedules = useMemo(() => {
+    // Calculate this week's date range (Monday to Sunday)
+    const today = new Date();
+    const currentDayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+    const daysFromMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - daysFromMonday);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+    const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+
+    // Get this week's events (excluding today)
+    const eventsThisWeek = events.filter(e => {
+      const eventDate = e.start_date || e.date;
+      if (!eventDate) return false;
+      if (eventDate <= todayStr) return false; // Exclude today and past
+      if (eventDate < weekStartStr || eventDate > weekEndStr) return false; // Must be within this week
+      return true;
+    }).map(e => ({
+      id: e.id,
+      group_id: -1,
+      title: e.title,
+      date: e.start_date || e.date,
+      start_time: e.time,
+      description: e.description,
+      image_url: e.image,
+      image_micro: e.image,
+      image_thumbnail: e.image,
+      image_medium: e.image,
+      image_full: e.image,
+      place_name: e.location,
+      user_id: e.user_id,
+      created_at: e.created_at,
+      updated_at: e.created_at,
+    } as SocialSchedule));
+
+    // Combine social schedules and events
+    return [...socialSchedules, ...eventsThisWeek];
+  }, [socialSchedules, events, todayStr]);
   // ----------------------------
 
 
@@ -1393,7 +1469,7 @@ export default function EventList({
     selectedWeekday,
   ]);
 
-  // 진행중인 행사 (Future Events - Grid)
+  // 예정된 행사 (Future Events - Grid)
   // Category: 'event'
   // Date: From today to future (no limit)
   const futureEvents = useMemo(() => {
@@ -2967,7 +3043,7 @@ export default function EventList({
 
         /* 
           VIEW 1: 달력이 접혀있을 때 (collapsed) 
-          => '진행중인 행사/강습' 섹션 표시
+          => '예정된 행사/강습' 섹션 표시
         */
         calendarMode === 'collapsed' && !searchTerm.trim() && !selectedDate && (!selectedCategory || selectedCategory === 'all' || selectedCategory === 'none') ? (
           sectionViewMode === 'preview' ? (
@@ -2984,14 +3060,22 @@ export default function EventList({
                 />
               )}
 
+              {/* All Social Schedules Section */}
+              {!isSocialSchedulesLoading && thisWeekSocialSchedules.length > 0 && (
+                <AllSocialSchedules
+                  schedules={thisWeekSocialSchedules}
+                  onViewAll={() => navigate('/social')}
+                />
+              )}
+
               {/* BillboardSection 제거 - 사용하지 않음 (display: none) */}
 
 
-              {/* Section 1: 진행중인 행사 (Horizontal Scroll) */}
+              {/* Section 1: 예정된 행사 (Horizontal Scroll) */}
               <div className="evt-v2-section evt-v2-section-events">
                 <div className="evt-v2-section-title">
 
-                  <span>진행중인 행사</span>
+                  <span>예정된 행사</span>
                   <span className="evt-v2-count">{futureEvents.length}</span>
                   {futureEvents.length > 0 && (
                     <button
@@ -3046,29 +3130,31 @@ export default function EventList({
                 </div>
 
                 {futureEvents.length > 0 ? (
-                  <div className="evt-v2-horizontal-scroll">
-                    <div className="evt-spacer-5"></div>
-                    {futureEvents.map(event => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onClick={() => handleEventClick(event)}
-                        onMouseEnter={onEventHover}
-                        onMouseLeave={() => onEventHover?.(null)}
-                        isHighlighted={highlightEvent?.id === event.id}
-                        selectedDate={selectedDate}
-                        defaultThumbnailClass={defaultThumbnailClass}
-                        defaultThumbnailEvent={defaultThumbnailEvent}
-                        variant="sliding"
-                        hideGenre={true}
-                        isFavorite={effectiveFavoriteIds.has(event.id)}
-                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                      />
-                    ))}
-                    <div className="evt-spacer-11"></div>
-                  </div>
+                  <HorizontalScrollNav>
+                    <div className="evt-v2-horizontal-scroll">
+                      <div className="evt-spacer-5"></div>
+                      {futureEvents.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => handleEventClick(event)}
+                          onMouseEnter={onEventHover}
+                          onMouseLeave={() => onEventHover?.(null)}
+                          isHighlighted={highlightEvent?.id === event.id}
+                          selectedDate={selectedDate}
+                          defaultThumbnailClass={defaultThumbnailClass}
+                          defaultThumbnailEvent={defaultThumbnailEvent}
+                          variant="sliding"
+                          hideGenre={true}
+                          isFavorite={effectiveFavoriteIds.has(event.id)}
+                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                      ))}
+                      <div className="evt-spacer-11"></div>
+                    </div>
+                  </HorizontalScrollNav>
                 ) : (
-                  <div className="evt-v2-empty">진행중인 행사가 없습니다</div>
+                  <div className="evt-v2-empty">예정된 행사가 없습니다</div>
                 )}
               </div>
 
@@ -3122,27 +3208,29 @@ export default function EventList({
 
 
                 {regularClasses.length > 0 ? (
-                  <div className="evt-v2-horizontal-scroll">
-                    <div className="evt-spacer-5"></div>
-                    {regularClasses.map(event => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onClick={() => handleEventClick(event)}
-                        onMouseEnter={onEventHover}
-                        onMouseLeave={() => onEventHover?.(null)}
-                        isHighlighted={highlightEvent?.id === event.id}
-                        selectedDate={selectedDate}
-                        defaultThumbnailClass={defaultThumbnailClass}
-                        defaultThumbnailEvent={defaultThumbnailEvent}
-                        variant="sliding"
-                        hideGenre={true}
-                        isFavorite={effectiveFavoriteIds.has(event.id)}
-                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                      />
-                    ))}
-                    <div className="evt-spacer-11"></div>
-                  </div>
+                  <HorizontalScrollNav>
+                    <div className="evt-v2-horizontal-scroll">
+                      <div className="evt-spacer-5"></div>
+                      {regularClasses.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => handleEventClick(event)}
+                          onMouseEnter={onEventHover}
+                          onMouseLeave={() => onEventHover?.(null)}
+                          isHighlighted={highlightEvent?.id === event.id}
+                          selectedDate={selectedDate}
+                          defaultThumbnailClass={defaultThumbnailClass}
+                          defaultThumbnailEvent={defaultThumbnailEvent}
+                          variant="sliding"
+                          hideGenre={true}
+                          isFavorite={effectiveFavoriteIds.has(event.id)}
+                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                      ))}
+                      <div className="evt-spacer-11"></div>
+                    </div>
+                  </HorizontalScrollNav>
                 ) : (
                   <div className="evt-v2-empty">진행중인 강습이 없습니다</div>
                 )}
@@ -3185,27 +3273,29 @@ export default function EventList({
                     </div>
                   )}
 
-                  <div className="evt-v2-horizontal-scroll">
-                    <div className="evt-spacer-5"></div>
-                    {clubLessons.map(event => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onClick={() => handleEventClick(event)}
-                        onMouseEnter={onEventHover}
-                        onMouseLeave={() => onEventHover?.(null)}
-                        isHighlighted={highlightEvent?.id === event.id}
-                        selectedDate={selectedDate}
-                        defaultThumbnailClass={defaultThumbnailClass}
-                        defaultThumbnailEvent={defaultThumbnailEvent}
-                        variant="sliding"
-                        hideGenre={true}
-                        isFavorite={effectiveFavoriteIds.has(event.id)}
-                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                      />
-                    ))}
-                    <div className="evt-spacer-11"></div>
-                  </div>
+                  <HorizontalScrollNav>
+                    <div className="evt-v2-horizontal-scroll">
+                      <div className="evt-spacer-5"></div>
+                      {clubLessons.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => handleEventClick(event)}
+                          onMouseEnter={onEventHover}
+                          onMouseLeave={() => onEventHover?.(null)}
+                          isHighlighted={highlightEvent?.id === event.id}
+                          selectedDate={selectedDate}
+                          defaultThumbnailClass={defaultThumbnailClass}
+                          defaultThumbnailEvent={defaultThumbnailEvent}
+                          variant="sliding"
+                          hideGenre={true}
+                          isFavorite={effectiveFavoriteIds.has(event.id)}
+                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                      ))}
+                      <div className="evt-spacer-11"></div>
+                    </div>
+                  </HorizontalScrollNav>
                 </div>
               )}
 
@@ -3227,26 +3317,28 @@ export default function EventList({
                       모아보기 ❯
                     </button>
                   </div>
-                  <div className="evt-v2-horizontal-scroll">
-                    <div className="evt-spacer-5"></div>
-                    {favoriteEventsList.map(event => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onClick={() => handleEventClick(event)}
-                        onMouseEnter={onEventHover}
-                        onMouseLeave={() => onEventHover?.(null)}
-                        isHighlighted={highlightEvent?.id === event.id}
-                        selectedDate={selectedDate}
-                        defaultThumbnailClass={defaultThumbnailClass}
-                        defaultThumbnailEvent={defaultThumbnailEvent}
-                        variant="favorite"
-                        isFavorite={true}
-                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                      />
-                    ))}
-                    <div className="evt-spacer-11"></div>
-                  </div>
+                  <HorizontalScrollNav>
+                    <div className="evt-v2-horizontal-scroll">
+                      <div className="evt-spacer-5"></div>
+                      {favoriteEventsList.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => handleEventClick(event)}
+                          onMouseEnter={onEventHover}
+                          onMouseLeave={() => onEventHover?.(null)}
+                          isHighlighted={highlightEvent?.id === event.id}
+                          selectedDate={selectedDate}
+                          defaultThumbnailClass={defaultThumbnailClass}
+                          defaultThumbnailEvent={defaultThumbnailEvent}
+                          variant="favorite"
+                          isFavorite={true}
+                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                      ))}
+                      <div className="evt-spacer-11"></div>
+                    </div>
+                  </HorizontalScrollNav>
                 </div>
               )}
 
@@ -3285,25 +3377,27 @@ export default function EventList({
                         <span className="evt-v2-count">{genreEvents.length}</span>
                       </div>
 
-                      <div className="evt-v2-horizontal-scroll">
-                        <div className="evt-spacer-5"></div>
-                        {genreEvents.map(event => (
-                          <EventCard
-                            key={event.id}
-                            event={event}
-                            onClick={() => handleEventClick(event)}
-                            onMouseEnter={onEventHover}
-                            onMouseLeave={() => onEventHover?.(null)}
-                            isHighlighted={highlightEvent?.id === event.id}
-                            selectedDate={selectedDate}
-                            defaultThumbnailClass={defaultThumbnailClass}
-                            defaultThumbnailEvent={defaultThumbnailEvent}
-                            variant="sliding"
-                            isFavorite={effectiveFavoriteIds.has(event.id)}
-                            onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                          />
-                        ))}
-                      </div>
+                      <HorizontalScrollNav>
+                        <div className="evt-v2-horizontal-scroll">
+                          <div className="evt-spacer-5"></div>
+                          {genreEvents.map(event => (
+                            <EventCard
+                              key={event.id}
+                              event={event}
+                              onClick={() => handleEventClick(event)}
+                              onMouseEnter={onEventHover}
+                              onMouseLeave={() => onEventHover?.(null)}
+                              isHighlighted={highlightEvent?.id === event.id}
+                              selectedDate={selectedDate}
+                              defaultThumbnailClass={defaultThumbnailClass}
+                              defaultThumbnailEvent={defaultThumbnailEvent}
+                              variant="sliding"
+                              isFavorite={effectiveFavoriteIds.has(event.id)}
+                              onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                            />
+                          ))}
+                        </div>
+                      </HorizontalScrollNav>
                     </div>
                   );
                 })}
@@ -3331,25 +3425,27 @@ export default function EventList({
                       <span className="evt-v2-count">{genreEvents.length}</span>
                     </div>
 
-                    <div className="evt-v2-horizontal-scroll">
-                      <div className="evt-spacer-5"></div>
-                      {genreEvents.map(event => (
-                        <EventCard
-                          key={event.id}
-                          event={event}
-                          onClick={() => handleEventClick(event)}
-                          onMouseEnter={onEventHover}
-                          onMouseLeave={() => onEventHover?.(null)}
-                          isHighlighted={highlightEvent?.id === event.id}
-                          selectedDate={selectedDate}
-                          defaultThumbnailClass={defaultThumbnailClass}
-                          defaultThumbnailEvent={defaultThumbnailEvent}
-                          variant="sliding"
-                          isFavorite={effectiveFavoriteIds.has(event.id)}
-                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                        />
-                      ))}
-                    </div>
+                    <HorizontalScrollNav>
+                      <div className="evt-v2-horizontal-scroll">
+                        <div className="evt-spacer-5"></div>
+                        {genreEvents.map(event => (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            onClick={() => handleEventClick(event)}
+                            onMouseEnter={onEventHover}
+                            onMouseLeave={() => onEventHover?.(null)}
+                            isHighlighted={highlightEvent?.id === event.id}
+                            selectedDate={selectedDate}
+                            defaultThumbnailClass={defaultThumbnailClass}
+                            defaultThumbnailEvent={defaultThumbnailEvent}
+                            variant="sliding"
+                            isFavorite={effectiveFavoriteIds.has(event.id)}
+                            onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                          />
+                        ))}
+                      </div>
+                    </HorizontalScrollNav>
                   </div>
                 );
               })()}
