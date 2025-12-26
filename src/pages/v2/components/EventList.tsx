@@ -3419,6 +3419,7 @@ export default function EventList({
                 <AllSocialSchedules
                   schedules={thisWeekSocialSchedules}
                   onViewAll={() => navigate('/social')}
+                  onEventClick={onEventClick}
                 />
               )}
 

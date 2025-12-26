@@ -8,9 +8,10 @@ import { useAuth } from '../../../contexts/AuthContext';
 interface AllSocialSchedulesProps {
     schedules: SocialSchedule[];
     onViewAll?: () => void;
+    onEventClick?: (event: any) => void;
 }
 
-const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onViewAll }) => {
+const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onViewAll, onEventClick }) => {
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
 
@@ -66,6 +67,15 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
 
     const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
         e.stopPropagation();
+
+        // Check if this is a regular event (converted from Event type)
+        if (item.group_id === -1) {
+            // This is a regular event, use onEventClick callback
+            if (onEventClick) {
+                onEventClick(item as any);
+            }
+            return;
+        }
 
         // 일회성 일정만 수정 가능 (date가 있는 경우)
         const isOneTimeSchedule = !!item.date;
