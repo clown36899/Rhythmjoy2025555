@@ -744,10 +744,11 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   white-space: nowrap;
-  flex-shrink: 0;
+  flex-shrink: 1;
   text-decoration: none;
   position: relative;
   overflow: hidden;
+  min-width: 0;
 }
 
 .footer-link::before {
@@ -796,6 +797,9 @@
   /* font-semibold */
   position: relative;
   z-index: 1;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .footer-actions-container {
