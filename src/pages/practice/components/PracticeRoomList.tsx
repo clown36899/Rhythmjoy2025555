@@ -386,7 +386,7 @@ export default function PracticeRoomList({
                   onClick={(e) => handleToggleFavorite(room.id, e)}
                   title={favoritePracticeRoomIds.has(room.id) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                 >
-                  <i className={favoritePracticeRoomIds.has(room.id) ? "ri-heart-3-fill" : "ri-heart-3-line"}></i>
+                  <i className={favoritePracticeRoomIds.has(room.id) ? "ri-star-fill" : "ri-star-line"}></i>
                 </button>
 
                 {/* 왼쪽: 정보 */}

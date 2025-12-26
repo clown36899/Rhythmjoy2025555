@@ -136,7 +136,7 @@ export default function StandardPostList({
                             onClick={(e) => { e.stopPropagation(); onToggleLike(post.id); }}
                             style={{ background: 'transparent', border: 'none', display: 'flex', alignItems: 'center' }}
                         >
-                            <i className={likedPostIds?.has(post.id) ? "ri-heart-fill board-post-meta-icon" : "ri-heart-line board-post-meta-icon"}></i>
+                            <i className={likedPostIds?.has(post.id) ? "ri-star-fill board-post-meta-icon" : "ri-star-line board-post-meta-icon"}></i>
                             <span style={{ marginLeft: '4px' }}>{post.likes || 0}</span>
                         </button>
                     )}

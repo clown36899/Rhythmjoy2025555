@@ -12,6 +12,7 @@ import TodaySocial from './components/TodaySocial';
 import WeeklySocial from './components/WeeklySocial';
 import GroupDirectory from './components/GroupDirectory';
 import GroupCalendarModal from './components/GroupCalendarModal';
+import SocialGroupDetailModal from './components/SocialGroupDetailModal';
 import SocialGroupModal from './components/SocialGroupModal';
 import SocialScheduleModal from './components/SocialScheduleModal';
 
@@ -32,6 +33,9 @@ const SocialPage: React.FC = () => {
 
   const [selectedGroup, setSelectedGroup] = useState<SocialGroup | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  const [detailGroup, setDetailGroup] = useState<SocialGroup | null>(null); // For Read-Only Detail Modal
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<SocialGroup | null>(null);
@@ -230,7 +234,8 @@ const SocialPage: React.FC = () => {
         groups={groups}
         favorites={favorites}
         onToggleFavorite={toggleFavorite}
-        onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
+        onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }} // Schedule Button
+        onGroupDetailClick={(group) => { setDetailGroup(group); setIsDetailModalOpen(true); }} // Card Click
         onEditGroup={handleEditGroup}
         onAddSchedule={handleAddSchedule}
         isAdmin={!!user}
@@ -244,6 +249,23 @@ const SocialPage: React.FC = () => {
           group={selectedGroup}
           onScheduleClick={handleScheduleClick}
           allSchedules={schedules} // 전체 스케줄 전달
+        />
+      )}
+
+      {isDetailModalOpen && detailGroup && (
+        <SocialGroupDetailModal
+          group={detailGroup}
+          onClose={() => setIsDetailModalOpen(false)}
+          onEdit={() => {
+            setIsDetailModalOpen(false);
+            handleEditGroup(detailGroup);
+          }}
+          onViewSchedule={() => {
+            setIsDetailModalOpen(false);
+            setSelectedGroup(detailGroup);
+            setIsCalendarOpen(true);
+          }}
+          isAdmin={!!user}
         />
       )}
 

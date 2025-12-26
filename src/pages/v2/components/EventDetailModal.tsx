@@ -878,7 +878,7 @@ export default function EventDetailModal({
                               height: '72px'
                             }}
                           >
-                            <i className={`card-favorite-icon ${isFavorite ? "ri-heart-fill" : "ri-heart-line"}`} style={{ fontSize: '40px' }}></i>
+                            <i className={`card-favorite-icon ${isFavorite ? "ri-star-fill" : "ri-star-line"}`} style={{ fontSize: '40px' }}></i>
                           </button>
                         )}
                       </>

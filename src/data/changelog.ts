@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.21.2',
+        date: '2025-12-26',
+        changes: [
+            '[Social] 단체 카드 클릭 시 상세 정보 모달(Read-only) 분리 적용',
+            '[UI] 전체 즐겨찾기 아이콘 Star(별) 모양으로 통일',
+            '[Fix] 자유게시판 자동 숨김 로직 제외 및 모달 UI 버그 수정'
+        ]
+    },
+    {
         version: '2.21.1',
         date: '2025-12-26',
         changes: [

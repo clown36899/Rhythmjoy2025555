@@ -56,7 +56,7 @@ export default function ShopDetailModal({ shop, isOpen, onClose, onUpdate, isFav
                             className="shop-modal-favorite"
                             title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                         >
-                            <i className={isFavorite ? "ri-heart-3-fill" : "ri-heart-3-line"}></i>
+                            <i className={isFavorite ? "ri-star-fill" : "ri-star-line"}></i>
                         </button>
                     )}
 

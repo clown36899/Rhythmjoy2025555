@@ -201,7 +201,7 @@ export const EventCard = memo(({
             }}
             title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
           >
-            <i className={`card-favorite-icon ${isFavorite ? "ri-heart-fill" : "ri-heart-line"}`}></i>
+            <i className={`card-favorite-icon ${isFavorite ? "ri-star-fill" : "ri-star-line"}`}></i>
           </button>
         )}
 

@@ -6,7 +6,8 @@ interface GroupDirectoryProps {
     groups: SocialGroup[];
     favorites: number[];
     onToggleFavorite: (groupId: number) => void;
-    onGroupClick: (group: SocialGroup) => void;
+    onGroupClick: (group: SocialGroup) => void; // Legacy name: Opens Schedule Calendar
+    onGroupDetailClick?: (group: SocialGroup) => void; // New: Opens Info Modal
     onEditGroup: (group: SocialGroup) => void;
     onAddSchedule: (groupId: number) => void;
     isAdmin: boolean;
@@ -18,6 +19,7 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
     favorites,
     onToggleFavorite,
     onGroupClick,
+    onGroupDetailClick,
     onEditGroup,
     onAddSchedule,
     isAdmin,
@@ -40,7 +42,13 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                         <div
                             key={group.id}
                             className="group-wide-card"
-                            onClick={() => onGroupClick(group)}
+                            onClick={() => {
+                                if (onGroupDetailClick) {
+                                    onGroupDetailClick(group);
+                                } else {
+                                    onGroupClick(group); // Fallback
+                                }
+                            }}
                         >
                             <div className="group-wide-image">
                                 {(group.image_thumbnail || group.image_url) ? (
