@@ -757,24 +757,13 @@ export default function EventList({
   const todayDayOfWeek = getKSTDay();
 
   const todaySocialSchedules = useMemo(() => {
-    // Get social schedules for today
-    const socialSchedsToday = socialSchedules.filter(s => {
+    // 1. 오늘 날짜의 일회성 소셜 일정들
+    const socialSchedsOneTime = socialSchedules.filter(s => {
       const hasDate = s.date && s.date.trim() !== '';
-
-      // 1. 날짜가 지정된 일회성 일정인 경우
-      if (hasDate) {
-        return s.date === todayStr;
-      }
-
-      // 2. 날짜가 없는 정기 일정인 경우만 요일로 판단
-      if (s.day_of_week !== undefined && s.day_of_week !== null) {
-        return s.day_of_week === todayDayOfWeek;
-      }
-
-      return false;
+      return hasDate && s.date === todayStr;
     });
 
-    // Get today's events and convert to SocialSchedule format
+    // 2. 오늘 날짜의 이벤트 행사들 (소셜 스케줄 포맷으로 변환)
     const eventsToday = events.filter(e => {
       const eventDate = e.start_date || e.date;
       return eventDate === todayStr;
@@ -804,8 +793,19 @@ export default function EventList({
       } as SocialSchedule;
     });
 
-    // Combine and return
-    return [...socialSchedsToday, ...eventsToday];
+    // 3. 일회성 항목이 3개 이하인 경우에만 정규 일정 추가
+    const totalOneTimeCount = socialSchedsOneTime.length + eventsToday.length;
+    let finalSchedules = [...socialSchedsOneTime, ...eventsToday];
+
+    if (totalOneTimeCount <= 3) {
+      const regularScheds = socialSchedules.filter(s => {
+        const hasDate = s.date && s.date.trim() !== '';
+        return !hasDate && s.day_of_week === todayDayOfWeek;
+      });
+      finalSchedules = [...finalSchedules, ...regularScheds];
+    }
+
+    return finalSchedules;
   }, [socialSchedules, events, todayStr, todayDayOfWeek]);
 
   // This week's social schedules (Monday to Sunday, excluding today) + events

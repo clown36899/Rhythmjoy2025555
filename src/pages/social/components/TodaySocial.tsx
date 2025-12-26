@@ -20,14 +20,21 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
     // Generate a random key on mount to trigger shuffle
     const [mountKey] = React.useState(() => Math.random());
 
-    // Shuffle schedules randomly on each mount (page entry)
+    // Shuffle schedules: One-time items first, then regular items
     const shuffledSchedules = React.useMemo(() => {
-        const shuffled = [...schedules];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
+        const oneTime = schedules.filter(s => s.date && s.date.trim() !== '');
+        const regular = schedules.filter(s => !s.date || s.date.trim() === '');
+
+        const shuffleArray = (arr: SocialSchedule[]) => {
+            const result = [...arr];
+            for (let i = result.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [result[i], result[j]] = [result[j], result[i]];
+            }
+            return result;
+        };
+
+        return [...shuffleArray(oneTime), ...shuffleArray(regular)];
     }, [schedules, mountKey]);
 
     if (shuffledSchedules.length === 0) return null;

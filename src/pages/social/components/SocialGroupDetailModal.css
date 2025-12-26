@@ -118,6 +118,23 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
+.sgdm-admin-author {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 10px;
+    border-radius: 6px;
+    width: fit-content;
+}
+
+.sgdm-admin-author i {
+    color: #3b82f6;
+}
+
 .sgdm-section-title {
     font-size: 0.9rem;
     color: #9ca3af;

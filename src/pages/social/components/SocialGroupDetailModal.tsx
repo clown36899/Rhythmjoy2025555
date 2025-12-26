@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 import type { SocialGroup } from '../types';
+import { supabase } from '../../../lib/supabase';
 import './SocialGroupDetailModal.css';
 
 interface SocialGroupDetailModalProps {
@@ -19,7 +20,6 @@ export default function SocialGroupDetailModal({
     onViewSchedule,
     isAdmin
 }: SocialGroupDetailModalProps) {
-
     useModalHistory(true, onClose);
 
     return createPortal(
@@ -53,6 +53,15 @@ export default function SocialGroupDetailModal({
                             {group.type === 'club' ? '동호회' : group.type === 'bar' ? '스윙바' : '기타'}
                         </span>
                         <h2 className="sgdm-title">{group.name}</h2>
+                        {/* 관리자 전용 작성자 정보 표시 */}
+                        {isAdmin && (
+                            <div className="sgdm-admin-author">
+                                <i className="ri-user-settings-line"></i>
+                                <span>
+                                    생성: {group.created_at ? new Date(group.created_at).toLocaleDateString() : '날짜 없음'} | 계정: {group.board_users?.nickname || '정보 없음'}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Description */}

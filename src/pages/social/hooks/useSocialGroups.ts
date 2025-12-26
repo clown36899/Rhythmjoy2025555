@@ -6,17 +6,18 @@ import { useAuth } from '../../../contexts/AuthContext';
 export function useSocialGroups() {
     const [groups, setGroups] = useState<SocialGroup[]>([]);
     const [loading, setLoading] = useState(true);
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
 
     const fetchGroups = useCallback(async () => {
         setLoading(true);
         try {
+            const selectQuery = isAdmin
+                ? '*, board_users(nickname), social_group_favorites!left(user_id)'
+                : '*, social_group_favorites!left(user_id)';
+
             const { data, error } = await supabase
                 .from('social_groups')
-                .select(`
-          *,
-          social_group_favorites!left(user_id)
-        `)
+                .select(selectQuery)
                 .order('created_at', { ascending: true });
 
             if (error) throw error;

@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.22.0',
+        date: '2025-12-27',
+        changes: [
+            '[Social] 관리자용 작성자 정보 및 등록일 표시 최적화 (Join 적용)',
+            '[Today] 일회성 항목 수에 따른 정규 일정 자동 노출/숨김 필터링 도입',
+            '[UI] 오늘의 소셜 내 일회성(소셜/행사) 일정 무조건 우선순위 노출',
+            '[Fix] 소셜 ID 파싱 및 관리자 데이터 바인딩 안정성 강화'
+        ]
+    },
+    {
         version: '2.21.2',
         date: '2025-12-26',
         changes: [

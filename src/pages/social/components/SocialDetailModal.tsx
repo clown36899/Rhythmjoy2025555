@@ -169,6 +169,15 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                                     {schedule.start_time ? schedule.start_time.substring(0, 5) : ''}
                                 </span>
                             </div>
+                            {/* 관리자 전용 작성자 및 등록일 정보 표시 */}
+                            {isAdmin && (
+                                <div className="detail-admin-author">
+                                    <i className="ri-user-settings-line"></i>
+                                    <span>
+                                        등록: {schedule.created_at ? new Date(schedule.created_at).toLocaleDateString() : '날짜 없음'} | 계정: {schedule.board_users?.nickname || '정보 없음'}
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="detail-description">

@@ -159,6 +159,24 @@
     font-size: 1rem;
 }
 
+.detail-admin-author {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    width: fit-content;
+    max-width: 100%;
+}
+
+.detail-admin-author i {
+    color: #fbbf24;
+}
+
 .detail-description {
     margin-bottom: 32px;
     color: #d1d5db;
