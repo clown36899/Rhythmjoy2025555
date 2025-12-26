@@ -77,6 +77,7 @@
 .social-schedule-modal-form input[type="text"],
 .social-schedule-modal-form input[type="date"],
 .social-schedule-modal-form input[type="time"],
+.social-schedule-modal-form input[type="url"],
 .social-schedule-modal-form textarea {
     width: 100%;
     padding: 12px 14px;
@@ -279,13 +280,16 @@
     }
 
     .form-item {
-        /* 모바일에서는 제목 등은 한 줄에 꽉 차게 */
+        /* 모바일에서는 제목 등은 한 줄에 꽉 차게 - 단, link-row 내부는 제외 */
         min-width: 100%;
     }
 
     /* 날짜와 시간은 한 줄에 두 개 배치 가능유도 */
-    .form-item:not(:first-child) {
-        min-width: 45%;
+    /* 그리고 링크 섹션(link-row)도 한 줄에 배치되도록 허용 */
+    .form-item:not(:first-child),
+    .multi-row.link-row .form-item {
+        min-width: 0;
+        /* Reset min-width for specifically grouped items */
     }
 
     .weekday-row {
@@ -297,4 +301,32 @@
     .day-bubble {
         flex: 0 0 calc(25% - 8px);
     }
+}
+
+/* Link Box in Detail Modal */
+.detail-link-box {
+    margin-top: 12px;
+    background-color: #262626;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-link-box:hover {
+    background-color: #2d2d2d;
+    border-color: rgba(77, 166, 255, 0.3);
+}
+
+.detail-link-box .place-icon.link-icon {
+    background-color: rgba(64, 196, 99, 0.15);
+    color: #40c463;
+}
+
+.detail-link-box .place-name.link-title {
+    color: #40c463;
+}
+
+.detail-link-box .place-addr.link-url {
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

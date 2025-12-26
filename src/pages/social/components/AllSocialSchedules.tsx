@@ -8,10 +8,11 @@ import { useAuth } from '../../../contexts/AuthContext';
 interface AllSocialSchedulesProps {
     schedules: SocialSchedule[];
     onViewAll?: () => void;
-    onEventClick?: (event: any) => void;
+    onEventClick?: (event: Event) => void;
+    onRefresh?: () => void;
 }
 
-const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onViewAll, onEventClick }) => {
+const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onViewAll, onEventClick, onRefresh }) => {
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
 
@@ -61,35 +62,51 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
         if (item.image_thumbnail) return item.image_thumbnail;
         if (item.image_medium) return item.image_medium;
         if (item.image_micro) return item.image_micro;
-        const fallback = item.image_url || '';
-        return fallback;
+        if (item.image_full) return item.image_full;
+        if (item.image_url) return item.image_url;
+        return '';
     };
 
     const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
         e.stopPropagation();
 
-        // Check if this is a regular event (converted from Event type)
+        // 1. 일반 이벤트(group_id === -1)인 경우
         if (item.group_id === -1) {
-            // This is a regular event, use onEventClick callback
+            // 일반 이벤트 상세 모달 열기 (onEventClick이 있다면 사용)
             if (onEventClick) {
-                onEventClick(item as any);
+                // Event 타입으로 캐스팅하여 전달
+                onEventClick(item as unknown as Event); // item은 SocialSchedule이지만 구조가 비슷함
             }
             return;
         }
 
-        // 일회성 일정만 수정 가능 (date가 있는 경우)
-        const isOneTimeSchedule = !!item.date;
+        // Helper to open modal (can be called recursively)
+        const openDetailModal = (scheduleItem: SocialSchedule) => {
+            // 2. 소셜 일정인 경우
+            // 일회성 일정만 수정 가능
+            const isOneTimeSchedule = !!scheduleItem.date;
+            const isOwner = user && scheduleItem.user_id === user.id;
+            const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
 
-        // 등록자 본인이거나 관리자인 경우 수정 가능
-        const isOwner = user && item.user_id === user.id;
-        const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
+            openModal('socialDetail', {
+                schedule: scheduleItem,
+                isAdmin: canEdit,
+                showCopyButton: false,
+                onEdit: (s: any) => openModal('socialSchedule', {
+                    editSchedule: s,
+                    groupId: s.group_id,
+                    onSuccess: (data: any) => {
+                        if (onRefresh) onRefresh();
+                        // 수정 후 변경된 데이터로 상세 모달 다시 열기 (UI 즉시 반영)
+                        if (data) {
+                            openDetailModal(data);
+                        }
+                    }
+                })
+            });
+        };
 
-        openModal('socialDetail', {
-            schedule: item,
-            isAdmin: canEdit,
-            showCopyButton: false,
-            onEdit: (s: any) => openModal('socialEdit', { item: s, itemType: 'schedule' })
-        });
+        openDetailModal(item);
     };
 
     // Sort schedules by date and start_time

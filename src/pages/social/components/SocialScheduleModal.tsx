@@ -69,6 +69,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [placeName, setPlaceName] = useState(editSchedule?.place_name || copyFrom?.place_name || '');
     const [address, setAddress] = useState(editSchedule?.address || copyFrom?.address || '');
     const [venueId, setVenueId] = useState<string | null>(editSchedule?.venue_id || copyFrom?.venue_id || null);
+    const [linkUrl, setLinkUrl] = useState(editSchedule?.link_url || copyFrom?.link_url || '');
+    const [linkName, setLinkName] = useState(editSchedule?.link_name || copyFrom?.link_name || '');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(
         editSchedule?.image_url || copyFrom?.image_url || null
@@ -97,6 +99,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             setPlaceName(source.place_name || '');
             setAddress(source.address || '');
             setVenueId(source.venue_id || null);
+            setLinkUrl(source.link_url || '');
+            setLinkName(source.link_name || '');
             setImagePreview(source.image_url || null);
         } else {
             // Reset states if no edit/copy source is provided (e.g., for new schedule)
@@ -109,6 +113,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             setPlaceName('');
             setAddress('');
             setVenueId(null);
+            setLinkUrl('');
+            setLinkName('');
             setImagePreview(null);
             setImageFile(null);
         }
@@ -240,23 +246,39 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 venue_id: venueId,
                 place_name: placeName,
                 address: address,
-                user_id: user.id,
+                link_url: linkUrl || null,
+                link_name: linkName || null,
+                // user_id는 update 시 변경하지 않음 (권한 문제 방지)
+                ...(editSchedule ? {} : { user_id: user.id }),
             };
 
+            let resultData;
+
             if (editSchedule) {
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from('social_schedules')
                     .update(scheduleData)
-                    .eq('id', editSchedule.id);
+                    .eq('id', editSchedule.id)
+                    .select(); // 업데이트 결과 확인을 위해 select() 추가
+
                 if (error) throw error;
+                if (!data || data.length === 0) {
+                    throw new Error('수정 권한이 없거나 해당 일정을 찾을 수 없습니다.');
+                }
+                resultData = data[0];
             } else {
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from('social_schedules')
-                    .insert([scheduleData]);
+                    .insert([scheduleData])
+                    .select();
+
                 if (error) throw error;
+                if (data && data.length > 0) {
+                    resultData = data[0];
+                }
             }
 
-            onSuccess(scheduleData);
+            onSuccess(resultData || scheduleData);
             onClose();
         } catch (error: any) {
             console.error('Error saving schedule:', error);
@@ -406,6 +428,33 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                             placeholder="일정에 대한 상세 내용을 입력해주세요."
                             rows={3}
                         />
+                    </div>
+
+                    <div className="form-section multi-row link-row">
+                        <div className="form-item" style={{ flex: '0 0 140px' }}>
+                            <label>관련 링크 이름</label>
+                            <input
+                                type="text"
+                                value={linkName}
+                                onChange={(e) => setLinkName(e.target.value)}
+                                placeholder="예: 신청폼"
+                            />
+                        </div>
+                        <div className="form-item" style={{ flex: 1 }}>
+                            <label>관련 링크 URL</label>
+                            <input
+                                type="url"
+                                value={linkUrl}
+                                onChange={(e) => setLinkUrl(e.target.value)}
+                                onBlur={() => {
+                                    // 기본 UX: http/https 없으면 자동으로 붙여주기
+                                    if (linkUrl && !linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
+                                        setLinkUrl('https://' + linkUrl);
+                                    }
+                                }}
+                                placeholder="https://..."
+                            />
+                        </div>
                     </div>
 
                     <div className="form-actions">

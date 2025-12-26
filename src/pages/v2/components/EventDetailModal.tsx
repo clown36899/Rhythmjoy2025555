@@ -1215,24 +1215,7 @@ export default function EventDetailModal({
                       </div>
                     )}
 
-                  {/* This section was commented out in the original file, but I've added classes just in case */}
-                  {selectedEvent.link1 && (
-                    <div className="info-divider">
-                      <div className="link-container">
-                        <a
-                          href={selectedEvent.link1}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="main-link-button"
-                        >
-                          <i className="ri-external-link-line edm-text-lg"></i>
-                          <span className="edm-font-medium">
-                            {selectedEvent.link_name1 || "바로가기"}
-                          </span>
-                        </a>
-                      </div>
-                    </div>
-                  )}
+                  {/* Link section removed as per user request */}
 
                   {isAdminMode && selectedEvent.created_at && (
                     <div className="created-at-text">

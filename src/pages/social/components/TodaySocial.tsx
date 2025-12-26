@@ -10,9 +10,10 @@ interface TodaySocialProps {
     schedules: SocialSchedule[];
     onViewAll?: () => void;
     onEventClick?: (event: any) => void;
+    onRefresh?: () => void;
 }
 
-const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, onEventClick }) => {
+const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, onEventClick, onRefresh }) => {
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
 
@@ -52,20 +53,35 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             return;
         }
 
-        // This is a social schedule
-        // 일회성 일정만 수정 가능 (date가 있는 경우)
-        const isOneTimeSchedule = !!item.date;
+        // Helper to open modal (can be called recursively)
+        const openDetailModal = (scheduleItem: SocialSchedule) => {
+            // This is a social schedule
+            // 일회성 일정만 수정 가능 (date가 있는 경우)
+            const isOneTimeSchedule = !!scheduleItem.date;
 
-        // 등록자 본인이거나 관리자인 경우 수정 가능
-        const isOwner = user && item.user_id === user.id;
-        const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
+            // 등록자 본인이거나 관리자인 경우 수정 가능
+            const isOwner = user && scheduleItem.user_id === user.id;
+            const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
 
-        openModal('socialDetail', {
-            schedule: item,
-            isAdmin: canEdit,
-            showCopyButton: false,
-            onEdit: (s: any) => openModal('socialEdit', { item: s, itemType: 'schedule' })
-        });
+            openModal('socialDetail', {
+                schedule: scheduleItem,
+                isAdmin: canEdit,
+                showCopyButton: false,
+                onEdit: (s: any) => openModal('socialSchedule', {
+                    editSchedule: s,
+                    groupId: s.group_id,
+                    onSuccess: (data: any) => {
+                        if (onRefresh) onRefresh();
+                        // 수정 후 변경된 데이터로 상세 모달 다시 열기 (UI 즉시 반영)
+                        if (data) {
+                            openDetailModal(data);
+                        }
+                    }
+                })
+            });
+        };
+
+        openDetailModal(item);
     };
 
     return (

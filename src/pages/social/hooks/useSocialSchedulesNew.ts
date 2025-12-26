@@ -14,6 +14,7 @@ export function useSocialSchedulesNew(groupId?: number) {
         id, group_id, title, date, day_of_week, start_time, 
         place_name, address, venue_id, description, 
         image_url, image_micro, image_thumbnail, image_medium, image_full,
+        link_url, link_name,
         user_id, created_at, updated_at
       `);
 

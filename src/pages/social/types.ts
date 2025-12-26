@@ -36,6 +36,8 @@ export interface SocialSchedule {
   user_id: string;
   created_at: string;
   updated_at: string;
+  link_url?: string; // 외부 링크 URL
+  link_name?: string; // 링크 표시 이름
 }
 
 export interface UnifiedSocialEvent {

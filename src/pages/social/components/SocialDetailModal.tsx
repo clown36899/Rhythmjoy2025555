@@ -192,6 +192,25 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                             </div>
                         </div>
 
+                        {schedule.link_url && (
+                            <div className="detail-place-box detail-link-box" onClick={() => window.open(schedule.link_url, '_blank')}>
+                                <div className="place-icon link-icon">
+                                    <i className="ri-link"></i>
+                                </div>
+                                <div className="place-info">
+                                    <div className="place-name link-title">
+                                        {schedule.link_name || '관련 링크'}
+                                    </div>
+                                    <div className="place-addr link-url">
+                                        {schedule.link_url}
+                                    </div>
+                                </div>
+                                <div className="place-map-arrow">
+                                    <i className="ri-arrow-right-up-line"></i>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Admin Actions */}
                         {isAdmin && (
                             <div className="detail-admin-actions">

@@ -21,6 +21,7 @@ import SocialPasswordModal from '../pages/social/components/SocialPasswordModal'
 import SocialPlaceDetailModal from '../pages/social/components/SocialPlaceDetailModal';
 import PlaceModal from '../pages/social/components/PlaceModal';
 import ScheduleModal from '../pages/social/components/ScheduleModal';
+import SocialScheduleModal from '../pages/social/components/SocialScheduleModal';
 
 // Shopping Modals
 import ShopDetailModal from '../pages/shopping/components/ShopDetailModal';
@@ -81,6 +82,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'socialPlaceDetail': SocialPlaceDetailModal,
     'place': PlaceModal,
     'schedule': ScheduleModal,
+    'socialSchedule': SocialScheduleModal,
 
     // Shopping Modals
     'shopDetail': ShopDetailModal,

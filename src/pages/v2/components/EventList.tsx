@@ -751,7 +751,7 @@ export default function EventList({
 
 
   // --- Today's Social Logic ---
-  const { schedules: socialSchedules, loading: isSocialSchedulesLoading } = useSocialSchedulesNew();
+  const { schedules: socialSchedules, loading: isSocialSchedulesLoading, refresh: refreshSocialSchedules } = useSocialSchedulesNew();
 
   const todayStr = getLocalDateString();
   const todayDayOfWeek = getKSTDay();
@@ -3409,8 +3409,9 @@ export default function EventList({
               {!isSocialSchedulesLoading && todaySocialSchedules.length > 0 && (
                 <TodaySocial
                   schedules={todaySocialSchedules}
-                  onViewAll={() => navigate('/social')}
+                  onViewAll={() => navigateWithCategory('all')}
                   onEventClick={onEventClick}
+                  onRefresh={refreshSocialSchedules}
                 />
               )}
 
@@ -3420,6 +3421,7 @@ export default function EventList({
                   schedules={thisWeekSocialSchedules}
                   onViewAll={() => navigate('/social')}
                   onEventClick={onEventClick}
+                  onRefresh={refreshSocialSchedules}
                 />
               )}
 
