@@ -615,7 +615,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
                                                     {event.category === 'event' ? (
                                                         <div className="flex flex-wrap gap-2">
-                                                            {['워크샵', '파티', '대회'].map((option) => {
+                                                            {['워크샵', '파티', '대회', '기타'].map((option) => {
                                                                 const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
                                                                 const isActive = currentGenres.includes(option);
 
@@ -651,7 +651,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                         </div>
                                                     ) : (
                                                         <div className="genre-grid">
-                                                            {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집'].map(g => {
+                                                            {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(g => {
                                                                 const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
                                                                 const isActive = currentGenres.includes(g);
                                                                 return (
@@ -1071,7 +1071,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             <div className="editable-info-content-wrapper">
                                 <textarea
                                     ref={textareaRef}
-                                    value={event.description}
+                                    value={event.description || ""}
                                     onChange={(e) => {
                                         onUpdate('description', e.target.value);
                                         // Auto-expand happens in useEffect
