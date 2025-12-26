@@ -340,53 +340,66 @@ export default memo(function ImageCropModal({
     }
   };
 
-  // 이미지 크기에 맞는 정확한 비율의 크롭 영역 계산
-  const calculateCropForAspect = (mode: 'free' | '3:4' | '1:1'): Crop => {
-    const img = imgRef.current;
-    if (!img) {
-      return { unit: '%', x: 20, y: 20, width: 60, height: 60 };
-    }
 
-    const imgWidth = img.naturalWidth;
-    const imgHeight = img.naturalHeight;
-
-    if (mode === 'free') {
-      return { unit: '%', x: 10, y: 10, width: 80, height: 80 };
-    }
-
-    const targetAspect = mode === '3:4' ? 3 / 4 : 1;
-    let cropWidth: number;
-    let cropHeight: number;
-
-    const imgAspect = imgWidth / imgHeight;
-
-    if (imgAspect > targetAspect) {
-      cropHeight = imgHeight;
-      cropWidth = cropHeight * targetAspect;
-    } else {
-      cropWidth = imgWidth;
-      cropHeight = cropWidth / targetAspect;
-    }
-
-    const cropX = (imgWidth - cropWidth) / 2;
-    const cropY = (imgHeight - cropHeight) / 2;
-
-    return {
-      unit: '%',
-      x: (cropX / imgWidth) * 100,
-      y: (cropY / imgHeight) * 100,
-      width: (cropWidth / imgWidth) * 100,
-      height: (cropHeight / imgHeight) * 100,
-    };
-  };
 
   const handleAspectRatioChange = (mode: 'free' | '3:4' | '1:1') => {
     setCompletedCrop(undefined);
     setAspectRatioMode(mode);
-    requestAnimationFrame(() => {
-      const newCrop = calculateCropForAspect(mode);
-      setCrop(newCrop);
-    });
+
+    if (mode === 'free') {
+      setCrop({
+        unit: '%',
+        x: 10,
+        y: 10,
+        width: 80,
+        height: 80,
+      });
+      return;
+    }
+
+    // 이미지 정보를 기반으로 초기 크롭 영역 비율 맞추기
+    const img = imgRef.current;
+    if (img) {
+      const imgWidth = img.naturalWidth;
+      const imgHeight = img.naturalHeight;
+      const imgAspect = imgWidth / imgHeight;
+      const targetAspect = mode === '3:4' ? 0.75 : 1;
+
+      let widthPercent = 80;
+      let heightPercent = 80;
+
+      if (imgAspect > targetAspect) {
+        // 이미지가 목표보다 넓음 -> 높이를 80%로 잡고 너비 계산
+        // widthPx = heightPx * targetAspect
+        // (w% / 100) * imgW = (h% / 100) * imgH * targetAspect
+        // w% = h% * targetAspect * (imgH / imgW)
+        heightPercent = 80;
+        widthPercent = heightPercent * targetAspect * (imgHeight / imgWidth);
+      } else {
+        // 이미지가 목표보다 길음 -> 너비를 80%로 잡고 높이 계산
+        // heightPx = widthPx / targetAspect
+        // h% = w% / targetAspect * (imgW / imgH)
+        widthPercent = 80;
+        heightPercent = widthPercent / targetAspect * (imgWidth / imgHeight);
+      }
+
+      setCrop({
+        unit: '%',
+        x: (100 - widthPercent) / 2,
+        y: (100 - heightPercent) / 2,
+        width: widthPercent,
+        height: heightPercent,
+      });
+    } else {
+      // 이미지 정보가 없으면 대략적인 값 사용 (ReactCrop이 나중에 조정)
+      setCrop({
+        unit: '%',
+        x: 10,
+        y: 10,
+        width: 80,
+        height: 80,
+      });
+    }
   };
 
 
@@ -419,7 +432,10 @@ export default memo(function ImageCropModal({
             <div style={{
               opacity: (isLoading || (imageUrl && imageUrl.startsWith('http') && !isImageLoaded)) ? 0 : 1,
               width: '100%',
-              height: '100%'
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}>
               <ReactCrop
                 crop={crop}

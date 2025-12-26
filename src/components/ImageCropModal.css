@@ -161,16 +161,11 @@
 
 /* ReactCrop 컴포넌트 스타일 오버라이드 */
 .ReactCrop {
-  display: flex !important;
+  display: inline-block !important;
+  /* 이미지 크기에 맞게 줄어들도록 설정 */
   max-width: 100% !important;
   max-height: 100% !important;
-  justify-content: center;
-  align-items: center;
-  flex: 0 1 auto;
-  min-width: 0;
-  min-height: 0;
-  overflow: visible;
-  position: relative;
+  /* flex 관련 속성 제거 - 내부 좌표계 일치를 위해 */
 }
 
 .crop-image {
