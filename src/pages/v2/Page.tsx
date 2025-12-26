@@ -144,6 +144,16 @@ export default function HomePageV2() {
     ), []);
     CustomDateInput.displayName = "CustomDateInput";
 
+    // Memoized EventList Handlers (Moved outside conditional for Rules of Hooks)
+    const handleHighlightComplete = useCallback(() => setHighlightEvent(null), [setHighlightEvent]);
+    const handleSharedEventOpened = useCallback(() => setSharedEventId(null), [setSharedEventId]);
+    const handleEventClickFullscreen = useCallback((event: any) => setSelectedEvent(event), [setSelectedEvent]);
+    const handleEventClick = useCallback((event: any) => setSelectedEvent(event), [setSelectedEvent]);
+    const handleModalStateChange = useCallback((isModalOpen: boolean) => {
+        const container = containerRef.current;
+        if (container) container.inert = isModalOpen;
+    }, []);
+
     // Derive sectionViewMode from URL parameters
     const sectionViewMode = (searchParams.get('view') as 'preview' | 'viewAll-events' | 'viewAll-classes') || 'preview';
 
@@ -404,21 +414,17 @@ export default function HomePageV2() {
                             sortBy={sortBy}
                             setSortBy={setSortBy}
                             highlightEvent={highlightEvent}
-                            onHighlightComplete={useCallback(() => setHighlightEvent(null), [])}
+                            onHighlightComplete={handleHighlightComplete}
                             sharedEventId={sharedEventId}
-                            onSharedEventOpened={useCallback(() => setSharedEventId(null), [])}
+                            onSharedEventOpened={handleSharedEventOpened}
                             isAnimating={isAnimating}
-                            onEventClickInFullscreen={useCallback((event: any) => setSelectedEvent(event), [])}
-                            onEventClick={useCallback((event: any) => setSelectedEvent(event), [])}
+                            onEventClickInFullscreen={handleEventClickFullscreen}
+                            onEventClick={handleEventClick}
                             slideContainerRef={eventListSlideContainerRef}
                             onMonthChange={setCurrentMonth}
                             calendarMode={calendarMode}
 
-                            onModalStateChange={useCallback((isModalOpen: boolean) => {
-                                // This prop might need review as internal modal is gone, but it can still signal other modals
-                                const container = containerRef.current;
-                                if (container) container.inert = isModalOpen;
-                            }, [])} selectedWeekday={selectedWeekday}
+                            onModalStateChange={handleModalStateChange} selectedWeekday={selectedWeekday}
                             sectionViewMode={sectionViewMode}
                             onSectionViewModeChange={handleSectionViewModeChange}
                             onGenresLoaded={(genres) => setAllGenres(genres as { class: string[]; event: string[] })}

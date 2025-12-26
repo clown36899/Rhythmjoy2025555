@@ -96,7 +96,7 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             <div className="section-title-area">
                 <i className="ri-fire-fill" style={{ color: '#ff4b2b', fontSize: '1.2rem' }}></i>
                 <h2 className="section-title">오늘 일정</h2>
-                <span className="live-badge">LIVE</span>
+                <span className="live-badge">LIVE {schedules.length}</span>
                 {onViewAll && (
                     <button className="evt-view-all-btn" onClick={onViewAll}>
                         전체보기 ❯

@@ -31,7 +31,11 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     isAdmin
 }) => {
     const [activeTab, setActiveTab] = useState<ViewTab>('weekly');
-    const [selectedDay, setSelectedDay] = useState<number>(getKSTDay());
+    const [selectedDay, setSelectedDay] = useState<number>(() => {
+        const kstDay = getKSTDay();
+        // 월요일부터 시작하는 배열 인덱스로 변환 (월=0, ..., 일=6)
+        return kstDay === 0 ? 6 : kstDay - 1;
+    });
 
     const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
 

@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
@@ -15,18 +16,25 @@ import GroupCalendarModal from './components/GroupCalendarModal';
 import SocialGroupDetailModal from './components/SocialGroupDetailModal';
 import SocialGroupModal from './components/SocialGroupModal';
 import SocialScheduleModal from './components/SocialScheduleModal';
+import EventDetailModal from '../v2/components/EventDetailModal';
+import VenueDetailModal from '../practice/components/VenueDetailModal';
+import { useEventFavorites } from '../../hooks/useEventFavorites';
 
 // Styles
 import './social.css';
 import type { SocialGroup, SocialSchedule } from './types';
 
 const SocialPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const today = getLocalDateString();
+  const todayDayOfWeek = getKSTDay();
 
   // Data Hooks
   const { groups, refresh: refreshGroups } = useSocialGroups();
   const { schedules, loading: schedulesLoading, refresh: refreshSchedules } = useSocialSchedulesNew();
   const { favorites, toggleFavorite } = useSocialGroupFavorites();
+  const { favoriteEventIds, toggleFavorite: toggleEventFavorite } = useEventFavorites(user, () => navigate('/v2?login=1'));
 
   // Modal States
   const socialDetailModal = useModal('socialDetail');
@@ -44,6 +52,27 @@ const SocialPage: React.FC = () => {
   const [editSchedule, setEditSchedule] = useState<SocialSchedule | null>(null);
   const [copySchedule, setCopySchedule] = useState<SocialSchedule | null>(null);
   const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
+  const [eventsToday, setEventsToday] = useState<any[]>([]);
+
+  // Event Detail Modal States
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  const [allGenres] = useState<{ class: string[]; event: string[] }>({ class: [], event: [] });
+
+  // Fetch today's regular events for matching V2 logic
+  useEffect(() => {
+    const fetchTodayEvents = async () => {
+      const { data } = await supabase
+        .from('events')
+        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at')
+        .or(`start_date.eq.${today},date.eq.${today}`);
+
+      if (data) {
+        setEventsToday(data);
+      }
+    };
+    fetchTodayEvents();
+  }, [today]);
 
   // Event Listeners
   useEffect(() => {
@@ -70,26 +99,55 @@ const SocialPage: React.FC = () => {
   };
 
   // Derived Data (KST 한국 시간 강제 고정 - Intl 방식)
-  const today = getLocalDateString();
-  const todayDayOfWeek = getKSTDay();
 
   const todaySchedules = useMemo(() => {
-    return schedules.filter(s => {
+    // 1. 오늘 날짜의 일회성 소셜 일정들
+    const socialOneTime = schedules.filter(s => {
       const hasDate = s.date && s.date.trim() !== '';
-
-      // 1. 날짜가 지정된 일정인 경우: 오늘 날짜와 정확히 일치할 때만 표시 (요일 체크 안 함)
-      if (hasDate) {
-        return s.date === today;
-      }
-
-      // 2. 날짜가 없는 정규 일정인 경우: 오늘 요일과 일치할 때만 표시
-      if (s.day_of_week !== undefined && s.day_of_week !== null) {
-        return s.day_of_week === todayDayOfWeek;
-      }
-
-      return false;
+      return hasDate && s.date === today;
     });
-  }, [schedules, today, todayDayOfWeek]);
+
+    // 2. 오늘 날짜의 이벤트 행사들 (소셜 스케줄 포맷으로 변환)
+    const convertedEvents = eventsToday.map(e => {
+      const mediumImage = e.image_medium ||
+        (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
+          ? e.image.replace('/event-posters/full/', '/event-posters/medium/')
+          : e.image);
+
+      return {
+        id: e.id,
+        group_id: -1, // 행사 구분을 위한 플래그
+        title: e.title,
+        date: e.start_date || e.date,
+        start_time: e.time,
+        description: e.description,
+        image_url: e.image,
+        image_micro: e.image_micro || e.image,
+        image_thumbnail: e.image_thumbnail || e.image,
+        image_medium: mediumImage,
+        image_full: e.image_full || e.image,
+        place_name: e.location,
+        user_id: e.user_id,
+        created_at: e.created_at,
+        updated_at: e.created_at,
+      } as SocialSchedule;
+    });
+
+    // 3. 일회성 항목(소셜 + 행사) 합계 계산
+    const totalOneTimeCount = socialOneTime.length + convertedEvents.length;
+    let finalSchedules = [...socialOneTime, ...convertedEvents];
+
+    // 4. 일회성 항목이 3개 이하인 경우에만 정규(요일) 일정 추가 (V2 로직과 동기화)
+    if (totalOneTimeCount <= 3) {
+      const regularScheds = schedules.filter(s => {
+        const hasDate = s.date && s.date.trim() !== '';
+        return !hasDate && s.day_of_week === todayDayOfWeek;
+      });
+      finalSchedules = [...finalSchedules, ...regularScheds];
+    }
+
+    return finalSchedules;
+  }, [schedules, eventsToday, today, todayDayOfWeek]);
 
   // Handlers
   const handleScheduleClick = (schedule: SocialSchedule) => {
@@ -200,6 +258,19 @@ const SocialPage: React.FC = () => {
     socialDetailModal.close();
   };
 
+  const handleEventClick = (schedule: SocialSchedule) => {
+    const originalEvent = eventsToday.find(evt => evt.id === schedule.id);
+    if (originalEvent) setSelectedEvent(originalEvent);
+  };
+
+  const handleVenueClick = useCallback((venueId: string) => {
+    setSelectedVenueId(venueId);
+  }, []);
+
+  const closeVenueModal = useCallback(() => {
+    setSelectedVenueId(null);
+  }, []);
+
   return (
     <div className="social-page-new-v5" style={{ paddingTop: '80px', paddingBottom: '120px' }}>
       {/* Header Area */}
@@ -213,6 +284,8 @@ const SocialPage: React.FC = () => {
       {!schedulesLoading && (
         <TodaySocial
           schedules={todaySchedules}
+          onEventClick={handleEventClick}
+          onRefresh={refreshSchedules}
         />
       )}
 
@@ -305,6 +378,29 @@ const SocialPage: React.FC = () => {
           groupId={targetGroupId || editSchedule?.group_id || copySchedule?.group_id || null}
           editSchedule={editSchedule}
           copyFrom={copySchedule}
+        />
+      )}
+
+      {/* 행사 상세 모달 (V2와 연동) */}
+      <EventDetailModal
+        isOpen={!!selectedEvent}
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        onEdit={(event) => navigate(`/v2?event=${event.id}&edit=true`)}
+        onDelete={(event) => navigate(`/v2?event=${event.id}`)}
+        isAdminMode={isAdmin}
+        currentUserId={user?.id}
+        onOpenVenueDetail={handleVenueClick}
+        allGenres={allGenres}
+        isFavorite={selectedEvent ? favoriteEventIds.has(selectedEvent.id) : false}
+        onToggleFavorite={(e) => selectedEvent && toggleEventFavorite(selectedEvent.id, e)}
+      />
+
+      {/* 장소 상세 모달 */}
+      {selectedVenueId && (
+        <VenueDetailModal
+          venueId={selectedVenueId}
+          onClose={closeVenueModal}
         />
       )}
     </div>
