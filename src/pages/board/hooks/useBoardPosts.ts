@@ -101,6 +101,34 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
         loadPosts();
     }, [loadPosts]);
 
+    // Realtime subscription
+    useEffect(() => {
+        if (!isAdminChecked) return;
+
+        const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
+
+        const channel = supabase
+            .channel(`board_posts:${category}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: table,
+                    filter: category === 'anonymous' ? undefined : `category=eq.${category}`
+                },
+                () => {
+                    console.log(`[Realtime] Board post changed in ${category}`);
+                    loadPosts();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [category, isAdminChecked, loadPosts]);
+
     // Reset pagination when category changes
     useEffect(() => {
         setCurrentPage(1);
