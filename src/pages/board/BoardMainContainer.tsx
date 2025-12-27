@@ -78,7 +78,6 @@ export default function BoardMainContainer() {
 
     // Custom Hooks
     const {
-        posts,
         loading, // Use this for loading indicators
         loadPosts,
         currentPage,

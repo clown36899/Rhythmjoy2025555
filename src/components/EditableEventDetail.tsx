@@ -136,7 +136,10 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
     // Date Picker Mode
     const [dateMode, setDateMode] = useState<'single' | 'range' | 'dates'>(() => {
-        if (eventDates && eventDates.length > 0) {
+        // Prevent 'dates' mode for class and club categories
+        const isClassOrClub = event.category === 'class' || event.category === 'club';
+
+        if (eventDates && eventDates.length > 0 && !isClassOrClub) {
             return 'dates';
         } else if (date && endDate && date.getTime() !== endDate.getTime()) {
             return 'range';
@@ -144,6 +147,18 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
             return 'single';
         }
     });
+
+    // Auto-switch from 'dates' mode when category changes to class or club
+    useEffect(() => {
+        const isClassOrClub = event.category === 'class' || event.category === 'club';
+        if (isClassOrClub && dateMode === 'dates') {
+            setDateMode('single');
+            // Clear individual dates when switching away from dates mode
+            if (setEventDates) {
+                setEventDates([]);
+            }
+        }
+    }, [event.category, dateMode, setEventDates]);
 
     // Local state for modals
     const [tempLocation, setTempLocation] = useState("");
@@ -836,16 +851,19 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                             >
                                                 하루
                                             </button>
-                                            <button
-                                                onClick={() => {
-                                                    setDateMode('dates');
-                                                    setDate && setDate(null);
-                                                    setEndDate && setEndDate(null);
-                                                }}
-                                                className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
-                                            >
-                                                개별
-                                            </button>
+                                            {/* Hide individual date selection for class and club categories */}
+                                            {event.category !== 'class' && event.category !== 'club' && (
+                                                <button
+                                                    onClick={() => {
+                                                        setDateMode('dates');
+                                                        setDate && setDate(null);
+                                                        setEndDate && setEndDate(null);
+                                                    }}
+                                                    className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
+                                                >
+                                                    개별
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
 

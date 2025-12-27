@@ -54,13 +54,10 @@ export default function AnonymousWriteModal({
                     <span className="anonymous-modal-title">{editData ? '익명 글 수정' : '익명 글쓰기'}</span>
                 </div>
                 <QuickMemoEditor
-                    isOpen={true} // Always true since the modal wrapper handles visibility
-                    onClose={onClose}
                     onPostCreated={onPostCreated}
                     category={category}
                     editData={editData}
                     providedPassword={providedPassword}
-                    onCancelEdit={onClose}
                     isAdmin={isAdmin}
                     className="modal-mode"
                 />

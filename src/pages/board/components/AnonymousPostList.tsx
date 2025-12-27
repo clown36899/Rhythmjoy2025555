@@ -19,7 +19,6 @@ interface AnonymousPostListProps {
 export default function AnonymousPostList({
     posts,
     onPostClick,
-    onPostCreated,
     isAdmin,
     likedPostIds,
     onToggleLike,

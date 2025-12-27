@@ -5,7 +5,6 @@ import type { Event as BaseEvent } from '../../../lib/supabase';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
-import { useModalHistory } from '../../../hooks/useModalHistory';
 import { logEvent, logPageView } from '../../../lib/analytics';
 import "../../../styles/components/EventDetailModal.css";
 import "../../../pages/v2/styles/components/EventDetailModal.css"; // Ensure V2 styles are imported
