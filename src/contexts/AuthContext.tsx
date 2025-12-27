@@ -458,7 +458,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserId(null);
       logEvent('Auth', 'Logout', 'Success');
 
-      logToStorage('[AuthContext.signOut] 8단계: 페이지 새로고침 실행 - window.location.reload()');
+      logToStorage('[AuthContext.signOut] 8단계: 로그아웃 플래그 설정');
+      // 🔥 중요: 새로고침 후 세션 검증 스킵을 위한 플래그 설정
+      localStorage.setItem('isLoggingOut', 'true');
+
+      logToStorage('[AuthContext.signOut] 9단계: 페이지 새로고침 실행 - window.location.reload()');
       logToStorage('[AuthContext.signOut] ========== 리로드 직전 ==========');
 
       // ⚠️ [변경] 무조건 메인('/')으로 가던 로직을 현재 페이지 새로고침으로 변경
