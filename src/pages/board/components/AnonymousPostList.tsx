@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { AnonymousBoardPost } from '../../../types/board';
-import QuickMemoEditor from './QuickMemoEditor';
 import CommentSection from './CommentSection';
 import './BoardPostList.css';
 
@@ -14,6 +13,7 @@ interface AnonymousPostListProps {
     onToggleLike?: (postId: number) => void;
     dislikedPostIds?: Set<number>;
     onToggleDislike?: (postId: number) => void;
+    onEditPost?: (post: AnonymousBoardPost, password?: string) => void;
 }
 
 export default function AnonymousPostList({
@@ -24,10 +24,9 @@ export default function AnonymousPostList({
     likedPostIds,
     onToggleLike,
     dislikedPostIds,
-    onToggleDislike
+    onToggleDislike,
+    onEditPost
 }: AnonymousPostListProps) {
-    const [editingPostId, setEditingPostId] = useState<number | null>(null);
-    const [editPassword, setEditPassword] = useState('');
     const [expandedCommentPostId, setExpandedCommentPostId] = useState<number | null>(0);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [unfoldedPostIds, setUnfoldedPostIds] = useState<Set<number>>(new Set());
@@ -45,21 +44,16 @@ export default function AnonymousPostList({
     };
 
     const handleEditClick = (post: AnonymousBoardPost) => {
+        if (!onEditPost) return;
+
         if (isAdmin) {
-            setEditingPostId(post.id);
-            setEditPassword('');
+            onEditPost(post);
         } else {
             const input = prompt('비밀번호를 입력해주세요:');
             if (input) {
-                setEditPassword(input);
-                setEditingPostId(post.id);
+                onEditPost(post, input);
             }
         }
-    };
-
-    const handleCancelEdit = () => {
-        setEditingPostId(null);
-        setEditPassword('');
     };
 
     const toggleComments = (postId: number, e: React.MouseEvent) => {
@@ -71,27 +65,8 @@ export default function AnonymousPostList({
         <div className="board-post-list anonymous-mode">
             <div className="anonymous-view">
                 {posts.map((post) => {
-                    const isEditing = editingPostId === post.id;
                     const isBlind = (post.dislikes || 0) >= 20;
                     const isCommentsOpen = expandedCommentPostId === post.id;
-
-                    if (isEditing) {
-                        return (
-                            <QuickMemoEditor
-                                key={post.id}
-                                category="anonymous"
-                                editData={post}
-                                onPostCreated={() => {
-                                    onPostCreated();
-                                    setEditingPostId(null);
-                                }}
-                                onCancelEdit={handleCancelEdit}
-                                providedPassword={editPassword}
-                                className="inline-editor"
-                                isAdmin={isAdmin}
-                            />
-                        );
-                    }
 
                     return (
                         <div key={post.id} className={`board-post-card is-memo ${isBlind ? 'blinded' : ''}`}>

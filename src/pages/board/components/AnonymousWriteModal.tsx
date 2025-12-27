@@ -8,6 +8,8 @@ interface AnonymousWriteModalProps {
     category: string;
     onPostCreated: () => void;
     isAdmin?: boolean;
+    editData?: any;
+    providedPassword?: string;
 }
 
 export default function AnonymousWriteModal({
@@ -15,7 +17,9 @@ export default function AnonymousWriteModal({
     onClose,
     category,
     onPostCreated,
-    isAdmin = false
+    isAdmin = false,
+    editData = null,
+    providedPassword = ''
 }: AnonymousWriteModalProps) {
     // Enable back gesture - called inside the component while it is mounted
     useModalHistory(isOpen, onClose);
@@ -47,14 +51,15 @@ export default function AnonymousWriteModal({
                     >
                         <i className="ri-arrow-left-line"></i>
                     </button>
-                    <span className="anonymous-modal-title">익명 글쓰기</span>
+                    <span className="anonymous-modal-title">{editData ? '익명 글 수정' : '익명 글쓰기'}</span>
                 </div>
                 <QuickMemoEditor
                     isOpen={true} // Always true since the modal wrapper handles visibility
                     onClose={onClose}
                     onPostCreated={onPostCreated}
                     category={category}
-                    editData={null}
+                    editData={editData}
+                    providedPassword={providedPassword}
                     onCancelEdit={onClose}
                     isAdmin={isAdmin}
                     className="modal-mode"

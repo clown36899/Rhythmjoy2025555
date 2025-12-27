@@ -154,7 +154,7 @@
 }
 
 .standard-view .board-post-card-notice {
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: rgb(52 52 52 / 48%);
   /* Slightly Adjusted opacity */
 }
 

@@ -210,6 +210,14 @@ export default function BoardMainContainer() {
         if (isRightSwipe && currentIndex > 0) handleCategoryChange(categories[currentIndex - 1].id);
     };
 
+    // Anonymous Editing State
+    const [editingAnonymousData, setEditingAnonymousData] = useState<{ post: AnonymousBoardPost, password?: string } | null>(null);
+
+    const handleEditAnonymousPost = (post: AnonymousBoardPost, password?: string) => {
+        setEditingAnonymousData({ post, password });
+        writeModal.open();
+    };
+
     return (
         <div className="board-page-container">
             <BoardTabBar
@@ -251,6 +259,7 @@ export default function BoardMainContainer() {
                         onToggleLike={handleToggleLike}
                         dislikedPostIds={dislikedPostIds}
                         onToggleDislike={handleToggleDislike}
+                        onEditPost={handleEditAnonymousPost}
                     />
                 ) : (
                     <StandardPostList
@@ -353,13 +362,19 @@ export default function BoardMainContainer() {
             {/* Anonymous Write Modal - Always mounted component that handles its own visibility */}
             <AnonymousWriteModal
                 isOpen={writeModal.isOpen}
-                onClose={() => writeModal.close()}
+                onClose={() => {
+                    writeModal.close();
+                    setEditingAnonymousData(null); // Clear data when closed
+                }}
                 onPostCreated={() => {
                     loadPosts();
                     writeModal.close();
+                    setEditingAnonymousData(null);
                 }}
                 category={category}
                 isAdmin={isRealAdmin}
+                editData={editingAnonymousData?.post}
+                providedPassword={editingAnonymousData?.password}
             />
 
             {isManagementOpen && (
