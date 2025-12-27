@@ -174,6 +174,7 @@ export default function QuickMemoEditor({
                         title: title.trim(),
                         content: content.trim(),
                         author_name: nickname,
+                        author_nickname: nickname, // Sync nickname field
                         is_notice: isNotice
                     };
                     if (imageUrls.image) {
