@@ -162,9 +162,6 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
     };
 
     const handleDelete = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const isAdmin = user?.app_metadata?.role === 'admin' || (user?.email && user.email.includes('admin'));
-
         let isConfirmed = false;
         let inputPassword = "";
 

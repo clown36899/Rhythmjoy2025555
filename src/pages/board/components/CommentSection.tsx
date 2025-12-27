@@ -12,7 +12,7 @@ interface CommentSectionProps {
 }
 
 export default function CommentSection({ postId, category }: CommentSectionProps) {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [comments, setComments] = useState<BoardComment[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingComment, setEditingComment] = useState<BoardComment | null>(null);
@@ -157,8 +157,6 @@ export default function CommentSection({ postId, category }: CommentSectionProps
 
     const handleDelete = async (commentId: string, password?: string) => {
         try {
-            const { data: userData } = await supabase.auth.getUser();
-            const isAdmin = userData.user?.app_metadata?.role === 'admin' || (userData.user?.email && userData.user.email.includes('admin'));
 
             const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
 
