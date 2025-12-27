@@ -1,5 +1,5 @@
 // 빌보드 PWA 서비스 워커
-const CACHE_NAME = 'billboard-cache-v1';
+const CACHE_NAME = 'billboard-cache-v2';
 const urlsToCache = [
   '/',
   '/icon-192.png',
