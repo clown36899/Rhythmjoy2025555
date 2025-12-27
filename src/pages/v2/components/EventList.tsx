@@ -49,6 +49,7 @@ import { useNavigate } from "react-router-dom";
 import "../../practice/components/PracticeRoomList.css";
 import "../../shopping/components/shopcard.css";
 import GlobalLoadingOverlay from "../../../components/GlobalLoadingOverlay";
+import PWAConflictModal from "../../../components/PWAConflictModal";
 
 registerLocale("ko", ko);
 
@@ -186,6 +187,7 @@ export default function EventList({
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showPWAConflict, setShowPWAConflict] = useState(false);
 
   // 컴포넌트 마운트 감지
   useEffect(() => {
@@ -1062,10 +1064,10 @@ export default function EventList({
       setLoadError(errorMessage || "알 수 없는 오류");
       setEvents([]);
 
-      // 타임아웃 발생 시 세션 검증 시도 (좀비 토큰 가능성)
+      // 타임아웃 발생 시 PWA 충돌 가능성 안내
       if (errorMessage.includes("시간 초과")) {
-        console.warn("[EventList] ⏱️ Timeout detected, verifying session integrity...");
-        await validateSession();
+        console.warn("[EventList] ⏱️ Timeout detected - possible PWA conflict");
+        setShowPWAConflict(true);
       }
     } finally {
       setLoading(false);
@@ -2854,6 +2856,12 @@ export default function EventList({
 
   return (
     <div className="no-select evt-flex-col-full">
+      {/* PWA 충돌 안내 모달 */}
+      <PWAConflictModal
+        show={showPWAConflict}
+        onClose={() => setShowPWAConflict(false)}
+      />
+
       {/* 삭제 로딩 오버레이 */}
       {(isDeleting || isFetchingDetail) && createPortal(
         <div
