@@ -25,22 +25,32 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    console.log('[kakao-login] 🚀 요청 수신');
     const body = JSON.parse(event.body || '{}');
     const { code, redirectUri } = body;
 
+    console.log('[kakao-login] 요청 파라미터:', {
+      hasCode: !!code,
+      codePreview: code ? code.substring(0, 10) + '...' : null,
+      redirectUri
+    });
+
     if (!code) {
+      console.error('[kakao-login] ❌ 인증 코드 누락');
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing authorization code' }) };
     }
 
     // 1. 인증 코드로 액세스 토큰 교환
+    console.log('[kakao-login] 1단계: 카카오 토큰 교환 시작');
     const restApiKey = process.env.VITE_KAKAO_REST_API_KEY || process.env.KAKAO_REST_API_KEY;
 
     if (!restApiKey) {
-      console.error('[kakao-login] Missing KAKAO_REST_API_KEY environment variable');
+      console.error('[kakao-login] ❌ Missing KAKAO_REST_API_KEY environment variable');
       return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error: Missing API key' }) };
     }
 
-    console.log('[kakao-login] Exchanging authorization code for token...');
+    console.log('[kakao-login] REST API Key 존재:', !!restApiKey);
+    console.log('[kakao-login] 토큰 교환 요청 전송 중...');
 
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
@@ -55,9 +65,14 @@ export const handler: Handler = async (event) => {
       }).toString()
     });
 
+    console.log('[kakao-login] 토큰 교환 응답:', {
+      status: tokenResponse.status,
+      ok: tokenResponse.ok
+    });
+
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error('[kakao-login] Token exchange failed:', errorText);
+      console.error('[kakao-login] ❌ 토큰 교환 실패:', errorText);
       return { statusCode: 401, body: JSON.stringify({ error: 'Failed to exchange authorization code', details: errorText }) };
     }
 
@@ -65,7 +80,7 @@ export const handler: Handler = async (event) => {
     const kakaoAccessToken = tokenData.access_token;
     const kakaoRefreshToken = tokenData.refresh_token;
 
-    console.log('[kakao-login] Token exchange result:', {
+    console.log('[kakao-login] ✅ 토큰 교환 성공:', {
       hasAccessToken: !!kakaoAccessToken,
       hasRefreshToken: !!kakaoRefreshToken,
       accessTokenLength: kakaoAccessToken?.length,
@@ -73,6 +88,7 @@ export const handler: Handler = async (event) => {
     });
 
     // 2. 카카오 사용자 정보 가져오기
+    console.log('[kakao-login] 2단계: 카카오 사용자 정보 조회 시작');
     const kakaoUserResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
       headers: {
         Authorization: `Bearer ${kakaoAccessToken}`,
@@ -80,7 +96,13 @@ export const handler: Handler = async (event) => {
       }
     });
 
+    console.log('[kakao-login] 사용자 정보 조회 응답:', {
+      status: kakaoUserResponse.status,
+      ok: kakaoUserResponse.ok
+    });
+
     if (!kakaoUserResponse.ok) {
+      console.error('[kakao-login] ❌ 카카오 사용자 정보 조회 실패');
       return { statusCode: 401, body: JSON.stringify({ error: 'Invalid Kakao Token' }) };
     }
 
@@ -92,7 +114,15 @@ export const handler: Handler = async (event) => {
     const profileImage = kakaoUser.kakao_account?.profile?.profile_image_url;
     const kakaoId = kakaoUser.id.toString();
 
+    console.log('[kakao-login] ✅ 사용자 정보 조회 성공:', {
+      hasEmail: !!email,
+      email,
+      hasNickname: !!nickname,
+      hasKakaoId: !!kakaoId
+    });
+
     if (!email) {
+      console.error('[kakao-login] ❌ 카카오 이메일 없음');
       return { statusCode: 400, body: JSON.stringify({ error: 'Kakao email not found' }) };
     }
 
