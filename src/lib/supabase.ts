@@ -154,7 +154,24 @@ export interface EventFavorite {
 export const validateAndRecoverSession = async (): Promise<any> => {
   try {
     console.log('[Supabase] 🔍 Validating session...');
-    const { data: { session }, error } = await supabase.auth.getSession();
+
+    // 🔥 getSession()에도 타임아웃 추가 (모바일에서 무한 대기 방지)
+    const getSessionWithTimeout = Promise.race([
+      supabase.auth.getSession(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('getSession timeout')), 2000)
+      )
+    ]);
+
+    let session, error;
+    try {
+      const result = await getSessionWithTimeout as any;
+      session = result.data?.session;
+      error = result.error;
+    } catch (timeoutError) {
+      console.warn('[Supabase] ⏱️ getSession() timeout - assuming no session');
+      return null;
+    }
 
     // 에러 발생 시 세션 정리
     if (error) {
