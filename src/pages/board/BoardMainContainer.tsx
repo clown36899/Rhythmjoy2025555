@@ -11,6 +11,7 @@ import BoardManagementModal from './components/BoardManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
 import DevLog from './components/DevLog';
 import QuickMemoEditor from './components/QuickMemoEditor';
+import BoardDetailModal from './components/BoardDetailModal';
 import './board.css';
 
 // Hooks
@@ -26,6 +27,7 @@ export default function BoardMainContainer() {
 
     // State
     const category = (searchParams.get('category') as BoardCategory) || 'free';
+    const selectedPostId = searchParams.get('postId');
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [postsPerPage] = useState(10);
 
@@ -101,6 +103,20 @@ export default function BoardMainContainer() {
     // Handle Category Change
     const handleCategoryChange = (newCategory: BoardCategory) => {
         setSearchParams({ category: newCategory });
+    };
+
+    // Handle Post Click - Open Modal
+    const handlePostClick = (postId: string) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('postId', postId);
+        setSearchParams(params);
+    };
+
+    // Handle Modal Close
+    const handleCloseModal = () => {
+        const params = new URLSearchParams(searchParams);
+        params.delete('postId');
+        setSearchParams(params);
     };
 
 
@@ -246,7 +262,7 @@ export default function BoardMainContainer() {
                     <StandardPostList
                         posts={currentPosts as StandardBoardPost[]}
                         category={category}
-                        onPostClick={(post) => navigate(`/board/${post.id}`)}
+                        onPostClick={(post) => handlePostClick(String(post.id))}
                         likedPostIds={likedPostIds}
                         onToggleLike={handleToggleLike}
                         favoritedPostIds={favoritedPostIds}
@@ -354,6 +370,15 @@ export default function BoardMainContainer() {
                 <BoardPrefixManagementModal
                     isOpen={isPrefixManagementOpen}
                     onClose={() => { setIsPrefixManagementOpen(false); loadPosts(); }}
+                />
+            )}
+
+            {/* Board Detail Modal */}
+            {selectedPostId && (
+                <BoardDetailModal
+                    postId={selectedPostId}
+                    isOpen={true}
+                    onClose={handleCloseModal}
                 />
             )}
         </div>
