@@ -750,6 +750,24 @@ export default memo(function EventRegistrationModal({
         console.log(`[EventRegistrationModal] handleDetailUpdate 'genre' called with value:`, value);
         setGenre(value);
         break;
+      // Date handling
+      case 'date':
+        if (value) {
+          setDate(new Date(value));
+        } else {
+          setDate(null);
+        }
+        break;
+      case 'end_date':
+        if (value) {
+          setEndDate(new Date(value));
+        } else {
+          setEndDate(null);
+        }
+        break;
+      case 'event_dates':
+        setEventDates(value || []);
+        break;
       // password case removed
       case 'link1': setLink1(value); break;
       case 'link_name1': setLinkName1(value); break;

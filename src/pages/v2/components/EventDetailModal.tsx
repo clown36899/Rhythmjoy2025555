@@ -12,6 +12,11 @@ import { useAuth } from '../../../contexts/AuthContext';
 import VenueSelectModal from './VenueSelectModal';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { createResizedImages } from '../../../utils/imageResize';
+import DatePicker, { registerLocale } from "react-datepicker";
+import { ko } from "date-fns/locale/ko";
+import "react-datepicker/dist/react-datepicker.css";
+
+registerLocale("ko", ko);
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 
 
@@ -93,6 +98,7 @@ export default function EventDetailModal({
   };
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [dateMode, setDateMode] = useState<'single' | 'dates'>('single'); // Track date mode separately
 
   // Draft State for Local Edits
   const [draftEvent, setDraftEvent] = useState<Event | null>(event);
@@ -469,6 +475,31 @@ export default function EventDetailModal({
       updates.category = editCategory;
     }
     if (activeEditField === 'description') updates.description = editValue;
+    if (activeEditField === 'date') {
+      console.log('[Date Save] Starting date save logic');
+      console.log('[Date Save] dateMode:', dateMode);
+      console.log('[Date Save] editValue:', editValue);
+
+      if (dateMode === 'dates') {
+        // Multiple dates mode
+        console.log('[Date Save] Multiple dates mode detected');
+        const dates = editValue.split(',').filter(Boolean);
+        updates.event_dates = dates;
+        updates.start_date = undefined;
+        updates.date = undefined;
+        updates.end_date = undefined;
+        console.log('[Date Save] Updates for multiple dates:', { event_dates: updates.event_dates });
+      } else {
+        // Single date mode
+        console.log('[Date Save] Single date mode detected');
+        const singleDate = editValue || undefined;
+        updates.start_date = singleDate;
+        updates.date = singleDate;
+        updates.end_date = singleDate;
+        updates.event_dates = [];
+        console.log('[Date Save] Updates for single date:', { start_date: singleDate, date: singleDate, end_date: singleDate });
+      }
+    }
     if (activeEditField === 'links') {
       updates.link1 = linkEditValues.link1;
       updates.link_name1 = linkEditValues.link_name1;
@@ -478,7 +509,9 @@ export default function EventDetailModal({
       updates.link_name3 = linkEditValues.link_name3;
     }
 
+    console.log('[Date Save] Final updates object:', updates);
     setDraftEvent({ ...draftEvent, ...updates });
+    console.log('[Date Save] Draft event updated');
     setActiveEditField(null);
   };
 
@@ -499,17 +532,31 @@ export default function EventDetailModal({
     // 필드 변경 확인
     const fieldsToCheck = [
       'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category',
-      'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3'
+      'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3',
+      'date', 'start_date', 'end_date', 'event_dates'
     ];
 
-    return fieldsToCheck.some(field => {
+    console.log('[hasChanges] Checking for changes...');
+    const changedFields: string[] = [];
+
+    const hasChanged = fieldsToCheck.some(field => {
       // Use originalEvent (fetched full data) instead of event (partial prop)
       const originalValue = originalEvent ? originalEvent[field as keyof Event] : event[field as keyof Event];
       const draftValue = draftEvent[field as keyof Event];
 
       const isChanged = normalize(originalValue) !== normalize(draftValue);
+      if (isChanged) {
+        changedFields.push(field);
+        console.log(`[hasChanges] Field '${field}' changed:`, {
+          original: originalValue,
+          draft: draftValue
+        });
+      }
       return isChanged;
     });
+
+    console.log('[hasChanges] Result:', hasChanged, 'Changed fields:', changedFields);
+    return hasChanged;
   };
 
   const handleFinalSave = async () => {
@@ -534,6 +581,11 @@ export default function EventDetailModal({
         location: draftEvent.location,
         location_link: draftEvent.location_link,
         venue_id: draftEvent.venue_id,
+        // Add date fields
+        date: draftEvent.date,
+        start_date: draftEvent.start_date,
+        end_date: draftEvent.end_date,
+        event_dates: draftEvent.event_dates,
         // Add link fields
         link1: draftEvent.link1,
         link_name1: draftEvent.link_name1,
@@ -543,6 +595,19 @@ export default function EventDetailModal({
         link_name3: draftEvent.link_name3
       };
 
+
+      console.log('[Final Save] Date fields in draftEvent:', {
+        date: draftEvent.date,
+        start_date: draftEvent.start_date,
+        end_date: draftEvent.end_date,
+        event_dates: draftEvent.event_dates
+      });
+      console.log('[Final Save] Date fields in updates:', {
+        date: updates.date,
+        start_date: updates.start_date,
+        end_date: updates.end_date,
+        event_dates: updates.event_dates
+      });
       console.log(' - Payload to Supabase:', updates);
 
       // Upload image if changed
@@ -619,12 +684,18 @@ export default function EventDetailModal({
       }
 
       // DB Update - Get updated data directly from the update query
+      console.log('[DB Update] About to update database with payload:', updates);
+      console.log('[DB Update] Event ID:', draftEvent.id);
       const { data: updatedEvent, error } = await supabase
         .from('events')
         .update(updates)
         .eq('id', draftEvent.id)
         .select()
         .single();
+
+      console.log('[DB Update] Database response received');
+      console.log('[DB Update] Error:', error);
+      console.log('[DB Update] Updated event data:', updatedEvent);
 
       if (error) {
         console.error('[Error] Supabase update failed:', error);
@@ -639,6 +710,10 @@ export default function EventDetailModal({
         console.log('[Debug] Verifying update application:');
         console.log(` - Genre: Payload '${updates.genre}' vs DB '${updatedEvent.genre}'`);
         console.log(` - Category: Payload '${updates.category}' vs DB '${updatedEvent.category}'`);
+        console.log(` - Date: Payload '${updates.date}' vs DB '${updatedEvent.date}'`);
+        console.log(` - Start Date: Payload '${updates.start_date}' vs DB '${updatedEvent.start_date}'`);
+        console.log(` - End Date: Payload '${updates.end_date}' vs DB '${updatedEvent.end_date}'`);
+        console.log(` - Event Dates: Payload '${JSON.stringify(updates.event_dates)}' vs DB '${JSON.stringify(updatedEvent.event_dates)}'`);
 
         if (updates.genre !== updatedEvent.genre) {
           console.warn('⚠️ CRITICAL: Genre update was NOT reflected in the DB response!');
@@ -677,25 +752,39 @@ export default function EventDetailModal({
       }
 
       // Dispatch update event so list updates immediately
+      console.log('[Screen Update] Dispatching eventUpdated custom event');
+      console.log('[Screen Update] Event data to dispatch:', updatedEvent || draftEvent);
       window.dispatchEvent(new CustomEvent('eventUpdated', {
         detail: {
           id: draftEvent.id,
           event: updatedEvent || draftEvent // 업데이트된 전체 이벤트 데이터
         }
       }));
+      console.log('[Screen Update] Custom event dispatched');
       setIsSaving(false);
 
       // Stay in modal, just exit edit mode
+      console.log('[Screen Update] Exiting edit mode');
       setIsSelectionMode(false);
       // Update local state to reflect saved data immediately
       if (updatedEvent) {
+        console.log('[Screen Update] Updating local state with DB response');
+        console.log('[Screen Update] Updated event dates:', {
+          date: updatedEvent.date,
+          start_date: updatedEvent.start_date,
+          end_date: updatedEvent.end_date,
+          event_dates: updatedEvent.event_dates
+        });
         setDraftEvent(updatedEvent);
         setOriginalEvent(updatedEvent);
+      } else {
+        console.warn('[Screen Update] No updatedEvent from DB, keeping current draftEvent');
       }
 
       setImageFile(null);
       setTempImageSrc(null);
       setOriginalImageUrl(null); // 원본 이미지 URL 리셋
+      console.log('[Screen Update] Save complete, showing alert');
       alert('저장되었습니다.');
 
     } catch (error) {
@@ -1045,78 +1134,101 @@ export default function EventDetailModal({
                 <div className="info-section">
                   <div className="info-item">
                     <i className="ri-calendar-line info-icon"></i>
-                    <span>
-                      {(() => {
-                        // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                        if (
-                          selectedEvent.event_dates &&
-                          selectedEvent.event_dates.length > 0
-                        ) {
-                          const dates = selectedEvent.event_dates.map(
-                            (dateStr) => new Date(dateStr),
-                          );
-                          const firstDate = dates[0];
-                          const year = firstDate.getFullYear();
-                          const month = firstDate.toLocaleDateString("ko-KR", {
+                    <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
+                      <span>
+                        {(() => {
+                          // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                          if (
+                            selectedEvent.event_dates &&
+                            selectedEvent.event_dates.length > 0
+                          ) {
+                            const dates = selectedEvent.event_dates.map(
+                              (dateStr) => new Date(dateStr),
+                            );
+                            const firstDate = dates[0];
+                            const year = firstDate.getFullYear();
+                            const month = firstDate.toLocaleDateString("ko-KR", {
+                              month: "long",
+                            });
+
+                            // 같은 년월인지 확인
+                            const sameYearMonth = dates.every(
+                              (d) =>
+                                d.getFullYear() === year &&
+                                d.toLocaleDateString("ko-KR", { month: "long" }) ===
+                                month,
+                            );
+
+                            if (sameYearMonth) {
+                              // 같은 년월: "2025년 10월 11일, 25일, 31일"
+                              const days = dates
+                                .map((d) => d.getDate())
+                                .join("일, ");
+                              return `${year}년 ${month} ${days}일`;
+                            } else {
+                              // 다른 년월: "10/11, 11/25, 12/31"
+                              return dates
+                                .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
+                                .join(", ");
+                            }
+                          }
+
+                          // 연속 기간 모드
+                          const startDate =
+                            selectedEvent.start_date || selectedEvent.date;
+                          const endDate = selectedEvent.end_date;
+
+                          if (!startDate) return "날짜 미정";
+
+                          const start = new Date(startDate);
+                          const startYear = start.getFullYear();
+                          const startMonth = start.toLocaleDateString("ko-KR", {
                             month: "long",
                           });
+                          const startDay = start.getDate();
 
-                          // 같은 년월인지 확인
-                          const sameYearMonth = dates.every(
-                            (d) =>
-                              d.getFullYear() === year &&
-                              d.toLocaleDateString("ko-KR", { month: "long" }) ===
-                              month,
-                          );
+                          if (endDate && endDate !== startDate) {
+                            const end = new Date(endDate);
+                            const endYear = end.getFullYear();
+                            const endMonth = end.toLocaleDateString("ko-KR", {
+                              month: "long",
+                            });
+                            const endDay = end.getDate();
 
-                          if (sameYearMonth) {
-                            // 같은 년월: "2025년 10월 11일, 25일, 31일"
-                            const days = dates
-                              .map((d) => d.getDate())
-                              .join("일, ");
-                            return `${year}년 ${month} ${days}일`;
-                          } else {
-                            // 다른 년월: "10/11, 11/25, 12/31"
-                            return dates
-                              .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
-                              .join(", ");
+                            if (startYear === endYear && startMonth === endMonth) {
+                              return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
+                            } else if (startYear === endYear) {
+                              return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                            } else {
+                              return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
+                            }
                           }
-                        }
 
-                        // 연속 기간 모드
-                        const startDate =
-                          selectedEvent.start_date || selectedEvent.date;
-                        const endDate = selectedEvent.end_date;
-
-                        if (!startDate) return "날짜 미정";
-
-                        const start = new Date(startDate);
-                        const startYear = start.getFullYear();
-                        const startMonth = start.toLocaleDateString("ko-KR", {
-                          month: "long",
-                        });
-                        const startDay = start.getDate();
-
-                        if (endDate && endDate !== startDate) {
-                          const end = new Date(endDate);
-                          const endYear = end.getFullYear();
-                          const endMonth = end.toLocaleDateString("ko-KR", {
-                            month: "long",
-                          });
-                          const endDay = end.getDate();
-
-                          if (startYear === endYear && startMonth === endMonth) {
-                            return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
-                          } else if (startYear === endYear) {
-                            return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
-                          } else {
-                            return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
-                          }
-                        }
-
-                        return `${startYear}년 ${startMonth} ${startDay}일`;
-                      })()}
-                    </span>
+                          return `${startYear}년 ${startMonth} ${startDay}일`;
+                        })()}
+                      </span>
+                      {isSelectionMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Initialize editValue and dateMode based on current date mode
+                            if (selectedEvent.event_dates && selectedEvent.event_dates.length > 0) {
+                              setDateMode('dates');
+                              setEditValue(selectedEvent.event_dates.join(','));
+                            } else {
+                              setDateMode('single');
+                              const startDate = selectedEvent.start_date || selectedEvent.date;
+                              setEditValue(startDate || '');
+                            }
+                            setActiveEditField('date');
+                          }}
+                          style={{ marginLeft: 'auto', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          title="날짜 수정"
+                        >
+                          <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* {selectedEvent.organizer && (
@@ -1591,11 +1703,86 @@ export default function EventDetailModal({
                 {activeEditField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
                 {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
                 {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
+                {activeEditField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
               </h3>
 
               <div className="bottom-sheet-body">
                 <div className="bottom-sheet-input-group">
-                  {activeEditField === 'links' ? (
+                  {activeEditField === 'date' ? (
+                    <div className="flex flex-col items-center pb-8">
+                      <div className="date-mode-toggle" style={{ marginBottom: '1rem', display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => {
+                            console.log('[Date Mode] Switching to single mode');
+                            setDateMode('single');
+                            setEditValue(''); // Clear edit value when switching modes
+                          }}
+                          className={`date-mode-btn ${dateMode === 'single' ? 'active' : ''}`}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            background: dateMode === 'single' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                            border: dateMode === 'single' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                        >
+                          하루
+                        </button>
+                        {editCategory !== 'class' && editCategory !== 'club' && (
+                          <button
+                            onClick={() => {
+                              console.log('[Date Mode] Switching to dates mode');
+                              setDateMode('dates');
+                              setEditValue(''); // Clear edit value when switching modes
+                            }}
+                            className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
+                            style={{
+                              padding: '8px 16px',
+                              borderRadius: '8px',
+                              background: dateMode === 'dates' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                              border: dateMode === 'dates' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            개별
+                          </button>
+                        )}
+                      </div>
+                      <div className="calendar-wrapper" style={{ minHeight: '340px' }}>
+                        <DatePicker
+                          selected={dateMode === 'single' && editValue ? new Date(editValue) : null}
+                          onChange={(d: Date | null) => {
+                            if (!d) return;
+                            // Use local date to avoid timezone offset
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            const dateStr = `${year}-${month}-${day}`;
+                            console.log('[DatePicker] Date selected:', dateStr, 'Mode:', dateMode);
+                            if (dateMode === 'single') {
+                              setEditValue(dateStr);
+                            } else {
+                              // Handle multiple dates
+                              const currentDates = editValue.split(',').filter(Boolean);
+                              const newDates = currentDates.includes(dateStr)
+                                ? currentDates.filter(ed => ed !== dateStr)
+                                : [...currentDates, dateStr].sort();
+                              setEditValue(newDates.join(','));
+                            }
+                          }}
+                          highlightDates={dateMode === 'dates' ? editValue.split(',').filter(Boolean).map(d => new Date(d)) : []}
+                          locale={ko}
+                          inline
+                          monthsShown={1}
+                          shouldCloseOnSelect={dateMode === 'single'}
+                        />
+                      </div>
+                    </div>
+                  ) : activeEditField === 'links' ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0' }}>링크</label>

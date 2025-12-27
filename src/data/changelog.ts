@@ -8,6 +8,21 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.23.4',
+        date: '2025-12-28',
+        changes: [
+            '[✨ 기능] EventDetailModal 인라인 날짜 편집 기능 추가',
+            '[✨ 기능] 하루/개별 날짜 선택 모드 지원 (강습/동호회 제한)',
+            '[🐛 Fix] 날짜 시간대 오프셋 문제 해결 (UTC → 로컬)',
+            '[🐛 Fix] 날짜 편집 상태 관리 개선 (dateMode state 분리)',
+            '[🐛 Fix] 변경 감지 함수에 날짜 필드 추가',
+            '[🐛 Fix] DatePicker 드래그 선택 방지',
+            '[🐛 Fix] EventRegistrationModal 날짜 저장 문제 해결',
+            '[🔧 개선] 종합 디버깅 로깅 시스템 추가',
+            '[🔧 개선] 날짜 필드 검증 로직 강화'
+        ]
+    },
+    {
         version: '2.23.1',
         date: '2025-12-27',
         changes: [

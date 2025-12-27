@@ -1,5 +1,4 @@
 import React, { memo, useMemo } from "react";
-import type { Event as BaseEvent } from "../../../lib/supabase";
 import { getEventThumbnail, getCardThumbnail } from "../../../utils/getEventThumbnail";
 import { getLocalDateString, formatEventDate } from "../../../utils/dateUtils";
 import { getGenreColorClass } from "../../../constants/genreColors";
@@ -91,11 +90,13 @@ export const EventCard = memo(({
 
   // useMemo로 날짜 포맷팅 캐싱 - 성능 최적화
   const dateText = useMemo(() => {
+    let formattedDate = '';
+
     if (event.event_dates && event.event_dates.length > 0) {
       if (variant === "sliding" && event.event_dates.length > 1) {
-        return `${formatEventDate(event.event_dates[0])}~시작`;
+        formattedDate = `${formatEventDate(event.event_dates[0])}~`;
       } else {
-        return event.event_dates.map(formatEventDate).join(", ");
+        formattedDate = event.event_dates.map(formatEventDate).join(", ");
       }
     } else {
       const startDate = event.start_date || event.date;
@@ -106,12 +107,15 @@ export const EventCard = memo(({
       }
 
       if (startDate !== endDate) {
-        return `${formatEventDate(startDate)}~${formatEventDate(endDate || startDate)}`;
+        formattedDate = `${formatEventDate(startDate)}~${formatEventDate(endDate || startDate)}`;
       } else {
-        return formatEventDate(startDate);
+        formattedDate = formatEventDate(startDate);
       }
     }
-  }, [event.event_dates, event.start_date, event.end_date, event.date, variant]);
+
+    // 강습/동호회 카테고리일 때 "시작" 추가
+    return (event.category === 'class' || event.category === 'club') ? `${formattedDate} 시작` : formattedDate;
+  }, [event.event_dates, event.start_date, event.end_date, event.date, event.category, variant]);
 
   const todayString = getLocalDateString();
   const isPast = event.end_date ? event.end_date < todayString : (event.date ? event.date < todayString : false);
