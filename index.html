@@ -305,23 +305,26 @@
         });
       } else {
         // 배포 환경
-        if (window.location.pathname.includes('/billboard/')) {
-          // 빌보드 페이지: 서비스 워커 등록
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+        const isBillboard = window.location.pathname.includes('/billboard/');
+
+        if (isStandalone || isBillboard) {
+          // 빌보드 페이지 또는 PWA(설치된 앱) 모드: 서비스 워커 등록
           window.addEventListener('load', function () {
             navigator.serviceWorker.register('/service-worker.js')
               .then(function (registration) {
-                console.log('Service Worker 등록 성공:', registration.scope);
+                console.log('Service Worker 등록 성공 (Mode: ' + (isStandalone ? 'PWA' : 'Billboard') + '):', registration.scope);
               })
               .catch(function (error) {
-                console.log('Service Worker 등록 실패:', error);
+                console.error('Service Worker 등록 실패:', error);
               });
           });
         } else {
-          // 빌보드 외 페이지: 서비스 워커 해제 (불필요한 캐싱/인터셉트 방지)
+          // 일반 브라우저 모드: 서비스 워커 해제 (간섭 방지)
           navigator.serviceWorker.getRegistrations().then(function (registrations) {
             for (let registration of registrations) {
               registration.unregister();
-              console.log('일반 페이지: Service Worker 해제됨 (빌보드 전용)');
+              console.log('일반 브라우저 모드: Service Worker 해제됨 (간섭 방지)');
             }
           });
         }

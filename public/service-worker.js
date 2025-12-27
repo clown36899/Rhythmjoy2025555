@@ -39,18 +39,26 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // [근본 해결] 인증 및 API 요청은 절대로 캐싱하지 않음 (Standard Practice)
-  // 1. Supabase Auth 및 REST API
-  // 2. Netlify Functions
-  // 3. Kakao SDK API
-  if (
-    url.hostname.includes('supabase.co') ||
-    url.pathname.includes('/auth/v1/') ||
-    url.pathname.includes('/.netlify/functions/') ||
-    url.hostname.includes('kakaocdn.net') ||
-    url.hostname.includes('kauth.kakao.com')
-  ) {
-    return; // 캐싱 로직을 타지 않고 네트워크로 직접 보냄
+  // [근본 해결] 인증 및 주요 API 요청은 서비스 워커가 아예 개입하지 않음
+  // 1. 도메인 기반 제외: Supabase, Kakao (API 도메인 전체)
+  // 2. 헤더 기반 제외: apikey, Authorization 헤더가 있으면 API 요청임
+  const isSupabase = url.hostname.includes('supabase.co');
+  const isKakao = url.hostname.includes('kakao.com') || url.hostname.includes('kakaocdn.net');
+  const isNetlifyFunc = url.pathname.includes('/.netlify/functions/');
+
+  // API 요청 여부 확인 (헤더 확인은 event.request.headers 활용)
+  const isApiRequest = isSupabase || isKakao || isNetlifyFunc ||
+    event.request.headers.has('apikey') ||
+    event.request.headers.has('Authorization');
+
+  // Supabase Storage 이미지 요청이면 캐싱 로직으로 보냄 (경로 체크)
+  const isStorageImage = url.pathname.includes('/storage/v1/object/public/images/');
+
+  if (isApiRequest && !isStorageImage) {
+    // console.log('[SW] 🚀 API/Auth Bypass:', url.href);
+    // respondWith를 호출하지 않고 return하면 브라우저 순정 로직을 탑니다.
+    // 이것이 API 실패를 막는 가장 안전한 '정석'입니다.
+    return;
   }
 
   // 1. Supabase Storage 이미지: Cache First (캐시 우선, 없으면 네트워크)
