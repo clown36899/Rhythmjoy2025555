@@ -62,32 +62,38 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
             if (error) throw error;
 
-            // Fetch profile images and normalize data
-            const postsWithProfiles = await Promise.all(
-                (data || []).map(async (post: any) => {
-                    let profileImage = null;
-                    // Only fetch profile image for non-anonymous categories
-                    if (post.user_id && category !== 'anonymous') {
-                        const { data: userData } = await supabase
-                            .from('board_users')
-                            .select('profile_image')
-                            .eq('user_id', post.user_id)
-                            .maybeSingle();
-                        profileImage = userData?.profile_image || null;
-                    }
-                    return {
-                        ...post,
-                        prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
-                        author_profile_image: profileImage,
-                        comment_count: post.comment_count || 0,
-                        likes: (post as any).likes || 0,
-                        favorites: (post as any).favorites || 0,
-                        dislikes: (post as any).dislikes || 0
-                    };
-                })
-            );
+            // 1+1 Fetching Strategy: Fetch all profiles in one go if not anonymous
+            let profileMap: Record<string, string> = {};
+            if (!isAnon && data && data.length > 0) {
+                const userIds = Array.from(new Set(data.map((p: any) => p.user_id).filter(Boolean)));
+                if (userIds.length > 0) {
+                    const { data: profiles } = await supabase
+                        .from('board_users')
+                        .select('user_id, profile_image')
+                        .in('user_id', userIds);
 
-            setPosts(postsWithProfiles as BoardPost[]);
+                    if (profiles) {
+                        profiles.forEach((p: any) => {
+                            profileMap[p.user_id] = p.profile_image;
+                        });
+                    }
+                }
+            }
+
+            // Normalize data
+            const normalizedPosts = (data || []).map((post: any) => {
+                return {
+                    ...post,
+                    prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
+                    author_profile_image: isAnon ? null : (profileMap[post.user_id] || null),
+                    comment_count: post.comment_count || 0,
+                    likes: post.likes || 0,
+                    favorites: post.favorites || 0,
+                    dislikes: post.dislikes || 0
+                };
+            });
+
+            setPosts(normalizedPosts as BoardPost[]);
         } catch (err) {
             console.error('게시글 로딩 실패:', err);
             setError(err);

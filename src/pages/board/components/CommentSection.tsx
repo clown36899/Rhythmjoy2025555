@@ -107,37 +107,47 @@ export default function CommentSection({ postId, category }: CommentSectionProps
 
     const loadComments = async (silent = false) => {
         try {
-            const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
             if (!silent) setLoading(true);
-            const { data, error } = await supabase
-                .from(table)
-                .select('*')
-                .eq('post_id', postId)
-                .order('created_at', { ascending: true });
 
-            if (error) throw error;
+            if (category === 'anonymous') {
+                const { data, error } = await supabase
+                    .from('board_anonymous_comments')
+                    .select('*')
+                    .eq('post_id', postId)
+                    .order('created_at', { ascending: true });
+                if (error) throw error;
+                setComments(data as BoardComment[]);
+            } else {
+                const { data, error } = await supabase
+                    .from('board_comments')
+                    .select('*')
+                    .eq('post_id', postId)
+                    .order('created_at', { ascending: true });
+                if (error) throw error;
 
-            // Fetch profile images for comments
-            const commentsWithProfiles = await Promise.all(
-                (data || []).map(async (comment) => {
-                    let profileImage = null;
-                    // Only fetch profile image for non-anonymous categories
-                    if (comment.user_id && category !== 'anonymous') {
-                        const { data: userData } = await supabase
+                // 1+1 Fetching for comments
+                let profileMap: Record<string, string> = {};
+                if (data && data.length > 0) {
+                    const userIds = Array.from(new Set(data.map(c => c.user_id).filter(Boolean)));
+                    if (userIds.length > 0) {
+                        const { data: profiles } = await supabase
                             .from('board_users')
-                            .select('profile_image')
-                            .eq('user_id', comment.user_id)
-                            .maybeSingle();
-                        profileImage = userData?.profile_image || null;
+                            .select('user_id, profile_image')
+                            .in('user_id', userIds);
+                        if (profiles) {
+                            profiles.forEach(p => {
+                                profileMap[p.user_id] = p.profile_image;
+                            });
+                        }
                     }
-                    return {
-                        ...comment,
-                        author_profile_image: profileImage
-                    };
-                })
-            );
+                }
 
-            setComments(commentsWithProfiles as BoardComment[]);
+                const commentsWithProfiles = (data || []).map(comment => ({
+                    ...comment,
+                    author_profile_image: profileMap[comment.user_id] || null
+                }));
+                setComments(commentsWithProfiles as BoardComment[]);
+            }
         } catch (error) {
             console.error('댓글 로딩 실패:', error);
         } finally {

@@ -78,6 +78,67 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
         }
     };
 
+    /**
+     * Unified Optimistic UI Update Helper for Standard Board
+     */
+    const updateStandardOptimisticUI = (
+        postId: number,
+        type: 'like' | 'dislike' | 'favorite',
+        undo: boolean = false
+    ) => {
+        if (type === 'favorite') {
+            const isRemoving = undo ? !favoritedPostIds.has(postId) : favoritedPostIds.has(postId);
+            setFavoritedPostIds(prev => {
+                const next = new Set(prev);
+                if (isRemoving) next.delete(postId);
+                else next.add(postId);
+                return next;
+            });
+            setPosts(prev => prev.map(p => {
+                if (p.id === postId) {
+                    const current = (p as any).favorites || 0;
+                    return { ...p, favorites: isRemoving ? Math.max(0, current - 1) : current + 1 };
+                }
+                return p;
+            }));
+            return;
+        }
+
+        // Like / Dislike logic
+        const isLike = type === 'like';
+        const targetSet = isLike ? likedPostIds : dislikedPostIds;
+        const isRemoving = undo ? !targetSet.has(postId) : targetSet.has(postId);
+
+        if (isLike) {
+            setLikedPostIds(prev => {
+                const next = new Set(prev);
+                if (isRemoving) next.delete(postId);
+                else next.add(postId);
+                return next;
+            });
+        } else {
+            setDislikedPostIds(prev => {
+                const next = new Set(prev);
+                if (isRemoving) next.delete(postId);
+                else next.add(postId);
+                return next;
+            });
+        }
+
+        setPosts(prev => prev.map(p => {
+            if (p.id === postId) {
+                if (isLike) {
+                    const current = (p as any).likes || 0;
+                    return { ...p, likes: isRemoving ? Math.max(0, current - 1) : current + 1 };
+                } else {
+                    const current = (p as any).dislikes || 0;
+                    return { ...p, dislikes: isRemoving ? Math.max(0, current - 1) : current + 1 };
+                }
+            }
+            return p;
+        }));
+    };
+
     const handleToggleFavorite = async (postId: number) => {
         if (!user) {
             window.dispatchEvent(new CustomEvent('requestProtectedAction', {
@@ -90,27 +151,7 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
         }
 
         const isFavorited = favoritedPostIds.has(postId);
-        const originalFavoritesSet = new Set(favoritedPostIds);
-
-        // 1. Optimistic UI Update (State)
-        const nextFavorites = new Set(favoritedPostIds);
-        if (isFavorited) {
-            nextFavorites.delete(postId);
-        } else {
-            nextFavorites.add(postId);
-        }
-        setFavoritedPostIds(nextFavorites);
-
-        // 2. Optimistic UI Update (Post Count)
-        setPosts(prev => prev.map(p => {
-            if (p.id === postId) {
-                // Use type assertion or optional chaining safely
-                const currentFavorites = (p as any).favorites || 0;
-                const newFavorites = isFavorited ? Math.max(0, currentFavorites - 1) : currentFavorites + 1;
-                return { ...p, favorites: newFavorites };
-            }
-            return p;
-        }));
+        updateStandardOptimisticUI(postId, 'favorite');
 
         try {
             if (isFavorited) {
@@ -121,14 +162,12 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             }
         } catch (error) {
             console.error('Error toggling favorite:', error);
-            setFavoritedPostIds(originalFavoritesSet);
-            loadPosts(); // Revert
+            updateStandardOptimisticUI(postId, 'favorite', true); // Rollback
+            loadPosts();
         }
     };
 
-
     const handleToggleLike = async (postId: number) => {
-        // Enforce login for ALL boards now
         if (!user) {
             window.dispatchEvent(new CustomEvent('requestProtectedAction', {
                 detail: {
@@ -139,73 +178,58 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             return;
         }
 
-        const isLiked = likedPostIds.has(postId);
-        const isDisliked = dislikedPostIds.has(postId);
-        const originalLikesSet = new Set(likedPostIds);
-        const originalDislikesSet = new Set(dislikedPostIds);
+        if (category !== 'anonymous') {
+            const isLiked = likedPostIds.has(postId);
+            updateStandardOptimisticUI(postId, 'like');
 
-        // 1. Optimistic UI Update (State)
-        const nextLikes = new Set(likedPostIds);
-        const nextDislikes = new Set(dislikedPostIds);
-
-        if (isLiked) {
-            nextLikes.delete(postId);
-        } else {
-            nextLikes.add(postId);
-            if (category === 'anonymous' && isDisliked) {
-                nextDislikes.delete(postId); // Mutual exclusion
-            }
-        }
-
-        setLikedPostIds(nextLikes);
-        setDislikedPostIds(nextDislikes);
-
-        // 2. Optimistic UI Update (Post Count)
-        setPosts(prev => prev.map(p => {
-            if (p.id === postId) {
-                let newLikes = isLiked ? Math.max(0, (p as any).likes - 1) : (p as any).likes + 1;
-                let newDislikes = (p as any).dislikes || 0;
-
-                if (!isLiked && category === 'anonymous' && isDisliked) {
-                    newDislikes = Math.max(0, newDislikes - 1);
-                }
-
-                return { ...p, likes: newLikes, dislikes: newDislikes };
-            }
-            return p;
-        }));
-
-        try {
-            if (category !== 'anonymous') {
+            try {
                 if (isLiked) {
                     await supabase.from('board_post_likes').delete().eq('user_id', user.id).eq('post_id', postId);
                 } else {
                     const { error } = await supabase.from('board_post_likes').insert({ user_id: user.id, post_id: postId }).select();
                     if (error && error.code !== '23505') throw error;
                 }
-            } else {
-                // Anonymous Board (Now Authenticated)
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                updateStandardOptimisticUI(postId, 'like', true);
+                loadPosts();
+            }
+        } else {
+            // Anonymous Board (Now Authenticated)
+            // Keep original logic for isolation
+            const isLiked = likedPostIds.has(postId);
+            const isDisliked = dislikedPostIds.has(postId);
+
+            // Optimistic
+            setLikedPostIds(prev => { const n = new Set(prev); if (isLiked) n.delete(postId); else n.add(postId); return n; });
+            if (!isLiked && isDisliked) setDislikedPostIds(prev => { const n = new Set(prev); n.delete(postId); return n; });
+
+            setPosts(prev => prev.map(p => {
+                if (p.id === postId) {
+                    let nl = isLiked ? Math.max(0, (p as any).likes - 1) : (p as any).likes + 1;
+                    let nd = (p as any).dislikes || 0;
+                    if (!isLiked && isDisliked) nd = Math.max(0, nd - 1);
+                    return { ...p, likes: nl, dislikes: nd };
+                }
+                return p;
+            }));
+
+            try {
                 const { data, error } = await supabase.rpc('toggle_anonymous_interaction', {
                     p_post_id: postId,
-                    p_user_id: user.id, // Use user.id instead of fingerprint
+                    p_user_id: user.id,
                     p_type: 'like'
                 });
                 if (error) throw error;
-                // Check for application-level error returned as JSON
-                if (data && typeof data === 'object' && 'status' in data && data.status === 'error') {
-                    throw new Error(data.message || 'Unknown RPC error');
-                }
+                if (data?.status === 'error') throw new Error(data.message);
+            } catch (error) {
+                console.error('Error toggling anonymous like:', error);
+                loadPosts();
             }
-        } catch (error) {
-            console.error('Error toggling like:', error);
-            setLikedPostIds(originalLikesSet);
-            setDislikedPostIds(originalDislikesSet);
-            loadPosts(); // Revert by reloading
         }
     };
 
     const handleToggleDislike = async (postId: number) => {
-        // Enforce login for ALL boards now
         if (!user) {
             window.dispatchEvent(new CustomEvent('requestProtectedAction', {
                 detail: {
@@ -216,72 +240,52 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             return;
         }
 
-        const isDisliked = dislikedPostIds.has(postId);
-        const isLiked = likedPostIds.has(postId);
-        const originalDislikesSet = new Set(dislikedPostIds);
-        const originalLikesSet = new Set(likedPostIds);
+        if (category !== 'anonymous') {
+            const isDisliked = dislikedPostIds.has(postId);
+            updateStandardOptimisticUI(postId, 'dislike');
 
-        const nextDislikes = new Set(dislikedPostIds);
-        const nextLikes = new Set(likedPostIds);
-
-        if (isDisliked) {
-            nextDislikes.delete(postId);
-        } else {
-            nextDislikes.add(postId);
-            if (category === 'anonymous' && isLiked) {
-                nextLikes.delete(postId); // Mutual exclusion
-            }
-        }
-
-        setDislikedPostIds(nextDislikes);
-        setLikedPostIds(nextLikes);
-
-        setPosts(prev => prev.map(p => {
-            if (p.id === postId) {
-                const currentDislikes = (p as any).dislikes || 0;
-                let newDislikes = isDisliked ? Math.max(0, currentDislikes - 1) : currentDislikes + 1;
-                let newLikes = (p as any).likes || 0;
-
-                if (!isDisliked && category === 'anonymous' && isLiked) {
-                    newLikes = Math.max(0, newLikes - 1);
-                }
-
-                return {
-                    ...p,
-                    dislikes: newDislikes,
-                    likes: newLikes,
-                    is_hidden: category === 'anonymous' ? (newDislikes >= 20) : p.is_hidden
-                };
-            }
-            return p;
-        }));
-
-        try {
-            if (category !== 'anonymous') {
+            try {
                 if (isDisliked) {
                     await supabase.from('board_post_dislikes').delete().eq('user_id', user.id).eq('post_id', postId);
                 } else {
                     const { error } = await supabase.from('board_post_dislikes').insert({ user_id: user.id, post_id: postId }).select();
                     if (error && error.code !== '23505') throw error;
                 }
-            } else {
-                // Anonymous Board (Now Authenticated)
+            } catch (error) {
+                console.error('Error toggling dislike:', error);
+                updateStandardOptimisticUI(postId, 'dislike', true);
+                loadPosts();
+            }
+        } else {
+            // Anonymous Board
+            const isDisliked = dislikedPostIds.has(postId);
+            const isLiked = likedPostIds.has(postId);
+
+            setDislikedPostIds(prev => { const n = new Set(prev); if (isDisliked) n.delete(postId); else n.add(postId); return n; });
+            if (!isDisliked && isLiked) setLikedPostIds(prev => { const n = new Set(prev); n.delete(postId); return n; });
+
+            setPosts(prev => prev.map(p => {
+                if (p.id === postId) {
+                    let nd = isDisliked ? Math.max(0, (p as any).dislikes - 1) : (p as any).dislikes + 1;
+                    let nl = (p as any).likes || 0;
+                    if (!isDisliked && isLiked) nl = Math.max(0, nl - 1);
+                    return { ...p, dislikes: nd, likes: nl, is_hidden: nd >= 20 ? true : p.is_hidden };
+                }
+                return p;
+            }));
+
+            try {
                 const { data, error } = await supabase.rpc('toggle_anonymous_interaction', {
                     p_post_id: postId,
-                    p_user_id: user.id, // Use user.id instead of fingerprint
+                    p_user_id: user.id,
                     p_type: 'dislike'
                 });
                 if (error) throw error;
-                // Check for application-level error returned as JSON
-                if (data && typeof data === 'object' && 'status' in data && data.status === 'error') {
-                    throw new Error(data.message || 'Unknown RPC error');
-                }
+                if (data?.status === 'error') throw new Error(data.message);
+            } catch (error) {
+                console.error('Error toggling anonymous dislike:', error);
+                loadPosts();
             }
-        } catch (error) {
-            console.error('Error toggling dislike:', error);
-            setDislikedPostIds(originalDislikesSet);
-            setLikedPostIds(originalLikesSet);
-            loadPosts();
         }
     };
 
@@ -296,7 +300,6 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             });
 
             if (error) {
-                // Fallback for admin deletion of standard posts if RPC fails
                 if (isRealAdmin && category !== 'anonymous') {
                     const { error: deleteError } = await supabase.from('board_posts').delete().eq('id', postId);
                     if (!deleteError) {
