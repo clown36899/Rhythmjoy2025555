@@ -122,6 +122,27 @@ export default function BoardMainContainer() {
 
     // Swipe Navigation Logic
     const [categories, setCategories] = useState<any[]>([]);
+    // Scroll Position Preservation
+    useEffect(() => {
+        // Restore scroll position when returning to board list
+        const savedScrollPosition = sessionStorage.getItem('boardScrollPosition');
+        if (savedScrollPosition) {
+            const scrollY = parseInt(savedScrollPosition, 10);
+            // Wait for fade-in animation and DOM to be ready
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, scrollY);
+                    sessionStorage.removeItem('boardScrollPosition');
+                });
+            });
+        }
+
+        // Save scroll position when navigating away
+        return () => {
+            sessionStorage.setItem('boardScrollPosition', window.scrollY.toString());
+        };
+    }, []);
+
     useEffect(() => { loadCategories(); }, []);
 
     const loadCategories = async () => {

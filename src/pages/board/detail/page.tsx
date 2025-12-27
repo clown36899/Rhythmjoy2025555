@@ -15,7 +15,6 @@ export default function BoardDetailPage() {
     const navigate = useNavigate();
     const { user, isAdmin } = useAuth();
     const [post, setPost] = useState<BoardPost | null>(null);
-    const [loading, setLoading] = useState(true);
     const [showEditorModal, setShowEditorModal] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
@@ -99,7 +98,6 @@ export default function BoardDetailPage() {
 
     const loadPost = async (postId: string) => {
         try {
-            setLoading(true);
             const { data, error } = await supabase
                 .from('board_posts')
                 .select(`
@@ -129,7 +127,6 @@ export default function BoardDetailPage() {
             if (error) throw error;
             if (!data) {
                 setPost(null);
-                setLoading(false);
                 return;
             }
 
@@ -159,8 +156,6 @@ export default function BoardDetailPage() {
 
         } catch (error) {
             console.error('게시글 로딩 실패:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -255,16 +250,6 @@ export default function BoardDetailPage() {
         });
     };
 
-    if (loading) {
-        return (
-            <div className="board-detail-container">
-                <div className="board-detail-loading">
-                    <i className="ri-loader-4-line"></i>
-                    <p>게시글을 불러오는 중...</p>
-                </div>
-            </div>
-        );
-    }
 
     if (!post) {
         return (

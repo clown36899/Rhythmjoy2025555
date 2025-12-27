@@ -5,6 +5,17 @@
     display: flex;
     flex-direction: column;
     background-color: var(--bg-primary);
+    animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* Sticky Header Improvements */

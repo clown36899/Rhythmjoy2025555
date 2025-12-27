@@ -16,6 +16,17 @@
   /* Stack children vertically */
   overflow: hidden;
   /* Prevent body scroll */
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* ... existing code ... */
