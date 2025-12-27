@@ -107,24 +107,100 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
         const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
 
+        console.log(`[Realtime] Subscribing to ${table} for category: ${category}`);
+
         const channel = supabase
             .channel(`board_posts:${category}`)
             .on(
                 'postgres_changes',
                 {
-                    event: '*',
+                    event: '*', // Listen to INSERT, UPDATE, DELETE
                     schema: 'public',
                     table: table
-                    // filter: DELETE 이벤트는 ID만 반환하므로 필터를 걸면 감지되지 않음. 필터 제거.
+                    // Removed filter for DELETE to work properly
                 },
-                () => {
-                    console.log(`[Realtime] Board post changed in ${category}`);
-                    loadPosts();
+                (payload) => {
+                    console.log(`[Realtime] ${payload.eventType} event received:`, payload);
+
+                    // Handle INSERT - add new post to top without reload
+                    if (payload.eventType === 'INSERT' && payload.new) {
+                        const newPost = payload.new as any;
+
+                        // Add to top of list
+                        setPosts(prevPosts => [
+                            {
+                                ...newPost,
+                                prefix: null,
+                                author_profile_image: null,
+                                comment_count: 0,
+                                likes: newPost.likes || 0,
+                                favorites: newPost.favorites || 0,
+                                dislikes: newPost.dislikes || 0
+                            } as any,
+                            ...prevPosts
+                        ]);
+
+                        console.log('[Realtime] Added new post without reload');
+                        return;
+                    }
+
+                    // Handle UPDATE - update specific post without reload
+                    if (payload.eventType === 'UPDATE' && payload.new) {
+                        const newData = payload.new as any;
+
+                        // Check for Soft Delete (is_hidden)
+                        if (newData.is_hidden === true) {
+                            setPosts(prevPosts =>
+                                prevPosts.filter(post => String(post.id) !== String(newData.id))
+                            );
+                            console.log('[Realtime] Post soft-deleted (hidden)');
+                            return;
+                        }
+
+                        setPosts(prevPosts =>
+                            prevPosts.map(post =>
+                                String(post.id) === String(newData.id)
+                                    ? {
+                                        ...post,
+                                        ...newData, // Updates title, content, etc. for Free Board
+                                        likes: newData.likes || 0,
+                                        dislikes: newData.dislikes || 0,
+                                        views: newData.views || post.views,
+                                        comment_count: newData.comment_count !== undefined ? newData.comment_count : post.comment_count
+                                    }
+                                    : post
+                            )
+                        );
+
+                        console.log('[Realtime] Updated post without reload');
+                        return;
+                    }
+
+                    // For DELETE, remove post from list without reload
+                    if (payload.eventType === 'DELETE' && payload.old) {
+                        const deletedPost = payload.old as any;
+
+                        setPosts(prevPosts =>
+                            prevPosts.filter(post => String(post.id) !== String(deletedPost.id))
+                        );
+
+                        console.log('[Realtime] Removed post without reload');
+                    }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log(`[Realtime] ${table} subscription status:`, status);
+                if (status === 'SUBSCRIBED') {
+                    console.log(`[Realtime] Successfully subscribed to ${table}`);
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error(`[Realtime] ${table} channel error`);
+                } else if (status === 'TIMED_OUT') {
+                    console.error(`[Realtime] ${table} subscription timed out`);
+                }
+            });
 
         return () => {
+            console.log(`[Realtime] Unsubscribing from ${table} for category: ${category}`);
             supabase.removeChannel(channel);
         };
     }, [category, isAdminChecked, loadPosts]);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardComment } from '../../../lib/supabase';
 import CommentForm from './CommentForm';
 import CommentItem from './CommentItem';
@@ -11,6 +12,7 @@ interface CommentSectionProps {
 }
 
 export default function CommentSection({ postId, category }: CommentSectionProps) {
+    const { user } = useAuth();
     const [comments, setComments] = useState<BoardComment[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingComment, setEditingComment] = useState<BoardComment | null>(null);
@@ -21,32 +23,81 @@ export default function CommentSection({ postId, category }: CommentSectionProps
 
         const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
 
-        // Subscribe to real-time updates
+        // Subscribe to real-time updates (Same logic as useBoardPosts)
         const channel = supabase
-            .channel(`comments:${postId}`)
+            .channel(`comments:${postId}:${category}`)
             .on(
                 'postgres_changes',
                 {
                     event: '*',
                     schema: 'public',
-                    table: table,
-                    filter: `post_id=eq.${postId}`
+                    table: table
+                    // Filter removed to ensure delivery, handled client-side
                 },
-                () => {
-                    loadComments();
+                (payload) => {
+                    console.log(`[Realtime Comment] ${payload.eventType} event:`, payload);
+
+                    const record = (payload.new || payload.old) as any;
+                    // Client-side filtering
+                    if (!record || record.post_id !== postId) return;
+
+                    // Handle INSERT
+                    if (payload.eventType === 'INSERT' && payload.new) {
+                        const newComment = payload.new as any;
+                        setComments(prev => {
+                            if (prev.some(c => c.id === newComment.id)) return prev;
+                            return [...prev, { ...newComment, author_profile_image: null, created_at: newComment.created_at }];
+                        });
+                        return;
+                    }
+
+                    // Handle UPDATE
+                    if (payload.eventType === 'UPDATE' && payload.new) {
+                        const newComment = payload.new as any;
+                        const targetId = String(newComment.id);
+
+                        console.log('[Realtime Debug] Payload NEW:', JSON.stringify(newComment, null, 2));
+
+                        setComments(prev => {
+                            return prev.map(comment => {
+                                const currentId = String(comment.id);
+                                const isMatch = currentId === targetId;
+
+                                if (isMatch) {
+                                    console.log('[Realtime Debug] Match Found!');
+                                    console.log('--- BEFORE ---', JSON.stringify(comment, null, 2));
+
+                                    const merged = { ...comment, ...newComment };
+                                    console.log('--- AFTER (MERGED) ---', JSON.stringify(merged, null, 2));
+
+                                    return merged;
+                                }
+                                return comment;
+                            });
+                        });
+                    }
+
+                    // Handle DELETE
+                    if (payload.eventType === 'DELETE' && payload.old) {
+                        const deletedComment = payload.old as any;
+                        console.log('[Realtime Comment] Deleting comment:', deletedComment.id);
+                        setComments(prev => prev.filter(c => String(c.id) !== String(deletedComment.id)));
+                    }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log(`[Realtime Comment] Status: ${status}`);
+            });
 
         return () => {
             supabase.removeChannel(channel);
         };
     }, [postId, category]);
 
-    const loadComments = async () => {
+    const loadComments = async (silent = false) => {
         try {
             const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
-            // setLoading(true); // Disable loading state for seamless updates
+            if (!silent) setLoading(true);
             const { data, error } = await supabase
                 .from(table)
                 .select('*')
@@ -79,7 +130,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
         } catch (error) {
             console.error('댓글 로딩 실패:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -164,8 +215,11 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             <CommentForm
                 postId={postId}
                 category={category}
-                onCommentAdded={() => {
-                    loadComments();
+                onCommentAdded={(newComment) => {
+                    // Optimistic Add
+                    if (newComment) {
+                        setComments(prev => [...prev, { ...newComment, author_profile_image: user?.user_metadata?.profile_image || null } as any]);
+                    }
                 }}
                 disabled={!!editingComment}
             />
@@ -189,8 +243,17 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                                     <CommentForm
                                         postId={postId}
                                         category={category}
-                                        onCommentAdded={() => {
-                                            loadComments();
+                                        onCommentAdded={(updatedComment) => {
+                                            // Optimistic Update
+                                            if (updatedComment) {
+                                                setComments(prev =>
+                                                    prev.map(c =>
+                                                        String(c.id) === String(updatedComment.id)
+                                                            ? { ...c, ...updatedComment }
+                                                            : c
+                                                    )
+                                                );
+                                            }
                                             handleEditCancel();
                                         }}
                                         editingComment={editingComment}

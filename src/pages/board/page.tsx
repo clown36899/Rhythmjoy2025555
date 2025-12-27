@@ -60,6 +60,96 @@ export default function BoardPage() {
     loadPosts();
   }, []);
 
+  // Realtime subscription for board_posts
+  useEffect(() => {
+    console.log('[Realtime] Subscribing to board_posts');
+
+    const channel = supabase
+      .channel('board_posts_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'board_posts'
+        },
+        (payload) => {
+          console.log(`[Realtime] ${payload.eventType} event received:`, payload);
+
+          // Handle INSERT - add new post to top without reload
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newPost = payload.new as any;
+
+            setPosts(prevPosts => [
+              {
+                ...newPost,
+                prefix: null,
+                author_profile_image: null,
+                comment_count: 0
+              } as BoardPost,
+              ...prevPosts
+            ]);
+
+            console.log('[Realtime] Added new post without reload');
+            return;
+          }
+
+          // Handle UPDATE - update specific post without reload
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const newData = payload.new as any;
+
+            console.log('[Realtime] Attempting to update post:', newData.id);
+
+            setPosts(prevPosts =>
+              prevPosts.map(post =>
+                String(post.id) === String(newData.id)
+                  ? {
+                    ...post,
+                    ...newData, // Updates title, content, etc.
+                    likes: newData.likes || 0,
+                    dislikes: newData.dislikes || 0,
+                    views: newData.views || post.views,
+                    comment_count: newData.comment_count !== undefined ? newData.comment_count : post.comment_count
+                  }
+                  : post
+              )
+            );
+
+            console.log('[Realtime] Updated post without reload');
+            return;
+          }
+
+          // Handle DELETE - remove post from list without reload
+          if (payload.eventType === 'DELETE' && payload.old) {
+            const deletedPost = payload.old as any;
+
+            console.log('[Realtime] Attempting to delete post:', deletedPost.id);
+
+            setPosts(prevPosts =>
+              prevPosts.filter(post => String(post.id) !== String(deletedPost.id))
+            );
+
+            console.log('[Realtime] Removed post without reload');
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Realtime] Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[Realtime] Successfully subscribed to board_posts');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[Realtime] Channel error occurred');
+        } else if (status === 'TIMED_OUT') {
+          console.error('[Realtime] Subscription timed out');
+        }
+      });
+
+    return () => {
+      console.log('[Realtime] Unsubscribing from board_posts');
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // 세션 타임아웃 및 활동 추적
   useEffect(() => {
     if (!user) return;
@@ -176,9 +266,9 @@ export default function BoardPage() {
 
 
 
-  const loadPosts = async () => {
+  const loadPosts = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const { data, error } = await supabase
         .from('board_posts')
         .select(`
@@ -242,7 +332,7 @@ export default function BoardPage() {
     } catch (error) {
       console.error('게시글 로딩 실패:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -251,8 +341,10 @@ export default function BoardPage() {
   };
 
   const handlePostCreated = () => {
-    loadPosts();
-    setCurrentPage(1); // 새 글 작성 시 첫 페이지로
+    // Pure Optimistic Update (Realtime) - No reload
+    // loadPosts();
+    // setCurrentPage(1);
+    console.log('[BoardPage] Post created/updated. Waiting for Realtime update...');
   };
 
 

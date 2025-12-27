@@ -7,7 +7,7 @@ import './comment.css';
 interface CommentFormProps {
     postId: number;
     category: string;
-    onCommentAdded: () => void;
+    onCommentAdded: (comment?: any) => void;
     editingComment?: BoardComment | null;
     onCancelEdit?: () => void;
     providedPassword?: string;
@@ -80,12 +80,14 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
         try {
             setIsSubmitting(true);
             const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
+            let resultComment = null;
 
             if (editingComment) {
                 // Update existing comment
+                let data, error;
                 if (category === 'anonymous') {
                     // Update via standard query with password filter
-                    const { data, error } = await supabase
+                    const result = await supabase
                         .from(table)
                         .update({
                             content: content.trim(),
@@ -94,21 +96,29 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                         .eq('id', editingComment.id)
                         .eq('password', providedPassword || password.trim())
                         .select();
+                    data = result.data;
+                    error = result.error;
 
                     if (error) throw error;
                     if (!data || data.length === 0) {
                         alert('비밀번호가 일치하지 않거나 수정 권한이 없습니다.');
                         return;
                     }
+                    resultComment = data[0];
                 } else {
-                    const { error } = await supabase
+                    const result = await supabase
                         .from(table)
                         .update({
                             content: content.trim()
                             // Skip updated_at if not sure it exists
                         })
-                        .eq('id', editingComment.id);
+                        .eq('id', editingComment.id)
+                        .select(); // Ensure we select return data
+                    data = result.data;
+                    error = result.error;
+
                     if (error) throw error;
+                    resultComment = data ? data[0] : null;
                 }
             } else {
                 // Create new comment
@@ -126,12 +136,13 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                     commentData.password = null;
                 }
 
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from(table)
                     .insert(commentData)
                     .select();
 
                 if (error) throw error;
+                resultComment = data ? data[0] : null;
             }
 
             setContent('');
@@ -139,7 +150,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                 setAuthorName('');
                 setPassword('');
             }
-            onCommentAdded();
+            onCommentAdded(resultComment);
             if (onCancelEdit) onCancelEdit();
         } catch (error) {
             console.error('댓글 작성/수정 실패:', error);
@@ -236,4 +247,3 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
         </form>
     );
 }
-
