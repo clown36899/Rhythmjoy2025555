@@ -39,6 +39,20 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // [근본 해결] 인증 및 API 요청은 절대로 캐싱하지 않음 (Standard Practice)
+  // 1. Supabase Auth 및 REST API
+  // 2. Netlify Functions
+  // 3. Kakao SDK API
+  if (
+    url.hostname.includes('supabase.co') ||
+    url.pathname.includes('/auth/v1/') ||
+    url.pathname.includes('/.netlify/functions/') ||
+    url.hostname.includes('kakaocdn.net') ||
+    url.hostname.includes('kauth.kakao.com')
+  ) {
+    return; // 캐싱 로직을 타지 않고 네트워크로 직접 보냄
+  }
+
   // 1. Supabase Storage 이미지: Cache First (캐시 우선, 없으면 네트워크)
   // 패턴: */storage/v1/object/public/images/*
   // models 폴더 제외 (AI 모델은 용량이 크므로 캐싱하지 않음 via SW, 브라우저 캐만 사용)

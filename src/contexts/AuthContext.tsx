@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { supabase, validateAndRecoverSession } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
@@ -166,8 +166,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // 수동 세션 검증 메서드
-  const validateSession = async () => {
+  // 수동 세션 검증 메서드 - useCallback으로 감싸서 리렌더링 시 참조 유지 (무한 루프 방지)
+  const validateSession = useCallback(async () => {
     console.log('[AuthContext] 🕵️‍♂️ Manual session validation requested');
     const validSession = await validateAndRecoverSession();
     if (!validSession) {
@@ -176,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       console.log('[AuthContext] 🕵️‍♂️ Session is valid');
     }
-  };
+  }, []);
 
   useEffect(() => {
     let isMounted = true; // 마운트 상태 추적
@@ -444,13 +444,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.clear();
 
       // 6. Service Worker 캐시 정리 (PWA)
-      logToStorage('[AuthContext.signOut] 6단계: 캐시 정리 시작');
+      // [정석 해결] 서비스 워커 등록을 해제하지 않고, 인증 정보가 담겼을 수 있는 캐시만 비웁니다.
+      logToStorage('[AuthContext.signOut] 6단계: 서비스 워커 캐시 정리 시작');
       if ('serviceWorker' in navigator && 'caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(
-          cacheNames.map(cacheName => caches.delete(cacheName))
-        );
-        logToStorage('[AuthContext.signOut] 6단계: 캐시 정리 완료: ' + cacheNames.length + '개');
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames.map(cacheName => caches.delete(cacheName))
+          );
+          logToStorage('[AuthContext.signOut] 6단계: 캐시 삭제 완료: ' + cacheNames.length + '개');
+        } catch (e) {
+          console.warn('[AuthContext.signOut] SW cache cleanup failed:', e);
+        }
       }
 
       logToStorage('[AuthContext.signOut] 7단계: Analytics 로깅');

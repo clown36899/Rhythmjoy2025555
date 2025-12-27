@@ -44,6 +44,7 @@ const AdminFavoritesPage = lazy(() => import("../pages/admin/favorites/page"));
 const KakaoCallbackPage = lazy(() => import("../pages/auth/kakao-callback/page"));
 const EventPhotoFinderPage = lazy(() => import("../pages/event-photo-finder/page"));
 const MyActivitiesPage = lazy(() => import('../pages/user/MyActivitiesPage'));
+const DebugLogPage = lazy(() => import('../pages/DebugLogPage'));
 
 export const routes: RouteObject[] = [
     {
@@ -65,6 +66,7 @@ export const routes: RouteObject[] = [
             { path: '/calendar', element: <CalendarPage /> },
             { path: '/auth/kakao-callback', element: <KakaoCallbackPage /> },
             { path: '/my-activities', element: <MyActivitiesPage /> },
+            { path: '/debug', element: <DebugLogPage /> },
         ],
     },
     {
