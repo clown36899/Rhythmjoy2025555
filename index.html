@@ -19,6 +19,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="빌보드" />
   <meta name="theme-color" content="#000000" />
+  <meta name="screen-orientation" content="portrait" />
+  <meta name="x5-orientation" content="portrait" />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
@@ -146,6 +148,20 @@
     /* CSS 로드 전 깨진 레이아웃 방지 - 제거됨 (디버깅 위해) */
     /* body { visibility: hidden; } */
     /* body.loaded { visibility: visible; } */
+
+    /* PWA 화면 회전 방지 */
+    @media screen and (orientation: landscape) {
+      html {
+        transform: rotate(-90deg);
+        transform-origin: left top;
+        width: 100vh;
+        height: 100vw;
+        overflow-x: hidden;
+        position: absolute;
+        top: 100%;
+        left: 0;
+      }
+    }
 
     /* 스피너 애니메이션 */
     @keyframes spin {

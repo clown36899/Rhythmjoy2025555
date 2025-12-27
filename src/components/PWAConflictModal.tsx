@@ -44,9 +44,8 @@ export default function PWAConflictModal({ show, onClose }: PWAConflictModalProp
 
 
                     <p className="pwa-conflict-description">
-                        <strong>백그라운드에 댄스빌보드 앱이 실행 중입니다.</strong><br />
-                        브라우저와 앱 중 하나를 종료해야 정상 작동합니다.<br />
-                        하나를 종료하고 계속 이용해 주세요.
+                        <strong>댄스빌보드 앱과 모바일 브라우저는 중복 실행 시 충돌 가능성이 있습니다.</strong><br />
+                        둘 중 하나를 종료하고 사용하셔야 합니다.
                     </p>
 
                     <div className="pwa-conflict-buttons">

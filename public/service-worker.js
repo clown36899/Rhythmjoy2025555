@@ -1,5 +1,5 @@
 // 빌보드 PWA 서비스 워커
-const CACHE_NAME = 'billboard-cache-v2';
+const CACHE_NAME = 'billboard-cache-v3';
 const urlsToCache = [
   '/',
   '/icon-192.png',
@@ -41,15 +41,16 @@ self.addEventListener('fetch', (event) => {
 
   // [근본 해결] 인증 및 주요 API 요청은 서비스 워커가 아예 개입하지 않음
   // 1. 도메인 기반 제외: Supabase, Kakao (API 도메인 전체)
-  // 2. 경로 기반 제외: /auth/ 경로는 무조건 제외 (세션 갱신 등)
+  // 2. 경로 기반 제외: /auth/, /realtime/ 경로는 무조건 제외 (세션 갱신, WebSocket 등)
   // 3. 헤더 기반 제외: apikey, Authorization 헤더가 있으면 API 요청임
   const isSupabase = url.hostname.includes('supabase.co');
   const isKakao = url.hostname.includes('kakao.com') || url.hostname.includes('kakaocdn.net');
   const isNetlifyFunc = url.pathname.includes('/.netlify/functions/');
   const isAuthPath = url.pathname.includes('/auth/');
+  const isRealtimePath = url.pathname.includes('/realtime/'); // WebSocket 연결 제외
 
   // API 요청 여부 확인
-  const isApiRequest = isSupabase || isKakao || isNetlifyFunc || isAuthPath ||
+  const isApiRequest = isSupabase || isKakao || isNetlifyFunc || isAuthPath || isRealtimePath ||
     event.request.headers.has('apikey') ||
     event.request.headers.has('Authorization');
 
