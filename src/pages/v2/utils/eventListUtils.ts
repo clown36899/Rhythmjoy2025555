@@ -20,7 +20,26 @@ export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'or
     event_dates?: string[];
 }
 
+export interface GenreWeightSettings {
+    [genre: string]: number;
+}
+
 export const CLUB_LESSON_GENRE = '동호회강습';
+
+// Default Weights (Fallback)
+export const DEFAULT_GENRE_WEIGHTS: GenreWeightSettings = {
+    "린디합": 1.0,
+    "지터벅": 1.0,
+    "솔로재즈": 1.0,
+    "정규강습": 1.0,
+    "발보아": 1.0,
+    "블루스": 1.0,
+    "탭댄스": 1.0,
+    "웨스트코스트스윙": 1.0,
+    "부기우기": 1.0,
+    "샤그": 1.0,
+    "기타": 1.0
+};
 
 // 한국 시간(KST) 기준 날짜 문자열 반환 (YYYY-MM-DD) - 절대적인 수동 방식
 export const getLocalDateString = (date: Date = new Date()) => {
@@ -64,7 +83,9 @@ export const seededRandom = (seed: number) => {
 export const sortEvents = (
     eventsToSort: Event[],
     sortType: string,
-    isYearView: boolean = false
+    isYearView: boolean = false,
+    genreWeights: GenreWeightSettings | null = null, // Optional weights
+    applyGenreWeights: boolean = false
 ) => {
     const eventsCopy = [...eventsToSort];
     const today = getLocalDateString();
@@ -104,12 +125,34 @@ export const sortEvents = (
                 const seed = Date.now() + Math.floor(Math.random() * 1000000);
                 const random = seededRandom(seed);
 
-                const shuffled = [...group];
-                for (let i = shuffled.length - 1; i > 0; i--) {
-                    const j = Math.floor(random() * (i + 1));
-                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                if (applyGenreWeights && genreWeights) {
+                    // Weighted Shuffle (Efraimidis-Spirakis)
+                    // k_i = u_i ^ (1 / w_i)
+                    // Sort by k_i descending
+                    return [...group].map(event => {
+                        // Extract first/main genre for weighting
+                        const eventGenre = event.genre ? event.genre.split(',')[0].trim() : '기타';
+                        const weight = genreWeights[eventGenre] || 1.0;
+                        const u = random(); // Uniform(0,1)
+                        // Avoid division by zero or negative weights
+                        const safeWeight = weight > 0 ? weight : 0.0001;
+                        const score = Math.pow(u, 1 / safeWeight);
+
+                        return { event, score };
+                    })
+                        .sort((a, b) => b.score - a.score)
+                        .map(item => item.event);
+
+                } else {
+                    // Standard Fisher-Yates Shuffle (Uniform)
+                    const shuffled = [...group];
+                    for (let i = shuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(random() * (i + 1));
+                        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                    }
+                    return shuffled;
                 }
-                return shuffled;
+                return []; // Should not reach here, but for type safety logic structure correction (above block returns)
             }
             case "time":
                 // 시간순 정렬 (날짜 + 시간) - 달 단위에서만 사용

@@ -645,12 +645,26 @@ export default memo(function EventRegistrationModal({
           } else {
             // Insert new event
             await retryOperation(async () => {
-              console.log("🆕 Inserting new event");
+              console.log("🆕 [INSERT] Attempting to insert new event");
+              console.log("📋 [INSERT] Event data:", JSON.stringify(eventData, null, 2));
+              console.log("👤 [INSERT] Current user ID:", user?.id);
+              console.log("🔑 [INSERT] Auth UID:", (await supabase.auth.getUser()).data.user?.id);
+
               const { data, error } = await supabase
                 .from("events")
                 .insert([eventData])
                 .select();
-              if (error) throw error;
+
+              if (error) {
+                console.error("❌ [INSERT] Insert failed with error:", error);
+                console.error("❌ [INSERT] Error code:", error.code);
+                console.error("❌ [INSERT] Error message:", error.message);
+                console.error("❌ [INSERT] Error details:", error.details);
+                console.error("❌ [INSERT] Error hint:", error.hint);
+                throw error;
+              }
+
+              console.log("✅ [INSERT] Insert successful! Result:", data);
               resultData = data;
             });
           }

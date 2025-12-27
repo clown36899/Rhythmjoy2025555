@@ -145,9 +145,7 @@
   /* Standard background */
 }
 
-.standard-view .board-post-card:hover {
-  /* background-color: var(--color-gray-600); */
-}
+
 
 .standard-view .board-post-card-normal {
   background-color: #1a1a1a;

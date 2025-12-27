@@ -97,10 +97,13 @@ export default function EventDetailModal({
 
   // Draft State for Local Edits
   const [draftEvent, setDraftEvent] = useState<Event | null>(event);
+  // Source of truth for change detection (tracks full details fetched from DB)
+  const [originalEvent, setOriginalEvent] = useState<Event | null>(event);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
 
   useEffect(() => {
     setDraftEvent(event);
+    setOriginalEvent(event); // Reset baseline to prop
 
     // On-Demand Fetching: description이나 link1이 없으면 상세 데이터 조회
     if (event?.id && (event.description === undefined || event.link1 === undefined)) {
@@ -117,7 +120,10 @@ export default function EventDetailModal({
             .maybeSingle();
 
           if (!error && data) {
-            setDraftEvent(prev => ({ ...(prev || event), ...(data as any) } as Event));
+            // Merge prop with fetched data
+            const fullEvent = { ...event, ...(data as any) } as Event;
+            setDraftEvent(fullEvent);
+            setOriginalEvent(fullEvent); // Update baseline to full data
 
             // 조인된 데이터에서 닉네임 추출
             const nickname = (data as any).board_users?.nickname;
@@ -131,7 +137,7 @@ export default function EventDetailModal({
       };
       fetchDetail();
     }
-  }, [event]);
+  }, [event, isAdminMode]);
 
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
@@ -180,7 +186,7 @@ export default function EventDetailModal({
     }
   }, [highResSrc, thumbnailSrc]);
   // Enable mobile back gesture to close modal
-  useModalHistory(isOpen, onClose);
+  // useModalHistory(isOpen, onClose);
 
   // Analytics: Log virtual page view for better reporting (Pages and Screens)
   useEffect(() => {
@@ -208,9 +214,7 @@ export default function EventDetailModal({
       setOriginalImageUrl(null); // 원본 이미지 URL 리셋
     }
   }, [isOpen, event]);
-  useEffect(() => {
-    setDraftEvent(event);
-  }, [event]);
+
 
 
   // Image Edit State
@@ -394,7 +398,7 @@ export default function EventDetailModal({
       return ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
     }
     if (editCategory === 'club') {
-      return ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
+      return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
     }
 
     // Fallback for other potential categories (though currently only event/class exist)
@@ -411,7 +415,7 @@ export default function EventDetailModal({
       if (activeEditField === 'title') setEditValue(draftEvent.title);
       if (activeEditField === 'genre') {
         setEditValue(draftEvent.genre || '');
-        setEditCategory(draftEvent.category === 'class' ? 'class' : 'event');
+        setEditCategory((draftEvent.category === 'class' || draftEvent.category === 'club') ? draftEvent.category : 'event');
         // setUseDirectInput(false); // Removed
       }
       // Location moved to VenueSelectModal
@@ -453,6 +457,11 @@ export default function EventDetailModal({
   const handleSaveField = () => {
     if (!draftEvent || !activeEditField) return;
 
+    console.log('[Debug] handleSaveField triggered');
+    console.log(' - activeEditField:', activeEditField);
+    console.log(' - editValue:', editValue);
+    console.log(' - editCategory:', editCategory);
+
     const updates: Partial<Event> = {};
 
     if (activeEditField === 'title') updates.title = editValue;
@@ -481,24 +490,34 @@ export default function EventDetailModal({
     // 이미지 변경 확인
     if (imageFile) return true;
 
+    // Helper to normalize values for comparison (treat null/undefined/empty string as same)
+    const normalize = (val: any) => {
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'string') return val.trim();
+      return val;
+    };
+
     // 필드 변경 확인
     const fieldsToCheck = [
       'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category',
       'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3'
     ];
+
     return fieldsToCheck.some(field => {
-      const originalValue = event[field as keyof Event];
+      // Use originalEvent (fetched full data) instead of event (partial prop)
+      const originalValue = originalEvent ? originalEvent[field as keyof Event] : event[field as keyof Event];
       const draftValue = draftEvent[field as keyof Event];
-      // null vs undefined vs empty string check could be needed but direct comparison usually works if initialized consistent
-      // Treat null, undefined, empty string as equivalent for comparison if needed, but strict equality is safer for now
-      return originalValue !== draftValue;
+
+      const isChanged = normalize(originalValue) !== normalize(draftValue);
+      return isChanged;
     });
   };
 
   const handleFinalSave = async () => {
     if (!draftEvent) return;
 
-
+    console.log('[Debug] handleFinalSave triggered');
+    console.log(' - draftEvent state:', draftEvent);
 
     try {
       setIsSaving(true);
@@ -524,6 +543,8 @@ export default function EventDetailModal({
         link3: draftEvent.link3,
         link_name3: draftEvent.link_name3
       };
+
+      console.log(' - Payload to Supabase:', updates);
 
       // Upload image if changed
       if (imageFile) {
@@ -598,35 +619,90 @@ export default function EventDetailModal({
         updates.image_micro = microUrl;
       }
 
-      // DB Update
-      const { error } = await supabase
+      // DB Update - Get updated data directly from the update query
+      const { data: updatedEvent, error } = await supabase
         .from('events')
         .update(updates)
-        .eq('id', draftEvent.id);
-
-      if (error) throw error;
-
-      // 업데이트된 이벤트 데이터를 가져오기
-      const { data: updatedEvent } = await supabase
-        .from('events')
-        .select('*')
         .eq('id', draftEvent.id)
+        .select()
         .single();
 
+      if (error) {
+        console.error('[Error] Supabase update failed:', error);
+        throw error;
+      }
+
+      console.log('[Debug] Supabase update success');
+      console.log(' - Updated event from DB:', updatedEvent);
+
+      // Verify if updates were actually applied
+      if (updatedEvent) {
+        console.log('[Debug] Verifying update application:');
+        console.log(` - Genre: Payload '${updates.genre}' vs DB '${updatedEvent.genre}'`);
+        console.log(` - Category: Payload '${updates.category}' vs DB '${updatedEvent.category}'`);
+
+        if (updates.genre !== updatedEvent.genre) {
+          console.warn('⚠️ CRITICAL: Genre update was NOT reflected in the DB response!');
+        }
+        if (updates.category !== updatedEvent.category) {
+          // Attempt Force Update for Category
+          const { data: retryData, error: retryError } = await supabase
+            .from('events')
+            .update({ category: updates.category })
+            .eq('id', draftEvent.id)
+            .select()
+            .single();
+
+          if (!retryError && retryData && retryData.category === updates.category) {
+            console.log('✅ Force update SUCCEEDED! Category is now:', retryData.category);
+            // Correct the local event data reference
+            const event = new CustomEvent("eventUpdated", {
+              detail: {
+                id: draftEvent.id,
+                event: retryData
+              }
+            });
+            window.dispatchEvent(event);
+            setIsSaving(false);
+
+            // Stay in modal, just exit edit mode
+            setIsSelectionMode(false);
+            setDraftEvent(retryData); // Update draft to new data
+            setOriginalEvent(retryData); // Update baseline
+            setImageFile(null);
+            setTempImageSrc(null);
+            setOriginalImageUrl(null);
+            return;
+          }
+        }
+      }
+
+      // Dispatch update event so list updates immediately
       window.dispatchEvent(new CustomEvent('eventUpdated', {
         detail: {
           id: draftEvent.id,
           event: updatedEvent || draftEvent // 업데이트된 전체 이벤트 데이터
         }
       }));
+      setIsSaving(false);
+
+      // Stay in modal, just exit edit mode
       setIsSelectionMode(false);
+      // Update local state to reflect saved data immediately
+      if (updatedEvent) {
+        setDraftEvent(updatedEvent);
+        setOriginalEvent(updatedEvent);
+      }
+
       setImageFile(null);
       setTempImageSrc(null);
+      setOriginalImageUrl(null); // 원본 이미지 URL 리셋
       alert('저장되었습니다.');
 
     } catch (error) {
-      console.error('Save failed:', error);
-      alert('저장에 실패했습니다.');
+      console.error('Error saving event:', error);
+      setIsSaving(false);
+      alert('저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }

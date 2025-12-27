@@ -38,6 +38,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const colorSettingsModal = useModal('colorSettings');
     const invitationModal = useModal('invitationManagement');
     const onlineUsersModal = useModal('onlineUsers');
+    const genreWeightSettingsModal = useModal('genreWeightSettings');
 
     // Derive display values from userProfile or fallback to user metadata
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
@@ -245,6 +246,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                     <div className="drawer-submenu-item" onClick={() => { invitationModal.open(); }}>
                                         <i className="ri-mail-send-line"></i>
                                         <span>초대 관리</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => { genreWeightSettingsModal.open(); }}>
+                                        <i className="ri-equalizer-line"></i>
+                                        <span>강습 노출 확률 설정</span>
                                     </div>
                                     <div className="drawer-submenu-item" onClick={() => { onlineUsersModal.open(); }}>
                                         <i className="ri-user-line"></i>

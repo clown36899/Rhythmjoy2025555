@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
 import { createResizedImages } from "../../../utils/imageResize";
-import { getLocalDateString, getKSTDay, sortEvents, isEventMatchingFilter, CLUB_LESSON_GENRE } from "../utils/eventListUtils";
+import { getLocalDateString, getKSTDay, sortEvents, isEventMatchingFilter, CLUB_LESSON_GENRE, DEFAULT_GENRE_WEIGHTS, type GenreWeightSettings } from "../utils/eventListUtils";
 import { useModal } from "../../../hooks/useModal";
 import { logEvent } from "../../../lib/analytics";
 import { HorizontalScrollNav } from "./HorizontalScrollNav";
@@ -11,6 +11,8 @@ import { HorizontalScrollNav } from "./HorizontalScrollNav";
 // 컴포넌트 리마운트 시에도 순서 유지를 위한 전역 변수
 let globalLastSortedEvents: Event[] = [];
 let globalLastFutureClasses: Event[] = [];
+// Cache weights globally to avoid refetch on every mount/navigation
+let globalGenreWeights: GenreWeightSettings | null = null;
 
 import type { Event } from "../utils/eventListUtils";
 import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
@@ -180,6 +182,41 @@ export default function EventList({
 
   // selectedEvent removed - delegated to props
 
+  const [genreWeights, setGenreWeights] = useState<GenreWeightSettings | null>(globalGenreWeights);
+
+  // Load Genre Weights
+  useEffect(() => {
+    // If we have global cache, use it (we might want to revalidate in background, but keeping it simple for now)
+    if (globalGenreWeights) {
+      setGenreWeights(globalGenreWeights);
+    }
+
+    const loadGenreWeights = async () => {
+      try {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'genre_weights')
+          .maybeSingle();
+
+        if (data && data.value) {
+          // Merge with defaults to ensure safety
+          const merged = { ...DEFAULT_GENRE_WEIGHTS, ...data.value };
+          setGenreWeights(merged);
+          globalGenreWeights = merged;
+        } else {
+          // If no settings found, use defaults
+          setGenreWeights(DEFAULT_GENRE_WEIGHTS);
+          globalGenreWeights = DEFAULT_GENRE_WEIGHTS;
+        }
+      } catch (e) {
+        console.error('Failed to load genre weights', e);
+      }
+    };
+
+    // Always try to load fresh on mount if standard page visit
+    loadGenreWeights();
+  }, []);
   const [events, setEvents] = useState<Event[]>([]);
   const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
   const isPartialUpdate = useRef(false); // 부분 업데이트 플래그
@@ -1683,42 +1720,48 @@ export default function EventList({
       const day = String(now.getDate()).padStart(2, "0");
       const today = `${year}-${month}-${day}`;
 
-      // 업데이트된 이벤트를 찾아서 교체하고, 필터 조건 재적용
-      const updated = globalLastFutureClasses
+      // 1. 기존 목록 업데이트 (Update & Remove)
+      let updatedList = globalLastFutureClasses
         .map((event: Event) => {
           const newEvent = events.find(e => e.id === event.id);
           return newEvent || event;
         })
         .filter(event => {
           // Re-apply category filter - remove events that changed category
+          // Note: 'club' category events are also processed here initially and then split later
           if (event.category !== 'class' && event.category !== 'club') return false;
 
           const startDate = event.start_date || event.date;
           if (!startDate || startDate < today) return false;
 
-          // Genre filter는 분리 단계에서 적용 (여기서는 제거)
-
           return true;
         });
 
-      // Also check for newly added events that match the filter
-      const existingIds = new Set(globalLastFutureClasses.map((e: Event) => e.id));
-      const newMatchingEvents = events.filter(event => {
-        if (existingIds.has(event.id)) return false;
-        if (event.category !== 'class' && event.category !== 'club') return false;
-
-        const startDate = event.start_date || event.date;
-        if (!startDate || startDate < today) return false;
-        // Genre filter는 분리 단계에서 적용 (여기서는 제거)
-
+      // 2. 새로운 항목 추가 (Add - e.g. Category changed TO class/club)
+      // 부분 업데이트된 이벤트가 목록에 없고, 조건에 맞다면 추가해야 함
+      // events 배열에서 최근 변경된(혹은 전체) 이벤트를 스캔하여 누락된 항목 추가
+      const existingIds = new Set(updatedList.map(e => e.id));
+      const missingEvents = events.filter(e => {
+        if (existingIds.has(e.id)) return false; // 이미 있음
+        if (e.category !== 'class' && e.category !== 'club') return false; // 카테고리 불일치
+        const startDate = e.start_date || e.date;
+        if (!startDate || startDate < today) return false; // 날짜 지남
         return true;
       });
 
-      const result = [...updated, ...newMatchingEvents];
-      console.log('[📋 futureClasses] 업데이트 후 배열:', result.map((e: Event) => e.id));
-      globalLastFutureClasses = result;
-      return result;
+      if (missingEvents.length > 0) {
+        console.log('[📋 futureClasses] 카테고리/날짜 변경으로 새로 진입한 이벤트 추가:', missingEvents.map(e => e.title));
+        updatedList = [...updatedList, ...missingEvents];
+        // 정렬은 아래 sortEvents에서 처리됨
+      }
+
+      // 3. 정렬 및 전역 변수 업데이트
+      const sorted = sortEvents(updatedList, 'random', false, genreWeights, true);
+      globalLastFutureClasses = sorted;
+      return sorted;
     }
+
+    // Genre filter는 분리 단계에서 적용 (여기서는 제거)
 
     // const today = new Date().toISOString().split('T')[0];
     const today = getLocalDateString();
@@ -1740,8 +1783,8 @@ export default function EventList({
       return true;
     });
 
-    // 3. Use the improved random sorting
-    let sortedResult = sortEvents(result, 'random');
+    // 3. Use the improved random sorting with WEIGHTS
+    let sortedResult = sortEvents(result, 'random', false, genreWeights, true);
 
     if (highlightEvent?.id) {
       sortedResult.sort((a, b) => {
@@ -1753,20 +1796,32 @@ export default function EventList({
 
     globalLastFutureClasses = sortedResult;
     return sortedResult;
-  }, [events, selectedGenre, highlightEvent]);
+  }, [events, highlightEvent, genreWeights]);
 
   // 분리: 동호회 강습 vs 일반 강습 (각각 장르 필터 적용)
-  const { regularClasses, clubLessons } = useMemo(() => {
+  const { regularClasses, clubLessons, clubRegularClasses } = useMemo(() => {
     const regular: Event[] = [];
     const club: Event[] = [];
+    const clubRegular: Event[] = [];
 
     futureClasses.forEach(evt => {
       if (evt.category === 'club') {
-        // 동호회 장르 필터 적용
-        if (!selectedClubGenre || evt.genre === selectedClubGenre) {
-          club.push(evt);
+        console.log('[DEBUG] Club event found:', evt.title, '| genre:', evt.genre, '| isRegular:', evt.genre?.includes('정규강습'));
+        const isRegular = evt.genre?.includes('정규강습');
+
+        // 정규강습 분리 (동호회 카테고리 내에서) - 필터 무시하고 항상 표시
+        if (isRegular) {
+          clubRegular.push(evt);
+        } else {
+          // 그 외 동호회 강습 - 필터 적용
+          if (!selectedClubGenre || selectedClubGenre === '전체') {
+            club.push(evt);
+          } else if (evt.genre === selectedClubGenre) {
+            club.push(evt);
+          }
         }
       } else if (evt.category === 'class') {
+        // ... existing class logic
         // 강습 장르 필터 적용
         if (!selectedClassGenre || evt.genre === selectedClassGenre) {
           regular.push(evt);
@@ -1774,7 +1829,14 @@ export default function EventList({
       }
     });
 
-    return { regularClasses: regular, clubLessons: club };
+    const result = { regularClasses: regular, clubLessons: club, clubRegularClasses: clubRegular };
+
+    console.log('[DEBUG] 분리 결과:');
+    console.log('  - regularClasses (강습):', regular.length, regular.map(e => e.title));
+    console.log('  - clubLessons (동호회):', club.length, club.map(e => e.title));
+    console.log('  - clubRegularClasses (정규강습):', clubRegular.length, clubRegular.map(e => e.title));
+
+    return result;
   }, [futureClasses, selectedClassGenre, selectedClubGenre]);
 
   // 장르 목록 추출 (진행중인 강습만)
@@ -3617,6 +3679,104 @@ export default function EventList({
                 )}
 
               </div>
+
+              {/* Section 2.5: 동호회 강습 (Horizontal Scroll) */}
+              {clubLessons.length > 0 && (
+                <div className="evt-v2-section evt-v2-section-club-lessons">
+                  <div className="evt-v2-section-title">
+                    <span>동호회 강습</span>
+                    <span className="evt-v2-count">{clubLessons.length}</span>
+                  </div>
+
+                  {allGenresStructured.club.length > 0 && (
+                    <div className="evt-genre-tab-container">
+                      <button
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams);
+                          params.delete('club_genre');
+                          setSearchParams(params);
+                        }}
+                        className={`evt-genre-tab ${!selectedClubGenre ? 'active' : ''}`}
+                      >
+                        전체
+                      </button>
+                      {allGenresStructured.club
+                        .filter(genre => genre !== '정규강습')
+                        .map(genre => (
+                          <button
+                            key={genre}
+                            onClick={() => {
+                              const params = new URLSearchParams(searchParams);
+                              params.set('club_genre', genre);
+                              setSearchParams(params);
+                            }}
+                            className={`evt-genre-tab ${selectedClubGenre === genre ? 'active' : ''}`}
+                          >
+                            {genre}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+
+                  <HorizontalScrollNav>
+                    <div className="evt-v2-horizontal-scroll">
+                      <div className="evt-spacer-5"></div>
+                      {clubLessons.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => handleEventClick(event)}
+                          onMouseEnter={onEventHover}
+                          onMouseLeave={() => onEventHover?.(null)}
+                          isHighlighted={highlightEvent?.id === event.id}
+                          selectedDate={selectedDate}
+                          defaultThumbnailClass={defaultThumbnailClass}
+                          defaultThumbnailEvent={defaultThumbnailEvent}
+                          variant="sliding"
+                          hideGenre={true}
+                          isFavorite={effectiveFavoriteIds.has(event.id)}
+                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                      ))}
+                      <div className="evt-spacer-11"></div>
+                    </div>
+                  </HorizontalScrollNav>
+                </div>
+              )}
+
+              {/* Section 3: 동호회 정규강습 (Horizontal Scroll) */}
+              {clubRegularClasses.length > 0 && (
+                <div className="evt-v2-section evt-v2-section-regular-classes">
+                  <div className="evt-v2-section-title">
+                    <span>동호회 정규강습</span>
+                    <span className="evt-v2-count">{clubRegularClasses.length}</span>
+                  </div>
+
+                  <HorizontalScrollNav>
+                    <div className="evt-v2-horizontal-scroll">
+                      <div className="evt-spacer-5"></div>
+                      {clubRegularClasses.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => handleEventClick(event)}
+                          onMouseEnter={onEventHover}
+                          onMouseLeave={() => onEventHover?.(null)}
+                          isHighlighted={highlightEvent?.id === event.id}
+                          selectedDate={selectedDate}
+                          defaultThumbnailClass={defaultThumbnailClass}
+                          defaultThumbnailEvent={defaultThumbnailEvent}
+                          variant="sliding"
+                          hideGenre={true}
+                          isFavorite={effectiveFavoriteIds.has(event.id)}
+                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                      ))}
+                      <div className="evt-spacer-11"></div>
+                    </div>
+                  </HorizontalScrollNav>
+                </div>
+              )}
 
               {/* Section 3: 동호회 강습 (Horizontal Scroll) */}
               {clubLessons.length > 0 && (

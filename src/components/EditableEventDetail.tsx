@@ -651,7 +651,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                         </div>
                                                     ) : (
                                                         <div className="genre-grid">
-                                                            {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(g => {
+                                                            {['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(g => {
                                                                 const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
                                                                 const isActive = currentGenres.includes(g);
                                                                 return (
