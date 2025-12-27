@@ -1,5 +1,5 @@
 // 빌보드 PWA 서비스 워커
-const CACHE_NAME = 'billboard-cache-v3';
+const CACHE_NAME = 'billboard-cache-v4';
 const urlsToCache = [
   '/',
   '/icon-192.png',
@@ -57,8 +57,9 @@ self.addEventListener('fetch', (event) => {
   // Supabase Storage 이미지 요청이면 캐싱 로직으로 보냄
   const isStorageImage = url.pathname.includes('/storage/v1/object/public/images/');
 
-  // 인증 요청은 무조건 바이패스
+  // 인증/API 요청은 Service Worker를 거치지 않고 직접 네트워크로
   if (isApiRequest && !isStorageImage) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
