@@ -8,6 +8,17 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.23.0',
+        date: '2025-12-27',
+        changes: [
+            '[PWA] 중복 실행 자동 감지 시스템 추가 (Broadcast Channel API)',
+            '[PWA] 충돌 안내 모달 개선 (명확한 안내 문구, 앱 이동 전용)',
+            '[Fix] 소셜 일정 타입 오류 수정',
+            '[Fix] 데이터 로딩 타임아웃 감지 범위 확대',
+            '[UX] PWA 모달 개선 (취소 버튼 제거, 종료 안내 추가)'
+        ]
+    },
+    {
         version: '2.22.1',
         date: '2025-12-27',
         changes: [
