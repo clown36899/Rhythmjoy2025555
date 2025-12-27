@@ -1,0 +1,66 @@
+import { createPortal } from 'react-dom';
+import QuickMemoEditor from './QuickMemoEditor';
+import { useModalHistory } from '../../../hooks/useModalHistory';
+
+interface AnonymousWriteModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    category: string;
+    onPostCreated: () => void;
+    isAdmin?: boolean;
+}
+
+export default function AnonymousWriteModal({
+    isOpen,
+    onClose,
+    category,
+    onPostCreated,
+    isAdmin = false
+}: AnonymousWriteModalProps) {
+    // Enable back gesture - called inside the component while it is mounted
+    useModalHistory(isOpen, onClose);
+
+    if (!isOpen) return null;
+
+    return createPortal(
+        <div
+            className="anonymous-write-modal-overlay"
+            onClick={onClose}
+            style={{
+                display: 'flex',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                zIndex: 1000,
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}
+        >
+            <div className="anonymous-write-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="anonymous-modal-header">
+                    <button
+                        className="anonymous-modal-close"
+                        onClick={onClose}
+                    >
+                        <i className="ri-arrow-left-line"></i>
+                    </button>
+                    <span className="anonymous-modal-title">익명 글쓰기</span>
+                </div>
+                <QuickMemoEditor
+                    isOpen={true} // Always true since the modal wrapper handles visibility
+                    onClose={onClose}
+                    onPostCreated={onPostCreated}
+                    category={category}
+                    editData={null}
+                    onCancelEdit={onClose}
+                    isAdmin={isAdmin}
+                    className="modal-mode"
+                />
+            </div>
+        </div>,
+        document.body
+    );
+}

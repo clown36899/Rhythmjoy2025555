@@ -10,7 +10,7 @@ import UniversalPostEditor from './components/UniversalPostEditor';
 import BoardManagementModal from './components/BoardManagementModal';
 import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
 import DevLog from './components/DevLog';
-import QuickMemoEditor from './components/QuickMemoEditor';
+import AnonymousWriteModal from './components/AnonymousWriteModal';
 import BoardDetailModal from './components/BoardDetailModal';
 import { useModal } from '../../hooks/useModal';
 import './board.css';
@@ -231,33 +231,6 @@ export default function BoardMainContainer() {
                                 <span>익명으로 글쓰기...</span>
                             </div>
                         </div>
-
-                        {writeModal.isOpen && (
-                            <div className="anonymous-write-modal-overlay" onClick={() => writeModal.close()}>
-                                <div className="anonymous-write-modal-content" onClick={e => e.stopPropagation()}>
-                                    <div className="anonymous-modal-header">
-                                        <button
-                                            className="anonymous-modal-close"
-                                            onClick={() => writeModal.close()}
-                                        >
-                                            <i className="ri-arrow-left-line"></i>
-                                        </button>
-                                        <span className="anonymous-modal-title">익명 글쓰기</span>
-                                    </div>
-                                    <QuickMemoEditor
-                                        onPostCreated={() => {
-                                            loadPosts();
-                                            writeModal.close();
-                                        }}
-                                        category={category}
-                                        editData={null}
-                                        onCancelEdit={() => writeModal.close()}
-                                        isAdmin={isRealAdmin}
-                                        className="modal-mode"
-                                    />
-                                </div>
-                            </div>
-                        )}
                     </>
                 )}
 
@@ -369,15 +342,25 @@ export default function BoardMainContainer() {
                 </div>
             )}
 
-            {editorModal.isOpen && (
-                <UniversalPostEditor
-                    isOpen={editorModal.isOpen}
-                    onClose={() => editorModal.close()}
-                    onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); }}
-                    category={category}
-                    userNickname={user?.user_metadata?.name}
-                />
-            )}
+            <UniversalPostEditor
+                isOpen={editorModal.isOpen}
+                onClose={() => editorModal.close()}
+                onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); }}
+                category={category}
+                userNickname={user?.user_metadata?.name}
+            />
+
+            {/* Anonymous Write Modal - Always mounted component that handles its own visibility */}
+            <AnonymousWriteModal
+                isOpen={writeModal.isOpen}
+                onClose={() => writeModal.close()}
+                onPostCreated={() => {
+                    loadPosts();
+                    writeModal.close();
+                }}
+                category={category}
+                isAdmin={isRealAdmin}
+            />
 
             {isManagementOpen && (
                 <BoardManagementModal

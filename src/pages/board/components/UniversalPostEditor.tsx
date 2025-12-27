@@ -7,6 +7,7 @@ import type { BoardPrefix } from '../../../components/BoardPrefixManagementModal
 import { type BoardCategory } from './BoardTabBar';
 import { createResizedImages } from '../../../utils/imageResize';
 import { retryOperation } from '../../../utils/asyncUtils';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 import './PostEditorModal.css'; // Reusing existing styles for consistency
 import './UniversalPostEditor.css'; // New styles for image area
 
@@ -27,6 +28,9 @@ export default function UniversalPostEditor({
     userNickname,
     category
 }: UniversalPostEditorProps) {
+    // Enable back gesture
+    useModalHistory(isOpen, onClose);
+
     const { isAdmin, user, signInWithKakao } = useAuth();
     const handleLogin = () => signInWithKakao();
 

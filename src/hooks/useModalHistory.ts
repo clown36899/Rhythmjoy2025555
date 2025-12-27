@@ -9,6 +9,12 @@ import { useEffect, useRef } from 'react';
  */
 export function useModalHistory(isOpen: boolean, onClose: () => void) {
     const hasHistoryRef = useRef(false);
+    const onCloseRef = useRef(onClose);
+
+    // Update the ref whenever onClose changes
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
 
     useEffect(() => {
         if (isOpen && !hasHistoryRef.current) {
@@ -18,7 +24,9 @@ export function useModalHistory(isOpen: boolean, onClose: () => void) {
 
             // Handle popstate (back button/gesture)
             const handlePopState = () => {
-                onClose();
+                if (onCloseRef.current) {
+                    onCloseRef.current();
+                }
             };
 
             window.addEventListener('popstate', handlePopState);
@@ -27,8 +35,6 @@ export function useModalHistory(isOpen: boolean, onClose: () => void) {
                 window.removeEventListener('popstate', handlePopState);
                 hasHistoryRef.current = false;
             };
-        } else if (!isOpen && hasHistoryRef.current) {
-            hasHistoryRef.current = false;
         }
-    }, [isOpen, onClose]);
+    }, [isOpen]);
 }
