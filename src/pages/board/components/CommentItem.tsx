@@ -24,6 +24,11 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
         checkUserInteraction();
     }, [user, comment.id]);
 
+    // Sync local state with props when parent updates (Realtime/Optimistic)
+    useEffect(() => {
+        setComment(initialComment);
+    }, [initialComment]);
+
     const checkUserInteraction = async () => {
         const fingerprint = getStableFingerprint();
 
