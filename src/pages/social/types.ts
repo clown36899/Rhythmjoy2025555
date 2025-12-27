@@ -50,14 +50,24 @@ export interface UnifiedSocialEvent {
   id: string; // 'schedule-123' 형태 상속
   originalId: number;
   title: string;
-  date: string;
+  date?: string;
+  dayOfWeek?: number;
+  startTime?: string;
   time?: string;
   place_name?: string;
+  placeName?: string; // Alias for consistency
   type: 'social';
   image_url?: string;
+  imageUrl?: string; // Alias
   image_thumbnail?: string;
+  imageUrlThumbnail?: string; // Alias
   image_medium?: string;
-  group_id: number;
+  group_id?: number;
+  venueId?: number;
+  inquiryContact?: string;
+  linkName?: string;
+  linkUrl?: string;
+  description?: string;
   author_nickname?: string;
   created_at?: string;
 }

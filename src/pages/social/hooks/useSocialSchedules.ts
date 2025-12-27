@@ -22,7 +22,7 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
 
     return {
         id: `schedule-${schedule.id}`,
-        type: 'schedule',
+        type: 'social',
         originalId: schedule.id,
         title: schedule.title,
         dayOfWeek: dow,
@@ -95,14 +95,14 @@ export function useSocialSchedules() {
         const updatedEvent = mapScheduleToEvent(scheduleData);
         if (updatedEvent) {
             setEvents(prev => prev.map(e =>
-                (e.type === 'schedule' && e.originalId === updatedEvent.originalId) ? updatedEvent : e
+                (e.type === 'social' && e.originalId === updatedEvent.originalId) ? updatedEvent : e
             ));
         }
     }, []);
 
     const deleteLocalEvent = useCallback((originalId: number) => {
         setEvents(prev => prev.filter(e =>
-            !(e.type === 'schedule' && e.originalId === originalId)
+            !(e.type === 'social' && e.originalId === originalId)
         ));
     }, []);
 

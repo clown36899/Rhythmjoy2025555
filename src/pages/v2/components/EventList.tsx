@@ -50,6 +50,7 @@ import "../../practice/components/PracticeRoomList.css";
 import "../../shopping/components/shopcard.css";
 import GlobalLoadingOverlay from "../../../components/GlobalLoadingOverlay";
 import PWAConflictModal from "../../../components/PWAConflictModal";
+import { usePWADuplicateDetection } from "../../../hooks/usePWADuplicateDetection";
 
 registerLocale("ko", ko);
 
@@ -188,6 +189,17 @@ export default function EventList({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showPWAConflict, setShowPWAConflict] = useState(false);
+
+  // PWA 중복 실행 감지
+  const isPWADuplicate = usePWADuplicateDetection();
+
+  // PWA 중복 감지 시 모달 표시
+  useEffect(() => {
+    if (isPWADuplicate) {
+      console.warn('[EventList] 🔴 PWA duplicate detected - showing conflict modal');
+      setShowPWAConflict(true);
+    }
+  }, [isPWADuplicate]);
 
   // 컴포넌트 마운트 감지
   useEffect(() => {
@@ -1065,8 +1077,12 @@ export default function EventList({
       setEvents([]);
 
       // 타임아웃 발생 시 PWA 충돌 가능성 안내
-      if (errorMessage.includes("시간 초과")) {
-        console.warn("[EventList] ⏱️ Timeout detected - possible PWA conflict");
+      // "데이터 로딩 시간 초과 (10초)" 또는 "timeout" 또는 "Network Error" 등 다양한 케이스 커버
+      if (errorMessage.includes("시간 초과") ||
+        errorMessage.includes("timeout") ||
+        errorMessage.includes("Time-out") ||
+        errorMessage.includes("데이터를 불러올 수 없습니다")) {
+        console.warn(`[EventList] ⏱️ Timeout/Error detected (${errorMessage}) - Triggering PWA conflict modal`);
         setShowPWAConflict(true);
       }
     } finally {

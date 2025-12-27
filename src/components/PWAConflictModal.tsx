@@ -36,7 +36,6 @@ export default function PWAConflictModal({ show, onClose }: PWAConflictModalProp
     return (
         <div
             className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn"
-            onClick={onClose}
         >
             <div
                 ref={modalRef}
@@ -53,8 +52,9 @@ export default function PWAConflictModal({ show, onClose }: PWAConflictModalProp
                     </h3>
 
                     <p className="text-gray-300 text-sm mb-6 leading-relaxed">
-                        현재 브라우저 환경에서 접속 불안정이 감지되었습니다.<br />
-                        설치된 <strong>댄스빌보드 앱</strong>으로 이동하시겠습니까?
+                        <strong>백그라운드에 댄스빌보드 앱이 실행 중입니다.</strong><br />
+                        브라우저와 앱 중 하나를 종료해야 정상 작동합니다.<br />
+                        앱으로 이동하여 계속 이용해 주세요.
                     </p>
 
                     <div className="flex flex-col gap-3">
@@ -64,13 +64,6 @@ export default function PWAConflictModal({ show, onClose }: PWAConflictModalProp
                         >
                             <span>앱으로 이동하기</span>
                             <i className="ri-arrow-right-line"></i>
-                        </button>
-
-                        <button
-                            onClick={onClose}
-                            className="w-full py-3 px-4 bg-gray-800 hover:bg-gray-700 text-gray-400 font-medium rounded-lg transition-colors"
-                        >
-                            브라우저에서 계속하기
                         </button>
                     </div>
                 </div>
