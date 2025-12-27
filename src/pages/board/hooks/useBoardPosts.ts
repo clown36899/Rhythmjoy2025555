@@ -114,8 +114,8 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 {
                     event: '*',
                     schema: 'public',
-                    table: table,
-                    filter: category === 'anonymous' ? undefined : `category=eq.${category}`
+                    table: table
+                    // filter: DELETE 이벤트는 ID만 반환하므로 필터를 걸면 감지되지 않음. 필터 제거.
                 },
                 () => {
                     console.log(`[Realtime] Board post changed in ${category}`);
