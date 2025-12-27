@@ -397,7 +397,7 @@ export default function UniversalPostEditor({
                         {formData.category === 'market' ? '벼룩시장 글쓰기' : '글쓰기'}
                     </h2>
                     <button onClick={onClose} className="pem-close-btn">
-                        <i className="ri-close-line pem-close-icon"></i>
+                        <i className="ri-arrow-left-line pem-close-icon"></i>
                     </button>
                 </div>
 

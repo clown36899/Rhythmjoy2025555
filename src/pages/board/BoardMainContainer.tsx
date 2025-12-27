@@ -12,6 +12,7 @@ import BoardPrefixManagementModal from '../../components/BoardPrefixManagementMo
 import DevLog from './components/DevLog';
 import QuickMemoEditor from './components/QuickMemoEditor';
 import BoardDetailModal from './components/BoardDetailModal';
+import { useModal } from '../../hooks/useModal';
 import './board.css';
 
 // Hooks
@@ -28,8 +29,16 @@ export default function BoardMainContainer() {
     // State
     const category = (searchParams.get('category') as BoardCategory) || 'free';
     const selectedPostId = searchParams.get('postId');
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [postsPerPage] = useState(10);
+
+    // Ensure category is always in URL to prevent back navigation issues
+    useEffect(() => {
+        if (!searchParams.get('category')) {
+            const params = new URLSearchParams(searchParams);
+            params.set('category', 'free');
+            setSearchParams(params, { replace: true }); // Don't create history entry
+        }
+    }, [searchParams, setSearchParams]);
 
     // Admin UI States
     const [showAdminMenu, setShowAdminMenu] = useState(false);
@@ -102,7 +111,7 @@ export default function BoardMainContainer() {
 
     // Handle Category Change
     const handleCategoryChange = (newCategory: BoardCategory) => {
-        setSearchParams({ category: newCategory });
+        setSearchParams({ category: newCategory }, { replace: true });
     };
 
     // Handle Post Click - Open Modal
@@ -121,16 +130,18 @@ export default function BoardMainContainer() {
 
 
 
-    const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
+    // Use global modal management
+    const writeModal = useModal('boardWriteModal');
+    const editorModal = useModal('boardEditorModal');
 
     // Global Write Event Listener
     useEffect(() => {
         const handleWriteClick = () => {
             if (category === 'anonymous') {
-                setIsWriteModalOpen(true);
+                writeModal.open();
                 return;
             }
-            setIsEditorOpen(true);
+            editorModal.open();
         };
         window.addEventListener('boardWriteClick', handleWriteClick);
         return () => window.removeEventListener('boardWriteClick', handleWriteClick);
@@ -185,7 +196,9 @@ export default function BoardMainContainer() {
         setTouchEnd(null);
         setTouchStart(e.targetTouches[0].clientX);
     };
-    const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
     const onTouchEnd = () => {
         if (!touchStart || !touchEnd) return;
         const distance = touchStart - touchEnd;
@@ -212,25 +225,33 @@ export default function BoardMainContainer() {
             >
                 {category === 'anonymous' && (
                     <>
-                        <div className="anonymous-write-trigger" onClick={() => setIsWriteModalOpen(true)}>
+                        <div className="anonymous-write-trigger" onClick={() => writeModal.open()}>
                             <div className="trigger-placeholder">
                                 <i className="ri-edit-2-fill"></i>
                                 <span>익명으로 글쓰기...</span>
                             </div>
                         </div>
 
-                        {isWriteModalOpen && (
-                            <div className="anonymous-write-modal-overlay" onClick={() => setIsWriteModalOpen(false)}>
+                        {writeModal.isOpen && (
+                            <div className="anonymous-write-modal-overlay" onClick={() => writeModal.close()}>
                                 <div className="anonymous-write-modal-content" onClick={e => e.stopPropagation()}>
-                                    <div className="modal-drag-handle"></div>
+                                    <div className="anonymous-modal-header">
+                                        <button
+                                            className="anonymous-modal-close"
+                                            onClick={() => writeModal.close()}
+                                        >
+                                            <i className="ri-arrow-left-line"></i>
+                                        </button>
+                                        <span className="anonymous-modal-title">익명 글쓰기</span>
+                                    </div>
                                     <QuickMemoEditor
                                         onPostCreated={() => {
                                             loadPosts();
-                                            setIsWriteModalOpen(false);
+                                            writeModal.close();
                                         }}
                                         category={category}
                                         editData={null}
-                                        onCancelEdit={() => setIsWriteModalOpen(false)}
+                                        onCancelEdit={() => writeModal.close()}
                                         isAdmin={isRealAdmin}
                                         className="modal-mode"
                                     />
@@ -270,7 +291,7 @@ export default function BoardMainContainer() {
                         dislikedPostIds={dislikedPostIds}
                         onToggleDislike={handleToggleDislike}
                         isAdmin={isRealAdmin}
-                        onWriteClick={() => setIsEditorOpen(true)}
+                        onWriteClick={() => editorModal.open()}
                     />
                 )}
 
@@ -348,11 +369,11 @@ export default function BoardMainContainer() {
                 </div>
             )}
 
-            {isEditorOpen && (
+            {editorModal.isOpen && (
                 <UniversalPostEditor
-                    isOpen={isEditorOpen}
-                    onClose={() => setIsEditorOpen(false)}
-                    onPostCreated={() => { loadPosts(); setCurrentPage(1); }}
+                    isOpen={editorModal.isOpen}
+                    onClose={() => editorModal.close()}
+                    onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); }}
                     category={category}
                     userNickname={user?.user_metadata?.name}
                 />

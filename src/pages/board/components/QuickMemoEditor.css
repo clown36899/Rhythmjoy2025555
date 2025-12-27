@@ -322,48 +322,95 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.95);
     z-index: 9999;
     display: flex;
-    align-items: flex-end;
-    /* Align to bottom */
+    align-items: center;
     justify-content: center;
     animation: fadeIn 0.2s ease-out;
 }
 
-/* Modal Content (Bottom Sheet) */
+/* Modal Content (Full Screen on Mobile) */
 .anonymous-write-modal-content {
     background: #1e1e1e;
     width: 100%;
+    height: 100%;
+    height: 100dvh;
     max-width: 600px;
-    /* constrain on desktop */
-    border-radius: 24px 24px 0 0;
-    padding: 8px 0 24px 0;
-    /* padding for drag handle and bottom safe area */
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: 0;
     box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-bottom: none;
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .modal-drag-handle {
-    width: 40px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    margin: 8px auto 12px auto;
+    display: none;
 }
 
-@keyframes slideUp {
+/* Modal Header */
+.anonymous-modal-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    z-index: 10;
+}
+
+.anonymous-modal-close {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.anonymous-modal-close:hover {
+    color: #ffffff;
+}
+
+.anonymous-modal-title {
+    flex: 1;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin-right: 40px;
+}
+
+.anonymous-write-modal-content::before {
+    content: '';
+    display: block;
+    height: 60px;
+    flex-shrink: 0;
+}
+
+@keyframes slideIn {
     from {
-        transform: translateY(100%);
+        opacity: 0;
+        transform: scale(0.95);
     }
 
     to {
-        transform: translateY(0);
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
@@ -380,8 +427,52 @@
 /* Ensure editor in modal takes width nicely */
 .anonymous-write-modal-content .quick-memo-editor {
     width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .anonymous-write-modal-content .memo-form {
-    padding: 0 20px;
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    gap: 16px;
+}
+
+/* Larger inputs in modal */
+.anonymous-write-modal-content .memo-input-compact {
+    width: 120px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+}
+
+.anonymous-write-modal-content .memo-textarea {
+    min-height: 200px;
+    font-size: 1rem;
+    padding: 16px 8px;
+}
+
+.anonymous-write-modal-content .memo-title-input {
+    display: none;
+}
+
+.anonymous-write-modal-content .memo-main-input-area {
+    flex: 1;
+    padding: 8px 16px;
+}
+
+/* Desktop adjustments */
+@media (min-width: 769px) {
+    .anonymous-write-modal-content {
+        border-radius: 16px;
+        max-height: 90vh;
+        height: auto;
+    }
+
+    .anonymous-write-modal-content::before {
+        display: none;
+    }
 }
