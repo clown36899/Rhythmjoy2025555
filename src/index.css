@@ -24,13 +24,20 @@ body {
   min-height: 100vh;
 }
 
-/* 🖥️ Desktop Support: Unlock width constraint for non-mobile screens */
-@media (min-width: 769px) {
+/* 🖥️ Desktop Support: 650px fixed width (Base rule applies) */
+/* @media (min-width: 769px) removed to enforce 650px */
 
-  html,
-  body,
-  #root {
-    max-width: 100% !important;
+/* 📱 Mobile PWA Portrait Lock (Fallback for iOS) */
+@media screen and (orientation: landscape) {
+  body.mobile-pwa {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
   }
 }
 

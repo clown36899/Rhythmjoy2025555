@@ -64,7 +64,7 @@
 
 .today-card {
     flex: 0 0 280px;
-    max-width: 201px;
+    max-width: 150px;
     background: #1a1a1a;
     border-radius: 20px;
     overflow: hidden;
