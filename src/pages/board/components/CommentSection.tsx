@@ -39,7 +39,10 @@ export default function CommentSection({ postId, category }: CommentSectionProps
 
                     const record = (payload.new || payload.old) as any;
                     // Client-side filtering
-                    if (!record || record.post_id !== postId) return;
+                    // Note: DELETE events only send ID by default (unless replica identity is full), 
+                    // so we skip post_id check for DELETE and rely on unique ID match in specific handler.
+                    if (!record) return;
+                    if (payload.eventType !== 'DELETE' && record.post_id !== postId) return;
 
                     // Handle INSERT
                     if (payload.eventType === 'INSERT' && payload.new) {
@@ -57,6 +60,13 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                         const targetId = String(newComment.id);
 
                         console.log('[Realtime Debug] Payload NEW:', JSON.stringify(newComment, null, 2));
+
+                        // Soft Delete (is_hidden) check
+                        if (newComment.is_hidden === true) {
+                            console.log('[Realtime Comment] Comment soft-deleted (hidden)');
+                            setComments(prev => prev.filter(c => String(c.id) !== targetId));
+                            return;
+                        }
 
                         setComments(prev => {
                             return prev.map(comment => {
@@ -80,8 +90,9 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                     // Handle DELETE
                     if (payload.eventType === 'DELETE' && payload.old) {
                         const deletedComment = payload.old as any;
-                        console.log('[Realtime Comment] Deleting comment:', deletedComment.id);
-                        setComments(prev => prev.filter(c => String(c.id) !== String(deletedComment.id)));
+                        const targetId = String(deletedComment.id);
+
+                        setComments(prev => prev.filter(c => String(c.id) !== targetId));
                     }
                 }
             )
@@ -154,7 +165,8 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             if (isAdmin) {
                 const { error } = await supabase.from(table).delete().eq('id', commentId);
                 if (error) throw error;
-                loadComments();
+                // Optimistic Delete (Admin)
+                setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
                 return true;
             } else {
                 if (category === 'anonymous') {
@@ -167,7 +179,8 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                     if (error) throw error;
 
                     if (success) {
-                        loadComments();
+                        // Optimistic Delete (Anonymous)
+                        setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
                         return true;
                     } else {
                         return false;
@@ -191,7 +204,9 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                         console.error("Standard delete failed", error);
                         return false;
                     }
-                    loadComments();
+                    loadComments(); // Standard comments might rely on reload if we don't trust local, but let's be consistent
+                    // Actually, let's do Optimistic Delete here too
+                    setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
                     return true;
                 }
             }
