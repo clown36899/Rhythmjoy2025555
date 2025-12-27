@@ -39,23 +39,44 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // 🔍 [디버깅] 모든 요청 로깅
+  console.log('[SW] 📥 Request:', {
+    method: event.request.method,
+    url: url.href,
+    pathname: url.pathname,
+    hostname: url.hostname
+  });
+
   // [근본 해결] 인증 및 주요 API 요청은 서비스 워커가 아예 개입하지 않음
   // 1. 도메인 기반 제외: Supabase, Kakao (API 도메인 전체)
-  // 2. 헤더 기반 제외: apikey, Authorization 헤더가 있으면 API 요청임
+  // 2. 경로 기반 제외: /auth/ 경로는 무조건 제외 (세션 갱신 등)
+  // 3. 헤더 기반 제외: apikey, Authorization 헤더가 있으면 API 요청임
   const isSupabase = url.hostname.includes('supabase.co');
   const isKakao = url.hostname.includes('kakao.com') || url.hostname.includes('kakaocdn.net');
   const isNetlifyFunc = url.pathname.includes('/.netlify/functions/');
+  const isAuthPath = url.pathname.includes('/auth/'); // 🔥 인증 경로 명시적 제외
 
   // API 요청 여부 확인 (헤더 확인은 event.request.headers 활용)
-  const isApiRequest = isSupabase || isKakao || isNetlifyFunc ||
+  const isApiRequest = isSupabase || isKakao || isNetlifyFunc || isAuthPath ||
     event.request.headers.has('apikey') ||
     event.request.headers.has('Authorization');
 
   // Supabase Storage 이미지 요청이면 캐싱 로직으로 보냄 (경로 체크)
   const isStorageImage = url.pathname.includes('/storage/v1/object/public/images/');
 
+  // 🔥 인증 요청은 무조건 바이패스 (Storage 이미지 예외 적용 안 함)
   if (isApiRequest && !isStorageImage) {
-    // console.log('[SW] 🚀 API/Auth Bypass:', url.href);
+    console.log('[SW] 🚀 API/Auth Bypass:', {
+      url: url.href,
+      reason: {
+        isSupabase,
+        isKakao,
+        isNetlifyFunc,
+        isAuthPath,
+        hasApiKey: event.request.headers.has('apikey'),
+        hasAuth: event.request.headers.has('Authorization')
+      }
+    });
     // respondWith를 호출하지 않고 return하면 브라우저 순정 로직을 탑니다.
     // 이것이 API 실패를 막는 가장 안전한 '정석'입니다.
     return;
@@ -69,12 +90,15 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.includes('/storage/v1/object/public/images/')) {
+    console.log('[SW] 🖼️ Storage Image Request:', url.pathname);
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         // 캐시에 있으면 반환
         if (cachedResponse) {
+          console.log('[SW] ✅ Cache HIT:', url.pathname);
           return cachedResponse;
         }
+        console.log('[SW] ❌ Cache MISS, fetching:', url.pathname);
         // 없으면 네트워크 요청 후 캐시
         return fetch(event.request).then((response) => {
           // 유효한 응답만 캐시
