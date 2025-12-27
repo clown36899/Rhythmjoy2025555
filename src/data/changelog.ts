@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.22.1',
+        date: '2025-12-27',
+        changes: [
+            '[Security] 보안 연락처 조회 기능 안정화 (.single() 쿼리 에러 수정)',
+            '[Logging] Netlify Functions 로그 정리 및 보안 강화',
+            '[PWA] 서비스 워커 및 인증 로직 최적화',
+            '[Venue] 장소(연습실, 바) 상세 정보에 관리자 전용 등록 정보 추가'
+        ]
+    },
+    {
         version: '2.22.0',
         date: '2025-12-27',
         changes: [

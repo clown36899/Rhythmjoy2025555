@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../../lib/supabase";
 import { useModalHistory } from "../../../hooks/useModalHistory";
+import { useAuth } from "../../../contexts/AuthContext";
 import "./VenueDetailModal.css";
 
 interface Venue {
@@ -14,6 +15,9 @@ interface Venue {
     website_url?: string;
     map_url?: string;
     category: string;
+    created_at?: string;
+    user_id?: string;
+    registrant_nickname?: string;
 }
 
 interface VenueDetailModalProps {
@@ -24,10 +28,12 @@ interface VenueDetailModalProps {
 }
 
 export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }: VenueDetailModalProps) {
+    const { isAdmin } = useAuth();
     // Enable mobile back gesture to close modal
     useModalHistory(true, onClose);
 
     const [venue, setVenue] = useState<Venue | null>(null);
+    const [authorNickname, setAuthorNickname] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -47,16 +53,30 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
 
             if (error) throw error;
 
+            const venueData: any = data || {};
+
             // Parse images if it's a JSON string
-            if (data && typeof data.images === 'string') {
-                data.images = JSON.parse(data.images);
+            if (venueData.images && typeof venueData.images === 'string') {
+                venueData.images = JSON.parse(venueData.images);
             }
 
-            setVenue(data);
+            // [수정] venues와 board_users 간 외래키 관계가 없어 조인 대신 별도 쿼리 실행
+            if (isAdmin && venueData.user_id) {
+                const { data: userData } = await supabase
+                    .from('board_users')
+                    .select('nickname')
+                    .eq('user_id', venueData.user_id)
+                    .maybeSingle();
+
+                if (userData?.nickname) {
+                    setAuthorNickname(userData.nickname);
+                }
+            }
+
+            setVenue(venueData);
         } catch (error) {
             console.error("Error fetching venue:", error);
-            // onClose(); // Don't close, show error
-            setVenue(null); // Ensure venue is null
+            setVenue(null);
         } finally {
             setLoading(false);
         }
@@ -199,6 +219,23 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                             <button onClick={handleSelect} className="venue-select-btn">
                                 이 장소로 선택하기
                             </button>
+                        )}
+
+                        {/* Admin Info Section */}
+                        {isAdmin && venue.created_at && (
+                            <div className="created-at-text">
+                                <span>
+                                    등록:{" "}
+                                    {new Date(venue.created_at).toLocaleDateString("ko-KR", {
+                                        year: "numeric",
+                                        month: "2-digit",
+                                        day: "2-digit",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                    })}
+                                    {authorNickname && ` | 계정: ${authorNickname}`}
+                                </span>
+                            </div>
                         )}
                     </div>
 

@@ -968,3 +968,12 @@
         padding: 1rem;
     }
 }
+/* Admin Info Section */
+.created-at-text {
+    padding-top: 0.75rem;
+    margin-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: #6b7280;
+}
