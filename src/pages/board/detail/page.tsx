@@ -50,6 +50,51 @@ export default function BoardDetailPage() {
         loadUserData();
     }, [user]);
 
+    // Realtime Subscription for updates
+    useEffect(() => {
+        if (!post?.id || !post?.category) return;
+
+        const table = post.category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
+
+        const channel = supabase
+            .channel(`post_detail:${post.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: table,
+                    filter: `id=eq.${post.id}`
+                },
+                (payload) => {
+                    console.log('[Realtime Detail] Event received:', payload);
+
+                    if (payload.eventType === 'UPDATE' && payload.new) {
+                        const newPost = payload.new as any;
+
+                        // Handle Soft Delete
+                        if (newPost.is_hidden && !isAdmin && post.user_id !== user?.id) {
+                            alert('삭제된 게시글입니다.');
+                            navigate('/board');
+                            return;
+                        }
+
+                        setPost(prev => prev ? { ...prev, ...newPost } : null);
+                    }
+
+                    if (payload.eventType === 'DELETE') {
+                        alert('삭제된 게시글입니다.');
+                        navigate('/board');
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [post?.id, post?.category, isAdmin, user?.id, navigate]);
+
 
 
     const loadPost = async (postId: string) => {
