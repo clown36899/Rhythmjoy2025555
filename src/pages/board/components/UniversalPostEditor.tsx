@@ -405,6 +405,58 @@ export default function UniversalPostEditor({
                 <form onSubmit={handleSubmit} className="pem-form">
                     <div className="pem-form-content">
 
+                        {/* Title Input First */}
+                        <div className="pem-form-group">
+                            <input
+                                type="text"
+                                name="title"
+                                value={formData.title}
+                                onChange={handleInputChange}
+                                required
+                                className="pem-input"
+                                placeholder="제목"
+                            />
+                        </div>
+
+                        {/* Content Input Second (Primary Writing Area) */}
+                        <div className="pem-form-group">
+                            <textarea
+                                name="content"
+                                value={formData.content}
+                                onChange={handleInputChange}
+                                required
+                                rows={10}
+                                className="pem-textarea"
+                                placeholder="내용을 입력하세요"
+                            />
+                        </div>
+
+                        {/* Metadata Row (Prefix & Author) */}
+                        <div className="form-row">
+                            <select
+                                value={formData.prefix_id || ''}
+                                name="prefix_id"
+                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: e.target.value ? Number(e.target.value) : null }))}
+                                className="pem-select half-width"
+                            >
+                                <option value="">머릿말 선택</option>
+                                {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                            {!post && (
+                                <input
+                                    type="text"
+                                    name="author_name"
+                                    value={formData.author_name}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="pem-input half-width"
+                                    placeholder="작성자 이름"
+                                />
+                            )}
+                        </div>
+
                         {/* Image Upload for All Categories */}
                         <div className="pem-form-group">
                             <label className="pem-label">대표 이미지 (선택)</label>
@@ -439,57 +491,6 @@ export default function UniversalPostEditor({
                                     onChange={handleImageSelect}
                                 />
                             </div>
-                        </div>
-
-                        {/* Title & Content */}
-                        <div className="pem-form-group">
-                            <input
-                                type="text"
-                                name="title"
-                                value={formData.title}
-                                onChange={handleInputChange}
-                                required
-                                className="pem-input"
-                                placeholder="제목"
-                            />
-                        </div>
-
-                        {/* Prefix & Author Row */}
-                        <div className="form-row">
-                            {!post && (
-                                <input
-                                    type="text"
-                                    name="author_name"
-                                    value={formData.author_name}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="pem-input half-width"
-                                    placeholder="작성자 이름"
-                                />
-                            )}
-                            <select
-                                value={formData.prefix_id || ''}
-                                name="prefix_id"
-                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: e.target.value ? Number(e.target.value) : null }))}
-                                className="pem-select half-width"
-                            >
-                                <option value="">머릿말 선택</option>
-                                {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="pem-form-group">
-                            <textarea
-                                name="content"
-                                value={formData.content}
-                                onChange={handleInputChange}
-                                required
-                                rows={10}
-                                className="pem-textarea"
-                                placeholder="내용을 입력하세요"
-                            />
                         </div>
 
                         {/* Notice Checkbox (Admin Only) */}
