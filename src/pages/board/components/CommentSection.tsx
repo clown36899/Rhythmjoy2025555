@@ -226,7 +226,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
 
     return (
         <div className="comment-section">
-            {category !== 'anonymous' && (
+            {category !== 'anonymous' && comments.length > 0 && (
                 <div className="comment-section-header">
                     <h3 className="comment-section-title">
                         댓글 <span className="comment-count">{comments.length}</span>
@@ -254,10 +254,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                         <p>댓글을 불러오는 중...</p>
                     </div>
                 ) : comments.length === 0 ? (
-                    <div className="comment-empty">
-                        <i className="ri-chat-3-line"></i>
-                        <p>첫 번째 댓글을 작성해보세요!</p>
-                    </div>
+                    null /* User requested to remove empty space when no comments */
                 ) : (
                     comments.map((comment) => (
                         <div key={comment.id} className="comment-item-container">

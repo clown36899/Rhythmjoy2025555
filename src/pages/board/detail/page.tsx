@@ -285,12 +285,13 @@ export default function BoardDetailPage() {
             <GlobalLoadingOverlay isLoading={updating} message="처리 중입니다..." />
 
             <div className="board-header global-header">
-                <div className="board-header-content" style={{ justifyContent: 'flex-start' }}>
+                <div className="board-header-content">
                     <button
                         onClick={() => navigate(`/board?category=${(post as any)?.category || 'free'}`)}
                         className="board-header-back-btn"
                     >
-                        <span>❮ 돌아가기</span>
+                        <i className="ri-arrow-left-s-line"></i>
+                        <span>돌아가기</span>
                     </button>
                 </div>
             </div>
@@ -298,22 +299,46 @@ export default function BoardDetailPage() {
             <div className="board-detail-content-wrapper">
                 {/* Header Section */}
                 <div className="board-detail-header">
-                    <div className="board-detail-title-section">
-                        {post.prefix && (
-                            <span
-                                className="board-detail-prefix"
-                                style={{ backgroundColor: post.prefix.color }}
-                            >
-                                {post.prefix.name}
-                            </span>
+                    <div className="board-detail-header-top">
+                        <div className="board-detail-title-section">
+                            {post.prefix && (
+                                <span
+                                    className="board-detail-prefix"
+                                    style={{ backgroundColor: post.prefix.color }}
+                                >
+                                    {post.prefix.name}
+                                </span>
+                            )}
+                            {post.is_hidden && (
+                                <span className="board-detail-hidden-badge">🔒 숨김처리됨</span>
+                            )}
+                        </div>
+
+                        {/* Top action buttons for convenience */}
+                        {(isAdmin || post.user_id === user?.id) && (
+                            <div className="board-detail-top-actions">
+                                <button onClick={handleEdit} className="top-action-btn edit" title="수정">
+                                    <i className="ri-edit-line"></i>
+                                </button>
+                                <button onClick={handleDelete} className="top-action-btn delete" title="삭제">
+                                    <i className="ri-delete-bin-line"></i>
+                                </button>
+                                {isAdmin && (
+                                    <button
+                                        onClick={handleToggleHidden}
+                                        className={`top-action-btn ${post.is_hidden ? 'unhide' : 'hide'}`}
+                                        title={post.is_hidden ? '숨김 해제' : '숨기기'}
+                                    >
+                                        <i className={`ri-${post.is_hidden ? 'eye-line' : 'eye-off-line'}`}></i>
+                                    </button>
+                                )}
+                            </div>
                         )}
-                        {post.is_hidden && (
-                            <span className="board-detail-hidden-badge">🔒 숨김처리됨</span>
-                        )}
-                        <h1 className="board-detail-title" style={{ opacity: post.is_hidden ? 0.6 : 1 }}>
-                            {post.title}
-                        </h1>
                     </div>
+
+                    <h1 className="board-detail-title" style={{ opacity: post.is_hidden ? 0.6 : 1 }}>
+                        {post.title}
+                    </h1>
 
                     <div className="board-detail-meta">
                         <div className="board-detail-meta-item">
