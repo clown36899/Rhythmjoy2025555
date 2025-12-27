@@ -33,7 +33,6 @@ export default function BoardMainContainer() {
     const [showAdminMenu, setShowAdminMenu] = useState(false);
     const [isManagementOpen, setIsManagementOpen] = useState(false);
     const [isPrefixManagementOpen, setIsPrefixManagementOpen] = useState(false);
-    const [key, setKey] = useState(0); // For forcing re-render of TabBar
 
     // Admin Status Check
     useEffect(() => {
@@ -164,7 +163,6 @@ export default function BoardMainContainer() {
     return (
         <div className="board-page-container">
             <BoardTabBar
-                key={key}
                 activeCategory={category}
                 onCategoryChange={handleCategoryChange}
             />
@@ -327,7 +325,7 @@ export default function BoardMainContainer() {
                 <BoardManagementModal
                     isOpen={isManagementOpen}
                     onClose={() => setIsManagementOpen(false)}
-                    onUpdate={() => setKey(prev => prev + 1)}
+                    onUpdate={() => window.dispatchEvent(new Event('refreshBoardCategories'))}
                 />
             )}
 

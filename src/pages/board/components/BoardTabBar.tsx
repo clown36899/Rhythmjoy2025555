@@ -1,5 +1,5 @@
 import './BoardTabBar.css';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 
 export type BoardCategory = string; // Relaxed type for dynamic categories
@@ -19,17 +19,34 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardTabBarProps) {
-    const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
-    const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
+    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const scrollerRef = useRef<HTMLDivElement | null>(null);
-    const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+    const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
+    const isInitialLoad = useRef(true);
+    const [showTransition, setShowTransition] = useState(false);
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
         loadCategories();
+
+        // Listen for category refresh events from admin panel
+        const handleRefresh = () => {
+            loadCategories();
+        };
+
+        window.addEventListener('refreshBoardCategories', handleRefresh);
+        return () => window.removeEventListener('refreshBoardCategories', handleRefresh);
     }, []);
 
     const loadCategories = async () => {
         try {
+            // Temporarily disable transition during category update to prevent flicker
+            const wasReady = isReady;
+            if (wasReady) {
+                setShowTransition(false);
+            }
+
             const { data, error } = await supabase
                 .from('board_categories')
                 .select('*')
@@ -63,6 +80,15 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     icon: 'ri-code-box-line'
                 }]);
             }
+
+            // Re-enable transition after a brief delay
+            if (wasReady) {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        setShowTransition(true);
+                    });
+                });
+            }
         } catch (error) {
             console.error('Failed to load board categories:', error);
             setCategories([...DEFAULT_CATEGORIES, {
@@ -85,31 +111,52 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
         }
     };
 
-    // Update indicator position when active category changes
-    useEffect(() => {
-        const activeIndex = categories.findIndex(cat => cat.id === activeCategory);
-        if (activeIndex !== -1 && tabRefs.current[activeIndex] && scrollerRef.current) {
-            const activeTab = tabRefs.current[activeIndex];
+    // Use useLayoutEffect to ensure positioning happens BEFORE browser paint
+    useLayoutEffect(() => {
+        const activeTab = tabRefs.current[activeCategory];
+
+        if (activeTab && scrollerRef.current) {
             const left = activeTab.offsetLeft;
             const width = activeTab.offsetWidth;
-            setIndicatorStyle({ left, width });
 
-            // Scroll active tab into view
-            activeTab.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
-            });
+            if (width > 0) {
+                if (isInitialLoad.current) {
+                    // Lock-in first position without animation or flicker
+                    setIndicatorStyle({ left, width, opacity: 1 });
+
+                    activeTab.scrollIntoView({
+                        behavior: 'auto', // Instant scroll
+                        block: 'nearest',
+                        inline: 'center'
+                    });
+
+                    isInitialLoad.current = false;
+                    setIsReady(true);
+                    // Enable transition after the first paint is settled
+                    requestAnimationFrame(() => {
+                        setShowTransition(true);
+                    });
+                } else {
+                    // Subsequent switches use smooth movement
+                    setIndicatorStyle({ left, width, opacity: 1 });
+
+                    activeTab.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                        inline: 'center'
+                    });
+                }
+            }
         }
     }, [activeCategory, categories]);
 
     return (
         <div className="board-tab-bar">
             <div className="board-tab-scroller" ref={scrollerRef}>
-                {categories.map((cat, index) => (
+                {categories.map((cat) => (
                     <button
                         key={cat.id}
-                        ref={el => { tabRefs.current[index] = el; }}
+                        ref={el => { tabRefs.current[cat.id] = el; }}
                         className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
                         onClick={() => onCategoryChange(cat.id as BoardCategory)}
                     >
@@ -121,7 +168,12 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     className="board-tab-indicator"
                     style={{
                         transform: `translateX(${indicatorStyle.left}px)`,
-                        width: `${indicatorStyle.width}px`
+                        width: `${indicatorStyle.width}px`,
+                        opacity: isReady ? 1 : 0,
+                        visibility: isReady ? 'visible' : 'hidden',
+                        transition: showTransition
+                            ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease'
+                            : 'none'
                     }}
                 />
             </div>
