@@ -1,0 +1,114 @@
+.pwa-conflict-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    padding: 1rem;
+    animation: fadeIn 0.2s ease-in;
+}
+
+.pwa-conflict-modal {
+    width: 100%;
+    max-width: 24rem;
+    background-color: #1a1a1a;
+    border: 1px solid #3f3f46;
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    animation: scaleIn 0.2s ease-out;
+}
+
+.pwa-conflict-content {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.pwa-conflict-icon {
+    margin: 0 auto 1rem;
+    display: flex;
+    height: 4rem;
+    width: 4rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.pwa-conflict-icon i {
+    font-size: 2rem;
+    color: #60a5fa;
+}
+
+.pwa-conflict-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.pwa-conflict-description {
+    color: #d1d5db;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.pwa-conflict-description strong {
+    font-weight: 600;
+}
+
+.pwa-conflict-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.pwa-conflict-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.pwa-conflict-btn-primary {
+    background-color: #2563eb;
+    color: white;
+}
+
+.pwa-conflict-btn-primary:hover {
+    background-color: #1d4ed8;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

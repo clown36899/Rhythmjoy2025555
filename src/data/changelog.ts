@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.23.1',
+        date: '2025-12-27',
+        changes: [
+            '[PWA] 충돌 모달을 Vanilla CSS로 전환 (z-index 9999)',
+            '[UX] 모달 버튼 단순화 (확인 버튼으로 변경)',
+            '[UX] 안내 문구 개선'
+        ]
+    },
+    {
         version: '2.23.0',
         date: '2025-12-27',
         changes: [
