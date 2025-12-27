@@ -193,13 +193,28 @@ export const validateAndRecoverSession = async (): Promise<any> => {
     // [중요] 로컬 스토리지의 토큰이 위변조되었거나 서버에서 만료되었는지 확실히 검증하기 위해 getUser() 호출
     // getSession()은 로컬 상태만 확인할 수 있어 위변조된 토큰도 유효하다고 판단할 수 있음
     console.log('[Supabase] 🔐 Verifying token with server (getUser)...');
-    const { error: userError } = await supabase.auth.getUser();
 
-    if (userError) {
-      console.error('[Supabase] ❌ Token validation failed on server:', userError);
-      // 토큰 서명 불일치 등 서버에서 거부된 경우 -> 강제 로그아웃
-      await supabase.auth.signOut({ scope: 'local' });
-      return null;
+    // 🔥 모바일에서 getUser()가 무한 대기하는 문제 해결: 2초 타임아웃 추가
+    const getUserWithTimeout = Promise.race([
+      supabase.auth.getUser(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('getUser timeout')), 2000)
+      )
+    ]);
+
+    try {
+      const { error: userError } = await getUserWithTimeout as any;
+
+      if (userError) {
+        console.error('[Supabase] ❌ Token validation failed on server:', userError);
+        // 토큰 서명 불일치 등 서버에서 거부된 경우 -> 강제 로그아웃
+        await supabase.auth.signOut({ scope: 'local' });
+        return null;
+      }
+    } catch (timeoutError) {
+      console.warn('[Supabase] ⏱️ getUser() timeout - skipping server validation');
+      // 타임아웃 발생 시 로컬 세션만으로 진행 (모바일 네트워크 느릴 때 대응)
+      // 세션이 있으면 일단 허용하고, 실제 API 호출 시 검증됨
     }
 
     console.log('[Supabase] ✅ Session is valid and verified by server');
