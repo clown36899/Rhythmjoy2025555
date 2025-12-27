@@ -8,22 +8,30 @@
 html,
 body {
   background-color: #000000;
-  max-width: 650px !important;
-  margin: 0 auto !important;
+  max-width: 650px;
+  /* !important removed to allow media query override */
+  margin: 0 auto;
   overflow-x: hidden !important;
   width: 100% !important;
   /* 수직 스크롤만 허용, 수평 슬라이드는 JS로 제어 */
-  /* passive event listener 에러 방지 */
   touch-action: pan-y;
 }
 
 #root {
-  max-width: 650px !important;
-  margin: 0 auto !important;
+  max-width: 650px;
+  margin: 0 auto;
   width: 100% !important;
   min-height: 100vh;
-  /* overflow: hidden; 제거 - body 스크롤 활성화 */
-  /* height: 100%; 제거 */
+}
+
+/* 🖥️ Desktop Support: Unlock width constraint for non-mobile screens */
+@media (min-width: 769px) {
+
+  html,
+  body,
+  #root {
+    max-width: 100% !important;
+  }
 }
 
 body,

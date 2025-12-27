@@ -333,6 +333,17 @@
   /* border-bottom: 0.3px solid #37415199; */
 }
 
+/* 🖥️ Desktop Support: Expand Header */
+@media (min-width: 769px) {
+  .shell-header.global-header-fixed {
+    max-width: 100%;
+  }
+
+  .shell-bottom-nav {
+    max-width: 100%;
+  }
+}
+
 /* Global Header Styles */
 .shell-header.global-header-fixed-bottom {
   position: relative;

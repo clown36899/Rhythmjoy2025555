@@ -26,6 +26,28 @@ function RootApp() {
     // Google Analytics 초기화
     initGA();
 
+    // 📱 Mobile PWA Orientation Lock
+    // 데스크탑은 회전/리사이즈 자유, 모바일 PWA만 세로 모드 고정
+    const lockMobileOrientation = async () => {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+
+      if (isMobile && isPWA) {
+        // iOS 등 JS Lock 미지원 기기를 위한 CSS 타겟팅 클래스 추가
+        document.body.classList.add('mobile-pwa');
+
+        if ('orientation' in screen && 'lock' in screen.orientation) {
+          try {
+            await (screen.orientation as any).lock('portrait');
+            console.log('🔒 Screen locked to portrait');
+          } catch (e) {
+            console.log('Rotation lock not supported or failed:', e);
+          }
+        }
+      }
+    };
+    lockMobileOrientation();
+
     // 🚀 Version Mismatch Auto-Reload Logic
     // 배포 후 구버전 사용자가 청크 로드 실패 시 자동 새로고침
     const handleChunkError = (event: ErrorEvent | PromiseRejectionEvent) => {
