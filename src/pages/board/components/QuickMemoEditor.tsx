@@ -174,7 +174,7 @@ export default function QuickMemoEditor({
                         title: title.trim(),
                         content: content.trim(),
                         author_name: nickname,
-                        author_nickname: nickname, // Sync nickname field
+                        author_nickname: nickname,
                         is_notice: isNotice
                     };
                     if (imageUrls.image) {
@@ -193,22 +193,23 @@ export default function QuickMemoEditor({
                     }
                     alert('관리자 권한으로 메모가 수정되었습니다!');
                 } else {
-                    // User update (RPC with password)
-                    console.log('Updating anonymous post via RPC');
+                    // User update: Use RPC to bypass RLS with password
+                    const finalPassword = (providedPassword || password).trim();
                     const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
                         p_post_id: editData.id,
-                        p_password: (providedPassword || password).trim(),
+                        p_password: finalPassword,
                         p_title: title.trim(),
                         p_content: content.trim(),
-                        p_author_name: nickname,
+                        p_nickname: nickname,
                         p_image: imageUrls.image,
                         p_image_thumbnail: imageUrls.image_thumbnail
                     });
 
                     if (error) {
-                        console.error('RPC Error:', error);
+                        console.error('Update Error:', error);
                         throw error;
                     }
+
                     if (!success) {
                         alert('비밀번호가 틀렸거나 수정에 실패했습니다.');
                         setIsSubmitting(false);

@@ -129,6 +129,10 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
 
     const handleEdit = async () => {
         if (isAnonymous) {
+            if (isAdmin) {
+                onEdit(comment);
+                return;
+            }
             const pwd = window.prompt('댓글 수정을 위한 비밀번호를 입력해주세요.');
             if (pwd) {
                 // Verify password via standard select query

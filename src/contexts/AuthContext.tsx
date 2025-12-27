@@ -105,17 +105,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 관리자 권한 계산 헬퍼 함수
-  const computeIsAdmin = (currentUser: User | null): boolean => {
-    if (!currentUser) return false;
+  // 관리자 권한 계산 헬퍼 함수 (비동기) - useCallback으로 메모이제이션
+  const refreshAdminStatus = useCallback(async (currentUser: User | null) => {
+    if (!currentUser) {
+      if (isAdmin) setIsAdmin(false);
+      return;
+    }
 
-    // 2순위: 이메일 비교 (fallback) -> 이제 유일한 확인 방법
+    // 1순위: 환경변수 이메일 체크 (즉시 판단 가능)
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-    return !!(currentUser.email && adminEmail && currentUser.email === adminEmail);
-  };
+    if (currentUser.email && adminEmail && currentUser.email === adminEmail) {
+      if (!isAdmin) setIsAdmin(true);
+      return;
+    }
 
-  // 프로필 데이터 가져오기
-  const refreshUserProfile = async () => {
+    // 2순위: DB 및 RPC 체크
+    try {
+      // RPC 시도
+      const { data: rpcData } = await supabase.rpc('is_admin_user');
+      if (rpcData) {
+        if (!isAdmin) setIsAdmin(true);
+        return;
+      }
+
+      // board_admins 테이블 직접 확인
+      const { data: tableData } = await supabase
+        .from('board_admins')
+        .select('user_id')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      const isTableAdmin = !!tableData;
+      if (isAdmin !== isTableAdmin) {
+        setIsAdmin(isTableAdmin);
+      }
+    } catch (e) {
+      console.error('[AuthContext] Admin check failed:', e);
+      if (isAdmin) setIsAdmin(false);
+    }
+  }, [isAdmin]);
+
+  // 프로필 데이터 가져오기 - useCallback으로 메모이제이션
+  const refreshUserProfile = useCallback(async () => {
     if (!user) return;
 
     // Prevent duplicate profile loads
@@ -133,7 +164,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (data) {
-        console.log('[AuthContext] User profile loaded:', data);
         setUserProfile({
           nickname: data.nickname || user.user_metadata?.name || user.email?.split('@')[0] || '',
           profile_image: data.profile_image || user.user_metadata?.avatar_url || null
@@ -150,19 +180,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       profileLoadInProgress.current = false;
     }
-  };
+  }, [user]);
 
-  // Load profile when user changes (with deduplication)
+  // Load profile and admin status when user changes
   useEffect(() => {
     if (user) {
       // Only refresh if user actually changed
       if (lastProcessedUserId.current !== user.id) {
         lastProcessedUserId.current = user.id;
         refreshUserProfile();
+        refreshAdminStatus(user);
       }
     } else {
       lastProcessedUserId.current = null;
       setUserProfile(null);
+      setIsAdmin(false);
     }
   }, [user]);
 
@@ -178,31 +210,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // 1. 초기 세션 마운트 시 검증
   useEffect(() => {
-    let isMounted = true; // 마운트 상태 추적
+    let isMounted = true;
 
-    // 로그아웃 직후라면 세션 체크 스킵 (캐시/세션 꼬임 방지)
     const isLoggingOut = localStorage.getItem('isLoggingOut');
     if (isLoggingOut) {
-      console.log('[AuthContext] 로그아웃 진행 중 - 세션 체크 스킵');
       localStorage.removeItem('isLoggingOut');
-      if (isMounted) {
-        setLoading(false);
-      }
+      setLoading(false);
       return;
     }
 
-    // 3초 timeout 설정 (조금 더 여유있게) - 실패 시 강제 정리
     const timeoutId = setTimeout(async () => {
       if (isMounted && loading) {
-        console.warn('[AuthContext] ⏱️ Session check timeout (3s) - Force cleaning stale session');
-        // 타임아웃 발생 시 좀비 세션으로 간주하고 정리, 하지만 false로 세팅하여 앱 진입은 허용 (비로그인 상태)
+        console.warn('[AuthContext] ⏱️ Session check timeout (3s)');
         await cleanupStaleSession();
         setLoading(false);
       }
     }, 3000);
 
-    // 개선된 세션 검증 및 복구 로직 사용
     validateAndRecoverSession()
       .then(async (recoveredSession: Session | null) => {
         if (!isMounted) return;
@@ -210,128 +236,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (recoveredSession) {
           const currentUser = recoveredSession.user;
-          const adminStatus = computeIsAdmin(currentUser);
-
-          console.log('[AuthContext] ✨ Session recovered/verified:', {
-            email: currentUser.email,
-            expiresAt: recoveredSession.expires_at,
-          });
-
           setSession(recoveredSession);
           setUser(currentUser);
-          setIsAdmin(adminStatus);
-
-          // User ID 설정 (초기 세션 복구 시)
-          if (currentUser) {
-            setUserId(currentUser.id);
-          }
+          await refreshAdminStatus(currentUser);
+          setUserId(currentUser.id);
         } else {
-          // 세션이 없거나 복구 실패 시
-          console.log('[AuthContext] ℹ️ No valid session found or recovery failed');
           setSession(null);
           setUser(null);
           setIsAdmin(false);
-          // User ID 제거 (세션 복구 실패 시)
           setUserId(null);
         }
-
         setLoading(false);
       })
       .catch(async (error: any) => {
         if (!isMounted) return;
         clearTimeout(timeoutId);
-
-        console.error('[AuthContext] 💥 Critical session initialization error:', error);
+        console.error('[AuthContext] 💥 Session init error:', error);
         await cleanupStaleSession();
         setLoading(false);
       });
 
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, []); // 의존성 없음 - 초기 마운트 시 1회 실행
+
+  // 2. Auth State Change 구독 (별도 분리)
+  useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return; // 언마운트 후 실행 방지
-
       const currentUser = session?.user ?? null;
-      const adminStatus = computeIsAdmin(currentUser);
 
-      console.log('[AuthContext] 🔄 Auth state changed:', {
-        event,
-        hasSession: !!session,
-        userEmail: currentUser?.email,
-        appMetadataIsAdmin: currentUser?.app_metadata?.is_admin,
-        isAdmin: adminStatus,
-        sessionExpiry: session?.expires_at
-      });
-
-      // 세션 만료 체크
-      if (session?.expires_at) {
-        const expiresAt = new Date(session.expires_at * 1000);
-        if (expiresAt < new Date()) {
-          console.warn('[AuthContext] ⚠️ Session expired in auth state change');
-          await cleanupStaleSession();
-          return;
-        }
-      }
+      console.log('[AuthContext] 🔄 Auth state changed:', { event, userEmail: currentUser?.email });
 
       if (event === 'SIGNED_OUT') {
-        // 로그아웃 시 명확히 상태 초기화
-        console.log('[AuthContext] 👋 로그아웃 처리');
         wipeLocalData();
-      }
-      // TOKEN_REFRESHED 처리
-      else if (event === 'TOKEN_REFRESHED') {
-        console.log('[AuthContext] 🔄 Token refreshed successfully');
-        setSession(session);
-        setUser(currentUser);
-        setIsAdmin(adminStatus);
-
-        // User ID 재설정 (토큰 갱신 시에도 유지)
-        if (currentUser) {
-          setUserId(currentUser.id);
-        }
-      }
-      // 토큰 갱신 실패 처리 (User updated but no session)
-      else if (event === 'USER_UPDATED' && !session) {
-        console.warn('[AuthContext] ⚠️ User updated but no session - possible refresh failure');
-        await cleanupStaleSession();
-      }
-      else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        // Deduplicate: Check if we already processed this user+event
+      } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         const eventKey = `${event}-${currentUser?.id || 'none'}`;
-        if (lastProcessedEvent.current === eventKey) {
-          console.log('[AuthContext] ⏭️ Skipping duplicate event:', eventKey);
-          return; // Skip duplicate processing
-        }
+        if (lastProcessedEvent.current === eventKey) return;
         lastProcessedEvent.current = eventKey;
 
-        console.log('[AuthContext] 👤 세션 설정:', currentUser?.email);
         setSession(session);
         setUser(currentUser);
-        setIsAdmin(adminStatus);
+        await refreshAdminStatus(currentUser);
 
-        // Analytics: Set user properties and User ID
         if (currentUser) {
-          setUserProperties({
-            user_type: adminStatus ? 'admin' : 'user',
-            login_status: 'logged_in'
-          });
-          // User ID 설정 (여러 기기에서 동일 사용자 추적)
+          setUserProperties({ login_status: 'logged_in' });
           setUserId(currentUser.id);
-
-          if (event === 'SIGNED_IN') {
-            logEvent('Auth', 'Login', 'Success');
-          }
+          if (event === 'SIGNED_IN') logEvent('Auth', 'Login', 'Success');
         }
+      } else if (event === 'USER_UPDATED' && !session) {
+        await cleanupStaleSession();
       } else {
-        // 기타 이벤트 (안전장치)
-        console.log('[AuthContext] 📝 기타 이벤트 처리');
         setSession(session);
         setUser(currentUser);
-        setIsAdmin(adminStatus);
-
-        // User ID 설정 (기타 이벤트에서도 안전하게 처리)
         if (currentUser) {
           setUserId(currentUser.id);
+          await refreshAdminStatus(currentUser);
         } else {
           setUserId(null);
         }
@@ -339,11 +302,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      isMounted = false; // cleanup 시 마운트 상태 false
-      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [refreshAdminStatus]); // refreshAdminStatus가 useCallback 덕분에 안정적임
 
 
 

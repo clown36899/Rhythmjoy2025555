@@ -15,7 +15,7 @@ interface CommentFormProps {
 }
 
 export default function CommentForm({ postId, category, onCommentAdded, editingComment, onCancelEdit, providedPassword, disabled }: CommentFormProps) {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [content, setContent] = useState(editingComment?.content || '');
     const [authorName, setAuthorName] = useState(editingComment?.author_name || '');
     const [password, setPassword] = useState('');
@@ -67,7 +67,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
             return;
         }
 
-        if (isAnonymousRoom && !password.trim() && !providedPassword) {
+        if (isAnonymousRoom && !password.trim() && !providedPassword && !isAdmin) {
             alert('비밀번호를 입력해주세요.');
             return;
         }
@@ -77,6 +77,8 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
             return;
         }
 
+        const finalPassword = (providedPassword || password).trim();
+
         try {
             setIsSubmitting(true);
             const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
@@ -84,38 +86,48 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
 
             if (editingComment) {
                 // Update existing comment
-                let data, error;
                 if (category === 'anonymous') {
-                    // Update via standard query with password filter
-                    const result = await supabase
-                        .from(table)
-                        .update({
-                            content: content.trim(),
-                            author_name: authorName
-                        })
-                        .eq('id', editingComment.id)
-                        .eq('password', providedPassword || password.trim())
-                        .select();
-                    data = result.data;
-                    error = result.error;
+                    if (isAdmin) {
+                        const { data: adminData, error: adminError } = await supabase
+                            .from(table)
+                            .update({
+                                content: content.trim(),
+                                author_name: authorName
+                            })
+                            .eq('id', editingComment.id)
+                            .select();
+                        if (adminError) throw adminError;
+                        resultComment = adminData ? adminData[0] : null;
+                    } else {
+                        // User update: Use RPC to bypass RLS with password
+                        const { data: success, error: rpcError } = await supabase.rpc('update_anonymous_comment_with_password', {
+                            p_comment_id: editingComment.id,
+                            p_password: finalPassword,
+                            p_content: content.trim(),
+                            p_author_name: authorName
+                        });
 
-                    if (error) throw error;
-                    if (!data || data.length === 0) {
-                        alert('비밀번호가 일치하지 않거나 수정 권한이 없습니다.');
-                        return;
+                        if (rpcError) throw rpcError;
+                        if (!success) {
+                            alert('비밀번호가 일치하지 않거나 수정 권한이 없습니다.');
+                            setIsSubmitting(false);
+                            return;
+                        }
+
+                        // Fetch updated comment for local UI update
+                        const { data: updated } = await supabase
+                            .from(table)
+                            .select('*')
+                            .eq('id', editingComment.id)
+                            .single();
+                        resultComment = updated;
                     }
-                    resultComment = data[0];
                 } else {
-                    const result = await supabase
+                    const { data, error } = await supabase
                         .from(table)
-                        .update({
-                            content: content.trim()
-                            // Skip updated_at if not sure it exists
-                        })
+                        .update({ content: content.trim() })
                         .eq('id', editingComment.id)
-                        .select(); // Ensure we select return data
-                    data = result.data;
-                    error = result.error;
+                        .select();
 
                     if (error) throw error;
                     resultComment = data ? data[0] : null;
@@ -128,7 +140,6 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                     author_name: category === 'anonymous' ? authorName : user?.user_metadata?.nickname || user?.email,
                 };
 
-                // Add optional fields conditionally
                 if (category === 'anonymous') {
                     commentData.password = password.trim() || null;
                 } else {
@@ -150,7 +161,9 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                 setAuthorName('');
                 setPassword('');
             }
-            onCommentAdded(resultComment);
+            if (resultComment) {
+                onCommentAdded(resultComment);
+            }
             if (onCancelEdit) onCancelEdit();
         } catch (error) {
             console.error('댓글 작성/수정 실패:', error);
@@ -210,7 +223,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="comment-password-input"
-                                required
+                                required={!isAdmin}
                                 disabled={disabled}
                             />
                         </div>
