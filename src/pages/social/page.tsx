@@ -53,6 +53,7 @@ const SocialPage: React.FC = () => {
   const [copySchedule, setCopySchedule] = useState<SocialSchedule | null>(null);
   const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
   const [eventsToday, setEventsToday] = useState<any[]>([]);
+  const [eventsThisWeek, setEventsThisWeek] = useState<any[]>([]);
 
   // Event Detail Modal States
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
@@ -64,7 +65,7 @@ const SocialPage: React.FC = () => {
     const fetchTodayEvents = async () => {
       const { data } = await supabase
         .from('events')
-        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at')
+        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at, category')
         .or(`start_date.eq.${today},date.eq.${today}`);
 
       if (data) {
@@ -72,6 +73,40 @@ const SocialPage: React.FC = () => {
       }
     };
     fetchTodayEvents();
+  }, [today]);
+
+  // Fetch this week's events (excluding classes)
+  useEffect(() => {
+    const fetchThisWeekEvents = async () => {
+      // Calculate this week's date range (Monday to Sunday)
+      const now = new Date();
+      const kstDay = getKSTDay(now);
+      const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
+
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - daysFromMonday);
+      weekStart.setHours(0, 0, 0, 0);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+      const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+
+      const { data } = await supabase
+        .from('events')
+        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at, category')
+        .gte('start_date', weekStartStr)
+        .lte('start_date', weekEndStr)
+        .neq('category', 'class')
+        .neq('category', 'club');
+
+      if (data) {
+        setEventsThisWeek(data);
+      }
+    };
+    fetchThisWeekEvents();
   }, [today]);
 
   // Event Listeners
@@ -148,6 +183,36 @@ const SocialPage: React.FC = () => {
 
     return finalSchedules;
   }, [schedules, eventsToday, today, todayDayOfWeek]);
+
+  // Merge this week's events with schedules for WeeklySocial
+  const schedulesWithEvents = useMemo(() => {
+    const convertedEvents = eventsThisWeek.map(e => {
+      const mediumImage = e.image_medium ||
+        (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
+          ? e.image.replace('/event-posters/full/', '/event-posters/medium/')
+          : e.image);
+
+      return {
+        id: e.id,
+        group_id: -1, // 행사 구분을 위한 플래그
+        title: e.title,
+        date: e.start_date || e.date,
+        start_time: e.time,
+        description: e.description,
+        image_url: e.image,
+        image_micro: e.image_micro || e.image,
+        image_thumbnail: e.image_thumbnail || e.image,
+        image_medium: mediumImage,
+        image_full: e.image_full || e.image,
+        place_name: e.location,
+        user_id: e.user_id,
+        created_at: e.created_at,
+        updated_at: e.created_at,
+      } as SocialSchedule;
+    });
+
+    return [...schedules, ...convertedEvents];
+  }, [schedules, eventsThisWeek]);
 
   // Handlers
   const handleScheduleClick = (schedule: SocialSchedule) => {
@@ -291,7 +356,7 @@ const SocialPage: React.FC = () => {
 
       {/* 2단: 금주의 일정 (등록 탭 포함) */}
       <WeeklySocial
-        schedules={schedules}
+        schedules={schedulesWithEvents}
         onScheduleClick={handleScheduleClick}
         groups={groups}
         favorites={favorites}
