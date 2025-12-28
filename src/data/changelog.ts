@@ -8,7 +8,7 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
-        version: '2.24.0',
+        version: '2.54.1', // 2.47.7 + Minor 7 + Patch 1
         date: '2025-12-29',
         changes: [
             '[✨ 기능] 소셜 금주의 일정 자동 선택 개선 (가장 가까운 날짜)',
@@ -22,7 +22,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.23.0',
+        version: '2.47.7', // 2.45.7 + Minor 2 + Patch 7
         date: '2025-12-28',
         changes: [
             '[✨ 기능] EventDetailModal 인라인 날짜 편집 기능 추가',
@@ -37,7 +37,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.22.1',
+        version: '2.45.7', // 2.45.4 + Patch 3
         date: '2025-12-27',
         changes: [
             '[PWA] 충돌 모달을 Vanilla CSS로 전환 (z-index 9999)',
@@ -46,7 +46,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.22.0',
+        version: '2.45.4', // 2.44.5 + Minor 1 + Patch 4
         date: '2025-12-27',
         changes: [
             '[PWA] 중복 실행 자동 감지 시스템 추가 (Broadcast Channel API)',
@@ -57,7 +57,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.21.1',
+        version: '2.44.5', // 2.44.2 + Patch 3
         date: '2025-12-27',
         changes: [
             '[Security] 보안 연락처 조회 기능 안정화 (.single() 쿼리 에러 수정)',
@@ -66,7 +66,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.21.0',
+        version: '2.44.2', // 2.43.5 + Minor 1 + Patch 2
         date: '2025-12-27',
         changes: [
             '[Today] 일회성 항목 수에 따른 정규 일정 자동 노출/숨김 필터링 도입',
@@ -75,7 +75,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.20.1',
+        version: '2.43.5', // 2.43.2 + Patch 3
         date: '2025-12-26',
         changes: [
             '[Social] 단체 카드 클릭 시 상세 정보 모달(Read-only) 분리 적용',
@@ -84,7 +84,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.20.0',
+        version: '2.43.2', // 2.42.14 + Minor 1 + Patch 2
         date: '2025-12-26',
         changes: [
             '[기능] 소셜 단체 이미지 4단계 리사이징 시스템 도입 (micro/thumb/med/full)',
@@ -93,7 +93,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.19.3',
+        version: '2.42.14', // 2.42.10 + Patch 4
         date: '2025-12-26',
         changes: [
             '[최적화] 소셜 모달 Z-Index 아키텍처 수립 (상세 15만, 수정 20만)',
@@ -103,7 +103,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.19.2',
+        version: '2.42.10', // 2.42.6 + Patch 4
         date: '2025-12-26',
         changes: [
             '[Fix] KST 기준 날짜 계산 로직 전면 개선 (새벽 시간대 오류 해결)',
@@ -113,7 +113,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.19.1',
+        version: '2.42.6', // 2.42.2 + Patch 4
         date: '2025-12-26',
         changes: [
             '[최적화] 소셜 모달 GPU 가속 및 하드웨어 최적화 (깜빡임 해결)',
@@ -123,7 +123,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.19.0',
+        version: '2.42.2', // 2.41.1 + Minor 1 + Patch 2
         date: '2025-12-26',
         changes: [
             '[기능] 익명 게시판 글쓰기 UX 개편 (하단 모달 방식 도입)',
@@ -132,7 +132,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.18.0',
+        version: '2.41.1', // 2.40.24 + Minor 1 + Patch 1
         date: '2025-12-25',
         changes: [
             '[기능] 소셜 단체 공동 관리 시스템 도입',
@@ -140,7 +140,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.17.5',
+        version: '2.40.24', // 2.40.20 + Patch 4
         date: '2025-12-25',
         changes: [
             '[Fix] TypeScript 타입 오류 수정 (Event 타입 정의 통일)',
@@ -150,7 +150,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.17.4',
+        version: '2.40.20', // 2.40.17 + Patch 3
         date: '2025-12-25',
         changes: [
             '[UX] 이미지 편집 로딩 경험 최적화 (반투명 오버레이, 직관적 텍스트)',
@@ -159,7 +159,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.17.3',
+        version: '2.40.17', // 2.40.13 + Patch 4
         date: '2025-12-25',
         changes: [
             '[최적화] 네트워크 전송량 최적화 (EventList 쿼리 개선, 정적 자산 압축)',
@@ -169,7 +169,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.17.2',
+        version: '2.40.13', // 2.40.9 + Patch 4
         date: '2025-12-25',
         changes: [
             '연습실 데이터 구조 혁신: venues 테이블 통합 완료',
@@ -179,7 +179,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.17.1',
+        version: '2.40.9', // 2.40.6 + Patch 3
         date: '2025-12-25',
         changes: [
             '익명 게시판 보안 강화: 좋아요/싫어요 로그인 전용 변경 & 중복 방지',
@@ -188,7 +188,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.17.0',
+        version: '2.40.6', // 2.40.3 + Patch 3
         date: '2025-12-25',
         changes: [
             '게시판 에디터 구조 개선 (일반/익명 분리)',
@@ -197,7 +197,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.16.0',
+        version: '2.40.3', // 2.39.3 + Minor 1 + Patch 3
         date: '2025-12-25',
         changes: [
             '게시판 컴포넌트 완전 분리: StandardPostList와 AnonymousPostList 물리적 격리',
@@ -207,7 +207,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.15.0',
+        version: '2.39.3', // 2.38.0 + Minor 1 + Patch 3
         date: '2025-12-24',
         changes: [
             'QuickMemoEditor UX 대대적 개편 (상단 고정 트리거 바, 프리미엄 애니메이션)',
@@ -217,14 +217,14 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.14.0',
+        version: '2.38.0', // 2.37.0 + Minor 1
         date: '2025-12-24',
         changes: [
             '이벤트 상세 모달에 실시간 전체 즐겨찾기 카운트(❤️ X) 표시'
         ]
     },
     {
-        version: '2.13.0',
+        version: '2.37.0', // 2.33.2 + Minor 4
         date: '2025-12-24',
         changes: [
             '강습/동호회 장르 필터 완전 분리: 각 섹션에 독립 탭 메뉴 추가',
@@ -234,7 +234,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.12.2',
+        version: '2.33.2', // 2.32.6 + Minor 1 + Patch 2
         date: '2025-12-24',
         changes: [
             'Google Analytics User ID 추적: 로그인 사용자를 여러 기기에서도 동일하게 인식',
@@ -243,7 +243,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.12.1',
+        version: '2.32.6', // 2.32.2 + Patch 4
         date: '2025-12-23',
         changes: [
             'UI 개선: 이미지 크롭 모달 버튼 최소 크기 설정',
@@ -253,7 +253,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.12.0',
+        version: '2.32.2', // 2.29.4 + Minor 3 + Patch 2
         date: '2025-12-23',
         changes: [
             '카테고리 체계 개편: 행사/강습/동호회 3단계로 확장',
@@ -264,7 +264,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.11.2',
+        version: '2.29.4', // 2.29.2 + Patch 2
         date: '2025-12-23',
         changes: [
             'UX 개선: 모바일 쉘 헤더 아이콘 및 레이아웃 최적화',
@@ -272,7 +272,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.11.1',
+        version: '2.29.2', // 2.28.0 + Minor 1 + Patch 2
         date: '2025-12-23',
         changes: [
             '분석: 이벤트 등록 및 수정 시 상세 트래킹 적용 (제목, ID)',
@@ -281,7 +281,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.11.0',
+        version: '2.28.0', // 2.26.1 + Minor 2
         date: '2025-12-23',
         changes: [
             '연습실 상세 모달 모바일 뒤로가기 제스처 지원',
@@ -289,7 +289,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: '2.10.0',
+        version: '2.26.1', // 2.25.1 + Minor 1 + Patch 1
         date: '2025-12-23',
         changes: [
             '정규일정(소셜) 모달 모바일 뒤로가기 제스처 지원',
@@ -297,7 +297,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.9.0",
+        version: "2.25.1", // 2.23.7 + Minor 2 + Patch 1
         date: "2025-12-23",
         changes: [
             "이미지 편집 기능 강화: 크롭 후 저장/되돌리기 및 원본 복원 지원",
@@ -306,7 +306,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.8.3",
+        version: "2.23.7", // 2.23.5 + Patch 2
         date: "2025-12-23",
         changes: [
             "버그 수정: 장소 선택 모달 오류 해결 (이벤트/소셜 수정)",
@@ -314,7 +314,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.8.2",
+        version: "2.23.5", // 2.23.1 + Patch 4
         date: "2025-12-23",
         changes: [
             "전역 모달 시스템 도입: 모든 모달을 중앙 집중식(Context API)으로 통합 관리",
@@ -324,7 +324,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.8.1",
+        version: "2.23.1", // 2.21.6 + Minor 2 + Patch 1
         date: "2025-12-22",
         changes: [
             "소셜 스케줄 링크 기능 추가 (링크 이름/URL 직접 입력)",
@@ -333,7 +333,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.8.0",
+        version: "2.21.6", // 2.20.4 + Minor 1 + Patch 6
         date: "2025-12-21",
         changes: [
             "장소 입력 탭 통합: '직접 입력'을 장소 선택 모달 내 탭으로 통합",
@@ -346,7 +346,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.7.2",
+        version: "2.20.4", // 2.20.0 + Patch 4
         date: "2025-12-21",
         changes: [
             "연습실 상세 모달 표시 오류 수정 (이중 모달 제거)",
@@ -356,7 +356,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.7.1",
+        version: "2.20.0", // 2.16.0 + Minor 4
         date: "2025-12-21",
         changes: [
             "연습실 즐겨찾기 기능 추가",
@@ -366,7 +366,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.7.0",
+        version: "2.16.0", // 2.13.2 + Minor 3
         date: "2025-12-21",
         changes: [
             "햄버거 메뉴 게시판 하위 메뉴 추가",
@@ -375,7 +375,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.6.0",
+        version: "2.13.2", // 2.12.0 + Minor 1 + Patch 2
         date: "2025-12-21",
         changes: [
             "게시판 개발일지 탭 추가 (버전 히스토리 표시)",
@@ -384,7 +384,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.5.0",
+        version: "2.12.0", // 2.9.3 + Minor 3
         date: "2025-12-21",
         changes: [
             "개발일지 자동 반영 시스템",
@@ -393,7 +393,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.4.0",
+        version: "2.9.3", // 2.8.3 + Minor 1 + Patch 3
         date: "2025-12-20",
         changes: [
             "즐겨찾기 게시판 적용",
@@ -403,7 +403,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.3.0",
+        version: "2.8.3", // 2.6.1 + Minor 2 + Patch 3
         date: "2025-12-19",
         changes: [
             "즐겨찾기 기능 추가 (행사)",
@@ -415,7 +415,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.2.0",
+        version: "2.6.1", // 2.3.1 + Minor 3 + Patch 1
         date: "2025-12-19",
         changes: [
             "카카오 공유 기능 추가",
@@ -425,7 +425,7 @@ export const changelogData: ChangelogVersion[] = [
         ]
     },
     {
-        version: "2.1.0",
+        version: "2.3.1", // 2.0.0 + Minor 3 + Patch 1
         date: "2025-12-19",
         changes: [
             "이벤트 등록 스피너 추가 (중복 클릭 방지)",
@@ -449,63 +449,6 @@ export const changelogData: ChangelogVersion[] = [
             "강습/행사 랜덤 표시",
             "배포 오류 시 자동 새로고침",
             "PWA 재배포"
-        ]
-    },
-    {
-        version: "1.9.0",
-        date: "2025-12-18",
-        changes: [
-            "댓글 기능 추가",
-            "신청 링크 UI 개선",
-            "햄버거 버튼 수정",
-            "CSS 개선",
-            "카카오 로그인 리다이렉트 변경",
-            "로그인 개선",
-            "동의 수정",
-            "게시판 수정",
-            "로그아웃 경고 개선",
-            "바텀 메뉴 스크롤 막기",
-            "헤더 찌그러짐 수정",
-            "헤더 밀림 방지"
-        ]
-    },
-    {
-        version: "1.8.0",
-        date: "2025-12-17",
-        changes: [
-            "구글 애널리틱스 추가",
-            "로컬 개발 통계 제외",
-            "검색 기능 수정",
-            "로그인 스피너 추가",
-            "안내 수정",
-            "하단 아이콘 수정",
-            "서비스 워커 문제 해결",
-            "생일 필수 항목 추가",
-            "개인정보 수정",
-            "iframe 허용 재배포",
-            "전체 달력 버튼 인덱스 해결",
-            "QR 경로 수정"
-        ]
-    },
-    {
-        version: "1.7.0",
-        date: "2025-12-16",
-        changes: [
-            "상품 상세 수정",
-            "UI 개선"
-        ]
-    },
-    {
-        version: "1.x",
-        date: "2025-11",
-        changes: [
-            "카카오 로그인 추가",
-            "카카오 맵 통합",
-            "QR 코드 컴포넌트",
-            "이미지 크롭 도구",
-            "이벤트 날짜 캘린더",
-            "비디오 임베딩",
-            "드래그 앤 드롭 개선"
         ]
     }
 ];
