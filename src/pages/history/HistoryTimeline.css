@@ -213,128 +213,151 @@
     font-weight: 500;
 }
 
+.react-flow__edge-textbg {
+    fill: #1f2937;
+    fill-opacity: 0.9;
+    rx: 4;
+    ry: 4;
+}
 
-/* Edge Modal */
+
+/* Edge Modal (Photoshop Style) */
 .edge-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.5);
+    /* Lighter dim for pro feel */
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 3000;
-    backdrop-filter: blur(4px);
 }
 
 .edge-modal-content {
-    background: rgba(17, 24, 39, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 24px;
-    width: 320px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-    animation: modalSlideUp 0.3s ease-out;
+    background: #323232;
+    /* Adobe Panel Gray */
+    border: 1px solid #1e1e1e;
+    border-radius: 4px;
+    /* Sharp corners */
+    padding: 16px;
+    /* Compact padding */
+    width: 280px;
+    /* Tighter width */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #e3e3e3;
+    animation: modalScaleIn 0.15s ease-out;
 }
 
 .edge-modal-content h3 {
-    margin: 0 0 20px 0;
-    color: #fff;
-    font-size: 18px;
+    margin: 0 0 12px 0;
+    color: #f0f0f0;
+    font-size: 13px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #454545;
+    padding-bottom: 8px;
 }
 
 .edge-input-group {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 
 .edge-input-group label {
     display: block;
-    color: #cbd5e1;
-    font-size: 13px;
-    margin-bottom: 8px;
+    color: #aaaaaa;
+    font-size: 11px;
+    margin-bottom: 4px;
 }
 
 .edge-input {
     width: 100%;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 10px;
-    color: #fff;
-    font-size: 14px;
+    background: #262626;
+    border: 1px solid #505050;
+    border-radius: 2px;
+    padding: 6px 8px;
+    color: #e3e3e3;
+    font-size: 13px;
     box-sizing: border-box;
 }
 
 .edge-input:focus {
     outline: none;
-    border-color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.1);
+    border-color: #0265D2;
+    /* Adobe Focus Blue */
 }
 
 .edge-Modal-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 4px;
 }
 
 .right-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
 .btn-delete-edge {
     background: transparent;
-    color: #ef4444;
-    border: none;
-    font-size: 13px;
+    color: #ff5f5f;
+    /* Softer red */
+    border: 1px solid transparent;
+    font-size: 11px;
     cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 4px 8px;
+    border-radius: 2px;
 }
 
 .btn-delete-edge:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: #3e3e3e;
+    color: #ff8080;
 }
 
 .btn-cancel {
-    background: transparent;
-    color: #9ca3af;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
+    background: #4a4a4a;
+    color: #d1d1d1;
+    border: 1px solid #3a3a3a;
+    padding: 4px 12px;
+    border-radius: 2px;
+    font-size: 12px;
     cursor: pointer;
+    transition: background 0.1s;
 }
 
 .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    background: #5a5a5a;
 }
 
 .btn-save-edge {
-    background: #8b5cf6;
+    background: #0265D2;
+    /* Adobe Blue */
     color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+    border: 1px solid #004cab;
+    padding: 4px 12px;
+    border-radius: 2px;
+    font-size: 12px;
     cursor: pointer;
     font-weight: 500;
 }
 
 .btn-save-edge:hover {
-    background: #7c3aed;
+    background: #0056b3;
 }
 
-@keyframes modalSlideUp {
+@keyframes modalScaleIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: scale(0.98);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(1);
     }
 }

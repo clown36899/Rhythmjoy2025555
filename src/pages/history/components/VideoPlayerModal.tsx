@@ -6,7 +6,7 @@ interface VideoPlayerModalProps {
     onClose: () => void;
 }
 
-export default function VideoPlayerModal({ youtubeUrl, onClose }: VideoPlayerModalProps) {
+export function VideoPlayerModal({ youtubeUrl, onClose }: VideoPlayerModalProps) {
     const videoInfo = parseVideoUrl(youtubeUrl);
 
     if (!videoInfo?.embedUrl) {

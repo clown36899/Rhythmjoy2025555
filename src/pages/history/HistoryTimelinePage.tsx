@@ -15,9 +15,11 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import HistoryNodeComponent from './components/HistoryNodeComponent';
 import DecadeNodeComponent from './components/DecadeNodeComponent';
-import NodeEditorModal from './components/NodeEditorModal';
-import VideoPlayerModal from './components/VideoPlayerModal';
+import { NodeEditorModal } from './components/NodeEditorModal';
+import { NodeDetailModal } from './components/NodeDetailModal';
+import { VideoPlayerModal } from './components/VideoPlayerModal';
 import './HistoryTimeline.css';
+import type { HistoryNodeData } from './types';
 
 // Custom node types
 const nodeTypes: NodeTypes = {
@@ -28,17 +30,6 @@ const nodeTypes: NodeTypes = {
 // Initial empty state
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
-
-interface HistoryNodeData {
-    id: number;
-    title: string;
-    date?: string;
-    year?: number;
-    description?: string;
-    youtube_url?: string;
-    category?: string;
-    tags?: string[];
-}
 
 export default function HistoryTimelinePage() {
     const navigate = useNavigate();
@@ -57,8 +48,73 @@ export default function HistoryTimelinePage() {
     const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
     const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    // Detail View State
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [viewingNode, setViewingNode] = useState<HistoryNodeData | null>(null);
     // Edge Management State
     const [edgeModalState, setEdgeModalState] = useState<{ isOpen: boolean, edge: Edge | null }>({ isOpen: false, edge: null });
+
+    // -- Handlers (Moved up for scope access) --
+
+    const handleUpdateEdge = async (newLabel: string) => {
+        const edge = edgeModalState.edge;
+        if (!edge) return;
+
+        try {
+            const { error } = await supabase
+                .from('history_edges')
+                .update({ label: newLabel })
+                .eq('id', parseInt(edge.id));
+
+            if (error) throw error;
+
+            setEdges((eds) => eds.map((e) => (e.id === edge.id ? { ...e, label: newLabel } : e)));
+            setEdgeModalState({ isOpen: false, edge: null });
+        } catch (error) {
+            console.error('Error updating edge:', error);
+            alert('수정 실패');
+        }
+    };
+
+    const handleDeleteEdge = async () => {
+        const edge = edgeModalState.edge;
+        if (!edge) return;
+
+        if (!window.confirm('정말 이 연결을 삭제하시겠습니까?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('history_edges')
+                .delete()
+                .eq('id', parseInt(edge.id));
+
+            if (error) throw error;
+
+            setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+            setEdgeModalState({ isOpen: false, edge: null });
+        } catch (error) {
+            console.error('Error deleting edge:', error);
+            alert('삭제 실패');
+        }
+    };
+
+    // Handle node editing
+    const handleEditNode = (nodeData: HistoryNodeData) => {
+        setEditingNode(nodeData);
+        setIsEditorOpen(true);
+    };
+
+    // Handle video playback
+    const handlePlayVideo = (url: string) => {
+        setPlayingVideoUrl(url);
+        setIsVideoPlayerOpen(true);
+    };
+
+    // Handle viewing details
+    const handleViewDetail = (nodeData: HistoryNodeData) => {
+        setViewingNode(nodeData);
+        setIsDetailOpen(true);
+    };
 
     // Load nodes and edges from database
     useEffect(() => {
@@ -125,6 +181,7 @@ export default function HistoryTimelinePage() {
                     category: node.category,
                     tags: node.tags,
                     onEdit: handleEditNode,
+                    onViewDetail: handleViewDetail,
                     onPlayVideo: handlePlayVideo,
                 },
             }));
@@ -138,7 +195,7 @@ export default function HistoryTimelinePage() {
                 target: String(edge.target_id),
                 label: edge.label,
                 type: 'smoothstep',
-                animated: true,
+                animated: false,
                 data: {
                     relationType: edge.relation_type,
                 },
@@ -211,7 +268,7 @@ export default function HistoryTimelinePage() {
                     target: connection.target!,
                     label: '',
                     type: 'smoothstep',
-                    animated: true,
+                    animated: false,
                 };
 
                 setEdges((eds) => addEdge(newEdge, eds));
@@ -231,60 +288,6 @@ export default function HistoryTimelinePage() {
         },
         [user]
     );
-
-    const handleUpdateEdge = async (newLabel: string) => {
-        const edge = edgeModalState.edge;
-        if (!edge) return;
-
-        try {
-            const { error } = await supabase
-                .from('history_edges')
-                .update({ label: newLabel })
-                .eq('id', parseInt(edge.id));
-
-            if (error) throw error;
-
-            setEdges((eds) => eds.map((e) => (e.id === edge.id ? { ...e, label: newLabel } : e)));
-            setEdgeModalState({ isOpen: false, edge: null });
-        } catch (error) {
-            console.error('Error updating edge:', error);
-            alert('수정 실패');
-        }
-    };
-
-    const handleDeleteEdge = async () => {
-        const edge = edgeModalState.edge;
-        if (!edge) return;
-
-        if (!window.confirm('정말 이 연결을 삭제하시겠습니까?')) return;
-
-        try {
-            const { error } = await supabase
-                .from('history_edges')
-                .delete()
-                .eq('id', parseInt(edge.id));
-
-            if (error) throw error;
-
-            setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-            setEdgeModalState({ isOpen: false, edge: null });
-        } catch (error) {
-            console.error('Error deleting edge:', error);
-            alert('삭제 실패');
-        }
-    };
-
-    // Handle node editing
-    const handleEditNode = (nodeData: HistoryNodeData) => {
-        setEditingNode(nodeData);
-        setIsEditorOpen(true);
-    };
-
-    // Handle video playback
-    const handlePlayVideo = (youtubeUrl: string) => {
-        setPlayingVideoUrl(youtubeUrl);
-        setIsVideoPlayerOpen(true);
-    };
 
     // Handle node creation
     const handleCreateNode = () => {
@@ -728,6 +731,22 @@ export default function HistoryTimelinePage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Node Detail Modal */}
+            {isDetailOpen && viewingNode && (
+                <NodeDetailModal
+                    nodeData={viewingNode}
+                    onClose={() => {
+                        setIsDetailOpen(false);
+                        setViewingNode(null);
+                    }}
+                    onEdit={() => {
+                        setIsDetailOpen(false);
+                        handleEditNode(viewingNode);
+                        setViewingNode(null);
+                    }}
+                />
             )}
         </div>
     );

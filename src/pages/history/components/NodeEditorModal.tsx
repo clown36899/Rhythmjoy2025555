@@ -9,7 +9,7 @@ interface NodeEditorModalProps {
     onClose: () => void;
 }
 
-export default function NodeEditorModal({ node, onSave, onDelete, onClose }: NodeEditorModalProps) {
+export function NodeEditorModal({ node, onSave, onDelete, onClose }: NodeEditorModalProps) {
     const [formData, setFormData] = useState({
         title: '',
         year: '',

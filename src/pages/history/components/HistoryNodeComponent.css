@@ -3,7 +3,6 @@
     border: 2px solid #8b5cf6;
     border-radius: 12px;
     width: 280px;
-    overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     transition: all 0.3s ease;
 }
@@ -60,22 +59,26 @@
 
 /* Content */
 .history-node-content {
-    padding: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.history-node-header {
+.node-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-    gap: 8px;
+    align-items: center;
+    margin-bottom: 4px;
 }
 
-.history-node-title-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
+.node-year {
+    font-size: 14px;
+    font-weight: 700;
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
 .history-node-badge {
@@ -87,97 +90,99 @@
     border-radius: 50%;
     color: white;
     font-size: 14px;
-    flex-shrink: 0;
 }
 
 .badge-genre {
-    background: rgba(99, 102, 241, 0.2);
-    color: #6366f1;
+    background: #6366f1;
 }
 
 .badge-person {
-    background: rgba(236, 72, 153, 0.2);
-    color: #ec4899;
+    background: #ec4899;
 }
 
 .badge-event {
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
+    background: #10b981;
 }
 
 .badge-music {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
+    background: #f59e0b;
 }
 
 .badge-place {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
+    background: #3b82f6;
 }
 
 .badge-general {
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
+    background: #8b5cf6;
 }
 
 .history-node-title {
     margin: 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
-    color: #f1f5f9;
-    line-height: 1.4;
-    flex: 1;
-}
-
-.history-node-edit-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 6px;
-    padding: 4px 8px;
-    color: #9ca3af;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-.history-node-edit-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
     color: #fff;
-}
-
-.history-node-date {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    color: #9ca3af;
-    margin-bottom: 8px;
-}
-
-.history-node-date i {
-    font-size: 14px;
+    line-height: 1.4;
 }
 
 .history-node-description {
     font-size: 13px;
-    color: #d1d5db;
-    line-height: 1.4;
-    margin: 0 0 8px 0;
+    color: #9ca3af;
+    margin: 0;
+    line-height: 1.5;
 }
 
-.history-node-tags {
+/* Footer Actions */
+.history-node-footer {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.history-node-tag {
-    font-size: 11px;
-    color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.1);
-    padding: 2px 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(139, 92, 246, 0.3);
+.node-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5e7eb;
+    z-index: 5;
+}
+
+.node-action-btn:hover {
+    transform: translateY(-2px);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Specific Button Styles */
+.btn-play:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-detail:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-edit:hover {
+    background: #4b5563;
+    color: white;
+}
+
+/* Selected State Override */
+.history-node.selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
 }
 
 /* ReactFlow Handles */
@@ -194,7 +199,7 @@
 
 /* Show handles when hovering the node */
 .history-node:hover .react-flow__handle {
-    opacity: 0.6;
+    opacity: 1;
 }
 
 /* Larger Hit Area */
@@ -208,12 +213,10 @@
     background: transparent;
     border-radius: 50%;
     z-index: 1;
-    /* Above everything else to capture clicks */
 }
 
 /* Active Handle State */
 .react-flow__handle:hover {
-    opacity: 1 !important;
     transform: scale(1.5);
     background: #6366f1;
     box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.3);

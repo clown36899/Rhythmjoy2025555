@@ -3,19 +3,7 @@ import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
 import './HistoryNodeComponent.css';
-
-interface HistoryNodeData {
-    id: number;
-    title: string;
-    date?: string;
-    year?: number;
-    description?: string;
-    youtube_url?: string;
-    category?: string;
-    tags?: string[];
-    onEdit?: (data: any) => void;
-    onPlayVideo?: (url: string) => void;
-}
+import type { HistoryNodeData } from '../types';
 
 function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
@@ -32,6 +20,13 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
         e.stopPropagation();
         if (data.onEdit) {
             data.onEdit(data);
+        }
+    };
+
+    const handleViewDetail = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onViewDetail) {
+            data.onViewDetail(data);
         }
     };
 
@@ -79,42 +74,38 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
 
             {/* Content */}
             <div className="history-node-content">
-                <div className="history-node-header">
-                    <div className="history-node-title-row">
+                <div className="node-header">
+                    <span className="node-year">{data.year || data.date}</span>
+                    {data.category && (
                         <span className={`history-node-badge badge-${data.category || 'general'}`}>
                             {getCategoryIcon(data.category || 'general')}
                         </span>
-                        <h3 className="history-node-title">{data.title}</h3>
-                    </div>
-                    <button className="history-node-edit-btn" onClick={handleEdit}>
-                        <i className="ri-edit-line"></i>
-                    </button>
+                    )}
                 </div>
 
-                {(data.year || data.date) && (
-                    <div className="history-node-date">
-                        <i className="ri-calendar-line"></i>
-                        {data.year || data.date}
-                    </div>
-                )}
+                <h3 className="history-node-title">{data.title}</h3>
 
                 {data.description && (
                     <p className="history-node-description">
-                        {data.description.length > 100
-                            ? data.description.substring(0, 100) + '...'
+                        {data.description.length > 60
+                            ? data.description.substring(0, 60) + '...'
                             : data.description}
                     </p>
                 )}
 
-                {data.tags && data.tags.length > 0 && (
-                    <div className="history-node-tags">
-                        {data.tags.slice(0, 3).map((tag, index) => (
-                            <span key={index} className="history-node-tag">
-                                #{tag}
-                            </span>
-                        ))}
-                    </div>
-                )}
+                <div className="history-node-footer">
+                    {data.youtube_url && (
+                        <button className="node-action-btn btn-play" onClick={handlePlayVideo} title="영상 재생">
+                            <i className="ri-youtube-fill"></i>
+                        </button>
+                    )}
+                    <button className="node-action-btn btn-detail" onClick={handleViewDetail} title="상세보기">
+                        <i className="ri-fullscreen-line"></i>
+                    </button>
+                    <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
+                        <i className="ri-edit-line"></i>
+                    </button>
+                </div>
             </div>
 
             <Handle type="source" position={Position.Bottom} />
