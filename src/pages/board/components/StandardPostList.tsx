@@ -169,9 +169,7 @@ export default function StandardPostList({
     return (
         <div className="board-posts-list standard-mode">
             <div className="standard-view">
-                {notices.map(renderPost)}
-
-                {/* Write Trigger Button - Placed between notices and regular posts */}
+                {/* Write Trigger Button - Placed at the very top */}
                 {onWriteClick && (
                     <div className="anonymous-write-trigger" onClick={onWriteClick} style={{ marginBottom: '16px' }}>
                         <div className="trigger-placeholder">
@@ -181,6 +179,7 @@ export default function StandardPostList({
                     </div>
                 )}
 
+                {notices.map(renderPost)}
                 {regularPosts.map(renderPost)}
             </div>
         </div>

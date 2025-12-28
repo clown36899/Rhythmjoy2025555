@@ -65,14 +65,15 @@ function RootApp() {
           console.error('Reload loop detected, stopping auto-reload.');
 
           // Emergency Cleanup: Unregister Service Worker & Clear Caches
-          if ('serviceWorker' in navigator) {
+          // Skip in development to avoid unnecessary operations
+          if (import.meta.env.PROD && 'serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(registrations => {
               for (const registration of registrations) {
                 registration.unregister();
               }
             });
           }
-          if ('caches' in window) {
+          if (import.meta.env.PROD && 'caches' in window) {
             caches.keys().then(keys => {
               keys.forEach(key => caches.delete(key));
             });
