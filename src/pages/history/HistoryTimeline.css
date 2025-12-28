@@ -2,17 +2,14 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100vh;
+    width: 100vw;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     background: #0f172a;
-    padding-top: 60px;
-    /* MobileShell header */
-    padding-bottom: 80px;
-    /* MobileShell bottom nav */
     box-sizing: border-box;
-    z-index: 5;
+    z-index: 2000;
+    /* Fullscreen overlay above entire app */
 }
 
 .history-timeline-header {
@@ -25,13 +22,73 @@
     backdrop-filter: blur(10px);
     z-index: 10;
     position: relative;
+    height: 60px;
+    /* Fixed height for consistent layout */
 }
 
+/* Back Button */
+.btn-back-board {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    margin-right: 12px;
+}
+
+.btn-back-board:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-back-board i {
+    font-size: 20px;
+}
+
+/* Title text */
 .history-timeline-header h1 {
     margin: 0;
     color: #fff;
-    font-size: 24px;
+    font-size: 20px;
+    /* Slightly smaller for mobile layout */
     font-weight: 600;
+    flex: 1;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-auto-layout {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: transparent;
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-auto-layout:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-auto-layout i {
+    font-size: 18px;
 }
 
 .btn-create-node {
@@ -62,9 +119,26 @@
 .history-timeline-canvas {
     flex: 1;
     position: relative;
-    height: calc(100vh - 60px - 60px - 100px);
-    /* viewport - header - timeline header - bottom nav */
-    min-height: 400px;
+    width: 100%;
+    height: 100%;
+    /* Fill remaining space */
+    background: #0f172a;
+    overflow: hidden;
+}
+
+/* Interaction States */
+.history-node {
+    transition: all 0.3s ease;
+}
+
+.dimmed-node {
+    transition: opacity 0.3s ease;
+}
+
+.highlighted-node {
+    z-index: 1000;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    transform: scale(1.05);
 }
 
 .history-timeline-loading {
@@ -139,6 +213,128 @@
     font-weight: 500;
 }
 
-.react-flow__edge-textbg {
-    fill: rgba(17, 24, 39, 0.95);
+
+/* Edge Modal */
+.edge-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    backdrop-filter: blur(4px);
+}
+
+.edge-modal-content {
+    background: rgba(17, 24, 39, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 24px;
+    width: 320px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    animation: modalSlideUp 0.3s ease-out;
+}
+
+.edge-modal-content h3 {
+    margin: 0 0 20px 0;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.edge-input-group {
+    margin-bottom: 24px;
+}
+
+.edge-input-group label {
+    display: block;
+    color: #cbd5e1;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.edge-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 10px;
+    color: #fff;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.edge-input:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.edge-Modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.right-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-delete-edge {
+    background: transparent;
+    color: #ef4444;
+    border: none;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+.btn-delete-edge:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.btn-cancel {
+    background: transparent;
+    color: #9ca3af;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.btn-save-edge {
+    background: #8b5cf6;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-save-edge:hover {
+    background: #7c3aed;
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

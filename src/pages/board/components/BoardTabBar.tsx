@@ -15,6 +15,7 @@ const DEFAULT_CATEGORIES = [
     { id: 'anonymous', label: '익명게시판', icon: 'ri-user-secret-line' },
     { id: 'trade', label: '양도/양수', icon: 'ri-exchange-line' },
     { id: 'notice', label: '건의/공지', icon: 'ri-megaphone-line' },
+    { id: 'history', label: '히스토리', icon: 'ri-history-line' },
     { id: 'market', label: '벼룩시장', icon: 'ri-store-2-line' },
 ];
 
@@ -63,6 +64,13 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     icon: getIconForCategory(item.code)
                 }));
 
+                // Add history tab
+                mapped.push({
+                    id: 'history',
+                    label: '히스토리',
+                    icon: 'ri-history-line'
+                });
+
                 // Add dev-log tab at the end (hardcoded, not from DB)
                 mapped.push({
                     id: 'dev-log',
@@ -107,6 +115,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
             case 'free': return 'ri-chat-1-line';
             case 'dev-log': return 'ri-code-box-line';
             case 'anonymous': return 'ri-user-secret-line';
+            case 'history': return 'ri-history-line';
             default: return 'ri-chat-3-line';
         }
     };

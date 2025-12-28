@@ -178,7 +178,7 @@ export default function EventList({
   const setSearchTerm = externalSetSearchTerm ?? setInternalSearchTerm;
 
   // Favorites Tab State
-  const [favoritesTab, setFavoritesTab] = useState<'events' | 'posts' | 'practice' | 'shops' | 'groups'>('events');
+  const [favoritesTab, setFavoritesTab] = useState<'events' | 'posts' | 'practice' | 'shops' | 'groups' | 'history'>('events');
 
   // selectedEvent removed - delegated to props
 

@@ -110,6 +110,10 @@ export default function BoardMainContainer() {
 
     // Handle Category Change
     const handleCategoryChange = (newCategory: BoardCategory) => {
+        if (newCategory === 'history') {
+            navigate('/history');
+            return;
+        }
         setSearchParams({ category: newCategory }, { replace: true });
     };
 
@@ -181,6 +185,7 @@ export default function BoardMainContainer() {
 
             if (data && data.length > 0) {
                 const mapped = data.map((item: any) => ({ id: item.code, label: item.name }));
+                mapped.push({ id: 'history', label: '히스토리' });
                 mapped.push({ id: 'dev-log', label: '개발일지' });
                 setCategories(mapped);
             }

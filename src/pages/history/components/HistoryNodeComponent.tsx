@@ -35,6 +35,17 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
         }
     };
 
+    const getCategoryIcon = (category: string) => {
+        switch (category) {
+            case 'genre': return <i className="ri-dancers-line"></i>;
+            case 'person': return <i className="ri-user-star-line"></i>;
+            case 'event': return <i className="ri-calendar-event-line"></i>;
+            case 'music': return <i className="ri-music-2-line"></i>;
+            case 'place': return <i className="ri-map-pin-line"></i>;
+            default: return <i className="ri-bookmark-line"></i>;
+        }
+    };
+
     const getCategoryColor = () => {
         switch (data.category) {
             case 'genre':
@@ -45,6 +56,8 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                 return '#10b981';
             case 'music':
                 return '#f59e0b';
+            case 'place':
+                return '#3b82f6';
             default:
                 return '#8b5cf6';
         }
@@ -67,7 +80,12 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             {/* Content */}
             <div className="history-node-content">
                 <div className="history-node-header">
-                    <h3 className="history-node-title">{data.title}</h3>
+                    <div className="history-node-title-row">
+                        <span className={`history-node-badge badge-${data.category || 'general'}`}>
+                            {getCategoryIcon(data.category || 'general')}
+                        </span>
+                        <h3 className="history-node-title">{data.title}</h3>
+                    </div>
                     <button className="history-node-edit-btn" onClick={handleEdit}>
                         <i className="ri-edit-line"></i>
                     </button>

@@ -67,16 +67,65 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 8px;
     margin-bottom: 8px;
+    gap: 8px;
+}
+
+.history-node-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.history-node-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.badge-genre {
+    background: rgba(99, 102, 241, 0.2);
+    color: #6366f1;
+}
+
+.badge-person {
+    background: rgba(236, 72, 153, 0.2);
+    color: #ec4899;
+}
+
+.badge-event {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.badge-music {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.badge-place {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.badge-general {
+    background: rgba(139, 92, 246, 0.2);
+    color: #8b5cf6;
 }
 
 .history-node-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #fff;
     margin: 0;
-    line-height: 1.3;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f1f5f9;
+    line-height: 1.4;
     flex: 1;
 }
 
@@ -133,12 +182,58 @@
 
 /* ReactFlow Handles */
 .react-flow__handle {
-    width: 10px;
-    height: 10px;
+    width: 14px;
+    height: 14px;
     background: #8b5cf6;
     border: 2px solid #fff;
+    border-radius: 50%;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0;
+    /* Hidden by default for clean look */
 }
 
+/* Show handles when hovering the node */
+.history-node:hover .react-flow__handle {
+    opacity: 0.6;
+}
+
+/* Larger Hit Area */
+.react-flow__handle::after {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border-radius: 50%;
+    z-index: 1;
+    /* Above everything else to capture clicks */
+}
+
+/* Active Handle State */
 .react-flow__handle:hover {
+    opacity: 1 !important;
+    transform: scale(1.5);
     background: #6366f1;
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.3);
+    z-index: 10;
+}
+
+/* Connection Line Preview */
+.react-flow__connection-path {
+    stroke: #8b5cf6;
+    stroke-width: 3;
+    stroke-dasharray: 5;
+    animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+    from {
+        stroke-dashoffset: 10;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
 }

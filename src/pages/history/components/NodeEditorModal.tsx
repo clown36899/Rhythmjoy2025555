@@ -5,10 +5,11 @@ import './NodeEditorModal.css';
 interface NodeEditorModalProps {
     node: any | null;
     onSave: (data: any) => void;
+    onDelete?: (id: number) => void;
     onClose: () => void;
 }
 
-export default function NodeEditorModal({ node, onSave, onClose }: NodeEditorModalProps) {
+export default function NodeEditorModal({ node, onSave, onDelete, onClose }: NodeEditorModalProps) {
     const [formData, setFormData] = useState({
         title: '',
         year: '',
@@ -50,6 +51,14 @@ export default function NodeEditorModal({ node, onSave, onClose }: NodeEditorMod
         };
 
         onSave(data);
+    };
+
+    const handleDelete = () => {
+        if (!node || !onDelete) return;
+
+        if (window.confirm('정말로 이 노드를 삭제하시겠습니까? 연결된 모든 관계도 함께 삭제될 수 있습니다.')) {
+            onDelete(node.id);
+        }
     };
 
     const videoInfo = formData.youtube_url ? parseVideoUrl(formData.youtube_url) : null;
@@ -147,12 +156,19 @@ export default function NodeEditorModal({ node, onSave, onClose }: NodeEditorMod
                     </div>
 
                     <div className="form-actions">
-                        <button type="button" className="btn-cancel" onClick={onClose}>
-                            취소
-                        </button>
-                        <button type="submit" className="btn-save">
-                            {node ? '수정' : '생성'}
-                        </button>
+                        {node && onDelete && (
+                            <button type="button" className="btn-delete" onClick={handleDelete}>
+                                삭제
+                            </button>
+                        )}
+                        <div className="form-actions-right">
+                            <button type="button" className="btn-cancel" onClick={onClose}>
+                                취소
+                            </button>
+                            <button type="submit" className="btn-save">
+                                {node ? '수정' : '생성'}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
