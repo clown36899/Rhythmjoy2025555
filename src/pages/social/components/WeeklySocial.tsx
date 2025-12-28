@@ -31,11 +31,6 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     isAdmin
 }) => {
     const [activeTab, setActiveTab] = useState<ViewTab>('weekly');
-    const [selectedDay, setSelectedDay] = useState<number>(() => {
-        const kstDay = getKSTDay();
-        // 월요일부터 시작하는 배열 인덱스로 변환 (월=0, ..., 일=6)
-        return kstDay === 0 ? 6 : kstDay - 1;
-    });
 
     const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -74,8 +69,52 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         });
     }, []);
 
+    const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+    // 초기 로드 시 데이터가 있으면 자동 선택
+    React.useEffect(() => {
+        if (selectedDay !== null) return; // 이미 선택됨
+        if (schedules.length === 0) return; // 데이터 대기
+
+        const kstDay = getKSTDay();
+        const todayIndex = kstDay === 0 ? 6 : kstDay - 1;
+        const todayDate = weekDates[todayIndex];
+
+        if (!todayDate) {
+            setSelectedDay(todayIndex);
+            return;
+        }
+
+        // 1. 오늘 일정 있으면 오늘 선택
+        const hasTodaySchedule = schedules.some(s =>
+            s.date && s.date.trim() === todayDate.isoDate
+        );
+
+        if (hasTodaySchedule) {
+            setSelectedDay(todayIndex);
+            return;
+        }
+
+        // 2. 가장 가까운 일정 찾기
+        const schedulesPerDay = weekDates.map(date => ({
+            day: date.day,
+            count: schedules.filter(s => s.date === date.isoDate).length,
+            distance: Math.abs(date.day - todayIndex)
+        }));
+
+        const daysWithSchedules = schedulesPerDay.filter(d => d.count > 0);
+
+        if (daysWithSchedules.length > 0) {
+            daysWithSchedules.sort((a, b) => a.distance - b.distance);
+            setSelectedDay(daysWithSchedules[0].day);
+        } else {
+            setSelectedDay(todayIndex); // 일정 없으면 오늘
+        }
+    }, [schedules, weekDates, selectedDay]);
+
     // [1] 금주의 일정 (날짜 지정 일정만 표시 - 정규 일정 제외)
     const displaySchedules = useMemo(() => {
+        if (selectedDay === null) return [];
         const target = weekDates[selectedDay];
         if (!target) return [];
 
@@ -107,9 +146,10 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         return grouped;
     }, [schedules]);
 
-    // [3] 날짜 일정 (전체일정)
+    // [3] 날짜 일정 (전체일정) - 오늘 포함 미래 일정만 표시
     const datedSchedulesSorted = useMemo(() => {
-        return schedules.filter(s => s.date)
+        const today = getLocalDateString();
+        return schedules.filter(s => s.date && s.date >= today)
             .sort((a, b) => {
                 const dateA = a.date || '';
                 const dateB = b.date || '';
@@ -208,17 +248,25 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             {activeTab === 'weekly' && (
                 <div className="tab-content-fade">
                     <div className="day-selector-v5">
-                        {weekDates.map((item) => (
-                            <button
-                                key={item.day}
-                                className={`day-btn-v5 ${selectedDay === item.day ? 'active' : ''}`}
-                                onClick={() => setSelectedDay(item.day)}
-                            >
-                                <span className="day-name">{item.name}</span>
-                                <span className="day-date">{item.dateNum}</span>
-                                {selectedDay === item.day && <div className="active-dot" />}
-                            </button>
-                        ))}
+                        {weekDates.map((item) => {
+                            const kstDay = getKSTDay();
+                            const todayIndex = kstDay === 0 ? 6 : kstDay - 1;
+                            const isToday = item.day === todayIndex;
+
+                            return (
+                                <button
+                                    key={item.day}
+                                    className={`day-btn-v5 ${selectedDay === item.day ? 'active' : ''}`}
+                                    onClick={() => setSelectedDay(item.day)}
+                                >
+                                    <span className="day-name" style={isToday ? { color: '#FFD700', fontWeight: 'bold' } : undefined}>
+                                        {isToday ? '오늘' : item.name}
+                                    </span>
+                                    <span className="day-date">{item.dateNum}</span>
+                                    {selectedDay === item.day && <div className="active-dot" />}
+                                </button>
+                            );
+                        })}
                     </div>
                     <div className="weekly-list">
                         {displaySchedules.length > 0 ? displaySchedules.map(renderScheduleItem) : (

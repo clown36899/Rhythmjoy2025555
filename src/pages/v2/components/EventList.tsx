@@ -3689,8 +3689,17 @@ export default function EventList({
               {clubLessons.length > 0 && (
                 <div className="evt-v2-section evt-v2-section-club-lessons">
                   <div className="evt-v2-section-title">
-                    <span>동호회 강습</span>
-                    <span className="evt-v2-count">{clubLessons.length}</span>
+                    <div>
+                      <span>동호회 강습</span>
+                      <span className="evt-v2-count">{clubLessons.length}</span>
+                    </div>
+                    <button
+                      className="evt-view-all-btn"
+                      onClick={() => navigate('/social')}
+                      aria-label="동호회 등록"
+                    >
+                      동호회 등록 ❯
+                    </button>
                   </div>
 
                   {allGenresStructured.club.length > 0 && (

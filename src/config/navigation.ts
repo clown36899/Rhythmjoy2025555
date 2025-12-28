@@ -32,7 +32,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-purple-500',
     },
     {
-        label: '소셜',
+        label: '소셜 /동호회',
         path: '/social',
         icon: 'ri-map-pin-line',
         iconFilled: 'ri-map-pin-fill',

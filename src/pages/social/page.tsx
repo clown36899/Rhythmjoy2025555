@@ -65,7 +65,7 @@ const SocialPage: React.FC = () => {
     const fetchTodayEvents = async () => {
       const { data } = await supabase
         .from('events')
-        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at, category')
+        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at, category, event_dates')
         .or(`start_date.eq.${today},date.eq.${today}`);
 
       if (data) {
@@ -96,7 +96,7 @@ const SocialPage: React.FC = () => {
 
       const { data } = await supabase
         .from('events')
-        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at, category')
+        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at, category, event_dates')
         .gte('start_date', weekStartStr)
         .lte('start_date', weekEndStr)
         .neq('category', 'class')
@@ -186,18 +186,16 @@ const SocialPage: React.FC = () => {
 
   // Merge this week's events with schedules for WeeklySocial
   const schedulesWithEvents = useMemo(() => {
-    const convertedEvents = eventsThisWeek.map(e => {
+    const convertedEvents = eventsThisWeek.flatMap(e => {
       const mediumImage = e.image_medium ||
         (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
           ? e.image.replace('/event-posters/full/', '/event-posters/medium/')
           : e.image);
 
-      return {
+      const baseEvent = {
         id: e.id,
         group_id: -1, // 행사 구분을 위한 플래그
         title: e.title,
-        date: e.start_date || e.date,
-        start_time: e.time,
         description: e.description,
         image_url: e.image,
         image_micro: e.image_micro || e.image,
@@ -208,7 +206,23 @@ const SocialPage: React.FC = () => {
         user_id: e.user_id,
         created_at: e.created_at,
         updated_at: e.created_at,
-      } as SocialSchedule;
+      };
+
+      // 다중 일정이 있는 경우 (각 일정별로 분리해서 생성)
+      if (e.event_dates && Array.isArray(e.event_dates) && e.event_dates.length > 0) {
+        return e.event_dates.map((dateStr: string) => ({
+          ...baseEvent,
+          date: dateStr,
+          start_time: e.time, // 시간은 공통 시간 사용
+        } as SocialSchedule));
+      }
+
+      // 단일 일정인 경우
+      return [{
+        ...baseEvent,
+        date: e.start_date || e.date,
+        start_time: e.time,
+      } as SocialSchedule];
     });
 
     return [...schedules, ...convertedEvents];

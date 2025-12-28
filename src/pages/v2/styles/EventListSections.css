@@ -43,6 +43,7 @@
 /* Section Title */
 .evt-v2-section-title {
     display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: 8px;
     padding: 8px 13px 8px 15px;
@@ -50,6 +51,12 @@
     font-weight: 600;
     color: #fff;
     /* border-top: 1px solid #2d2d2d; */
+}
+
+.evt-v2-section-title>div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .evt-v2-section-title i {
