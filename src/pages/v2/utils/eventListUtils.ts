@@ -18,6 +18,7 @@ export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'or
     storage_path?: string | null;
     genre?: string | null;
     event_dates?: string[];
+    is_class?: boolean | null;
 }
 
 export interface GenreWeightSettings {

@@ -814,9 +814,11 @@ export default function EventList({
       return hasDate && s.date === todayStr;
     });
 
-    // 2. 오늘 날짜의 이벤트 행사들 (소셜 스케줄 포맷으로 변환)
+    // 2. 오늘 날짜의 이벤트 행사들 (소셜 스케줄 포맷으로 변환) - 강습 제외
     const eventsToday = events.filter(e => {
       const eventDate = e.start_date || e.date;
+      // 강습(category === 'class' 또는 'club')은 제외
+      if (e.category === 'class' || e.category === 'club') return false;
       return eventDate === todayStr;
     }).map(e => {
       // Derive medium path from full path if needed
@@ -877,12 +879,14 @@ export default function EventList({
     const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
     const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
 
-    // Get this week's events (excluding today)
+    // Get this week's events (excluding today) - 강습 제외
     const eventsThisWeek = events.filter(e => {
       const eventDate = e.start_date || e.date;
       if (!eventDate) return false;
       if (eventDate <= todayStr) return false; // Exclude today and past
       if (eventDate < weekStartStr || eventDate > weekEndStr) return false; // Must be within this week
+      // 강습(category === 'class' 또는 'club')은 제외
+      if (e.category === 'class' || e.category === 'club') return false;
       return true;
     }).map(e => {
       // Derive medium path from full path if needed
@@ -1689,8 +1693,9 @@ export default function EventList({
       return true;
     });
 
-    // Use the improved random sorting
-    const sortedResult = sortEvents(result, 'random');
+    // 행사 전체보기 모드일 때는 시간순, 그 외에는 랜덤
+    const sortType = sectionViewMode === 'viewAll-events' ? 'time' : 'random';
+    const sortedResult = sortEvents(result, sortType);
 
     // 4. 방금 등록된 이벤트(highlightEvent)가 있으면 맨 앞으로 정렬
     if (highlightEvent?.id) {
@@ -1702,7 +1707,7 @@ export default function EventList({
     }
 
     return sortedResult;
-  }, [events, highlightEvent, selectedEventGenre]);
+  }, [events, highlightEvent, selectedEventGenre, sectionViewMode]);
 
   // 진행중인 강습 (Future Classes - Horizontal Scroll)
   // Category: 'class'
@@ -3778,67 +3783,6 @@ export default function EventList({
                 </div>
               )}
 
-              {/* Section 3: 동호회 강습 (Horizontal Scroll) */}
-              {clubLessons.length > 0 && (
-                <div className="evt-v2-section evt-v2-section-club-lessons">
-                  <div className="evt-v2-section-title">
-                    <span>동호회 강습</span>
-                    <span className="evt-v2-count">{clubLessons.length}</span>
-                  </div>
-
-                  {allGenresStructured.club.length > 0 && (
-                    <div className="evt-genre-tab-container">
-                      <button
-                        onClick={() => {
-                          const params = new URLSearchParams(searchParams);
-                          params.delete('club_genre');
-                          setSearchParams(params);
-                        }}
-                        className={`evt-genre-tab ${!selectedClubGenre ? 'active' : ''}`}
-                      >
-                        전체
-                      </button>
-                      {allGenresStructured.club.map(genre => (
-                        <button
-                          key={genre}
-                          onClick={() => {
-                            const params = new URLSearchParams(searchParams);
-                            params.set('club_genre', genre);
-                            setSearchParams(params);
-                          }}
-                          className={`evt-genre-tab ${selectedClubGenre === genre ? 'active' : ''}`}
-                        >
-                          {genre}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <HorizontalScrollNav>
-                    <div className="evt-v2-horizontal-scroll">
-                      <div className="evt-spacer-5"></div>
-                      {clubLessons.map(event => (
-                        <EventCard
-                          key={event.id}
-                          event={event}
-                          onClick={() => handleEventClick(event)}
-                          onMouseEnter={onEventHover}
-                          onMouseLeave={() => onEventHover?.(null)}
-                          isHighlighted={highlightEvent?.id === event.id}
-                          selectedDate={selectedDate}
-                          defaultThumbnailClass={defaultThumbnailClass}
-                          defaultThumbnailEvent={defaultThumbnailEvent}
-                          variant="sliding"
-                          hideGenre={true}
-                          isFavorite={effectiveFavoriteIds.has(event.id)}
-                          onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                        />
-                      ))}
-                      <div className="evt-spacer-11"></div>
-                    </div>
-                  </HorizontalScrollNav>
-                </div>
-              )}
 
               {/* Section: My Favorites (Below Ongoing Classes) - Only show if favorites exist AND we are NOT in view=favorites mode (already handled above) */}
               {favoriteEventsList.length > 0 && searchParams.get('view') !== 'favorites' && (
