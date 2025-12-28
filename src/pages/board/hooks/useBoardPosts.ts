@@ -8,9 +8,10 @@ interface UseBoardPostsProps {
     postsPerPage: number;
     isAdminChecked: boolean;
     isRealAdmin: boolean;
+    prefixId?: number | null;
 }
 
-export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAdmin }: UseBoardPostsProps) {
+export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAdmin, prefixId }: UseBoardPostsProps) {
     const [posts, setPosts] = useState<BoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -42,6 +43,10 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
             if (!isAnon) {
                 query = query.eq('category', category);
+
+                if (prefixId) {
+                    query = query.eq('prefix_id', prefixId);
+                }
             }
 
             // Sorting: Notices first, then custom order (pinning), then latest
@@ -100,7 +105,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
         } finally {
             setLoading(false);
         }
-    }, [category, isAdminChecked, isRealAdmin]);
+    }, [category, isAdminChecked, isRealAdmin, prefixId]);
 
     // Initial load
     useEffect(() => {

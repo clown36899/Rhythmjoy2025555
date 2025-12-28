@@ -171,6 +171,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     >
                         <i className={`${cat.icon} board-tab-icon`}></i>
                         <span className="board-tab-label">{cat.label}</span>
+                        {cat.id === 'history' && <span className="tab-wip-badge">제작중</span>}
                     </button>
                 ))}
                 <div

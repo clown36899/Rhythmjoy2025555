@@ -62,3 +62,19 @@
     pointer-events: none;
     /* Transition and visibility are precision-controlled via React inline styles */
 }
+
+.tab-wip-badge {
+    position: absolute;
+    top: 2px;
+    right: -2px;
+    background: #ef4444;
+    /* Red-500 */
+    color: white;
+    font-size: 0.55rem;
+    padding: 1px 3px;
+    border-radius: 3px;
+    line-height: 1;
+    font-weight: 700;
+    white-space: nowrap;
+    z-index: 10;
+}

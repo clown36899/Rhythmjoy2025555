@@ -1,5 +1,6 @@
 // import { useNavigate } from 'react-router-dom';
-// import { supabase } from '../../../lib/supabase';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../../lib/supabase';
 // import { useAuth } from '../../../contexts/AuthContext';
 // import { getAvatarStyle } from '../../../utils/avatarUtils'; // Removed due to resolution issue
 import type { StandardBoardPost } from '../../../types/board';
@@ -37,9 +38,11 @@ interface StandardPostListProps {
     dislikedPostIds?: Set<number>;
     onToggleDislike?: (postId: number) => void;
     favoritedPostIds?: Set<number>; // Added for favorites
-    onToggleFavorite?: (postId: number) => void; // Added for favorites
+    onToggleFavorite?: (postId: number) => void;
     isAdmin: boolean;
     onWriteClick?: () => void;
+    selectedPrefixId?: number | null;
+    onPrefixChange?: (prefixId: number | null) => void;
 }
 
 export default function StandardPostList({
@@ -50,8 +53,28 @@ export default function StandardPostList({
     onToggleLike,
     onToggleFavorite,
     isAdmin,
-    onWriteClick
+    onWriteClick,
+    selectedPrefixId,
+    onPrefixChange,
+    category
 }: StandardPostListProps) {
+    const [prefixes, setPrefixes] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchPrefixes = async () => {
+            if (!category) return;
+            const { data } = await supabase
+                .from('board_prefixes')
+                .select('*')
+                .eq('board_category', category)
+                .order('id', { ascending: true });
+
+            if (data) setPrefixes(data);
+            else setPrefixes([]);
+        };
+        fetchPrefixes();
+    }, [category]);
+
     const truncateText = (text: string, maxLength: number) => {
         if (!text) return '';
         return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
@@ -169,9 +192,10 @@ export default function StandardPostList({
     return (
         <div className="board-posts-list standard-mode">
             <div className="standard-view">
+
                 {/* Write Trigger Button - Placed at the very top */}
                 {onWriteClick && (
-                    <div className="anonymous-write-trigger" onClick={onWriteClick} style={{ marginBottom: '16px' }}>
+                    <div className="anonymous-write-trigger" onClick={onWriteClick} style={{ marginBottom: '8px' }}>
                         <div className="trigger-placeholder">
                             <i className="ri-edit-2-fill"></i>
                             <span>자유롭게 글을 남겨보세요...</span>

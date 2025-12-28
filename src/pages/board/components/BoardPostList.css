@@ -1,4 +1,39 @@
-/* BoardPostList.css - Modern Sleek Style for Anonymous Board */
+/* Prefix Filter Tabs */
+.board-prefix-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    scrollbar-width: none;
+}
+
+.board-prefix-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.board-prefix-tab {
+    background: transparent;
+    border: none;
+    padding: 10px 16px;
+    color: #9ca3af;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.board-prefix-tab:hover {
+    color: #d1d5db;
+}
+
+.board-prefix-tab.active {
+    color: #fff;
+    font-weight: 700;
+    border-bottom-color: #fff;
+}
 
 /* CSS Variables for Memo Theme (Scoped to Anonymous Mode) */
 .anonymous-mode {

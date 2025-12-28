@@ -1,0 +1,48 @@
+.board-prefix-tab-bar {
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 650px;
+    z-index: 39;
+    background: #000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0;
+    height: 47px;
+}
+
+.board-prefix-scroller {
+    display: flex;
+    overflow-x: auto;
+    padding: 4px 16px;
+    gap: 6px;
+    scrollbar-width: none;
+    height: 100%;
+    align-items: center;
+}
+
+.board-prefix-scroller::-webkit-scrollbar {
+    display: none;
+}
+
+.board-prefix-item {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    padding: 4px 12px;
+    color: #6b7280;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.board-prefix-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-weight: 600;
+    border-color: rgba(255, 255, 255, 0.2);
+}

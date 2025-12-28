@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
+import BoardPrefixTabBar from './components/BoardPrefixTabBar';
 import AnonymousPostList from './components/AnonymousPostList';
 import StandardPostList from './components/StandardPostList';
 import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board';
@@ -30,6 +31,22 @@ export default function BoardMainContainer() {
     const category = (searchParams.get('category') as BoardCategory) || 'free';
     const selectedPostId = searchParams.get('postId');
     const [postsPerPage] = useState(10);
+    const [selectedPrefixId, setSelectedPrefixId] = useState<number | null>(null);
+    const [prefixes, setPrefixes] = useState<any[]>([]);
+
+    // Fetch prefixes
+    useEffect(() => {
+        const fetchPrefixes = async () => {
+            const { data } = await supabase
+                .from('board_prefixes')
+                .select('*')
+                .eq('board_category_code', category)
+                .order('id', { ascending: true });
+
+            setPrefixes(data || []);
+        };
+        fetchPrefixes();
+    }, [category]);
 
     // Ensure category is always in URL to prevent back navigation issues
     useEffect(() => {
@@ -44,6 +61,12 @@ export default function BoardMainContainer() {
     const [showAdminMenu, setShowAdminMenu] = useState(false);
     const [isManagementOpen, setIsManagementOpen] = useState(false);
     const [isPrefixManagementOpen, setIsPrefixManagementOpen] = useState(false);
+
+    // Reset pagination and filter when category changes
+    useEffect(() => {
+        setCurrentPage(1);
+        setSelectedPrefixId(null);
+    }, [category]);
 
     // Admin Status Check
     useEffect(() => {
@@ -90,7 +113,8 @@ export default function BoardMainContainer() {
         category,
         postsPerPage,
         isAdminChecked,
-        isRealAdmin
+        isRealAdmin,
+        prefixId: selectedPrefixId
     });
 
     const {
@@ -229,11 +253,20 @@ export default function BoardMainContainer() {
                 onCategoryChange={handleCategoryChange}
             />
 
+            {prefixes.length > 0 && (
+                <BoardPrefixTabBar
+                    prefixes={prefixes}
+                    selectedPrefixId={selectedPrefixId}
+                    onPrefixChange={setSelectedPrefixId}
+                />
+            )}
+
             <div
                 className="board-posts-container"
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
+                style={{ paddingTop: prefixes.length > 0 ? '72px' : '60px' }}
             >
                 {category === 'anonymous' && (
                     <>
@@ -278,6 +311,8 @@ export default function BoardMainContainer() {
                         onToggleDislike={handleToggleDislike}
                         isAdmin={isRealAdmin}
                         onWriteClick={() => editorModal.open()}
+                        selectedPrefixId={selectedPrefixId}
+                        onPrefixChange={setSelectedPrefixId}
                     />
                 )}
 
