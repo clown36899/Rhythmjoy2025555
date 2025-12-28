@@ -46,6 +46,9 @@ const EventPhotoFinderPage = lazy(() => import("../pages/event-photo-finder/page
 const MyActivitiesPage = lazy(() => import('../pages/user/MyActivitiesPage'));
 const DebugLogPage = lazy(() => import('../pages/DebugLogPage'));
 
+export const prefetchHistoryTimelinePage = () => import('../pages/history/HistoryTimelinePage');
+const HistoryTimelinePage = lazy(prefetchHistoryTimelinePage);
+
 export const routes: RouteObject[] = [
     {
         element: <MobileShell />,
@@ -67,6 +70,7 @@ export const routes: RouteObject[] = [
             { path: '/auth/kakao-callback', element: <KakaoCallbackPage /> },
             { path: '/my-activities', element: <MyActivitiesPage /> },
             { path: '/debug', element: <DebugLogPage /> },
+            { path: '/history', element: <HistoryTimelinePage /> },
         ],
     },
     {

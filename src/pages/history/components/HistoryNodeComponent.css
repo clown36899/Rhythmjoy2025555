@@ -1,0 +1,144 @@
+.history-node {
+    background: rgba(17, 24, 39, 0.95);
+    border: 2px solid #8b5cf6;
+    border-radius: 12px;
+    width: 280px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.history-node:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 40px rgba(139, 92, 246, 0.4);
+}
+
+/* Thumbnail */
+.history-node-thumbnail {
+    position: relative;
+    width: 100%;
+    height: 160px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #1f2937;
+}
+
+.history-node-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.history-node-thumbnail:hover img {
+    transform: scale(1.05);
+}
+
+.history-node-play-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.history-node-thumbnail:hover .history-node-play-overlay {
+    opacity: 1;
+}
+
+.history-node-play-overlay i {
+    font-size: 48px;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+/* Content */
+.history-node-content {
+    padding: 12px;
+}
+
+.history-node-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.history-node-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    line-height: 1.3;
+    flex: 1;
+}
+
+.history-node-edit-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.history-node-edit-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.history-node-date {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+.history-node-date i {
+    font-size: 14px;
+}
+
+.history-node-description {
+    font-size: 13px;
+    color: #d1d5db;
+    line-height: 1.4;
+    margin: 0 0 8px 0;
+}
+
+.history-node-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.history-node-tag {
+    font-size: 11px;
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+/* ReactFlow Handles */
+.react-flow__handle {
+    width: 10px;
+    height: 10px;
+    background: #8b5cf6;
+    border: 2px solid #fff;
+}
+
+.react-flow__handle:hover {
+    background: #6366f1;
+}
