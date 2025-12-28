@@ -1,3 +1,4 @@
+import React from 'react';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
 import './VideoPlayerModal.css';
 
@@ -6,7 +7,7 @@ interface VideoPlayerModalProps {
     onClose: () => void;
 }
 
-export function VideoPlayerModal({ youtubeUrl, onClose }: VideoPlayerModalProps) {
+export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ youtubeUrl, onClose }) => {
     const videoInfo = parseVideoUrl(youtubeUrl);
 
     if (!videoInfo?.embedUrl) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
 import './NodeEditorModal.css';
 
@@ -9,7 +9,7 @@ interface NodeEditorModalProps {
     onClose: () => void;
 }
 
-export function NodeEditorModal({ node, onSave, onDelete, onClose }: NodeEditorModalProps) {
+export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, onDelete, onClose }) => {
     const [formData, setFormData] = useState({
         title: '',
         year: '',

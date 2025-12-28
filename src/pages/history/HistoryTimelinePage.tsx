@@ -40,6 +40,7 @@ export default function HistoryTimelinePage() {
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [isAutoLayout, setIsAutoLayout] = useState(false);
     const originalPositions = useRef<Map<string, { x: number, y: number }>>(new Map());
+    const originalEdges = useRef<Edge[]>([]);
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
     const previousViewport = useRef({ x: 0, y: 0, zoom: 1 });
 
@@ -144,6 +145,30 @@ export default function HistoryTimelinePage() {
             selectable: false,
             zIndex: -1
         }));
+    };
+
+    // Helper to generate spine edges between year markers
+    const generateYearSpineEdges = (markers: Node[]): Edge[] => {
+        const sortedMarkers = [...markers].sort((a, b) => a.position.y - b.position.y);
+        const spineEdges: Edge[] = [];
+
+        for (let i = 0; i < sortedMarkers.length - 1; i++) {
+            const source = sortedMarkers[i];
+            const target = sortedMarkers[i + 1];
+            spineEdges.push({
+                id: `spine-${source.id}-${target.id}`,
+                source: source.id,
+                target: target.id,
+                type: 'straight',
+                animated: false,
+                style: {
+                    stroke: 'rgba(139, 92, 246, 0.3)',
+                    strokeWidth: 6,
+                },
+                zIndex: -2,
+            });
+        }
+        return spineEdges;
     };
 
     const loadTimeline = async () => {
@@ -551,9 +576,15 @@ export default function HistoryTimelinePage() {
 
                 // 3. Generate Visual Markers (Client-side only)
                 const markers = generateYearMarkers(layoutNodes);
+                const spineEdges = generateYearSpineEdges(markers);
 
                 // 4. Update State 
                 setNodes([...layoutNodes, ...markers]);
+
+                // Save edges and add spine
+                originalEdges.current = edges;
+                setEdges([...edges, ...spineEdges]);
+
                 setIsAutoLayout(true);
 
             } catch (error) {
@@ -576,6 +607,11 @@ export default function HistoryTimelinePage() {
                 });
 
             setNodes(restoredNodes);
+
+            // Restore edges (remove spine)
+            if (originalEdges.current.length > 0) {
+                setEdges(originalEdges.current);
+            }
 
             // Restore previous viewport (zoom/pan)
             if (rfInstance) {
