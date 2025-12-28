@@ -66,7 +66,7 @@ export default function StandardPostList({
             const { data } = await supabase
                 .from('board_prefixes')
                 .select('*')
-                .eq('board_category', category)
+                .eq('board_category_code', category)
                 .order('id', { ascending: true });
 
             if (data) setPrefixes(data);
